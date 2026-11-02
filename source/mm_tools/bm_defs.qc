@@ -1,0 +1,232 @@
+/*
+================
+BAKERSFIELD LAN RULES - definitions (Combat+ only)
+
+bm_reload.qc	magazines and reloading for every gun
+bm_match.qc		spawn protection, self-damage, regen tuning, score rules, map playlist, HUD stats
+underdog.qc		frag-gap catch-up: the leader lights up, last place gets boosts
+
+Compiled right after funguns_defs.qc so everything below can call into the later files.
+All tuning is cvars (autocvar_bm_*); the defaults here are what you get without a cfg.
+================
+*/
+
+// ---------------------------------------------------------------- tuning (cvars)
+var float	autocvar_bm_reload			= 1;		// 0 = stock Combat+ ammo
+var float	autocvar_bm_mag_scale		= 1;		// magazine sizes x this
+var float	autocvar_bm_reload_scale	= 1;		// reload times x this
+var float	autocvar_bm_holster			= 0.25;		// holstered guns refill at this fraction of the held reload speed
+var float	autocvar_bm_idle_reload		= 2.5;		// seconds without firing before a part-empty gun tops itself up
+
+var float	autocvar_bm_selfdamage		= 0.6;		// self-inflicted damage x this (on top of the stock 0.5 splash halving)
+var float	autocvar_bm_rocketself		= 0.4;		// your own rockets' self-damage x this as well (0.4 = 60% less)
+var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
+var float	autocvar_bm_spawnnear		= 800;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
+var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
+var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
+var float	autocvar_bm_regen_delay		= 5;		// seconds after the last hit before health comes back
+var float	autocvar_bm_regen_rate		= 10;		// health per second
+var float	autocvar_bm_armor_regen		= 1;		// 0 = armor never comes back
+var float	autocvar_bm_armor_rate		= 1;		// armor per second, slow; up to 4x that when you are well behind; none in first place
+var float	autocvar_bm_intermission	= 10;		// deathmatch intermission seconds before the next map loads by itself
+var float	autocvar_bm_botfill			= 0;		// keep adding FrikBots until there are this many players
+var float	autocvar_bm_botfill_empty	= 0;		// 1 = fill even with nobody connected (testing)
+var float	autocvar_bm_vote			= 1;		// 1 = players can vote on the map ("vote map fox" in chat, then vote yes / vote no)
+var float	autocvar_bm_votetime		= 30;		// seconds a vote stays open
+var float	autocvar_bm_votecool		= 60;		// seconds before the same player can call another vote
+var float	autocvar_bm_debug			= 0;		// 1 = print every player's magazine / reload / frag-gap state every 2 s
+var float	autocvar_bm_warmup			= 0;		// set by warmup.cfg: shows the "press F1" hint
+
+var float	autocvar_bm_handicap		= 1;		// 0 = no leader glow / underdog boosts
+var float	autocvar_bm_bounty			= 1;		// killing someone 4+ frags ahead of the pack is worth +1
+var float	autocvar_bm_newbie			= 0.3;		// chance that killing the player in last place plays funny/newbie.wav (0 = never)
+var float	autocvar_bm_giantslayer		= 1;		// max extra damage an underdog deals to players ranked above them
+var float	autocvar_bm_ud_resist		= 0.35;		// max cut in the damage an underdog takes from players ranked above them
+var float	autocvar_bm_ud_span			= 8;		// frags behind the leader for the full gap signal in a 1v1 (tighter with more players)
+var float	autocvar_bm_ud_streak		= 7;		// deaths in a row for Last Stand with 3-5 players (+1 in a 1v1, -1 at 6+, -2 at 10+)
+var float	autocvar_bm_ud_botcap		= 0.6;		// bots' boost stops here and they never get Last Stand
+var float	autocvar_bm_spawnarmor		= 100;		// green armor every deathmatch spawn (0 = none, like stock Quake)
+var float	autocvar_bm_ud_yellow		= 0.3;		// boost for spawning with yellow armor (150)
+var float	autocvar_bm_ud_red			= 0.6;		// boost for spawning with red armor (200)
+
+var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer (bm_fun.qc): no first blood, sprees, revenge, clips
+var float	autocvar_bm_fun_gap			= 3;		// seconds between two announcer clips
+var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
+var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
+var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
+
+// ---------------------------------------------------------------- magazines
+// slot numbers (bm_reload.qc), 0 = no magazine (axe, chainsaw, banana)
+float	BM_SG		= 1;
+float	BM_SSG		= 2;
+float	BM_NG		= 3;
+float	BM_SNG		= 4;
+float	BM_GL		= 5;
+float	BM_RL		= 6;
+float	BM_LG		= 7;
+float	BM_LASER	= 8;
+float	BM_MM		= 9;
+float	BM_FG1		= 10;
+float	BM_FG2		= 11;
+float	BM_FG3		= 12;
+float	BM_FG4		= 13;
+float	BM_FG5		= 14;
+float	BM_FG6		= 15;
+float	BM_SLOTS	= 15;
+
+float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
+
+float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
+
+.float	bm_m1, bm_m2, bm_m3, bm_m4, bm_m5, bm_m6, bm_m7, bm_m8;		// stock gun magazines (ammo units)
+.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15;	// holstered refill, fractional
+.float	bm_init;			// magazines have been filled since connecting
+.float	bm_slot;			// slot whose magazine is in the ammo_* field right now
+.float	bm_shown_s, bm_shown_n, bm_shown_r, bm_shown_c;		// what we last wrote to ammo_*, to spot pickups
+.float	bm_rl_slot;			// slot being reloaded (0 = none)
+.float	bm_rl_start;		// reload started
+.float	bm_rl_end;			// reload finishes
+.float	bm_vm_hidden;		// the gun is out of sight while it reloads: the slot being reloaded (0 = in view)
+.string	bm_vm_str;			// the held gun's model, put back when the reload is over (a strzone'd copy)
+.float	bm_lastshot;		// last time the held magazine went down
+.float	bm_lastframe;		// last BM_Frame time (holster refill dt)
+.float	bm_ssgburst;		// QC super shotgun: 15 = one barrel left (was a global shared by everyone)
+
+// HUD stats (addstat, read by csprogs.dat)
+.float	bm_st_mag;			// held magazine (rounds)
+.float	bm_st_magmax;		// held magazine size (rounds)
+.float	bm_st_reload;		// reload progress 1..100, 0 = not reloading
+.float	bm_st_prot;			// spawn protection left, tenths of a second
+.float	bm_st_heat;			// your lead over the pack (leader effects)
+.float	bm_st_boost;		// your underdog boost 0..100
+.float	bm_st_regen;		// 1 while health is regenerating
+.float	bm_st_warmup;		// 1 in the local warmup game
+.float	bm_st_lheat;		// the current leader's heat
+.float	bm_st_lx, bm_st_ly, bm_st_lz;	// the leader's position, when they show through walls (tier 3+)
+.float	bm_st_lshow;		// 1 = draw the HUD marker at bm_st_lx/ly/lz
+.string	bm_st_leader;		// the current leader's name ("" = nobody far enough ahead)
+
+// ---------------------------------------------------------------- survivability / match
+.float	bm_prot_t;			// spawn protection until
+.entity	bm_aura;			// the glowing bubble round a protected player (bm_match.qc)
+.float	bm_regen_on;		// regenerating right now (for the HUD)
+float	bm_blocked;			// T_Damage: the hit was absorbed by spawn protection (knockback still applies)
+float	bm_kb;				// T_Damage: damage used for knockback (before self-damage scaling)
+float	bm_inter_t;			// when the intermission auto-advances
+float	bm_botfill_t;
+float	bm_debug_t;			// next bm_debug printout		// next bot-fill check
+string	bm_nextmap;			// playlist pick, strzoned
+
+// ---------------------------------------------------------------- underdog / leader (underdog.qc)
+.float	ud_heat;			// frags - average of everyone else
+.float	ud_deficit;			// top score - frags
+.float	ud_lead;			// 1 = in first place (the most frags, and somebody has fewer): armor stops regenerating
+.float	bm_ar_frac;			// armor regeneration carried between frames
+.float	ud_boost;			// 0..1 underdog strength: losing streak, K/D and frags behind (Underdog_Update)
+.float	ud_kills;			// player kills this match (the bounty and other bonus frags don't count)
+.float	ud_deaths;			// deaths to players and monsters this match (suicides, lava and falls don't count)
+.float	ud_earned;			// 1 = a player or monster killed you last, so this spawn may get a free power-up
+.float	ud_full;			// deaths in a row for Last Stand at the current player count
+.float	ud_tier;			// leader effect tier 0..4 (announcements fire on the way up)
+.entity	ud_aura;			// leader effects entity (glow, beacon, x-ray copy)
+entity	ud_leader;			// player with the most heat (world = nobody far enough ahead)
+
+// ---------------------------------------------------------------- kill announcer (bm_fun.qc)
+.float	bm_streak;			// player: kills since their last death
+.float	bm_streak_tier;		// player: streak tier already announced (1 spree, 2 rampage, 3 godlike)
+.float	bm_multi_t;			// player: when their last kill was
+.float	bm_multi_n;			// player: kills in the current burst
+.entity	bm_killer;			// player: who killed them last (revenge)
+float	bm_fun_first;		// first blood has been drawn this map
+float	bm_fun_say_t;		// when the next announcer clip may play
+
+// ---------------------------------------------------------------- prototypes
+void() BM_Frame;
+void() BM_SwapIn;
+void() BM_OutOfAmmo;
+float() BM_CheckNoAmmo;
+void() BM_Spawn;
+void() BM_FillAll;
+float(entity p, float s) BM_GetMag;
+float(float s) BM_MagSize;
+float() BM_CurSlot;
+void(float s) BM_StartReload;
+void() BM_FiredSSG;
+void() BM_Precache;
+float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage;
+void() BM_PlayerSpawned;
+void() BM_SpawnArmor;
+void() BM_LifeFrame;
+float() BM_NextLevel;
+float() BM_IntermissionThink;
+void() BM_Stats;
+void() BM_StartFrame;
+void() BM_TestImpulses;
+void() BM_Fun_Precache;
+void(entity e, string clip) BM_Fun_Say;
+void(entity targ, entity attacker) BM_Fun_Killed;
+float(entity p) Underdog_IsLast;
+
+void() Underdog_Update;
+void() Underdog_FxFrame;
+float() Underdog_RegenDelay;
+float() Underdog_RegenRate;
+void(float dt) Underdog_ArmorRegen;
+float(entity p) Underdog_AmmoRate;
+void(entity p) Underdog_Reset;
+
+void() ExitIntermission;
+void() execute_changelevel;
+
+// ---------------------------------------------------------------- map votes (bm_match.qc)
+.float	bm_voted;			// 0 = no vote, 1 = yes, 2 = no (reset when a vote starts)
+.float	bm_vote_cool;		// this player can call a vote again after this time
+float	bm_vote_on;			// a vote is open
+float	bm_vote_end;		// when it times out
+float	bm_vote_go_t;		// passed: change the map at this time
+float	bm_vote_tick_t;
+float	bm_vote_prompt_t;
+float	bm_v_n;				// BM_VoteCount: humans, yes, no
+float	bm_v_yes;
+float	bm_v_no;
+string	bm_vote_map;		// the map being voted on, strzoned
+
+// ---------------------------------------------------------------- per-frame cached cvars & active player list
+entity	bm_player_head;		// active connected "player" entities rebuilt once per frame in BM_StartFrame
+.entity	bm_player_next;
+float	bm_cvar_grav;
+float	bm_cvar_maxvel;
+float	bm_cvar_ltg_video;
+float	bm_cvar_br_mode;
+float	bm_cvar_dv_mode;
+float	bm_cvar_dv_stay;
+float	bm_cvar_dn_mode;
+float	bm_cvar_dn_stay;
+float	bm_cvar_pk_ofs;
+float	bm_cvar_dev;
+float	bm_fun_precached;
+float	david_precached;
+float	daniel_precached;
+float	greensuit_precached;
+float	robeguy_precached;
+void() David_Precache;
+void() Daniel_Precache;
+void() GreenSuit_Precache;
+void() RobeGuy_Precache;
+void() GreenSuit_Summon;
+void() RobeGuy_Summon;
+var float	autocvar_rnpc_mode	= 0;
+var float	autocvar_rnpc_stay	= 0;
+float	bm_cvar_rnpc_mode;
+float	bm_cvar_rnpc_stay;
+float	random_npcs_precached;
+void() RandomNPCs_Precache;
+void(float kind) RandomNPC_Summon;
+void() RandomNPC_SummonAll4;
+float	bryan_precached;
+float	vehicles_precached;
+float	veh_has_vans;
+float	jetpack_precached;
+float	bktv_precached;
+float	ltg_vid_precached;
+.float	ud_fx_t;

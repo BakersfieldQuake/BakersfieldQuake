@@ -1,0 +1,171 @@
+// Jetpack (jetpack.qc): jp_fire / jp_smoke come out of each nozzle every 0.04 s while it burns, jp_dust blasts off the floor when you
+// are low, jp_burst is the flash when it lights. Colours are kept dim-ish: the scene brightness is 2.5x.
+
+// ---- the flame out of a nozzle: a hot white-yellow core, an orange body, a flickering light, sparks
+effect jp_fire
+lightradius 150
+lightradiusfade 900
+lightcolor 1 0.55 0.15
+lightshadow 0
+
+// (a narrow jet: the first version was a fireball that filled a third of the screen when you looked down)
+effect jp_fire
+count 2
+type alphastatic
+tex 0 8
+color 0xffd060 0xfff0b0
+size 4 6
+sizeincrease -10
+alpha 240 256 1000
+originjitter 1 1 1
+velocityoffset 0 0 -240
+velocityjitter 12 12 20
+airfriction 1.5
+
+effect jp_fire
+count 2
+type alphastatic
+tex 0 8
+color 0xff3800 0xffa020
+size 6 10
+sizeincrease -6
+alpha 200 256 800
+originjitter 2 2 1
+velocityoffset 0 0 -200
+velocityjitter 25 25 25
+airfriction 1.6
+
+effect jp_fire
+count 1
+type spark
+tex 0 8
+color 0xff8000 0xffe060
+size 1 2
+alpha 256 256 380
+originjitter 2 2 1
+velocityoffset 0 0 -300
+velocityjitter 130 130 90
+gravity 0.8
+airfriction 0.25
+
+// ---- the streaming flame at speed (jetpack.qc fires it along the path flown, passing minus your velocity so it trails behind you;
+// velocitymultiplier keeps it to a fraction of that). Narrow like jp_fire, just longer-lived and hotter, more of it the faster you go
+effect jp_blaze
+count 2
+type alphastatic
+tex 0 8
+color 0xfff0b0 0xffffe0
+size 5 7
+sizeincrease -7
+alpha 250 256 700
+originjitter 1 1 1
+velocitymultiplier 0.35
+velocityjitter 20 20 20
+airfriction 1.2
+
+effect jp_blaze
+count 3
+type alphastatic
+tex 0 8
+color 0xff4000 0xffa820
+size 8 13
+sizeincrease -9
+alpha 210 256 520
+originjitter 2 2 2
+velocitymultiplier 0.3
+velocityjitter 45 45 45
+airfriction 1.4
+
+effect jp_blaze
+count 1
+type spark
+tex 0 8
+color 0xff8000 0xffe060
+size 1 2
+alpha 256 256 300
+originjitter 2 2 2
+velocitymultiplier 0.5
+velocityjitter 160 160 160
+gravity 0.4
+airfriction 0.3
+
+// ---- the glow it throws on the walls at speed (one light per nozzle per puff)
+effect jp_glow
+lightradius 320
+lightradiusfade 1500
+lightcolor 1 0.5 0.12
+lightshadow 0
+
+// ---- the smoke it leaves: thick dark billows that hang in the air for a couple of seconds
+// (kept thin: the first version, 3+1 big billows every 0.04 s per nozzle, filled the whole screen and blacked it out)
+effect jp_smoke
+count 1
+type smoke
+tex 0 7
+color 0x383838 0x585858
+size 4 7
+sizeincrease 4
+alpha 35 60 260
+originjitter 2 2 2
+velocityoffset 0 0 -90
+velocityjitter 30 30 20
+gravity 0
+airfriction 1.6
+
+// ---- the blast off the ground when you fly low: dust and grit thrown out sideways
+effect jp_dust
+count 1
+type smoke
+tex 0 7
+color 0x403830 0x605848
+size 6 12
+sizeincrease 8
+alpha 50 90 260
+originjitter 8 8 2
+velocityoffset 0 0 25
+velocityjitter 260 260 25
+airfriction 2.6
+
+effect jp_dust
+count 3
+type spark
+tex 0 8
+color 0xffb040 0xffe080
+size 1 2
+alpha 256 256 400
+velocityoffset 0 0 60
+velocityjitter 200 200 60
+gravity 1
+airfriction 0.4
+
+// ---- the flash when it lights: a fireball and a puff of smoke at your feet
+effect jp_burst
+lightradius 250
+lightradiusfade 700
+lightcolor 1 0.6 0.2
+lightshadow 0
+
+effect jp_burst
+count 8
+type alphastatic
+tex 0 8
+color 0xff5000 0xffc040
+size 12 22
+sizeincrease 30
+alpha 230 256 520
+originjitter 8 8 4
+velocityjitter 160 160 60
+velocityoffset 0 0 -60
+airfriction 2.4
+
+effect jp_burst
+count 2
+type smoke
+tex 0 7
+color 0x383838 0x585858
+size 6 12
+sizeincrease 6
+alpha 40 70 240
+originjitter 10 10 4
+velocityjitter 170 170 50
+airfriction 2

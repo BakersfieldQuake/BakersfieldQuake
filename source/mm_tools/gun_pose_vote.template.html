@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gun Placement Vote</title>
+<style>
+:root {
+  --bg: #12100e; --panel: #1b1815; --panel2: #24201c; --line: #3a332c; --fg: #efe8dc; --dim: #a39a8d;
+  --accent: #ffb13b; --accent-ink: #1c1100; --ok: #7fd18b; --warn: #ff7a5c; --mine: #ffb13b;
+  --mono: ui-monospace, "IBM Plex Mono", Consolas, monospace; --sans: "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 var(--sans);
+  padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 10px; }
+header { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+h1 { margin: 0; font: 700 20px var(--sans); letter-spacing: .02em; }
+h1 small { font: 400 12px var(--mono); color: var(--dim); margin-left: 8px; }
+select, input[type=number], button, textarea { font: 13px var(--mono); color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 6px 9px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#prog { font: 13px var(--mono); color: var(--dim); }
+#prog b { color: var(--fg); }
+#bar { width: 120px; height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+#bar i { display: block; height: 100%; width: 0; background: var(--ok); }
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: 210px minmax(0, 1fr) 370px; gap: 12px; }
+#list { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; overflow: auto; display: flex; flex-direction: column; gap: 3px; }
+#list button { text-align: left; display: flex; justify-content: space-between; gap: 8px; border-color: transparent; background: transparent; padding: 7px 8px; font: 13px var(--sans); }
+#list button.sel { background: var(--panel2); border-color: var(--accent); }
+#list button .mk { font: 12px var(--mono); }
+.v-ok { color: var(--ok); } .v-mine { color: var(--mine); } .v-fixme { color: var(--warn); } .v-none { color: var(--dim); }
+#stage { background: #080706; border: 1px solid var(--line); border-radius: 8px; display: flex; align-items: center; justify-content: center; min-height: 360px; overflow: hidden; }
+#frame { position: relative; max-width: 100%; max-height: 100%; width: 100%; aspect-ratio: 16/9; cursor: grab; touch-action: none; }
+#frame.drag { cursor: grabbing; }
+canvas { display: block; width: 100%; height: 100%; }
+#hud { position: absolute; left: 0; right: 0; bottom: 0; height: 14%; background: repeating-linear-gradient(135deg, rgba(0,0,0,.45) 0 8px, rgba(0,0,0,.25) 8px 16px); border-top: 1px dashed rgba(255,255,255,.35); color: rgba(255,255,255,.7); font: 11px var(--mono); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+#cross { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; }
+#cross::before, #cross::after { content: ""; position: absolute; background: #3f3; }
+#cross::before { left: 6px; top: 0; width: 2px; height: 14px; } #cross::after { top: 6px; left: 0; height: 2px; width: 14px; }
+#tip { position: absolute; left: 8px; top: 8px; font: 11px/1.5 var(--mono); color: rgba(255,255,255,.75); background: rgba(0,0,0,.5); padding: 5px 8px; border-radius: 5px; pointer-events: none; }
+#gunname { position: absolute; right: 10px; top: 8px; font: 700 14px var(--sans); color: #fff; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 5px; pointer-events: none; text-align: right; }
+#gunname small { display: block; font: 11px var(--mono); color: rgba(255,255,255,.7); font-weight: 400; }
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 0; padding: 8px 10px 10px; }
+legend { color: var(--dim); font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 0 6px; }
+.row { display: grid; grid-template-columns: 54px 1fr 74px; gap: 8px; align-items: center; margin-top: 6px; }
+.row label { color: var(--dim); font: 12px var(--mono); }
+.row input[type=range] { width: 100%; accent-color: var(--accent); }
+.row input[type=number] { width: 74px; padding: 4px 5px; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.nudge { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 6px; }
+.nudge button { padding: 6px 2px; font-size: 12px; }
+.chk { display: flex; align-items: center; gap: 6px; color: var(--dim); font: 12px var(--mono); margin-top: 4px; }
+.chk input { accent-color: var(--accent); }
+.vote { display: grid; gap: 6px; }
+.vote label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; background: var(--panel2); font: 13px/1.35 var(--sans); }
+.vote label:hover { border-color: var(--accent); }
+.vote label.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.vote input { accent-color: var(--accent); margin-top: 3px; }
+.vote small { display: block; color: var(--dim); font: 11px var(--mono); }
+#note { width: 100%; height: 66px; resize: vertical; margin-top: 6px; }
+#out { width: 100%; height: 86px; background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; font: 11px var(--mono); padding: 6px; resize: vertical; }
+.note { color: var(--dim); font: 12px/1.5 var(--mono); }
+.note b { color: var(--fg); }
+#status { font: 12px var(--mono); color: var(--dim); }
+#status.ok { color: var(--ok); }
+@media (max-width: 1150px) { main { grid-template-columns: minmax(0, 1fr) 370px; } #list { display: none; } }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { max-height: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gun Placement Vote<small>every gun, seen through the game's camera</small></h1>
+  <select id="model" aria-label="Gun"></select>
+  <button id="prevgun" title="previous gun ([)">◀ gun</button><button id="nextgun" title="next gun (])">gun ▶</button>
+  <select id="aspect" aria-label="Screen shape">
+    <option value="1.7778">16:9</option><option value="1.6">16:10</option><option value="1.3333">4:3</option><option value="2.3333">21:9</option>
+  </select>
+  <label class="chk" style="margin:0" title="the game's fov setting (config.cfg), measured on a 4:3 screen like DarkPlaces does">game fov <input id="fov" type="number" min="60" max="130" step="1" value="111" style="width:64px"></label>
+  <span id="fovinfo" class="note"></span>
+  <span id="prog"></span>
+  <span id="status">loading three.js…</span>
+</header>
+<main>
+  <nav id="list" aria-label="Guns"></nav>
+  <div id="stage">
+    <div id="frame">
+      <canvas id="gl"></canvas>
+      <div id="cross"></div>
+      <div id="hud">status bar covers this strip</div>
+      <div id="gunname"></div>
+      <div id="tip">drag = move up/down/left/right · wheel = push away / pull in · shift-drag = turn · ctrl-drag = roll · alt-wheel = size · arrows/PgUp/PgDn = nudge · [ ] = other gun</div>
+    </div>
+  </div>
+  <aside>
+    <fieldset><legend>Your vote on this gun</legend>
+      <div class="vote" id="vote">
+        <label><input type="radio" name="vt" value="ok"><span>👍 Fine the way it is<small>keep what the game shows now</small></span></label>
+        <label><input type="radio" name="vt" value="mine"><span>✎ Use MY placement<small>the numbers I set below are final</small></span></label>
+        <label><input type="radio" name="vt" value="fixme"><span>🔧 Still wrong, you fix it<small>say what is off in the note</small></span></label>
+      </div>
+      <textarea id="note" placeholder="note for Claude (optional): too far, too low, hides the crosshair, wrong size…" aria-label="note"></textarea>
+    </fieldset>
+    <fieldset><legend>Position (game units)</legend>
+      <div class="row"><label>forward</label><input type="range" id="r_px" min="-30" max="60" step="0.1"><input type="number" id="n_px" step="0.1"></div>
+      <div class="row"><label>left</label><input type="range" id="r_py" min="-40" max="40" step="0.1"><input type="number" id="n_py" step="0.1"></div>
+      <div class="row"><label>up</label><input type="range" id="r_pz" min="-40" max="40" step="0.1"><input type="number" id="n_pz" step="0.1"></div>
+      <div class="nudge">
+        <button data-n="py" data-d="1" title="move left">← left</button><button data-n="py" data-d="-1" title="move right">right →</button>
+        <button data-n="pz" data-d="1">↑ up</button><button data-n="pz" data-d="-1">↓ down</button>
+        <button data-n="px" data-d="-1">closer</button><button data-n="px" data-d="1">farther</button>
+        <label class="chk" style="margin:0 0 0 4px;grid-column:span 2">step <input id="step" type="number" min="0.1" max="10" step="0.1" value="1" style="width:56px;padding:3px 4px"></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>Rotation (degrees)</legend>
+      <div class="row"><label>roll</label><input type="range" id="r_rr" min="-180" max="180" step="0.5"><input type="number" id="n_rr" step="0.5"></div>
+      <div class="row"><label>pitch</label><input type="range" id="r_rp" min="-180" max="180" step="0.5"><input type="number" id="n_rp" step="0.5"></div>
+      <div class="row"><label>yaw</label><input type="range" id="r_ry" min="-180" max="180" step="0.5"><input type="number" id="n_ry" step="0.5"></div>
+      <div class="note" style="margin-top:6px">pitch + = nose up, yaw + = turn left, roll + = top rolls left</div>
+    </fieldset>
+    <fieldset><legend>Size</legend>
+      <div class="row"><label>scale</label><input type="range" id="r_s" min="0.2" max="3" step="0.01"><input type="number" id="n_s" step="0.01"></div>
+    </fieldset>
+    <fieldset><legend>Animation</legend>
+      <div class="row" style="grid-template-columns:54px 1fr"><label>clip</label><select id="clip"></select></div>
+      <div class="row"><label>frame</label><input type="range" id="r_f" min="0" max="0" step="1"><input type="number" id="n_f" step="1" min="0"></div>
+      <div class="btns"><button id="play">▶ play</button><button id="prev">◀</button><button id="next">▶</button></div>
+    </fieldset>
+    <fieldset><legend>View</legend>
+      <div class="row"><label>light</label><input type="range" id="r_l" min="0.3" max="3" step="0.05" value="2.2"><input type="number" id="n_l" step="0.05" value="2.2"></div>
+      <label class="chk"><input type="checkbox" id="c_hud" checked> status bar strip + crosshair</label>
+      <label class="chk"><input type="checkbox" id="c_ghost"> ghost of how it is in the game now</label>
+      <label class="chk"><input type="checkbox" id="c_dummy" checked> player-sized dummy at 200 units</label>
+      <label class="chk"><input type="checkbox" id="c_wire"> wireframe</label>
+    </fieldset>
+    <fieldset><legend>Reset</legend>
+      <div class="btns"><button id="reset">reset this gun to game</button><button id="resetall">reset all</button></div>
+    </fieldset>
+    <fieldset><legend>Send the votes</legend>
+      <div class="btns">
+        <button id="dl" class="primary">download votes</button>
+        <button id="copy">copy JSON</button>
+      </div>
+      <textarea id="out" readonly spellcheck="false" aria-label="votes as JSON"></textarea>
+      <div class="note" style="margin-top:6px">Download saves <b>gun_pose_votes.json</b> (Downloads folder). Then tell Claude it is there, or paste the JSON into the chat.<br>
+        Your work is saved in this browser as you go.</div>
+    </fieldset>
+  </aside>
+</main>
+
+<script id="data" type="application/json">__DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = id => document.getElementById(id);
+const statusEl = $("status");
+if (typeof THREE === "undefined") { statusEl.textContent = "three.js did not load (needs internet once)"; statusEl.style.color = "var(--warn)"; return; }
+statusEl.textContent = "ready";
+
+// ---------------------------------------------------------------- state
+const ID = () => ({ pos: [0, 0, 0], rot: [0, 0, 0], scale: 1 });
+const clone = e => ({ pos: e.pos.slice(), rot: e.rot.slice(), scale: e.scale });
+const same = (a, b) => a.scale === b.scale && a.pos.every((v, i) => v === b.pos[i]) && a.rot.every((v, i) => v === b.rot[i]);
+const G = {}; const names = D.guns.map(g => g.id);
+for (const g of D.guns) G[g.id] = g;
+const initial = {}, edits = {}, votes = {}, notes = {};
+// starting pose = how the game draws the gun now (the stock weapon-slot tilt is part of it)
+for (const g of D.guns) initial[g.id] = { pos: [0, 0, 0], rot: [0, g.tilt || 0, 0], scale: 1 };
+const KEY = "gpv.v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+for (const g of D.guns) {
+  const s = saved.guns && saved.guns[g.id];
+  const ok = s && s.sig === g.sig;                 // the model changed since: drop that gun's old work
+  edits[g.id] = ok && s.pose ? clone(s.pose) : clone(initial[g.id]);
+  votes[g.id] = ok ? (s.vote || "") : "";
+  notes[g.id] = ok ? (s.note || "") : "";
+}
+let cur = names.includes(saved.cur) ? saved.cur : names[0];
+const persist = () => {
+  try {
+    const guns = {}; for (const n of names) guns[n] = { sig: G[n].sig, pose: edits[n], vote: votes[n], note: notes[n] };
+    localStorage.setItem(KEY, JSON.stringify({ guns, cur }));
+  } catch (e) {}
+};
+const changed = n => !same(edits[n], initial[n]);
+
+// ---------------------------------------------------------------- model parsers -> {nFrames, surfs:[{nv, idx, uv, frames:[{p,n}], shader, name}], pivot}
+function b64buf(b) { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
+function decNormal(n) {
+  const lng = (n >> 8) * 2 * Math.PI / 255, lat = (n & 255) * 2 * Math.PI / 255;
+  return [Math.sin(lng) * Math.cos(lat), Math.sin(lng) * Math.sin(lat), Math.cos(lng)];
+}
+function pivotOf(surfs) {
+  const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+  for (const s of surfs) { const p = s.frames[0].p; for (let i = 0; i < s.nv; i++) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], p[3 * i + a]); hi[a] = Math.max(hi[a], p[3 * i + a]); } }
+  return lo.map((v, a) => (v + hi[a]) / 2);
+}
+function parseMD3(buf) {
+  const dv = new DataView(buf), i32 = o => dv.getInt32(o, true);
+  const str = (o, n) => { let s = ""; for (let i = 0; i < n; i++) { const c = dv.getUint8(o + i); if (!c) break; s += String.fromCharCode(c); } return s; };
+  const nFrames = i32(76), nSurf = i32(84); let o = i32(100);
+  const surfs = [];
+  for (let k = 0; k < nSurf; k++) {
+    const nf = i32(o + 72), nv = i32(o + 80), nt = i32(o + 84);
+    const oTri = i32(o + 88), oSh = i32(o + 92), oSt = i32(o + 96), oXyz = i32(o + 100), oEnd = i32(o + 104);
+    const idx = new Uint32Array(nt * 3);
+    for (let i = 0; i < nt * 3; i++) idx[i] = i32(o + oTri + 4 * i);
+    const uv = new Float32Array(nv * 2);
+    for (let i = 0; i < nv; i++) { uv[2 * i] = dv.getFloat32(o + oSt + 8 * i, true); uv[2 * i + 1] = 1 - dv.getFloat32(o + oSt + 8 * i + 4, true); }
+    const frames = [];
+    for (let f = 0; f < nf; f++) {
+      const p = new Float32Array(nv * 3), n = new Float32Array(nv * 3), b = o + oXyz + f * nv * 8;
+      for (let i = 0; i < nv; i++) {
+        p[3 * i] = dv.getInt16(b + 8 * i, true) / 64; p[3 * i + 1] = dv.getInt16(b + 8 * i + 2, true) / 64; p[3 * i + 2] = dv.getInt16(b + 8 * i + 4, true) / 64;
+        const nn = decNormal(dv.getUint16(b + 8 * i + 6, true)); n[3 * i] = nn[0]; n[3 * i + 1] = nn[1]; n[3 * i + 2] = nn[2];
+      }
+      frames.push({ p, n });
+    }
+    surfs.push({ name: str(o + 4, 64), shader: str(o + oSh, 64), idx, uv, nv, frames });
+    o += oEnd;
+  }
+  return { nFrames, surfs, pivot: pivotOf(surfs), skinCanvas: null };
+}
+// Quake .mdl: packed vertices, seam-split texture coordinates, 8-bit skin through the Quake palette
+const PAL = new Uint8Array(b64buf(D.palette));
+function parseMDL(buf) {
+  const dv = new DataView(buf), i32 = o => dv.getInt32(o, true), f32 = o => dv.getFloat32(o, true), u8 = new Uint8Array(buf);
+  const sc = [f32(8), f32(12), f32(16)], org = [f32(20), f32(24), f32(28)];
+  const nskin = i32(48), sw = i32(52), sh = i32(56), nv = i32(60), nt = i32(64), nf = i32(68);
+  let o = 84, skin = null;
+  for (let i = 0; i < nskin; i++) {
+    const grp = i32(o); o += 4;
+    if (grp === 0) { if (!skin) skin = u8.subarray(o, o + sw * sh); o += sw * sh; }
+    else { const n = i32(o); o += 4 + 4 * n; if (!skin) skin = u8.subarray(o, o + sw * sh); o += n * sw * sh; }
+  }
+  const seam = new Int32Array(nv), ss = new Int32Array(nv), tt = new Int32Array(nv);
+  for (let i = 0; i < nv; i++) { seam[i] = i32(o); ss[i] = i32(o + 4); tt[i] = i32(o + 8); o += 12; }
+  const key = new Map(), srcV = [], uvs = [], idx = [];
+  const vert = (vi, back) => {
+    const k = vi * 2 + (back ? 1 : 0); let r = key.get(k);
+    if (r === undefined) { r = srcV.length; key.set(k, r); srcV.push(vi); uvs.push((ss[vi] + (back ? sw / 2 : 0) + 0.5) / sw, 1 - (tt[vi] + 0.5) / sh); }
+    return r;
+  };
+  for (let i = 0; i < nt; i++) {
+    const front = i32(o), a = i32(o + 4), b = i32(o + 8), c = i32(o + 12); o += 16;
+    const back = !front;
+    idx.push(vert(a, back && seam[a]), vert(b, back && seam[b]), vert(c, back && seam[c]));
+  }
+  const nvOut = srcV.length, frames = [];
+  const readFrame = () => {
+    const base = o + 24, p = new Float32Array(nvOut * 3), n = new Float32Array(nvOut * 3);
+    for (let i = 0; i < nvOut; i++) {
+      const b = base + srcV[i] * 4, an = u8[b + 3] % 162;
+      // MDL rows are x,y,z in the same axes as md3 (x forward, y left, z up)
+      p[3 * i] = u8[b] * sc[0] + org[0]; p[3 * i + 1] = u8[b + 1] * sc[1] + org[1]; p[3 * i + 2] = u8[b + 2] * sc[2] + org[2];
+      n[3 * i] = D.anorm[an * 3]; n[3 * i + 1] = D.anorm[an * 3 + 1]; n[3 * i + 2] = D.anorm[an * 3 + 2];
+    }
+    frames.push({ p, n }); o = base + nv * 4;
+  };
+  for (let f = 0; f < nf; f++) {
+    const t = i32(o); o += 4;
+    if (t === 0) readFrame();
+    else { const n = i32(o); o += 4 + 8 + 4 * n; for (let k = 0; k < n; k++) readFrame(); }
+  }
+  const surfs = [{ name: "mdl", shader: "", idx: new Uint32Array(idx), uv: new Float32Array(uvs), nv: nvOut, frames }];
+  let skinCanvas = null;
+  if (skin) {
+    skinCanvas = document.createElement("canvas"); skinCanvas.width = sw; skinCanvas.height = sh;
+    const g = skinCanvas.getContext("2d"), im = g.createImageData(sw, sh);
+    for (let i = 0; i < sw * sh; i++) { const c = skin[i]; im.data[4 * i] = PAL[3 * c]; im.data[4 * i + 1] = PAL[3 * c + 1]; im.data[4 * i + 2] = PAL[3 * c + 2]; im.data[4 * i + 3] = 255; }
+    g.putImageData(im, 0, 0);
+  }
+  return { nFrames: frames.length, surfs, pivot: pivotOf(surfs), skinCanvas };
+}
+
+// ---------------------------------------------------------------- three scene (eye space -> three: (x,y,z) -> (-y, z, -x))
+const canvas = $("gl"), frameEl = $("frame");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x6f7f93);
+scene.fog = new THREE.Fog(0x6f7f93, 300, 1800);
+const camera = new THREE.PerspectiveCamera(60, 16 / 9, 0.5, 4000);
+const ambient = new THREE.AmbientLight(0xffffff, 2.2), sun = new THREE.DirectionalLight(0xffffff, 0.6);
+sun.position.set(-1, 2, 1); scene.add(ambient, sun, camera);
+(function world() {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + y) & 1 ? "#4a4a4c" : "#2c2c2e"; g.fillRect(x * 32, y * 32, 32, 32); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(40, 40); t.anisotropy = 8;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshBasicMaterial({ map: t }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -22; scene.add(floor);
+})();
+const dummy = new THREE.Mesh(new THREE.BoxGeometry(32, 56, 32), new THREE.MeshLambertMaterial({ color: 0xb4624a }));
+dummy.position.set(0, -22 + 28, -200); scene.add(dummy);
+
+let model = null;
+const texCache = {};
+// the game multiplies the 8-bit texture values directly (and by r_hdr_scenebrightness 2.5), so no sRGB decode here
+function texFor(url) {
+  if (!url) return null;
+  if (!texCache[url]) { const t = new THREE.TextureLoader().load(url, () => (dirty = true)); t.encoding = THREE.LinearEncoding; texCache[url] = t; }
+  return texCache[url];
+}
+async function gunBuf(g) {      // the models are gzipped + base64
+  const u = new Uint8Array(b64buf(g.b64));
+  return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+}
+let buildTok = 0;
+async function build(name) {
+  const tok = ++buildTok, g = G[name], buf = await gunBuf(g);
+  if (tok !== buildTok) return;
+  if (model) { for (const m of model.meshes.concat(model.ghosts)) { scene.remove(m); m.geometry.dispose(); } }
+  const md = g.kind === "mdl" ? parseMDL(buf) : parseMD3(buf);
+  const meshes = [], ghosts = [];
+  for (const s of md.surfs) {
+    const shader = g.skin[s.name] || s.shader;
+    const mk = (ghost) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(s.nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      geo.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(s.nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      geo.setAttribute("uv", new THREE.BufferAttribute(s.uv, 2));
+      geo.setIndex(new THREE.BufferAttribute(s.idx, 1));
+      let tex = null;
+      if (g.kind === "mdl") {
+        if (g.ext) tex = texFor(g.ext);
+        else if (md.skinCanvas) { tex = new THREE.CanvasTexture(md.skinCanvas); tex.encoding = THREE.LinearEncoding; }
+      } else tex = texFor(g.tex[shader]);
+      const mat = ghost ? new THREE.MeshBasicMaterial({ color: 0x66ccff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false })
+                        : /(_fx|_zap|_laser)$/.test(shader)
+                          ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false })
+                          : new THREE.MeshLambertMaterial({ map: tex, color: tex ? 0xffffff : 0xaaaaaa, side: THREE.DoubleSide, alphaTest: 0.4, transparent: false });
+      const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; scene.add(mesh); return mesh;
+    };
+    meshes.push(mk(false)); ghosts.push(mk(true));
+  }
+  model = { name, md, meshes, ghosts }; dirty = true;
+}
+
+// ---------------------------------------------------------------- pose maths (identical to apply_viewmodel_edits.py)
+function xformer(pivot, e) {
+  const [r, p, y] = e.rot.map(a => a * Math.PI / 180);
+  const cr = Math.cos(r), sr = Math.sin(r), cp = Math.cos(p), sp = Math.sin(p), cy = Math.cos(y), sy = Math.sin(y);
+  const rotate = (x, yy, z, out) => {
+    let a = yy * cr - z * sr, b = yy * sr + z * cr; yy = a; z = b;
+    a = x * cp - z * sp; b = x * sp + z * cp; x = a; z = b;
+    a = x * cy - yy * sy; b = x * sy + yy * cy; x = a; yy = b;
+    out[0] = x; out[1] = yy; out[2] = z;
+  };
+  return { rotate, s: e.scale, pos: e.pos, pivot };
+}
+const tmp = [0, 0, 0];
+let frameF = 0, dirty = true;
+function applyPose() {
+  if (!model) return;
+  const md = model.md, nF = md.nFrames;
+  const f = Math.max(0, Math.min(nF - 1, frameF)), f0 = Math.floor(f), f1 = Math.min(nF - 1, f0 + 1), k = f - f0;
+  const X = xformer(md.pivot, edits[cur]), Gh = xformer(md.pivot, initial[cur]);
+  md.surfs.forEach((s, si) => {
+    const A = s.frames[Math.min(f0, s.frames.length - 1)], B = s.frames[Math.min(f1, s.frames.length - 1)];
+    const targets = [[model.meshes[si], X], [model.ghosts[si], Gh]];
+    for (const [mesh, T] of targets) {
+      if (mesh === model.ghosts[si] && !$("c_ghost").checked) { mesh.visible = false; continue; }
+      mesh.visible = true;
+      const pa = mesh.geometry.attributes.position.array, na = mesh.geometry.attributes.normal.array;
+      for (let i = 0; i < s.nv; i++) {
+        const j = 3 * i;
+        const x = A.p[j] + (B.p[j] - A.p[j]) * k, y = A.p[j + 1] + (B.p[j + 1] - A.p[j + 1]) * k, z = A.p[j + 2] + (B.p[j + 2] - A.p[j + 2]) * k;
+        T.rotate((x - T.pivot[0]) * T.s, (y - T.pivot[1]) * T.s, (z - T.pivot[2]) * T.s, tmp);
+        const qx = T.pivot[0] + tmp[0] + T.pos[0], qy = T.pivot[1] + tmp[1] + T.pos[1], qz = T.pivot[2] + tmp[2] + T.pos[2];
+        pa[j] = -qy; pa[j + 1] = qz; pa[j + 2] = -qx;
+        T.rotate(A.n[j], A.n[j + 1], A.n[j + 2], tmp);
+        na[j] = -tmp[1]; na[j + 1] = tmp[2]; na[j + 2] = -tmp[0];
+      }
+      mesh.geometry.attributes.position.needsUpdate = true; mesh.geometry.attributes.normal.needsUpdate = true;
+      mesh.geometry.computeBoundingSphere();
+    }
+  });
+  const wire = $("c_wire").checked; model.meshes.forEach(m => (m.material.wireframe = wire));
+}
+
+// ---------------------------------------------------------------- UI
+const FIELDS = [["px", e => e.pos, 0], ["py", e => e.pos, 1], ["pz", e => e.pos, 2], ["rr", e => e.rot, 0], ["rp", e => e.rot, 1], ["ry", e => e.rot, 2]];
+const r2 = v => Math.round(v * 100) / 100;
+const MARK = { ok: ["✓", "v-ok"], mine: ["✎", "v-mine"], fixme: ["🔧", "v-fixme"], "": ["·", "v-none"] };
+const VOTE_LABEL = { ok: "fine as it is", mine: "my placement", fixme: "you fix it", "": "undecided" };
+function poseOut(n) { const e = edits[n]; return { pos: e.pos.map(r2), rot: e.rot.map(r2), scale: r2(e.scale) }; }
+function buildJson() {
+  const out = { page: "gun_pose_vote", build: D.build, fov: +$("fov").value, note: "pose is relative to the model file as shipped; start = how the game draws it now", guns: {} };
+  for (const n of names) {
+    const g = G[n];
+    out.guns[n] = { label: g.label, model: g.file, vote: VOTE_LABEL[votes[n]] && votes[n] || "undecided", adjusted: changed(n), pose: poseOut(n), start: { pos: initial[n].pos, rot: initial[n].rot, scale: 1 }, note: notes[n] || "" };
+  }
+  return out;
+}
+function refreshList() {
+  const l = $("list"); l.innerHTML = "";
+  for (const n of names) {
+    const b = document.createElement("button"); b.className = n === cur ? "sel" : ""; const m = MARK[votes[n]];
+    b.innerHTML = "<span></span><span class='mk " + m[1] + "'>" + (changed(n) ? "● " : "") + m[0] + "</span>"; b.firstChild.textContent = G[n].label;
+    b.addEventListener("click", () => selectGun(n)); l.appendChild(b);
+  }
+  [...$("model").options].forEach(o => (o.textContent = MARK[votes[o.value]][0] + (changed(o.value) ? "● " : " ") + G[o.value].label));
+  const done = names.filter(n => votes[n]).length;
+  $("prog").innerHTML = "voted <b>" + done + "</b> / " + names.length + "<span id='bar'><i style='width:" + (100 * done / names.length) + "%'></i></span>";
+}
+function refreshUI() {
+  const e = edits[cur];
+  for (const [id, get, i] of FIELDS) { $("r_" + id).value = get(e)[i]; $("n_" + id).value = r2(get(e)[i]); }
+  $("r_s").value = e.scale; $("n_s").value = r2(e.scale);
+  document.querySelectorAll("#vote label").forEach(l => { const r = l.querySelector("input"); r.checked = r.value === votes[cur]; l.classList.toggle("on", r.checked); });
+  if (document.activeElement !== $("note")) $("note").value = notes[cur] || "";
+  $("gunname").innerHTML = ""; $("gunname").append(G[cur].label); const sm = document.createElement("small"); sm.textContent = G[cur].where; $("gunname").appendChild(sm);
+  $("out").value = JSON.stringify(buildJson(), null, 1);
+  refreshList(); dirty = true; persist();
+}
+function adjusted() { if (!votes[cur] && changed(cur)) votes[cur] = "mine"; }
+function set(getArr, i, v) { getArr(edits[cur])[i] = v; adjusted(); refreshUI(); }
+for (const [id, get, i] of FIELDS) {
+  const fn = ev => { const v = parseFloat(ev.target.value); if (!isNaN(v)) set(get, i, v); };
+  $("r_" + id).addEventListener("input", fn); $("n_" + id).addEventListener("change", fn);
+}
+const setScale = ev => { const v = parseFloat(ev.target.value); if (v > 0) { edits[cur].scale = v; adjusted(); refreshUI(); } };
+$("r_s").addEventListener("input", setScale); $("n_s").addEventListener("change", setScale);
+document.querySelectorAll(".nudge button[data-n]").forEach(b => b.addEventListener("click", () => {
+  const f = FIELDS.find(x => x[0] === b.dataset.n), s = Math.max(0.1, +$("step").value || 1);
+  f[1](edits[cur])[f[2]] = r2(f[1](edits[cur])[f[2]] + s * +b.dataset.d); adjusted(); refreshUI();
+}));
+document.querySelectorAll("#vote input").forEach(r => r.addEventListener("change", () => { votes[cur] = r.value; refreshUI(); }));
+$("note").addEventListener("input", () => { notes[cur] = $("note").value; $("out").value = JSON.stringify(buildJson(), null, 1); persist(); });
+for (const n of names) $("model").add(new Option(G[n].label, n));
+$("model").value = cur;
+$("model").addEventListener("change", () => selectGun($("model").value));
+function selectGun(n) { cur = n; $("model").value = n; load(); }
+function stepGun(d) { selectGun(names[(names.indexOf(cur) + d + names.length) % names.length]); }
+$("prevgun").addEventListener("click", () => stepGun(-1)); $("nextgun").addEventListener("click", () => stepGun(1));
+for (const id of ["c_ghost", "c_wire", "c_dummy"]) $(id).addEventListener("change", () => (dirty = true));
+$("c_hud").addEventListener("change", () => { $("hud").style.display = $("cross").style.display = $("c_hud").checked ? "" : "none"; });
+const syncLight = v => { $("r_l").value = $("n_l").value = v; ambient.intensity = v; sun.intensity = v * 0.43; dirty = true; };
+$("r_l").addEventListener("input", e => syncLight(+e.target.value)); $("n_l").addEventListener("change", e => syncLight(+e.target.value)); syncLight(2.2);
+$("reset").addEventListener("click", () => { edits[cur] = clone(initial[cur]); votes[cur] = ""; refreshUI(); });
+$("resetall").addEventListener("click", () => { if (!confirm("Reset every gun, vote and note?")) return; for (const n of names) { edits[n] = clone(initial[n]); votes[n] = ""; notes[n] = ""; } refreshUI(); });
+$("copy").addEventListener("click", () => { $("out").select(); navigator.clipboard && navigator.clipboard.writeText($("out").value).catch(() => document.execCommand("copy")); statusEl.textContent = "copied"; statusEl.className = "ok"; });
+$("dl").addEventListener("click", () => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([$("out").value], { type: "application/json" }));
+  a.download = "gun_pose_votes.json"; a.click(); statusEl.textContent = "downloaded gun_pose_votes.json"; statusEl.className = "ok";
+});
+// DarkPlaces measures the fov cvar on a 4:3 screen: tan(vfov/2) = tan(fov/2) * 3/4, and the width follows the screen shape.
+function fovAspect() {
+  const asp = +$("aspect").value, f = (+$("fov").value || 111) * Math.PI / 180;
+  const ty = Math.tan(f / 2) * 0.75, vfov = 2 * Math.atan(ty) * 180 / Math.PI, hfov = 2 * Math.atan(ty * asp) * 180 / Math.PI;
+  $("fovinfo").textContent = "= " + hfov.toFixed(1) + "° wide / " + vfov.toFixed(1) + "° tall";
+  frameEl.style.aspectRatio = asp; camera.aspect = asp; camera.fov = vfov; camera.updateProjectionMatrix(); resize();
+}
+function resize() {
+  const w = frameEl.clientWidth, h = frameEl.clientHeight; if (!w || !h) return;
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(w, h, false); dirty = true;
+}
+$("aspect").addEventListener("change", fovAspect); $("fov").addEventListener("change", fovAspect);
+new ResizeObserver(resize).observe($("stage"));
+
+// animation
+let playing = false, lastT = 0;
+const clips = () => G[cur].clips;
+function loadClips() {
+  const sel = $("clip"); sel.innerHTML = "";
+  clips().forEach((c, i) => sel.add(new Option(c[0] + " (" + c[1] + "–" + c[2] + ")", i)));
+  playing = false; $("play").textContent = "▶ play"; setClip();
+}
+function setClip() {
+  const c = clips()[+$("clip").value]; $("r_f").min = $("n_f").min = c[1]; $("r_f").max = $("n_f").max = c[2];
+  frameF = c[1]; $("r_f").value = $("n_f").value = frameF; dirty = true;
+}
+$("clip").addEventListener("change", setClip);
+$("r_f").addEventListener("input", e => { playing = false; $("play").textContent = "▶ play"; frameF = +e.target.value; $("n_f").value = frameF; dirty = true; });
+$("n_f").addEventListener("change", e => { frameF = +e.target.value; $("r_f").value = frameF; dirty = true; });
+$("prev").addEventListener("click", () => step(-1)); $("next").addEventListener("click", () => step(1));
+function step(d) { const c = clips()[+$("clip").value]; playing = false; $("play").textContent = "▶ play"; frameF = Math.min(c[2], Math.max(c[1], Math.round(frameF) + d)); $("r_f").value = $("n_f").value = frameF; dirty = true; }
+$("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "❚❚ pause" : "▶ play"; lastT = performance.now(); });
+
+// mouse
+let drag = null;
+frameEl.addEventListener("contextmenu", e => e.preventDefault());
+frameEl.addEventListener("pointerdown", e => { frameEl.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, mode: e.ctrlKey ? "roll" : (e.shiftKey || e.button === 2) ? "turn" : "move" }; frameEl.classList.add("drag"); });
+frameEl.addEventListener("pointerup", () => { drag = null; frameEl.classList.remove("drag"); });
+frameEl.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  const E = edits[cur], depth = Math.max(6, model.md.pivot[0] + E.pos[0]);
+  const perPx = 2 * Math.tan(camera.fov * Math.PI / 360) * depth / frameEl.clientHeight;
+  if (drag.mode === "move") { E.pos[1] -= dx * perPx; E.pos[2] -= dy * perPx; }
+  else if (drag.mode === "turn") { E.rot[2] -= dx * 0.4; E.rot[1] -= dy * 0.4; }
+  else E.rot[0] += dx * 0.4;
+  adjusted(); refreshUI();
+});
+frameEl.addEventListener("wheel", e => {
+  e.preventDefault(); const E = edits[cur], d = Math.sign(-e.deltaY);
+  if (e.altKey) E.scale = Math.max(0.1, E.scale * (1 + 0.03 * d)); else E.pos[0] += d * (e.shiftKey ? 0.25 : 1);
+  adjusted(); refreshUI();
+}, { passive: false });
+window.addEventListener("keydown", e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.type !== "range") return;
+  const E = edits[cur], s = e.shiftKey ? 0.1 : 0.5; let hit = true;
+  if (e.key === "ArrowLeft") E.pos[1] += s; else if (e.key === "ArrowRight") E.pos[1] -= s;
+  else if (e.key === "ArrowUp") E.pos[2] += s; else if (e.key === "ArrowDown") E.pos[2] -= s;
+  else if (e.key === "PageUp") E.pos[0] += s; else if (e.key === "PageDown") E.pos[0] -= s;
+  else if (e.key === "[") { stepGun(-1); return; } else if (e.key === "]") { stepGun(1); return; } else hit = false;
+  if (hit) { e.preventDefault(); adjusted(); refreshUI(); }
+});
+
+async function load() { await build(cur); if (G[cur] && model && model.name === cur) { loadClips(); refreshUI(); persist(); } }
+function tick(t) {
+  if (playing) {
+    const c = clips()[+$("clip").value], dt = (t - lastT) / 1000; lastT = t;
+    frameF += dt * c[3];
+    if (frameF > c[2]) { if (c[4]) frameF = c[1] + (frameF - c[1]) % Math.max(1e-6, c[2] + 1 - c[1]); else { frameF = c[2]; playing = false; $("play").textContent = "▶ play"; } }
+    $("r_f").value = Math.floor(frameF); $("n_f").value = Math.floor(frameF); dirty = true;
+  }
+  if (dirty && model) { dirty = false; dummy.visible = $("c_dummy").checked; applyPose(); renderer.render(scene, camera); }
+  requestAnimationFrame(tick);
+}
+$("fov").value = D.fov || 111;
+fovAspect(); load(); requestAnimationFrame(tick);
+window.__gpv = { edits, votes, notes, selectGun, names };   // for tests
+})();
+</script>
+</body>
+</html>

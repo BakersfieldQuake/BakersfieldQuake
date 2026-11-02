@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimReady Vote</title>
+<style>
+:root{--bg:#14161a;--panel:#1d2026;--line:#2d323b;--text:#e6e8ec;--dim:#9aa1ad;--yes:#37b36b;--maybe:#e0a526;--no:#d8534f;--acc:#6aa7ff}
+@media (prefers-color-scheme: light){:root{--bg:#f3f4f6;--panel:#fff;--line:#d9dce2;--text:#1b1e24;--dim:#5b6270}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px}
+h1{font-size:18px;margin:0 0 6px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip,.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:5px 11px;border-radius:999px;cursor:pointer;font:inherit;font-size:13px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn:hover,.chip:hover{border-color:var(--acc)}
+.count{color:var(--dim);font-size:13px;margin-left:auto}
+main{padding:12px 16px 60px;max-width:1500px;margin:0 auto}
+h2{font-size:15px;margin:22px 0 8px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.card.v-yes{border-color:var(--yes)}.card.v-maybe{border-color:var(--maybe)}.card.v-no{border-color:var(--no);opacity:.55}
+.imgs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.imgs img{width:100%;display:block;cursor:zoom-in;aspect-ratio:4/3;object-fit:cover}
+.info{padding:8px 10px;flex:1}
+.name{font-weight:600;font-size:13px;word-break:break-all}
+.meta{color:var(--dim);font-size:12px;margin-top:2px}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.tag{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.tag.pick{border-color:var(--acc);color:var(--acc)}.tag.inmap{border-color:var(--maybe);color:var(--maybe)}
+.note{font-size:12px;margin-top:5px}
+.votes{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}
+.votes button{border:0;border-right:1px solid var(--line);background:transparent;color:var(--text);padding:9px 0;font:inherit;font-size:14px;cursor:pointer}
+.votes button:last-child{border-right:0}
+.votes button:hover{background:var(--line)}
+.v-yes .votes .yes{background:var(--yes);color:#fff}.v-maybe .votes .maybe{background:var(--maybe);color:#fff}.v-no .votes .no{background:var(--no);color:#fff}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:20;cursor:zoom-out}
+#lb.on{display:flex}#lb img{max-width:96vw;max-height:94vh;border-radius:6px}
+#out{width:100%;height:160px;margin-top:8px;display:none;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px monospace}
+@media (max-width:520px){main{padding:10px 16px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>SimReady props for the bklan map: vote on each one</h1>
+  <div class="bar" id="filters"></div>
+  <div class="bar" style="margin-top:6px">
+    <button class="btn" id="copy">Copy votes</button>
+    <button class="btn" id="dl">Download votes.json</button>
+    <button class="btn" id="reset">Clear all votes</button>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+<main id="main"><textarea id="out" readonly></textarea></main>
+<div id="lb"><img alt=""></div>
+<script>
+const DATA = /*DATA*/[];
+const KEY = "simready_votes_v1";
+let votes = {};
+try { votes = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(votes)); } catch (e) {} }
+let filter = "all", cat = "all";
+const $ = (s) => document.querySelector(s);
+const cats = [...new Set(DATA.map(d => d.cat))];
+
+function chip(label, group, val) {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = label; b.dataset.group = group; b.dataset.val = val;
+  b.onclick = () => { if (group === "f") filter = val; else cat = val; render(); };
+  return b;
+}
+function buildFilters() {
+  const f = $("#filters"); f.innerHTML = "";
+  [["All", "all"], ["Unvoted", "none"], ["Yes", "yes"], ["Maybe", "maybe"], ["No", "no"], ["My picks", "pick"]].forEach(([l, v]) => f.append(chip(l, "f", v)));
+  const sep = document.createElement("span"); sep.style.width = "14px"; f.append(sep);
+  f.append(chip("Every category", "c", "all")); cats.forEach(c => f.append(chip(c, "c", c)));
+}
+function show(d) {
+  const v = votes[d.id] || "none";
+  if (filter === "pick") { if (!d.pick) return false; }
+  else if (filter !== "all" && v !== filter) return false;
+  return cat === "all" || d.cat === cat;
+}
+function card(d) {
+  const c = document.createElement("div");
+  c.className = "card" + (votes[d.id] ? " v-" + votes[d.id] : "");
+  const tags = (d.pick ? `<span class="tag pick">my pick: ${d.pick}</span>` : "") +
+    (d.inmap ? `<span class="tag inmap">similar prop already in map (${d.inmap})</span>` : "") +
+    (d.tex ? "" : `<span class="tag">no colour map: flat paint</span>`);
+  c.innerHTML = `<div class="imgs"><img src="${d.a}" alt=""><img src="${d.b}" alt=""></div>
+    <div class="info"><div class="name">${d.id}</div>
+    <div class="meta">${d.dims}</div><div class="meta">${d.tris.toLocaleString()} triangles raw</div>
+    <div class="tags">${tags}</div>${d.note ? `<div class="note">${d.note}</div>` : ""}</div>
+    <div class="votes"><button class="yes">Yes</button><button class="maybe">Maybe</button><button class="no">No</button></div>`;
+  c.querySelectorAll(".imgs img").forEach(i => i.onclick = () => { $("#lb img").src = i.src; $("#lb").classList.add("on"); });
+  ["yes", "maybe", "no"].forEach(k => c.querySelector("." + k).onclick = () => {
+    if (votes[d.id] === k) delete votes[d.id]; else votes[d.id] = k;
+    save(); render();
+  });
+  return c;
+}
+function render() {
+  document.querySelectorAll(".chip").forEach(b => b.classList.toggle("on", b.dataset.val === (b.dataset.group === "f" ? filter : cat)));
+  const m = $("#main"); const out = $("#out"); m.innerHTML = ""; m.append(out);
+  const y = Object.values(votes).filter(v => v === "yes").length, mb = Object.values(votes).filter(v => v === "maybe").length,
+    n = Object.values(votes).filter(v => v === "no").length;
+  $("#count").textContent = `${Object.keys(votes).length} of ${DATA.length} voted: ${y} yes, ${mb} maybe, ${n} no`;
+  cats.forEach(cn => {
+    const items = DATA.filter(d => d.cat === cn && show(d));
+    if (!items.length) return;
+    const h = document.createElement("h2"); h.textContent = `${cn} (${items.length})`; m.append(h);
+    const g = document.createElement("div"); g.className = "grid"; items.forEach(d => g.append(card(d))); m.append(g);
+  });
+  if (m.children.length < 2) m.insertAdjacentHTML("beforeend", "<p style='color:var(--dim)'>Nothing matches this filter.</p>");
+}
+function summary() {
+  const by = k => DATA.filter(d => votes[d.id] === k).map(d => d.id);
+  const un = DATA.filter(d => !votes[d.id]).length;
+  return `SimReady votes (${Object.keys(votes).length}/${DATA.length})\nYES:\n${by("yes").join("\n")}\nMAYBE:\n${by("maybe").join("\n")}\nNO:\n${by("no").join("\n")}\n(${un} not voted)`;
+}
+$("#copy").onclick = async () => {
+  const t = summary(); const o = $("#out"); o.value = t; o.style.display = "block"; o.select();
+  try { await navigator.clipboard.writeText(t); $("#copy").textContent = "Copied"; setTimeout(() => $("#copy").textContent = "Copy votes", 1500); } catch (e) {}
+};
+$("#dl").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(votes, null, 1)], { type: "application/json" }));
+  a.download = "simready_votes.json"; a.click();
+};
+$("#reset").onclick = () => { if (confirm("Clear all votes?")) { votes = {}; save(); render(); } };
+$("#lb").onclick = () => $("#lb").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#lb").classList.remove("on"); });
+buildFilters(); render();
+</script>
+</body>
+</html>

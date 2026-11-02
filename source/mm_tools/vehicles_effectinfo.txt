@@ -1,0 +1,165 @@
+// Shootable/explodable vehicles (vehicles.qc): calibrated for DarkPlaces 2.5x HDR scene brightness.
+// Never uses snow + bounce; smoke colours kept dark (0x202020..0x424242) and thin so visibility stays crisp.
+
+// ---- Under-hood engine fire while a damaged vehicle cooks off before exploding
+effect veh_fire
+lightradius 170
+lightradiusfade 900
+lightcolor 0.95 0.45 0.12
+lightshadow 0
+
+effect veh_fire
+count 2
+type alphastatic
+tex 0 8
+color 0xffb848 0xfff0a0
+size 4 8
+sizeincrease 6
+alpha 210 250 780
+originjitter 7 7 3
+velocityoffset 0 0 65
+velocityjitter 38 38 28
+airfriction 1.6
+
+effect veh_fire
+count 2
+type alphastatic
+tex 0 8
+color 0xd83200 0xf08018
+size 8 14
+sizeincrease 10
+alpha 185 235 640
+originjitter 10 10 4
+velocityoffset 0 0 85
+velocityjitter 46 46 32
+airfriction 1.7
+
+effect veh_fire
+count 1
+type spark
+tex 0 8
+color 0xff8818 0xffe068
+size 1 2
+alpha 256 256 380
+originjitter 6 6 2
+velocityoffset 0 0 120
+velocityjitter 145 145 95
+gravity 0.85
+airfriction 0.3
+
+// ---- Rising dark grey smoke column from a burning hood
+effect veh_smoke
+count 1
+type smoke
+tex 0 7
+color 0x242424 0x424242
+size 8 14
+sizeincrease 11
+alpha 38 68 175
+originjitter 8 8 4
+velocityoffset 0 0 98
+velocityjitter 30 30 22
+gravity 0
+airfriction 1.1
+
+// ---- Catastrophic fuel-tank detonation fireball + shock sparks + oily smoke plume
+effect veh_explode
+lightradius 420
+lightradiusfade 950
+lightcolor 1.1 0.58 0.18
+lightshadow 0
+
+effect veh_explode
+count 10
+type alphastatic
+tex 0 8
+color 0xffb040 0xfff0a0
+size 18 30
+sizeincrease 55
+alpha 220 256 620
+originjitter 14 14 10
+velocityoffset 0 0 95
+velocityjitter 220 220 180
+airfriction 2.2
+
+effect veh_explode
+count 18
+type alphastatic
+tex 0 8
+color 0xd02800 0xff7818
+size 22 38
+sizeincrease 42
+alpha 200 250 450
+originjitter 24 24 14
+velocityoffset 0 0 140
+velocityjitter 240 240 190
+airfriction 1.9
+
+effect veh_explode
+count 28
+type spark
+tex 0 8
+color 0xff7810 0xffe878
+size 1.5 3
+alpha 256 256 320
+originjitter 16 16 10
+velocityoffset 0 0 215
+velocityjitter 380 380 280
+gravity 0.9
+airfriction 0.35
+
+effect veh_explode
+count 8
+type smoke
+tex 0 7
+color 0x202020 0x3c3c3c
+size 18 30
+sizeincrease 18
+alpha 55 90 140
+originjitter 28 28 16
+velocityoffset 0 0 135
+velocityjitter 150 150 95
+gravity 0
+airfriction 1.4
+
+// ---- Lingering embers and thin smoke on the crumpled charred wreck
+effect veh_wreck_fire
+count 2
+type alphastatic
+tex 0 8
+color 0xc83000 0xf08820
+size 5 10
+sizeincrease 4
+alpha 175 225 620
+originjitter 18 14 4
+velocityoffset 0 0 52
+velocityjitter 24 24 18
+airfriction 1.6
+
+effect veh_wreck_fire
+count 1
+type smoke
+tex 0 7
+color 0x242424 0x3e3e3e
+size 7 12
+sizeincrease 8
+alpha 30 52 165
+originjitter 18 14 5
+velocityoffset 0 0 70
+velocityjitter 22 22 15
+gravity 0
+airfriction 1.2
+
+// ---- Sheet-metal / debris impact sparks
+effect veh_sparks
+count 6
+type spark
+tex 0 8
+color 0xff9828 0xfff090
+size 1 2
+alpha 256 256 420
+originjitter 3 3 2
+velocityoffset 0 0 75
+velocityjitter 190 190 130
+gravity 1
+airfriction 0.35

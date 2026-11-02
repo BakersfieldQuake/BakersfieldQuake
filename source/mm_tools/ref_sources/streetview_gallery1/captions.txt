@@ -1,0 +1,76 @@
+aerial-z16-wide-sat.jpg :: Aerial — wide, zoom 16, satellite — downtown Bakersfield context, warehouse near centre, east of Union Ave, south of Hwy 178 interchange
+aerial-z17-sat.jpg :: Aerial — zoom 17, satellite
+aerial-z17-hybrid.jpg :: Aerial — zoom 17, satellite + street labels
+aerial-z18-sat.jpg :: Aerial — zoom 18, satellite — whole block: E 21st St, Sacramento St, Sumner St, Union Ave interchange west
+aerial-z18-hybrid.jpg :: Aerial — zoom 18, satellite + labels
+aerial-z19-sat.jpg :: Aerial — zoom 19, satellite — building + lot close
+aerial-z19-hybrid.jpg :: Aerial — zoom 19, satellite + labels — neighbours: MP Lube, Sac21, Celebrity Bodyworks, LMC Paint Supply, Capri Motel, Performance Driveline
+aerial-z20-close-sat.jpg :: Aerial — zoom 20, close overhead, satellite — roof detail: vents, AC units, skylights
+aerial-z20-close-hybrid.jpg :: Aerial — zoom 20, close overhead, satellite + labels
+map-z18-road.jpg :: Road map — zoom 18 — street grid: E 21st St, Sacramento St, Sumner St, Grove St, Union Ave
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw0.jpg :: yaw 0 — NORTH
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw45.jpg :: yaw 45 — NORTH-EAST ⭐ KEY — Front facade, yaw 45 (NE): full white frontage, tall blank parapet, BATERIAS $55 sign, black door, 120A door + dark windows, 120B, red/blue vertical panels, black iron gate east end, white coupe + white SUV parked in front.
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw90.jpg :: yaw 90 — EAST
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw180.jpg :: yaw 180 — SOUTH
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw270.jpg :: yaw 270 — WEST
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw45-pitch25.jpg :: yaw 45, pitch 25 — tilted up: tall plain white parapet dominates, rooftop equipment + A-frame/antenna behind it
+sv-front-118e21st-pano-zMs_Qgogu-KGknvva4xnig-yaw45-pitch-10.jpg :: yaw 45, pitch -10 — slightly down, frontage + sidewalk + road
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw0.jpg :: yaw 0 — NORTH
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw45.jpg :: yaw 45 — NORTH-EAST ⭐ KEY — Front facade from a few metres west.
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw90.jpg :: yaw 90 — EAST
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw180.jpg :: yaw 180 — SOUTH
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw270.jpg :: yaw 270 — WEST
+sv-front-115e21st-pano-J7Kbb9uJL5YiN38_3wZi6g-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw0.jpg :: yaw 0 — NORTH
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw90.jpg :: yaw 90 — EAST
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw180.jpg :: yaw 180 — SOUTH
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw270.jpg :: yaw 270 — WEST ⭐ KEY — Looking west at Plascencia Custom Paint & Body: corrugated metal, open roller bay, red doors, sign 'Plascencia Custom Paint & Body — Specializing in Spot Painting — 326-0943'.
+sv-east-898sacramento-pano-hqPC5uMgsyIleEdUmEjeUg-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw0.jpg :: yaw 0 — NORTH ⭐ KEY — Blank beige corrugated-metal warehouse wall, concrete base, 3 wall lights, black iron fence, white pickup, dirt parking with concrete wheel stops.
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw90.jpg :: yaw 90 — EAST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw180.jpg :: yaw 180 — SOUTH
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw270.jpg :: yaw 270 — WEST
+sv-grove-st-pano-MBrDKHthmKo80yOkMDm0jg-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw0.jpg :: yaw 0 — NORTH
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw90.jpg :: yaw 90 — EAST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw180.jpg :: yaw 180 — SOUTH ⭐ KEY — Looking south: fenced yard with blue Genie boom lifts, chain-link + breeze-block wall, grass strip, white warehouse behind. Rear is NOT directly street-accessible.
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw270.jpg :: yaw 270 — WEST
+sv-north-135sumner-pano-AldbaUTD_1Cb92K5qd9l3A-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw0.jpg :: yaw 0 — NORTH
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw90.jpg :: yaw 90 — EAST ⭐ KEY — Looking east down E 21st St: blue cherry-picker lifts in fenced yard (left), brown motel (right), Speed Limit 35 sign, warehouse in the centre distance.
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw180.jpg :: yaw 180 — SOUTH
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw270.jpg :: yaw 270 — WEST
+sv-west-119e21st-pano-dIfw9VXDm_euY2m8tJ2RrA-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw0.jpg :: yaw 0 — NORTH
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw90.jpg :: yaw 90 — EAST
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw180.jpg :: yaw 180 — SOUTH
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw270.jpg :: yaw 270 — WEST ⭐ KEY — Looking west down E 21st St: long white corrugated warehouse with blue trim + blue door on the left (LMC Paint Supply, east neighbour), cars parked along the street, colourful shops on the right.
+sv-east-217e21st-pano-SXPieXYETR2XBRFy0NGVhA-yaw315.jpg :: yaw 315 — NORTH-WEST
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw0.jpg :: yaw 0 — NORTH
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw45.jpg :: yaw 45 — NORTH-EAST
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw90.jpg :: yaw 90 — EAST ⭐ KEY — Looking east from Union Ave: E 21st St stretching east, warehouse area in the distance.
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw135.jpg :: yaw 135 — SOUTH-EAST
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw180.jpg :: yaw 180 — SOUTH
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw225.jpg :: yaw 225 — SOUTH-WEST
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw270.jpg :: yaw 270 — WEST
+sv-union-205-21st-pano-6srXptguZddQco4ov21Fog-yaw315.jpg :: yaw 315 — NORTH-WEST

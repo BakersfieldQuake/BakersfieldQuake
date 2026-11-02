@@ -1,0 +1,167 @@
+{
+  "stage": "4b",
+  "description": "Stage 4b — Surrounding lot-by-lot buildings, compound walls, shopfronts, awnings, and trees traced from z=20/19/18 metric grids and verified against Street View & video frames. Unphotographed rear/distant walls use np_placehld and are logged in gaps.md.",
+  "soi4_east_lots": [
+    {
+      "name": "Yellow 3F Corner Shophouse (Soi 4 Mouth East)",
+      "poly": [[-28.5, 45.5], [-16.0, 45.5], [-16.0, 53.55], [-28.5, 61.11]],
+      "x1": -28.5, "x2": -16.0, "y1": 45.5, "y2": 61.11, "z1": 0.0, "z2": 12.2,
+      "tex": "np_wall_ylw", "rear_tex": "np_placehld",
+      "awning": {"x1": -30.5, "x2": -28.4, "y1": 45.8, "y2": 60.5, "z_in": 3.4, "z_out": 2.55, "tex": "np_awn_blue"}
+    },
+    {
+      "name": "Morning Night 3F Classical Shophouse",
+      "x1": -28.5, "x2": -16.0, "y1": 30.5, "y2": 45.5, "z1": 0.0, "z2": 12.6,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld",
+      "slat_balcony": {"x1": -29.35, "x2": -28.45, "y1": 30.5, "y2": 45.5, "z1": 2.55, "z2": 5.10, "tex": "np_slat_blk"},
+      "fascia": {"x1": -29.46, "x2": -29.34, "y1": 33.2, "y2": 42.8, "z1": 2.85, "z2": 4.75, "tex": "np_morning"},
+      "open_ground": true
+    },
+    {
+      "name": "Stumble Inn 3F Classical North Wing",
+      "poly": [[-28.5, 15.2], [-18.0, 15.2], [-15.0, 30.5], [-28.5, 30.5]],
+      "x1": -28.5, "x2": -18.0, "y1": 15.2, "y2": 30.5, "z1": 0.0, "z2": 12.6,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld",
+      "slat_balcony": {"x1": -29.35, "x2": -28.45, "y1": 15.2, "y2": 30.5, "z1": 2.55, "z2": 5.10, "tex": "np_slat_blk"},
+      "fascia": {"x1": -29.46, "x2": -29.34, "y1": 20.2, "y2": 25.6, "z1": 2.75, "z2": 4.85, "tex": "np_stumble"},
+      "throat_bar": {"x1": -28.5, "x2": -21.8, "y1": 14.8, "y2": 15.4, "z1": 0.15, "z2": 1.15, "tex": "np_chang_bar"},
+      "open_ground": true
+    },
+    {
+      "name": "PRO EXCHANGE Kiosk (South Entrance Throat)",
+      "x1": -28.85, "x2": -26.2, "y1": 4.5, "y2": 6.8, "z1": 0.15, "z2": 2.85,
+      "tex": "np_exchange", "is_exchange_booth": true
+    },
+    {
+      "name": "Kickoff & Bunny 3.5F Classical South Wing",
+      "poly": [[-28.4, -14.5], [-24.5, -14.5], [-23.6, 3.2], [-28.4, 5.8]],
+      "x1": -28.4, "x2": -23.6, "y1": -14.5, "y2": 5.8, "y_max_inner": 2.6, "z1": 0.0, "z2": 11.4,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld",
+      "slat_balcony": {"x1": -29.30, "x2": -28.35, "y1": -14.4, "y2": 3.6, "z1": 2.55, "z2": 4.85, "tex": "np_slat_blk"},
+      "fascia": {"x1": -29.42, "x2": -29.29, "y1": -5.2, "y2": 2.2, "z1": 2.65, "z2": 4.65, "tex": "np_kickoff"},
+      "sub_fascia": {"x1": -29.42, "x2": -29.29, "y1": -14.0, "y2": -4.2, "z1": 2.65, "z2": 4.35, "tex": "np_bunny25"},
+      "open_ground": true
+    },
+    {
+      "name": "Charlies Kitchen (Dynasty Inn Street Canopy)",
+      "x1": -28.2, "x2": -24.5, "y1": -26.0, "y2": -14.8, "z1": 0.0, "z2": 4.5,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "Hillary 2 Live Music Bar",
+      "x1": -28.0, "x2": -12.0, "y1": -66.0, "y2": -50.2, "z1": 0.0, "z2": 8.4,
+      "tex": "np_slat_blk", "rear_tex": "np_placehld",
+      "fascia": {"x1": -28.8, "x2": -27.9, "y1": -65.5, "y2": -50.5, "z1": 2.6, "z2": 4.6, "tex": "np_hillary2"}
+    },
+    {
+      "name": "King Indian Night Club",
+      "x1": -27.9, "x2": -12.0, "y1": -78.0, "y2": -66.2, "z1": 0.0, "z2": 11.6,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld",
+      "blade": {"x1": -29.2, "x2": -27.9, "y1": -68.0, "y2": -67.4, "z1": 3.8, "z2": 7.4, "tex": "np_kingind"}
+    },
+    {
+      "name": "East Soi 4 7-Eleven & Rose Nana Shophouses",
+      "x1": -27.6, "x2": -6.0, "y1": -145.0, "y2": -78.5, "z1": 0.0, "z2": 14.2,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "East Soi 4 Mid-South Block (Tamnanthai / California Ink)",
+      "x1": -26.2, "x2": 12.0, "y1": -190.0, "y2": -148.0, "z1": 0.0, "z2": 13.5,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "East Soi 4 Novotel Street Podium & Shophouses",
+      "x1": -25.8, "x2": 2.0, "y1": -240.0, "y2": -190.0, "z1": 0.0, "z2": 14.5,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "East Soi 4 South Block (Soi 6 Alley to Z18 Edge)",
+      "x1": -24.0, "x2": 26.0, "y1": -360.0, "y2": -246.0, "z1": 0.0, "z2": 15.0,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "Dynasty Inn East Courtyard Wing",
+      "x1": -6.5, "x2": 8.0, "y1": -50.0, "y2": -26.0, "z1": 0.0, "z2": 12.0,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "Hillary 2 Rear Terracotta Building",
+      "x1": -12.0, "x2": 6.0, "y1": -78.0, "y2": -52.0, "z1": 0.0, "z2": 10.5,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    }
+  ],
+  "soi4_west_lots": [
+    {
+      "name": "Grey Recessed-Panel Compound Wall (Soi 4 Mouth West)",
+      "x1": -41.0, "x2": -40.2, "y1": 38.6, "y2": 56.5, "z1": 0.16, "z2": 2.95,
+      "tex": "np_wall_grey", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "Absolute Tattoo Shop & Compound Wall",
+      "x1": -52.0, "x2": -40.2, "y1": 29.2, "y2": 38.6, "z1": 0.16, "z2": 3.6,
+      "tex": "np_wall_grey", "rear_tex": "np_placehld",
+      "blade": {"x1": -40.2, "x2": -38.7, "y1": 31.2, "y2": 31.6, "z1": 2.3, "z2": 3.2, "tex": "np_tattoo"}
+    },
+    {
+      "name": "Pharmacy World (ฟาร์มาซี เวิลด์) 1F Shop",
+      "x1": -54.0, "x2": -40.2, "y1": 22.8, "y2": 26.6, "z1": 0.16, "z2": 4.1,
+      "tex": "np_shutter", "rear_tex": "np_placehld",
+      "fascia": {"x1": -40.3, "x2": -39.8, "y1": 23.0, "y2": 26.4, "z1": 2.8, "z2": 3.4, "tex": "np_pharm_sgn"},
+      "blade": {"x1": -40.2, "x2": -39.1, "y1": 23.0, "y2": 23.35, "z1": 3.25, "z2": 4.48, "tex": "np_pharm_bld"}
+    },
+    {
+      "name": "Nana Burger Striped Kiosk",
+      "x1": -46.0, "x2": -40.5, "y1": 20.1, "y2": 22.8, "z1": 0.16, "z2": 3.3,
+      "tex": "np_slat_blk", "rear_tex": "np_placehld",
+      "blade": {"x1": -40.5, "x2": -39.5, "y1": 20.5, "y2": 20.9, "z1": 2.25, "z2": 3.55, "tex": "np_burger_s"}
+    },
+    {
+      "name": "Thai Cannabis Club White Container Kiosk",
+      "x1": -46.8, "x2": -43.8, "y1": 14.5, "y2": 16.7, "z1": 0.05, "z2": 2.75,
+      "tex": "np_white_pnl", "rear_tex": "np_placehld",
+      "fascia": {"x1": -43.9, "x2": -43.5, "y1": 14.5, "y2": 16.5, "z1": 2.15, "z2": 3.35, "tex": "np_cannabis"}
+    },
+    {
+      "name": "Hooters Nana 1F Open-Patio Sports Bar",
+      "x1": -55.0, "x2": -40.2, "y1": -18.0, "y2": 1.0, "z1": 0.16, "z2": 4.7,
+      "tex": "np_mahog_wd", "rear_tex": "np_placehld", "open_patio": true,
+      "patio_awning": {"x1": -40.4, "x2": -38.4, "y1": -16.5, "y2": 0.5, "z1": 2.60, "z2": 3.00, "tex": "np_red_pnt"},
+      "fascia": {"x1": -40.3, "x2": -39.6, "y1": -11.5, "y2": -2.5, "z1": 3.08, "z2": 4.55, "tex": "np_hooters"}
+    },
+    {
+      "name": "BLEZ Pharmacy 4F Shophouse",
+      "x1": -56.0, "x2": -39.5, "y1": -34.0, "y2": -18.6, "z1": 0.16, "z2": 13.6,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld",
+      "fascia": {"x1": -39.6, "x2": -39.0, "y1": -28.5, "y2": -22.5, "z1": 2.8, "z2": 4.3, "tex": "np_blez"}
+    },
+    {
+      "name": "West Soi 4 Mid Shophouses (Washington Tech / EQ / Zaab)",
+      "x1": -56.0, "x2": -39.2, "y1": -62.0, "y2": -34.5, "z1": 0.16, "z2": 13.6,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "West Soi 4 Fitzgeralds / Brainwake / Bus Stop",
+      "x1": -56.0, "x2": -38.8, "y1": -116.0, "y2": -62.5, "z1": 0.16, "z2": 12.2,
+      "tex": "np_wall_crm", "rear_tex": "np_placehld"
+    },
+    {
+      "name": "West Soi 4 South Blocks (Maison Aly to Z18 Edge)",
+      "x1": -64.0, "x2": -36.5, "y1": -360.0, "y2": -128.0, "z1": 0.16, "z2": 14.0,
+      "tex": "np_placehld", "rear_tex": "np_placehld"
+    }
+  ],
+  "neighborhood_oriented_blocks": [
+    {"name": "Sukhumvit SW Shophouses (Rajawongse Clothier / Thailand Post)", "cx": 18.5, "cy": 39.5, "hl": 21.0, "hw": 9.5, "yaw": -31.17, "z2": 14.5, "tex": "np_wall_crm"},
+    {"name": "Sukhumvit NW Shophouses (Prime Burger Nana / Soi 3 West)", "cx": -64.0, "cy": 118.0, "hl": 22.0, "hw": 14.0, "yaw": -31.17, "z2": 16.0, "tex": "np_wall_crm"},
+    {"name": "Sukhumvit N Shophouses (Soi 3 East Corner)", "cx": -16.0, "cy": 96.0, "hl": 16.0, "hw": 12.0, "yaw": -31.17, "z2": 15.5, "tex": "np_wall_crm"},
+    {"name": "Sukhumvit NE Shophouses (Gulati Tailoring / Naan & Grill, ref_045)", "cx": 18.0, "cy": 78.0, "hl": 32.0, "hw": 10.0, "yaw": -31.17, "z2": 14.8, "tex": "np_wall_crm"},
+    {"name": "Sukhumvit NE Block (Soi 5 to Soi 7)", "cx": 116.0, "cy": 20.0, "hl": 34.0, "hw": 12.0, "yaw": -31.17, "z2": 15.0, "tex": "np_placehld"},
+    {"name": "Sukhumvit NE Block (Soi 7 to Soi 11)", "cx": 238.0, "cy": -54.0, "hl": 48.0, "hw": 14.0, "yaw": -31.17, "z2": 18.0, "tex": "np_placehld"},
+    {"name": "Soi 3 East Commercial Block", "cx": 15.0, "cy": 135.0, "hl": 20.0, "hw": 14.0, "yaw": -6.0, "z2": 16.0, "tex": "np_placehld"},
+    {"name": "Krungthai Bank Head Office Tower (NW Z18)", "cx": -162.0, "cy": 248.0, "hl": 26.0, "hw": 22.0, "yaw": -12.0, "z2": 68.0, "tex": "np_placehld"},
+    {"name": "Maison Hotel Bangkok (Soi 2 / Maison Aly)", "cx": -118.0, "cy": -146.0, "hl": 28.0, "hw": 16.0, "yaw": 0.0, "z2": 42.0, "tex": "np_placehld"},
+    {"name": "Hotel Icon & Soi 2 West Blocks", "cx": -202.0, "cy": -195.0, "hl": 22.0, "hw": 36.0, "yaw": 0.0, "z2": 28.0, "tex": "np_placehld"},
+    {"name": "Thai Obayashi / Kao Tower (East Z18)", "cx": 135.0, "cy": -145.0, "hl": 38.0, "hw": 20.0, "yaw": -8.0, "z2": 58.0, "tex": "np_placehld"},
+    {"name": "Saranjai Mansion (SE Z18)", "cx": 108.0, "cy": -286.0, "hl": 34.0, "hw": 18.0, "yaw": 0.0, "z2": 52.0, "tex": "np_placehld"}
+  ]
+}

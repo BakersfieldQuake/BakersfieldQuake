@@ -1,0 +1,523 @@
+/*
+================
+THE LAPTOP GUN (see ltgun_defs.qc for the rules and numbers)
+
+Hooks (patch_ltgun_combat.py, which unhooks the sniper rifle): W_WeaponFrame runs LtGun_PlayerFrame every frame and lets
+LtGun_Frame handle the fire button for IT_NAILGUN (it types, then sends the head, so W_Attack never sees the laptop),
+PutClientInServer runs LtGun_Spawn, and the obituary checks ltg_inflicting.
+================
+*/
+
+void() LtGun_PrecacheVideo =
+{
+	local float k;
+
+	if (ltg_vid_precached)
+		return;
+	ltg_vid_precached = TRUE;
+	precache_model ("progs/ltg_view.md3");
+	k = 0;
+	while (k < LTG_VARIANTS)
+	{
+		precache_model (strcat ("progs/ltg_type_", ftos (k), ".md3"));
+		k = k + 1;
+	}
+};
+
+void() LtGun_Precache =
+{
+	ltg_fx_laser = particleeffectnum ("ltg_laser");
+
+	precache_model ("progs/ltg_v3d.md3");
+	if (cvar ("ltg_video"))
+		LtGun_PrecacheVideo ();
+	precache_model ("progs/ltg_p.md3");
+	precache_model ("progs/ltg_g.md3");
+	precache_model ("progs/ltg_head.md3");
+	precache_model ("progs/ltg_aura.md3");
+	precache_model ("progs/ltg_laser.md3");
+	precache_model ("progs/sight.spr");
+	precache_sound ("ltgun/canis.wav");
+	precache_sound ("ltgun/type.wav");
+	precache_sound ("ltgun/send.wav");
+	precache_sound ("ltgun/zap.wav");
+	precache_sound ("ltgun/hit.wav");
+	precache_sound ("ltgun/null.wav");
+};
+
+// the held model: the typing one while the laptop is busy. The typing film is a shader animmap, which the engine runs on
+// the clock, not from the moment you pressed fire: there are LTG_VARIANTS copies of it, each starting its loop at a
+// different moment, and ltg_var (picked when fire was pressed) is the one whose first frame is showing right now
+string(entity p) LtGun_VModel =
+{
+	if (!bm_cvar_ltg_video)
+		return "progs/ltg_v3d.md3";		// the 3D laptop (build_laptop_gun.py): frames 0-11 idle, 12-33 typing and lightning
+	LtGun_PrecacheVideo ();
+	if (p.ltg_phase == 1)
+		return strcat ("progs/ltg_type_", ftos (p.ltg_var), ".md3");
+	return "progs/ltg_view.md3";
+};
+
+// which typing copy starts its film from the beginning at this very moment
+float() LtGun_Variant =
+{
+	local float g;
+
+	g = floor ((time - LTG_CLOCK_LAG) * LTG_ANIM_FPS);
+	g = g - LTG_ANIM_N * floor (g / LTG_ANIM_N);		// the frame the clock is on
+	g = floor (g / (LTG_ANIM_N / LTG_VARIANTS) + 0.5);
+	if (g >= LTG_VARIANTS)
+		g = 0;
+	return g;
+};
+
+// ---------------------------------------------------------------- the head
+
+// the cards (head and cables) turn to face whoever is looking at them; the head also shows the picture
+// that matches the viewer's side of it (frame k = seen from k * 15 degrees anticlockwise of its face) and wobbles
+float() LtGun_HeadCustomize =
+{
+	local float v, a, w;
+
+	v = vectoyaw (other.origin - self.origin);
+	a = v - self.ltg_head;
+	a = a - 360 * floor (a / 360);
+	self.frame = floor (a / 15 + 0.5);
+	if (self.frame > 23)
+		self.frame = 0;
+	self.angles_y = v + 180;
+	w = sin (time * 9 + self.ltg_wob);		// sin is a variant builtin: keep its result in a local
+	self.angles_z = 26 * w;
+	return TRUE;
+};
+
+float() LtGun_AuraCustomize =
+{
+	self.angles_y = vectoyaw (other.origin - self.origin) + 180;
+	self.angles_z = 0;
+	return TRUE;
+};
+
+void() LtGun_Gone =
+{
+	if (self.ltg_dot)
+		remove (self.ltg_dot);
+	if (self.ltg_aura)
+		remove (self.ltg_aura);
+	if (self.ltg_laser)
+		remove (self.ltg_laser);
+	sound (self, CHAN_VOICE, "ltgun/null.wav", 1, ATTN_NORM);		// cuts the clip off
+	remove (self);
+};
+
+// whoever is shocked runs about and is electrocuted a little (LtGun_PlayerFrame)
+void(entity e, entity by) LtGun_Shock =
+{
+	if (e.classname != "player" || e.health <= 0 || e.bm_prot_t > time)
+		return;		// (spawn protection: no slow either)
+	e.ltg_shock = time + LTG_SHOCK_TIME;
+	e.ltg_by = by;
+	e.ltg_zap_t = time + 0.1;
+	sound (e, CHAN_ITEM, "ltgun/zap.wav", 1, ATTN_NORM);
+	centerprint (e, "ZAPPED!\n");
+};
+
+void() LtGun_Touch =
+{
+	local entity e;
+
+	if (other == self.owner)
+		return;
+	if (pointcontents (self.origin) == CONTENT_SKY)
+	{
+		LtGun_Gone ();
+		return;
+	}
+	if (other.takedamage)
+	{
+		ltg_inflicting = TRUE;
+		T_Damage (other, self, self.owner, LTG_DAMAGE);
+		ltg_inflicting = FALSE;
+		LtGun_Shock (other, self.owner);
+	}
+	e = findradius (self.origin, LTG_RADIUS);
+	while (e)
+	{
+		if (e != other && (e != self.owner || cvar ("ltg_test")) && e.classname == "player")		// ltg_test 1: the owner can be shocked too (a test aid)
+			LtGun_Shock (e, self.owner);
+		e = e.chain;
+	}
+	sound (self, CHAN_AUTO, "ltgun/hit.wav", 1, ATTN_NORM);
+	sendParticle ("ltg_boom", self.origin, '0 0 0', 1, 0);
+	LtGun_Gone ();
+};
+
+// the nearest enemy player the head can see ahead of it (inside the LTG_CONE cone, no wall between)
+entity() LtGun_Seek =
+{
+	local entity e, best;
+	local float d, bd;
+	local vector dir, to;
+
+	dir = normalize (self.velocity);
+	best = world;
+	bd = LTG_SEEK + 1;
+	e = findradius (self.origin, LTG_SEEK);
+	while (e)
+	{
+		if (e.classname == "player" && e != self.owner && e.health > 0)
+		{
+			to = e.origin - self.origin;
+			d = vlen (to);
+			if (d < bd && (normalize (to) * dir) > LTG_CONE)
+			{
+				traceline (self.origin, e.origin, TRUE, self);
+				if (trace_fraction == 1)
+				{
+					best = e;
+					bd = d;
+				}
+			}
+		}
+		e = e.chain;
+	}
+	return best;
+};
+
+// every 0.03 s: home on the enemy it has locked, else steer to where the owner is pointing
+void() LtGun_Think =
+{
+	local entity o, e;
+	local vector tgt, want, dir, src, gun;
+	local float k;
+
+	o = self.owner;
+	if (time > self.ltg_born + LTG_LIFE || o.health <= 0 || o.classname != "player")
+	{
+		sendParticle ("ltg_boom", self.origin, '0 0 0', 1, 0);
+		LtGun_Gone ();
+		return;
+	}
+	if (cvar ("ltg_test") >= 2)
+	{
+		self.velocity = '0 0 0';		// test aid: the head hangs where it was made, its face towards you, so you can walk round it
+		self.ltg_born = time;
+		self.nextthink = time + 0.1;
+		return;
+	}
+	// lock-on: it ignores the laser while it can see an enemy, and follows him until he has been out of sight for LTG_LOSE seconds
+	e = self.ltg_lock;
+	if (e && (e.health <= 0 || e.classname != "player" || vlen (e.origin - self.origin) > LTG_SEEK * 2))
+		e = world;
+	if (e)
+	{
+		traceline (self.origin, e.origin, TRUE, self);
+		if (trace_fraction == 1)
+			self.ltg_blind = 0;
+		else if (!self.ltg_blind)
+			self.ltg_blind = time;
+		else if (time - self.ltg_blind > LTG_LOSE)
+			e = world;
+	}
+	else
+		e = LtGun_Seek ();
+	if (e && !self.ltg_lock)
+	{
+		// locked on: the red dot and beam go out
+		self.ltg_blind = 0;
+		if (cvar ("ltg_test"))
+			dprint (strcat ("ltg lock on ", e.netname, " at ", ftos (vlen (e.origin - self.origin)), "\n"));
+		if (self.ltg_dot)
+			setmodel (self.ltg_dot, "");
+		if (self.ltg_laser)
+			setmodel (self.ltg_laser, "");
+		sound (self, CHAN_AUTO, "ltgun/zap.wav", 0.6, ATTN_NORM);
+	}
+	else if (!e && self.ltg_lock)
+	{
+		// lost him: the laser steers again
+		if (self.ltg_dot)
+			setmodel (self.ltg_dot, "progs/sight.spr");
+		if (self.ltg_laser)
+			setmodel (self.ltg_laser, "progs/ltg_laser.md3");
+	}
+	self.ltg_lock = e;
+
+	makevectors (o.v_angle);
+	src = o.origin + o.view_ofs;
+	if (e)
+	{
+		// a little lead, so a straight run does not get away
+		k = vlen (e.origin - self.origin) / LTG_SPEED * 0.5;
+		tgt = e.origin + e.velocity * k;
+	}
+	else
+	{
+		traceline (src, src + v_forward * 4096, FALSE, o);
+		tgt = trace_endpos;
+		if (self.ltg_dot)
+			setorigin (self.ltg_dot, trace_endpos - v_forward * 2);
+	}
+	// the laser: a red beam from the laptop to the dot (redrawn every think, it lives a few hundredths of a second)
+	if (self.ltg_laser && !e)
+	{
+		// from just in front of the laptop to the dot: the model is LTG_LASER_LEN long along its x axis, so stretch it to fit
+		gun = src + v_forward * 14 + v_right * 8 - v_up * 9;
+		want = trace_endpos - gun;
+		k = vlen (want) / 300;
+		if (k < 0.07)
+			k = 0.07;
+		if (k > 15)
+			k = 15;
+		setorigin (self.ltg_laser, gun);
+		self.ltg_laser.angles = vectoangles (want);
+		self.ltg_laser.scale = k;
+	}
+	if (!e && time >= self.ltg_dot_t)
+	{
+		self.ltg_dot_t = time + 0.06;
+		sendParticle ("ltg_dot", trace_endpos - v_forward * 3, '0 0 0', 1, 0);
+	}
+
+	dir = normalize (self.velocity);
+	want = tgt - self.origin;
+	if (vlen (want) > 32)
+	{
+		want = normalize (want);
+		k = LTG_TURN * 0.03;
+		if (e)
+			k = LTG_TURN_LOCK * 0.03;
+		if (k > 1)
+			k = 1;
+		dir = normalize (dir + (want - dir) * k);
+	}
+	self.velocity = dir * LTG_SPEED;
+	self.angles = vectoangles (dir);
+	self.ltg_head = vectoyaw (dir);
+	if (self.ltg_aura)
+		setorigin (self.ltg_aura, self.origin);
+	self.nextthink = time + 0.03;
+};
+
+// the shot: runs when the typing is done
+void() LtGun_Launch =
+{
+	local entity h, a, d;
+	local vector org;
+	local float k;
+
+	makevectors (self.v_angle);
+	self.ammo_nails = self.ammo_nails - 1;		// the LAN magazine reads this back (bm_reload.qc)
+	self.currentammo = self.ammo_nails;
+	self.show_hostile = time + 1;
+	player_shot1 ();
+	sound (self, CHAN_WEAPON, "ltgun/send.wav", 1, ATTN_NORM);
+
+	k = 28;
+	if (cvar ("ltg_test") >= 2)
+		k = 110;		// test aid: the head hangs 110 units away, still, so you can walk round it
+	traceline (self.origin + '0 0 16', self.origin + '0 0 16' + v_forward * k, TRUE, self);
+	org = trace_endpos - v_forward * 2;
+
+	h = spawn ();
+	h.owner = self;
+	h.classname = "ltg_head";
+	h.movetype = MOVETYPE_FLYMISSILE;
+	h.solid = SOLID_BBOX;
+	setmodel (h, "progs/ltg_head.md3");
+	setsize (h, '-6 -6 -6', '6 6 6');
+	setorigin (h, org);
+	h.velocity = v_forward * LTG_SPEED;
+	h.angles = vectoangles (v_forward);
+	h.ltg_head = vectoyaw (v_forward);
+	if (cvar ("ltg_test") >= 2)
+		h.ltg_head = h.ltg_head + 180;
+	h.ltg_wob = random () * 6;
+	h.ltg_born = time;
+	h.touch = LtGun_Touch;
+	h.think = LtGun_Think;
+	h.nextthink = time + 0.03;
+	h.customizeentityforclient = LtGun_HeadCustomize;
+	h.traileffectnum = particleeffectnum ("ltg_trail");
+
+	if (cvar ("ltg_test") == 3)
+	{
+		sound (h, CHAN_VOICE, "ltgun/canis.wav", 1, LTG_SOUND_ATTN);
+		return;		// test aid: the head alone, no cables and no laser dot
+	}
+	if (cvar ("ltg_aura"))		// the cables and wi-fi round the head: off unless ltg_aura 1 (the user asked for them off)
+	{
+		a = spawn ();
+		a.owner = h;
+		a.classname = "ltg_aura";
+		a.movetype = MOVETYPE_NONE;
+		a.solid = SOLID_NOT;
+		setmodel (a, "progs/ltg_aura.md3");
+		setorigin (a, org);
+		a.customizeentityforclient = LtGun_AuraCustomize;
+		h.ltg_aura = a;
+	}
+
+	d = spawn ();
+	d.owner = self;
+	d.scale = 3;		// big enough to find on a far wall
+	d.classname = "ltg_dot";
+	d.movetype = MOVETYPE_NONE;
+	d.solid = SOLID_NOT;
+	setmodel (d, "progs/sight.spr");
+	setorigin (d, org);
+	h.ltg_dot = d;
+
+	d = spawn ();
+	d.owner = self;
+	d.classname = "ltg_laser";
+	d.movetype = MOVETYPE_NONE;
+	d.solid = SOLID_NOT;
+	setmodel (d, "progs/ltg_laser.md3");
+	setorigin (d, org);
+	d.scale = 0.07;
+	h.ltg_laser = d;
+
+	sound (h, CHAN_VOICE, "ltgun/canis.wav", 1, LTG_SOUND_ATTN);
+	if (self.ltg_hint < 3)
+	{
+		self.ltg_hint = self.ltg_hint + 1;
+		centerprint (self, "The head locks onto anyone it sees.\nElse aim: it follows the red laser!\n");
+	}
+};
+
+// ---------------------------------------------------------------- the player side
+
+// top of W_WeaponFrame, every frame: the held model, and the shock
+void() LtGun_PlayerFrame =
+{
+	local vector v;
+	local float z, sp, f;
+
+	if (self.weapon != IT_NAILGUN)
+	{
+		self.ltg_phase = 0;
+		self.ltg_sent = FALSE;
+	}
+	else
+	{
+		if (!self.v_weapon_position_helper)
+			self.weaponmodel = LtGun_VModel (self);		// (with the sway helper, custom_effects.qc picks the model)
+		if (!cvar ("ltg_video"))
+		{
+			if (self.ltg_phase == 1)
+			{
+				// the 22 typing frames play once over the typing and the glow after the shot
+				f = floor ((time - (self.ltg_t - LTG_TYPE_TIME)) * 22 / (LTG_TYPE_TIME + LTG_REFIRE));
+				if (f > 21)
+					f = 21;
+				if (f < 0)
+					f = 0;
+				self.weaponframe = 12 + f;
+			}
+			else
+			{
+				f = floor (time * 10);
+				self.weaponframe = f - 12 * floor (f / 12);		// the idle loop
+			}
+		}
+	}
+
+	if (self.ltg_shock <= 0)
+		return;
+	if (self.health <= 0 || time >= self.ltg_shock)
+	{
+		self.ltg_shock = 0;
+		return;
+	}
+	// the shock slows: a shocked player crawls at LTG_SHOCK_SPEED and cannot jump (like goo)
+	v = self.velocity;
+	z = v_z;
+	v_z = 0;
+	sp = vlen (v);
+	if (sp > LTG_SHOCK_SPEED)
+		v = normalize (v) * LTG_SHOCK_SPEED;
+	if (z > 90)
+		z = 90;
+	v_z = z;
+	self.velocity = v;
+	// the electrocution: a little damage and sparks (no screen flash: v_cshift is persistent client state and it stuck blue)
+	if (time >= self.ltg_zap_t)
+	{
+		self.ltg_zap_t = time + LTG_ZAP_EVERY;
+		if (cvar ("ltg_test"))
+			dprint (strcat ("ltg zap: health ", ftos (self.health), " speed ", ftos (vlen (self.velocity)), "\n"));
+		sendParticle ("ltg_zap", self.origin + '0 0 20', '0 0 0', 1, 0);
+		sound (self, CHAN_ITEM, "ltgun/zap.wav", 0.7, ATTN_NORM);
+		ltg_inflicting = TRUE;
+		if (self.ltg_by.classname == "player")
+			T_Damage (self, self.ltg_by, self.ltg_by, LTG_ZAP_DMG);
+		else
+			T_Damage (self, self, self, LTG_ZAP_DMG);
+		ltg_inflicting = FALSE;
+	}
+};
+
+// W_WeaponFrame, once attack_finished has passed: TRUE = the laptop is in hand and took care of the fire button
+float() LtGun_Frame =
+{
+	if (self.weapon != IT_NAILGUN)
+	{
+		self.ltg_phase = 0;
+		self.ltg_sent = FALSE;
+		return FALSE;
+	}
+	if (self.ltg_phase == 1)
+	{
+		// typing, then the head goes, then the laptop glows for LTG_REFIRE seconds (the end of the typing film) before the next
+		if (self.health <= 0)
+			self.ltg_phase = 0;
+		else
+		{
+			if (!self.ltg_sent && time >= self.ltg_t)
+			{
+				SuperDamageSound ();
+				LtGun_Launch ();
+				self.ltg_sent = TRUE;
+			}
+			if (time >= self.ltg_t + LTG_REFIRE)
+			{
+				self.ltg_phase = 0;
+				self.ltg_sent = FALSE;
+			}
+		}
+		return TRUE;
+	}
+	if (self.button0 && W_CheckNoAmmo ())
+	{
+		self.ltg_phase = 1;
+		self.ltg_var = LtGun_Variant ();
+		self.ltg_t = time + LTG_TYPE_TIME;
+		sound (self, CHAN_WEAPON, "ltgun/type.wav", 0.8, ATTN_NORM);
+	}
+	return TRUE;
+};
+
+// PutClientInServer: a fresh life is not shocked and not typing
+void() LtGun_Spawn =
+{
+	self.ltg_phase = 0;
+	self.ltg_sent = FALSE;
+	self.ltg_shock = 0;
+	stuffcmd (self, "v_cshift 0 0 0 0\n");		// clears a blue tint left by older builds
+};
+
+// obituary text
+string() LtGun_Death =
+{
+	local float r;
+
+	r = random ();
+	if (r < 0.25)
+		return " downloads a virus from ";
+	if (r < 0.5)
+		return " gets hacked by ";
+	if (r < 0.75)
+		return " is DDoS'd by ";
+	return " loses connection to ";
+};

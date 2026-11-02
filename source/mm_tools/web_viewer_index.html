@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex">
+<title>Larry's Warehouse</title>
+<style>
+  :root { --ink: #f1ede4; --muted: #b9b2a5; --accent: #e8a33d; --panel: rgba(16, 16, 16, .82); }
+  html, body { margin: 0; height: 100%; background: #111; color: var(--ink); overflow: hidden;
+    font: 15px/1.45 system-ui, -apple-system, Segoe UI, Arial, sans-serif; touch-action: none; }
+  canvas { display: block; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; opacity: .7; }
+  #cross:before, #cross:after { content: ""; position: absolute; background: #fff; }
+  #cross:before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #cross:after { top: 6px; left: 0; height: 2px; width: 14px; }
+  #intro { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
+  #card { background: var(--panel); max-width: 520px; margin: 16px; padding: 22px 24px; border-radius: 10px; border: 1px solid #333; }
+  #card h1 { margin: 0 0 4px; font-size: 26px; }
+  #card .sub { color: var(--accent); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+  #card p { color: var(--muted); }
+  #card table { border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
+  #card td { padding: 2px 14px 2px 0; } #card td:first-child { color: var(--ink); white-space: nowrap; }
+  button, select { font: inherit; color: var(--ink); background: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 7px 12px; }
+  button.go { background: var(--accent); color: #111; border: 0; font-weight: 700; padding: 10px 18px; }
+  #bar { position: fixed; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; pointer-events: none; }
+  #bar > * { pointer-events: auto; }
+  #mode { background: var(--panel); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+  #bar a { color: var(--ink); background: var(--panel); padding: 6px 10px; border-radius: 6px; font-size: 13px; text-decoration: none; }
+  #bar label { background: var(--panel); padding: 5px 10px; border-radius: 6px; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+  #load { position: fixed; bottom: 14px; left: 14px; color: var(--muted); font-size: 13px; }
+  .touch { display: none; }
+  @media (pointer: coarse) { .touch { display: block; } .desk { display: none; } }
+  #stick { position: fixed; left: 24px; bottom: 24px; width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); }
+  #knob { position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.4); }
+  #tbtns { position: fixed; right: 20px; bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
+  #tbtns button { width: 76px; height: 54px; background: rgba(40,40,40,.7); }
+</style>
+</head>
+<body>
+<div id="cross"></div>
+<div id="bar">
+  <span id="mode">Walk</span>
+  <select id="spots" title="Jump to a place"></select>
+  <button id="fly" title="F">Fly</button>
+  <label class="desk">Light <input id="bright" type="range" min="0.5" max="5" step="0.05" value="3.6"></label>
+  <a href="making-of.html" target="_blank">The Making Of</a>
+</div>
+<div id="intro"><div id="card">
+  <p class="sub">B-LAN 2001 &middot; Bakersfield</p>
+  <h1>Larry's Warehouse</h1>
+  <p>The LAN party warehouse at 118 E 21st St, rebuilt from a 2001 home video as a Quake map. Walk it, jump on the
+  tables, climb the crates to the roof.</p>
+  <table class="desk">
+    <tr><td>Mouse</td><td>look (click the page first)</td></tr>
+    <tr><td>W A S D</td><td>move</td></tr>
+    <tr><td>Space</td><td>jump (up, when flying)</td></tr>
+    <tr><td>F</td><td>fly through walls / walk</td></tr>
+    <tr><td>C</td><td>down, when flying</td></tr>
+    <tr><td>Shift</td><td>walk slowly</td></tr>
+    <tr><td>Esc</td><td>let go of the mouse</td></tr>
+  </table>
+  <table class="touch">
+    <tr><td>Left stick</td><td>move</td></tr><tr><td>Drag right side</td><td>look</td></tr>
+    <tr><td>Buttons</td><td>jump, fly</td></tr>
+  </table>
+  <button class="go" id="start" disabled>Loading&hellip;</button>
+</div></div>
+<div id="stick" class="touch"><div id="knob"></div></div>
+<div id="tbtns" class="touch"><button id="tjump">Jump</button><button id="tfly">Fly</button></div>
+<div id="load"></div>
+
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from "three";
+
+// ------------------------------------------------------------------------------------------- load
+const $ = (id) => document.getElementById(id);
+const say = (t) => { $("load").textContent = t; };
+say("Loading map…");
+const [meta, bin] = await Promise.all([
+  fetch("map.json").then((r) => r.json()),
+  fetch("map.bin").then((r) => r.arrayBuffer()),
+]);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 2, 40000);
+const world = new THREE.Group();                 // Quake space: z up. Turned so three's y is up.
+world.rotation.x = -Math.PI / 2;
+scene.add(world);
+
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+function tex(name, repeat = true) {
+  if (texCache[name]) return texCache[name];
+  const t = texLoader.load("tex/" + name + ".png");
+  t.flipY = false;
+  t.colorSpace = THREE.NoColorSpace;
+  t.anisotropy = 4;
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return (texCache[name] = t);
+}
+const lightmap = texLoader.load("lightmap.png");
+lightmap.flipY = false;
+lightmap.generateMipmaps = false;
+lightmap.minFilter = THREE.LinearFilter;
+lightmap.colorSpace = THREE.NoColorSpace;
+const black = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+black.needsUpdate = true;
+const bright = { value: 3.6 };   // the game shows the world about 1.75x brighter than a plain x2 overbright (Orcom viewer resets this to 2.06)
+const uTime = { value: 0.0 };
+
+// world: texture x lightmap (x2 overbright, like the engine), fences alpha-tested, glow maps added
+const worldVS = `
+  varying vec2 vUv; varying vec2 vLm;                     // three declares uv (and uv1, the lightmap set)
+  void main() { vUv = uv; vLm = uv1; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const worldFS = `
+  uniform sampler2D map; uniform sampler2D lm; uniform sampler2D glow; uniform float bright; uniform float alphaTest;
+  varying vec2 vUv; varying vec2 vLm;
+  void main() {
+    vec4 t = texture2D(map, vUv);
+    if (t.a < alphaTest) discard;
+    vec3 c = t.rgb * texture2D(lm, vLm).rgb * 2.0 * bright + texture2D(glow, vUv).rgb;
+    gl_FragColor = vec4(c, 1.0);
+  }`;
+for (const g of meta.world) {
+  const arr = new Float32Array(bin, g.offset * 4, g.count * 7);
+  const ib = new THREE.InterleavedBuffer(arr, 7);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.InterleavedBufferAttribute(ib, 3, 0));
+  geo.setAttribute("uv", new THREE.InterleavedBufferAttribute(ib, 2, 3));
+  geo.setAttribute("uv1", new THREE.InterleavedBufferAttribute(ib, 2, 5));
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: worldVS, fragmentShader: worldFS,
+    uniforms: { map: { value: tex(g.tex) }, lm: { value: lightmap }, glow: { value: g.glow ? tex(g.tex + "_glow") : black },
+                bright, alphaTest: { value: g.alpha ? 0.5 : -1.0 } },
+    side: g.alpha ? THREE.DoubleSide : THREE.FrontSide,
+  });
+  world.add(new THREE.Mesh(geo, mat));
+}
+
+// props: one model each, drawn as instances, lit by the floor under them + smooth normals & optional glow
+const propVS = `
+  varying vec2 vUv; varying vec3 vCol; varying vec3 vNrm; varying float vPhase;
+  void main() {
+    vUv = uv; vec4 p = vec4(position, 1.0); vCol = vec3(1.0); vec3 n = normal; vPhase = 0.0;
+    #ifdef USE_INSTANCING
+      p = instanceMatrix * p; vPhase = instanceMatrix[3].x * 0.013 + instanceMatrix[3].y * 0.009;
+      n = mat3(instanceMatrix) * n;
+    #endif
+    #ifdef USE_INSTANCING_COLOR
+      vCol = instanceColor;
+    #endif
+    vNrm = normalize(n);
+    gl_Position = projectionMatrix * modelViewMatrix * p;
+  }`;
+const propFS = `
+  uniform sampler2D map; uniform sampler2D glow; uniform float bright; uniform float uUnlit; uniform vec2 uAnim; uniform float uTime;
+  varying vec2 vUv; varying vec3 vCol; varying vec3 vNrm; varying float vPhase;
+  void main() {
+    vec2 pUv = uAnim.x > 1.0 ? vec2((clamp(vUv.x, 0.003, 0.997) + floor(mod(uTime * uAnim.y + abs(vPhase), uAnim.x))) / uAnim.x, clamp(vUv.y, 0.003, 0.997)) : vUv;
+    if (uUnlit > 0.5) { gl_FragColor = vec4(texture2D(map, pUv).rgb, 1.0); return; }
+    float shade = 0.78 + 0.14 * vNrm.z + 0.16 * max(0.0, dot(vNrm, normalize(vec3(0.45, -0.35, 0.82))));
+    vec3 c = texture2D(map, pUv).rgb * vCol * shade * 2.0 * bright + texture2D(glow, pUv).rgb;
+    gl_FragColor = vec4(c, 1.0);
+  }`;
+function buildPropGeo(s) {
+  const raw = new Float32Array(bin, s.offset * 4, s.verts * 5);
+  const pos = new Float32Array(s.verts * 3), uvs = new Float32Array(s.verts * 2);
+  for (let i = 0; i < s.verts; i++) {
+    pos[3 * i] = raw[5 * i]; pos[3 * i + 1] = raw[5 * i + 1]; pos[3 * i + 2] = raw[5 * i + 2];
+    uvs[2 * i] = raw[5 * i + 3]; uvs[2 * i + 1] = raw[5 * i + 4];
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(bin, s.ioffset * 4, s.icount), 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+const byModel = meta.models.map(() => []);
+meta.instances.forEach((it) => byModel[it.m].push(it));
+const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
+meta.models.forEach((model, mi) => {
+  const list = byModel[mi];
+  if (!list.length) return;
+  for (const s of model.surfaces) {
+    const geo = buildPropGeo(s);
+    const mat = new THREE.ShaderMaterial({ vertexShader: propVS, fragmentShader: propFS,
+      uniforms: { map: { value: tex(s.tex, !s.anim) }, glow: { value: s.glow ? tex(s.tex + "_glow") : black }, bright, uUnlit: { value: s.unlit ? 1.0 : 0.0 }, uAnim: { value: new THREE.Vector2(s.anim ? s.anim[0] : 1.0, s.anim ? s.anim[1] : 0.0) }, uTime }, side: THREE.DoubleSide });
+    const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach((it, i) => {
+      q.setFromAxisAngle(zAxis, (it.yaw * Math.PI) / 180);
+      m4.compose(new THREE.Vector3(...it.o), q, new THREE.Vector3(it.s, it.s, it.s));
+      mesh.setMatrixAt(i, m4);
+      mesh.setColorAt(i, new THREE.Color(...it.light));
+    });
+    mesh.frustumCulled = false;
+    world.add(mesh);
+  }
+});
+
+// bklan3's movers (bklan_movers.qc, approximated): the cruisers drive their route at the game's speeds, the biplane
+// circles at 250 ft. Each is a one-instance mesh per surface whose matrix is set every frame.
+const moverMeshes = (meta.movers || []).map((mv) => {
+  const model = meta.models[mv.m], parts = [];
+  if (mv.kind === "route") {                          // the loop: start point, then the route points, back round
+    const pts = [mv.start.concat([1])].concat(mv.pts);
+    mv.legs = []; mv.total = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = i + 1 < pts.length ? pts[i + 1] : mv.pts[0];
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+      const t = len / (mv.speed * (i === 0 ? 1 : a[3] || 1));
+      mv.legs.push({ a, b, t0: mv.total, t }); mv.total += t;
+    }
+  }
+  for (const s of model.surfaces) {
+    const geo = buildPropGeo(s);
+    const mat = new THREE.ShaderMaterial({ vertexShader: propVS, fragmentShader: propFS,
+      uniforms: { map: { value: tex(s.tex, !s.anim) }, glow: { value: s.glow ? tex(s.tex + "_glow") : black }, bright, uUnlit: { value: s.unlit ? 1.0 : 0.0 }, uAnim: { value: new THREE.Vector2(s.anim ? s.anim[0] : 1.0, s.anim ? s.anim[1] : 0.0) }, uTime }, side: THREE.DoubleSide });
+    const mesh = new THREE.InstancedMesh(geo, mat, 1);
+    mesh.setColorAt(0, new THREE.Color(...mv.light));
+    mesh.frustumCulled = false;
+    world.add(mesh); parts.push(mesh);
+  }
+  return { mv, parts };
+});
+function updateMovers(now) {
+  const t = now / 1000; uTime.value = t;
+  for (const { mv, parts } of moverMeshes) {
+    let o, yaw;
+    if (mv.kind === "route") {
+      const tt = t % mv.total;
+      const leg = mv.legs.find((l) => tt < l.t0 + l.t) || mv.legs[mv.legs.length - 1];
+      const f = (tt - leg.t0) / leg.t;
+      o = [0, 1, 2].map((k) => leg.a[k] + (leg.b[k] - leg.a[k]) * f);
+      yaw = Math.atan2(leg.b[1] - leg.a[1], leg.b[0] - leg.a[0]);
+    } else {
+      const ang = (t * mv.speed) / mv.r;
+      o = [mv.c[0] + Math.cos(ang) * mv.r, mv.c[1] + Math.sin(ang) * mv.r, mv.c[2]];
+      yaw = ang + Math.PI / 2;
+    }
+    q.setFromAxisAngle(zAxis, yaw);
+    m4.compose(new THREE.Vector3(...o), q, new THREE.Vector3(1, 1, 1));
+    for (const mesh of parts) { mesh.setMatrixAt(0, m4); mesh.instanceMatrix.needsUpdate = true; }
+  }
+}
+
+// overcast skybox (the map's own)
+scene.background = new THREE.CubeTextureLoader().setPath("sky/")
+  .load(["rt.jpg", "lf.jpg", "up.jpg", "dn.jpg", "bk.jpg", "ft.jpg"]);
+
+// ------------------------------------------------------------------------------------------- Quake collision (hull 1)
+// The BSP's player hull: point traces here are traces of the 32 x 32 x 56 player box. Port of SV_RecursiveHullCheck.
+const P = meta.planes, C = meta.clipnodes, HULLS = meta.hulls;
+const SOLID = -2, EMPTY = -1, DIST_EPSILON = 0.03125;
+function pdist(pl, p) { return (pl[4] < 3 ? p[pl[4]] : pl[0] * p[0] + pl[1] * p[1] + pl[2] * p[2]) - pl[3]; }
+function contents(num, p) {
+  while (num >= 0) { const n = C[num]; num = pdist(P[n[0]], p) < 0 ? n[2] : n[1]; }
+  return num;
+}
+function lerp3(a, b, f) { return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
+function recurse(head, num, p1f, p2f, p1, p2, tr) {
+  if (num < 0) {
+    if (num !== SOLID) tr.allsolid = false; else tr.startsolid = true;
+    return true;
+  }
+  const n = C[num], pl = P[n[0]];
+  const t1 = pdist(pl, p1), t2 = pdist(pl, p2);
+  if (t1 >= 0 && t2 >= 0) return recurse(head, n[1], p1f, p2f, p1, p2, tr);
+  if (t1 < 0 && t2 < 0) return recurse(head, n[2], p1f, p2f, p1, p2, tr);
+  let frac = t1 < 0 ? (t1 + DIST_EPSILON) / (t1 - t2) : (t1 - DIST_EPSILON) / (t1 - t2);
+  frac = Math.min(1, Math.max(0, frac));
+  let midf = p1f + (p2f - p1f) * frac, mid = lerp3(p1, p2, frac);
+  const side = t1 < 0 ? 1 : 0;
+  if (!recurse(head, n[1 + side], p1f, midf, p1, mid, tr)) return false;
+  if (contents(n[2 - side], mid) !== SOLID) return recurse(head, n[2 - side], midf, p2f, mid, p2, tr);
+  if (tr.allsolid) return false;
+  tr.normal = side ? [-pl[0], -pl[1], -pl[2]] : [pl[0], pl[1], pl[2]];
+  while (contents(head, mid) === SOLID) {
+    frac -= 0.1;
+    if (frac < 0) { tr.fraction = midf; tr.endpos = mid; return false; }
+    midf = p1f + (p2f - p1f) * frac; mid = lerp3(p1, p2, frac);
+  }
+  tr.fraction = midf; tr.endpos = mid;
+  return false;
+}
+function trace(a, b) {
+  let best = { fraction: 1, endpos: b.slice(), normal: [0, 0, 0], allsolid: false, startsolid: false };
+  for (const head of HULLS) {
+    const tr = { fraction: 1, endpos: b.slice(), normal: [0, 0, 0], allsolid: true, startsolid: false };
+    recurse(head, head, 0, 1, a, b, tr);
+    if (tr.allsolid) { tr.startsolid = true; }
+    if (tr.allsolid || tr.startsolid) { best.startsolid = true; if (tr.allsolid) best.allsolid = true; }
+    if (tr.fraction < best.fraction) { best.fraction = tr.fraction; best.endpos = tr.endpos; best.normal = tr.normal; }
+  }
+  return best;
+}
+
+// ------------------------------------------------------------------------------------------- movement (QuakeWorld pmove)
+const GRAVITY = 800, MAXSPEED = 320, ACCEL = 10, FRICTION = 4, STOPSPEED = 100, JUMP = 270, STEP = 18, FLYSPEED = 640;
+const pl = { o: [0, 0, 0], v: [0, 0, 0], yaw: 90, pitch: 0, onground: false, fly: false, jumpHeld: false };
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+function clipVel(v, n, ob = 1) {
+  const back = dot(v, n) * ob, out = [v[0] - n[0] * back, v[1] - n[1] * back, v[2] - n[2] * back];
+  for (let i = 0; i < 3; i++) if (Math.abs(out[i]) < 0.1) out[i] = 0;
+  return out;
+}
+function flyMove(dt) {
+  let left = dt, numplanes = 0;
+  const planes = [], primal = pl.v.slice();
+  let orig = pl.v.slice();
+  for (let bump = 0; bump < 4; bump++) {
+    const end = [pl.o[0] + pl.v[0] * left, pl.o[1] + pl.v[1] * left, pl.o[2] + pl.v[2] * left];
+    const tr = trace(pl.o, end);
+    if (tr.allsolid) { pl.v = [0, 0, 0]; return; }
+    if (tr.fraction > 0) { pl.o = tr.endpos; orig = pl.v.slice(); numplanes = 0; planes.length = 0; }
+    if (tr.fraction === 1) break;
+    left -= left * tr.fraction;
+    if (numplanes >= 5) { pl.v = [0, 0, 0]; break; }
+    planes.push(tr.normal); numplanes++;
+    let i;
+    for (i = 0; i < numplanes; i++) {
+      pl.v = clipVel(orig, planes[i]);
+      let j;
+      for (j = 0; j < numplanes; j++) if (j !== i && dot(pl.v, planes[j]) < 0) break;
+      if (j === numplanes) break;
+    }
+    if (i === numplanes) {
+      if (numplanes !== 2) { pl.v = [0, 0, 0]; break; }
+      const a = planes[0], b = planes[1];
+      const dir = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      const dd = dot(dir, pl.v);
+      pl.v = [dir[0] * dd, dir[1] * dd, dir[2] * dd];
+    }
+    if (dot(pl.v, primal) <= 0) { pl.v = [0, 0, 0]; break; }
+  }
+}
+function groundMove(dt) {
+  pl.v[2] = 0;
+  if (!pl.v[0] && !pl.v[1]) return;
+  const dest = [pl.o[0] + pl.v[0] * dt, pl.o[1] + pl.v[1] * dt, pl.o[2]];
+  let tr = trace(pl.o, dest);
+  if (tr.fraction === 1) { pl.o = tr.endpos; return; }
+  const original = pl.o.slice(), originalVel = pl.v.slice();
+  flyMove(dt);                                           // slide along the wall
+  const down = pl.o.slice(), downVel = pl.v.slice();
+  pl.o = original.slice(); pl.v = originalVel.slice();
+  tr = trace(pl.o, [pl.o[0], pl.o[1], pl.o[2] + STEP]);  // or step up onto it
+  if (!tr.startsolid && !tr.allsolid) pl.o = tr.endpos;
+  flyMove(dt);
+  tr = trace(pl.o, [pl.o[0], pl.o[1], pl.o[2] - STEP]);
+  if (tr.normal[2] < 0.7) { pl.o = down; pl.v = downVel; return; }
+  if (!tr.startsolid && !tr.allsolid) pl.o = tr.endpos;
+  const up = pl.o;
+  const dd = (down[0] - original[0]) ** 2 + (down[1] - original[1]) ** 2;
+  const ud = (up[0] - original[0]) ** 2 + (up[1] - original[1]) ** 2;
+  if (dd > ud) { pl.o = down; pl.v = downVel; } else pl.v[2] = downVel[2];
+}
+function categorize() {
+  if (pl.v[2] > 180) { pl.onground = false; return; }
+  const tr = trace(pl.o, [pl.o[0], pl.o[1], pl.o[2] - 1]);
+  pl.onground = tr.fraction < 1 && tr.normal[2] >= 0.7 && !tr.allsolid;
+  if (pl.onground && !tr.startsolid) pl.o = tr.endpos;
+}
+
+const keys = {};
+const stick = { x: 0, y: 0 };
+function wish() {
+  let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stick.y;
+  let s = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stick.x;
+  const l = Math.hypot(f, s);
+  if (l > 1) { f /= l; s /= l; }
+  return [f, s];
+}
+function step(dt) {
+  const [f, s] = wish();
+  const y = (pl.yaw * Math.PI) / 180, p = (pl.pitch * Math.PI) / 180;
+  const speed = keys.ShiftLeft || keys.ShiftRight ? 0.5 : 1;
+  if (pl.fly) {
+    const fw = [Math.cos(p) * Math.cos(y), Math.cos(p) * Math.sin(y), Math.sin(p)];
+    const rt = [Math.sin(y), -Math.cos(y), 0];
+    const upd = (keys.Space || keys.jump ? 1 : 0) - (keys.KeyC || keys.ControlLeft ? 1 : 0);
+    for (let i = 0; i < 3; i++) pl.v[i] = (fw[i] * f + rt[i] * s) * FLYSPEED * speed + (i === 2 ? upd * FLYSPEED * speed : 0);
+    for (let i = 0; i < 3; i++) pl.o[i] += pl.v[i] * dt;
+    return;
+  }
+  categorize();
+  const wishdir = [Math.cos(y) * f + Math.sin(y) * s, Math.sin(y) * f - Math.cos(y) * s, 0];
+  const wl = Math.hypot(wishdir[0], wishdir[1]);
+  let wishspeed = MAXSPEED * speed * Math.min(1, wl);
+  if (wl) { wishdir[0] /= wl; wishdir[1] /= wl; }
+  if (keys.Space || keys.jump) {
+    if (pl.onground && !pl.jumpHeld) { pl.v[2] = JUMP; pl.onground = false; pl.jumpHeld = true; }
+  } else pl.jumpHeld = false;
+  if (pl.onground) {
+    const sp = Math.hypot(pl.v[0], pl.v[1], pl.v[2]);
+    if (sp > 0) {
+      const drop = Math.max(sp, STOPSPEED) * FRICTION * dt;
+      const k = Math.max(sp - drop, 0) / sp;
+      pl.v = pl.v.map((c) => c * k);
+    }
+  }
+  const ws = pl.onground ? wishspeed : Math.min(wishspeed, 30);
+  const add = ws - dot(pl.v, wishdir);
+  if (add > 0) {
+    const acc = Math.min(ACCEL * wishspeed * dt, add);
+    pl.v[0] += acc * wishdir[0]; pl.v[1] += acc * wishdir[1];
+  }
+  if (pl.onground) groundMove(dt);
+  else { pl.v[2] -= GRAVITY * dt; flyMove(dt); }
+  touchTriggers();
+  if (pl.o[2] < -600) teleport(meta.spots[initIdx]);     // fell out somehow
+}
+
+// jump pads (trigger_push) and teleporters (trigger_teleport): the player's 32 x 32 x 56 box touching the trigger brush
+function touchTriggers() {
+  if (pl.fly || !meta.triggers) return;
+  for (const t of meta.triggers) {
+    if (pl.o[0] + 16 < t.min[0] || pl.o[0] - 16 > t.max[0] || pl.o[1] + 16 < t.min[1] || pl.o[1] - 16 > t.max[1] ||
+        pl.o[2] + 32 < t.min[2] || pl.o[2] - 24 > t.max[2]) continue;
+    if (t.push) { pl.v = t.push.slice(); pl.onground = false; }
+    else if (t.tp) { pl.o = [t.tp[0], t.tp[1], t.tp[2]]; pl.v = [0, 0, 0]; pl.yaw = t.tp[3]; pl.pitch = 0; pl.onground = false; return; }
+  }
+}
+
+// ------------------------------------------------------------------------------------------- camera, input, UI
+function teleport(sp) {
+  pl.o = sp.pos.slice(); pl.v = [0, 0, 0]; pl.yaw = sp.yaw; pl.pitch = -(sp.pitch || 0);
+  const tr = trace(pl.o, pl.o);
+  if (tr.startsolid) pl.o[2] += 4;
+}
+const sel = $("spots");
+meta.spots.forEach((s, i) => sel.add(new Option(s.name, i)));
+sel.onchange = () => { teleport(meta.spots[+sel.value]); sel.blur(); };
+function setFly(v) { pl.fly = v; $("mode").textContent = v ? "Fly" : "Walk"; $("fly").textContent = v ? "Walk" : "Fly"; if (!v) pl.v = [0, 0, 0]; }
+$("fly").onclick = () => setFly(!pl.fly);
+$("tfly").onclick = () => setFly(!pl.fly);
+$("bright").oninput = (e) => { bright.value = +e.target.value; };
+
+const canvas = renderer.domElement;
+addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  if (e.code === "KeyF") setFly(!pl.fly);
+  if (e.code === "Space") e.preventDefault();
+});
+addEventListener("keyup", (e) => { keys[e.code] = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+document.addEventListener("mousemove", (e) => {
+  if (document.pointerLockElement !== canvas) return;
+  pl.yaw -= e.movementX * 0.15;
+  pl.pitch = Math.max(-89, Math.min(89, pl.pitch - e.movementY * 0.15));
+});
+canvas.addEventListener("click", () => { if (!matchMedia("(pointer: coarse)").matches) canvas.requestPointerLock(); });
+$("start").onclick = () => {
+  $("intro").style.display = "none";
+  if (!matchMedia("(pointer: coarse)").matches) canvas.requestPointerLock();
+};
+document.addEventListener("pointerlockchange", () => {
+  if (!document.pointerLockElement && !matchMedia("(pointer: coarse)").matches) $("intro").style.display = "flex";
+});
+
+// touch: left stick moves, dragging elsewhere looks, buttons jump / fly
+const touches = {};
+const stickEl = $("stick"), knob = $("knob");
+addEventListener("touchstart", (e) => {
+  for (const t of e.changedTouches) {
+    const r = stickEl.getBoundingClientRect();
+    const inStick = t.clientX < r.right + 30 && t.clientY > r.top - 30;
+    if (e.target.tagName === "BUTTON" || e.target.tagName === "SELECT" || e.target.tagName === "A") continue;
+    touches[t.identifier] = { stick: inStick, x: t.clientX, y: t.clientY, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+  }
+}, { passive: true });
+addEventListener("touchmove", (e) => {
+  for (const t of e.changedTouches) {
+    const s = touches[t.identifier];
+    if (!s) continue;
+    if (s.stick) {
+      const dx = Math.max(-1, Math.min(1, (t.clientX - s.cx) / 50)), dy = Math.max(-1, Math.min(1, (t.clientY - s.cy) / 50));
+      stick.x = dx; stick.y = dy;
+      knob.style.left = 40 + dx * 40 + "px"; knob.style.top = 40 + dy * 40 + "px";
+    } else {
+      pl.yaw -= (t.clientX - s.x) * 0.3; pl.pitch = Math.max(-89, Math.min(89, pl.pitch - (t.clientY - s.y) * 0.3));
+      s.x = t.clientX; s.y = t.clientY;
+    }
+  }
+}, { passive: true });
+addEventListener("touchend", (e) => {
+  for (const t of e.changedTouches) {
+    const s = touches[t.identifier];
+    if (s && s.stick) { stick.x = stick.y = 0; knob.style.left = knob.style.top = "40px"; }
+    delete touches[t.identifier];
+  }
+});
+$("tjump").addEventListener("touchstart", () => { keys.jump = true; });
+$("tjump").addEventListener("touchend", () => { keys.jump = false; });
+
+addEventListener("resize", () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+const wantSpot = new URLSearchParams(location.search).get("spot");
+let initIdx = 0;
+if (wantSpot) {
+  const q = wantSpot.toLowerCase();
+  const exact = meta.spots.findIndex((s) => s.name.toLowerCase() === q);
+  const sub = meta.spots.findIndex((s) => s.name.toLowerCase().includes(q));
+  if (exact >= 0) initIdx = exact;
+  else if (sub >= 0) initIdx = sub;
+}
+sel.value = String(initIdx);
+teleport(meta.spots[initIdx]);
+const toThree = (p) => new THREE.Vector3(p[0], p[2], -p[1]);
+let last = performance.now(), acc = 0;
+const DT = 1 / 100;
+const viewerTick = [];                       // per-frame hooks (dev_overlay.js)
+function frame(now) {
+  acc += Math.min(0.1, (now - last) / 1000);
+  last = now;
+  while (acc >= DT) { step(DT); acc -= DT; }
+  const eye = [pl.o[0], pl.o[1], pl.o[2] + 22];
+  const y = (pl.yaw * Math.PI) / 180, p = (pl.pitch * Math.PI) / 180;
+  const fw = [Math.cos(p) * Math.cos(y), Math.cos(p) * Math.sin(y), Math.sin(p)];
+  camera.position.copy(toThree(eye));
+  camera.lookAt(toThree([eye[0] + fw[0], eye[1] + fw[1], eye[2] + fw[2]]));
+  updateMovers(now);
+  renderer.render(scene, camera);
+  for (const f of viewerTick) f();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+say("");
+$("start").disabled = false;
+$("start").textContent = "Play";
+window.__viewer = { pl, keys, teleport, meta, trace, setFly, bright, THREE, world, scene, renderer, tick: viewerTick };     // for testing from the console and dev_overlay.js
+</script>
+<script type="module" src="dev_overlay.js"></script>
+</body>
+</html>

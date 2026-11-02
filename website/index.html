@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BAKOQUAKE - Windows - Quake deathmatch in Bakersfield, California</title>
+  <meta name="description" content="BAKOQUAKE is a free Quake deathmatch mod set in real Bakersfield: the Bakersfield Sign, a warehouse, a casino, jetpacks and vans. Download the zip, unzip, double-click PLAY BAKERSFIELDQUAKE.">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/gif" href="media/gifs/quake_rune_spin.gif">
+  <link rel="stylesheet" href="style.css?v=dos1">
+</head>
+<body>
+
+  <canvas id="gl-canvas"></canvas>
+  <a class="skip" href="#game">Skip to the game page</a>
+
+  <div class="wrap">
+
+    <!-- ================= HEADER ================= -->
+    <header class="head" id="top">
+      <div class="head__logo">
+        <a href="#top" aria-label="BAKOQUAKE home"><div class="logo" data-logo="hero" role="img" aria-label="The Bakersfield Sign"></div></a>
+      </div>
+      <div class="head__right">
+        <p class="quote"><img src="media/gifs/quake_rune_spin.gif" alt="" width="40" height="40"><b>Real streets. Fake physics.<br>Up to 16 players. Bring a jetpack.</b></p>
+        <form class="connect" onsubmit="return false;">
+          <label for="cmd">Online server:</label>
+          <input id="cmd" type="text" value="connect 72.62.241.93:26000" readonly size="30">
+          <button type="button" class="btn" data-copy="connect 72.62.241.93:26000">Copy</button>
+          <a href="BAKOQUAKE.zip" download="BAKOQUAKE.zip" class="head__dl">Download</a>
+        </form>
+      </div>
+    </header>
+
+    <nav class="strip" aria-label="Sections">
+      <a href="#game">Game</a><a href="#install">How to install</a><a href="#server">Online server</a><a href="#guns">Weapons</a><a href="#maps">Maps</a><a href="#underdog">Underdog rules</a><a href="#keys">Controls</a>
+    </nav>
+
+    <div class="ticker" role="marquee" aria-label="Announcements">
+      <div class="ticker__track"><span>BAKOQUAKE: ONLINE SERVER 72.62.241.93:26000 (PRESS F1 IN GAME)</span><span>JETPACKS AT EVERY YELLOW ARMOR</span><span>DO NOT PICK UP THE PICKLE</span><span>12 MAPS, ALL IN ONE ZIP</span><span>BAKOQUAKE: ONLINE SERVER 72.62.241.93:26000 (PRESS F1 IN GAME)</span><span>JETPACKS AT EVERY YELLOW ARMOR</span><span>DO NOT PICK UP THE PICKLE</span><span>12 MAPS, ALL IN ONE ZIP</span></div>
+    </div>
+
+    <div class="cols">
+
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="side">
+        <section class="sbox">
+          <h2>Menu</h2>
+          <a href="#game">The game</a>
+          <a href="#install">How to install</a>
+          <a href="#server">Online server</a>
+          <a href="#guns">Weapons</a>
+          <a href="#maps">Maps</a>
+          <a href="#underdog">Underdog rules</a>
+          <a href="#keys">Game controls</a>
+        </section>
+
+        <section class="sbox">
+          <h2>Weapons</h2>
+          <a href="#guns">Pink Lady</a>
+          <a href="#guns">WEW Cannon</a>
+          <a href="#guns">Wheelman</a>
+          <a href="#guns">Mega Man</a>
+          <a href="#guns">Pickle Surprise</a>
+          <a href="#guns">V12 Supercar</a>
+        </section>
+
+        <section class="sbox">
+          <h2>What's new</h2>
+          <ul class="news">
+            <li><b class="blink">NEW!</b> <time>11/02/2026</time><br>PLAY BAKERSFIELDQUAKE icon. Opens with the intro. Settings are saved.</li>
+            <li><time>11/01/2026</time><br>Online server is up.</li>
+            <li><time>11/01/2026</time><br>Sunny skies over bklan.</li>
+            <li><time>10/31/2026</time><br>Golden West Casino opens.</li>
+          </ul>
+        </section>
+
+        <section class="sbox sbox--counter">
+          <h2>Visits</h2>
+          <div class="odo" id="odo" aria-label="Your visits to this page"></div>
+          <p>from this browser</p>
+        </section>
+      </aside>
+
+      <!-- ================= MAIN ================= -->
+      <main class="main">
+
+        <article class="page" id="game" aria-labelledby="h1">
+          <h1 id="h1">BAKOQUAKE - Windows</h1>
+
+          <p class="line"><a class="bigbtn" id="dl-main" href="BAKOQUAKE.zip" download="BAKOQUAKE.zip"><b>Download BAKOQUAKE.zip</b><span>966 MB. Windows PC. Nothing else to install.</span></a></p>
+          <p class="notice"><b class="c-blue">Help:</b> Unzip the whole folder, then double-click <b>PLAY BAKERSFIELDQUAKE</b>. Press <kbd>F1</kbd> in game to join the online server.</p>
+          <p class="notice"><b class="c-red">Important:</b> do not run it from inside the zip. Extract the whole <b>BAKOQUAKE</b> folder first.</p>
+
+          <h2 class="h2">Game info:</h2>
+          <div class="info">
+            <figure class="info__cover">
+              <img src="media/launcher-icon.png" alt="The PLAY BAKERSFIELDQUAKE icon" width="128" height="128">
+              <figcaption>the icon you click</figcaption>
+            </figure>
+            <table class="kv">
+              <tr><th>Game title:</th><td>BAKOQUAKE</td></tr>
+              <tr><th>Platform:</th><td>Windows PC (DarkPlaces engine, Quake 1.5 and Combat+)</td></tr>
+              <tr><th>Genre:</th><td>First-person shooter, deathmatch</td></tr>
+              <tr><th>Mode:</th><td>Online (up to 16 players), LAN party, bots</td></tr>
+              <tr><th>Setting:</th><td>Real Bakersfield, California: 12 maps</td></tr>
+              <tr><th>Game size:</th><td>966 MB zip, about 1.2 GB unzipped</td></tr>
+              <tr><th>Download:</th><td><a href="BAKOQUAKE.zip" download="BAKOQUAKE.zip">BAKOQUAKE.zip</a></td></tr>
+              <tr><th>Online server:</th><td><code>connect 72.62.241.93:26000</code></td></tr>
+              <tr><th>Updated:</th><td>11/02/2026</td></tr>
+            </table>
+          </div>
+
+          <p class="sep">* * *</p>
+
+          <div class="desc">
+            <figure class="desc__shot shot-card">
+              <div class="shot-img-wrap"><img src="media/shots/map_bklan_larry_facade.jpg" alt="bklan5: warehouse, casino and room 120A" loading="lazy"></div>
+              <figcaption class="shot-cap">bklan5: warehouse, casino and room 120A</figcaption>
+            </figure>
+            <p>BAKOQUAKE turns Quake into a deathmatch through real Bakersfield: a LAN-party warehouse on E 21st Street, the Bakersfield Sign, the Fox Theater, a casino down Union Avenue. Every block was rebuilt from photos, city maps and a lot of walking around in Street View.</p>
+            <p>The guns are not Quake's. There is a hammer you charge, a pink lady that chases you down, a laptop with a guided head, a pickle trap, a mystery box and a cannon that launches a man. Jetpacks sit next to every yellow armor, and you can drive vans through the streets.</p>
+            <p>Losing should not feel bad, so the game helps whoever is behind. You get the intro the first time you start it, and your settings (keys, resolution, mouse) are saved when you quit and never reset.</p>
+          </div>
+        </article>
+
+        <!-- ---------- how to install ---------- -->
+        <section class="page" id="install" aria-labelledby="in-title">
+          <h2 class="h2" id="in-title">How to install:</h2>
+          <ol class="steps">
+            <li><b>Download</b> BAKOQUAKE.zip. It is about 1 GB, so give it a minute.</li>
+            <li><b>Unzip</b> the whole BAKOQUAKE folder anywhere. The Desktop is fine.</li>
+            <li><b>Double-click PLAY BAKERSFIELDQUAKE</b>, the icon with the Bakersfield Sign. The game opens with the BAKOQUAKE intro. If Windows asks about darkplaces.exe and the firewall, allow <i>Private networks</i>.</li>
+            <li>From the intro press <kbd>F1</kbd> to join the online server, or <kbd>F2</kbd> for a LAN game. <kbd>Esc</kbd> opens the menu.</li>
+          </ol>
+        </section>
+
+        <!-- ---------- ways to play (the "available online emulators" table) ---------- -->
+        <section class="page" id="server" aria-labelledby="sv-title">
+          <h2 class="h2" id="sv-title">Online server and other ways to play:</h2>
+          <table class="grid">
+            <tr><th>Mode</th><th>How to start</th><th>Players</th><th>Key</th></tr>
+            <tr><td><b>Online server</b></td><td>Run the game, then join. Or open the console with <kbd>~</kbd> and type <code>connect 72.62.241.93:26000</code></td><td>up to 16</td><td><kbd>F1</kbd></td></tr>
+            <tr><td><b>LAN party</b></td><td>One PC runs <b>Start Server</b>. Everyone else runs <b>PLAY BAKERSFIELDQUAKE</b> (it joins by itself) or presses the key.</td><td>up to 16</td><td><kbd>F2</kbd></td></tr>
+            <tr><td><b>Vote a map</b></td><td>Say <code>vote map fox</code> in chat (<kbd>T</kbd>), then everyone presses yes or no.</td><td>any</td><td><kbd>F5</kbd> <kbd>F6</kbd></td></tr>
+          </table>
+        </section>
+
+        <!-- ---------- weapons: the live 3D viewers ---------- -->
+        <section class="page" id="guns" aria-labelledby="gn-title">
+          <h2 class="h2" id="gn-title">Weapons:</h2>
+          <p class="lede">Every gun below is in the game. Drag a card to spin it, scroll to zoom, and press FULL 3D for the whole viewer.</p>
+
+          <div class="gun-grid">
+            <div class="vp-card pink">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="Pink Lady (Key 5)">Pink Lady (Key 5)</span><span class="vp-fmt-pill">SPRITE</span></div>
+              <div class="vp-stage" data-model="pinklady_spr"></div>
+              <div class="vp-foot">Chases players and whites out your screen in milk.</div>
+            </div>
+            <div class="vp-card silver">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="WEW Cannon (Key G)">WEW Cannon (Key G)</span><span class="vp-fmt-pill">3D MD3</span></div>
+              <div class="vp-stage" data-model="v_wewcannon" data-pov="0" data-zoom="0.88"></div>
+              <div class="vp-foot">Hold fire to bend the barrel 58&deg; and launch Wheelman.</div>
+            </div>
+            <div class="vp-card silver">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="Survivor Wheelman">Survivor Wheelman</span><span class="vp-fmt-pill">SPRITE</span></div>
+              <div class="vp-stage" data-model="wheelman_dance_spr"></div>
+              <div class="vp-foot">Eight post-explosion dances. Press Anim to cycle them.</div>
+            </div>
+            <div class="vp-card cyan">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="Mega Man (Key 9)">Mega Man (Key 9)</span><span class="vp-fmt-pill">3D MD3</span></div>
+              <div class="vp-stage" data-model="megaman"></div>
+              <div class="vp-foot">Boat-motor headcrab. Press Skin for the Blue Shell.</div>
+            </div>
+            <div class="vp-card lime">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="Pickle Surprise (Key X)">Pickle Surprise (Key X)</span><span class="vp-fmt-pill">SPRITE</span></div>
+              <div class="vp-stage" data-model="pickle_diva"></div>
+              <div class="vp-foot">A giant screaming pickle trap, in four skins.</div>
+            </div>
+            <div class="vp-card pink">
+              <div class="vp-hdr"><span class="vp-hdr-title" title="V12 Supercar">V12 Supercar</span><span class="vp-fmt-pill">3D MD3</span></div>
+              <div class="vp-stage" data-model="pink_supercar" data-zoom="0.88"></div>
+              <div class="vp-foot">A rideable cruiser, parked in bklan4 and bklan5.</div>
+            </div>
+          </div>
+
+          <h3 class="h3">In action:</h3>
+          <div class="thumbs thumbs--3">
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/gifs/milky_pinklady_attack.gif" alt="Pink Lady (Key 5)" loading="lazy"></div>
+              <figcaption class="shot-cap">Pink Lady (Key 5)</figcaption>
+            </figure>
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/gifs/wewcannon_bend_blast.gif" alt="WEW Cannon (Key G)" loading="lazy"></div>
+              <figcaption class="shot-cap">WEW Cannon (Key G)</figcaption>
+            </figure>
+            <figure class="shot-card">
+              <div class="shot-img-wrap contain"><img src="media/gifs/wm_gibs.gif" alt="Wheelman Blast" loading="lazy"></div>
+              <figcaption class="shot-cap">Wheelman blast</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <!-- ---------- maps (the "similar games" grid) ---------- -->
+        <section class="page" id="maps" aria-labelledby="mp-title">
+          <h2 class="h2" id="mp-title">Maps:</h2>
+          <p class="lede">Click a picture to enlarge it. All twelve maps are in the zip: aerowalk, bakolansmall, bfarena, bklan, bklan4, bklan5, fox, gallup, midair, nanaplaza, orcom and spruce.</p>
+          <div class="thumbs thumbs--4">
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/shots/map_bklan_larry_facade.jpg" alt="bklan5: warehouse, casino and room 120A" loading="lazy"></div>
+              <figcaption class="shot-cap"><a href="#maps">bklan5</a><span>Warehouse, casino and room 120A</span></figcaption>
+            </figure>
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/shots/map_nana_arch.jpg" alt="nanaplaza: a three-tier neon courtyard" loading="lazy"></div>
+              <figcaption class="shot-cap"><a href="#maps">nanaplaza</a><span>A three-tier neon courtyard</span></figcaption>
+            </figure>
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/shots/map_fox_marquee.jpg" alt="fox: the Fox Theater and the Padre Hotel" loading="lazy"></div>
+              <figcaption class="shot-cap"><a href="#maps">fox</a><span>The Fox Theater and the Padre Hotel</span></figcaption>
+            </figure>
+            <figure class="shot-card">
+              <div class="shot-img-wrap"><img src="media/shots/map_spruce_water_tower.jpg" alt="spruce: streets and a 105-foot water tower" loading="lazy"></div>
+              <figcaption class="shot-cap"><a href="#maps">spruce</a><span>Streets and a 105-foot water tower</span></figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <!-- ---------- underdog ---------- -->
+        <section class="page" id="underdog" aria-labelledby="ud-title">
+          <h2 class="h2" id="ud-title">Underdog rules:</h2>
+          <p class="lede">Losing should not feel bad. The more you keep dying, the more the game helps. The leader gets a target on their back.</p>
+          <table class="grid">
+            <tr><th>Situation</th><th>What happens</th></tr>
+            <tr><td><b>Dying a lot or behind in frags</b></td><td>You spawn with up to <b>250 HP and 250 red armor</b>, reload faster, deal up to <b>+100% damage</b> to players ahead of you and take up to <b>35% less</b> from them.</td></tr>
+            <tr><td><b>Big comeback boost</b></td><td>Your next <b>Mega Man (Key 9)</b> turns into a <b>Blue Shell</b> that hunts whoever is in first place, across the whole map.</td></tr>
+            <tr><td><b>About 7 deaths in a row</b></td><td><b>Last Stand:</b> you spawn with <b>Quad and a pentagram for 10 seconds</b>, every spawn until you get a kill.</td></tr>
+            <tr><td><b>Leading the lobby</b></td><td>The leader glows gold, shows through walls, and carries a <b>+1 frag bounty</b>. Whoever drops them collects an extra frag.</td></tr>
+          </table>
+        </section>
+
+        <!-- ---------- controls ---------- -->
+        <section class="page" id="keys" aria-labelledby="ky-title">
+          <h2 class="h2" id="ky-title">Game controls:</h2>
+          <p class="lede">These are the defaults. Rebind anything in the game's options and it is remembered next time.</p>
+          <div class="keys">
+            <table class="grid grid--keys">
+              <tr><th colspan="2">Move and fight</th></tr>
+              <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Move</td></tr>
+              <tr><td><kbd>Space</kbd> <kbd>Mouse 2</kbd></td><td>Jump</td></tr>
+              <tr><td><kbd>Mouse 1</kbd></td><td>Fire</td></tr>
+              <tr><td><kbd>Q</kbd></td><td>Grenade</td></tr>
+              <tr><td><kbd>E</kbd></td><td>Rocket</td></tr>
+              <tr><td><kbd>R</kbd></td><td>Reload</td></tr>
+              <tr><td><kbd>V</kbd></td><td>Melee</td></tr>
+              <tr><td><kbd>Mouse 3</kbd> <kbd>O</kbd></td><td>Binoculars (hold)</td></tr>
+            </table>
+            <table class="grid grid--keys">
+              <tr><th colspan="2">Weapons</th></tr>
+              <tr><td><kbd>1</kbd></td><td>Bonk hammer (hold to charge)</td></tr>
+              <tr><td><kbd>2</kbd></td><td>Goo Gun</td></tr>
+              <tr><td><kbd>3</kbd></td><td>Super shotgun</td></tr>
+              <tr><td><kbd>4</kbd></td><td>Laptop gun (guided head)</td></tr>
+              <tr><td><kbd>5</kbd></td><td>Pink Lady</td></tr>
+              <tr><td><kbd>6</kbd><kbd>7</kbd><kbd>8</kbd></td><td>Grenade, rocket, lightning</td></tr>
+              <tr><td><kbd>9</kbd></td><td>Mega Man</td></tr>
+              <tr><td><kbd>Wheel</kbd></td><td>Cycle weapons</td></tr>
+            </table>
+            <table class="grid grid--keys">
+              <tr><th colspan="2">Fun guns and rides</th></tr>
+              <tr><td><kbd>F</kbd></td><td>Rob Dob</td></tr>
+              <tr><td><kbd>X</kbd></td><td>Pickle Surprise</td></tr>
+              <tr><td><kbd>B</kbd><kbd>N</kbd></td><td>NetSend</td></tr>
+              <tr><td><kbd>U</kbd></td><td>Mystery Box</td></tr>
+              <tr><td><kbd>G</kbd></td><td>Wheelman Cannon (hold to charge)</td></tr>
+              <tr><td><kbd>J</kbd></td><td>Jetpack, or jump again in the air</td></tr>
+              <tr><td><kbd>H</kbd></td><td>Get in or out of a van</td></tr>
+              <tr><td><kbd>K</kbd></td><td>Change the van camera</td></tr>
+            </table>
+            <table class="grid grid--keys">
+              <tr><th colspan="2">Online and chat</th></tr>
+              <tr><td><kbd>F1</kbd></td><td>Join the online server</td></tr>
+              <tr><td><kbd>F2</kbd></td><td>Join the LAN game</td></tr>
+              <tr><td><kbd>F5</kbd><kbd>F6</kbd></td><td>Vote yes or no</td></tr>
+              <tr><td><kbd>Tab</kbd></td><td>Scores</td></tr>
+              <tr><td><kbd>T</kbd></td><td>Chat</td></tr>
+              <tr><td><kbd>~</kbd></td><td>Console</td></tr>
+            </table>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="foot">
+      <div class="foot__logo" data-logo="foot" aria-hidden="true"></div>
+      <p><b>BAKOQUAKE</b> is a fan-made Quake mod built around real places in Bakersfield, California. Nobody paid for it and nobody is selling it.</p>
+      <p>The zip includes the Quake game data from id Software so friends can play at a party. If you keep it, please own Quake (it is cheap on Steam and GOG). DarkPlaces is GPL. Combat+ and Quake 1.5 belong to their authors.</p>
+      <p class="foot__links"><a href="BAKOQUAKE.zip" download="BAKOQUAKE.zip">Download</a> | <a href="#install">Help</a> | <a href="#keys">Game controls</a> | <a href="#top">Top of page</a></p>
+      <p class="foot__small">Last updated 11/02/2026.</p>
+    </footer>
+  </div>
+
+  <!-- FULLSCREEN 3D VIEWER -->
+  <div id="holodeck-modal" role="dialog" aria-label="3D viewer">
+    <div class="holo-modal-top">
+      <div>3D viewer: <span id="holo-title">Asset</span></div>
+      <button type="button" id="holo-close" class="win98-btn win98-btn--close">Close (Esc)</button>
+    </div>
+    <div id="holo-sidebar-list" class="holo-sidebar"></div>
+    <div id="holodeck-stage">
+      <canvas id="holo-2d-canvas"></canvas>
+      <div class="holo-hud-overlay">
+        <div class="holo-hud-box">
+          <div id="holo-meta" class="holo-meta"></div>
+          <div id="holo-desc" class="holo-desc"></div>
+          <div id="holo-skin-btns" class="holo-skins"></div>
+        </div>
+      </div>
+    </div>
+    <div class="holo-modal-bot">
+      <div class="holo-row">
+        <select id="holo-clip-sel" class="holo-select"></select>
+        <button type="button" id="holo-btn-play" class="win98-btn">Pause</button>
+        <input id="holo-scrub" type="range" min="0" max="30" step="0.25" value="0" aria-label="Animation position">
+      </div>
+      <div class="holo-row">
+        <button type="button" id="holo-btn-spin" class="win98-btn">Auto-spin</button>
+        <button type="button" id="holo-btn-pov" class="win98-btn">First-person view</button>
+        <button type="button" id="holo-btn-2d" class="win98-btn">2D sprite</button>
+        <button type="button" id="holo-btn-wire" class="win98-btn">Wireframe</button>
+        <button type="button" id="holo-btn-reset" class="win98-btn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PICTURE VIEWER -->
+  <div id="lightbox-modal" role="dialog" aria-label="Picture viewer">
+    <div class="lb-window">
+      <div class="lb-titlebar">
+        <span id="lb-counter">1 / 1</span>
+        <button type="button" id="lb-close" class="win98-btn win98-btn--close" aria-label="Close picture">Close</button>
+      </div>
+      <div class="lb-body"><img id="lb-img" src="" alt=""></div>
+      <div class="lb-cap">
+        <button type="button" id="lb-prev" class="win98-btn">Prev</button>
+        <span id="lb-caption">Caption</span>
+        <button type="button" id="lb-next" class="win98-btn">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/models_data.js"></script>
+  <script src="viewer.js"></script>
+  <script src="site.js?v=dos1"></script>
+</body>
+</html>

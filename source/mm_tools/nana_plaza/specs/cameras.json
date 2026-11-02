@@ -1,0 +1,167 @@
+{
+  "description": "Calibrated camera positions and view angles (Quake yaw: 0=+X East, 90=+Y North, 180=-X West, 270=-Y South; pitch: +down / -up) for automated side-by-side comparison screenshots against reference photos.",
+  "cameras": [
+    {
+      "id": "cam_01_ext_arch_east",
+      "ref": "ref_031.jpg",
+      "title": "Ext Entrance Arch — Looking East into Nana Plaza Arch, Canopy & PRO EXCHANGE",
+      "frame": "world",
+      "x": -34.06, "y": 10.49, "z": 2.2,
+      "yaw": 0.0, "pitch": -3.0, "fov": 94,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_02_ext_arch_west",
+      "ref": "ref_035.jpg",
+      "title": "Ext Entrance Arch — Looking West at NANA HOTEL Gate, 5F Wing & JW Marriott",
+      "frame": "world",
+      "x": -34.06, "y": 10.49, "z": 2.2,
+      "yaw": 180.0, "pitch": -5.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_03_ext_arch_north",
+      "ref": "ref_029.jpg",
+      "title": "Ext Entrance Arch — Looking North up Soi 4 toward Stumble Inn, Slatted Balcony & BTS Viaduct",
+      "frame": "world",
+      "x": -34.06, "y": 10.49, "z": 2.2,
+      "yaw": 90.0, "pitch": -4.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_04_ext_mid_east",
+      "ref": "ref_039.jpg",
+      "title": "Ext Soi4 Mid — Looking East at Stumble Inn, Slatted Balcony & Umbrellas",
+      "frame": "world",
+      "x": -34.50, "y": 20.82, "z": 2.2,
+      "yaw": 0.0, "pitch": -3.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_05_ext_mid_west",
+      "ref": "ref_043.jpg",
+      "title": "Ext Soi4 Mid — Looking West at Pharmacy World, Rx Blade, Nana Burger & Nana Hotel",
+      "frame": "world",
+      "x": -34.50, "y": 20.82, "z": 2.2,
+      "yaw": 180.0, "pitch": -4.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_06_ext_mouth_north",
+      "ref": "ref_045.jpg",
+      "title": "Ext Soi4 Mouth — Looking North at Crosswalk, Tuk-Tuk, Green Taxi, PTT, BTS Viaduct & Yellow Shophouse",
+      "frame": "world",
+      "x": -34.49, "y": 41.29, "z": 2.2,
+      "yaw": 90.0, "pitch": -5.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_07_ext_mouth_east",
+      "ref": "ref_048.jpg",
+      "title": "Ext Soi4 Mouth — Looking SE at Morning Night, Slatted Balcony & Classical Facade",
+      "frame": "world",
+      "x": -34.49, "y": 41.29, "z": 2.2,
+      "yaw": -35.0, "pitch": -4.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_08_ext_mouth_west",
+      "ref": "ref_051.jpg",
+      "title": "Ext Soi4 Mouth — Looking West at Grey Compound Wall, Utility Poles, Cones & Cable Coils",
+      "frame": "world",
+      "x": -34.49, "y": 41.29, "z": 2.2,
+      "yaw": 180.0, "pitch": -7.5, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_09_hero_arch_landmark",
+      "ref": "ref_182.jpg",
+      "title": "Soi 4 Sidewalk — Nana Plaza Arch, Canopy, Cones & The Landmark Bangkok Stepped Tower",
+      "frame": "world",
+      "x": -39.2, "y": 11.2, "z": 1.65,
+      "yaw": -4.0, "pitch": -22.0, "fov": 92,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_10_gf_courtyard_lollipop",
+      "ref": "ref_247.jpg",
+      "title": "GF Courtyard West — Front-North Stairs, Lollipop, Red Counter & Herringbone Brick Paving",
+      "frame": "plaza",
+      "s": 13.8, "w": 3.2, "z": 1.58,
+      "yaw_rel": 64.0, "pitch": 1.5, "fov": 92,
+      "exposure": 1.25
+    },
+    {
+      "id": "cam_11_gf_courtyard_se_obsession",
+      "ref": "ref_297.jpg",
+      "title": "GF Courtyard East — Bangkok Bunnies, Obsession, Sports Bus VW Camper & London Calling",
+      "frame": "plaza",
+      "s": 32.0, "w": -4.2, "z": 1.68,
+      "yaw_rel": 10.0, "pitch": -4.0, "fov": 90,
+      "exposure": 1.22
+    },
+    {
+      "id": "cam_12_gf_pooltable_bar",
+      "ref": "ref_083.jpg",
+      "title": "GF SE Pool-Table Bar Interior — Cyan Pool Table, Polygon Wall, TV & Green-LED Ceiling",
+      "frame": "plaza",
+      "s": 36.7, "w": -13.8, "z": 1.68,
+      "yaw_rel": 0.0, "pitch": 2.0, "fov": 90,
+      "exposure": 1.15
+    },
+    {
+      "id": "cam_13_f2_angelwitch_dc10",
+      "ref": "ref_101.jpg",
+      "title": "F2 North Walkway — DC-10, Cyan LED Ceiling, Pink Stools & Casanova",
+      "frame": "plaza",
+      "s": 28.2, "w": 9.5, "z": 5.72,
+      "yaw_rel": 3.0, "pitch": 0.0, "fov": 90,
+      "exposure": 1.12
+    },
+    {
+      "id": "cam_14_f3_courtyard_west",
+      "ref": "ref_018.jpg",
+      "title": "F3 East Gallery Looking West — Arch Crown, Red Dragon, Bunny, Courtyard Beer Garden & Bunting",
+      "frame": "plaza",
+      "s": 40.4, "w": 5.2, "z": 9.65,
+      "yaw_rel": 194.0, "pitch": 15.0, "fov": 90,
+      "exposure": 1.12
+    },
+    {
+      "id": "cam_15_f3_billboard_stage",
+      "ref": "ref_028.jpg",
+      "title": "F3 Billboard Bangkok Interior — Labelled White Fur Stage, Chrome Poles & Backlit Bottle Bar",
+      "frame": "plaza",
+      "s": 24.4, "w": 12.6, "z": 9.45,
+      "yaw_rel": 28.0, "pitch": 2.0, "fov": 85,
+      "exposure": 1.08
+    },
+    {
+      "id": "cam_16_f3_erotica_landing",
+      "ref": "ref_137.jpg",
+      "title": "F3 NW Landing — Erotica 3F, Terrazzo Steps & FL. 3 Plaque",
+      "frame": "plaza",
+      "s": 17.8, "w": 8.9, "z": 9.48,
+      "yaw_rel": 126.0, "pitch": 2.0, "fov": 90,
+      "exposure": 1.08
+    },
+    {
+      "id": "cam_17_ext_arch_south",
+      "ref": "ref_033.jpg",
+      "title": "Ext Entrance Arch — Looking South down Soi 4 at Kickoff, Bunny, Umbrellas, Hooters & Nana Hotel",
+      "frame": "world",
+      "x": -34.0, "y": 3.8, "z": 2.2,
+      "yaw": 270.0, "pitch": -3.0, "fov": 90,
+      "exposure": 1.55
+    },
+    {
+      "id": "cam_18_arch_blade_geisha",
+      "ref": "ref_020.jpg",
+      "title": "Across Soi 4 — Nana Plaza Neon Arch, Vertical Blade Sign, Tuk-Tuk, Canopy & Geisha 3F",
+      "frame": "world",
+      "x": -37.6, "y": 12.6, "z": 1.65,
+      "yaw": -26.0, "pitch": -9.5, "fov": 76,
+      "exposure": 0.95
+    }
+  ]
+}

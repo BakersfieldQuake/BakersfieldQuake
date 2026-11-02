@@ -1,0 +1,107 @@
+// "WHERE'S THE DISK?" (netsend) effects: antenna/floor crackle, NET SEND packet trail, materialize/shutdown pop
+
+// Crackling electric sparks + green DOS data sparks around the PC's antennas & case
+effect netsend_zap
+count 6
+type spark
+color 0x50b8ff 0xffffff
+size 1.0 2.0
+alpha 210 256 640
+originjitter 12 12 14
+velocityjitter 155 155 155
+airfriction 1.4
+
+effect netsend_zap
+count 4
+type spark
+color 0x28ff58 0x98ffb8
+size 1.1 2.1
+alpha 200 250 580
+originjitter 11 11 14
+velocityjitter 120 120 135
+airfriction 1.2
+
+effect netsend_zap
+lightradius 105
+lightradiusfade 1400
+lightcolor 0.09 0.22 0.34
+lightshadow 0
+
+// Outbound NET SEND packet bolt trail from an antenna tip to a victim
+effect netsend_shot
+trailspacing 6
+type spark
+color 0x60c0ff 0xffffff
+size 1.2 2.2
+alpha 240 256 680
+originjitter 3 3 3
+velocityjitter 42 42 42
+airfriction 1.5
+
+effect netsend_shot
+trailspacing 9
+type spark
+color 0x30ff68 0xb0ffc8
+size 1.3 2.4
+alpha 220 256 600
+originjitter 4 4 4
+velocityjitter 32 32 32
+airfriction 1.4
+
+// Electric pop burst when the PC materializes out of LOL.BAT or shuts down
+effect netsend_pop
+count 28
+type spark
+color 0x50a8ff 0xffffff
+size 1.4 2.6
+alpha 240 256 560
+originjitter 8 8 10
+velocityjitter 290 290 290
+gravity 0.45
+bounce 1.2
+airfriction 0.6
+
+effect netsend_pop
+count 18
+type spark
+color 0x28ff60 0xa0ffc0
+size 1.5 2.8
+alpha 230 256 520
+originjitter 9 9 11
+velocityjitter 220 220 240
+gravity 0.25
+airfriction 0.9
+
+effect netsend_pop
+lightradius 210
+lightradiusfade 1100
+lightcolor 0.22 0.52 0.72
+lightshadow 0
+
+// the PC's green lasers (owner's review 2026-10-31: "shoot little green lasers at everybody ... spin and shoot them like nails")
+effect netsend_laser
+count 22
+type spark
+tex 40 40
+color 0x20d020 0x60ff60
+size 2.5 3.5
+alpha 180 256 900
+stretchfactor 1.5
+originjitter 0.5 0.5 0.5
+lightradius 60
+lightcolor 0.2 1 0.2
+
+effect netsend_laserhit
+count 14
+type spark
+tex 40 40
+color 0x20d020 0x80ff80
+size 1.5 2.5
+alpha 200 256 700
+velocityjitter 140 140 140
+gravity 0.6
+bounce 1.2
+lightradius 90
+lightcolor 0.2 1 0.2
+lighttime 0.2
+

@@ -1,0 +1,2577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · Custom 3D Models &amp; Animations Showcase</title>
+<style>
+:root {
+  --bg: #070b13;
+  --panel: rgba(12, 18, 31, 0.94);
+  --panel-solid: #0d1423;
+  --card: rgba(14, 21, 36, 0.92);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-hi: rgba(56, 189, 248, 0.68);
+  --text: #eef4fc;
+  --muted: #94a3b8;
+  --cyan: #38bdf8;
+  --amber: #ffb454;
+  --amber-ink: #1c1002;
+  --green: #34d399;
+  --pink: #f472b6;
+  --purple: #c084fc;
+  --rose: #fb7185;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.42 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+body.grid-mode { overflow-y: auto; height: auto; min-height: 100%; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Top Master Bar */
+header#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  z-index: 30;
+  background: rgba(9, 14, 24, 0.95);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  gap: 10px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brand-badge {
+  background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
+  color: #fff;
+  font-weight: 900;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  padding: 4px 9px;
+  border-radius: 7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.brand h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+button, .file-btn, select {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+select { background: #131c30; padding: 4px 8px; }
+button:hover, .file-btn:hover { background: rgba(255, 255, 255, 0.14); }
+button[aria-pressed="true"], button.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  font-weight: 800;
+}
+button.mode-tab {
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-weight: 750;
+}
+button.mode-tab.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #031b29;
+}
+button.tour-btn {
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(192, 132, 252, 0.55);
+  color: #f3e8ff;
+  font-weight: 800;
+}
+button.tour-btn.active {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  border-color: #34d399;
+  color: #022c22;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
+}
+button.pix-btn {
+  border-color: rgba(244, 114, 182, 0.55);
+  color: #fbcfe8;
+}
+button.pix-btn.active {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: #290418;
+}
+button.honk-btn {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  border: none;
+  color: #fff;
+  font-weight: 800;
+}
+button.honk-btn:hover { filter: brightness(1.12); }
+
+/* Floating Soundboard Popover */
+#sound-drawer {
+  position: fixed;
+  top: 60px;
+  right: 14px;
+  width: min(440px, 94vw);
+  max-height: 75vh;
+  z-index: 45;
+  background: rgba(11, 17, 29, 0.97);
+  border: 1px solid var(--line-hi);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
+  display: none;
+  flex-direction: column;
+  gap: 9px;
+}
+#sound-drawer.open { display: flex; }
+.snd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+@media (max-width: 560px) { .snd-grid { grid-template-columns: 1fr; } }
+.snd-btn {
+  justify-content: flex-start;
+  padding: 7px 9px;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snd-btn.playing {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: var(--green);
+  color: #a7f3d0;
+}
+
+/* ==================== MODE 1: INTERACTIVE STAGE SHOWCASE ==================== */
+#inspector-layout {
+  position: fixed;
+  top: 54px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 325px;
+  pointer-events: none;
+}
+body.theater-mode #inspector-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.theater-mode #left-sidebar,
+body.theater-mode #right-sidebar {
+  display: none;
+}
+body.grid-mode #inspector-layout { display: none; }
+@media (max-width: 1180px) {
+  #inspector-layout { grid-template-columns: 270px minmax(0, 1fr) 280px; }
+}
+@media (max-width: 860px) {
+  #inspector-layout { grid-template-columns: minmax(0, 1fr); }
+  #right-sidebar { display: none; }
+}
+
+aside#left-sidebar {
+  pointer-events: auto;
+  background: var(--panel-solid);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.side-hdr {
+  padding: 9px 10px 8px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.search-in {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.pill-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pill-bar button {
+  font-size: 10.5px;
+  padding: 3.5px 7.5px;
+  border-radius: 6px;
+}
+.model-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cat-hdr {
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  padding: 8px 6px 3px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+.cat-hdr:first-child { margin-top: 0; }
+.m-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.028);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  white-space: normal;
+}
+.m-item:hover { background: rgba(255, 255, 255, 0.085); }
+.m-item.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: var(--cyan);
+  color: var(--text);
+}
+.m-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+.m-item-title {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fmt-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.09);
+  color: var(--amber);
+  flex-shrink: 0;
+}
+.fmt-tag.spr { color: var(--pink); }
+.fmt-tag.mdl { color: var(--purple); }
+.m-item-meta {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+.star-dot { color: var(--green); font-weight: 900; }
+
+/* Center Interactive Stage */
+#center-stage {
+  position: relative;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  overflow: hidden;
+}
+#center-stage.drag { cursor: grabbing; }
+
+/* Crisp 2D Pixel / Sprite Stage Overlay */
+#sprite-2d-wrap {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 62%, #1d283d 0%, #0d1320 68%, #070b13 100%);
+  z-index: 1;
+}
+#sprite-2d-wrap.checker {
+  background: repeating-conic-gradient(#1b2232 0% 25%, #121826 0% 50%) 0 0 / 26px 26px;
+}
+#sprite-2d-wrap.show { display: flex; }
+canvas#sprite-2d {
+  max-width: 88%;
+  max-height: 66%;
+  width: auto;
+  height: 64%;
+  object-fit: contain;
+  image-rendering: auto;
+  transform-origin: 50% 55%;
+}
+canvas#sprite-2d.nearest { image-rendering: pixelated; }
+
+.vp-top-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+.vp-title-card {
+  background: rgba(8, 12, 22, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  backdrop-filter: blur(10px);
+  max-width: 580px;
+  pointer-events: auto;
+}
+.vp-badges { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; flex-wrap: wrap; }
+.vp-badge {
+  font-size: 10px;
+  font-weight: 850;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+.vp-badge.clips-pill {
+  background: rgba(244, 114, 182, 0.16);
+  border-color: rgba(244, 114, 182, 0.45);
+  color: var(--pink);
+}
+.vp-title-card h2 { margin: 0; font-size: 16.5px; font-weight: 850; }
+.vp-title-card .vp-sub { color: var(--amber); font-size: 11px; margin-top: 2px; }
+.vp-cams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  pointer-events: auto;
+  justify-content: flex-end;
+  max-width: 440px;
+}
+.cam-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(8, 12, 22, 0.86);
+}
+
+/* Bottom Timeline + Clips + Skins + Angle Strip HUD */
+.vp-btm-hud {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 4;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(12px);
+}
+.hud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px 10px;
+}
+.clip-scroll {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  max-height: 96px;
+  overflow-y: auto;
+  padding-right: 2px;
+  flex: 1 1 520px;
+}
+.clip-scroll button {
+  font-size: 11px;
+  padding: 4px 8.5px;
+}
+.ctrl-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.skin-row {
+  display: none;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.skin-row.show { display: flex; }
+.skin-lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--pink);
+  text-transform: uppercase;
+  margin-right: 3px;
+}
+.angle-strip {
+  display: none;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px 0 3px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.angle-strip.show { display: flex; }
+.ang-btn {
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+input#frame-scrub {
+  flex: 1;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.hint-pill { font-size: 10.5px; color: var(--muted); }
+
+/* Right Technical & Surface Sidebar */
+aside#right-sidebar {
+  pointer-events: auto;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 10px;
+  gap: 10px;
+}
+.insp-sec {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sec-title {
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kv-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 8px;
+  font-size: 11px;
+}
+.kv-grid span.k { color: var(--muted); }
+.kv-grid span.v { color: var(--text); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.shade-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.shade-grid button { justify-content: center; padding: 5px 7px; font-size: 11px; }
+
+.surf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+.surf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 11px;
+}
+.surf-row label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  min-width: 0;
+  flex: 1;
+}
+.surf-row .sname {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.surf-row .scnt { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.solo-btn { padding: 2px 6px; font-size: 9.5px; border-radius: 5px; }
+
+.tex-thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.tex-card {
+  background: repeating-conic-gradient(#1f2738 0% 25%, #141a27 0% 50%) 0 0 / 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.tex-card:hover { border-color: var(--cyan); }
+.tex-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; display: block; }
+.tex-card span {
+  font-size: 9px;
+  padding: 2px 4px;
+  background: rgba(0,0,0,0.72);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== MODE 2: SIDE-BY-SIDE LIVE GRID WALL ==================== */
+main#grid-layout {
+  display: none;
+  position: relative;
+  z-index: 5;
+  max-width: 1740px;
+  margin: 0 auto;
+  padding: 68px 16px 80px;
+}
+body.grid-mode main#grid-layout { display: block; }
+
+.grid-filter-bar {
+  position: sticky;
+  top: 58px;
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  margin-bottom: 14px;
+  background: rgba(12, 18, 31, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+#cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1440px) { #cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1020px) { #cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px)  { #cards-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.gcard {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+  background: transparent;
+}
+.gcard:hover { border-color: var(--line-hi); }
+.gcard.starred { border-color: var(--green); box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.3); }
+.gstage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.gstage-top {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  right: 7px;
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  pointer-events: none;
+}
+.gpill {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(7, 11, 19, 0.86);
+  border: 1px solid var(--line);
+}
+.gbody {
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.gbody h3 { margin: 0; font-size: 13.5px; font-weight: 800; }
+.gbody p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gactions { display: flex; gap: 5px; margin-top: auto; padding-top: 4px; flex-wrap: wrap; }
+.gactions button { flex: 1; justify-content: center; padding: 4px 7px; font-size: 11px; }
+
+/* Modal for Full-Resolution Texture / Atlas Inspection */
+#tex-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(5, 8, 15, 0.88);
+  backdrop-filter: blur(8px);
+  place-items: center;
+  padding: 24px;
+}
+#tex-modal.open { display: grid; }
+.tex-modal-box {
+  background: var(--panel-solid);
+  border: 1px solid var(--line-hi);
+  border-radius: 14px;
+  padding: 14px;
+  max-width: 92vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tex-modal-img-wrap {
+  overflow: auto;
+  max-height: 76vh;
+  background: repeating-conic-gradient(#22293a 0% 25%, #161b28 0% 50%) 0 0 / 20px 20px;
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+}
+.tex-modal-img-wrap img { max-width: 100%; max-height: 72vh; object-fit: contain; }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div>
+    <div style="font-size:20px;font-weight:850;color:var(--cyan);margin-bottom:6px">Loading Custom 3D Models &amp; Animations Showcase…</div>
+    <div id="load-sub" style="color:var(--muted);font-size:13px">Unpacking 3D meshes, 360° character animations &amp; voice soundboard</div>
+  </div>
+</div>
+
+<div id="tex-modal">
+  <div class="tex-modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+      <div class="mono" id="tex-modal-title" style="font-weight:800;color:var(--cyan)"></div>
+      <button id="tex-modal-close">✕ Close (Esc)</button>
+    </div>
+    <div class="tex-modal-img-wrap"><img id="tex-modal-img" alt="Texture preview"></div>
+  </div>
+</div>
+
+<div id="sound-drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <span style="font-weight:850;color:var(--amber);font-size:12.5px">🔊 Custom Voice &amp; Comedy Soundboard</span>
+    <div style="display:flex;gap:5px">
+      <button id="btn-rand-snd" class="honk-btn" style="padding:4px 9px">🎲 Play Random</button>
+      <button id="btn-close-snd" style="padding:4px 8px">✕</button>
+    </div>
+  </div>
+  <div class="snd-grid" id="snd-grid"></div>
+</div>
+
+<canvas id="gl"></canvas>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-badge">Custom Showcase</span>
+    <h1>BakersfieldQuake · Custom Animations &amp; 3D Models (<span id="hdr-count">0</span> Creations)</h1>
+  </div>
+  <div class="top-actions">
+    <button class="mode-tab active" id="tab-inspect">🎬 Stage Showcase</button>
+    <button class="mode-tab" id="tab-grid">🗂 Live Grid Wall</button>
+    <button class="tour-btn" id="btn-tour" title="Hands-free auto-tour through animations &amp; 3D models!">🎉 Party Tour</button>
+    <button id="btn-theater" title="Expand stage full-width (F)">⛶ Theater</button>
+    <button class="honk-btn" id="btn-honk">🔊 Soundboard</button>
+  </div>
+</header>
+
+<!-- ==================== MODE 1: INTERACTIVE STAGE SHOWCASE ==================== -->
+<div id="inspector-layout">
+  <aside id="left-sidebar">
+    <div class="side-hdr">
+      <input type="search" class="search-in" id="model-search" placeholder="Search Bryan, Wheelman, Paul, John, Pickle, Mystery…">
+      <div class="pill-bar" id="side-cat-btns">
+        <button data-scat="all" class="active">✨ All</button>
+        <button data-scat="featured">🔥 Featured Anims</button>
+        <button data-scat="chars3d">🧍 3D Chars</button>
+        <button data-scat="contraptions3d">🛸 3D Props/FX</button>
+        <button data-scat="sprites">👾 Sprites/Crew</button>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button id="btn-prev-m" style="flex:1;justify-content:center">← Prev [</button>
+        <button id="btn-rand-m" style="flex:0 0 auto;justify-content:center" title="Surprise Me!">🎲</button>
+        <button id="btn-next-m" style="flex:1;justify-content:center">Next ] →</button>
+      </div>
+    </div>
+    <div class="model-list" id="model-list"></div>
+  </aside>
+
+  <section id="center-stage">
+    <div id="sprite-2d-wrap">
+      <canvas id="sprite-2d" width="512" height="512"></canvas>
+    </div>
+
+    <div class="vp-top-hud">
+      <div class="vp-title-card">
+        <div class="vp-badges">
+          <span class="vp-badge" id="vp-badge">CUSTOM</span>
+          <span class="vp-badge" id="vp-fmt">3D</span>
+          <span class="vp-badge clips-pill" id="vp-clip-cnt">1 CLIP</span>
+        </div>
+        <h2 id="vp-title">Loading…</h2>
+        <div class="mono vp-sub" id="vp-file"></div>
+        <div id="vp-desc" style="color:#cbd5e1;font-size:11.5px;margin-top:4px;line-height:1.4"></div>
+      </div>
+      <div class="vp-cams">
+        <button class="cam-btn pix-btn" id="btn-pix2d" style="display:none">🖼 Crisp 2D Canvas</button>
+        <button class="cam-btn" data-cam="front">Front 3/4</button>
+        <button class="cam-btn" data-cam="face">Closeup</button>
+        <button class="cam-btn" data-cam="left">Left</button>
+        <button class="cam-btn" data-cam="right">Right</button>
+        <button class="cam-btn" data-cam="rear">Rear</button>
+        <button class="cam-btn" data-cam="top">Top</button>
+        <button class="cam-btn" data-cam="reset">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="vp-btm-hud">
+      <div class="skin-row" id="vp-skins"></div>
+      <div class="angle-strip" id="vp-angles"></div>
+      <div class="hud-row">
+        <div class="clip-scroll" id="vp-clips"></div>
+        <div class="ctrl-group">
+          <button id="btn-step-prev" title="Step back 1 frame (,)">⏮ -1f</button>
+          <button id="btn-play" aria-pressed="true">⏸ Pause</button>
+          <button id="btn-step-next" title="Step forward 1 frame (.)">+1f ⏭</button>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)">
+            Speed <input type="range" id="rng-speed" min="0.1" max="2.5" step="0.1" value="1.0" style="width:62px;accent-color:var(--amber)">
+            <span class="mono" id="lbl-speed" style="color:var(--text);min-width:3ch">1.0×</span>
+          </label>
+        </div>
+      </div>
+      <div class="scrubber-row">
+        <span class="mono" id="lbl-frame" style="font-size:11.5px;color:var(--cyan);min-width:195px">Frame 0 / 0</span>
+        <input type="range" id="frame-scrub" min="0" max="1" step="0.02" value="0">
+        <span class="hint-pill" id="vp-hint">Drag Left/Right: Orbit 360° · Right-Drag: Pan · Wheel: Zoom</span>
+      </div>
+    </div>
+  </section>
+
+  <aside id="right-sidebar">
+    <div class="insp-sec">
+      <div class="sec-title">
+        <span>Star / Bookmark</span>
+        <span id="copy-toast" style="color:var(--green);text-transform:none"></span>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button id="btn-star-cur" style="flex:1;justify-content:center;padding:6px;font-weight:800">☆ Star Favorite</button>
+        <button id="btn-copy-favs" title="Copy starred list">📋 (<span id="fav-count">0</span>)</button>
+      </div>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title">Stage Lighting, Backdrop &amp; Overlays</div>
+      <div class="shade-grid" id="shade-btns">
+        <button data-shade="0" class="active">🎨 Studio Lit</button>
+        <button data-shade="1">💡 Unlit Crisp</button>
+        <button data-shade="2">🌈 Normals RGB</button>
+        <button data-shade="3">🗿 Clay Sculpt</button>
+      </div>
+      <div class="shade-grid" id="bg-btns" style="margin-top:2px">
+        <button data-bg="0" class="active">🌌 Studio Sky</button>
+        <button data-bg="1">🏁 Alpha Checker</button>
+        <button data-bg="2">🏰 Quake Arena</button>
+        <button data-bg="3">☀ Daylight</button>
+      </div>
+      <div class="shade-grid" style="margin-top:2px">
+        <button id="tog-wire" aria-pressed="false">🕸 Wireframe</button>
+        <button id="tog-spin" aria-pressed="true">🔄 Auto-Orbit</button>
+        <button id="tog-box" aria-pressed="false">🧍 Scale 56u Box</button>
+        <button id="tog-grid" aria-pressed="true">🌐 Floor Grid</button>
+        <button id="tog-shadow" aria-pressed="true">🌑 Cast Shadow</button>
+        <button id="tog-nearest" aria-pressed="false">👾 Pixel Filter</button>
+      </div>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title">Model &amp; Animation Stats</div>
+      <div class="kv-grid mono" id="kv-stats"></div>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title">
+        <span>3D Parts / Surfaces (<span id="surf-cnt">0</span>)</span>
+        <button id="btn-show-all-surfs" class="solo-btn">Show All</button>
+      </div>
+      <div class="surf-list" id="surf-list"></div>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title"><span>Textures &amp; Sprite Sheets (<span id="tex-cnt">0</span>)</span></div>
+      <div class="tex-thumbs" id="tex-thumbs"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ==================== MODE 2: LIVE GRID WALL ==================== -->
+<main id="grid-layout">
+  <div class="grid-filter-bar">
+    <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center" id="grid-cat-btns">
+      <button data-gcat="all" class="active">✨ All Creations</button>
+      <button data-gcat="featured">🔥 Featured Character Animations</button>
+      <button data-gcat="chars3d">🧍 Custom 3D Characters &amp; Heads</button>
+      <button data-gcat="contraptions3d">🛸 3D Contraptions, Mystery Cube &amp; FX</button>
+      <button data-gcat="sprites">👾 Turnaround Sprites &amp; Friends Crew</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <input type="search" class="search-in" id="grid-search" placeholder="Filter live grid…" style="width:210px">
+    </div>
+  </div>
+  <div id="cards-grid"></div>
+</main>
+
+<script id="meta-json" type="application/json">/*__META_JSON__*/</script>
+<script id="bin-gz" type="text/plain">/*__BIN_GZ__*/</script>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const META = JSON.parse($('meta-json').textContent);
+
+async function gunzipTextNode(el) {
+  const b64 = el.textContent.trim();
+  el.textContent = '';
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  const respPromise = new Response(ds.readable).arrayBuffer();
+  const CHUNK = 786432;
+  for (let i = 0; i < b64.length; i += CHUNK) {
+    const slice = b64.slice(i, i + CHUNK);
+    const bin = Uint8Array.from(atob(slice), c => c.charCodeAt(0));
+    await writer.write(bin);
+  }
+  await writer.close();
+  return await respPromise;
+}
+
+function mat4Identity(out) {
+  out.fill(0); out[0] = 1; out[5] = 1; out[10] = 1; out[15] = 1; return out;
+}
+function mat4Mul(out, a, b) {
+  const a00=a[0], a01=a[1], a02=a[2], a03=a[3], a10=a[4], a11=a[5], a12=a[6], a13=a[7],
+        a20=a[8], a21=a[9], a22=a[10], a23=a[11], a30=a[12], a31=a[13], a32=a[14], a33=a[15];
+  const b00=b[0], b01=b[1], b02=b[2], b03=b[3], b10=b[4], b11=b[5], b12=b[6], b13=b[7],
+        b20=b[8], b21=b[9], b22=b[10], b23=b[11], b30=b[12], b31=b[13], b32=b[14], b33=b[15];
+  out[0]=a00*b00+a10*b01+a20*b02+a30*b03; out[1]=a01*b00+a11*b01+a21*b02+a31*b03;
+  out[2]=a02*b00+a12*b01+a22*b02+a32*b03; out[3]=a03*b00+a13*b01+a23*b02+a33*b03;
+  out[4]=a00*b10+a10*b11+a20*b12+a30*b13; out[5]=a01*b10+a11*b11+a21*b12+a31*b13;
+  out[6]=a02*b10+a12*b11+a22*b12+a32*b13; out[7]=a03*b10+a13*b11+a23*b12+a33*b13;
+  out[8]=a00*b20+a10*b21+a20*b22+a30*b23; out[9]=a01*b20+a11*b21+a21*b22+a31*b23;
+  out[10]=a02*b20+a12*b21+a22*b22+a32*b23; out[11]=a03*b20+a13*b21+a23*b22+a33*b23;
+  out[12]=a00*b30+a10*b31+a20*b32+a30*b33; out[13]=a01*b30+a11*b31+a21*b32+a31*b33;
+  out[14]=a02*b30+a12*b31+a22*b32+a32*b33; out[15]=a03*b30+a13*b31+a23*b32+a33*b33;
+  return out;
+}
+function mat4Persp(out, fovy, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovy * 0.5), nf = 1.0 / (near - far);
+  out.fill(0);
+  out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+  return out;
+}
+function mat4LookAt(out, eye, ctr, up) {
+  let zx = eye[0]-ctr[0], zy = eye[1]-ctr[1], zz = eye[2]-ctr[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+  return out;
+}
+
+// Voice Soundboard Drawer
+const audioBank = (META.sounds || []).map(s => {
+  const a = new Audio(s.uri);
+  a.preload = 'auto';
+  return { label: s.label, audio: a, btn: null };
+});
+let activeAudio = null;
+function playSoundIdx(idx) {
+  if (!audioBank.length) return;
+  const item = audioBank[((idx % audioBank.length) + audioBank.length) % audioBank.length];
+  if (activeAudio && activeAudio !== item.audio) {
+    try { activeAudio.pause(); activeAudio.currentTime = 0; } catch (_) {}
+  }
+  audioBank.forEach(x => x.btn && x.btn.classList.remove('playing'));
+  if (item.btn) item.btn.classList.add('playing');
+  activeAudio = item.audio;
+  try {
+    item.audio.currentTime = 0;
+    item.audio.onended = () => { if (item.btn) item.btn.classList.remove('playing'); };
+    item.audio.play().catch(() => {});
+  } catch (_) {}
+}
+const sndGrid = $('snd-grid');
+audioBank.forEach((item, idx) => {
+  const b = document.createElement('button');
+  b.className = 'snd-btn';
+  b.textContent = item.label;
+  b.onclick = () => playSoundIdx(idx);
+  item.btn = b;
+  sndGrid.appendChild(b);
+});
+$('btn-honk').onclick = () => $('sound-drawer').classList.toggle('open');
+$('btn-close-snd').onclick = () => $('sound-drawer').classList.remove('open');
+$('btn-rand-snd').onclick = () => playSoundIdx(Math.floor(Math.random() * audioBank.length));
+
+// Persistent Favorites
+const FAV_KEY = 'bq_friends_showcase_favs_v1';
+let favIds = [];
+try {
+  const s = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+  if (Array.isArray(s)) favIds = s;
+} catch (_) {}
+function saveFavs() {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favIds)); } catch (_) {}
+  $('fav-count').textContent = favIds.length;
+}
+
+// Texture Modal
+$('tex-modal-close').onclick = () => $('tex-modal').classList.remove('open');
+$('tex-modal').onclick = e => { if (e.target === $('tex-modal')) $('tex-modal').classList.remove('open'); };
+
+async function boot() {
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) {
+    $('loading').innerHTML = '<div style="color:#fb7185;font-weight:700">WebGL2 is required for 3D &amp; Sprite Showcase Inspection.</div>';
+    return;
+  }
+  const sprCanvas = $('sprite-2d');
+  const sprCtx = sprCanvas.getContext('2d');
+
+  const AB = await gunzipTextNode($('bin-gz'));
+  const u16 = ([o, l]) => new Uint16Array(AB, o, l >> 1);
+  const i16 = ([o, l]) => new Int16Array(AB, o, l >> 1);
+  const i8  = ([o, l]) => new Int8Array(AB, o, l);
+  const f32 = ([o, l]) => new Float32Array(AB, o, l >> 2);
+
+  function compileProg(vsSrc, fsSrc) {
+    const p = gl.createProgram();
+    for (const [tp, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const uni = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b);
+    gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  // Backdrop Shader (0=Studio Sky, 1=Alpha Checker, 2=Quake Arena, 3=Daylight)
+  const pSky = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aQ;
+out vec2 vUv;
+void main() { vUv = aQ * 0.5 + 0.5; gl_Position = vec4(aQ, 0.9999, 1.0); }`, `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform int uBgMode;
+out vec4 fragColor;
+void main() {
+  if (uBgMode == 1) {
+    vec2 cq = floor(gl_FragCoord.xy / 18.0);
+    float chk = mod(cq.x + cq.y, 2.0);
+    vec3 c = mix(vec3(0.11, 0.14, 0.20), vec3(0.17, 0.21, 0.29), chk);
+    fragColor = vec4(c, 1.0);
+    return;
+  }
+  vec3 top, mid, bot;
+  if (uBgMode == 2) {
+    top = vec3(0.06, 0.04, 0.04); mid = vec3(0.20, 0.12, 0.08); bot = vec3(0.08, 0.06, 0.05);
+  } else if (uBgMode == 3) {
+    top = vec3(0.32, 0.55, 0.84); mid = vec3(0.66, 0.78, 0.91); bot = vec3(0.42, 0.48, 0.56);
+  } else {
+    top = vec3(0.06, 0.14, 0.28); mid = vec3(0.13, 0.27, 0.44); bot = vec3(0.07, 0.11, 0.18);
+  }
+  float h = clamp(vUv.y, 0.0, 1.0);
+  vec3 col = h > 0.38 ? mix(mid, top, (h - 0.38) / 0.62) : mix(bot, mid, h / 0.38);
+  fragColor = vec4(col, 1.0);
+}`);
+  const uSky = uni(pSky, ['uBgMode']);
+
+  // Unified Mesh + Rigid + Aspect-Adaptive Billboard + Atlas Shader
+  const pMesh = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform mat4 uRigid;
+uniform int uUseRigid;
+uniform int uBillboard;
+uniform float uBillAspect;
+uniform vec3 uBillRight;
+uniform vec3 uBillUp;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uShadowPass;
+out vec3 vWPos;
+out vec3 vWNrm;
+out vec2 vUv;
+void main() {
+  vec3 pLocal = mix(aPos0, aPos1, uLerp) * uPosScale;
+  vec3 nLocal = normalize(mix(aNrm0, aNrm1, uLerp));
+  vec3 p;
+  vec3 n;
+  if (uBillboard == 1 || uBillboard == 2) {
+    p = uOffset + (pLocal.y * uBillAspect) * uBillRight + pLocal.z * uBillUp;
+    n = normalize(cross(uBillRight, uBillUp));
+  } else if (uUseRigid == 1) {
+    p = (uRigid * vec4(pLocal, 1.0)).xyz + uOffset;
+    n = normalize((uRigid * vec4(nLocal, 0.0)).xyz);
+  } else {
+    p = pLocal + uOffset;
+    n = nLocal;
+  }
+  if (uShadowPass == 1) {
+    vec3 L = normalize(vec3(0.32, -0.35, 1.25));
+    float h = max(0.0, p.z);
+    vec3 sp = vec3(p.x - L.x * (h / L.z), p.y - L.y * (h / L.z), 0.08);
+    vWPos = sp; vWNrm = vec3(0.0, 0.0, 1.0); vUv = aUv;
+    gl_Position = uVP * vec4(sp, 1.0);
+  } else {
+    vWPos = p;
+    vWNrm = n;
+    vUv = aUv;
+    gl_Position = uVP * vec4(p, 1.0);
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vWPos;
+in vec3 vWNrm;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform sampler2D uGlowTex;
+uniform int uHasGlow;
+uniform vec4 uTileRect;
+uniform float uScrollV;
+uniform vec3 uEye;
+uniform float uExposure;
+uniform float uMetallic;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uUnlit;
+uniform int uAlphaTest;
+uniform int uAlphaBlend;
+uniform int uBgMode;
+uniform int uShadeMode;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+out vec4 fragColor;
+void main() {
+  vec2 uv = uTileRect.xy + vec2(vUv.x, vUv.y + uScrollV) * uTileRect.zw;
+  vec4 texel = texture(uTex, uv);
+  if (uAlphaTest == 1 && texel.a < 0.22) discard;
+  if (uShadowPass == 1) { fragColor = vec4(0.02, 0.04, 0.08, uShadowAlpha); return; }
+  vec3 N = normalize(gl_FrontFacing ? vWNrm : -vWNrm);
+  if (uShadeMode == 2) { fragColor = vec4(N * 0.5 + 0.5, 1.0); return; }
+  vec3 V = normalize(uEye - vWPos);
+  if (uShadeMode == 3) {
+    vec3 L1 = normalize(vec3(0.45, -0.42, 0.79));
+    vec3 L2 = normalize(vec3(-0.62, 0.55, 0.56));
+    float d = 0.28 + 0.62 * max(dot(N, L1), 0.0) + 0.28 * max(dot(N, L2), 0.0);
+    float sp = pow(max(dot(N, normalize(L1 + V)), 0.0), 36.0) * 0.35;
+    fragColor = vec4(vec3(0.76, 0.79, 0.85) * d + sp, 1.0);
+    return;
+  }
+  float outA = uAlphaBlend == 1 ? texel.a : 1.0;
+  if (uShadeMode == 1 || uUnlit == 1) {
+    fragColor = vec4(texel.rgb * (uUnlit == 1 ? 1.04 : 1.0), outA);
+    return;
+  }
+  vec3 L1 = normalize(vec3( 0.45, -0.42, 0.79));
+  vec3 L2 = normalize(vec3(-0.62,  0.55, 0.56));
+  vec3 L3 = normalize(vec3( 0.15,  0.78, 0.25));
+  vec3 c1 = uBgMode == 2 ? vec3(1.22, 0.90, 0.62) : vec3(1.06, 1.04, 1.00);
+  vec3 c2 = uBgMode == 2 ? vec3(0.42, 0.52, 0.82) : vec3(0.56, 0.68, 0.84);
+  vec3 c3 = vec3(0.38, 0.48, 0.60);
+  vec3 hemi = mix(vec3(0.24, 0.26, 0.32), vec3(0.46, 0.52, 0.62), 0.5 + 0.5 * N.z);
+  vec3 diff = hemi + c1 * max(dot(N, L1), 0.0) * 0.88 + c2 * max(dot(N, L2), 0.0) * 0.42 + c3 * max(dot(N, L3), 0.0) * 0.24;
+  float shin = mix(145.0, 14.0, uRoughness);
+  float sp1 = pow(max(dot(N, normalize(L1 + V)), 0.0), shin);
+  vec3 R = reflect(-V, N);
+  vec3 envCol = mix(vec3(0.16, 0.20, 0.27), vec3(0.94, 0.98, 1.0), smoothstep(-0.2, 0.6, R.z));
+  vec3 lit = texel.rgb * diff * (1.0 - 0.28 * uMetallic)
+           + texel.rgb * envCol * (uMetallic * 0.66)
+           + c1 * sp1 * uSpec * 0.46;
+  if (uHasGlow == 1) lit += texture(uGlowTex, uv).rgb * 1.35;
+  lit *= uExposure;
+  lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+  fragColor = vec4(lit, outA);
+}`);
+  const uMesh = uni(pMesh, [
+    'uVP', 'uRigid', 'uUseRigid', 'uBillboard', 'uBillAspect', 'uBillRight', 'uBillUp',
+    'uOffset', 'uLerp', 'uPosScale', 'uShadowPass', 'uShadowAlpha',
+    'uTex', 'uGlowTex', 'uHasGlow', 'uTileRect', 'uScrollV',
+    'uEye', 'uExposure', 'uMetallic', 'uRoughness', 'uSpec',
+    'uUnlit', 'uAlphaTest', 'uAlphaBlend', 'uBgMode', 'uShadeMode'
+  ]);
+
+  const pGround = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aQ;
+uniform mat4 uVP;
+uniform float uSize;
+out vec2 vP;
+void main() { vP = aQ * uSize; gl_Position = uVP * vec4(vP, 0.0, 1.0); }`, `#version 300 es
+precision highp float;
+in vec2 vP;
+uniform int uStaticGrid;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  float scrollX = uStaticGrid == 1 ? 0.0 : uTime * 75.0;
+  vec2 q = (vP + vec2(scrollX, 0.0)) / 32.0;
+  float chk = mod(floor(q.x) + floor(q.y), 2.0);
+  vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
+  float line = 1.0 - min(min(g.x, g.y), 1.0);
+  float fade = 1.0 - smoothstep(90.0, 420.0, length(vP));
+  vec3 pad = mix(vec3(0.11, 0.15, 0.22), vec3(0.15, 0.20, 0.28), chk) + vec3(0.20, 0.55, 0.80) * line * 0.18;
+  fragColor = vec4(pad, fade * 0.72);
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uStaticGrid', 'uTime']);
+
+  const pWire = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform mat4 uRigid;
+uniform int uUseRigid;
+uniform int uBillboard;
+uniform float uBillAspect;
+uniform vec3 uBillRight;
+uniform vec3 uBillUp;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+void main() {
+  vec3 pLocal = mix(aPos0, aPos1, uLerp) * uPosScale;
+  vec3 p;
+  if (uBillboard == 1 || uBillboard == 2) {
+    p = uOffset + (pLocal.y * uBillAspect) * uBillRight + pLocal.z * uBillUp;
+  } else if (uUseRigid == 1) {
+    p = (uRigid * vec4(pLocal, 1.0)).xyz + uOffset;
+  } else {
+    p = pLocal + uOffset;
+  }
+  gl_Position = uVP * vec4(p, 1.0);
+}`, `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP', 'uRigid', 'uUseRigid', 'uBillboard', 'uBillAspect', 'uBillRight', 'uBillUp', 'uOffset', 'uLerp', 'uPosScale', 'uColor']);
+
+  const pLine = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() { vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`, `#version 300 es
+precision highp float;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 4096 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(4096);
+
+  function makeCheckerTex() {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    const px = new Uint8Array(64 * 64 * 4);
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) {
+        const c = ((x >> 3) + (y >> 3)) & 1 ? 205 : 135;
+        const i = (y * 64 + x) * 4;
+        px[i] = c; px[i + 1] = c + 10; px[i + 2] = c + 22; px[i + 3] = 255;
+      }
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    return tex;
+  }
+  const fallbackTex = makeCheckerTex();
+
+  const texImages = [];
+  const glTextures = META.textures.map((t, ti) => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([135, 150, 175, 255]));
+    const img = new Image();
+    img.onload = () => {
+      t._loaded = true;
+      t.imgW = img.naturalWidth || t.w;
+      t.imgH = img.naturalHeight || t.h;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      if (t.noMip || t.cols > 1 || t.rows > 1) {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        const flt = t.nearest ? gl.NEAREST : gl.LINEAR;
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, flt);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, flt);
+      } else {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, t.nearest ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, t.nearest ? gl.NEAREST : gl.LINEAR);
+        if (!t.wrap) {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+      }
+    };
+    img.src = t.uri;
+    texImages[ti] = img;
+    return tex;
+  });
+
+  function applyFilterMode(forceNearest) {
+    META.textures.forEach((t, ti) => {
+      if (!t._loaded) return;
+      gl.bindTexture(gl.TEXTURE_2D, glTextures[ti]);
+      const useNear = forceNearest || t.nearest;
+      if (t.noMip || t.cols > 1 || t.rows > 1) {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, useNear ? gl.NEAREST : gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, useNear ? gl.NEAREST : gl.LINEAR);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, useNear ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, useNear ? gl.NEAREST : gl.LINEAR);
+      }
+    });
+    sprCanvas.classList.toggle('nearest', forceNearest);
+  }
+
+  function getTileRect(texIdx, tileIdx) {
+    const t = META.textures[texIdx];
+    if (!t || (t.cols <= 1 && t.rows <= 1)) return [0, 0, 1, 1];
+    const k = ((tileIdx % t.count) + t.count) % t.count;
+    const c = k % t.cols;
+    const r = Math.floor(k / t.cols);
+    const cellW = t.tileW + 2 * t.pad;
+    const cellH = t.tileH + 2 * t.pad;
+    const inset = t.pad > 0 ? 0.0 : 0.5;
+    return [
+      (c * cellW + t.pad + inset) / t.w,
+      (r * cellH + t.pad + inset) / t.h,
+      (t.tileW - 2 * inset) / t.w,
+      (t.tileH - 2 * inset) / t.h
+    ];
+  }
+
+  function ensureModelUploaded(m) {
+    if (m._uploaded) return;
+    const [mn, mx] = m.bbox;
+    m.size = [mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]];
+    m.center = [(mn[0] + mx[0]) * 0.5, (mn[1] + mx[1]) * 0.5, (mn[2] + mx[2]) * 0.5];
+    m.R = Math.max(6.0, Math.hypot(m.size[0], m.size[1], m.size[2]) * 0.48);
+    m.baseAspect = m.size[2] > 0.1 ? (Math.max(m.size[0], m.size[1]) / m.size[2]) : 1.0;
+    const zOff = (mn[2] >= -2.0 && mn[2] <= 12.0) ? 0.0 : -mn[2];
+    m.offset = [-m.center[0], -m.center[1], zOff];
+    m.ne = 0;
+    if (m.rigidMats) m._rigidArr = f32(m.rigidMats);
+
+    for (const s of m.surfaces) {
+      if (s.visible === undefined) s.visible = !s.defaultHidden;
+      m.ne += (s.ne || 0);
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2);
+      gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3);
+      gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, f32(s.uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.tris), gl.STATIC_DRAW);
+      s._lastKey = -1;
+    }
+    m._uploaded = true;
+  }
+
+  const models = META.models.map((d, idx) => Object.assign({}, d, { idx, _uploaded: false, curSkin: -1 }));
+
+  const state = {
+    gridMode: false,
+    theater: false,
+    tour: false,
+    tourTimer: 0,
+    curIdx: 0,
+    clipIdx: 0,
+    playing: true,
+    manualFrame: 0,
+    speed: 1.0,
+    shadeMode: 0,
+    bgMode: 0,
+    wire: false,
+    spin: true,
+    scaleBox: false,
+    showGrid: true,
+    showShadow: true,
+    nearest: false,
+    pix2dMode: false,
+    zoom2d: 1.0,
+    sideCat: 'all',
+    gridCat: 'all',
+  };
+
+  const mainView = {
+    az: 0.62,
+    el: 0.25,
+    dist: 240,
+    minDist: 8,
+    maxDist: 1800,
+    pan: [0, 0, 0],
+    aspect: 1.5,
+  };
+
+  function attachOrbitPan(el, view, allowPan, onTouch) {
+    let mode = 0, lx = 0, ly = 0;
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button, input, label, select, .clip-scroll')) return;
+      mode = (allowPan && (e.button === 2 || e.button === 1 || e.shiftKey)) ? 2 : 1;
+      lx = e.clientX; ly = e.clientY;
+      el.classList.add('drag');
+      el.setPointerCapture(e.pointerId);
+      if (onTouch) onTouch();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!mode) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      if (mode === 1) {
+        view.az -= dx * 0.0085;
+        view.el = Math.max(-1.25, Math.min(1.45, view.el + dy * 0.0075));
+        if (el === $('center-stage') && state.pix2dMode) state.spin = false;
+      } else if (view.pan) {
+        const s = view.dist * 0.0014;
+        const rx = -Math.sin(view.az), ry = Math.cos(view.az);
+        view.pan[0] -= rx * dx * s;
+        view.pan[1] -= ry * dy * 0 + ry * dx * s;
+        view.pan[2] += dy * s;
+      }
+    });
+    const up = () => { mode = 0; el.classList.remove('drag'); };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', e => {
+      if (e.target.closest('.surf-list, .angle-strip, .clip-scroll')) return;
+      e.preventDefault();
+      if (el === $('center-stage') && state.pix2dMode) {
+        state.zoom2d = Math.max(0.5, Math.min(3.5, state.zoom2d * Math.exp(-e.deltaY * 0.0011)));
+        sprCanvas.style.transform = `scale(${state.zoom2d.toFixed(3)})`;
+      } else {
+        view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+      }
+    }, { passive: false });
+  }
+  attachOrbitPan($('center-stage'), mainView, true, () => {
+    stopTour();
+    if (models[state.curIdx] && models[state.curIdx].turnDirs > 1) {
+      state.spin = false;
+      $('tog-spin').setAttribute('aria-pressed', 'false');
+    }
+  });
+
+  const CAT_LABELS = [
+    ['featured',       '🔥 Featured Character Animations'],
+    ['chars3d',        '🧍 Custom 3D Characters & Heads'],
+    ['contraptions3d', '🛸 3D Contraptions, Props & FX'],
+    ['sprites',        '👾 Turnaround Sprites & Crew'],
+  ];
+
+  function matchesFilter(m, q, cat) {
+    if (cat !== 'all' && m.cat !== cat) return false;
+    if (q) {
+      const clipStr = (m.clips || []).map(c => c.label).join(' ');
+      const hay = `${m.title} ${m.file} ${m.badge} ${m.fmt} ${m.desc} ${clipStr}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+
+  let filteredIndices = [];
+  function renderSidebarList() {
+    const q = $('model-search').value.trim().toLowerCase();
+    const wrap = $('model-list');
+    wrap.innerHTML = '';
+    filteredIndices = [];
+    for (const [ckey, clabel] of CAT_LABELS) {
+      const list = models.filter(m => m.cat === ckey && matchesFilter(m, q, state.sideCat));
+      if (!list.length) continue;
+      const hdr = document.createElement('div');
+      hdr.className = 'cat-hdr';
+      hdr.innerHTML = `<span>${clabel}</span><span>${list.length}</span>`;
+      wrap.appendChild(hdr);
+      for (const m of list) {
+        filteredIndices.push(m.idx);
+        const btn = document.createElement('button');
+        btn.className = 'm-item' + (m.idx === state.curIdx ? ' active' : '');
+        const isFav = favIds.includes(m.id);
+        const fmtCls = m.fmt.includes('SPR') || m.fmt.includes('360') ? 'spr' : (m.fmt === 'MDL' ? 'mdl' : '');
+        const metaRight = m.clips.length > 1
+          ? `${m.clips.length} anims · ${m.nf}f`
+          : (m.turnDirs > 1 ? `${m.turnDirs} ang` : `${m.nt.toLocaleString()}t · ${m.nf}f`);
+        btn.innerHTML = `
+          <div class="m-item-top">
+            <span class="m-item-title">${isFav ? '<span class="star-dot">★ </span>' : ''}${m.title}</span>
+            <span class="fmt-tag ${fmtCls}">${m.fmt}</span>
+          </div>
+          <div class="m-item-meta mono">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.badge}</span>
+            <span style="flex-shrink:0">${metaRight}</span>
+          </div>
+        `;
+        btn.onclick = () => { stopTour(); selectModel(m.idx); };
+        wrap.appendChild(btn);
+      }
+    }
+    $('hdr-count').textContent = models.length;
+  }
+
+  $('model-search').oninput = renderSidebarList;
+  document.querySelectorAll('[data-scat]').forEach(btn => {
+    btn.onclick = () => {
+      state.sideCat = btn.dataset.scat;
+      document.querySelectorAll('[data-scat]').forEach(b => b.classList.toggle('active', b === btn));
+      renderSidebarList();
+    };
+  });
+
+  function getActiveClip(m) {
+    return m.clips[state.clipIdx] || m.clips[0];
+  }
+
+  function selectClip(m, ci) {
+    state.clipIdx = ci;
+    const cl = getActiveClip(m);
+    state.playing = cl.count > 1 || (cl.sprMode && cl.sprMode.fpd > 1) || m.surfaces.some(s => s.animFps > 0);
+    state.manualFrame = cl.start || 0;
+    syncScrubberBounds(m, cl);
+    syncPlayBtn();
+    renderAngleStrip(m, cl);
+    renderTexThumbs(m);
+    const cwrap = $('vp-clips');
+    [...cwrap.children].forEach((el, k) => el.classList.toggle('active', k === ci));
+  }
+
+  function selectModel(idx, initClipIdx) {
+    const m = models[(idx + models.length) % models.length];
+    ensureModelUploaded(m);
+    state.curIdx = m.idx;
+    state.clipIdx = initClipIdx !== undefined ? initClipIdx : (m.defaultClip || 0);
+    const cl0 = getActiveClip(m);
+    const hasAnim = m.nf > 1 || (cl0.sprMode && cl0.sprMode.fpd > 1) || m.surfaces.some(s => s.animFps > 0);
+    state.playing = hasAnim;
+    state.manualFrame = 0;
+    state.zoom2d = 1.0;
+    sprCanvas.style.transform = 'scale(1)';
+    if (!m.isSprite) state.pix2dMode = false;
+
+    mainView.az = m.az !== undefined ? m.az : (m.isSprite ? 0.0 : 0.62);
+    mainView.el = m.el !== undefined ? m.el : (m.isSprite ? 0.09 : 0.24);
+    const dMul = m.distMul || (m.isSprite ? 1.62 : 2.22);
+    mainView.dist = m.R * dMul;
+    mainView.minDist = m.R * 0.18;
+    mainView.maxDist = m.R * 7.0;
+    mainView.pan = [0, 0, 0];
+
+    $('vp-badge').textContent = m.badge;
+    $('vp-fmt').textContent = m.fmt;
+    $('vp-clip-cnt').textContent = m.clips.length > 1 ? `${m.clips.length} ANIMATIONS` : (m.nf > 1 ? `${m.nf} FRAMES` : '3D MESH');
+    $('vp-title').textContent = m.title;
+    $('vp-file').textContent = m.file;
+    $('vp-desc').textContent = m.desc;
+
+    const pixBtn = $('btn-pix2d');
+    pixBtn.style.display = m.isSprite ? '' : 'none';
+    pixBtn.classList.toggle('active', state.pix2dMode);
+    $('sprite-2d-wrap').classList.toggle('show', state.pix2dMode);
+
+    syncScrubberBounds(m, cl0);
+    syncPlayBtn();
+
+    // Populate Skins row
+    const swrap = $('vp-skins');
+    swrap.innerHTML = '';
+    if (m.skins && m.skins.length > 1) {
+      swrap.classList.add('show');
+      const lbl = document.createElement('span');
+      lbl.className = 'skin-lbl';
+      lbl.textContent = `Skins / Channels (${m.skins.length}):`;
+      swrap.appendChild(lbl);
+      if (m.frameSkin !== undefined) {
+        const ba = document.createElement('button');
+        ba.textContent = '⚡ Auto';
+        ba.classList.toggle('active', m.curSkin === -1);
+        ba.onclick = () => { m.curSkin = -1; syncSkinButtons(m); renderTexThumbs(m); };
+        swrap.appendChild(ba);
+      } else if (m.curSkin < 0) {
+        m.curSkin = 0;
+      }
+      m.skins.forEach((sk, si) => {
+        const b = document.createElement('button');
+        b.textContent = sk.label;
+        b.dataset.sk = si;
+        b.classList.toggle('active', m.curSkin === si);
+        b.onclick = () => { m.curSkin = si; syncSkinButtons(m); renderTexThumbs(m); };
+        swrap.appendChild(b);
+      });
+    } else {
+      swrap.classList.remove('show');
+    }
+
+    renderAngleStrip(m, cl0);
+
+    // Populate Clip buttons
+    const cwrap = $('vp-clips');
+    cwrap.innerHTML = '';
+    m.clips.forEach((cl, ci) => {
+      const b = document.createElement('button');
+      if (ci === state.clipIdx) b.classList.add('active');
+      b.textContent = cl.label;
+      b.onclick = () => { stopTour(); selectClip(m, ci); };
+      cwrap.appendChild(b);
+    });
+
+    // Telemetry
+    const [mn, mx] = m.bbox;
+    $('kv-stats').innerHTML = `
+      <span class="k">Type</span><span class="v">${m.fmt}</span>
+      <span class="k">Source</span><span class="v" title="${m.file}">${m.file}</span>
+      <span class="k">Animations</span><span class="v">${m.clips.length} clip(s) · ${m.nf}f</span>
+      <span class="k">Vertices</span><span class="v">${m.nv.toLocaleString()}</span>
+      <span class="k">Triangles</span><span class="v">${m.nt.toLocaleString()}</span>
+      <span class="k">Skins</span><span class="v">${m.skins ? m.skins.length : 1}</span>
+      <span class="k">Size (X×Y×Z)</span><span class="v">${m.size[0].toFixed(1)} × ${m.size[1].toFixed(1)} × ${m.size[2].toFixed(1)}u</span>
+    `;
+
+    $('surf-cnt').textContent = m.surfaces.length;
+    renderSurfaceList(m);
+    renderTexThumbs(m);
+    syncStarUI();
+    renderSidebarList();
+  }
+
+  function syncScrubberBounds(m, cl) {
+    const maxF = cl && cl.sprMode ? Math.max(0, cl.sprMode.fpd - 1) : Math.max(0, m.nf - 1);
+    $('frame-scrub').max = maxF;
+    $('frame-scrub').value = 0;
+  }
+
+  function syncSkinButtons(m) {
+    const swrap = $('vp-skins');
+    [...swrap.querySelectorAll('button')].forEach(b => {
+      if (b.dataset.sk === undefined) b.classList.toggle('active', m.curSkin === -1);
+      else b.classList.toggle('active', parseInt(b.dataset.sk, 10) === m.curSkin);
+    });
+  }
+
+  function renderAngleStrip(m, cl) {
+    const awrap = $('vp-angles');
+    awrap.innerHTML = '';
+    const dirs = (cl && cl.sprMode) ? (cl.sprMode.dirs > 1 ? cl.sprMode.dirs : 0) : (m.turnDirs > 1 ? m.turnDirs : 0);
+    if (!dirs) {
+      awrap.classList.remove('show');
+      return;
+    }
+    awrap.classList.add('show');
+    for (let d = 0; d < dirs; d++) {
+      const deg = Math.round((d * 360) / dirs);
+      const b = document.createElement('button');
+      b.className = 'ang-btn mono';
+      b.textContent = `${deg}°`;
+      b.title = `Jump to angle ${d} (${deg}°)`;
+      b.onclick = () => {
+        stopTour();
+        state.spin = false;
+        $('tog-spin').setAttribute('aria-pressed', 'false');
+        const sgn = m.turnSign || 1;
+        mainView.az = sgn * (d * 2 * Math.PI / dirs);
+      };
+      awrap.appendChild(b);
+    }
+  }
+
+  function resolveSurfaceMat(m, s, fa, clip) {
+    let skinIdx = m.curSkin;
+    if (skinIdx < 0) {
+      if (m.frameSkin !== undefined && fa >= m.frameSkin && m.skins && m.skins.length > 1) skinIdx = 1;
+      else skinIdx = 0;
+    }
+    const sk = m.skins && m.skins[skinIdx];
+    const ov = sk && sk.map && sk.map[s.name];
+    let res = ov ? Object.assign({}, s, ov) : s;
+    if (clip && clip.sprMode && clip.sprMode.tex !== undefined && s.billboard) {
+      res = Object.assign({}, res, { tex: clip.sprMode.tex });
+    }
+    return res;
+  }
+
+  function renderSurfaceList(m) {
+    const sw = $('surf-list');
+    sw.innerHTML = '';
+    m.surfaces.forEach((s, si) => {
+      const row = document.createElement('div');
+      row.className = 'surf-row';
+      row.innerHTML = `
+        <label title="${s.shader || s.name}">
+          <input type="checkbox" ${s.visible ? 'checked' : ''}>
+          <span class="sname mono">${s.name}</span>
+        </label>
+        <span class="scnt mono">${s.nv}v/${s.nt}t</span>
+        <button class="solo-btn">Solo</button>
+      `;
+      row.querySelector('input').onchange = e => { s.visible = e.target.checked; };
+      row.querySelector('.solo-btn').onclick = () => {
+        const onlyThis = m.surfaces.every((x, k) => (k === si ? x.visible : !x.visible));
+        m.surfaces.forEach((x, k) => { x.visible = onlyThis ? true : (k === si); });
+        renderSurfaceList(m);
+      };
+      sw.appendChild(row);
+    });
+  }
+  $('btn-show-all-surfs').onclick = () => {
+    const m = models[state.curIdx];
+    m.surfaces.forEach(s => { s.visible = true; });
+    renderSurfaceList(m);
+  };
+
+  function renderTexThumbs(m) {
+    const tw = $('tex-thumbs');
+    tw.innerHTML = '';
+    const seen = new Set();
+    const cl = getActiveClip(m);
+    for (const s of m.surfaces) {
+      const ms = resolveSurfaceMat(m, s, 0, cl);
+      for (const tid of [ms.tex, ms.glowTex]) {
+        if (tid !== undefined && tid >= 0 && !seen.has(tid) && META.textures[tid]) {
+          seen.add(tid);
+          const t = META.textures[tid];
+          const card = document.createElement('div');
+          card.className = 'tex-card';
+          const info = t.count > 1 ? `${t.key} (${t.count}f atlas)` : `${t.key} (${t.w}×${t.h})`;
+          card.title = `Click to inspect ${info}`;
+          card.innerHTML = `<img src="${t.uri}" alt="${t.key}"><span class="mono">${t.key}</span>`;
+          card.onclick = () => {
+            $('tex-modal-title').textContent = `${info} · ${t.w}×${t.h}px`;
+            $('tex-modal-img').src = t.uri;
+            $('tex-modal').classList.add('open');
+          };
+          tw.appendChild(card);
+        }
+      }
+    }
+    $('tex-cnt').textContent = seen.size;
+  }
+
+  function syncPlayBtn() {
+    $('btn-play').setAttribute('aria-pressed', state.playing);
+    $('btn-play').textContent = state.playing ? '⏸ Pause' : '▶ Play';
+  }
+  $('btn-play').onclick = () => { stopTour(); state.playing = !state.playing; syncPlayBtn(); };
+  $('btn-step-prev').onclick = () => {
+    stopTour();
+    const m = models[state.curIdx];
+    const cl = getActiveClip(m);
+    const maxF = cl && cl.sprMode ? cl.sprMode.fpd : m.nf;
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = (Math.floor(state.manualFrame) - 1 + maxF) % Math.max(1, maxF);
+    $('frame-scrub').value = state.manualFrame;
+  };
+  $('btn-step-next').onclick = () => {
+    stopTour();
+    const m = models[state.curIdx];
+    const cl = getActiveClip(m);
+    const maxF = cl && cl.sprMode ? cl.sprMode.fpd : m.nf;
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = (Math.floor(state.manualFrame) + 1) % Math.max(1, maxF);
+    $('frame-scrub').value = state.manualFrame;
+  };
+  $('frame-scrub').oninput = e => {
+    stopTour();
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = parseFloat(e.target.value);
+  };
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('lbl-speed').textContent = state.speed.toFixed(1) + '×';
+  };
+
+  function stepAsset(delta) {
+    if (!filteredIndices.length) { selectModel(state.curIdx + delta); return; }
+    const pos = filteredIndices.indexOf(state.curIdx);
+    const nextPos = pos < 0 ? 0 : (pos + delta + filteredIndices.length) % filteredIndices.length;
+    selectModel(filteredIndices[nextPos]);
+  }
+  $('btn-prev-m').onclick = () => { stopTour(); stepAsset(-1); };
+  $('btn-next-m').onclick = () => { stopTour(); stepAsset(+1); };
+  $('btn-rand-m').onclick = () => {
+    stopTour();
+    const pool = filteredIndices.length ? filteredIndices : models.map(m => m.idx);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const m = models[pick];
+    selectModel(pick, Math.floor(Math.random() * m.clips.length));
+  };
+
+  // Theater Mode & Party Auto-Tour
+  function toggleTheater() {
+    state.theater = !state.theater;
+    document.body.classList.toggle('theater-mode', state.theater);
+    $('btn-theater').classList.toggle('active', state.theater);
+  }
+  $('btn-theater').onclick = toggleTheater;
+
+  function stopTour() {
+    if (!state.tour) return;
+    state.tour = false;
+    $('btn-tour').classList.remove('active');
+    $('btn-tour').textContent = '🎉 Party Tour';
+  }
+  $('btn-tour').onclick = () => {
+    state.tour = !state.tour;
+    state.tourTimer = 0;
+    if (state.tour) {
+      setMode(false);
+      state.playing = true;
+      state.spin = true;
+      $('tog-spin').setAttribute('aria-pressed', 'true');
+      syncPlayBtn();
+    }
+    $('btn-tour').classList.toggle('active', state.tour);
+    $('btn-tour').textContent = state.tour ? '⏹ Stop Tour' : '🎉 Party Tour';
+  };
+
+  $('btn-pix2d').onclick = () => {
+    state.pix2dMode = !state.pix2dMode;
+    $('btn-pix2d').classList.toggle('active', state.pix2dMode);
+    $('sprite-2d-wrap').classList.toggle('show', state.pix2dMode);
+  };
+
+  document.querySelectorAll('[data-cam]').forEach(btn => {
+    btn.onclick = () => {
+      const m = models[state.curIdx];
+      const k = btn.dataset.cam;
+      mainView.pan = [0, 0, 0];
+      const baseMul = m.distMul || (m.isSprite ? 1.62 : 2.22);
+      if (k === 'front')  { mainView.az = 0.62;  mainView.el = 0.22;  mainView.dist = m.R * baseMul; }
+      if (k === 'face')   { mainView.az = 0.05;  mainView.el = 0.08;  mainView.dist = m.R * (baseMul * 0.65); }
+      if (k === 'left')   { mainView.az = 1.57;  mainView.el = 0.12;  mainView.dist = m.R * baseMul; }
+      if (k === 'right')  { mainView.az = -1.57; mainView.el = 0.12;  mainView.dist = m.R * baseMul; }
+      if (k === 'rear')   { mainView.az = 3.14;  mainView.el = 0.20;  mainView.dist = m.R * baseMul; }
+      if (k === 'top')    { mainView.az = 0.0;   mainView.el = 1.38;  mainView.dist = m.R * (baseMul * 1.1); }
+      if (k === 'reset')  {
+        mainView.az = m.az !== undefined ? m.az : (m.isSprite ? 0.0 : 0.62);
+        mainView.el = m.el !== undefined ? m.el : (m.isSprite ? 0.09 : 0.24);
+        mainView.dist = m.R * baseMul;
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-shade]').forEach(btn => {
+    btn.onclick = () => {
+      state.shadeMode = parseInt(btn.dataset.shade, 10);
+      document.querySelectorAll('[data-shade]').forEach(b => b.classList.toggle('active', b === btn));
+    };
+  });
+  document.querySelectorAll('[data-bg]').forEach(btn => {
+    btn.onclick = () => {
+      state.bgMode = parseInt(btn.dataset.bg, 10);
+      document.querySelectorAll('[data-bg]').forEach(b => b.classList.toggle('active', b === btn));
+      $('sprite-2d-wrap').classList.toggle('checker', state.bgMode === 1);
+    };
+  });
+  function wireToggle(id, key, cb) {
+    const el = $(id);
+    el.onclick = () => {
+      state[key] = !state[key];
+      el.setAttribute('aria-pressed', state[key]);
+      if (cb) cb(state[key]);
+    };
+  }
+  wireToggle('tog-wire', 'wire');
+  wireToggle('tog-spin', 'spin');
+  wireToggle('tog-box', 'scaleBox');
+  wireToggle('tog-grid', 'showGrid');
+  wireToggle('tog-shadow', 'showShadow');
+  wireToggle('tog-nearest', 'nearest', v => applyFilterMode(v));
+
+  function toggleFav(id) {
+    const i = favIds.indexOf(id);
+    if (i >= 0) favIds.splice(i, 1);
+    else favIds.push(id);
+    saveFavs();
+    syncStarUI();
+    renderSidebarList();
+  }
+  function syncStarUI() {
+    const m = models[state.curIdx];
+    const on = favIds.includes(m.id);
+    $('btn-star-cur').classList.toggle('active', on);
+    $('btn-star-cur').textContent = on ? '★ Starred!' : '☆ Star Favorite';
+    for (const gc of gridCards) {
+      const gOn = favIds.includes(gc.m.id);
+      gc.card.classList.toggle('starred', gOn);
+      gc.starBtn.textContent = gOn ? '★' : '☆';
+      gc.starBtn.classList.toggle('active', gOn);
+    }
+  }
+  $('btn-star-cur').onclick = () => toggleFav(models[state.curIdx].id);
+  $('btn-copy-favs').onclick = async () => {
+    const picked = models.filter(m => favIds.includes(m.id));
+    const lines = picked.length
+      ? ['FAVORITE BAKERSFIELDQUAKE CUSTOM MODELS & ANIMATIONS:', ...picked.map((m, i) => `${i + 1}. [${m.fmt}] ${m.title}`)]
+      : [`SHOWCASE ITEM: [${models[state.curIdx].fmt}] ${models[state.curIdx].title}`];
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      $('copy-toast').textContent = '✓ Copied!';
+      setTimeout(() => { $('copy-toast').textContent = ''; }, 3000);
+    } catch (_) {}
+  };
+
+  // ==================== SIDE-BY-SIDE LIVE GRID WALL ====================
+  const gridCards = [];
+  function rebuildGridCards() {
+    const wrap = $('cards-grid');
+    wrap.innerHTML = '';
+    gridCards.length = 0;
+    const q = $('grid-search').value.trim().toLowerCase();
+    const list = models.filter(m => matchesFilter(m, q, state.gridCat));
+    for (const m of list) {
+      const card = document.createElement('article');
+      card.className = 'gcard' + (favIds.includes(m.id) ? ' starred' : '');
+      const initAz = m.az !== undefined ? m.az : (m.isSprite ? 0.0 : 0.62 + (m.idx % 7) * 0.11);
+      const view = {
+        az: initAz,
+        el: m.el !== undefined ? m.el : (m.isSprite ? 0.09 : 0.24),
+        dist: 120,
+        minDist: 8,
+        maxDist: 900,
+        touched: false,
+        clipIdx: m.defaultClip || 0,
+      };
+      const metaStat = m.clips.length > 1 ? `${m.clips.length} anims` : `${m.nt.toLocaleString()}t · ${m.nf}f`;
+      const hasSkins = m.skins && m.skins.length > 1;
+      const hasClips = m.clips && m.clips.length > 1;
+      card.innerHTML = `
+        <div class="gstage">
+          <div class="gstage-top">
+            <span class="gpill" style="color:var(--amber)">${m.badge}</span>
+            <span class="gpill mono">${m.fmt} · ${metaStat}</span>
+          </div>
+        </div>
+        <div class="gbody">
+          <h3>${m.title}</h3>
+          <p>${m.desc}</p>
+          <div class="gactions">
+            <button data-act="inspect">🎬 Open Stage ⤢</button>
+            ${hasClips ? `<button data-act="clip">🎞 Next Anim (${m.clips.length})</button>` : ''}
+            ${hasSkins ? `<button data-act="skin">🎨 Skin (${m.skins.length})</button>` : ''}
+            <button data-act="star" style="flex:0 0 auto">${favIds.includes(m.id) ? '★' : '☆'}</button>
+          </div>
+        </div>
+      `;
+      wrap.appendChild(card);
+      const stg = card.querySelector('.gstage');
+      attachOrbitPan(stg, view, false, () => { view.touched = true; });
+      stg.ondblclick = () => { selectModel(m.idx, view.clipIdx); setMode(false); };
+      card.querySelector('[data-act="inspect"]').onclick = () => { selectModel(m.idx, view.clipIdx); setMode(false); };
+      const clipB = card.querySelector('[data-act="clip"]');
+      if (clipB) {
+        clipB.onclick = () => {
+          view.clipIdx = (view.clipIdx + 1) % m.clips.length;
+          clipB.textContent = `🎞 ${view.clipIdx + 1}/${m.clips.length}`;
+        };
+      }
+      const skinB = card.querySelector('[data-act="skin"]');
+      if (skinB) {
+        skinB.onclick = () => {
+          m.curSkin = ((m.curSkin < 0 ? 0 : m.curSkin) + 1) % m.skins.length;
+          skinB.textContent = `🎨 ${m.curSkin + 1}/${m.skins.length}`;
+        };
+      }
+      const starBtn = card.querySelector('[data-act="star"]');
+      if (favIds.includes(m.id)) starBtn.classList.add('active');
+      starBtn.onclick = () => toggleFav(m.id);
+      gridCards.push({ m, card, stg, view, starBtn });
+    }
+  }
+
+  function setMode(isGrid) {
+    state.gridMode = isGrid;
+    if (isGrid) stopTour();
+    document.body.classList.toggle('grid-mode', isGrid);
+    $('tab-inspect').classList.toggle('active', !isGrid);
+    $('tab-grid').classList.toggle('active', isGrid);
+    if (isGrid) rebuildGridCards();
+  }
+  $('tab-inspect').onclick = () => setMode(false);
+  $('tab-grid').onclick = () => setMode(true);
+
+  document.querySelectorAll('[data-gcat]').forEach(btn => {
+    btn.onclick = () => {
+      state.gridCat = btn.dataset.gcat;
+      document.querySelectorAll('[data-gcat]').forEach(b => b.classList.toggle('active', b === btn));
+      rebuildGridCards();
+    };
+  });
+  $('grid-search').oninput = rebuildGridCards;
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      $('tex-modal').classList.remove('open');
+      $('sound-drawer').classList.remove('open');
+      return;
+    }
+    if (e.target.matches('input, textarea, select')) return;
+    if (e.key === '[' || e.key === 'ArrowUp') { e.preventDefault(); stopTour(); stepAsset(-1); }
+    else if (e.key === ']' || e.key === 'ArrowDown') { e.preventDefault(); stopTour(); stepAsset(+1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); mainView.az += Math.PI / 4; }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); mainView.az -= Math.PI / 4; }
+    else if (e.key === ' ') { e.preventDefault(); $('btn-play').click(); }
+    else if (e.key === ',') { e.preventDefault(); $('btn-step-prev').click(); }
+    else if (e.key === '.') { e.preventDefault(); $('btn-step-next').click(); }
+    else if (e.key === 'w' || e.key === 'W') { $('tog-wire').click(); }
+    else if (e.key === 'f' || e.key === 'F' || e.key === 't' || e.key === 'T') { toggleTheater(); }
+    else if (e.key === 'g' || e.key === 'G') { setMode(!state.gridMode); }
+  });
+
+  // ==================== WEBGL2 + 2D RENDERER ====================
+  const matP = new Float32Array(16);
+  const matV = new Float32Array(16);
+  const matVP = new Float32Array(16);
+  const matRigid = new Float32Array(16);
+  mat4Identity(matRigid);
+
+  function addBoxLines(ptr, x0, y0, z0, x1, y1, z1, r, g, b, a) {
+    const pts = [
+      [x0,y0,z0],[x1,y0,z0], [x1,y0,z0],[x1,y1,z0], [x1,y1,z0],[x0,y1,z0], [x0,y1,z0],[x0,y0,z0],
+      [x0,y0,z1],[x1,y0,z1], [x1,y0,z1],[x1,y1,z1], [x1,y1,z1],[x0,y1,z1], [x0,y1,z1],[x0,y0,z1],
+      [x0,y0,z0],[x0,y0,z1], [x1,y0,z0],[x1,y0,z1], [x1,y1,z0],[x1,y1,z1], [x0,y1,z0],[x0,y1,z1],
+    ];
+    for (const p of pts) {
+      lineData[ptr++] = p[0]; lineData[ptr++] = p[1]; lineData[ptr++] = p[2];
+      lineData[ptr++] = r; lineData[ptr++] = g; lineData[ptr++] = b; lineData[ptr++] = a;
+    }
+    return ptr;
+  }
+
+  function computeSpriteTile(m, view, clip, tSec, exactOverride) {
+    const sm = clip.sprMode;
+    if (!sm) return 0;
+    let d = 0;
+    if (sm.dirs > 1) {
+      const sgn = m.turnSign || 1;
+      const normAz = (((view.az * sgn) / (2 * Math.PI)) % 1 + 1) % 1;
+      d = Math.round(normAz * sm.dirs) % sm.dirs;
+    }
+    let f = 0;
+    if (sm.fpd > 1) {
+      if (exactOverride !== null) f = Math.max(0, Math.min(sm.fpd - 1, Math.floor(exactOverride)));
+      else f = Math.floor(tSec * state.speed * (sm.fps || clip.fps || 10.0)) % sm.fpd;
+    }
+    return { tile: sm.base + d * sm.fpd + f, dir: d, f, dirs: sm.dirs, fpd: sm.fpd };
+  }
+
+  function draw2DSpriteInspector(m, clip, tSec, exactOverride) {
+    const s0 = m.surfaces[0];
+    const ms = resolveSurfaceMat(m, s0, 0, clip);
+    const tid = ms.tex;
+    const t = META.textures[tid];
+    const img = texImages[tid];
+    if (!t || !img || !t._loaded) return { f: 0, dir: 0 };
+
+    let tile = 0, dir = 0, f = 0;
+    if (clip.sprMode) {
+      const info = computeSpriteTile(m, mainView, clip, tSec, exactOverride);
+      tile = info.tile; dir = info.dir; f = info.f;
+    } else if (ms.animFps > 0) {
+      const seqLen = ms.animOrder ? ms.animOrder.length : t.count;
+      const step = exactOverride !== null ? Math.floor(exactOverride) % seqLen : Math.floor(tSec * state.speed * ms.animFps) % seqLen;
+      tile = ms.animOrder ? ms.animOrder[step] : step;
+      f = step;
+    }
+
+    const k = ((tile % t.count) + t.count) % t.count;
+    const c = k % t.cols, r = Math.floor(k / t.cols);
+    const sx = c * (t.tileW + 2 * t.pad) + t.pad;
+    const sy = r * (t.tileH + 2 * t.pad) + t.pad;
+    const sw = t.tileW, sh = t.tileH;
+    if (sprCanvas.width !== sw || sprCanvas.height !== sh) {
+      sprCanvas.width = sw;
+      sprCanvas.height = sh;
+    }
+    sprCtx.clearRect(0, 0, sw, sh);
+    sprCtx.imageSmoothingEnabled = !(state.nearest || t.nearest);
+    sprCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    return { f, dir };
+  }
+
+  function renderModelInViewport(m, view, clip, tSec, exactOverride) {
+    ensureModelUploaded(m);
+    let fa = 0, fb = 0, frac = 0.0;
+    let sprInfo = null;
+
+    if (clip.sprMode) {
+      sprInfo = computeSpriteTile(m, view, clip, tSec, exactOverride);
+      fa = 0; fb = 0; frac = 0.0;
+    } else if (m.turnDirs > 1 && m.nf >= m.turnDirs && clip.turnaround) {
+      const sgn = m.turnSign || 1;
+      const normAz = (((view.az * sgn) / (2 * Math.PI)) % 1 + 1) % 1;
+      const d = Math.round(normAz * m.turnDirs) % m.turnDirs;
+      fa = clip.start + d; fb = fa; frac = 0.0;
+    } else if (exactOverride !== null) {
+      const clp = Math.max(0, Math.min(m.nf - 1, exactOverride));
+      fa = Math.floor(clp);
+      fb = (fa + 1) % m.nf;
+      frac = clp - fa;
+    } else if (clip.count <= 1) {
+      fa = clip.start; fb = clip.start; frac = 0.0;
+    } else {
+      const pos = ((tSec * state.speed * clip.fps) % clip.count + clip.count) % clip.count;
+      const i0 = Math.floor(pos);
+      const i1 = (i0 + 1) % clip.count;
+      fa = clip.start + i0;
+      fb = clip.start + i1;
+      frac = pos - i0;
+    }
+
+    // Sky / Backdrop
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.useProgram(pSky);
+    gl.uniform1i(uSky.uBgMode, state.bgMode);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+
+    const pan = view.pan || [0, 0, 0];
+    const baseZ = (m.bbox[0][2] + m.offset[2]) + m.size[2] * 0.48;
+    const tgt = [pan[0], pan[1], baseZ + pan[2]];
+    const eye = [
+      tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+      tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+      tgt[2] + view.dist * Math.sin(view.el),
+    ];
+    const offX = m.offset[0], offY = m.offset[1], offZ = m.offset[2];
+    mat4Persp(matP, 0.60, view.aspect, Math.max(0.4, m.R * 0.02), Math.max(2600.0, m.R * 18.0));
+    mat4LookAt(matV, eye, tgt, [0, 0, 1]);
+    mat4Mul(matVP, matP, matV);
+
+    let rx = matV[0], ry = matV[4], rl = Math.hypot(rx, ry) || 1;
+    const billRight = [rx / rl, ry / rl, 0];
+    const billUpSph = [matV[1], matV[5], matV[9]];
+
+    const useRigid = m._rigidArr ? 1 : 0;
+    if (useRigid) {
+      const A = m._rigidArr, o0 = fa * 12, o1 = fb * 12, inv = 1.0 - frac;
+      matRigid[0]  = A[o0+0]*inv + A[o1+0]*frac; matRigid[1]  = A[o0+1]*inv + A[o1+1]*frac; matRigid[2]  = A[o0+2]*inv + A[o1+2]*frac; matRigid[3] = 0;
+      matRigid[4]  = A[o0+3]*inv + A[o1+3]*frac; matRigid[5]  = A[o0+4]*inv + A[o1+4]*frac; matRigid[6]  = A[o0+5]*inv + A[o1+5]*frac; matRigid[7] = 0;
+      matRigid[8]  = A[o0+6]*inv + A[o1+6]*frac; matRigid[9]  = A[o0+7]*inv + A[o1+7]*frac; matRigid[10] = A[o0+8]*inv + A[o1+8]*frac; matRigid[11] = 0;
+      matRigid[12] = A[o0+9]*inv + A[o1+9]*frac; matRigid[13] = A[o0+10]*inv+ A[o1+10]*frac;matRigid[14] = A[o0+11]*inv+ A[o1+11]*frac;matRigid[15] = 1;
+    }
+
+    if (state.showGrid && state.bgMode !== 1) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.useProgram(pGround);
+      gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+      gl.uniform1f(uGround.uSize, Math.max(200.0, m.R * 3.8));
+      gl.uniform1i(uGround.uStaticGrid, (clip.lie || m.nf === 1 || m.isSprite) ? 1 : 0);
+      gl.uniform1f(uGround.uTime, state.playing ? tSec * state.speed : 0.0);
+      gl.bindVertexArray(quadVao);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
+
+    // Ground Shadow Pass
+    if (state.showShadow && state.bgMode !== 1 && eye[2] > 1.5 && !m.isSprite) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(true);
+      gl.depthFunc(gl.LESS);
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniformMatrix4fv(uMesh.uRigid, false, matRigid);
+      gl.uniform1i(uMesh.uUseRigid, useRigid);
+      gl.uniform3f(uMesh.uOffset, offX, offY, offZ);
+      gl.uniform1i(uMesh.uShadowPass, 1);
+      gl.uniform1f(uMesh.uShadowAlpha, 0.28);
+      for (const s of m.surfaces) {
+        if (!s.visible || s.additive || s.alphaBlend || s.billboard) continue;
+        const ms = resolveSurfaceMat(m, s, fa, clip);
+        const sfa = s.nfGeom <= 1 ? 0 : fa % s.nfGeom;
+        const sfb = s.nfGeom <= 1 ? 0 : fb % s.nfGeom;
+        const sfrac = s.nfGeom <= 1 ? 0.0 : frac;
+        gl.bindVertexArray(s.vao);
+        const poseKey = sfa * 65536 + sfb;
+        if (s._lastKey !== poseKey) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+          gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, sfa * s.nv * 8);
+          gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, sfb * s.nv * 8);
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+          gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, sfa * s.nv * 4);
+          gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, sfb * s.nv * 4);
+          s._lastKey = poseKey;
+        }
+        gl.uniform1i(uMesh.uBillboard, 0);
+        gl.uniform1f(uMesh.uBillAspect, 1.0);
+        gl.uniform1f(uMesh.uLerp, sfrac);
+        gl.uniform1f(uMesh.uPosScale, s.posScale);
+        gl.uniform1i(uMesh.uAlphaTest, ms.alphaTest || 0);
+        gl.uniform4f(uMesh.uTileRect, 0, 0, 1, 1);
+        gl.uniform1f(uMesh.uScrollV, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, ms.tex >= 0 ? glTextures[ms.tex] : fallbackTex);
+        gl.uniform1i(uMesh.uTex, 0);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.depthFunc(gl.LEQUAL);
+      gl.disable(gl.BLEND);
+    }
+
+    if (state.scaleBox) {
+      let ptr = 0;
+      const by = m.size[1] * 0.5 + 26.0;
+      ptr = addBoxLines(ptr, -16, by - 16, 0, 16, by + 16, 56, 0.22, 0.92, 0.68, 0.92);
+      gl.useProgram(pLine);
+      gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+      gl.bindVertexArray(lineVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr));
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.LINES, 0, ptr / 7);
+      gl.disable(gl.BLEND);
+    }
+
+    // Sort: solid/alphaTest (0) -> alphaBlend (1) -> additive (2)
+    const ordered = m.surfaces.slice().sort((a, b) => {
+      const oa = a.additive ? 2 : (a.alphaBlend ? 1 : 0);
+      const ob = b.additive ? 2 : (b.alphaBlend ? 1 : 0);
+      return oa - ob;
+    });
+
+    for (const s of ordered) {
+      if (!s.visible) continue;
+      const ms = resolveSurfaceMat(m, s, fa, clip);
+      if (ms.nodraw) continue;
+
+      const sfa = s.nfGeom <= 1 ? 0 : fa % s.nfGeom;
+      const sfb = s.nfGeom <= 1 ? 0 : fb % s.nfGeom;
+      const sfrac = s.nfGeom <= 1 ? 0.0 : frac;
+
+      gl.bindVertexArray(s.vao);
+      const poseKey = sfa * 65536 + sfb;
+      if (s._lastKey !== poseKey) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+        gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, sfa * s.nv * 8);
+        gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, sfb * s.nv * 8);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+        gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, sfa * s.nv * 4);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, sfb * s.nv * 4);
+        s._lastKey = poseKey;
+      }
+
+      let tileIdx = 0;
+      const tMeta = ms.tex >= 0 ? META.textures[ms.tex] : null;
+      if (sprInfo && s.billboard) {
+        tileIdx = sprInfo.tile;
+      } else if (ms.animFps > 0 && tMeta && tMeta.count > 1) {
+        const seqLen = ms.animOrder ? ms.animOrder.length : tMeta.count;
+        const step = (exactOverride !== null && m.nf <= 1)
+          ? Math.floor(exactOverride) % seqLen
+          : Math.floor(tSec * state.speed * ms.animFps) % seqLen;
+        tileIdx = ms.animOrder ? ms.animOrder[step] : step;
+      } else if (ms.fixedTile !== undefined) {
+        tileIdx = ms.fixedTile;
+      }
+      const tr = ms.tex >= 0 ? getTileRect(ms.tex, tileIdx) : [0, 0, 1, 1];
+
+      const bb = s.billboard || 0;
+      let billAspect = 1.0;
+      if (bb && tMeta && tMeta.tileH > 0 && m.baseAspect > 0) {
+        billAspect = (tMeta.tileW / tMeta.tileH) / m.baseAspect;
+      }
+
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniformMatrix4fv(uMesh.uRigid, false, matRigid);
+      gl.uniform1i(uMesh.uUseRigid, useRigid);
+      gl.uniform1i(uMesh.uBillboard, bb);
+      gl.uniform1f(uMesh.uBillAspect, billAspect);
+      gl.uniform3f(uMesh.uBillRight, billRight[0], billRight[1], billRight[2]);
+      if (bb === 2) gl.uniform3f(uMesh.uBillUp, billUpSph[0], billUpSph[1], billUpSph[2]);
+      else gl.uniform3f(uMesh.uBillUp, 0, 0, 1);
+      gl.uniform3f(uMesh.uOffset, offX, offY, offZ);
+      gl.uniform1f(uMesh.uLerp, sfrac);
+      gl.uniform1f(uMesh.uPosScale, s.posScale);
+      gl.uniform1i(uMesh.uShadowPass, 0);
+      gl.uniform4f(uMesh.uTileRect, tr[0], tr[1], tr[2], tr[3]);
+      gl.uniform1f(uMesh.uScrollV, ms.scrollV ? (tSec * ms.scrollV) % 1.0 : 0.0);
+      gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+      gl.uniform1f(uMesh.uExposure, state.wire ? 0.58 : 1.04);
+      gl.uniform1f(uMesh.uMetallic, ms.metallic);
+      gl.uniform1f(uMesh.uRoughness, ms.roughness);
+      gl.uniform1f(uMesh.uSpec, ms.spec);
+      gl.uniform1i(uMesh.uUnlit, ms.unlit || 0);
+      gl.uniform1i(uMesh.uAlphaTest, ms.alphaTest || 0);
+      gl.uniform1i(uMesh.uAlphaBlend, ms.alphaBlend || 0);
+      gl.uniform1i(uMesh.uBgMode, state.bgMode);
+      gl.uniform1i(uMesh.uShadeMode, ms.additive ? 0 : state.shadeMode);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, ms.tex >= 0 ? glTextures[ms.tex] : fallbackTex);
+      gl.uniform1i(uMesh.uTex, 0);
+
+      if (ms.glowTex >= 0) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTextures[ms.glowTex]);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 1);
+      } else {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, fallbackTex);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 0);
+      }
+
+      if (ms.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+      } else if (ms.alphaBlend) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        if (!ms.alphaTest) gl.depthMask(false);
+      }
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      if (ms.additive || ms.alphaBlend) {
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      }
+
+      if (state.wire && !ms.additive) {
+        gl.useProgram(pWire);
+        gl.uniformMatrix4fv(uWire.uVP, false, matVP);
+        gl.uniformMatrix4fv(uWire.uRigid, false, matRigid);
+        gl.uniform1i(uWire.uUseRigid, useRigid);
+        gl.uniform1i(uWire.uBillboard, bb);
+        gl.uniform1f(uWire.uBillAspect, billAspect);
+        gl.uniform3f(uWire.uBillRight, billRight[0], billRight[1], billRight[2]);
+        gl.uniform3f(uWire.uBillUp, bb === 2 ? billUpSph[0] : 0, bb === 2 ? billUpSph[1] : 0, bb === 2 ? billUpSph[2] : 1);
+        gl.uniform3f(uWire.uOffset, offX, offY, offZ);
+        gl.uniform1f(uWire.uLerp, sfrac);
+        gl.uniform1f(uWire.uPosScale, s.posScale);
+        gl.uniform4f(uWire.uColor, 0.32, 0.88, 1.0, 0.58);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+        gl.disable(gl.BLEND);
+      }
+    }
+    return sprInfo ? { curF: sprInfo.f, dir: sprInfo.dir, dirs: sprInfo.dirs, fpd: sprInfo.fpd } : { curF: fa + frac, dir: -1 };
+  }
+
+  saveFavs();
+  selectModel(0);
+  $('loading').style.display = 'none';
+
+  let lastNow = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastNow) * 0.001);
+    lastNow = now;
+    const tSec = now * 0.001;
+
+    // Party Auto-Tour progression
+    if (state.tour && !state.gridMode) {
+      state.tourTimer += dt;
+      if (state.tourTimer >= 4.2) {
+        state.tourTimer = 0;
+        const mCur = models[state.curIdx];
+        if (mCur.clips.length > 1 && state.clipIdx + 1 < Math.min(mCur.clips.length, 6)) {
+          selectClip(mCur, state.clipIdx + 1);
+        } else {
+          stepAsset(+1);
+        }
+      }
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr);
+    const ch = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.028, 0.043, 0.075, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (!state.gridMode) {
+      const m = models[state.curIdx];
+      const cl = getActiveClip(m);
+      if (state.spin) mainView.az += dt * 0.46;
+
+      if (state.pix2dMode && m.isSprite) {
+        const res2d = draw2DSpriteInspector(m, cl, tSec, state.playing ? null : state.manualFrame);
+        if (state.playing) {
+          state.manualFrame = res2d.f;
+          $('frame-scrub').value = res2d.f;
+        }
+        $('lbl-frame').textContent = cl.sprMode && cl.sprMode.dirs > 1
+          ? `Angle ${Math.round(res2d.dir * 360 / cl.sprMode.dirs)}° · Frame ${res2d.f + 1}/${cl.sprMode.fpd}`
+          : `Sprite Frame ${res2d.f + 1}/${cl.sprMode ? cl.sprMode.fpd : Math.max(1, m.nf)}`;
+      } else {
+        const r = $('center-stage').getBoundingClientRect();
+        if (r.width > 4 && r.height > 4) {
+          const vx = Math.floor(r.left * dpr);
+          const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+          const vw = Math.floor(r.width * dpr);
+          const vh = Math.floor(r.height * dpr);
+          gl.viewport(vx, vy, vw, vh);
+          gl.scissor(vx, vy, vw, vh);
+          gl.clear(gl.DEPTH_BUFFER_BIT);
+          mainView.aspect = vw / vh;
+          const res = renderModelInViewport(m, mainView, cl, tSec, state.playing ? null : state.manualFrame);
+          if (state.playing) {
+            state.manualFrame = res.curF;
+            $('frame-scrub').value = res.curF.toFixed(2);
+          }
+          if (res.dir >= 0 && res.dirs > 1) {
+            const deg = Math.round((res.dir * 360) / res.dirs);
+            $('lbl-frame').textContent = `Angle ${deg}° (${res.dir + 1}/${res.dirs}) · Frame ${Math.floor(res.curF) + 1}/${res.fpd}`;
+            const abtns = $('vp-angles').children;
+            for (let k = 0; k < abtns.length; k++) abtns[k].classList.toggle('active', k === res.dir);
+          } else if (res.fpd !== undefined) {
+            $('lbl-frame').textContent = `Frame ${Math.floor(res.curF) + 1} / ${res.fpd}`;
+          } else {
+            const fnm = m.names && m.names[Math.floor(res.curF)] ? ` · ${m.names[Math.floor(res.curF)]}` : '';
+            $('lbl-frame').textContent = `Frame ${Math.floor(res.curF)} / ${Math.max(0, m.nf - 1)}${fnm}`;
+          }
+        }
+      }
+    } else {
+      for (const gc of gridCards) {
+        const r = gc.stg.getBoundingClientRect();
+        if (r.bottom < 54 || r.top > window.innerHeight || r.width < 4 || r.height < 4) continue;
+        ensureModelUploaded(gc.m);
+        if (!gc.view._sized) {
+          gc.view.dist = gc.m.R * (gc.m.distMul || (gc.m.isSprite ? 1.65 : 2.25));
+          gc.view.minDist = gc.m.R * 0.25;
+          gc.view.maxDist = gc.m.R * 6.0;
+          gc.view._sized = true;
+        }
+        const vx = Math.floor(r.left * dpr);
+        const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr);
+        const vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh);
+        gl.scissor(vx, vy, vw, vh);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        if (state.spin && !gc.view.touched) gc.view.az += dt * 0.44;
+        gc.view.aspect = vw / vh;
+        const gClip = gc.m.clips[gc.view.clipIdx] || gc.m.clips[0];
+        renderModelInViewport(gc.m, gc.view, gClip, tSec + gc.m.idx * 0.31, null);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch(err => {
+  console.error(err);
+  $('loading').innerHTML = `<div style="color:#fb7185;padding:20px"><b>Showcase Error:</b> ${err.message}</div>`;
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pickle Surprise Sounds</title>
+<style>
+:root{--bg:#f4f1e8;--card:#fffdf6;--ink:#1d2a1f;--mute:#667064;--line:#d9d4c2;--green:#2f8a3d;--green-ink:#fff;--pick:#e8f4e4;--star:#d99a00;--chip:#ebe6d4}
+@media (prefers-color-scheme:dark){:root{--bg:#161b16;--card:#1f261f;--ink:#e8efe3;--mute:#93a08f;--line:#33403a;--green:#58c46a;--green-ink:#0d170f;--pick:#25402a;--star:#ffc233;--chip:#2a342b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,Segoe UI,sans-serif}
+header{padding:20px 16px 8px;max-width:1100px;margin:0 auto}
+h1{margin:0 0 4px;font-size:26px}
+header p{margin:0;color:var(--mute);max-width:70ch}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px}
+.bar-in{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:5px 12px}
+.chip[aria-pressed=true]{background:var(--green);color:var(--green-ink);border-color:var(--green)}
+input[type=search]{flex:1;min-width:160px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit}
+.act{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px}
+.act.primary{background:var(--green);color:var(--green-ink);border-color:var(--green)}
+main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:18px}
+.slot{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.slot h3{margin:0 0 2px;font-size:15px}
+.slot small{color:var(--mute);display:block;margin-bottom:6px}
+.slot .none{color:var(--mute);font-style:italic}
+.pill{display:inline-flex;gap:4px;align-items:center;margin:2px 4px 2px 0;border:1px solid var(--line);background:var(--pick);border-radius:999px;padding:2px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.clip{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:44px 1fr auto;gap:4px 10px;align-items:center}
+.clip.playing{outline:2px solid var(--green)}
+.play{width:44px;height:44px;border-radius:50%;border:none;background:var(--green);color:var(--green-ink);font-size:18px;grid-row:1/3}
+.meta{color:var(--mute);font-size:12.5px}
+.say{font-weight:600;min-height:1.3em;word-break:break-word}
+.say.none{color:var(--mute);font-weight:400;font-style:italic}
+.star{border:none;background:none;font-size:22px;color:var(--line);padding:0}
+.star[aria-pressed=true]{color:var(--star)}
+.bt{grid-column:1/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bt button{border:1px solid var(--line);background:var(--chip);border-radius:8px;padding:4px 10px;font-size:13.5px}
+.bt button[aria-pressed=true]{background:var(--green);color:var(--green-ink);border-color:var(--green)}
+.prog{grid-column:2/4;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--green)}
+.count{color:var(--mute);margin-left:auto}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pickle Surprise: pick the sounds</h1>
+  <p>Every clip from the Pickle Surprise audio, cut into short pieces. Play them and mark the ones that should be a sound in the game. A clip can be more than one thing. The star is for "this is just funny", whatever it ends up as. The words under each clip are a machine guess, so trust your ears. P1 and P2 are the two whole "Pickle surprise" lines (P1 is what the game uses now). Votes save in your browser as you go; use Download or Copy when you are done.</p>
+</header>
+
+<div class="bar"><div class="bar-in">
+  <button class="chip" data-f="all" aria-pressed="true">All</button>
+  <button class="chip" data-f="words" aria-pressed="false">Has words</button>
+  <button class="chip" data-f="noise" aria-pressed="false">No words</button>
+  <button class="chip" data-f="unvoted" aria-pressed="false">Not voted yet</button>
+  <button class="chip" data-f="voted" aria-pressed="false">Voted</button>
+  <input type="search" id="q" placeholder="Search what is said">
+  <span class="count" id="count"></span>
+  <button class="act" id="dl">Download votes</button>
+  <button class="act primary" id="cp">Copy votes</button>
+  <button class="act" id="rs">Reset</button>
+</div></div>
+
+<main>
+  <section class="summary" id="summary"></section>
+  <section class="grid" id="grid"></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const CLIPS = /*CLIPS*/[];
+const SLOTS = [
+  {k:"throw",   name:"Throw",            hint:"the pickle leaving your hand"},
+  {k:"stick",   name:"Sticks / lands",   hint:"it splats onto the wall or floor"},
+  {k:"inflate", name:"Inflates / waves", hint:"swelling up like a roadside balloon"},
+  {k:"explode", name:"Explodes",         hint:"the green blast"},
+  {k:"pull",    name:"Pull out / idle",  hint:"taking it out, holding it"}
+];
+const STORE = "pickle_sound_votes_v1";
+let votes = {};
+try { votes = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { votes = {}; }
+let filter = "all", query = "", playing = null;
+const audio = new Audio();
+const $ = s => document.querySelector(s);
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(votes)); } catch (e) {} };
+const anyVote = id => { const v = votes[id]; return !!v && (v.star || SLOTS.some(s => v[s.k])); };
+const ts = s => Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0");
+
+function toggle(id, key) {
+  const v = votes[id] = votes[id] || {};
+  v[key] = !v[key];
+  if (!anyVote(id)) delete votes[id];
+  save(); render();
+}
+
+function play(c) {
+  if (playing === c.id && !audio.paused) { audio.pause(); return; }
+  playing = c.id;
+  audio.src = "clips/" + c.id + ".mp3";
+  audio.play().catch(() => toast("Could not play that one"));
+  render(true);
+}
+audio.addEventListener("ended", () => { playing = null; render(true); });
+audio.addEventListener("pause", () => render(true));
+audio.addEventListener("play", () => render(true));
+audio.addEventListener("timeupdate", () => {
+  const bar = document.querySelector(".clip.playing .prog i");
+  if (bar && audio.duration) bar.style.width = (100 * audio.currentTime / audio.duration) + "%";
+});
+
+function visible(c) {
+  const t = c.text.trim();
+  if (filter === "words" && !t) return false;
+  if (filter === "noise" && t) return false;
+  if (filter === "unvoted" && anyVote(c.id)) return false;
+  if (filter === "voted" && !anyVote(c.id)) return false;
+  return !query || t.toLowerCase().includes(query);
+}
+
+function renderSummary() {
+  $("#summary").innerHTML = SLOTS.map(s => {
+    const picks = CLIPS.filter(c => votes[c.id] && votes[c.id][s.k]);
+    const pills = picks.map(c => `<button class="pill" data-play="${c.id}" title="${c.text.replace(/"/g, "&quot;")}">&#9654; ${c.id}${c.text ? " &middot; " + c.text.slice(0, 22) : ""}</button>`).join("");
+    return `<div class="slot"><h3>${s.name} (${picks.length})</h3><small>${s.hint}</small>${pills || '<span class="none">nothing yet</span>'}</div>`;
+  }).join("");
+}
+
+function render(light) {
+  if (light) {
+    document.querySelectorAll(".clip").forEach(el => {
+      const on = el.dataset.id === playing && !audio.paused;
+      el.classList.toggle("playing", on);
+      el.querySelector(".play").innerHTML = on ? "&#10074;&#10074;" : "&#9654;";
+      if (!on) el.querySelector(".prog i").style.width = "0";
+    });
+    return;
+  }
+  const list = CLIPS.filter(visible);
+  $("#count").textContent = list.length + " of " + CLIPS.length + " clips, " + CLIPS.filter(c => anyVote(c.id)).length + " voted";
+  $("#grid").innerHTML = list.map(c => {
+    const v = votes[c.id] || {};
+    const on = c.id === playing && !audio.paused;
+    return `<div class="clip${on ? " playing" : ""}" data-id="${c.id}">
+      <button class="play" data-play="${c.id}" aria-label="Play clip ${c.id}">${on ? "&#10074;&#10074;" : "&#9654;"}</button>
+      <div><div class="say${c.text.trim() ? "" : " none"}">${c.text.trim() || "(no words)"}</div>
+        <div class="meta">#${c.id} &middot; ${ts(c.start)} to ${ts(c.end)} &middot; ${c.dur.toFixed(1)} s</div></div>
+      <button class="star" data-vote="${c.id}:star" aria-pressed="${!!v.star}" aria-label="Funny">&#9733;</button>
+      <div class="prog"><i></i></div>
+      <div class="bt">${SLOTS.map(s => `<button data-vote="${c.id}:${s.k}" aria-pressed="${!!v[s.k]}">${s.name}</button>`).join("")}</div>
+    </div>`;
+  }).join("");
+  renderSummary();
+}
+
+function result() {
+  const out = {picks: {}, funny: [], clips: {}};
+  SLOTS.forEach(s => out.picks[s.k] = []);
+  CLIPS.forEach(c => {
+    const v = votes[c.id];
+    if (!v) return;
+    const info = {id: c.id, start: c.start, end: c.end, said: c.text};
+    SLOTS.forEach(s => { if (v[s.k]) out.picks[s.k].push(info); });
+    if (v.star) out.funny.push(info);
+  });
+  return out;
+}
+
+function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1800); }
+
+document.addEventListener("click", e => {
+  const p = e.target.closest("[data-play]");
+  if (p) { play(CLIPS.find(c => c.id === p.dataset.play)); return; }
+  const v = e.target.closest("[data-vote]");
+  if (v) { const [id, key] = v.dataset.vote.split(":"); toggle(id, key); return; }
+  const f = e.target.closest("[data-f]");
+  if (f) { filter = f.dataset.f; document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", b === f)); render(); }
+});
+$("#q").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); render(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") audio.pause(); });
+$("#dl").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(result(), null, 1)], {type: "application/json"}));
+  a.download = "votes.json"; a.click(); toast("votes.json downloaded");
+};
+$("#cp").onclick = async () => {
+  const text = JSON.stringify(result(), null, 1);
+  try { await navigator.clipboard.writeText(text); toast("Votes copied"); }
+  catch (e) { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); toast("Votes copied"); }
+};
+$("#rs").onclick = () => { if (confirm("Clear every vote?")) { votes = {}; save(); render(); } };
+render();
+</script>
+</body>
+</html>

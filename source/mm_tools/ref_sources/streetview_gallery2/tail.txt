@@ -1,0 +1,49 @@
+
+
+📋 Handoff prompt — copy this whole block to the Quake map editor
+BUILD A QUAKE MAP OF LARRY'S WAREHOUSE — 118 E 21st St, Bakersfield, CA 93305, USA
+Coordinates: 35.377965, -119.0015877. Google Maps: https://www.google.com/maps/place/118+E+21st+St,+Bakersfield,+CA+93305,+USA/@35.377965,-119.0015877,17z
+Use the 76 photos embedded in this file as your ONLY visual reference. Do not invent a different building.
+
+THE BUILDING (the hero — get this right first)
+- Long, single-storey auto-shop warehouse on the NORTH side of E 21st St, long axis running roughly NORTH-SOUTH.
+- Footprint approx 51 m long (N-S) x 29 m wide (E-W), measured from satellite pixels, +/- 3 m. Single storey, flat roof.
+  Quake scale: 1 m = ~39 Quake units (1 unit = 1 inch). So roughly 2000 x 1130 units footprint. Player height 56 units. Adjust to your map's scale, but keep the proportions: about 1.75x as long as it is wide.
+- Height: estimated ~5-6 m to the top of the parapet, ~4 m to the eaves. NOT surveyed — estimate from the photos.
+- SOUTH-WEST FACADE (faces E 21st St, which runs diagonally NW-SE here — this is the front, the most important face):
+  * Painted white / off-white, smooth stucco/concrete block at the bottom, flat panels above.
+  * A TALL BLANK PARAPET runs the whole front — plain white, no windows, no sign on the parapet itself. It is the building's most recognisable feature.
+  * Ground floor, west to east: black iron fence + fenced side yard with parked cars (west end); a small sign "BATERIAS $55" with an arrow; above it on the parapet, a bright green banner reading "ORTIZ Auto Body"; a solid BLACK door; a white door marked "120A" flanked by two large DARK-TINTED windows; a door marked "120B"; then a section with VERTICAL RED and BLUE panels / stripes around doors and windows; at the far east end a BLACK IRON DRIVEWAY GATE with a white pickup parked at it.
+  * Sidewalk in front (~2-3 m wide concrete), then E 21st St (2-lane asphalt road, double-yellow centre line, parking on both sides, Speed Limit 35).
+  * Parked in front in Feb 2026: a white 2-door coupe and a white SUV. Treat cars as movable props, not part of the building.
+- ROOF: flat, light grey / off-white, with rooftop vents and AC units scattered across it, and a thin A-frame / antenna mast visible behind the parapet from the street. No pitched roof, no skylight dome.
+- EAST SIDE (Sacramento St side): long plain wall, corrugated metal in places, few/no windows. Neighbour building to the east is LMC Paint Supply — long white corrugated warehouse with BLUE trim and a BLUE door.
+- NORTH / REAR: fenced, tree-screened, NOT directly street-accessible. Chain-link + breeze-block wall, a dirt yard with BLUE Genie boom lifts / cherry pickers. No loading dock was visible anywhere — do NOT invent one. The Grove St photos in this file show a NEIGHBOURING warehouse south of E 21st St, not the rear of 118. If the map needs a rear entrance, put a plain personnel door + chain-link gate and label it as invented.
+- WEST SIDE: fenced yard with parked cars and BLUE cherry-picker lifts. West neighbour shopfront has a yellow sign "APPLIANCES SALE 661-606-1622".
+
+THE STREET / BLOCK (build the block, not just the box)
+- E 21st St runs east-west in front of the warehouse. Sacramento St runs north-south along its east side. Sumner St is one block north. Grove St is one block south. Union Ave / Golden State Ave + the Highway 178 interchange are just west.
+- SOUTH side of E 21st St, opposite the warehouse: a brown 2-storey U-shaped motel (Capri Motel), a brown breeze-block wall marked "121 E. 21st" with a gate, a dirt lot, a grey portable building, and a yard full of trucks/RVs (Crownover Collision / C10 Crewcab / Performance Driveline) in front of a much larger warehouse with many roof skylights.
+- NORTH side, across Sumner St: Tyack Tires, TNT Automotive & AC Repair, Plascencia Custom Paint & Body (corrugated metal, open roller bay, red doors, sign "Plascencia Custom Paint & Body — Specializing in Spot Painting — 326-0943").
+- Ground: asphalt roads (cracked, patched), concrete sidewalks, dirt/gravel yards, grass strip on Sumner St. Overhead power lines on wooden poles along the streets. Overcast sky in the Feb 2026 photos — flat, grey-white light.
+- Colours: mostly white / off-white / light grey building, black doors and iron fence, dark-tinted glass, red + blue accent panels, grey asphalt, brown motel opposite, blue lifts. Keep the palette washed-out and industrial — no bright colours except the red/blue panels and the blue lifts.
+
+INTERIOR (no photos exist — this is a guess, say so in the map notes)
+- Auto body shop: one big open workshop space, concrete floor, oil stains, a couple of car lifts, tool benches along the walls, parts shelves, a small office / counter near the 120A door. Do NOT present the interior as verified.
+
+QUAKE-SPECIFIC
+- Make the front facade + parapet the landmark: a player should recognise it from across E 21st St.
+- Playable area: the warehouse interior + the fenced side yard + the street in front (E 21st St) + the opposite sidewalk / motel forecourt. Keep the rear fenced — use the fence as a map boundary.
+- Textures: white painted concrete block, corrugated metal (east neighbour), flat grey roof with vents, asphalt with centre lines, chain-link fence (grate texture), breeze-block.
+- Lighting: overcast daylight, flat and grey — no harsh sun. Interior: fluorescent shop lights.
+- Props that sell it: white coupe + white SUV out front, black iron gate, "BATERIAS $55" sign, 120A / 120B door numbers, red/blue panels, blue Genie lifts in the west yard, power poles + wires, Speed Limit 35 sign.
+
+LIMITS — DO NOT OVERCLAIM
+- Dimensions approx +/- 3 m from satellite; heights estimated, not surveyed.
+- Some Street View panos away from the main front are blurry / have stitching artefacts.
+- Rear is fenced/screened; no loading dock exists in the photos.
+- No interior photos. Businesses/signage are as of Feb 2026 and may have changed.
+- "Larry's warehouse" is a nickname; Google lists the place as Garcia's Auto Body Shop, also Sac21 / Celebrity Bodyworks / Sick Rick Customz.
+
+⚠️ LimitsSome panos away from the main front pano are blurry / have stitching artefacts.Rear / north side is fenced and tree-screened — no clear rear loading-dock view exists on public Street View. No dedicated loading dock was visible from any street.No interior photos exist. Interior in the handoff is a sensible auto-shop guess, labelled as such.Building dimensions are approximate, measured from satellite pixels (± ~3 m). Heights are estimated from Street View proportions, not surveyed.Street View is Feb 2026; satellite is 2026. Businesses/signage may have changed since.
+Built 2026-10-30. Sources: Google Maps / Google Street View / Google satellite tiles, via the user's short link. Photos are © Google — use them as reference for a fan map, do not redistribute as your own photography.

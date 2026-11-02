@@ -1,0 +1,122 @@
+{
+  "stage": 1,
+  "description": "Stage 1 — Roads, streets, kerbs, alleys, intersections, crosswalks, lane markings, pedestrian barriers, utility poles, overhead cable bundles, and twin-pole H-frame transformer calibrated to Web Mercator metric grids (z=20, z=19, z=18) and Dec 2025 Street View.",
+  "world_bounds_m": {
+    "xmin": -400.0,
+    "xmax": 345.0,
+    "ymin": -372.0,
+    "ymax": 375.0,
+    "zmin": -1.5,
+    "zmax": 135.0
+  },
+  "sukhumvit_rd": {
+    "centerline_pts_m": [
+      [-399.0, 212.0],
+      [-312.0, 188.0],
+      [-200.0, 154.5],
+      [-150.0, 136.5],
+      [-100.0, 116.5],
+      [-34.5, 84.37],
+      [0.0, 63.5],
+      [120.0, -9.1],
+      [255.0, -90.78],
+      [344.0, -144.62]
+    ],
+    "carriageway_width_m": 26.0,
+    "sidewalk_width_m": 3.8,
+    "median_width_m": 1.8,
+    "median_gaps_x_m": [[-50.0, -20.0], [60.0, 80.0], [150.0, 170.0], [285.0, 315.0]]
+  },
+  "soi_4": {
+    "centerline_pts_m": [
+      [-34.1, 72.0],
+      [-34.3, 41.3],
+      [-34.3, 20.8],
+      [-34.1, 10.5],
+      [-33.8, -20.0],
+      [-33.2, -60.0],
+      [-32.2, -100.0],
+      [-29.5, -200.0],
+      [-25.0, -371.0]
+    ],
+    "carriageway_width_m": 7.2,
+    "mouth_crosswalk": {
+      "x1": -37.9,
+      "x2": -30.4,
+      "y1": 67.2,
+      "y2": 72.4,
+      "z2": 0.05,
+      "tex": "np_xwalk_rd"
+    },
+    "solid_yellow_segment_y": [38.0, 67.2],
+    "dashed_line_segment_y": [-370.0, 38.0],
+    "northbound_arrow_m": [-36.0, 31.0],
+    "west_kerb_segments": [
+      {"y1": 20.0, "y2": 68.5, "x1": -40.5, "x2": -37.8, "z2": 0.16, "kerb_tex": "np_kerb_rw", "walk_tex": "np_sidewalk", "note": "Mouth -> PTT -> Grey wall -> Tattoo -> Transformer -> Pharmacy World"},
+      {"y1": 16.2, "y2": 20.0, "x1": -43.5, "x2": -37.8, "z2": 0.03, "kerb_tex": "np_asphalt", "walk_tex": "np_asphalt", "note": "Nana Hotel OUT north driveway"},
+      {"y1": 5.2, "y2": 16.2, "x1": -41.5, "x2": -37.7, "z2": 0.16, "kerb_tex": "np_kerb_rw", "walk_tex": "np_sidewalk", "note": "NANA HOTEL granite gate sidewalk island"},
+      {"y1": 1.2, "y2": 5.2, "x1": -43.5, "x2": -37.7, "z2": 0.03, "kerb_tex": "np_asphalt", "walk_tex": "np_asphalt", "note": "Nana Hotel IN south driveway"},
+      {"y1": -18.0, "y2": 1.2, "x1": -40.4, "x2": -37.5, "z2": 0.16, "kerb_tex": "np_forecrt", "walk_tex": "np_sidewalk", "note": "Hooters black-and-white weathered kerb frontage"},
+      {"y1": -370.0, "y2": -18.0, "x1": -39.5, "x2": -36.8, "z2": 0.16, "kerb_tex": "np_kerb_rw", "walk_tex": "np_sidewalk", "note": "Blez -> Bus Stop -> Fitzgeralds -> Novotel"}
+    ],
+    "east_kerb_segments": [
+      {"y1": 15.2, "y2": 67.2, "x1": -30.6, "x2": -28.4, "z2": 0.15, "kerb_tex": "np_forecrt", "walk_tex": "np_forecrt", "note": "Yellow shophouse -> Morning Night -> Stumble Inn unpainted grey kerb"},
+      {"y1": 6.0, "y2": 15.2, "x1": -30.5, "x2": -28.4, "z2": 0.08, "kerb_tex": "np_forecrt", "walk_tex": "np_forecrt", "note": "Flush Nana Plaza entrance ramp apron"},
+      {"y1": -370.0, "y2": 6.0, "x1": -30.4, "x2": -28.0, "z2": 0.15, "kerb_tex": "np_forecrt", "walk_tex": "np_forecrt", "note": "PRO EXCHANGE -> Kickoff -> Bunny -> Dynasty Inn -> Hillary 2"}
+    ],
+    "pedestrian_barriers": [
+      {"x": -30.9, "y1": 46.2, "y2": 52.8, "z1": 0.03, "z2": 1.06, "tex": "{np_ped_rail", "note": "3 linked galvanised pedestrian barriers at Soi 4 east mouth (ref_045, ref_046)"}
+    ],
+    "utility_poles": [
+      {"x": -38.1, "y": 54.0, "h": 9.2, "side": "west", "box": true},
+      {"x": -38.1, "y": 48.5, "h": 9.2, "side": "west", "box": true},
+      {"x": -38.1, "y": 43.5, "h": 9.2, "side": "west", "box": true},
+      {"x": -38.1, "y": 39.0, "h": 9.2, "side": "west", "box": true},
+      {"x": -38.1, "y": 28.6, "h": 9.5, "side": "west", "transformer_north": true},
+      {"x": -38.1, "y": 26.8, "h": 9.5, "side": "west", "transformer_south": true, "lamp": true},
+      {"x": -38.1, "y": 20.4, "h": 9.0, "side": "west", "cctv": true},
+      {"x": -38.2, "y": 16.0, "h": 8.8, "side": "west", "box": true},
+      {"x": -37.8, "y": 0.8, "h": 9.0, "side": "west", "lamp": true},
+      {"x": -37.6, "y": -18.5, "h": 9.0, "side": "west"},
+      {"x": -37.4, "y": -38.0, "h": 9.0, "side": "west", "lamp": true},
+      {"x": -37.1, "y": -60.0, "h": 9.0, "side": "west"},
+      {"x": -36.8, "y": -85.0, "h": 9.0, "side": "west", "lamp": true},
+      {"x": -30.1, "y": 47.0, "h": 9.0, "side": "east"},
+      {"x": -30.1, "y": 46.2, "h": 9.0, "side": "east", "cctv": true},
+      {"x": -30.2, "y": 1.6, "h": 8.8, "side": "east"},
+      {"x": -30.1, "y": -12.5, "h": 9.2, "side": "east", "lamp": true},
+      {"x": -29.8, "y": -44.0, "h": 9.0, "side": "east"},
+      {"x": -29.4, "y": -75.0, "h": 9.0, "side": "east", "lamp": true}
+    ],
+    "transformer_hframe": {
+      "x": -38.1,
+      "y1": 26.8,
+      "y2": 28.6,
+      "z1": 4.2,
+      "z2": 5.5,
+      "tex": "np_xformer",
+      "note": "Twin-pole H-frame 3-phase oil transformer north of Pharmacy World (ref_298)"
+    },
+    "wire_spans": [
+      {"x1": -38.1, "y1": -105.0, "x2": -38.1, "y2": 68.0, "z1": 4.60, "z2": 5.55, "tex": "{np_wire_blk", "note": "Primary west-side overhead HV/telecom cable bundle above Pharmacy Rx & compound wall"},
+      {"x1": -38.1, "y1": 46.6, "x2": -30.1, "y2": 46.6, "z1": 5.35, "z2": 6.25, "tex": "{np_wire_blk", "note": "Cross-street overhead cable bundle at Soi 4 mouth (ref_045, ref_046)"},
+      {"x1": -30.2, "y1": -85.0, "x2": -30.2, "y2": 2.0, "z1": 5.10, "z2": 6.00, "tex": "{np_wire_blk", "note": "South-east secondary cable run south of Kickoff/Bunny"}
+    ]
+  },
+  "secondary_streets": [
+    {"name": "Sukhumvit Soi 2", "pts": [[-158.0, 138.0], [-155.0, -55.0], [-153.0, -200.0], [-150.0, -370.0]], "width": 7.5},
+    {"name": "Duang Phithak Rd", "pts": [[-274.0, 174.0], [-260.0, 0.0], [-248.0, -200.0], [-237.0, -370.0]], "width": 11.5},
+    {"name": "Maison Aly", "pts": [[-153.5, -122.0], [-32.5, -122.0]], "width": 5.5},
+    {"name": "Sukhumvit 6 Alley", "pts": [[-28.5, -242.0], [35.0, -238.0], [184.0, -236.0], [282.0, -235.0]], "width": 6.5},
+    {"name": "Sukhumvit Soi 6", "pts": [[204.0, -62.0], [199.0, -100.0], [188.0, -200.0], [184.0, -236.0], [176.0, -370.0]], "width": 6.8},
+    {"name": "Sukhumvit Soi 8", "pts": [[296.0, -118.0], [289.0, -200.0], [280.0, -300.0], [273.0, -370.0]], "width": 7.2},
+    {"name": "Soi Sukhumvit 3 (Nana Nuea)", "pts": [[-38.5, 92.0], [-30.0, 150.0], [-21.5, 200.0], [-5.5, 300.0], [6.0, 373.0]], "width": 10.5},
+    {"name": "Soi Sukhumvit 3/1", "pts": [[-23.0, 185.0], [88.0, 180.0]], "width": 5.5},
+    {"name": "Soi Sukhumvit 5", "pts": [[69.0, 24.0], [78.5, 100.0], [91.0, 200.0], [103.0, 300.0]], "width": 7.0},
+    {"name": "Soi Sukhumvit 7", "pts": [[158.0, -28.0], [168.0, 50.0], [187.0, 200.0], [208.0, 373.0]], "width": 6.8},
+    {"name": "Soi Sukhumvit 7/1", "pts": [[224.0, -68.0], [238.0, 45.0]], "width": 5.5},
+    {"name": "Soi Sukhumvit 9", "pts": [[252.0, -84.0], [264.0, 10.0]], "width": 5.5},
+    {"name": "Soi Sukhumvit 11", "pts": [[300.0, -112.0], [314.0, 0.0], [327.0, 100.0], [340.0, 200.0]], "width": 8.0},
+    {"name": "Soi Ruamrudee 1", "pts": [[-398.0, -175.0], [-312.0, -175.0]], "width": 6.5}
+  ]
+}

@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · Mystery Box 3D Weapon &amp; Crystal-Ball Studio</title>
+<style>
+:root {
+  --bg: #070811;
+  --panel: rgba(13, 16, 28, 0.88);
+  --panel-hi: rgba(20, 25, 44, 0.94);
+  --line: rgba(255, 255, 255, 0.13);
+  --cyan: #22e4ff;
+  --pink: #ff3ba7;
+  --gold: #ffe44d;
+  --mint: #3dff96;
+  --text: #f1f5ff;
+  --muted: #94a3c4;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+canvas#gl:active { cursor: grabbing; }
+
+/* Subtle Quake Crosshair in 1st-Person POV */
+#xhair {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  opacity: 0.72;
+}
+#xhair::before, #xhair::after {
+  content: "";
+  position: absolute;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+#xhair::before { left: 10px; top: 3px; width: 2px; height: 16px; }
+#xhair::after  { top: 10px; left: 3px; height: 2px; width: 16px; }
+#xhair.hidden { display: none; }
+
+/* Top HUD Bar */
+header#topbar {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ref-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 9px 4px 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(34, 228, 255, 0.35);
+}
+.ref-chip img {
+  height: 34px;
+  width: auto;
+  border-radius: 6px;
+}
+.kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--pink), var(--cyan), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+h1 {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+button, .btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+button:hover {
+  border-color: var(--cyan);
+  background: rgba(34, 228, 255, 0.13);
+}
+button.active {
+  background: linear-gradient(135deg, rgba(34, 228, 255, 0.26), rgba(255, 59, 167, 0.24));
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(34, 228, 255, 0.28);
+}
+button.fire-btn {
+  background: linear-gradient(135deg, #ff2e93, #ff7b1c);
+  border-color: #ffd166;
+  color: #fff;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+  padding: 8px 16px;
+  box-shadow: 0 0 20px rgba(255, 59, 167, 0.5);
+}
+button.fire-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 0 28px rgba(34, 228, 255, 0.75);
+}
+
+/* Right Crystal-Ball 16-Vision Jukebox Sidebar */
+aside#jukebox {
+  position: fixed;
+  top: 84px;
+  right: 14px;
+  bottom: 108px;
+  width: 272px;
+  z-index: 9;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px;
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.jb-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+}
+#now-vision {
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: rgba(34, 228, 255, 0.10);
+  border: 1px solid rgba(34, 228, 255, 0.32);
+  font-size: 12px;
+  font-weight: 750;
+}
+.vis-grid {
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding-right: 3px;
+}
+.vis-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  padding: 5px 9px;
+  font-size: 11.4px;
+  border-radius: 8px;
+}
+.vis-item .tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.vis-item.v3d .tag { color: var(--cyan); border: 1px solid rgba(34,228,255,0.4); }
+.vis-item.vspr .tag { color: var(--pink); border: 1px solid rgba(255,59,167,0.4); }
+.vis-item.current {
+  border-color: var(--gold);
+  background: rgba(255, 228, 77, 0.16);
+}
+
+/* Left Stats & Camera Presets */
+aside#leftbox {
+  position: fixed;
+  top: 84px;
+  left: 14px;
+  width: 256px;
+  z-index: 9;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px;
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.stat-row b { color: var(--text); }
+.preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.preset-list button {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.dl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dl-group button {
+  font-size: 11.2px;
+  text-align: left;
+}
+
+/* Bottom Timeline & Playback Scrubber */
+footer#timeline {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  z-index: 10;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 9px 14px;
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tl-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tl-left, .tl-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+input[type="range"] {
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+#scrub {
+  width: 100%;
+  margin: 0;
+}
+.lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+@media (max-width: 980px) {
+  aside#jukebox, aside#leftbox { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="xhair"></div>
+
+<header id="topbar">
+  <div class="brand">
+    <div>
+      <div class="kicker">BakersfieldQuake · Custom 3D Quake Weapon</div>
+      <h1>Mystery Box Crystal-Ball Hand Weapon (`v_mysterybox.md3`)</h1>
+    </div>
+    <div class="ref-chip" title="Reference Mystery Box Inspiration">
+      <img id="ref-img" alt="Reference">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;">Ref `?` Box</span>
+    </div>
+  </div>
+  <div class="tabs" id="model-tabs"></div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="fire-btn" id="btn-fire" title="Spacebar: Grab floating box -> Supernova Glow -> Throw!">🔥 FIRE (GRAB · GLOW · THROW)</button>
+  </div>
+</header>
+
+<aside id="leftbox">
+  <div class="jb-title">Model &amp; Camera Controls</div>
+  <div id="stats-box"></div>
+  <div class="lbl">Camera Presets (Drag to Orbit · Scroll Zoom)</div>
+  <div class="preset-list" id="cam-presets"></div>
+  <div class="lbl">Animation Clips</div>
+  <div class="preset-list" id="clip-btns"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+    <span class="lbl">Glass Clarity</span>
+    <input type="range" id="glass-alpha" min="25" max="140" value="100" style="width:120px;">
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button id="btn-wire" style="flex:1;padding:5px;">Wireframe: OFF</button>
+  </div>
+  <div class="lbl">1-Click Universal `.GLB` Export</div>
+  <div class="dl-group" id="dl-btns"></div>
+</aside>
+
+<aside id="jukebox">
+  <div class="jb-head">
+    <span class="jb-title">🔮 16 Crystal-Ball Visions</span>
+    <span style="font-size:10.5px;color:var(--muted);">Click to Jump</span>
+  </div>
+  <div id="now-vision">Spinning Crystal Ball...</div>
+  <div class="vis-grid" id="vis-list"></div>
+</aside>
+
+<footer id="timeline">
+  <input type="range" id="scrub" min="0" max="219" step="0.05" value="0">
+  <div class="tl-controls">
+    <div class="tl-left">
+      <button id="btn-play" class="active">⏸ Playing</button>
+      <span id="frame-readout" style="font-family:monospace;font-size:12px;min-width:195px;">Frame 000 / 219</span>
+      <span class="lbl">Speed:</span>
+      <button data-spd="0.5" class="spd-btn">0.5×</button>
+      <button data-spd="1.0" class="spd-btn active">1.0×</button>
+      <button data-spd="1.6" class="spd-btn">1.6×</button>
+    </div>
+    <div class="tl-right">
+      <span style="font-size:11.5px;color:var(--muted);">Shortcuts: <b>Space</b> = Grab/Glow/Throw · <b>1-3</b> = Switch Model · <b>Drag</b> = 360° Orbit</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const PAYLOAD = /*__MBOX_DATA__*/null;
+
+async function gunzipBase64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream("gzip");
+  const w = ds.writable.getWriter();
+  w.write(bin);
+  w.close();
+  const buf = await new Response(ds.readable).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+function mat4Perspective(fovYRad, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovYRad * 0.5);
+  const nf = 1.0 / (near - far);
+  return new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) * nf, -1,
+    0, 0, (2 * far * near) * nf, 0
+  ]);
+}
+
+function mat4LookAtQuake(eye, target, up) {
+  // Quake (+X fwd, +Y left, +Z up) -> WebGL view space
+  let fx = target[0] - eye[0], fy = target[1] - eye[1], fz = target[2] - eye[2];
+  let fl = Math.hypot(fx, fy, fz) || 1;
+  fx /= fl; fy /= fl; fz /= fl;
+  let sx = fy * up[2] - fz * up[1];
+  let sy = fz * up[0] - fx * up[2];
+  let sz = fx * up[1] - fy * up[0];
+  let sl = Math.hypot(sx, sy, sz) || 1;
+  sx /= sl; sy /= sl; sz /= sl;
+  const ux = sy * fz - sz * fy;
+  const uy = sz * fx - sx * fz;
+  const uz = sx * fy - sy * fx;
+  return new Float32Array([
+    sx, ux, -fx, 0,
+    sy, uy, -fy, 0,
+    sz, uz, -fz, 0,
+    -(sx * eye[0] + sy * eye[1] + sz * eye[2]),
+    -(ux * eye[0] + uy * eye[1] + uz * eye[2]),
+    (fx * eye[0] + fy * eye[1] + fz * eye[2]),
+    1
+  ]);
+}
+
+function mat4Mul(a, b) {
+  const o = new Float32Array(16);
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      o[j * 4 + i] =
+        a[0 * 4 + i] * b[j * 4 + 0] +
+        a[1 * 4 + i] * b[j * 4 + 1] +
+        a[2 * 4 + i] * b[j * 4 + 2] +
+        a[3 * 4 + i] * b[j * 4 + 3];
+    }
+  }
+  return o;
+}
+
+function mat4TranslateScaleRotZ(tx, ty, tz, sc, yawRad) {
+  const c = Math.cos(yawRad) * sc, s = Math.sin(yawRad) * sc;
+  return new Float32Array([
+    c, s, 0, 0,
+    -s, c, 0, 0,
+    0, 0, sc, 0,
+    tx, ty, tz, 1
+  ]);
+}
+
+(async function init() {
+  document.getElementById("ref-img").src = PAYLOAD.refUri;
+  const arenaBytes = await gunzipBase64(PAYLOAD.binGz);
+  const arenaBuf = arenaBytes.buffer;
+
+  const canvas = document.getElementById("gl");
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: false });
+  if (!gl) { alert("WebGL2 required"); return; }
+
+  function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    return sh;
+  }
+  function link(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+
+  // Model Shader (smooth morph interpolation between frame A and frame B)
+  const prog = link(`#version 300 es
+    layout(location=0) in vec3 aPos0;
+    layout(location=1) in vec3 aNrm0;
+    layout(location=2) in vec3 aPos1;
+    layout(location=3) in vec3 aNrm1;
+    layout(location=4) in vec2 aUV;
+    uniform mat4 uMVP;
+    uniform mat4 uModel;
+    uniform float uFrac;
+    out vec3 vPos;
+    out vec3 vNrm;
+    out vec2 vUV;
+    void main() {
+      vec3 p = mix(aPos0, aPos1, uFrac) * (1.0 / 64.0);
+      vec3 n = normalize(mix(aNrm0, aNrm1, uFrac));
+      vec4 wp = uModel * vec4(p, 1.0);
+      vPos = wp.xyz;
+      vNrm = mat3(uModel) * n;
+      vUV = aUV;
+      gl_Position = uMVP * wp;
+    }`,
+    `#version 300 es
+    precision highp float;
+    in vec3 vPos;
+    in vec3 vNrm;
+    in vec2 vUV;
+    uniform sampler2D uTex;
+    uniform vec3 uEye;
+    uniform int uUnlit;
+    uniform int uWire;
+    uniform float uRough;
+    uniform float uSpec;
+    uniform float uAlphaMul;
+    uniform vec3 uTint;
+    out vec4 oCol;
+    void main() {
+      if (uWire == 1) {
+        oCol = vec4(0.22, 0.92, 1.0, 0.85);
+        return;
+      }
+      vec4 tx = texture(uTex, vUV);
+      vec3 base = tx.rgb * uTint;
+      float alpha = clamp(tx.a * uAlphaMul, 0.0, 1.0);
+      if (uUnlit == 1) {
+        // Add subtle crystal Fresnel rim sheen on rainbow glass!
+        vec3 N = normalize(vNrm);
+        vec3 V = normalize(uEye - vPos);
+        float fres = pow(1.0 - abs(dot(N, V)), 2.6);
+        vec3 col = base + vec3(0.26, 0.34, 0.42) * fres * uSpec;
+        oCol = vec4(col, alpha);
+        return;
+      }
+      vec3 N = normalize(vNrm);
+      if (!gl_FrontFacing) N = -N;
+      vec3 V = normalize(uEye - vPos);
+      vec3 L1 = normalize(vec3(-0.42, -0.50, 0.76));
+      vec3 L2 = normalize(vec3(-0.78,  0.36, 0.25));
+      float d1 = max(dot(N, L1), 0.0);
+      float wrap1 = max(dot(N, L1) * 0.55 + 0.45, 0.0);
+      float d2 = max(dot(N, L2), 0.0);
+      vec3 H1 = normalize(L1 + V);
+      float sp = pow(max(dot(N, H1), 0.0), mix(52.0, 9.0, uRough)) * uSpec;
+      // Soft subsurface skin warmth + gentle magical uplight from the high-floating Mystery Box!
+      float palmGlow = max(dot(N, normalize(vec3(0.12, 0.18, 0.97))), 0.0);
+      vec3 sss = base * vec3(1.06, 0.84, 0.76) * (wrap1 * 0.22);
+      vec3 lit = base * (0.30 + 0.62 * d1 + 0.28 * d2) + sss + vec3(1.0, 0.96, 0.90) * sp * 0.36 + vec3(0.06, 0.17, 0.25) * palmGlow * 0.26;
+      oCol = vec4(lit, alpha);
+    }`
+  );
+
+  // Arena Floor Grid Shader for 1st-Person Range & Turntable
+  const gridProg = link(`#version 300 es
+    layout(location=0) in vec3 aPos;
+    uniform mat4 uMVP;
+    out vec3 vW;
+    void main() {
+      vW = aPos;
+      gl_Position = uMVP * vec4(aPos, 1.0);
+    }`,
+    `#version 300 es
+    precision highp float;
+    in vec3 vW;
+    uniform float uFloorZ;
+    uniform vec3 uGlowPos;
+    uniform float uGlowInt;
+    out vec4 oCol;
+    void main() {
+      vec2 g = abs(fract(vW.xy / 32.0 - 0.5) - 0.5) / fwidth(vW.xy / 32.0);
+      float line = 1.0 - min(min(g.x, g.y), 1.0);
+      vec2 g2 = abs(fract(vW.xy / 128.0 - 0.5) - 0.5) / fwidth(vW.xy / 128.0);
+      float major = 1.0 - min(min(g2.x, g2.y), 1.0);
+      float dist = length(vW.xy);
+      float fade = exp(-dist * 0.0014);
+      vec3 col = vec3(0.04, 0.05, 0.10) + vec3(0.05, 0.14, 0.24) * line * 0.45 + vec3(0.14, 0.46, 0.68) * major * 0.55;
+      float dGlow = length(vW - uGlowPos);
+      col += vec3(0.35, 0.85, 1.0) * (uGlowInt / (1.0 + dGlow * dGlow * 0.0018));
+      oCol = vec4(col, fade * 0.88);
+    }`
+  );
+
+  const floorQuad = new Float32Array([
+    -600, -900, 0,   1900, -900, 0,   1900, 900, 0,
+    -600, -900, 0,   1900,  900, 0,  -600,  900, 0
+  ]);
+  const floorVao = gl.createVertexArray();
+  gl.bindVertexArray(floorVao);
+  const floorVbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, floorVbo);
+  gl.bufferData(gl.ARRAY_BUFFER, floorQuad, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  // Upload Textures
+  const glTex = await Promise.all(PAYLOAD.textures.map(t => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const tx = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tx);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      res(tx);
+    };
+    img.src = t.uri;
+  })));
+
+  // Upload Model GPU Buffers
+  for (const m of PAYLOAD.models) {
+    for (const s of m.surfaces) {
+      s.posArr = new Int16Array(arenaBuf, s.pos[0], s.pos[1] / 2);
+      s.nrmArr = new Int8Array(arenaBuf, s.nrm[0], s.nrm[1]);
+      const uvArr = new Float32Array(arenaBuf, s.uv[0], s.uv[1] / 4);
+      const triArr = new Uint16Array(arenaBuf, s.tris[0], s.tris[1] / 2);
+      const edgeArr = new Uint16Array(arenaBuf, s.edges[0], s.edges[1] / 2);
+
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+
+      s.bPos0 = gl.createBuffer();
+      s.bNrm0 = gl.createBuffer();
+      s.bPos1 = gl.createBuffer();
+      s.bNrm1 = gl.createBuffer();
+      const bUV = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bUV);
+      gl.bufferData(gl.ARRAY_BUFFER, uvArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+
+      s.ibo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triArr, gl.STATIC_DRAW);
+
+      s.ebo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ebo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, edgeArr, gl.STATIC_DRAW);
+    }
+  }
+
+  // Interactive State
+  let curModelIdx = 0;
+  let camMode = "pov";
+  let az = 2.95, el = 0.16, dist = 1.65;
+  let playing = true;
+  let speed = 1.0;
+  let wireframe = false;
+  let glassClarity = 1.0;
+  let clipStart = 0, clipEnd = 191, clipLoop = true;
+  let curFrame = 0.0;
+  let fireQueued = false;
+  let spawnedThrown = false;
+  const liveProjectiles = [];
+
+  const scrub = document.getElementById("scrub");
+  const frameReadout = document.getElementById("frame-readout");
+  const nowVision = document.getElementById("now-vision");
+  const xhair = document.getElementById("xhair");
+
+  // Populate 16 Visions Jukebox
+  const visContainer = document.getElementById("vis-list");
+  const visButtons = PAYLOAD.meta.visions.map((v, idx) => {
+    const b = document.createElement("button");
+    b.className = "vis-item " + (v.kind === "3d" ? "v3d" : "vspr");
+    b.innerHTML = `<span><b>#${idx + 1}</b> ${v.label}</span><span class="tag">${v.kind.toUpperCase()}</span>`;
+    b.onclick = () => {
+      if (curModelIdx === 2) selectModel(0);
+      clipStart = 0;
+      clipEnd = 191;
+      clipLoop = true;
+      curFrame = v.peakFrame - 3;
+      playing = true;
+      updatePlayBtn();
+    };
+    visContainer.appendChild(b);
+    return b;
+  });
+
+  // Populate GLB Download Buttons
+  const dlBox = document.getElementById("dl-btns");
+  for (const [key, info] of Object.entries(PAYLOAD.glbs)) {
+    const b = document.createElement("button");
+    b.textContent = `⬇ ${info.filename} (${info.sizeKB} KB)`;
+    b.onclick = async () => {
+      const raw = await gunzipBase64(info.gzB64);
+      const url = URL.createObjectURL(new Blob([raw], { type: "model/gltf-binary" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = info.filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    };
+    dlBox.appendChild(b);
+  }
+
+  // Populate Model Tabs
+  const tabsEl = document.getElementById("model-tabs");
+  PAYLOAD.models.forEach((m, idx) => {
+    const b = document.createElement("button");
+    b.textContent = m.tab;
+    b.onclick = () => selectModel(idx);
+    tabsEl.appendChild(b);
+  });
+
+  function selectModel(idx) {
+    curModelIdx = idx;
+    const m = PAYLOAD.models[idx];
+    [...tabsEl.children].forEach((b, i) => b.classList.toggle("active", i === idx));
+
+    document.getElementById("stats-box").innerHTML = `
+      <div class="stat-row"><span>Quake File</span><b>${m.file}</b></div>
+      <div class="stat-row"><span>Surfaces / Frames</span><b>${m.nsurfs} surfs · ${m.nf}f</b></div>
+      <div class="stat-row"><span>Geometry</span><b>${m.nv} verts · ${m.nt} tris</b></div>
+    `;
+
+    // Presets
+    const cp = document.getElementById("cam-presets");
+    cp.innerHTML = "";
+    m.presets.forEach(([lbl, pAz, pEl, pDist], pi) => {
+      const b = document.createElement("button");
+      b.textContent = lbl;
+      b.onclick = () => {
+        if (pAz === "pov") {
+          camMode = "pov";
+        } else {
+          camMode = "orbit";
+          az = pAz; el = pEl; dist = pDist;
+        }
+        updateXhair();
+      };
+      cp.appendChild(b);
+    });
+
+    // Clips
+    const cb = document.getElementById("clip-btns");
+    cb.innerHTML = "";
+    m.clips.forEach((cl, ci) => {
+      const b = document.createElement("button");
+      b.textContent = cl.name;
+      if (ci === 0) b.classList.add("active");
+      b.onclick = () => {
+        [...cb.children].forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        clipStart = cl.start;
+        clipEnd = cl.end;
+        clipLoop = true;
+        curFrame = cl.start;
+        playing = true;
+        updatePlayBtn();
+      };
+      cb.appendChild(b);
+    });
+
+    camMode = m.defaultPov ? "pov" : "orbit";
+    if (!m.defaultPov) { az = m.az; el = m.el; dist = m.dist; }
+    clipStart = m.clips[0].start;
+    clipEnd = m.clips[0].end;
+    clipLoop = true;
+    curFrame = 0;
+    scrub.max = m.nf - 1;
+    updateXhair();
+  }
+
+  function updateXhair() {
+    xhair.classList.toggle("hidden", !(curModelIdx === 0 && camMode === "pov"));
+  }
+  function updatePlayBtn() {
+    const bp = document.getElementById("btn-play");
+    bp.textContent = playing ? "⏸ Playing" : "▶ Paused";
+    bp.classList.toggle("active", playing);
+  }
+
+  function triggerFire() {
+    if (curModelIdx !== 0) selectModel(0);
+    clipStart = 192;
+    clipEnd = 219;
+    clipLoop = false;
+    curFrame = 192.0;
+    spawnedThrown = false;
+    playing = true;
+    updatePlayBtn();
+  }
+
+  document.getElementById("btn-fire").onclick = triggerFire;
+  document.getElementById("btn-play").onclick = () => { playing = !playing; updatePlayBtn(); };
+  document.getElementById("btn-wire").onclick = (e) => {
+    wireframe = !wireframe;
+    e.target.textContent = "Wireframe: " + (wireframe ? "ON" : "OFF");
+    e.target.classList.toggle("active", wireframe);
+  };
+  document.getElementById("glass-alpha").oninput = (e) => {
+    glassClarity = parseFloat(e.target.value) / 100.0;
+  };
+  document.querySelectorAll(".spd-btn").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll(".spd-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      speed = parseFloat(b.dataset.spd);
+    };
+  });
+  scrub.oninput = () => {
+    curFrame = parseFloat(scrub.value);
+    playing = false;
+    updatePlayBtn();
+  };
+
+  window.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.key === "f" || e.key === "F") { e.preventDefault(); triggerFire(); }
+    if (e.key === "1") selectModel(0);
+    if (e.key === "2") selectModel(1);
+    if (e.key === "3") selectModel(2);
+  });
+
+  // Mouse Orbit & Zoom
+  let dragging = false, lx = 0, ly = 0;
+  canvas.addEventListener("pointerdown", e => {
+    dragging = true; lx = e.clientX; ly = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
+    if (Math.hypot(dx, dy) > 1.5 && camMode === "pov") {
+      camMode = "orbit";
+      az = 2.82; el = 0.16; dist = 1.45;
+      updateXhair();
+    }
+    az -= dx * 0.008;
+    el = Math.max(-1.25, Math.min(1.35, el + dy * 0.008));
+  });
+  canvas.addEventListener("pointerup", () => { dragging = false; });
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (camMode === "pov") { camMode = "orbit"; az = 2.82; el = 0.16; dist = 1.45; updateXhair(); }
+    dist = Math.max(0.45, Math.min(4.5, dist * (1 + e.deltaY * 0.001)));
+  }, { passive: false });
+
+  function drawModel(m, frameFloat, mvp, modelMat, eyePos, glassMul) {
+    const nf = m.nf;
+    const f0 = Math.floor(frameFloat) % nf;
+    const f1 = (f0 + 1) % nf;
+    const frac = frameFloat - Math.floor(frameFloat);
+
+    gl.useProgram(prog);
+    gl.uniformMatrix4fv(gl.getUniformLocation(prog, "uMVP"), false, mvp);
+    gl.uniformMatrix4fv(gl.getUniformLocation(prog, "uModel"), false, modelMat);
+    gl.uniform1f(gl.getUniformLocation(prog, "uFrac"), frac);
+    gl.uniform3fv(gl.getUniformLocation(prog, "uEye"), eyePos);
+
+    for (const s of m.surfaces) {
+      const nv3 = s.nv * 3;
+      gl.bindVertexArray(s.vao);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.bPos0);
+      gl.bufferData(gl.ARRAY_BUFFER, s.posArr.subarray(f0 * nv3, (f0 + 1) * nv3), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.SHORT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.bNrm0);
+      gl.bufferData(gl.ARRAY_BUFFER, s.nrmArr.subarray(f0 * nv3, (f0 + 1) * nv3), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 3, gl.BYTE, true, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.bPos1);
+      gl.bufferData(gl.ARRAY_BUFFER, s.posArr.subarray(f1 * nv3, (f1 + 1) * nv3), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(2);
+      gl.vertexAttribPointer(2, 3, gl.SHORT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.bNrm1);
+      gl.bufferData(gl.ARRAY_BUFFER, s.nrmArr.subarray(f1 * nv3, (f1 + 1) * nv3), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(3);
+      gl.vertexAttribPointer(3, 3, gl.BYTE, true, 0, 0);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, glTex[s.tex]);
+      gl.uniform1i(gl.getUniformLocation(prog, "uTex"), 0);
+      gl.uniform1i(gl.getUniformLocation(prog, "uUnlit"), s.unlit ? 1 : 0);
+      gl.uniform1f(gl.getUniformLocation(prog, "uRough"), s.rough);
+      gl.uniform1f(gl.getUniformLocation(prog, "uSpec"), s.spec);
+      gl.uniform3fv(gl.getUniformLocation(prog, "uTint"), s.tint || [1, 1, 1]);
+
+      let aMul = 1.0;
+      if (s.name === "box_glass") aMul = glassMul;
+      gl.uniform1f(gl.getUniformLocation(prog, "uAlphaMul"), aMul);
+
+      if (s.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+      } else if (s.blend) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(false);
+      } else {
+        gl.disable(gl.BLEND);
+        gl.depthMask(true);
+      }
+
+      if (s.twoSided) gl.disable(gl.CULL_FACE);
+      else { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); }
+
+      gl.uniform1i(gl.getUniformLocation(prog, "uWire"), 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+
+      if (wireframe && !s.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.uniform1i(gl.getUniformLocation(prog, "uWire"), 1);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ebo);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+
+  selectModel(0);
+
+  let lastT = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.05, (now - lastT) * 0.001);
+    lastT = now;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.floor(window.innerWidth * dpr);
+    const h = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w; canvas.height = h;
+    }
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(0.028, 0.034, 0.068, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+
+    const m = PAYLOAD.models[curModelIdx];
+    if (playing) {
+      curFrame += dt * m.fps * speed;
+      if (curModelIdx === 0 && !spawnedThrown && curFrame >= 209.5 && clipEnd >= 215) {
+        spawnedThrown = true;
+        liveProjectiles.push({
+          pos: [20.5, -2.5, 0.45],
+          vel: [285.0, 4.5, 42.0],
+          age: 0.0,
+          bounces: 0
+        });
+      }
+      if (curFrame > clipEnd + 0.99) {
+        if (clipLoop) {
+          curFrame = clipStart + ((curFrame - clipStart) % (clipEnd - clipStart + 1));
+        } else {
+          // Return seamlessly from Grab-Glow-Throw-Summon right back to Crystal-Ball Idle!
+          clipStart = 0;
+          clipEnd = 191;
+          clipLoop = true;
+          curFrame = 0.0;
+        }
+      }
+    }
+
+    // Update HUD & Active Vision Jukebox Highlight
+    const fiInt = Math.floor(curFrame) % m.nf;
+    scrub.value = curFrame;
+    if (curModelIdx === 0 && fiInt >= 192) {
+      let beat = "SUMMONING NEW BOX ✨";
+      if (fiInt < 198) beat = "🖐️ BEAT 1: GRABBING BOX!";
+      else if (fiInt < 206) beat = "⚡ BEAT 2: SUPERNOVA GLOW!";
+      else if (fiInt < 213) beat = "☄️ BEAT 3: THROWING BOX!";
+      nowVision.innerHTML = `<span style="color:var(--gold)">${beat}</span>`;
+      visButtons.forEach(b => b.classList.remove("current"));
+      frameReadout.textContent = `Frame ${String(fiInt).padStart(3,"0")} / ${m.nf - 1} · FIRE`;
+    } else if (curModelIdx <= 1) {
+      const vIdx = Math.floor((fiInt % 192) / 12);
+      const vObj = PAYLOAD.meta.visions[vIdx];
+      nowVision.innerHTML = `Vision #${vIdx + 1}: <span style="color:var(--cyan)">${vObj.label}</span>`;
+      visButtons.forEach((b, idx) => b.classList.toggle("current", idx === vIdx));
+      frameReadout.textContent = `Frame ${String(fiInt).padStart(3,"0")} / ${m.nf - 1} · Vision #${vIdx + 1}`;
+    } else {
+      nowVision.textContent = "Thrown Tumbling Mystery Box";
+      visButtons.forEach(b => b.classList.remove("current"));
+      frameReadout.textContent = `Frame ${String(fiInt).padStart(3,"0")} / ${m.nf - 1}`;
+    }
+
+    // Compute Camera
+    let eye, tgt, fovDeg;
+    if (camMode === "pov" && curModelIdx === 0) {
+      eye = [0, 0, 0];
+      tgt = [20, -1.0, -2.0];
+      fovDeg = 72.0; // frames both the realistic low hand AND the high-floating Mystery Box w/ clear air gap!
+    } else {
+      const ctr = m.orbitCenter || m.center;
+      const r = m.radius * dist;
+      eye = [
+        ctr[0] + r * Math.cos(el) * Math.cos(az),
+        ctr[1] + r * Math.cos(el) * Math.sin(az),
+        ctr[2] + r * Math.sin(el)
+      ];
+      tgt = ctr;
+      fovDeg = 46.0;
+    }
+
+    const projMat = mat4Perspective(fovDeg * Math.PI / 180.0, w / Math.max(1, h), 0.5, 3200.0);
+    const viewMat = mat4LookAtQuake(eye, tgt, [0, 0, 1]);
+    const vpMat = mat4Mul(projMat, viewMat);
+
+    // Draw Floor Grid first
+    const floorZ = (camMode === "pov" && curModelIdx === 0) ? -34.0 : m.floorZ;
+    const floorModel = mat4TranslateScaleRotZ(0, 0, floorZ, 1.0, 0.0);
+    let glowPos = [15, -5, -2], glowInt = (curModelIdx === 0 && fiInt >= 198 && fiInt <= 207) ? 2.4 : 0.65;
+    if (liveProjectiles.length > 0) {
+      glowPos = liveProjectiles[liveProjectiles.length - 1].pos;
+      glowInt = 2.8;
+    }
+    gl.useProgram(gridProg);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.uniformMatrix4fv(gl.getUniformLocation(gridProg, "uMVP"), false, mat4Mul(vpMat, floorModel));
+    gl.uniform3fv(gl.getUniformLocation(gridProg, "uGlowPos"), glowPos);
+    gl.uniform1f(gl.getUniformLocation(gridProg, "uGlowInt"), glowInt);
+    gl.bindVertexArray(floorVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.disable(gl.BLEND);
+
+    // Update & Draw Live Thrown Projectiles Downrange!
+    const projModelDef = PAYLOAD.models[2];
+    for (let i = liveProjectiles.length - 1; i >= 0; i--) {
+      const p = liveProjectiles[i];
+      p.age += dt;
+      p.vel[2] -= 220.0 * dt; // Quake gravity arc
+      p.pos[0] += p.vel[0] * dt;
+      p.pos[1] += p.vel[1] * dt;
+      p.pos[2] += p.vel[2] * dt;
+      if (p.pos[2] < floorZ + 7.0 && p.vel[2] < 0) {
+        p.pos[2] = floorZ + 7.0;
+        p.vel[2] = -p.vel[2] * 0.62;
+        p.bounces++;
+      }
+      if (p.age > 4.2) { liveProjectiles.splice(i, 1); continue; }
+      const pMat = mat4TranslateScaleRotZ(p.pos[0], p.pos[1], p.pos[2], 1.15, p.age * 3.2);
+      drawModel(projModelDef, p.age * 20.0, vpMat, pMat, eye, glassClarity);
+    }
+
+    // Draw Active Viewmodel / Crystal-Ball Model (clear depth buffer in POV so viewmodel never clips into world projectiles!)
+    if (camMode === "pov" && curModelIdx === 0) gl.clear(gl.DEPTH_BUFFER_BIT);
+    const idMat = mat4TranslateScaleRotZ(0, 0, 0, 1.0, 0.0);
+    drawModel(m, curFrame, vpMat, idMat, eye, glassClarity);
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

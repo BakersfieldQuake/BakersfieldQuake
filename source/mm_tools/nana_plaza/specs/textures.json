@@ -1,0 +1,1249 @@
+{
+  "description": "Declarative photo-derived texture specification for Nana Plaza (Sukhumvit Soi 4, Bangkok). Every non-placeholder texture is cropped, perspective-rectified, seam-tiled (where applicable), and resized to power-of-two dimensions from extracted gallery photos.",
+  "textures": [
+    {
+      "name": "np_placehld",
+      "source": "placeholder",
+      "color": [172, 168, 160],
+      "size": [128, 128],
+      "tile": "hv",
+      "scale_m": [3.2, 3.2],
+      "notes": "Plain neutral warm-grey placeholder for unphotographed rear/side building faces and unphotographed bar interiors (logged in gaps.md)."
+    },
+    {
+      "name": "np_asphalt",
+      "source": "ref_033.jpg",
+      "quad": [[345, 345], [430, 345], [455, 508], [318, 508]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [3.6, 3.6],
+      "notes": "Sukhumvit Soi 4 & Sukhumvit Rd clean un-watermarked asphalt carriageway rectified from Ext Entrance Arch South (ref_033.jpg)."
+    },
+    {
+      "name": "np_road_ylw",
+      "source": "ref_045.jpg",
+      "quad": [[365, 340], [495, 340], [535, 515], [295, 515]],
+      "size": [256, 256],
+      "tile": "v",
+      "level_light": false,
+      "scale_m": [3.6, 3.6],
+      "notes": "Soi 4 mouth asphalt with solid yellow centreline rectified from ref_045.jpg."
+    },
+    {
+      "name": "np_road_dsh",
+      "source": "ref_029.jpg",
+      "quad": [[340, 305], [418, 305], [462, 480], [260, 480]],
+      "size": [256, 256],
+      "tile": "v",
+      "level_light": false,
+      "scale_m": [3.6, 6.0],
+      "notes": "Soi 4 mid-block asphalt with dashed yellow-ochre centreline rectified from ref_029.jpg."
+    },
+    {
+      "name": "np_xwalk_rd",
+      "source": "ref_016.jpg",
+      "box": [278, 12, 315, 36],
+      "size": [256, 128],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [7.2, 4.5],
+      "notes": "Brick-red & white zebra crosswalk across Sukhumvit Soi 4 mouth from Zoom 20 aerial ref_016.jpg."
+    },
+    {
+      "name": "np_sidewalk",
+      "source": "ref_051.jpg",
+      "quad": [[205, 434], [585, 434], [615, 476], [175, 476]],
+      "size": [256, 128],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [2.4, 1.2],
+      "notes": "Stamped concrete Bangkok sidewalk tiles rectified from Ext Soi4 Mouth west sidewalk (ref_051.jpg)."
+    },
+    {
+      "name": "np_kerb_rw",
+      "source": "ref_035.jpg",
+      "box": [140, 490, 635, 518],
+      "size": [256, 64],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [3.2, 0.3],
+      "notes": "Red-and-white painted Thai no-parking concrete kerb from ref_035.jpg."
+    },
+    {
+      "name": "np_forecrt",
+      "source": "ref_031.jpg",
+      "quad": [[345, 365], [545, 365], [595, 485], [220, 485]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [3.2, 3.2],
+      "notes": "Concrete/washed-aggregate driveway paving inside Nana Plaza entrance arch from ref_031.jpg."
+    },
+    {
+      "name": "np_brick_cy",
+      "source": "ref_247.jpg",
+      "quad": [[470, 345], [720, 330], [745, 520], [355, 520]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [2.0, 2.0],
+      "notes": "Red-brick herringbone courtyard floor paving rectified from ref_247.jpg."
+    },
+    {
+      "name": "np_brick_col",
+      "source": "ref_168.jpg",
+      "box": [224, 224, 274, 372],
+      "size": [128, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [0.6, 1.2],
+      "notes": "Stacked tan/red brick pier masonry on ground-floor bar fronts from ref_168.jpg."
+    },
+    {
+      "name": "np_viaduct",
+      "source": "ref_045.jpg",
+      "quad": [[240, 128], [655, 56], [655, 114], [240, 166]],
+      "size": [512, 128],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [16.0, 3.2],
+      "notes": "BTS Skytrain concrete box girder & parapet deck rectified from Ext Soi4 Mouth (ref_045.jpg)."
+    },
+    {
+      "name": "np_pier_conc",
+      "source": "ref_035.jpg",
+      "box": [746, 196, 798, 340],
+      "size": [128, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [2.2, 4.4],
+      "notes": "Weathered concrete pier/column surface from ref_035.jpg."
+    },
+    {
+      "name": "np_wall_ylw",
+      "source": "ref_045.jpg",
+      "quad": [[628, 4], [795, 4], [795, 178], [628, 215]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [5.0, 5.0],
+      "notes": "Weathered ochre-yellow shophouse facade at Soi 4 mouth east corner from ref_045.jpg."
+    },
+    {
+      "name": "np_wall_crm",
+      "source": "ref_182.jpg",
+      "quad": [[5, 145], [160, 175], [160, 375], [5, 355]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [6.0, 6.0],
+      "notes": "Cream classical shophouse upper facade with arched balcony & windows at Nana Plaza street front (ref_182.jpg)."
+    },
+    {
+      "name": "np_wall_ochr",
+      "source": "ref_117.jpg",
+      "box": [515, 240, 795, 520],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [2.8, 2.8],
+      "notes": "Warm cream-ochre painted plaster wall inside Nana Plaza stairwells & walkways from ref_117.jpg."
+    },
+    {
+      "name": "np_wall_grey",
+      "source": "ref_051.jpg",
+      "box": [180, 226, 246, 412],
+      "size": [256, 256],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [2.0, 2.95],
+      "notes": "Clean un-watermarked recessed-panel grey concrete compound wall bay (free of cones and wires) on west side of Soi 4 from ref_051.jpg."
+    },
+    {
+      "name": "np_shutter",
+      "source": "ref_043.jpg",
+      "box": [556, 260, 748, 424],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [3.0, 2.6],
+      "notes": "Corrugated grey steel roller shutter on Soi 4 shopfront from ref_043.jpg."
+    },
+    {
+      "name": "np_nanahot_g",
+      "source": "ref_035.jpg",
+      "quad": [[196, 238], [492, 238], [492, 412], [196, 412]],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [7.5, 3.2],
+      "notes": "Reddish-brown granite NANA HOTEL gate sign wall opposite Nana Plaza from ref_035.jpg."
+    },
+    {
+      "name": "np_nanahot_w",
+      "source": "ref_041.jpg",
+      "quad": [[568, 12], [662, 2], [662, 114], [568, 120]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "tone": 0.92,
+      "scale_m": [10.0, 8.5],
+      "notes": "Wire-free white-and-grey horizontal ribbon-window hotel wing facade of Nana Hotel perspective-rectified from ref_041.jpg."
+    },
+    {
+      "name": "np_jw_tower",
+      "source": "ref_035.jpg",
+      "box": [300, 2, 510, 102],
+      "size": [256, 256],
+      "tile": "h",
+      "level_light": false,
+      "tone": 0.80,
+      "scale_m": [16.0, 12.0],
+      "notes": "JW Marriott Bangkok white-and-dark horizontal band curtain-wall tower from ref_035.jpg."
+    },
+    {
+      "name": "np_landmark",
+      "source": "ref_182.jpg",
+      "quad": [[555, 86], [665, 20], [665, 76], [555, 138]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "tone": 0.88,
+      "scale_m": [18.0, 14.0],
+      "notes": "The Landmark Bangkok horizontal white curtain-wall bands perspective-rectified from ref_182.jpg."
+    },
+    {
+      "name": "np_rajah_twr",
+      "source": "ref_022.jpg",
+      "quad": [[128, 412], [295, 455], [282, 598], [108, 598]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [14.0, 18.0],
+      "notes": "Warm-lit horizontal balcony hotel tower behind Nana Plaza from ref_022.jpg."
+    },
+    {
+      "name": "np_ptt_can",
+      "source": "ref_045.jpg",
+      "quad": [[0, 152], [224, 188], [224, 206], [0, 178]],
+      "size": [256, 64],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [8.0, 1.2],
+      "notes": "Blue-and-red PTT gas station fascia on NW Soi 4 corner from ref_045.jpg."
+    },
+    {
+      "name": "np_pharm_sgn",
+      "source": "ref_043.jpg",
+      "box": [556, 226, 766, 262],
+      "size": [512, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.2, 0.5],
+      "notes": "Pharmacy World Thai signboard on Soi 4 west side from ref_043.jpg."
+    },
+    {
+      "name": "np_tattoo",
+      "source": "ref_049.jpg",
+      "box": [696, 198, 768, 250],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.8, 0.9],
+      "notes": "TATTOO LED blade sign with rainbow arrows on Soi 4 west compound wall from ref_049.jpg."
+    },
+    {
+      "name": "np_billb_ext",
+      "source": "ref_049.jpg",
+      "box": [580, 0, 796, 98],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [9.0, 4.5],
+      "notes": "Large elevated commercial billboard on west side of Soi 4 from ref_049.jpg."
+    },
+    {
+      "name": "np_cannabis",
+      "source": "ref_042.jpg",
+      "box": [355, 204, 438, 286],
+      "size": [256, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [2.8, 2.2],
+      "notes": "Thai Cannabis Club green leaf & container kiosk sign inside Nana Hotel north gate from ref_042.jpg."
+    },
+    {
+      "name": "np_chang_bnr",
+      "source": "ref_042.jpg",
+      "box": [170, 2, 228, 152],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [2.2, 6.5],
+      "notes": "Vertical green Chang Mineral banner on SE corner of Nana Hotel slab from ref_042.jpg."
+    },
+    {
+      "name": "np_hooters",
+      "source": "ref_370.jpg",
+      "quad": [[134, 62], [212, 108], [212, 142], [134, 104]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.5, 1.4],
+      "notes": "Glowing orange HOOTERS wood-plank patio sign opposite Nana Plaza from ref_370.jpg."
+    },
+    {
+      "name": "np_blez",
+      "source": "ref_344.jpg",
+      "quad": [[30, 154], [138, 142], [138, 200], [30, 202]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.0, 1.5],
+      "notes": "BLEZ white-and-blue pharmacy sign south of Hooters on Soi 4 west side from ref_344.jpg."
+    },
+    {
+      "name": "np_hillary2",
+      "source": "ref_348.jpg",
+      "quad": [[2, 2], [254, 72], [254, 134], [2, 68]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [8.0, 1.8],
+      "notes": "Hillary 2 glowing orange live-music bar sign on Soi 4 east side south of Dynasty Inn from ref_348.jpg."
+    },
+    {
+      "name": "np_kingind",
+      "source": "ref_348.jpg",
+      "box": [358, 8, 410, 114],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.6, 3.6],
+      "notes": "KING INDIAN NIGHT CLUB vertical sign south of Hillary 2 on Soi 4 east side from ref_348.jpg."
+    },
+    {
+      "name": "np_morning",
+      "source": "ref_048.jpg",
+      "quad": [[192, 14], [492, 156], [492, 212], [192, 108]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [9.6, 1.9],
+      "notes": "Morning Night full unclipped un-watermarked signboard on black slats rectified from ref_048.jpg."
+    },
+    {
+      "name": "np_stumble",
+      "source": "ref_030.jpg",
+      "quad": [[170, 192], [244, 154], [244, 212], [170, 228]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [9.6, 2.1],
+      "notes": "Stumble Inn Nana Plaza full unclipped un-watermarked signboard rectified from ref_030.jpg."
+    },
+    {
+      "name": "np_kickoff",
+      "source": "ref_032.jpg",
+      "quad": [[395, 102], [605, 168], [605, 224], [395, 174]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 2.0],
+      "notes": "KICKOFF Pub & Restaurant matte-black vertical-slat fascia south of Nana Plaza arch from ref_032.jpg."
+    },
+    {
+      "name": "np_chang_bar",
+      "source": "ref_031.jpg",
+      "quad": [[96, 306], [385, 286], [385, 336], [96, 372]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 1.1],
+      "notes": "Ice Cold Draught Beers Chang / Singha / Magners bar front under entrance arch from ref_031.jpg."
+    },
+    {
+      "name": "np_exchange",
+      "source": "ref_032.jpg",
+      "quad": [[232, 236], [358, 238], [356, 346], [234, 348]],
+      "size": [256, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [2.6, 2.0],
+      "notes": "PRO EXCHANGE lower white counter, window & right vertical EXCHANGE strip rectified from ref_032.jpg."
+    },
+    {
+      "name": "np_exch_hdr",
+      "source": "ref_032.jpg",
+      "quad": [[212, 198], [378, 206], [378, 236], [212, 230]],
+      "size": [256, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [2.9, 0.55],
+      "notes": "PRO EXCHANGE royal-blue top fascia header rectified from ref_032.jpg."
+    },
+    {
+      "name": "np_arch_main",
+      "source": "ref_182.jpg",
+      "quad": [[134, 378], [524, 396], [516, 464], [142, 448]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [9.2, 3.2],
+      "notes": "Main NANA PLAZA concave black/silver entrance arch with unclipped white 3D letters & pink dancer silhouettes (excluding lower banner) from ref_182.jpg."
+    },
+    {
+      "name": "np_arch_land",
+      "source": "ref_031.jpg",
+      "quad": [[622, 68], [698, 92], [696, 138], [622, 128]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.6, 0.9],
+      "notes": "'Land of Smiles / Your Second Home' white lightbox sign on south entrance arch pier rectified from ref_031.jpg."
+    },
+    {
+      "name": "np_arch_crn",
+      "source": "ref_182.jpg",
+      "box": [262, 345, 410, 408],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.8, 1.3],
+      "notes": "Yellow triangle + red lips central crown atop Nana Plaza entrance arch from ref_182.jpg."
+    },
+    {
+      "name": "np_arch_ban",
+      "source": "ref_031.jpg",
+      "quad": [[332, 48], [616, 66], [616, 94], [332, 82]],
+      "size": [512, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.8, 0.7],
+      "notes": "'The Worlds Largest Adult Playground' red/orange banner under entrance arch from ref_031.jpg."
+    },
+    {
+      "name": "np_arch_safe",
+      "source": "ref_287.jpg",
+      "quad": [[72, 266], [212, 270], [202, 378], [52, 355]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.6, 0.9],
+      "notes": "'Nana Safety Zone / Lumpini Police Station' white lightbox sign on entrance arch rectified from ref_287.jpg."
+    },
+    {
+      "name": "np_blade_v",
+      "source": "ref_020.jpg",
+      "quad": [[562, 0], [642, 8], [634, 146], [556, 126]],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.8, 4.2],
+      "notes": "Vertical NANA PLAZA neon projecting blade sign with dancer silhouette on south front wall from ref_020.jpg."
+    },
+    {
+      "name": "np_canopy",
+      "source": "ref_267.jpg",
+      "box": [280, 10, 740, 260],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [7.8, 7.8],
+      "notes": "2018 white steel-ribbed tensile roof membrane canopy over Nana Plaza from ref_267.jpg."
+    },
+    {
+      "name": "np_roof_tile",
+      "source": "ref_234.jpg",
+      "box": [20, 0, 780, 56],
+      "size": [512, 64],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [6.0, 0.9],
+      "notes": "Dark brown clay roof tiles on inner 3rd-floor eaves of Nana Plaza from ref_234.jpg."
+    },
+    {
+      "name": "np_awn_ylw",
+      "source": "ref_234.jpg",
+      "box": [180, 374, 760, 424],
+      "size": [256, 64],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [4.0, 1.0],
+      "notes": "Yellow corrugated metal ground-floor awning over courtyard bars from ref_234.jpg."
+    },
+    {
+      "name": "np_awn_blue",
+      "source": "ref_045.jpg",
+      "quad": [[618, 204], [798, 166], [798, 232], [612, 256]],
+      "size": [256, 64],
+      "tile": "h",
+      "level_light": true,
+      "scale_m": [3.5, 1.0],
+      "notes": "Blue canvas shopfront awning at Soi 4 mouth rectified from ref_045.jpg."
+    },
+    {
+      "name": "np_umb_turq",
+      "source": "ref_038.jpg",
+      "box": [475, 258, 650, 306],
+      "size": [128, 64],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [1.8, 0.9],
+      "notes": "Turquoise/seafoam street-food vendor umbrella fabric on Soi 4 from ref_038.jpg."
+    },
+    {
+      "name": "np_umb_blue",
+      "source": "ref_032.jpg",
+      "box": [430, 260, 560, 306],
+      "size": [128, 64],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [1.8, 0.9],
+      "notes": "Bright royal-blue street-food vendor umbrella fabric on Soi 4 from ref_032.jpg."
+    },
+    {
+      "name": "np_balust",
+      "source": "ref_234.jpg",
+      "box": [16, 152, 424, 204],
+      "size": [512, 64],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [4.8, 0.95],
+      "notes": "Turned ochre-yellow stone balustrade along Nana Plaza upper walkways from ref_234.jpg."
+    },
+    {
+      "name": "np_glass_rl",
+      "source": "ref_127.jpg",
+      "quad": [[430, 395], [790, 385], [790, 520], [430, 520]],
+      "size": [256, 128],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [3.2, 1.05],
+      "notes": "Blue-lit tempered glass & stainless-steel walkway railing + counter on Floor 3 from ref_127.jpg."
+    },
+    {
+      "name": "np_stair_trd",
+      "source": "ref_057.jpg",
+      "quad": [[495, 255], [755, 250], [795, 520], [440, 520]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [1.8, 1.8],
+      "notes": "Brown ceramic stair treads with white aluminum nosing rectified from Gf Staircase (ref_057.jpg)."
+    },
+    {
+      "name": "np_lift_door",
+      "source": "ref_130.jpg",
+      "quad": [[460, 180], [575, 178], [572, 488], [458, 468]],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.1, 2.2],
+      "notes": "Brushed stainless-steel passenger lift (elevator) doors rectified from F3 Lift Lobby (ref_130.jpg)."
+    },
+    {
+      "name": "np_fl2_plq",
+      "source": "ref_117.jpg",
+      "box": [258, 252, 412, 518],
+      "size": [128, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.45, 0.60],
+      "notes": "Wall plaque reading 'FL. 2' inside stairwell from ref_117.jpg."
+    },
+    {
+      "name": "np_fl3_plq",
+      "source": "ref_137.jpg",
+      "box": [654, 252, 742, 366],
+      "size": [128, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.45, 0.60],
+      "notes": "Wall plaque reading 'FL. 3' at Floor 3 landing from ref_137.jpg."
+    },
+    {
+      "name": "np_lollipop",
+      "source": "ref_208.jpg",
+      "quad": [[58, 174], [198, 206], [198, 258], [58, 232]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.8, 1.25],
+      "notes": "'LOLLIPOP' full unclipped cyan-and-red 3D bubble-letter sign on Ground Floor North wing rectified from ref_208.jpg."
+    },
+    {
+      "name": "np_loll_int",
+      "source": "ref_066.jpg",
+      "box": [405, 148, 795, 345],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 2.6],
+      "notes": "Warm red lantern & bottle-bar interior wall inside Lollipop on Ground Floor North wing from ref_066.jpg."
+    },
+    {
+      "name": "np_bunnies",
+      "source": "ref_170.jpg",
+      "box": [215, 165, 574, 268],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [7.5, 1.15],
+      "notes": "'BANGKOK BUNNIES' full unclipped white-and-crimson signboard with bunny silhouette from ref_170.jpg."
+    },
+    {
+      "name": "np_bunny25",
+      "source": "ref_018.jpg",
+      "quad": [[154, 250], [254, 214], [254, 274], [154, 306]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.5, 1.15],
+      "notes": "'BUNNY' glowing red neon sign on Ground Floor South wing (Nov 2025 courtyard, ref_018.jpg)."
+    },
+    {
+      "name": "np_twister",
+      "source": "ref_021.jpg",
+      "quad": [[588, 178], [728, 252], [724, 306], [585, 215]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [9.0, 1.3],
+      "notes": "'TWISTER BKK' glowing orange/gold signboard with crest on Ground Floor North wing from ref_021.jpg."
+    },
+    {
+      "name": "np_erotica1",
+      "source": "ref_021.jpg",
+      "quad": [[6, 302], [224, 212], [228, 268], [10, 396]],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [7.0, 1.2],
+      "notes": "'Erotica' glowing red/orange neon sign on Ground Floor from ref_021.jpg."
+    },
+    {
+      "name": "np_witchcrf",
+      "source": "ref_018.jpg",
+      "quad": [[324, 198], [374, 176], [374, 218], [324, 240]],
+      "size": [256, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.2, 1.0],
+      "notes": "'WITCHCRAFT' sign on Ground Floor South-West wing rectified from ref_018.jpg."
+    },
+    {
+      "name": "np_obsession",
+      "source": "ref_297.jpg",
+      "box": [224, 180, 624, 262],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [7.5, 1.2],
+      "notes": "'OBSESSION' bold red-on-white signboard at East end of Ground Floor from ref_297.jpg."
+    },
+    {
+      "name": "np_obs_wall",
+      "source": "ref_296.jpg",
+      "quad": [[152, 148], [720, 82], [722, 452], [156, 386]],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [5.2, 2.6],
+      "notes": "Obsession 4-panel multilingual welcome & pole-dancer silhouette lightbox wall rectified from ref_296.jpg."
+    },
+    {
+      "name": "np_playskool",
+      "source": "ref_234.jpg",
+      "box": [168, 424, 668, 520],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 1.15],
+      "notes": "'PLAYSKOOL' red-on-white ground-floor signboard from ref_234.jpg."
+    },
+    {
+      "name": "np_london",
+      "source": "ref_234.jpg",
+      "quad": [[2, 438], [164, 424], [164, 530], [2, 532]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.6, 1.15],
+      "notes": "'LONDON CALLING' Underground roundel signboard from ref_234.jpg."
+    },
+    {
+      "name": "np_rainbow_b",
+      "source": "ref_075.jpg",
+      "box": [345, 166, 574, 212],
+      "size": [512, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.5, 0.75],
+      "notes": "'RAINBOW BAR' glowing cyan/white neon sign on Ground Floor from ref_075.jpg."
+    },
+    {
+      "name": "np_tile_by",
+      "source": "ref_075.jpg",
+      "box": [108, 174, 298, 294],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [1.8, 1.2],
+      "notes": "Blue-and-yellow checkerboard wall tile inside Rainbow Bar from ref_075.jpg."
+    },
+    {
+      "name": "np_vw_bus",
+      "source": "ref_297.jpg",
+      "box": [430, 290, 616, 366],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.2, 1.7],
+      "notes": "Green-and-white VW Type 2 Camper ('Sports Bus') side/windows inside SE courtyard from ref_297.jpg."
+    },
+    {
+      "name": "np_pool_felt",
+      "source": "ref_083.jpg",
+      "quad": [[322, 308], [412, 308], [462, 360], [282, 360]],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.3, 2.5],
+      "notes": "Cyan-blue pool table cloth rectified from Gf Pooltable Bar interior (ref_083.jpg)."
+    },
+    {
+      "name": "np_pool_wall",
+      "source": "ref_083.jpg",
+      "box": [228, 208, 396, 312],
+      "size": [256, 128],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [3.4, 1.8],
+      "notes": "Orange, black & grey geometric polygon accent wall inside SE Pooltable Bar from ref_083.jpg."
+    },
+    {
+      "name": "np_pool_ceil",
+      "source": "ref_083.jpg",
+      "box": [320, 8, 760, 184],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [3.6, 3.6],
+      "notes": "Dark ceiling tiles with bright green LED light strips inside SE Pooltable Bar from ref_083.jpg."
+    },
+    {
+      "name": "np_pool_door",
+      "source": "ref_204.jpg",
+      "box": [602, 12, 796, 520],
+      "size": [256, 512],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.0, 2.2],
+      "notes": "Glass door with 'NO CUSTOMERS NO TOILET PUBLIC / ห้ามเข้า' notice at SE Pooltable Bar from ref_204.jpg."
+    },
+    {
+      "name": "np_angel_w",
+      "source": "ref_099.jpg",
+      "box": [110, 0, 776, 412],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.6, 2.5],
+      "notes": "Angelwitch terracotta diamond-tile wall with glowing orange lettering & witch silhouette from ref_099.jpg."
+    },
+    {
+      "name": "np_angel_tl",
+      "source": "ref_099.jpg",
+      "box": [12, 250, 280, 520],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [1.6, 1.6],
+      "notes": "Terracotta diagonal red wall tile along Floor 2 Angelwitch facade from ref_099.jpg."
+    },
+    {
+      "name": "np_angel_sgn",
+      "source": "ref_165.jpg",
+      "quad": [[12, 82], [254, 62], [252, 274], [12, 278]],
+      "size": [256, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.6, 1.4],
+      "notes": "'It's Showtime! Angelwitch Rock Dancers' walkway sign from ref_165.jpg."
+    },
+    {
+      "name": "np_sexynight",
+      "source": "ref_107.jpg",
+      "box": [0, 8, 595, 360],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.2, 2.5],
+      "notes": "Sexy Night stone-veneer wall, red velvet curtain & Thai operating hours plaque from ref_107.jpg."
+    },
+    {
+      "name": "np_dc10",
+      "source": "ref_101.jpg",
+      "quad": [[38, 12], [318, 152], [318, 224], [38, 118]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.6, 1.1],
+      "notes": "'DC 10' full unclipped neon fascia sign on Floor 2 North wing rectified from ref_101.jpg."
+    },
+    {
+      "name": "np_dc10_wal",
+      "source": "ref_101.jpg",
+      "quad": [[14, 10], [318, 152], [318, 445], [14, 525]],
+      "size": [512, 512],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [5.5, 3.2],
+      "notes": "DC-10 full storefront wall with glowing DC 10 neon sign, red-curtained open doorway & Thai hours plaque from ref_101.jpg."
+    },
+    {
+      "name": "np_casanova",
+      "source": "ref_109.jpg",
+      "box": [175, 18, 662, 266],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.2, 1.7],
+      "notes": "'Welcome to Casanova BAR' full unclipped blue-and-pink cursive lightbox sign from ref_109.jpg."
+    },
+    {
+      "name": "np_casa_prp",
+      "source": "ref_115.jpg",
+      "box": [26, 40, 620, 520],
+      "size": [512, 512],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.8, 2.8],
+      "notes": "Casanova purple wall with arched blue curtain doorway, gold relief & Thai plaque from ref_115.jpg."
+    },
+    {
+      "name": "np_spankys",
+      "source": "ref_272.jpg",
+      "box": [522, 466, 668, 520],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.5, 1.1],
+      "notes": "'SPANKYS' straight-on tube lettering & palm lights at Floor 2 North landing from ref_272.jpg."
+    },
+    {
+      "name": "np_reddragon",
+      "source": "ref_018.jpg",
+      "box": [368, 166, 516, 214],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 1.4],
+      "notes": "'RED DRAGON' ornate golden-red dragon neon sign on Floor 2 West inner bridge from ref_018.jpg."
+    },
+    {
+      "name": "np_mandarin",
+      "source": "ref_184.jpg",
+      "box": [146, 84, 796, 464],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.2, 2.8],
+      "notes": "MANDARIN open doorway & MERCURY Ladyboy Bar ('Nanas Newest LadyBoy Bar') front from ref_184.jpg."
+    },
+    {
+      "name": "np_tempt_mrc",
+      "source": "ref_246.jpg",
+      "box": [82, 164, 662, 342],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [5.8, 1.5],
+      "notes": "'TEMPTATIONS 2ND FLOOR / MERCURY Ladyboy Bar AT THE TOP OF THE ESCALATOR' banner from ref_246.jpg."
+    },
+    {
+      "name": "np_balcony_b",
+      "source": "ref_167.jpg",
+      "box": [108, 72, 686, 180],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.5, 0.95],
+      "notes": "'BALCONY BAR' full unclipped signboard on Floor 2 West bridge from ref_167.jpg."
+    },
+    {
+      "name": "np_charades",
+      "source": "ref_179.jpg",
+      "box": [20, 20, 740, 520],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.2, 2.8],
+      "notes": "'CHARADES' faux cave-rock bar front & black French doors from ref_179.jpg."
+    },
+    {
+      "name": "np_beauty",
+      "source": "ref_174.jpg",
+      "box": [84, 76, 712, 480],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.8, 2.8],
+      "notes": "'Beauty Shop' glass-front hair salon upstairs above Nana Plaza arch from ref_174.jpg."
+    },
+    {
+      "name": "np_mural",
+      "source": "ref_187.jpg",
+      "box": [60, 12, 578, 520],
+      "size": [256, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [2.8, 2.8],
+      "notes": "Pop-art comic mural wall inside Nana Plaza from ref_187.jpg."
+    },
+    {
+      "name": "np_erotica3",
+      "source": "ref_137.jpg",
+      "box": [244, 30, 796, 396],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [4.6, 2.7],
+      "notes": "Floor 3 Erotica bar front with 'EROTICA', 'ALL REAL GIRL 100%' & 'FL. 3' plaque from ref_137.jpg."
+    },
+    {
+      "name": "np_billb_arr",
+      "source": "ref_139.jpg",
+      "box": [304, 128, 492, 254],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.8, 0.9],
+      "notes": "'Billboard 3rd floor ->' full unclipped directional lightbox sign at Floor 3 stairs from ref_139.jpg."
+    },
+    {
+      "name": "np_billboard",
+      "source": "ref_148.jpg",
+      "quad": [[520, 62], [786, 124], [786, 240], [520, 290]],
+      "size": [512, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [6.5, 2.7],
+      "notes": "'Billboard BANGKOK' glowing white cursive neon on purple-lit 3rd-floor wall from ref_148.jpg."
+    },
+    {
+      "name": "np_bill_bar",
+      "source": "ref_028.jpg",
+      "box": [615, 2, 798, 196],
+      "size": [256, 256],
+      "tile": "h",
+      "level_light": false,
+      "scale_m": [2.8, 2.0],
+      "notes": "Backlit liquor bottle shelves inside Billboard Bangkok 3rd-floor bar (ref_028.jpg — sole stage photo)."
+    },
+    {
+      "name": "np_bill_fur",
+      "source": "ref_028.jpg",
+      "box": [6, 304, 145, 385],
+      "size": [256, 128],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [1.6, 0.8],
+      "notes": "White plush fur stage carpet inside Billboard Bangkok 3rd-floor bar (ref_028.jpg)."
+    },
+    {
+      "name": "np_tinsel",
+      "source": "ref_151.jpg",
+      "box": [140, 50, 696, 520],
+      "size": [512, 512],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.6, 2.7],
+      "notes": "Silver tinsel curtain & padlocked black mesh gates on Floor 3 Butterflies front from ref_151.jpg."
+    },
+    {
+      "name": "np_butterfl",
+      "source": "ref_230.jpg",
+      "quad": [[22, 62], [254, 84], [258, 218], [32, 240]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.2, 1.5],
+      "notes": "'BUTTERFLIES' red signboard with white fairy silhouette on Floor 3 South wing rectified from ref_230.jpg."
+    },
+    {
+      "name": "np_geisha3f",
+      "source": "ref_020.jpg",
+      "box": [266, 250, 352, 284],
+      "size": [512, 128],
+      "tile": "none",
+      "level_light": false,
+      "contrast_red": true,
+      "tone": 0.80,
+      "scale_m": [4.5, 1.1],
+      "notes": "'GEISHA' crimson-on-warm-white backlit sign on Floor 3 East end visible through arch from ref_020.jpg."
+    },
+    {
+      "name": "np_enter_sgn",
+      "source": "ref_231.jpg",
+      "box": [84, 152, 368, 252],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.5, 0.65],
+      "notes": "'ENTER ->' directional arrow sign on upper walkway from ref_231.jpg."
+    },
+    {
+      "name": "np_xformer",
+      "source": "ref_298.jpg",
+      "box": [278, 274, 452, 434],
+      "size": [256, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.3, 1.2],
+      "notes": "Pole-mounted ribbed grey electrical distribution transformer on Soi 4 from ref_298.jpg."
+    },
+    {
+      "name": "np_taxi_gy",
+      "source": "ref_188.jpg",
+      "box": [182, 370, 386, 514],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.8, 1.2],
+      "notes": "Bangkok green-and-yellow TAXI-METER body color & front grille from ref_188.jpg."
+    },
+    {
+      "name": "np_taxi_grn",
+      "source": "ref_045.jpg",
+      "box": [332, 294, 372, 332],
+      "size": [128, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.8, 1.2],
+      "notes": "Bright green Toyota taxi body at Soi 4 mouth from ref_045.jpg."
+    },
+    {
+      "name": "np_taxi_pnk",
+      "source": "ref_344.jpg",
+      "box": [10, 254, 210, 344],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.8, 1.3],
+      "notes": "Bangkok pink taxi side profile on Soi 4 from ref_344.jpg."
+    },
+    {
+      "name": "np_tuktuk",
+      "source": "ref_045.jpg",
+      "box": [282, 300, 340, 366],
+      "size": [128, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.4, 1.6],
+      "notes": "Blue-and-silver/yellow Bangkok tuk-tuk at Soi 4 mouth from ref_045.jpg."
+    },
+    {
+      "name": "np_in_plq",
+      "source": "ref_035.jpg",
+      "box": [133, 244, 183, 272],
+      "size": [64, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.45, 0.45],
+      "notes": "Illuminated 'IN' gate-pillar plaque on Nana Hotel south driveway pillar cropped from ref_035.jpg."
+    },
+    {
+      "name": "np_pickup_sv",
+      "source": "ref_208.jpg",
+      "box": [44, 308, 152, 378],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.8, 1.4],
+      "notes": "Silver pickup truck cabin/body parked inside Nana Plaza courtyard from ref_208.jpg."
+    },
+    {
+      "name": "np_shrine_gd",
+      "source": "ref_190.jpg",
+      "box": [336, 168, 466, 444],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.1, 2.0],
+      "notes": "Ornate golden Thai Spirit House shrine in Nana Plaza West Forecourt from ref_190.jpg."
+    },
+    {
+      "name": "np_foliage",
+      "source": "ref_043.jpg",
+      "box": [44, 174, 286, 254],
+      "size": [256, 128],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [3.0, 1.5],
+      "notes": "Lush green Bangkok street & compound tree canopy foliage from ref_043.jpg."
+    },
+    {
+      "name": "np_slat_blk",
+      "source": "ref_039.jpg",
+      "box": [405, 22, 525, 136],
+      "size": [256, 128],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [3.0, 2.2],
+      "notes": "Un-watermarked matte-black horizontal balcony slats & dark metal fascia above Stumble Inn / Morning Night from ref_039.jpg."
+    },
+    {
+      "name": "np_mahog_wd",
+      "source": "ref_297.jpg",
+      "box": [115, 462, 185, 510],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [1.8, 1.8],
+      "notes": "Streak-free dark polished mahogany bar countertop & wooden paneling cropped from Beer Garden counter in ref_297.jpg."
+    },
+    {
+      "name": "np_red_pnt",
+      "source": "ref_067.jpg",
+      "box": [265, 294, 520, 312],
+      "size": [128, 64],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [1.6, 0.8],
+      "notes": "Clean solid crimson-red painted bar counter / cooler panel cropped from Lollipop Ground Floor bar rail in ref_067.jpg."
+    },
+    {
+      "name": "np_white_pnl",
+      "source": "ref_032.jpg",
+      "box": [252, 316, 304, 344],
+      "size": [128, 128],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [1.8, 1.8],
+      "notes": "Clean painted white composite kiosk/cabinet panel cropped from PRO EXCHANGE booth in ref_032.jpg."
+    },
+    {
+      "name": "np_stool_pk",
+      "source": "ref_101.jpg",
+      "box": [454, 342, 486, 364],
+      "size": [64, 64],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [0.5, 0.5],
+      "notes": "Pink bar-stool cushion upholstery cropped from Floor 2 North walkway stools in ref_101.jpg."
+    },
+    {
+      "name": "np_stool_gn",
+      "source": "ref_032.jpg",
+      "box": [516, 390, 540, 426],
+      "size": [64, 64],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [0.6, 0.8],
+      "notes": "Clean green plastic bin & bar-stool surface cropped from green municipal wheelie bin in ref_032.jpg."
+    },
+    {
+      "name": "np_tv_pitch",
+      "source": "ref_083.jpg",
+      "box": [48, 156, 128, 198],
+      "size": [128, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.6, 0.9],
+      "notes": "Live football pitch broadcast TV screen cropped from SE Pool-Table Bar interior in ref_083.jpg."
+    },
+    {
+      "name": "np_chrome",
+      "source": "ref_130.jpg",
+      "box": [472, 210, 506, 420],
+      "size": [64, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [0.35, 1.8],
+      "notes": "Clean brushed stainless-steel / chrome pole & stanchion tube cropped from ref_130.jpg."
+    },
+    {
+      "name": "np_led_cyan",
+      "source": "ref_101.jpg",
+      "quad": [[215, 4], [485, 4], [448, 84], [288, 62]],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [3.2, 3.2],
+      "notes": "Linear cyan-and-green LED strip corrugated soffit ceiling rectified from Floor 2 North walkway in ref_101.jpg."
+    },
+    {
+      "name": "np_pharm_bld",
+      "source": "ref_043.jpg",
+      "quad": [[546, 54], [588, 42], [588, 168], [546, 174]],
+      "size": [128, 256],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.9, 1.8],
+      "notes": "Projecting Pharmacy World Rx capsule blade sign on Soi 4 west side rectified from ref_043.jpg."
+    },
+    {
+      "name": "np_burger_s",
+      "source": "ref_042.jpg",
+      "box": [662, 232, 704, 294],
+      "size": [128, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [1.1, 1.4],
+      "notes": "Nana Burger black signboard on Soi 4 west side cropped from ref_042.jpg."
+    },
+    {
+      "name": "np_out_plq",
+      "source": "ref_035.jpg",
+      "box": [524, 247, 558, 273],
+      "size": [64, 64],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.45, 0.45],
+      "notes": "'OUT' gate-pillar plaque on Nana Hotel north driveway pillar cropped from ref_035.jpg."
+    },
+    {
+      "name": "np_welcome_v",
+      "source": "ref_137.jpg",
+      "box": [206, 66, 252, 168],
+      "size": [64, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [0.45, 0.90],
+      "notes": "Vertical glowing red/yellow 'WELCOME' lightbox beside Erotica 3F cropped from ref_137.jpg."
+    },
+    {
+      "name": "np_bar_dark",
+      "source": "ref_048.jpg",
+      "box": [285, 255, 385, 325],
+      "size": [256, 256],
+      "tile": "hv",
+      "level_light": false,
+      "scale_m": [3.6, 2.6],
+      "notes": "Deep recessed open-front pub interior wall & ceiling shadow cropped from Morning Night in ref_048.jpg."
+    },
+    {
+      "name": "np_lukes_tiki",
+      "source": "ref_190.jpg",
+      "quad": [[94, 78], [164, 48], [168, 82], [100, 112]],
+      "size": [256, 128],
+      "tile": "none",
+      "level_light": false,
+      "scale_m": [3.2, 1.1],
+      "notes": "'LUKE'S TIKI BAR' blue awning fascia in Nana Plaza West entrance throat rectified from ref_190.jpg."
+    },
+    {
+      "name": "np_silv_pnt",
+      "source": "ref_190.jpg",
+      "box": [505, 70, 545, 102],
+      "size": [128, 128],
+      "tile": "hv",
+      "level_light": true,
+      "scale_m": [1.5, 1.5],
+      "notes": "Clean neutral metallic silver vehicle body paint cropped from silver pickup hood in ref_190.jpg."
+    }
+  ]
+}

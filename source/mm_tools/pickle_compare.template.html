@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pickle Model Compare</title>
+<!-- Built by mm_tools/make_pickle_compare.py from pickle_compare.template.html; the models and textures sit inline (DATA). -->
+<style>
+:root{--bg:#f1f3ea;--card:#fbfcf6;--ink:#1c2a1c;--mute:#637060;--line:#d4d9c4;--accent:#2f8a3d;--accent-ink:#fff;--flat:#c0392b;--solid:#2f8a3d;--stage:#20281f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a14;--card:#1d261d;--ink:#e7efe2;--mute:#94a28f;--line:#33403a;--accent:#58c46a;--accent-ink:#0d170f;--flat:#ff7766;--solid:#6fd47f;--stage:#0f150f}}
+:root[data-theme="dark"]{--bg:#141a14;--card:#1d261d;--ink:#e7efe2;--mute:#94a28f;--line:#33403a;--accent:#58c46a;--accent-ink:#0d170f;--flat:#ff7766;--solid:#6fd47f;--stage:#0f150f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,Segoe UI,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+header{padding:20px 0 8px}
+h1{margin:0 0 4px;font-size:26px}
+header p{margin:0;color:var(--mute);max-width:80ch}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0;padding:10px 12px;border:1px solid var(--line);background:var(--card);border-radius:12px}
+.bar label{display:flex;gap:6px;align-items:center;color:var(--mute);cursor:pointer}
+.bar input[type=range]{width:120px}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 12px}
+button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.stage{position:relative;background:var(--stage);aspect-ratio:1/1;touch-action:none}
+canvas{display:block;width:100%;height:100%;cursor:grab}
+canvas:active{cursor:grabbing}
+.badge{position:absolute;left:10px;top:10px;font-weight:700;font-size:12px;letter-spacing:.06em;padding:3px 9px;border-radius:999px;color:#fff;pointer-events:none}
+.badge.flat{background:var(--flat)}
+.badge.solid{background:var(--solid);color:#06120a}
+.badge.views{background:#2d6cdf}
+.viewtag{position:absolute;right:10px;top:10px;font:12px ui-monospace,Consolas,monospace;color:#cfe0ff;background:rgba(20,40,90,.75);padding:3px 8px;border-radius:999px;pointer-events:none}
+.info{padding:10px 12px 12px}
+.info h2{margin:0 0 2px;font-size:16px}
+.info .what{color:var(--mute);font-size:13px;margin:0 0 6px}
+.dims{font:12.5px/1.4 ui-monospace,Consolas,monospace;color:var(--mute)}
+.dims b{color:var(--ink)}
+.views{display:flex;gap:6px;margin-top:8px}
+.views button{padding:3px 10px;font-size:13px}
+.foot{color:var(--mute);font-size:13px;margin-top:16px;max-width:90ch}
+.err{padding:24px;color:var(--flat)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Pickle Surprise: every model, side by side</h1>
+  <p>Each model is shown with the texture the game gives it, animated like the game does. Drag to turn one. The blue <b>16 VIEWS</b>
+  pickle is the new standing balloon: it always turns to face you and swaps to the picture of the pickle seen from where you stand,
+  so orbiting it shows the front, the sides and the back. The old single card is thin and vanishes edge-on.</p>
+</header>
+
+<div class="bar">
+  <button id="spin" class="on">Spinning</button>
+  <button id="edge">All edge-on</button>
+  <button id="front">All front</button>
+  <label title="The game shows textures 2.5x brighter (r_hdr_scenebrightness 2.5); these were darkened to match">Brightness <input type="range" id="bright" min="0.5" max="5" step="0.05" value="2.6"></label>
+  <label><input type="checkbox" id="anim" checked> Animate the faces</label>
+  <label><input type="checkbox" id="grid" checked> Grid floor</label>
+</div>
+
+<div class="grid" id="grid-panels"></div>
+<p class="foot">Sizes are in Quake units at scale 1 (a player is 56 tall). In the game the standing pickle is scaled up to 5.7 and the thrown one to 1.7.
+A model with no thickness in any direction is a flat card: its red <b>FLAT</b> tag is worked out from the model itself, not typed in.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*DATA*/
+</script>
+<script>
+(() => {
+if (typeof THREE === "undefined") {
+  document.querySelector(".wrap").insertAdjacentHTML("beforeend", '<p class="err">three.js did not load (the page needs internet for it, once).</p>');
+  return;
+}
+// ---------------------------------------------------------------- MD3 (frame 0 only)
+function parseMD3(b64) {
+  const bin = atob(b64), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  const dv = new DataView(u.buffer);
+  const str = (o, n) => { let s = ""; for (let i = 0; i < n && u[o + i]; i++) s += String.fromCharCode(u[o + i]); return s; };
+  const numSurfaces = dv.getInt32(4 + 4 + 64 + 4 + 4 + 4, true);       // ident, version, name, flags, numFrames, numTags -> numSurfaces
+  const ofsSurfaces = dv.getInt32(4 + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4 + 4, true);
+  const surfaces = [];
+  let so = ofsSurfaces;
+  for (let s = 0; s < numSurfaces; s++) {
+    const o = so;
+    const name = str(o + 4, 64);
+    const nv = dv.getInt32(o + 4 + 64 + 4 + 4 + 4, true), nt = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4, true);
+    const ofsTri = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4 + 4, true), ofsSh = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4, true);
+    const ofsSt = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4 + 4, true), ofsXyz = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4, true);
+    const ofsEnd = dv.getInt32(o + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4, true);
+    const nf = dv.getInt32(o + 4 + 64 + 4, true);
+    const frames = [];
+    for (let f = 0; f < nf; f++) {
+      const fp = new Float32Array(nv * 3);
+      for (let i = 0; i < nv; i++) for (let k = 0; k < 3; k++) fp[i * 3 + k] = dv.getInt16(o + ofsXyz + (f * nv + i) * 8 + k * 2, true) / 64;
+      frames.push(fp);
+    }
+    const pos = frames[0], uv = new Float32Array(nv * 2), idx = new Uint32Array(nt * 3);
+    for (let i = 0; i < nv; i++) {
+      uv[i * 2] = dv.getFloat32(o + ofsSt + i * 8, true);
+      uv[i * 2 + 1] = 1 - dv.getFloat32(o + ofsSt + i * 8 + 4, true);
+    }
+    for (let i = 0; i < nt * 3; i++) idx[i] = dv.getInt32(o + ofsTri + i * 4, true);
+    surfaces.push({name, shader: str(o + ofsSh, 64), pos, uv, idx, frames});
+    so += ofsEnd;
+  }
+  return surfaces;
+}
+
+// ---------------------------------------------------------------- textures and shaders
+const loader = new THREE.TextureLoader();
+const textures = {};
+for (const k in TEX) { const t = loader.load(TEX[k]); textures[k] = t; }
+function texFor(frame) { return textures[frame] || textures["progs/pickle_skin"]; }
+
+const panels = [];
+const gridEl = document.getElementById("grid-panels");
+let spin = true, bright = 2.6, animOn = true, showGrid = true;
+
+function makePanel(m) {
+  const surfaces = parseMD3(m.md3);
+  const box = new THREE.Box3();
+  const group = new THREE.Group();
+  const mats = [], geos = [];
+  const multi = surfaces[0].frames.length > 1;
+  for (const s of surfaces) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(s.pos, 3));
+    g.setAttribute("uv", new THREE.BufferAttribute(s.uv, 2));
+    g.setIndex(new THREE.BufferAttribute(s.idx, 1));
+    g.computeVertexNormals();
+    // a card has both windings (it is double-sided), so its normals cancel to nothing: face it along X, which is its normal
+    const nn = g.attributes.normal;
+    for (let i = 0; i < nn.count; i++) {
+      if (!(Math.hypot(nn.getX(i), nn.getY(i), nn.getZ(i)) > 0.5)) nn.setXYZ(i, 1, 0, 0);
+    }
+    g.computeBoundingBox();
+    box.union(g.boundingBox);
+    const sh = SHADERS[s.shader] || {fps: 0, frames: ["progs/pickle_skin"], alpha: false};
+    const mat = new THREE.MeshLambertMaterial({map: texFor(sh.frames[0]), side: THREE.DoubleSide, alphaTest: sh.alpha ? 0.5 : 0});
+    mats.push({mat, sh});
+    geos.push({g, s});
+    group.add(new THREE.Mesh(g, mat));
+  }
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  group.position.sub(center);
+  const flat = Math.min(size.x, size.y, size.z) < 0.5;
+  const viewsN = multi ? surfaces[0].frames.length : 0;
+
+  const el = document.createElement("div");
+  el.className = "panel";
+  el.innerHTML = `<div class="stage"><canvas></canvas><span class="badge ${multi ? "views" : flat ? "flat" : "solid"}">${multi ? viewsN + " VIEWS" : flat ? "FLAT (a card)" : "3D"}</span><span class="viewtag" style="display:none"></span></div>
+    <div class="info"><h2>${m.title}</h2><p class="what">${m.what}</p>
+    <div class="dims">size <b>${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)}</b> (x × y × z)<br>
+    thinnest side <b>${Math.min(size.x, size.y, size.z).toFixed(1)}</b> · ${surfaces.reduce((a, s) => a + s.idx.length / 3, 0)} triangles</div>
+    <div class="views"><button data-v="front">Front</button><button data-v="edge">Edge-on</button><button data-v="top">Top</button></div></div>`;
+  gridEl.appendChild(el);
+  const canvas = el.querySelector("canvas");
+  const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  scene.add(group);
+  const amb = new THREE.AmbientLight(0xffffff, 0.7), dl = new THREE.DirectionalLight(0xffffff, 0.8);
+  scene.add(amb, dl);
+  const floor = new THREE.GridHelper(Math.max(size.x, size.y, size.z) * 3, 12, 0x4a604a, 0x2f3d2f);
+  floor.rotation.x = Math.PI / 2;
+  floor.position.z = -size.z / 2;
+  scene.add(floor);
+  const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 2000);
+  cam.up.set(0, 0, 1);
+  const p = {el, canvas, renderer, scene, cam, group, mats, geos, multi, viewsN, dl, floor, theta: Math.PI + 0.5, phi: 0.25, radius: Math.max(size.x, size.y, size.z) * 2.3, size};
+  // drag to turn
+  let down = null;
+  canvas.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); p.dragging = true; });
+  canvas.addEventListener("pointermove", e => {
+    if (!down) return;
+    p.theta -= (e.clientX - down[0]) * 0.01;
+    p.phi = Math.max(-1.4, Math.min(1.4, p.phi + (e.clientY - down[1]) * 0.01));
+    down = [e.clientX, e.clientY];
+  });
+  const up = () => { down = null; p.dragging = false; };
+  canvas.addEventListener("pointerup", up);
+  canvas.addEventListener("pointercancel", up);
+  el.querySelectorAll(".views button").forEach(b => b.addEventListener("click", () => view(p, b.dataset.v)));
+  panels.push(p);
+}
+
+// theta = PI: the camera sits at -X looking +X at the front (the face looks along -X); theta = 90 deg: along Y, the card is seen edge-on
+function view(p, v) {
+  p.theta = v === "edge" ? Math.PI / 2 : Math.PI;
+  p.phi = v === "top" ? 1.35 : 0.0;
+  if (v === "front") p.phi = 0.0;
+}
+
+function resize(p) {
+  const w = p.canvas.clientWidth, h = p.canvas.clientHeight;
+  if (p.w !== w || p.h !== h) { p.w = w; p.h = h; p.renderer.setSize(w, h, false); p.cam.aspect = w / h; p.cam.updateProjectionMatrix(); }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  for (const p of panels) {
+    if (spin && !p.dragging) p.theta += dt * 0.9;
+    resize(p);
+    const r = p.radius, ct = Math.cos(p.phi);
+    p.cam.position.set(r * ct * Math.cos(p.theta), r * ct * Math.sin(p.theta), r * Math.sin(p.phi));
+    p.cam.lookAt(0, 0, 0);
+    p.dl.position.copy(p.cam.position).add(new THREE.Vector3(r * 0.3, r * 0.3, r * 0.6));
+    p.floor.visible = showGrid;
+    if (p.multi) {
+      // exactly what pickle.qc does for each client: the card faces the viewer, the frame is the view from his side.
+      // The pickle's own face looks along -X (world angle 180), the camera stands at angle theta round it.
+      const alpha = ((p.theta - Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      let k = Math.floor(alpha / (2 * Math.PI / p.viewsN) + 0.5);
+      if (k >= p.viewsN) k = 0;
+      p.group.rotation.z = p.theta + Math.PI;
+      if (p.k !== k) {
+        for (const gm of p.geos) { gm.g.attributes.position.array.set(gm.s.frames[k]); gm.g.attributes.position.needsUpdate = true; }
+        p.k = k;
+        const tag = p.el.querySelector(".viewtag");
+        tag.style.display = "block";
+        tag.textContent = "view " + k + " of " + p.viewsN + " · " + Math.round(k * 360 / p.viewsN) + "° round";
+      }
+    }
+    for (const m of p.mats) {
+      m.mat.color.setScalar(bright);
+      if (animOn && m.sh.fps > 0) {
+        const fr = m.sh.frames, i = Math.floor(now / 1000 * m.sh.fps) % fr.length;
+        m.mat.map = texFor(fr[i]);
+      }
+    }
+    p.renderer.render(p.scene, p.cam);
+  }
+  requestAnimationFrame(frame);
+}
+
+MODELS.forEach(makePanel);
+const $ = id => document.getElementById(id);
+$("spin").addEventListener("click", () => { spin = !spin; $("spin").classList.toggle("on", spin); $("spin").textContent = spin ? "Spinning" : "Paused"; });
+$("edge").addEventListener("click", () => { spin = false; $("spin").classList.remove("on"); $("spin").textContent = "Paused"; panels.forEach(p => view(p, "edge")); });
+$("front").addEventListener("click", () => { spin = false; $("spin").classList.remove("on"); $("spin").textContent = "Paused"; panels.forEach(p => view(p, "front")); });
+$("bright").addEventListener("input", () => bright = +$("bright").value);
+$("anim").addEventListener("change", () => animOn = $("anim").checked);
+$("grid").addEventListener("change", () => showGrid = $("grid").checked);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

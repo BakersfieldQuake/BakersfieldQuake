@@ -1,0 +1,11735 @@
+{
+"angle_deg": -15.681188462231352,
+"origin_note": "E 21st x Sacramento centrelines",
+"buildings": [
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+116.3,
+595.6
+],
+[
+501.7,
+561.2
+],
+[
+496.1,
+485.1
+],
+[
+111.3,
+517.6
+],
+[
+116.3,
+595.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-156.9,
+-38.0
+],
+[
+-158.9,
+-143.4
+],
+[
+-170.1,
+-140.8
+],
+[
+-171.9,
+-175.9
+],
+[
+-223.2,
+-174.4
+],
+[
+-221.5,
+-34.4
+],
+[
+-156.9,
+-38.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-330.2,
+191.5
+],
+[
+-287.9,
+193.2
+],
+[
+-288.2,
+35.3
+],
+[
+-329.7,
+35.0
+],
+[
+-330.2,
+191.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-631.9,
+-615.6
+],
+[
+-563.3,
+-596.1
+],
+[
+-568.3,
+-578.0
+],
+[
+-533.0,
+-567.9
+],
+[
+-506.3,
+-664.0
+],
+[
+-541.7,
+-674.1
+],
+[
+-796.9,
+-746.7
+],
+[
+-809.0,
+-702.9
+],
+[
+-836.8,
+-710.8
+],
+[
+-855.7,
+-642.5
+],
+[
+-641.4,
+-581.5
+],
+[
+-631.9,
+-615.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-963.3,
+-646.6
+],
+[
+-995.2,
+-531.3
+],
+[
+-928.8,
+-512.3
+],
+[
+-896.9,
+-627.7
+],
+[
+-963.3,
+-646.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-695.0,
+-191.2
+],
+[
+-711.8,
+-201.7
+],
+[
+-729.4,
+-196.3
+],
+[
+-736.7,
+-186.9
+],
+[
+-741.9,
+-172.2
+],
+[
+-744.9,
+-136.2
+],
+[
+-732.6,
+-130.4
+],
+[
+-695.0,
+-191.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1038.2,
+-723.6
+],
+[
+-1013.6,
+-812.3
+],
+[
+-1095.3,
+-835.5
+],
+[
+-1106.1,
+-795.9
+],
+[
+-1131.8,
+-803.3
+],
+[
+-1126.1,
+-823.6
+],
+[
+-1142.2,
+-828.1
+],
+[
+-1137.4,
+-846.3
+],
+[
+-1202.7,
+-864.9
+],
+[
+-1210.8,
+-836.1
+],
+[
+-1238.5,
+-844.0
+],
+[
+-1261.0,
+-762.9
+],
+[
+-1227.8,
+-753.4
+],
+[
+-1221.5,
+-775.8
+],
+[
+-1038.2,
+-723.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-354.0,
+-31.9
+],
+[
+-356.5,
+-165.1
+],
+[
+-496.6,
+-160.0
+],
+[
+-496.4,
+-107.1
+],
+[
+-496.3,
+-86.2
+],
+[
+-476.2,
+-87.4
+],
+[
+-477.6,
+-99.3
+],
+[
+-472.3,
+-99.8
+],
+[
+-462.2,
+-100.7
+],
+[
+-462.8,
+-132.0
+],
+[
+-387.8,
+-131.4
+],
+[
+-388.3,
+-62.4
+],
+[
+-444.2,
+-61.0
+],
+[
+-445.8,
+-30.3
+],
+[
+-354.0,
+-31.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-539.4,
+249.5
+],
+[
+-453.0,
+238.4
+],
+[
+-452.9,
+254.5
+],
+[
+-425.3,
+250.9
+],
+[
+-429.2,
+210.6
+],
+[
+-540.8,
+216.8
+],
+[
+-539.4,
+249.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-898.1,
+-151.0
+],
+[
+-885.1,
+-198.0
+],
+[
+-911.9,
+-205.7
+],
+[
+-924.9,
+-158.6
+],
+[
+-898.1,
+-151.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-860.4,
+20.6
+],
+[
+-845.4,
+37.6
+],
+[
+-810.2,
+-1.9
+],
+[
+-825.5,
+-17.8
+],
+[
+-860.4,
+20.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-821.7,
+16.1
+],
+[
+-803.1,
+30.5
+],
+[
+-785.1,
+7.1
+],
+[
+-799.1,
+-7.4
+],
+[
+-821.7,
+16.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-935.3,
+-250.3
+],
+[
+-952.8,
+-187.3
+],
+[
+-927.1,
+-180.0
+],
+[
+-909.6,
+-243.0
+],
+[
+-935.3,
+-250.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-760.6,
+-154.5
+],
+[
+-742.6,
+-219.7
+],
+[
+-852.0,
+-250.8
+],
+[
+-870.0,
+-185.7
+],
+[
+-760.6,
+-154.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-609.9,
+-1060.7
+],
+[
+-636.7,
+-963.5
+],
+[
+-606.7,
+-954.9
+],
+[
+-579.8,
+-1052.1
+],
+[
+-609.9,
+-1060.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-769.3,
+-1107.2
+],
+[
+-794.7,
+-1015.4
+],
+[
+-832.2,
+-1026.0
+],
+[
+-838.7,
+-1002.5
+],
+[
+-796.9,
+-990.6
+],
+[
+-793.1,
+-1004.5
+],
+[
+-771.6,
+-998.4
+],
+[
+-743.5,
+-1099.9
+],
+[
+-769.3,
+-1107.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-291.5,
+-503.1
+],
+[
+-129.1,
+-482.1
+],
+[
+-123.8,
+-516.8
+],
+[
+-249.9,
+-539.0
+],
+[
+-249.8,
+-548.0
+],
+[
+-283.3,
+-548.4
+],
+[
+-291.5,
+-503.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-805.3,
+-1035.6
+],
+[
+-791.4,
+-1085.8
+],
+[
+-838.5,
+-1099.3
+],
+[
+-852.4,
+-1049.1
+],
+[
+-805.3,
+-1035.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-614.8,
+-293.3
+],
+[
+-601.1,
+-343.5
+],
+[
+-761.7,
+-389.3
+],
+[
+-789.9,
+-287.8
+],
+[
+-738.3,
+-273.2
+],
+[
+-732.0,
+-296.7
+],
+[
+-667.6,
+-278.3
+],
+[
+-660.1,
+-306.2
+],
+[
+-614.8,
+-293.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-735.6,
+-1095.3
+],
+[
+-753.6,
+-1030.2
+],
+[
+-723.6,
+-1021.6
+],
+[
+-705.6,
+-1086.8
+],
+[
+-735.6,
+-1095.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-844.3,
+-331.9
+],
+[
+-855.5,
+-289.7
+],
+[
+-798.0,
+-274.5
+],
+[
+-766.8,
+-392.3
+],
+[
+-823.4,
+-407.3
+],
+[
+-834.1,
+-367.2
+],
+[
+-864.3,
+-375.2
+],
+[
+-873.7,
+-339.7
+],
+[
+-844.3,
+-331.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-886.9,
+-918.7
+],
+[
+-902.2,
+-863.1
+],
+[
+-860.4,
+-851.2
+],
+[
+-845.1,
+-906.8
+],
+[
+-886.9,
+-918.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-259.1,
+-220.3
+],
+[
+-258.1,
+-349.1
+],
+[
+-301.3,
+-347.6
+],
+[
+-300.6,
+-312.8
+],
+[
+-288.7,
+-314.0
+],
+[
+-285.6,
+-249.8
+],
+[
+-341.5,
+-248.4
+],
+[
+-341.4,
+-219.6
+],
+[
+-259.1,
+-220.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-950.6,
+-1018.6
+],
+[
+-940.8,
+-1053.9
+],
+[
+-963.3,
+-1060.3
+],
+[
+-973.1,
+-1025.0
+],
+[
+-950.6,
+-1018.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-986.5,
+-892.6
+],
+[
+-962.3,
+-980.2
+],
+[
+-986.9,
+-987.1
+],
+[
+-1011.2,
+-899.6
+],
+[
+-986.5,
+-892.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-430.6,
+-281.8
+],
+[
+-411.6,
+-275.2
+],
+[
+-408.2,
+-278.9
+],
+[
+-375.0,
+-269.4
+],
+[
+-368.4,
+-318.3
+],
+[
+-374.6,
+-321.2
+],
+[
+-376.9,
+-325.3
+],
+[
+-394.6,
+-328.0
+],
+[
+-397.9,
+-316.3
+],
+[
+-418.3,
+-322.1
+],
+[
+-430.6,
+-281.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-551.3,
+-821.8
+],
+[
+-534.2,
+-799.7
+],
+[
+-490.1,
+-829.7
+],
+[
+-506.2,
+-855.1
+],
+[
+-551.3,
+-821.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-936.2,
+-1066.4
+],
+[
+-923.2,
+-1113.4
+],
+[
+-963.9,
+-1124.9
+],
+[
+-976.9,
+-1077.9
+],
+[
+-936.2,
+-1066.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-475.6,
+-848.6
+],
+[
+-486.2,
+-810.2
+],
+[
+-470.9,
+-805.8
+],
+[
+-452.5,
+-800.6
+],
+[
+-441.2,
+-797.4
+],
+[
+-430.6,
+-835.8
+],
+[
+-441.9,
+-839.1
+],
+[
+-459.6,
+-844.1
+],
+[
+-475.6,
+-848.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-697.7,
+-1064.9
+],
+[
+-711.3,
+-1015.8
+],
+[
+-680.2,
+-1007.0
+],
+[
+-666.6,
+-1056.1
+],
+[
+-697.7,
+-1064.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-658.5,
+-1056.1
+],
+[
+-673.9,
+-1000.6
+],
+[
+-638.5,
+-990.5
+],
+[
+-623.2,
+-1046.0
+],
+[
+-658.5,
+-1056.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-743.7,
+-941.1
+],
+[
+-772.4,
+-837.5
+],
+[
+-654.3,
+-800.0
+],
+[
+-623.7,
+-906.9
+],
+[
+-743.7,
+-941.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-504.4,
+-923.5
+],
+[
+-477.7,
+-1019.6
+],
+[
+-476.6,
+-1023.9
+],
+[
+-504.5,
+-1031.8
+],
+[
+-532.3,
+-931.4
+],
+[
+-504.4,
+-923.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+530.6,
+684.2
+],
+[
+532.1,
+745.1
+],
+[
+559.0,
+745.0
+],
+[
+558.8,
+683.2
+],
+[
+530.6,
+684.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+475.7,
+897.3
+],
+[
+476.6,
+928.7
+],
+[
+539.5,
+928.8
+],
+[
+539.5,
+896.5
+],
+[
+475.7,
+897.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"description": "REMOVED IN ?",
+"notes": "REMOVED IN ?",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+501.8,
+820.2
+],
+[
+484.7,
+837.6
+],
+[
+500.7,
+853.3
+],
+[
+517.8,
+835.9
+],
+[
+501.8,
+820.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+545.0,
+-675.4
+],
+[
+543.0,
+-768.3
+],
+[
+505.9,
+-767.4
+],
+[
+508.1,
+-675.0
+],
+[
+545.0,
+-675.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+666.3,
+-576.4
+],
+[
+697.3,
+-577.6
+],
+[
+697.7,
+-598.3
+],
+[
+666.9,
+-597.6
+],
+[
+666.3,
+-576.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "DETACHED GARAGE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+633.2,
+-622.2
+],
+[
+646.9,
+-623.8
+],
+[
+647.3,
+-644.1
+],
+[
+632.6,
+-642.8
+],
+[
+633.2,
+-622.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "DETACHED GARAGE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+798.1,
+-571.1
+],
+[
+797.7,
+-597.7
+],
+[
+783.7,
+-597.2
+],
+[
+784.5,
+-577.1
+],
+[
+789.2,
+-577.3
+],
+[
+789.1,
+-571.7
+],
+[
+798.1,
+-571.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"description2": "B&S BRAKE",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+276.0,
+-616.3
+],
+[
+428.8,
+-617.7
+],
+[
+427.5,
+-765.9
+],
+[
+273.3,
+-764.9
+],
+[
+276.0,
+-616.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+735.1,
+-551.2
+],
+[
+766.3,
+-551.3
+],
+[
+767.5,
+-597.4
+],
+[
+733.0,
+-596.7
+],
+[
+735.1,
+-551.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "DETACHED GARAGE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+630.4,
+-621.5
+],
+[
+630.6,
+-644.9
+],
+[
+580.7,
+-642.1
+],
+[
+581.9,
+-621.4
+],
+[
+630.4,
+-621.5
+]
+]
+},
+{
+"tags": {
+"addr:city": "Bakersfield",
+"addr:housenumber": "212",
+"addr:postcode": "93305",
+"addr:state": "CA",
+"addr:street": "East 18th Street",
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"name": "La Movida Nightclub",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+149.0,
+-669.1
+],
+[
+249.0,
+-671.5
+],
+[
+244.9,
+-820.5
+],
+[
+148.0,
+-818.6
+],
+[
+149.0,
+-669.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+734.8,
+-625.7
+],
+[
+775.3,
+-626.2
+],
+[
+774.0,
+-665.3
+],
+[
+734.4,
+-664.6
+],
+[
+734.8,
+-625.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"name": "Jim Burke Ford",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-88.1,
+23.2
+],
+[
+-86.6,
+184.6
+],
+[
+-35.4,
+182.8
+],
+[
+-35.0,
+22.7
+],
+[
+-88.1,
+23.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+513.6,
+351.4
+],
+[
+619.2,
+349.8
+],
+[
+617.6,
+252.4
+],
+[
+590.0,
+252.1
+],
+[
+590.4,
+267.2
+],
+[
+513.3,
+267.5
+],
+[
+513.6,
+351.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-353.6,
+200.6
+],
+[
+-350.4,
+292.3
+],
+[
+-287.0,
+292.7
+],
+[
+-286.0,
+247.6
+],
+[
+-186.8,
+246.9
+],
+[
+-184.8,
+203.1
+],
+[
+-353.6,
+200.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+676.3,
+-495.0
+],
+[
+674.7,
+-462.4
+],
+[
+703.9,
+-463.2
+],
+[
+704.0,
+-495.7
+],
+[
+676.3,
+-495.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+99.5,
+-480.2
+],
+[
+100.1,
+-491.5
+],
+[
+35.2,
+-492.3
+],
+[
+35.6,
+-478.6
+],
+[
+-13.2,
+-476.6
+],
+[
+-13.4,
+-444.2
+],
+[
+203.0,
+-444.0
+],
+[
+203.1,
+-455.3
+],
+[
+125.4,
+-480.4
+],
+[
+99.5,
+-480.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+67.4,
+249.9
+],
+[
+68.5,
+352.8
+],
+[
+162.7,
+351.1
+],
+[
+166.0,
+250.3
+],
+[
+67.4,
+249.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+617.1,
+200.2
+],
+[
+618.2,
+250.0
+],
+[
+741.1,
+248.7
+],
+[
+739.5,
+199.0
+],
+[
+617.1,
+200.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1032.1,
+147.4
+],
+[
+-1001.9,
+169.4
+],
+[
+-996.1,
+161.2
+],
+[
+-963.5,
+185.7
+],
+[
+-890.9,
+98.9
+],
+[
+-916.9,
+80.3
+],
+[
+-929.8,
+98.1
+],
+[
+-979.6,
+60.0
+],
+[
+-988.8,
+70.9
+],
+[
+-989.9,
+74.7
+],
+[
+-1131.3,
+33.5
+],
+[
+-1160.6,
+134.1
+],
+[
+-1079.7,
+157.8
+],
+[
+-1073.1,
+135.4
+],
+[
+-1032.1,
+147.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+11.4,
+-741.4
+],
+[
+-16.3,
+-748.8
+],
+[
+-57.1,
+-760.6
+],
+[
+-64.0,
+-737.9
+],
+[
+63.2,
+-699.9
+],
+[
+43.0,
+-633.8
+],
+[
+-184.8,
+-707.2
+],
+[
+-198.8,
+-663.9
+],
+[
+147.5,
+-552.6
+],
+[
+143.8,
+-704.5
+],
+[
+11.4,
+-741.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"owner": "PRIVATE",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+723.4,
+46.0
+],
+[
+725.8,
+104.3
+],
+[
+760.0,
+103.0
+],
+[
+758.3,
+44.8
+],
+[
+723.4,
+46.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+42.1,
+704.0
+],
+[
+48.4,
+776.2
+],
+[
+200.7,
+762.2
+],
+[
+194.6,
+690.9
+],
+[
+42.1,
+704.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+174.8,
+209.8
+],
+[
+174.9,
+351.6
+],
+[
+229.6,
+351.8
+],
+[
+229.0,
+209.3
+],
+[
+174.8,
+209.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+589.1,
+-514.1
+],
+[
+589.3,
+-467.9
+],
+[
+621.2,
+-468.6
+],
+[
+620.9,
+-513.0
+],
+[
+589.1,
+-514.1
+]
+]
+},
+{
+"tags": {
+"amenity": "place_of_worship",
+"attribution": "Bakersfield_GIS",
+"building": "yes",
+"religion": "christian",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-986.6,
+-89.8
+],
+[
+-1021.0,
+27.0
+],
+[
+-893.5,
+64.2
+],
+[
+-859.1,
+-52.7
+],
+[
+-986.6,
+-89.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+354.6,
+199.1
+],
+[
+353.7,
+266.2
+],
+[
+398.3,
+265.2
+],
+[
+397.8,
+241.1
+],
+[
+435.9,
+240.9
+],
+[
+438.6,
+198.5
+],
+[
+354.6,
+199.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1216.5,
+263.0
+],
+[
+-1241.3,
+348.3
+],
+[
+-1207.1,
+358.3
+],
+[
+-1195.0,
+316.8
+],
+[
+-1201.5,
+314.9
+],
+[
+-1188.7,
+271.1
+],
+[
+-1216.5,
+263.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+318.6,
+-321.4
+],
+[
+318.3,
+-261.5
+],
+[
+341.0,
+-261.1
+],
+[
+341.5,
+-321.4
+],
+[
+318.6,
+-321.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1055.5,
+413.3
+],
+[
+-1060.6,
+431.9
+],
+[
+-1042.0,
+437.0
+],
+[
+-1040.8,
+432.3
+],
+[
+-1015.2,
+439.4
+],
+[
+-1020.0,
+457.8
+],
+[
+-1003.4,
+462.7
+],
+[
+-1010.9,
+488.5
+],
+[
+-986.4,
+495.7
+],
+[
+-998.3,
+536.2
+],
+[
+-822.2,
+587.6
+],
+[
+-807.9,
+538.7
+],
+[
+-866.6,
+521.6
+],
+[
+-861.4,
+503.6
+],
+[
+-890.9,
+495.0
+],
+[
+-878.6,
+452.5
+],
+[
+-989.3,
+421.0
+],
+[
+-990.4,
+425.2
+],
+[
+-1035.3,
+412.9
+],
+[
+-1055.5,
+413.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1188.6,
+267.1
+],
+[
+-1169.6,
+272.6
+],
+[
+-1163.0,
+250.1
+],
+[
+-1148.7,
+254.2
+],
+[
+-1143.7,
+237.2
+],
+[
+-1182.1,
+226.0
+],
+[
+-1186.9,
+242.6
+],
+[
+-1181.9,
+244.1
+],
+[
+-1188.6,
+267.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+581.6,
+-582.1
+],
+[
+582.2,
+-557.6
+],
+[
+620.7,
+-557.4
+],
+[
+620.7,
+-580.1
+],
+[
+581.6,
+-582.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-379.2,
+340.4
+],
+[
+-380.9,
+372.3
+],
+[
+-295.8,
+373.4
+],
+[
+-294.8,
+341.2
+],
+[
+-379.2,
+340.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+767.0,
+-524.3
+],
+[
+767.3,
+-467.4
+],
+[
+796.2,
+-467.8
+],
+[
+795.7,
+-523.6
+],
+[
+767.0,
+-524.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+626.6,
+-532.8
+],
+[
+626.5,
+-499.1
+],
+[
+656.7,
+-499.8
+],
+[
+658.1,
+-533.1
+],
+[
+626.6,
+-532.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-90.1,
+832.0
+],
+[
+-91.7,
+867.9
+],
+[
+-37.4,
+866.2
+],
+[
+-36.2,
+808.2
+],
+[
+-65.0,
+809.3
+],
+[
+-65.5,
+830.4
+],
+[
+-90.1,
+832.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-77.2,
+-201.6
+],
+[
+-77.5,
+-44.3
+],
+[
+435.3,
+-50.7
+],
+[
+432.2,
+-201.0
+],
+[
+-77.2,
+-201.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+674.3,
+-571.0
+],
+[
+673.9,
+-538.7
+],
+[
+704.8,
+-538.9
+],
+[
+705.0,
+-571.7
+],
+[
+674.3,
+-571.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+625.9,
+-570.1
+],
+[
+625.8,
+-537.5
+],
+[
+653.1,
+-537.6
+],
+[
+655.3,
+-569.5
+],
+[
+625.9,
+-570.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "DETACHED GARAGE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+287.5,
+199.8
+],
+[
+286.2,
+245.0
+],
+[
+313.3,
+245.7
+],
+[
+315.6,
+199.9
+],
+[
+287.5,
+199.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-298.5,
+852.1
+],
+[
+-297.3,
+1060.0
+],
+[
+-315.7,
+1059.6
+],
+[
+-316.1,
+1094.0
+],
+[
+-266.4,
+1093.6
+],
+[
+-267.3,
+1059.5
+],
+[
+-232.9,
+1058.8
+],
+[
+-237.2,
+852.0
+],
+[
+-298.5,
+852.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-95.8,
+232.9
+],
+[
+-95.1,
+353.0
+],
+[
+-38.6,
+352.0
+],
+[
+-38.9,
+229.9
+],
+[
+-95.8,
+232.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+655.8,
+-139.6
+],
+[
+655.2,
+-105.3
+],
+[
+616.4,
+-105.8
+],
+[
+616.8,
+-68.2
+],
+[
+693.4,
+-67.9
+],
+[
+693.6,
+-97.1
+],
+[
+704.8,
+-96.3
+],
+[
+706.8,
+-170.8
+],
+[
+666.2,
+-170.6
+],
+[
+664.6,
+-139.7
+],
+[
+655.8,
+-139.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-228.8,
+26.4
+],
+[
+-228.2,
+184.0
+],
+[
+-142.1,
+188.0
+],
+[
+-144.6,
+23.4
+],
+[
+-228.8,
+26.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+545.3,
+-221.7
+],
+[
+638.2,
+-219.8
+],
+[
+638.3,
+-277.8
+],
+[
+610.2,
+-279.1
+],
+[
+608.8,
+-263.0
+],
+[
+590.3,
+-263.1
+],
+[
+589.7,
+-244.7
+],
+[
+546.7,
+-246.7
+],
+[
+545.3,
+-221.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+595.0,
+89.3
+],
+[
+594.8,
+177.4
+],
+[
+612.8,
+177.7
+],
+[
+613.0,
+89.0
+],
+[
+595.0,
+89.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1.6,
+558.9
+],
+[
+-1.6,
+587.8
+],
+[
+41.1,
+585.6
+],
+[
+43.7,
+559.9
+],
+[
+-1.6,
+558.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-116.4,
+975.2
+],
+[
+-116.3,
+1078.0
+],
+[
+-49.9,
+1077.5
+],
+[
+-52.9,
+971.7
+],
+[
+-116.4,
+975.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+779.0,
+-193.4
+],
+[
+778.9,
+-137.5
+],
+[
+809.1,
+-138.5
+],
+[
+809.5,
+-194.7
+],
+[
+779.0,
+-193.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1134.9,
+464.8
+],
+[
+-1144.4,
+497.6
+],
+[
+-1083.9,
+515.3
+],
+[
+-1060.0,
+433.2
+],
+[
+-1078.8,
+427.7
+],
+[
+-1134.9,
+464.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+159.9,
+34.6
+],
+[
+160.2,
+183.6
+],
+[
+214.1,
+182.2
+],
+[
+210.5,
+32.2
+],
+[
+159.9,
+34.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+45.0,
+940.6
+],
+[
+44.6,
+982.7
+],
+[
+144.3,
+981.4
+],
+[
+144.8,
+940.6
+],
+[
+45.0,
+940.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1437.5,
+759.8
+],
+[
+-1400.2,
+770.7
+],
+[
+-1381.9,
+707.8
+],
+[
+-1364.0,
+713.0
+],
+[
+-1336.1,
+617.3
+],
+[
+-1393.3,
+600.6
+],
+[
+-1400.2,
+624.1
+],
+[
+-1459.0,
+607.0
+],
+[
+-1502.3,
+755.7
+],
+[
+-1441.4,
+773.4
+],
+[
+-1437.5,
+759.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1018.1,
+652.5
+],
+[
+-898.6,
+686.0
+],
+[
+-857.8,
+680.6
+],
+[
+-853.6,
+666.0
+],
+[
+-1106.1,
+595.7
+],
+[
+-1113.7,
+626.1
+],
+[
+-1050.9,
+644.5
+],
+[
+-1089.0,
+775.2
+],
+[
+-979.1,
+754.2
+],
+[
+-986.7,
+723.7
+],
+[
+-1041.4,
+739.3
+],
+[
+-1018.1,
+652.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+519.4,
+453.1
+],
+[
+520.1,
+504.8
+],
+[
+574.2,
+503.8
+],
+[
+575.0,
+451.5
+],
+[
+519.4,
+453.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+65.4,
+-366.6
+],
+[
+66.5,
+-216.3
+],
+[
+307.3,
+-219.0
+],
+[
+307.0,
+-267.7
+],
+[
+280.8,
+-268.4
+],
+[
+279.6,
+-314.0
+],
+[
+132.3,
+-311.6
+],
+[
+131.7,
+-367.2
+],
+[
+65.4,
+-366.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+708.1,
+-527.6
+],
+[
+708.1,
+-449.5
+],
+[
+731.1,
+-449.7
+],
+[
+732.4,
+-528.1
+],
+[
+708.1,
+-527.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+719.2,
+-193.4
+],
+[
+718.6,
+-132.7
+],
+[
+741.3,
+-132.6
+],
+[
+744.7,
+-194.1
+],
+[
+719.2,
+-193.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+545.0,
+-559.3
+],
+[
+545.9,
+-448.1
+],
+[
+585.8,
+-448.5
+],
+[
+585.6,
+-498.9
+],
+[
+578.8,
+-498.7
+],
+[
+578.8,
+-560.4
+],
+[
+545.0,
+-559.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"owner": "PRIVATE",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+618.5,
+45.4
+],
+[
+617.0,
+73.2
+],
+[
+628.1,
+74.1
+],
+[
+628.1,
+100.0
+],
+[
+655.9,
+100.9
+],
+[
+659.5,
+46.3
+],
+[
+618.5,
+45.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "UNKNOWN",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+510.8,
+135.2
+],
+[
+512.2,
+177.2
+],
+[
+546.0,
+175.8
+],
+[
+546.4,
+134.7
+],
+[
+510.8,
+135.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "GOVERNMENT",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-168.3,
+521.9
+],
+[
+-162.1,
+573.8
+],
+[
+-62.2,
+561.3
+],
+[
+-68.6,
+508.1
+],
+[
+-168.3,
+521.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+539.4,
+-598.0
+],
+[
+540.0,
+-569.5
+],
+[
+578.7,
+-570.3
+],
+[
+578.0,
+-598.5
+],
+[
+539.4,
+-598.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"building": "commercial",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1285.2,
+-54.1
+],
+[
+-1245.5,
+-42.6
+],
+[
+-1242.0,
+-54.0
+],
+[
+-1224.5,
+-48.9
+],
+[
+-1196.4,
+-146.0
+],
+[
+-1320.7,
+-182.2
+],
+[
+-1331.0,
+-146.7
+],
+[
+-1264.1,
+-127.2
+],
+[
+-1285.2,
+-54.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+42.9,
+1012.6
+],
+[
+42.8,
+1089.5
+],
+[
+150.3,
+1088.2
+],
+[
+147.6,
+1009.4
+],
+[
+42.9,
+1012.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL;COMMERCIAL",
+"building": "yes",
+"description": "<Null>;REMOVED IN ?",
+"notes": "<Null>;REMOVED IN ?",
+"owner": "UNKNOWN;PRIVATE",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-894.8,
+-299.9
+],
+[
+-883.8,
+-338.4
+],
+[
+-922.7,
+-349.4
+],
+[
+-918.5,
+-364.3
+],
+[
+-901.3,
+-359.5
+],
+[
+-883.9,
+-420.7
+],
+[
+-1015.9,
+-458.2
+],
+[
+-1048.4,
+-343.6
+],
+[
+-894.8,
+-299.9
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+42.9,
+118.5
+],
+[
+41.8,
+171.0
+],
+[
+141.5,
+170.7
+],
+[
+142.1,
+119.3
+],
+[
+42.9,
+118.5
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+672.2,
+-533.1
+],
+[
+670.1,
+-500.9
+],
+[
+703.5,
+-501.3
+],
+[
+703.6,
+-533.6
+],
+[
+672.2,
+-533.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+536.2,
+527.7
+],
+[
+536.3,
+550.1
+],
+[
+575.5,
+548.6
+],
+[
+574.1,
+526.9
+],
+[
+536.2,
+527.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+332.0,
+26.2
+],
+[
+332.9,
+127.3
+],
+[
+307.5,
+126.9
+],
+[
+307.5,
+179.3
+],
+[
+438.1,
+177.2
+],
+[
+435.2,
+25.9
+],
+[
+332.0,
+26.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+737.8,
+-510.7
+],
+[
+736.0,
+-450.8
+],
+[
+758.2,
+-450.8
+],
+[
+760.5,
+-512.0
+],
+[
+737.8,
+-510.7
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+281.5,
+284.0
+],
+[
+281.0,
+335.3
+],
+[
+310.1,
+333.9
+],
+[
+311.0,
+284.7
+],
+[
+281.5,
+284.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-143.6,
+-180.3
+],
+[
+-143.5,
+-46.7
+],
+[
+-96.2,
+-47.6
+],
+[
+-96.2,
+-180.7
+],
+[
+-143.6,
+-180.3
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+641.8,
+-201.8
+],
+[
+640.8,
+-177.9
+],
+[
+710.8,
+-177.1
+],
+[
+712.3,
+-199.8
+],
+[
+641.8,
+-201.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-1275.8,
+3.1
+],
+[
+-1302.2,
+93.5
+],
+[
+-1252.1,
+108.2
+],
+[
+-1225.7,
+17.7
+],
+[
+-1275.8,
+3.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+404.6,
+-252.1
+],
+[
+404.7,
+-231.3
+],
+[
+398.3,
+-233.2
+],
+[
+397.1,
+-216.3
+],
+[
+424.6,
+-215.5
+],
+[
+425.9,
+-251.4
+],
+[
+404.6,
+-252.1
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "RESIDENCE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+627.2,
+-495.0
+],
+[
+626.3,
+-462.0
+],
+[
+654.8,
+-462.3
+],
+[
+656.0,
+-495.2
+],
+[
+627.2,
+-495.0
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+507.5,
+-598.2
+],
+[
+507.2,
+-568.1
+],
+[
+537.3,
+-568.9
+],
+[
+536.6,
+-598.9
+],
+[
+507.5,
+-598.2
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "RESIDENTIAL",
+"bak:fac_type2": "DETACHED GARAGE",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+656.4,
+141.4
+],
+[
+655.4,
+165.1
+],
+[
+679.7,
+165.9
+],
+[
+679.4,
+142.4
+],
+[
+656.4,
+141.4
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "INDUSTRIAL",
+"bak:fac_type2": "DEALERSHIP",
+"bak:fac_type3": "AUTOMOBILES",
+"building": "yes",
+"description2": "JIM BURKE FORD",
+"shop": "car",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+589.6,
+200.6
+],
+[
+591.1,
+249.2
+],
+[
+615.4,
+249.6
+],
+[
+613.5,
+199.3
+],
+[
+589.6,
+200.6
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+-232.5,
+830.8
+],
+[
+-230.6,
+941.5
+],
+[
+-170.6,
+940.1
+],
+[
+-171.1,
+829.9
+],
+[
+-232.5,
+830.8
+]
+]
+},
+{
+"tags": {
+"attribution": "Bakersfield_GIS",
+"bak:fac_type1": "COMMERCIAL",
+"building": "yes",
+"source": "http://www.bakersfieldcity.us/gis/downloads/gis_spatial_data.htm"
+},
+"pts": [
+[
+686.7,
+-219.1
+],
+[
+914.1,
+-221.9
+],
+[
+911.7,
+-376.4
+],
+[
+810.4,
+-373.8
+],
+[
+811.4,
+-338.7
+],
+[
+772.2,
+-338.1
+],
+[
+772.0,
+-326.8
+],
+[
+686.9,
+-326.3
+],
+[
+686.7,
+-219.1
+]
+]
+},
+{
+"tags": {
+"building": "yes"
+},
+"pts": [
+[
+-906.4,
+407.9
+],
+[
+-816.2,
+431.9
+],
+[
+-794.2,
+349.2
+],
+[
+-884.5,
+325.2
+],
+[
+-906.4,
+407.9
+]
+]
+},
+{
+"tags": {
+"addr:city": "Bakersfield",
+"addr:country": "US",
+"addr:housenumber": "1812",
+"addr:postcode": "93305-5651",
+"addr:state": "CA",
+"addr:street": "Union Avenue",
+"amenity": "fast_food",
+"brand": "McDonald's",
+"brand:wikidata": "Q38076",
+"building": "yes",
+"check_date": "2024-02-01",
+"check_date:opening_hours": "2024-02-01",
+"check_date:opening_hours:drive_through": "2024-02-01",
+"cuisine": "burger",
+"drive_through": "yes",
+"indoor_seating": "yes",
+"internet_access": "wlan",
+"name": "McDonald's",
+"opening_hours": "Mo-Su 05:00-23:00",
+"opening_hours:drive_through": "Mo-Th 05:00-24:00; Fr-Sa 05:00-01:00; Su 05:00-24:00",
+"phone": "+1 661-323-1115",
+"takeaway": "yes",
+"website": "https://www.mcdonalds.com/us/en-us/location/3657.html"
+},
+"pts": [
+[
+-177.6,
+-876.9
+],
+[
+-261.8,
+-901.1
+],
+[
+-272.1,
+-865.6
+],
+[
+-247.0,
+-858.4
+],
+[
+-249.1,
+-851.1
+],
+[
+-189.9,
+-834.0
+],
+[
+-177.6,
+-876.9
+]
+]
+}
+],
+"roads": [
+{
+"name": "",
+"kind": "primary_link",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-598.8,
+118.0
+],
+[
+-581.3,
+141.9
+],
+[
+-563.5,
+214.2
+],
+[
+-539.8,
+607.7
+],
+[
+-539.3,
+615.9
+],
+[
+-532.2,
+628.1
+],
+[
+-512.5,
+642.7
+]
+]
+},
+{
+"name": "",
+"kind": "trunk_link",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-686.8,
+449.6
+],
+[
+-702.7,
+356.8
+],
+[
+-708.3,
+332.6
+],
+[
+-718.7,
+313.6
+],
+[
+-733.8,
+294.7
+],
+[
+-753.1,
+277.7
+],
+[
+-780.3,
+262.3
+],
+[
+-805.6,
+255.8
+],
+[
+-842.7,
+248.9
+],
+[
+-861.4,
+250.0
+],
+[
+-879.5,
+254.6
+],
+[
+-922.4,
+273.6
+]
+]
+},
+{
+"name": "East 19th Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-386.7,
+-682.3
+],
+[
+-348.1,
+-670.0
+],
+[
+-260.5,
+-642.0
+],
+[
+-250.1,
+-638.7
+],
+[
+-221.3,
+-629.7
+],
+[
+398.8,
+-417.5
+],
+[
+437.7,
+-412.1
+],
+[
+474.1,
+-409.9
+],
+[
+503.3,
+-408.4
+],
+[
+952.9,
+-413.0
+],
+[
+1430.6,
+-417.9
+],
+[
+1904.2,
+-421.7
+],
+[
+2023.1,
+-423.2
+],
+[
+2084.1,
+-424.3
+],
+[
+2342.1,
+-427.0
+],
+[
+2389.4,
+-427.6
+]
+]
+},
+{
+"name": "22nd Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-961.3,
+232.4
+],
+[
+-987.2,
+225.2
+],
+[
+-1232.5,
+156.6
+],
+[
+-1492.9,
+85.8
+]
+]
+},
+{
+"name": "East 21st Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-642.3,
+-34.0
+],
+[
+-574.9,
+1.5
+],
+[
+-543.2,
+1.2
+],
+[
+-464.6,
+0.3
+],
+[
+-434.4,
+0.0
+],
+[
+-335.0,
+-1.1
+],
+[
+-84.7,
+-3.8
+],
+[
+-0.8,
+-4.8
+],
+[
+478.4,
+-9.6
+],
+[
+957.0,
+-14.3
+],
+[
+1435.3,
+-19.1
+],
+[
+1909.5,
+-22.9
+],
+[
+2346.5,
+-28.5
+],
+[
+2394.1,
+-29.1
+],
+[
+2430.4,
+-29.5
+],
+[
+2833.8,
+-33.6
+],
+[
+2873.4,
+-34.0
+]
+]
+},
+{
+"name": "West Sumner Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-733.2,
+656.3
+],
+[
+-784.2,
+645.0
+],
+[
+-818.2,
+634.6
+],
+[
+-996.8,
+580.0
+]
+]
+},
+{
+"name": "Sacramento Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-0.8,
+-4.8
+],
+[
+-0.5,
+25.4
+],
+[
+1.1,
+194.8
+],
+[
+2.7,
+365.1
+],
+[
+3.0,
+397.2
+]
+]
+},
+{
+"name": "Sacramento Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+1.1,
+709.1
+],
+[
+0.6,
+794.2
+],
+[
+0.0,
+909.5
+],
+[
+-1.2,
+1132.7
+],
+[
+-1.4,
+1160.5
+],
+[
+-2.2,
+1330.2
+],
+[
+-3.0,
+1501.5
+]
+]
+},
+{
+"name": "V Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-682.4,
+-1838.8
+],
+[
+-690.0,
+-1805.5
+],
+[
+-690.3,
+-1804.2
+],
+[
+-718.6,
+-1694.1
+],
+[
+-725.1,
+-1670.9
+],
+[
+-771.5,
+-1508.2
+],
+[
+-815.6,
+-1336.4
+],
+[
+-852.9,
+-1202.9
+],
+[
+-861.0,
+-1173.9
+],
+[
+-870.8,
+-1139.0
+],
+[
+-908.7,
+-1003.1
+],
+[
+-945.0,
+-873.2
+],
+[
+-953.9,
+-841.3
+],
+[
+-964.3,
+-803.9
+],
+[
+-999.2,
+-678.5
+],
+[
+-1000.8,
+-672.3
+],
+[
+-1024.3,
+-588.4
+],
+[
+-1046.7,
+-508.6
+],
+[
+-1095.4,
+-333.9
+],
+[
+-1130.4,
+-209.6
+],
+[
+-1140.0,
+-175.7
+],
+[
+-1149.5,
+-140.9
+],
+[
+-1158.8,
+-107.0
+],
+[
+-1175.6,
+-46.3
+],
+[
+-1187.6,
+-3.9
+],
+[
+-1232.5,
+156.6
+],
+[
+-1307.7,
+424.7
+],
+[
+-1316.3,
+455.6
+]
+]
+},
+{
+"name": "20th Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-539.5,
+-371.7
+],
+[
+-557.8,
+-377.0
+],
+[
+-591.1,
+-386.6
+],
+[
+-1046.7,
+-508.6
+],
+[
+-1380.7,
+-599.8
+],
+[
+-1524.2,
+-638.9
+],
+[
+-1562.8,
+-645.0
+]
+]
+},
+{
+"name": "Golden State Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-507.2,
+-259.8
+],
+[
+-554.7,
+-175.6
+],
+[
+-589.8,
+-116.8
+],
+[
+-642.3,
+-34.0
+],
+[
+-678.7,
+9.7
+],
+[
+-703.2,
+39.2
+],
+[
+-754.4,
+100.7
+],
+[
+-824.1,
+178.6
+],
+[
+-922.4,
+273.6
+],
+[
+-959.4,
+303.4
+],
+[
+-1030.3,
+355.4
+],
+[
+-1055.3,
+370.1
+],
+[
+-1112.8,
+403.5
+],
+[
+-1196.0,
+453.9
+],
+[
+-1236.9,
+476.7
+],
+[
+-1274.0,
+495.3
+],
+[
+-1321.8,
+515.9
+],
+[
+-1370.6,
+536.8
+],
+[
+-1430.1,
+559.6
+],
+[
+-1502.6,
+579.6
+],
+[
+-1510.7,
+581.8
+],
+[
+-1588.1,
+602.3
+],
+[
+-1743.0,
+624.7
+],
+[
+-1902.6,
+649.4
+],
+[
+-2009.5,
+665.9
+]
+]
+},
+{
+"name": "Union Avenue Loop",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-683.9,
+1177.3
+],
+[
+-671.5,
+1143.4
+],
+[
+-601.2,
+948.1
+],
+[
+-589.8,
+915.9
+],
+[
+-587.2,
+881.2
+],
+[
+-601.8,
+849.4
+],
+[
+-623.0,
+825.0
+],
+[
+-659.8,
+807.8
+],
+[
+-732.7,
+814.4
+],
+[
+-780.8,
+825.7
+],
+[
+-812.6,
+838.7
+],
+[
+-836.4,
+850.6
+],
+[
+-847.1,
+856.2
+],
+[
+-872.1,
+885.3
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-507.2,
+-259.8
+],
+[
+-520.9,
+-193.4
+],
+[
+-531.0,
+-145.9
+],
+[
+-538.3,
+-121.1
+],
+[
+-574.9,
+1.5
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-574.9,
+1.5
+],
+[
+-584.2,
+46.6
+],
+[
+-598.8,
+118.0
+],
+[
+-613.8,
+197.7
+],
+[
+-622.1,
+255.8
+],
+[
+-653.3,
+531.3
+]
+]
+},
+{
+"name": "Grove Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+398.8,
+-417.5
+],
+[
+331.1,
+-411.1
+],
+[
+277.4,
+-410.9
+],
+[
+-325.8,
+-400.8
+],
+[
+-436.6,
+-399.0
+],
+[
+-458.8,
+-398.6
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-696.5,
+526.6
+],
+[
+-686.8,
+449.6
+],
+[
+-677.3,
+348.2
+],
+[
+-656.9,
+85.8
+],
+[
+-660.4,
+66.9
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": "yes",
+"layer": "1",
+"pts": [
+[
+-653.3,
+531.3
+],
+[
+-670.8,
+666.7
+],
+[
+-720.0,
+908.2
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": "yes",
+"layer": "1",
+"pts": [
+[
+-771.3,
+916.5
+],
+[
+-730.9,
+739.5
+],
+[
+-696.5,
+526.6
+]
+]
+},
+{
+"name": "Sonora Street",
+"kind": "residential",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+450.5,
+-1523.5
+],
+[
+452.3,
+-1487.3
+],
+[
+465.9,
+-1205.4
+],
+[
+470.9,
+-837.1
+],
+[
+471.3,
+-807.1
+],
+[
+471.6,
+-768.5
+],
+[
+473.1,
+-608.3
+],
+[
+474.6,
+-445.6
+],
+[
+474.1,
+-409.9
+],
+[
+475.3,
+-374.0
+],
+[
+476.7,
+-208.6
+],
+[
+478.2,
+-42.9
+],
+[
+478.4,
+-9.6
+],
+[
+478.8,
+27.0
+],
+[
+480.3,
+187.6
+],
+[
+481.8,
+353.3
+],
+[
+482.2,
+390.1
+]
+]
+},
+{
+"name": "West 21st Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-642.3,
+-34.0
+],
+[
+-701.0,
+-51.4
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-908.7,
+-1003.1
+],
+[
+-1557.2,
+-1182.4
+],
+[
+-1574.9,
+-1199.4
+],
+[
+-1601.9,
+-1308.1
+],
+[
+-1593.0,
+-1338.7
+],
+[
+-1583.0,
+-1373.3
+]
+]
+},
+{
+"name": "19th Street",
+"kind": "tertiary",
+"lanes": "4",
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-992.4,
+-852.1
+],
+[
+-1264.1,
+-928.0
+],
+[
+-1505.8,
+-995.6
+],
+[
+-1802.9,
+-1075.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+473.1,
+-608.3
+],
+[
+950.7,
+-615.8
+],
+[
+1428.5,
+-616.8
+],
+[
+1901.0,
+-623.6
+],
+[
+2387.0,
+-632.8
+],
+[
+2718.6,
+-627.7
+],
+[
+2734.1,
+-667.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+3288.5,
+-235.4
+],
+[
+3271.1,
+-235.2
+],
+[
+2898.9,
+-231.9
+],
+[
+2871.0,
+-231.7
+],
+[
+2837.6,
+-231.2
+],
+[
+2518.7,
+-227.9
+],
+[
+2424.5,
+-227.6
+],
+[
+2391.8,
+-227.5
+],
+[
+2349.6,
+-227.2
+],
+[
+2087.7,
+-225.0
+],
+[
+2026.9,
+-224.5
+],
+[
+1905.4,
+-223.5
+],
+[
+1433.0,
+-213.7
+],
+[
+955.0,
+-214.4
+],
+[
+476.7,
+-208.6
+]
+]
+},
+{
+"name": "19th Street",
+"kind": "tertiary",
+"lanes": "4",
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-386.7,
+-682.3
+],
+[
+-436.1,
+-696.3
+]
+]
+},
+{
+"name": "Golden State Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": "1",
+"pts": [
+[
+-2115.2,
+635.9
+],
+[
+-2067.2,
+627.8
+],
+[
+-2003.3,
+618.0
+],
+[
+-1996.5,
+616.9
+],
+[
+-1896.8,
+600.5
+],
+[
+-1889.8,
+599.4
+],
+[
+-1756.7,
+578.7
+],
+[
+-1677.0,
+563.9
+],
+[
+-1614.3,
+552.2
+],
+[
+-1468.4,
+513.2
+],
+[
+-1361.7,
+471.6
+],
+[
+-1316.3,
+455.6
+],
+[
+-1231.7,
+415.1
+],
+[
+-1129.6,
+359.2
+],
+[
+-1088.9,
+330.2
+],
+[
+-1036.7,
+293.0
+],
+[
+-961.3,
+232.4
+],
+[
+-869.2,
+150.2
+],
+[
+-800.2,
+74.6
+],
+[
+-739.5,
+-2.5
+],
+[
+-701.0,
+-51.4
+]
+]
+},
+{
+"name": "West 21st Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1779.1,
+-352.6
+],
+[
+-1507.5,
+-278.1
+],
+[
+-1173.9,
+-185.1
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+1.1,
+194.8
+],
+[
+480.3,
+187.6
+],
+[
+959.1,
+185.7
+],
+[
+1437.5,
+180.5
+],
+[
+1912.2,
+173.6
+],
+[
+2362.1,
+173.0
+],
+[
+2396.3,
+172.2
+],
+[
+2426.6,
+171.9
+],
+[
+2840.1,
+167.6
+],
+[
+2875.7,
+167.3
+],
+[
+2899.5,
+166.8
+],
+[
+3295.5,
+159.7
+],
+[
+3309.6,
+159.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1531.2,
+-98.7
+],
+[
+-1187.6,
+-3.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-232.2,
+486.9
+],
+[
+-248.7,
+457.6
+],
+[
+-258.0,
+441.1
+],
+[
+-281.8,
+313.2
+],
+[
+-402.1,
+308.8
+],
+[
+-408.0,
+175.3
+],
+[
+-428.0,
+113.3
+],
+[
+-433.3,
+43.4
+],
+[
+-433.0,
+32.7
+],
+[
+-434.4,
+0.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-59.6,
+-947.4
+],
+[
+-68.6,
+-914.9
+],
+[
+-70.5,
+-907.6
+],
+[
+-92.3,
+-834.1
+],
+[
+-92.6,
+-823.3
+],
+[
+-86.4,
+-815.9
+],
+[
+115.4,
+-753.9
+],
+[
+122.1,
+-754.9
+],
+[
+126.7,
+-761.6
+],
+[
+127.7,
+-849.6
+],
+[
+129.2,
+-857.1
+],
+[
+136.3,
+-891.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-221.3,
+-629.7
+],
+[
+-211.4,
+-660.8
+],
+[
+-197.5,
+-704.5
+],
+[
+-191.6,
+-722.9
+],
+[
+-185.0,
+-729.0
+],
+[
+-174.0,
+-727.8
+],
+[
+16.0,
+-667.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-908.7,
+-1003.1
+],
+[
+-591.4,
+-918.5
+],
+[
+-416.6,
+-871.9
+],
+[
+-389.4,
+-864.7
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-999.2,
+-678.5
+],
+[
+-886.4,
+-648.4
+],
+[
+-872.8,
+-642.8
+],
+[
+-865.1,
+-628.9
+],
+[
+-851.2,
+-619.6
+],
+[
+-548.1,
+-541.4
+],
+[
+-507.5,
+-530.9
+],
+[
+-487.1,
+-525.7
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-591.1,
+-386.6
+],
+[
+-548.1,
+-541.4
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-609.6,
+-206.6
+],
+[
+-631.3,
+-212.3
+],
+[
+-1095.4,
+-333.9
+],
+[
+-1251.1,
+-379.1
+],
+[
+-1279.4,
+-394.5
+],
+[
+-1515.4,
+-455.8
+],
+[
+-1528.0,
+-462.8
+],
+[
+-1531.7,
+-476.3
+],
+[
+-1530.4,
+-599.2
+],
+[
+-1524.2,
+-638.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1055.3,
+370.1
+],
+[
+-1036.1,
+387.1
+],
+[
+-1026.0,
+394.4
+],
+[
+-1016.3,
+397.2
+],
+[
+-984.1,
+406.8
+],
+[
+-880.9,
+436.2
+],
+[
+-785.4,
+461.0
+],
+[
+-776.2,
+465.9
+],
+[
+-772.9,
+473.5
+],
+[
+-776.3,
+493.4
+],
+[
+-811.1,
+610.8
+],
+[
+-818.2,
+634.6
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1187.6,
+-3.9
+],
+[
+-1078.8,
+24.8
+],
+[
+-1068.8,
+26.0
+],
+[
+-1058.0,
+22.1
+],
+[
+-1053.1,
+16.4
+],
+[
+-1047.0,
+-9.7
+],
+[
+-1032.7,
+-71.0
+],
+[
+-1023.5,
+-105.8
+],
+[
+-1014.4,
+-140.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1158.8,
+-107.0
+],
+[
+-1032.7,
+-71.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1175.6,
+-46.3
+],
+[
+-1047.0,
+-9.7
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+0.0,
+909.5
+],
+[
+-37.0,
+909.5
+],
+[
+-87.8,
+909.5
+],
+[
+-122.6,
+894.5
+],
+[
+-139.8,
+871.2
+],
+[
+-144.8,
+843.4
+],
+[
+-137.8,
+818.4
+],
+[
+-120.0,
+805.5
+],
+[
+-86.8,
+799.3
+],
+[
+-41.8,
+795.7
+],
+[
+0.6,
+794.2
+]
+]
+},
+{
+"name": "Sumner Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-733.2,
+656.3
+],
+[
+-630.0,
+662.3
+],
+[
+-569.4,
+655.5
+],
+[
+-512.5,
+642.7
+],
+[
+-485.4,
+633.9
+],
+[
+-437.0,
+613.6
+],
+[
+-391.3,
+588.7
+],
+[
+-232.2,
+486.9
+],
+[
+-191.1,
+460.7
+],
+[
+-144.6,
+436.8
+],
+[
+-95.8,
+418.5
+],
+[
+-53.9,
+406.9
+],
+[
+3.0,
+397.2
+],
+[
+52.4,
+394.1
+],
+[
+482.2,
+390.1
+],
+[
+961.2,
+385.1
+],
+[
+1439.7,
+380.4
+],
+[
+1561.8,
+379.2
+],
+[
+1622.1,
+378.6
+],
+[
+1677.4,
+378.0
+],
+[
+1919.2,
+375.6
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-127.8,
+-1614.4
+],
+[
+-199.1,
+-1351.1
+],
+[
+-229.6,
+-1241.0
+],
+[
+-244.8,
+-1184.4
+],
+[
+-258.4,
+-1134.7
+],
+[
+-281.3,
+-1050.3
+],
+[
+-291.2,
+-1013.9
+],
+[
+-301.3,
+-978.3
+],
+[
+-316.5,
+-925.2
+],
+[
+-352.7,
+-799.7
+],
+[
+-376.7,
+-716.7
+],
+[
+-386.7,
+-682.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-433.1,
+-498.2
+],
+[
+-409.2,
+-494.0
+],
+[
+-367.4,
+-486.6
+],
+[
+-299.4,
+-474.6
+],
+[
+-295.3,
+-488.0
+],
+[
+-288.4,
+-511.0
+],
+[
+-278.8,
+-543.1
+],
+[
+-271.7,
+-566.6
+],
+[
+-267.0,
+-582.3
+],
+[
+-260.1,
+-605.4
+],
+[
+-250.1,
+-638.7
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-367.4,
+-486.6
+],
+[
+-361.2,
+-507.3
+],
+[
+-354.3,
+-530.0
+],
+[
+-344.5,
+-562.6
+],
+[
+-337.2,
+-585.2
+],
+[
+-331.3,
+-598.4
+],
+[
+-322.5,
+-598.4
+],
+[
+-267.0,
+-582.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-347.1,
+-503.4
+],
+[
+-310.0,
+-492.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-338.6,
+-525.4
+],
+[
+-302.1,
+-514.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-327.4,
+-557.2
+],
+[
+-292.8,
+-547.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-321.6,
+-580.8
+],
+[
+-286.7,
+-570.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-361.2,
+-507.3
+],
+[
+-347.1,
+-503.4
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-310.0,
+-492.3
+],
+[
+-295.3,
+-488.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-354.3,
+-530.0
+],
+[
+-338.6,
+-525.4
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-302.1,
+-514.9
+],
+[
+-288.4,
+-511.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-344.5,
+-562.6
+],
+[
+-327.4,
+-557.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-292.8,
+-547.3
+],
+[
+-278.8,
+-543.1
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-286.7,
+-570.8
+],
+[
+-271.7,
+-566.6
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-337.2,
+-585.2
+],
+[
+-321.6,
+-580.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1356.1,
+762.8
+],
+[
+-1302.2,
+571.6
+],
+[
+-1240.8,
+590.0
+],
+[
+-1233.3,
+592.2
+],
+[
+-1280.8,
+762.3
+],
+[
+-1356.1,
+762.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1302.2,
+571.6
+],
+[
+-1308.7,
+553.2
+],
+[
+-1321.8,
+515.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1240.8,
+590.0
+],
+[
+-1231.9,
+559.2
+],
+[
+-1230.7,
+554.9
+],
+[
+-1224.7,
+534.3
+],
+[
+-1218.4,
+512.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-160.3,
+-912.6
+],
+[
+-118.0,
+-900.6
+],
+[
+-138.1,
+-833.0
+],
+[
+-146.3,
+-823.8
+],
+[
+-171.4,
+-817.3
+],
+[
+-191.4,
+-815.4
+],
+[
+-204.4,
+-805.7
+],
+[
+-216.6,
+-791.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-160.3,
+-912.6
+],
+[
+-151.0,
+-895.4
+],
+[
+-144.9,
+-883.3
+],
+[
+-143.0,
+-871.5
+],
+[
+-147.2,
+-856.2
+],
+[
+-155.4,
+-844.7
+],
+[
+-169.3,
+-832.7
+],
+[
+-189.1,
+-829.2
+],
+[
+-214.8,
+-834.6
+],
+[
+-248.1,
+-842.9
+],
+[
+-286.5,
+-854.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-286.5,
+-854.2
+],
+[
+-261.7,
+-940.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-286.5,
+-854.2
+],
+[
+-290.3,
+-812.4
+],
+[
+-216.6,
+-791.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-290.3,
+-812.4
+],
+[
+-298.5,
+-784.2
+],
+[
+-316.1,
+-723.8
+],
+[
+-242.7,
+-702.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-352.7,
+-799.7
+],
+[
+-322.7,
+-791.2
+],
+[
+-298.5,
+-784.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-177.1,
+-916.0
+],
+[
+-155.4,
+-844.7
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-216.6,
+-791.8
+],
+[
+-242.7,
+-702.9
+],
+[
+-251.3,
+-673.4
+],
+[
+-260.5,
+-642.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-335.0,
+-1.1
+],
+[
+-336.4,
+-30.4
+],
+[
+-343.9,
+-200.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-520.9,
+-193.4
+],
+[
+-495.2,
+-194.4
+],
+[
+-343.9,
+-200.5
+],
+[
+-101.4,
+-200.2
+],
+[
+-92.2,
+-195.1
+],
+[
+-86.0,
+-183.4
+],
+[
+-84.9,
+-35.8
+],
+[
+-84.7,
+-3.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-325.8,
+-400.8
+],
+[
+-322.4,
+-294.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-322.4,
+-294.0
+],
+[
+-344.4,
+-259.5
+],
+[
+-343.9,
+-200.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1000.8,
+-672.3
+],
+[
+-1051.1,
+-687.4
+],
+[
+-1138.2,
+-713.7
+],
+[
+-1149.2,
+-717.0
+],
+[
+-1207.4,
+-734.1
+],
+[
+-1234.5,
+-639.6
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1024.3,
+-588.4
+],
+[
+-1075.4,
+-602.4
+],
+[
+-1086.3,
+-566.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1075.4,
+-602.4
+],
+[
+-1051.1,
+-687.4
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1088.9,
+330.2
+],
+[
+-1103.4,
+314.9
+],
+[
+-1105.7,
+312.5
+],
+[
+-1127.9,
+289.1
+],
+[
+-1187.5,
+335.4
+],
+[
+-1210.6,
+366.3
+],
+[
+-1237.7,
+358.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1085.7,
+286.7
+],
+[
+-1124.4,
+275.9
+],
+[
+-1144.7,
+270.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1127.9,
+289.1
+],
+[
+-1124.4,
+275.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-378.4,
+-908.3
+],
+[
+-404.8,
+-915.5
+],
+[
+-451.1,
+-928.0
+],
+[
+-458.5,
+-932.6
+],
+[
+-463.7,
+-940.9
+],
+[
+-465.1,
+-948.8
+],
+[
+-444.6,
+-1021.2
+],
+[
+-435.0,
+-1054.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-464.6,
+0.3
+],
+[
+-461.8,
+-28.2
+],
+[
+-456.2,
+-95.5
+],
+[
+-426.1,
+-103.0
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-538.3,
+-121.1
+],
+[
+-518.9,
+-114.6
+],
+[
+-496.4,
+-107.1
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-496.4,
+-107.1
+],
+[
+-472.3,
+-99.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-472.3,
+-99.8
+],
+[
+-456.2,
+-95.5
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-436.1,
+-696.3
+],
+[
+-425.9,
+-733.2
+],
+[
+-418.4,
+-760.3
+],
+[
+-395.3,
+-843.6
+],
+[
+-389.4,
+-864.7
+],
+[
+-378.4,
+-908.3
+],
+[
+-353.7,
+-994.9
+],
+[
+-343.8,
+-1029.4
+],
+[
+-333.9,
+-1065.1
+],
+[
+-298.3,
+-1193.6
+],
+[
+-281.0,
+-1256.2
+],
+[
+-275.7,
+-1275.0
+],
+[
+-250.5,
+-1366.3
+],
+[
+-204.8,
+-1530.7
+],
+[
+-177.9,
+-1629.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-379.7,
+-1008.2
+],
+[
+-381.0,
+-1003.6
+],
+[
+-404.8,
+-915.5
+],
+[
+-416.6,
+-871.9
+],
+[
+-421.9,
+-852.3
+],
+[
+-444.9,
+-767.2
+],
+[
+-452.2,
+-740.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-470.0,
+-669.1
+],
+[
+-445.8,
+-660.9
+],
+[
+-416.6,
+-651.5
+],
+[
+-395.7,
+-646.5
+],
+[
+-367.7,
+-639.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-343.8,
+-703.3
+],
+[
+-341.4,
+-726.6
+],
+[
+-322.7,
+-791.2
+],
+[
+-271.4,
+-968.8
+],
+[
+-269.9,
+-973.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-350.0,
+-705.9
+],
+[
+-376.7,
+-716.7
+],
+[
+-399.7,
+-726.1
+],
+[
+-425.9,
+-733.2
+],
+[
+-447.3,
+-739.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-367.7,
+-639.9
+],
+[
+-360.6,
+-638.2
+],
+[
+-357.7,
+-645.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-461.7,
+-732.3
+],
+[
+-468.6,
+-705.4
+],
+[
+-475.0,
+-680.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-475.0,
+-680.7
+],
+[
+-477.4,
+-671.6
+],
+[
+-470.0,
+-669.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-460.9,
+-735.2
+],
+[
+-461.7,
+-732.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-447.3,
+-739.0
+],
+[
+-452.2,
+-740.3
+],
+[
+-460.9,
+-735.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-357.7,
+-645.4
+],
+[
+-348.1,
+-670.0
+],
+[
+-338.4,
+-694.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-338.4,
+-694.8
+],
+[
+-336.2,
+-700.2
+],
+[
+-343.8,
+-703.3
+],
+[
+-350.0,
+-705.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-572.7,
+-341.0
+],
+[
+-619.1,
+-234.9
+],
+[
+-631.3,
+-212.3
+],
+[
+-663.8,
+-152.1
+],
+[
+-707.4,
+-89.1
+],
+[
+-710.3,
+-85.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-535.1,
+-30.0
+],
+[
+-538.6,
+-48.1
+],
+[
+-518.9,
+-114.6
+],
+[
+-495.2,
+-194.4
+],
+[
+-480.7,
+-243.0
+],
+[
+-444.8,
+-370.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-753.5,
+-33.5
+],
+[
+-753.7,
+-29.0
+],
+[
+-754.5,
+-15.8
+],
+[
+-815.3,
+59.4
+],
+[
+-908.9,
+156.3
+],
+[
+-959.6,
+202.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-710.3,
+-85.0
+],
+[
+-731.2,
+-60.0
+],
+[
+-753.5,
+-33.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-754.5,
+-15.8
+],
+[
+-752.5,
+-14.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-752.5,
+-14.0
+],
+[
+-739.5,
+-2.5
+],
+[
+-714.2,
+20.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-714.2,
+20.1
+],
+[
+-707.4,
+26.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-550.0,
+28.0
+],
+[
+-543.2,
+1.2
+],
+[
+-535.1,
+-30.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-707.4,
+26.2
+],
+[
+-703.2,
+39.2
+],
+[
+-690.4,
+79.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-687.6,
+88.8
+],
+[
+-679.9,
+82.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-690.4,
+79.8
+],
+[
+-687.6,
+88.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-679.9,
+82.6
+],
+[
+-660.4,
+66.9
+],
+[
+-638.2,
+48.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-638.2,
+48.9
+],
+[
+-607.5,
+47.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-607.5,
+47.7
+],
+[
+-584.2,
+46.6
+],
+[
+-564.0,
+45.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-564.0,
+45.7
+],
+[
+-555.7,
+45.3
+],
+[
+-553.2,
+37.7
+],
+[
+-550.0,
+28.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1022.4,
+254.5
+],
+[
+-1071.8,
+293.4
+],
+[
+-1103.4,
+314.9
+],
+[
+-1143.2,
+342.1
+],
+[
+-1245.4,
+399.0
+],
+[
+-1264.3,
+406.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-959.6,
+202.1
+],
+[
+-987.2,
+225.2
+],
+[
+-1022.4,
+254.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-427.8,
+-429.6
+],
+[
+-409.2,
+-494.0
+],
+[
+-376.8,
+-606.7
+],
+[
+-360.6,
+-638.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-444.8,
+-370.4
+],
+[
+-436.6,
+-399.0
+],
+[
+-427.8,
+-429.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-477.4,
+-671.6
+],
+[
+-472.3,
+-661.0
+],
+[
+-507.5,
+-530.9
+],
+[
+-529.7,
+-449.2
+],
+[
+-547.4,
+-401.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-547.4,
+-401.8
+],
+[
+-557.8,
+-377.0
+],
+[
+-572.7,
+-341.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1338.6,
+438.1
+],
+[
+-1342.2,
+438.3
+],
+[
+-1345.9,
+434.7
+],
+[
+-1318.5,
+346.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1264.3,
+406.0
+],
+[
+-1307.7,
+424.7
+],
+[
+-1338.6,
+438.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-553.2,
+37.7
+],
+[
+-433.0,
+32.7
+],
+[
+-92.9,
+20.8
+],
+[
+-32.4,
+21.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-32.4,
+21.3
+],
+[
+-0.5,
+25.4
+],
+[
+21.0,
+25.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+21.0,
+25.7
+],
+[
+32.7,
+27.9
+],
+[
+442.8,
+23.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+442.8,
+23.5
+],
+[
+478.8,
+27.0
+],
+[
+495.4,
+26.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+444.9,
+-42.5
+],
+[
+-84.9,
+-35.8
+],
+[
+-336.4,
+-30.4
+],
+[
+-379.6,
+-27.9
+],
+[
+-461.8,
+-28.2
+],
+[
+-535.1,
+-30.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+496.9,
+-43.1
+],
+[
+478.2,
+-42.9
+],
+[
+444.9,
+-42.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+495.4,
+26.8
+],
+[
+924.8,
+23.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+922.4,
+-48.5
+],
+[
+496.9,
+-43.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-707.4,
+-89.1
+],
+[
+-746.3,
+-95.6
+],
+[
+-775.4,
+-113.0
+],
+[
+-1095.3,
+-200.0
+],
+[
+-1103.3,
+-202.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1124.6,
+-133.6
+],
+[
+-1116.5,
+-131.2
+],
+[
+-1023.5,
+-105.8
+],
+[
+-802.7,
+-45.4
+],
+[
+-753.7,
+-29.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1114.2,
+-138.7
+],
+[
+-1105.7,
+-166.1
+],
+[
+-1098.1,
+-190.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1166.7,
+-210.5
+],
+[
+-1173.9,
+-185.1
+],
+[
+-1181.5,
+-158.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1164.3,
+-218.9
+],
+[
+-1166.7,
+-210.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1181.5,
+-158.7
+],
+[
+-1183.7,
+-151.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1183.7,
+-151.0
+],
+[
+-1175.0,
+-148.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1175.0,
+-148.5
+],
+[
+-1149.5,
+-140.9
+],
+[
+-1124.6,
+-133.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1103.3,
+-202.1
+],
+[
+-1130.4,
+-209.6
+],
+[
+-1156.9,
+-216.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1098.1,
+-190.7
+],
+[
+-1095.3,
+-200.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1116.5,
+-131.2
+],
+[
+-1114.2,
+-138.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1156.9,
+-216.9
+],
+[
+-1164.3,
+-218.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-477.4,
+-671.6
+],
+[
+-933.3,
+-795.5
+],
+[
+-939.8,
+-797.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-919.2,
+-866.5
+],
+[
+-912.7,
+-864.8
+],
+[
+-857.7,
+-849.7
+],
+[
+-790.4,
+-830.7
+],
+[
+-628.9,
+-783.9
+],
+[
+-561.8,
+-764.5
+],
+[
+-488.4,
+-743.2
+],
+[
+-460.9,
+-735.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-930.9,
+-803.5
+],
+[
+-922.3,
+-832.5
+],
+[
+-915.0,
+-857.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-939.8,
+-797.3
+],
+[
+-964.3,
+-803.9
+],
+[
+-993.4,
+-811.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-933.3,
+-795.5
+],
+[
+-930.9,
+-803.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-915.0,
+-857.0
+],
+[
+-912.7,
+-864.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-975.7,
+-881.1
+],
+[
+-945.0,
+-873.2
+],
+[
+-919.2,
+-866.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1002.9,
+-814.4
+],
+[
+-1000.5,
+-822.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1000.5,
+-822.8
+],
+[
+-992.4,
+-852.1
+],
+[
+-985.5,
+-877.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-983.8,
+-883.2
+],
+[
+-975.7,
+-881.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-985.5,
+-877.1
+],
+[
+-983.8,
+-883.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-993.4,
+-811.8
+],
+[
+-1002.9,
+-814.4
+]
+]
+},
+{
+"name": "19th Street",
+"kind": "tertiary",
+"lanes": "4",
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-436.1,
+-696.3
+],
+[
+-468.6,
+-705.4
+],
+[
+-497.4,
+-713.5
+],
+[
+-570.4,
+-733.9
+],
+[
+-637.6,
+-752.7
+],
+[
+-922.3,
+-832.5
+],
+[
+-953.9,
+-841.3
+],
+[
+-992.4,
+-852.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-336.2,
+-700.2
+],
+[
+-251.3,
+-673.4
+],
+[
+-211.4,
+-660.8
+],
+[
+39.2,
+-581.5
+],
+[
+438.6,
+-451.8
+],
+[
+442.8,
+-451.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+435.7,
+-380.4
+],
+[
+437.7,
+-412.1
+],
+[
+438.4,
+-444.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+276.2,
+-434.5
+],
+[
+248.1,
+-444.5
+],
+[
+143.8,
+-478.1
+],
+[
+-260.1,
+-605.4
+],
+[
+-360.6,
+-638.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+492.2,
+-373.7
+],
+[
+475.3,
+-374.0
+],
+[
+439.6,
+-374.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+502.6,
+-373.5
+],
+[
+492.2,
+-373.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+502.8,
+-382.8
+],
+[
+502.6,
+-373.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+503.8,
+-432.8
+],
+[
+503.3,
+-408.4
+],
+[
+502.8,
+-382.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+438.4,
+-444.7
+],
+[
+438.6,
+-451.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+435.5,
+-374.7
+],
+[
+435.7,
+-380.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+442.8,
+-451.1
+],
+[
+474.6,
+-445.6
+],
+[
+495.8,
+-441.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+495.8,
+-441.9
+],
+[
+504.0,
+-440.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+504.0,
+-440.5
+],
+[
+503.8,
+-432.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+425.5,
+-378.1
+],
+[
+331.1,
+-411.1
+],
+[
+276.2,
+-434.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+439.6,
+-374.6
+],
+[
+435.5,
+-374.7
+],
+[
+425.5,
+-378.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-555.7,
+45.3
+],
+[
+-571.1,
+99.8
+],
+[
+-568.7,
+130.9
+],
+[
+-556.5,
+171.2
+],
+[
+-550.7,
+213.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": "yes",
+"layer": "1",
+"pts": [
+[
+-630.3,
+533.3
+],
+[
+-647.9,
+653.6
+],
+[
+-664.8,
+750.3
+],
+[
+-679.7,
+821.5
+],
+[
+-702.9,
+923.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-593.2,
+219.0
+],
+[
+-601.5,
+259.9
+],
+[
+-608.1,
+334.1
+],
+[
+-613.8,
+385.6
+],
+[
+-630.3,
+533.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-687.6,
+88.8
+],
+[
+-705.0,
+101.0
+],
+[
+-833.3,
+235.1
+],
+[
+-835.2,
+240.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-555.7,
+213.7
+],
+[
+-563.5,
+214.2
+],
+[
+-584.6,
+215.5
+]
+]
+},
+{
+"name": "",
+"kind": "steps",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-588.3,
+215.1
+],
+[
+-593.2,
+219.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-584.6,
+215.5
+],
+[
+-588.3,
+215.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-835.2,
+240.5
+],
+[
+-842.7,
+248.9
+],
+[
+-855.0,
+262.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-855.0,
+262.5
+],
+[
+-854.9,
+267.3
+],
+[
+-860.5,
+267.8
+],
+[
+-874.7,
+272.6
+],
+[
+-894.7,
+288.7
+],
+[
+-1009.8,
+380.8
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1158.1,
+498.0
+],
+[
+-1196.7,
+519.0
+],
+[
+-1224.7,
+534.3
+],
+[
+-1251.4,
+548.9
+]
+]
+},
+{
+"name": "West 21st Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1173.9,
+-185.1
+],
+[
+-1140.0,
+-175.7
+],
+[
+-1105.7,
+-166.1
+],
+[
+-1014.4,
+-140.5
+],
+[
+-731.2,
+-60.0
+],
+[
+-701.0,
+-51.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+921.0,
+-378.0
+],
+[
+502.6,
+-373.5
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+504.0,
+-440.5
+],
+[
+916.8,
+-448.2
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-637.6,
+-752.7
+],
+[
+-628.9,
+-783.9
+],
+[
+-591.4,
+-918.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-570.4,
+-733.9
+],
+[
+-561.8,
+-764.5
+],
+[
+-559.9,
+-771.6
+],
+[
+-553.3,
+-796.3
+],
+[
+-499.1,
+-782.1
+],
+[
+-478.8,
+-776.5
+],
+[
+-486.1,
+-751.3
+],
+[
+-488.4,
+-743.2
+],
+[
+-497.4,
+-713.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-473.7,
+-866.5
+],
+[
+-454.8,
+-861.3
+],
+[
+-436.5,
+-856.3
+],
+[
+-421.9,
+-852.3
+],
+[
+-395.3,
+-843.6
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-470.9,
+-805.8
+],
+[
+-478.8,
+-776.5
+],
+[
+-460.9,
+-771.5
+],
+[
+-444.9,
+-767.2
+],
+[
+-418.4,
+-760.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-499.1,
+-782.1
+],
+[
+-473.7,
+-866.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-452.5,
+-800.6
+],
+[
+-441.9,
+-839.1
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-459.6,
+-844.1
+],
+[
+-470.9,
+-805.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-454.8,
+-861.3
+],
+[
+-459.6,
+-844.1
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-460.9,
+-771.5
+],
+[
+-452.5,
+-800.6
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-441.9,
+-839.1
+],
+[
+-436.5,
+-856.3
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-553.3,
+-796.3
+],
+[
+-574.9,
+-802.9
+],
+[
+-551.9,
+-887.8
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-528.6,
+-881.5
+],
+[
+-490.0,
+-870.9
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-490.0,
+-870.9
+],
+[
+-473.7,
+-866.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-551.9,
+-887.8
+],
+[
+-528.6,
+-881.5
+]
+]
+},
+{
+"name": "",
+"kind": "service",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-559.9,
+-771.6
+],
+[
+-486.1,
+-751.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+501.2,
+353.3
+],
+[
+512.6,
+353.7
+],
+[
+927.8,
+348.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+447.8,
+353.2
+],
+[
+481.8,
+353.3
+],
+[
+501.2,
+353.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+27.0,
+361.2
+],
+[
+2.7,
+365.1
+],
+[
+-35.5,
+371.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+447.8,
+353.2
+],
+[
+438.2,
+354.4
+],
+[
+36.4,
+358.0
+],
+[
+27.0,
+361.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-35.5,
+371.2
+],
+[
+-40.9,
+368.2
+],
+[
+-47.9,
+373.9
+],
+[
+-79.0,
+380.5
+],
+[
+-109.5,
+388.9
+],
+[
+-139.5,
+399.3
+],
+[
+-171.6,
+413.0
+],
+[
+-202.6,
+428.8
+],
+[
+-232.5,
+446.8
+],
+[
+-248.7,
+457.6
+],
+[
+-261.4,
+466.1
+],
+[
+-421.6,
+569.2
+],
+[
+-450.4,
+584.6
+],
+[
+-472.2,
+594.5
+],
+[
+-494.6,
+603.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-550.7,
+213.2
+],
+[
+-555.7,
+213.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-516.8,
+600.4
+],
+[
+-515.1,
+598.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-550.7,
+213.2
+],
+[
+-527.4,
+579.2
+],
+[
+-525.7,
+584.7
+],
+[
+-523.1,
+589.8
+],
+[
+-519.4,
+594.2
+],
+[
+-515.1,
+598.0
+],
+[
+-510.4,
+600.6
+],
+[
+-505.3,
+602.3
+],
+[
+-500.0,
+603.2
+],
+[
+-494.6,
+603.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-558.2,
+613.6
+],
+[
+-539.8,
+607.7
+],
+[
+-516.8,
+600.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-573.2,
+625.7
+],
+[
+-574.2,
+586.2
+],
+[
+-576.9,
+546.8
+],
+[
+-581.5,
+507.5
+],
+[
+-588.1,
+467.0
+],
+[
+-596.6,
+426.8
+],
+[
+-607.0,
+387.0
+],
+[
+-613.8,
+385.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1212.2,
+560.4
+],
+[
+-1230.7,
+554.9
+],
+[
+-1251.4,
+548.9
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-637.1,
+634.2
+],
+[
+-629.4,
+633.8
+],
+[
+-573.2,
+625.7
+],
+[
+-558.2,
+621.7
+],
+[
+-558.2,
+613.6
+],
+[
+-558.3,
+605.3
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-797.3,
+615.0
+],
+[
+-793.7,
+613.4
+],
+[
+-747.1,
+625.3
+],
+[
+-733.5,
+628.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-733.5,
+628.1
+],
+[
+-720.1,
+630.9
+],
+[
+-692.6,
+634.4
+],
+[
+-661.0,
+635.6
+],
+[
+-637.1,
+634.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-818.3,
+608.6
+],
+[
+-811.1,
+610.8
+],
+[
+-797.3,
+615.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1009.8,
+380.8
+],
+[
+-1026.0,
+394.4
+],
+[
+-1040.9,
+407.1
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1040.9,
+407.1
+],
+[
+-1041.7,
+410.6
+],
+[
+-1049.5,
+409.9
+],
+[
+-1057.5,
+411.0
+],
+[
+-1151.5,
+470.3
+],
+[
+-1153.9,
+476.9
+],
+[
+-1155.4,
+483.8
+],
+[
+-1155.9,
+490.5
+],
+[
+-1155.5,
+497.2
+],
+[
+-1153.0,
+501.7
+],
+[
+-1149.8,
+505.6
+],
+[
+-1146.6,
+508.4
+],
+[
+-1143.1,
+510.8
+],
+[
+-1138.3,
+504.2
+],
+[
+-820.1,
+595.2
+],
+[
+-822.5,
+603.4
+],
+[
+-818.3,
+608.6
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1155.5,
+497.2
+],
+[
+-1158.1,
+498.0
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1251.4,
+548.9
+],
+[
+-1255.9,
+550.6
+],
+[
+-1262.4,
+539.2
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-1006.3,
+612.7
+],
+[
+-1197.0,
+557.3
+],
+[
+-1201.0,
+556.8
+],
+[
+-1205.0,
+557.1
+],
+[
+-1208.8,
+558.4
+],
+[
+-1212.2,
+560.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-766.0,
+799.4
+],
+[
+-665.2,
+784.7
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-895.0,
+864.1
+],
+[
+-885.5,
+832.2
+],
+[
+-766.0,
+799.4
+]
+]
+},
+{
+"name": "",
+"kind": "footway",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-665.2,
+784.7
+],
+[
+-647.7,
+786.1
+],
+[
+-630.6,
+790.5
+],
+[
+-614.7,
+797.7
+],
+[
+-600.1,
+807.5
+],
+[
+-587.5,
+819.6
+],
+[
+-577.1,
+833.7
+],
+[
+-570.0,
+847.8
+],
+[
+-565.1,
+862.8
+],
+[
+-562.6,
+878.3
+],
+[
+-562.6,
+894.1
+],
+[
+-565.1,
+909.6
+],
+[
+-571.5,
+931.3
+],
+[
+-580.0,
+954.3
+],
+[
+-619.4,
+1061.2
+],
+[
+-621.0,
+1069.6
+],
+[
+-620.6,
+1078.1
+],
+[
+-618.2,
+1086.3
+],
+[
+-613.9,
+1093.8
+],
+[
+-608.0,
+1100.0
+],
+[
+-600.8,
+1104.7
+],
+[
+-592.6,
+1107.6
+],
+[
+-584.0,
+1108.5
+],
+[
+-502.8,
+1107.7
+],
+[
+-245.4,
+1105.0
+],
+[
+-23.2,
+1102.3
+]
+]
+},
+{
+"name": "Union Avenue",
+"kind": "primary",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-660.4,
+66.9
+],
+[
+-678.7,
+9.7
+],
+[
+-701.0,
+-51.4
+]
+]
+},
+{
+"name": "West Sumner Street",
+"kind": "tertiary",
+"lanes": null,
+"oneway": null,
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-996.8,
+580.0
+],
+[
+-1196.7,
+519.0
+],
+[
+-1218.4,
+512.3
+],
+[
+-1274.0,
+495.3
+],
+[
+-1361.7,
+471.6
+]
+]
+},
+{
+"name": "Golden State Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": null,
+"pts": [
+[
+-386.7,
+-682.3
+],
+[
+-395.7,
+-646.5
+],
+[
+-433.1,
+-498.2
+],
+[
+-458.8,
+-398.6
+],
+[
+-507.2,
+-259.8
+]
+]
+},
+{
+"name": "Golden State Avenue",
+"kind": "trunk",
+"lanes": null,
+"oneway": "yes",
+"bridge": null,
+"layer": "1",
+"pts": [
+[
+-701.0,
+-51.4
+],
+[
+-653.4,
+-126.8
+],
+[
+-622.1,
+-181.3
+],
+[
+-609.6,
+-206.6
+],
+[
+-578.9,
+-269.3
+],
+[
+-539.5,
+-371.7
+],
+[
+-487.1,
+-525.7
+],
+[
+-463.7,
+-595.3
+],
+[
+-445.8,
+-660.9
+],
+[
+-436.1,
+-696.3
+]
+]
+}
+],
+"rail": [
+{
+"kind": "rail",
+"name": "UP Fresno Subdivision",
+"pts": [
+[
+-6028.1,
+2491.1
+],
+[
+-5490.5,
+2216.9
+],
+[
+-5391.6,
+2167.0
+],
+[
+-5307.2,
+2125.7
+],
+[
+-5236.7,
+2091.8
+],
+[
+-5141.8,
+2047.4
+],
+[
+-5072.6,
+2017.1
+],
+[
+-4995.2,
+1983.3
+],
+[
+-4964.8,
+1970.4
+],
+[
+-4879.9,
+1934.0
+],
+[
+-4811.4,
+1904.7
+],
+[
+-4719.2,
+1865.6
+],
+[
+-4602.9,
+1817.5
+],
+[
+-4475.0,
+1764.7
+],
+[
+-3960.2,
+1566.6
+],
+[
+-3883.5,
+1537.7
+],
+[
+-3827.5,
+1517.7
+],
+[
+-3770.0,
+1497.3
+],
+[
+-3710.6,
+1476.1
+],
+[
+-3651.0,
+1455.8
+],
+[
+-3593.5,
+1436.7
+],
+[
+-3541.2,
+1419.0
+],
+[
+-3481.9,
+1399.1
+],
+[
+-3428.3,
+1380.9
+],
+[
+-3358.0,
+1359.7
+],
+[
+-3272.6,
+1333.4
+],
+[
+-3161.5,
+1300.2
+],
+[
+-3093.4,
+1279.5
+],
+[
+-3013.4,
+1256.7
+],
+[
+-2870.7,
+1217.4
+],
+[
+-2486.8,
+1125.2
+],
+[
+-2367.7,
+1095.6
+],
+[
+-2207.7,
+1055.1
+],
+[
+-1983.2,
+1001.5
+],
+[
+-1675.8,
+931.7
+],
+[
+-1596.7,
+913.3
+],
+[
+-1522.2,
+897.3
+],
+[
+-1421.3,
+875.2
+],
+[
+-1265.7,
+842.0
+],
+[
+-1198.3,
+827.8
+],
+[
+-1142.1,
+816.6
+],
+[
+-1045.7,
+798.8
+],
+[
+-985.7,
+787.5
+],
+[
+-938.0,
+778.9
+],
+[
+-880.8,
+769.5
+],
+[
+-802.1,
+756.9
+],
+[
+-649.7,
+733.6
+],
+[
+-558.8,
+719.7
+],
+[
+-479.0,
+707.8
+],
+[
+-413.8,
+698.5
+],
+[
+-352.2,
+690.2
+],
+[
+-286.7,
+682.3
+],
+[
+-225.2,
+674.0
+],
+[
+-161.2,
+665.8
+],
+[
+-89.4,
+657.6
+],
+[
+-9.9,
+648.1
+],
+[
+67.3,
+639.8
+],
+[
+163.5,
+630.0
+],
+[
+253.4,
+621.1
+],
+[
+331.7,
+612.7
+],
+[
+445.4,
+602.6
+],
+[
+550.1,
+593.5
+],
+[
+679.8,
+582.9
+],
+[
+920.1,
+566.5
+],
+[
+1283.6,
+548.7
+],
+[
+1518.1,
+540.9
+],
+[
+1712.0,
+537.8
+],
+[
+1829.3,
+536.8
+],
+[
+1924.8,
+538.1
+],
+[
+2113.0,
+544.0
+],
+[
+2213.3,
+547.6
+],
+[
+2271.7,
+549.7
+],
+[
+2327.2,
+550.5
+],
+[
+2358.8,
+550.6
+],
+[
+2396.8,
+550.7
+],
+[
+2430.1,
+550.1
+],
+[
+2465.2,
+549.4
+],
+[
+3410.6,
+539.5
+]
+]
+},
+{
+"kind": "rail",
+"name": "UP Fresno Subdivision",
+"pts": [
+[
+-6033.5,
+2511.9
+],
+[
+-5976.1,
+2482.7
+],
+[
+-5510.4,
+2245.0
+],
+[
+-5377.9,
+2178.2
+],
+[
+-5312.7,
+2145.8
+],
+[
+-5274.8,
+2127.4
+],
+[
+-5242.1,
+2111.4
+],
+[
+-5196.0,
+2090.0
+],
+[
+-5159.3,
+2072.9
+],
+[
+-5112.4,
+2051.6
+],
+[
+-5058.6,
+2027.5
+],
+[
+-5002.2,
+2003.4
+],
+[
+-4969.6,
+1988.3
+],
+[
+-4875.3,
+1948.0
+],
+[
+-4822.6,
+1925.5
+],
+[
+-4768.8,
+1902.5
+],
+[
+-4717.3,
+1881.1
+],
+[
+-4665.5,
+1859.8
+],
+[
+-4580.3,
+1824.8
+],
+[
+-4298.8,
+1712.6
+],
+[
+-3977.6,
+1592.4
+],
+[
+-3750.3,
+1511.8
+],
+[
+-3666.5,
+1483.1
+],
+[
+-3485.9,
+1421.4
+],
+[
+-3438.3,
+1405.4
+],
+[
+-3364.2,
+1381.7
+],
+[
+-3269.3,
+1351.3
+],
+[
+-3204.1,
+1331.4
+],
+[
+-3177.5,
+1323.2
+],
+[
+-3100.3,
+1300.0
+],
+[
+-3003.3,
+1271.8
+],
+[
+-2913.3,
+1247.4
+],
+[
+-2840.5,
+1227.5
+],
+[
+-2678.1,
+1187.6
+],
+[
+-2162.2,
+1059.4
+],
+[
+-2044.3,
+1030.9
+],
+[
+-1969.1,
+1013.3
+],
+[
+-1667.7,
+945.5
+],
+[
+-1294.6,
+863.2
+],
+[
+-1228.8,
+848.8
+],
+[
+-1156.3,
+833.7
+],
+[
+-1098.5,
+822.4
+],
+[
+-1022.6,
+807.9
+],
+[
+-940.8,
+793.5
+],
+[
+-880.3,
+783.2
+],
+[
+-793.4,
+769.3
+],
+[
+-639.0,
+745.4
+],
+[
+-490.4,
+723.3
+],
+[
+-418.3,
+713.5
+],
+[
+-353.0,
+704.5
+],
+[
+-278.5,
+694.8
+],
+[
+-213.8,
+686.5
+],
+[
+-138.6,
+677.0
+],
+[
+-42.8,
+666.5
+],
+[
+64.7,
+654.4
+],
+[
+138.6,
+646.1
+],
+[
+206.5,
+639.8
+],
+[
+302.8,
+631.2
+],
+[
+401.3,
+622.2
+],
+[
+476.7,
+615.9
+],
+[
+570.0,
+608.3
+],
+[
+638.6,
+602.7
+],
+[
+710.2,
+597.5
+],
+[
+781.7,
+592.7
+],
+[
+852.7,
+587.8
+],
+[
+922.2,
+584.6
+],
+[
+1020.1,
+579.0
+],
+[
+1186.1,
+570.8
+],
+[
+1493.3,
+559.8
+],
+[
+1589.1,
+559.1
+],
+[
+1708.4,
+557.1
+],
+[
+1760.5,
+557.5
+],
+[
+1847.3,
+559.1
+],
+[
+1896.5,
+560.4
+],
+[
+2108.3,
+570.2
+],
+[
+2167.5,
+572.5
+],
+[
+2203.5,
+574.1
+],
+[
+2244.6,
+575.0
+],
+[
+2299.8,
+575.7
+],
+[
+2359.5,
+574.9
+],
+[
+2397.7,
+574.3
+],
+[
+2430.4,
+574.0
+],
+[
+3410.7,
+563.9
+]
+]
+},
+{
+"kind": "rail",
+"name": "",
+"pts": [
+[
+564.7,
+702.6
+],
+[
+659.2,
+682.5
+],
+[
+711.7,
+672.0
+],
+[
+749.3,
+665.4
+],
+[
+778.8,
+660.4
+],
+[
+796.2,
+658.0
+],
+[
+819.2,
+655.4
+],
+[
+852.4,
+653.2
+],
+[
+1744.4,
+607.7
+],
+[
+1817.7,
+607.1
+],
+[
+1887.6,
+608.0
+],
+[
+1946.8,
+608.9
+],
+[
+2021.3,
+609.0
+],
+[
+2074.3,
+607.9
+],
+[
+2111.0,
+606.2
+],
+[
+2157.9,
+603.6
+],
+[
+2189.0,
+600.3
+],
+[
+2221.6,
+596.2
+],
+[
+2282.4,
+589.8
+]
+]
+},
+{
+"kind": "abandoned",
+"name": "",
+"pts": [
+[
+-1092.3,
+914.2
+],
+[
+-1057.9,
+883.6
+],
+[
+-1025.8,
+864.2
+],
+[
+-995.2,
+850.1
+],
+[
+-935.0,
+831.0
+],
+[
+-777.5,
+785.8
+],
+[
+-639.0,
+745.4
+]
+]
+},
+{
+"kind": "proposed",
+"name": "CHSRA Northbound Mainline (Palmdale-Bakersfield)",
+"pts": [
+[
+15636.0,
+333.5
+],
+[
+12975.3,
+356.0
+],
+[
+10528.9,
+338.8
+],
+[
+8749.6,
+332.1
+],
+[
+6987.1,
+338.8
+],
+[
+5634.7,
+347.0
+],
+[
+1953.3,
+384.0
+],
+[
+1214.0,
+402.8
+],
+[
+346.9,
+479.0
+],
+[
+-517.5,
+584.1
+],
+[
+-1041.0,
+660.9
+],
+[
+-1746.3,
+801.9
+],
+[
+-2655.5,
+1014.9
+],
+[
+-3000.0,
+1101.4
+],
+[
+-3827.5,
+1361.7
+],
+[
+-4642.7,
+1646.4
+],
+[
+-5223.1,
+1880.5
+],
+[
+-5784.2,
+2113.7
+]
+]
+},
+{
+"kind": "proposed",
+"name": "CHSRA Southbound Mainline (Bakersfield-Palmdale)",
+"pts": [
+[
+15639.7,
+317.2
+],
+[
+12974.4,
+340.1
+],
+[
+10528.8,
+322.9
+],
+[
+8748.4,
+316.1
+],
+[
+6986.9,
+322.8
+],
+[
+5634.4,
+331.1
+],
+[
+1953.6,
+368.0
+],
+[
+1213.1,
+386.9
+],
+[
+344.4,
+463.2
+],
+[
+-520.0,
+568.4
+],
+[
+-1043.4,
+645.2
+],
+[
+-1750.6,
+786.6
+],
+[
+-2659.4,
+999.5
+],
+[
+-3004.8,
+1086.2
+],
+[
+-3832.6,
+1346.5
+],
+[
+-4647.3,
+1631.1
+],
+[
+-5227.3,
+1865.0
+],
+[
+-5790.0,
+2098.8
+]
+]
+}
+]
+}

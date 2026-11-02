@@ -1,0 +1,66 @@
+// CCC gun (the old Laser Cannon): yellow trail and impact for the spinning letter C bolts
+// (BakersfieldQuake\source\mm_tools\ccc_effectinfo.txt, appended to effectinfo.txt by build_ccc.py)
+
+// a short golden sparkle behind each C
+effect ccc_trail
+trailspacing 6
+type static
+color 0xffd800 0xfff060
+size 0.05 0.12
+stretchfactor 18
+time 0.3 0.6
+tex 40 40
+alpha 156 256 900
+airfriction 300
+velocityjitter 0.1 0.1 0.1
+originjitter 0.6 0.6 0.6
+
+effect ccc_trail
+count 3
+type spark
+tex 40 40
+color 0xffd800 0xfff060
+size 2 3
+alpha 0 256 220
+gravity 0.3
+bounce 1
+airfriction 0.5
+liquidfriction 5
+velocityjitter 30 30 30
+
+// a C hits a wall or somebody: a burst of yellow sparks and a soft light
+effect ccc_impact
+count 16
+notunderwater
+type spark
+tex 40 40
+color 0xffc000 0xfff060
+size 2 3
+alpha 200 256 260
+gravity 0.4
+bounce 1.2
+airfriction 0.5
+liquidfriction 5
+originjitter 2 2 2
+velocityjitter 160 160 160
+
+effect ccc_impact
+countabsolute 1
+type decal
+tex 34 33
+size 8 9
+alpha 256 16 150
+color 0xffc000 0xffe040
+originjitter 3 3 3
+
+effect ccc_impact
+countabsolute .5
+type decal
+tex 56 59
+size 2 2
+alpha 256 256 0
+originjitter 6 6 6
+lightradius 90
+lightradiusfade 80
+lightshadow 0
+lightcolor 2 1.7 0.1

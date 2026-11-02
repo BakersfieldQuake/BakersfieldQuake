@@ -1,0 +1,85 @@
+{
+  "stage": "4a",
+  "description": "Stage 4a — Nana Plaza 3-storey U-shaped complex (1F z=0.15m, 2F z=4.15m, 3F z=7.95m, eave z=11.45m) in local plaza coordinates (s, w, z), calibrated strictly to z20_sat_grid.jpg with open entrance throat sightlines, 100% passable staircases, continuous 3F walkway loop, room-by-room SE Pool-Table Bar interior, explicitly labelled Billboard 3F fur-stage room, Beauty Shop, and all photo-verified bar fronts.",
+  "levels": {
+    "z_1f": 0.15,
+    "z_2f": 4.15,
+    "z_3f": 7.95,
+    "z_eave": 11.45
+  },
+  "courtyard": {
+    "s1": 13.0,
+    "s2": 41.2,
+    "w1": -8.2,
+    "w2": 8.2,
+    "walkway_width_m": 3.0,
+    "east_walkway_width_m": 2.6,
+    "wing_depth_m": 5.2,
+    "east_wing_depth_m": 2.4,
+    "north_wing_s_max": 43.8,
+    "south_wing_s_min": 16.5,
+    "island_bars": [
+      {"name": "Nana Beer Garden West Island", "s1": 20.5, "s2": 29.5, "w1": -2.7, "w2": 2.5},
+      {"name": "Nana Beer Garden East Island", "s1": 31.2, "s2": 38.8, "w1": -2.7, "w2": 2.5}
+    ],
+    "bunting_s_m": [17.5, 23.0, 28.5, 34.0]
+  },
+  "stairs_and_lifts": {
+    "front_north_1f_2f": {"s1": 13.8, "s2": 15.8, "w1": 5.2, "w2": 9.8, "dir": "+w"},
+    "front_north_2f_3f": {"s1": 19.8, "s2": 25.0, "w1": 8.35, "w2": 9.75},
+    "front_south_1f_2f": {"s1": 13.6, "s2": 19.2, "w1": -9.75, "w2": -8.40},
+    "front_south_2f_3f": {"s1": 20.6, "s2": 26.0, "w1": -9.75, "w2": -8.40},
+    "west_escalators_1f_2f": {"s1": 6.2, "s2": 11.4, "w1": -2.2, "w2": 0.8},
+    "lift_shaft": {"s1": 11.2, "s2": 13.2, "w1": 11.3, "w2": 13.5},
+    "ne_enclosed_stairwell": {"s1": 39.0, "s2": 43.8, "w1": 11.2, "w2": 15.6},
+    "se_enclosed_stairwell": {"s1": 42.25, "s2": 46.15, "w1": -16.1, "w2": -11.2}
+  },
+  "bars_1f": [
+    {"name": "Lollipop", "wing": "north", "s1": 16.0, "s2": 23.2, "sign": "np_lollipop", "open_counter": true},
+    {"name": "Twister BKK", "wing": "north", "s1": 23.2, "s2": 32.6, "sign": "np_twister", "open_counter": true, "awning": "np_awn_ylw"},
+    {"name": "Bangkok Bunnies", "wing": "north", "s1": 32.6, "s2": 41.1, "sign": "np_bunnies", "open_counter": true, "awning": "np_awn_ylw"},
+    {"name": "Obsession", "wing": "east", "w1": -2.4, "w2": 9.5, "sign": "np_obsession", "inner_tex": "np_obs_wall"},
+    {"name": "Witchcraft", "wing": "south", "s1": 14.0, "s2": 20.0, "sign": "np_witchcrf", "open_counter": true},
+    {"name": "Bunny & Erotica GF", "wing": "south", "s1": 20.0, "s2": 27.6, "sign": "np_bunny25", "alt_sign": "np_erotica1", "open_counter": true, "awning": "np_awn_ylw"},
+    {"name": "Rainbow Bar", "wing": "south", "s1": 27.6, "s2": 32.4, "sign": "np_rainbow_b", "inner_tex": "np_tile_by", "open_counter": true, "awning": "np_awn_ylw"},
+    {"name": "Playskool", "wing": "south", "s1": 32.4, "s2": 36.0, "sign": "np_playskool", "open_counter": true, "awning": "np_awn_ylw"},
+    {"name": "London Calling", "wing": "south", "s1": 36.0, "s2": 41.2, "sign": "np_london", "open_counter": true, "awning": "np_awn_ylw", "skip_rear_wall": true, "skip_ext_counter": true}
+  ],
+  "se_pooltable_bar_interior": {
+    "s1": 35.8,
+    "s2": 42.25,
+    "w1": -16.4,
+    "w2": -11.2,
+    "door_tex": "np_pool_door",
+    "wall_tex": "np_pool_wall",
+    "ceil_tex": "np_pool_ceil",
+    "table_center_sw": [39.9, -13.8],
+    "table_size_sw": [2.5, 1.35],
+    "felt_tex": "np_pool_felt"
+  },
+  "bars_2f": [
+    {"name": "Beauty Shop", "wing": "west", "w1": 4.6, "w2": 11.2, "face_tex": "np_beauty"},
+    {"name": "Mandarin & Mercury", "wing": "west", "w1": -6.8, "w2": -3.8, "face_tex": "np_mandarin"},
+    {"name": "Charades", "wing": "west", "w1": -11.2, "w2": -6.8, "face_tex": "np_charades"},
+    {"name": "Spankys", "wing": "north", "s1": 16.0, "s2": 22.0, "sign": "np_spankys", "face_tex": "np_wall_ochr"},
+    {"name": "Angelwitch", "wing": "north", "s1": 22.0, "s2": 30.2, "blade_sign": "np_angel_sgn", "face_tex": "np_angel_w", "tile_tex": "np_angel_tl"},
+    {"name": "DC-10", "wing": "north", "s1": 30.2, "s2": 35.6, "sign": "np_dc10", "face_tex": "np_dc10_wal", "walkway_bar": true},
+    {"name": "Sexy Night", "wing": "north", "s1": 35.6, "s2": 38.8, "face_tex": "np_sexynight", "walkway_bar": true},
+    {"name": "Casanova", "wing": "east", "w1": 0.5, "w2": 11.2, "sign": "np_casanova", "face_tex": "np_casa_prp"},
+    {"name": "East-South 2F Unphotographed Unit", "wing": "east", "w1": -11.2, "w2": 0.5, "face_tex": "np_placehld"},
+    {"name": "South Wing 2F Storefronts (Photographed Courtyard Tile in ref_018; Individual Door Signs Unphotographed)", "wing": "south", "s1": 16.5, "s2": 33.5, "face_tex": "np_angel_tl"},
+    {"name": "South-East 2F Unphotographed Unit", "wing": "south", "s1": 33.5, "s2": 41.2, "face_tex": "np_placehld"}
+  ],
+  "bars_3f": [
+    {"name": "South-West 3F Short-Time Hotel Units (Unphotographed Doors)", "wing": "west", "w1": -11.2, "w2": -4.0, "face_tex": "np_placehld"},
+    {"name": "North-West 3F Wing above Beauty Shop", "wing": "west", "w1": 6.5, "w2": 11.2, "face_tex": "np_wall_ochr"},
+    {"name": "Erotica 3F NW (True Ground-Truth Plan A & Pano GPS Location)", "wing": "north", "s1": 13.8, "s2": 18.2, "face_tex": "np_erotica3", "is_erotica3": true},
+    {"name": "North-Central 3F Transition Bay", "wing": "north", "s1": 18.2, "s2": 23.0, "face_tex": "np_wall_ochr"},
+    {"name": "Billboard Bangkok (Sole Bar with Stage Interior ref_028)", "wing": "north", "s1": 23.0, "s2": 35.0, "face_tex": "np_billboard", "has_stage_room": true},
+    {"name": "North-East 3F Short-Time Hotel / Unphotographed Unit", "wing": "north", "s1": 35.0, "s2": 38.8, "face_tex": "np_placehld"},
+    {"name": "Geisha", "wing": "east", "w1": -2.5, "w2": 9.5, "sign": "np_geisha3f", "face_tex": "np_wall_ochr"},
+    {"name": "East-South 3F Unphotographed Unit", "wing": "east", "w1": -11.2, "w2": -2.5, "face_tex": "np_placehld"},
+    {"name": "Butterflies", "wing": "south", "s1": 16.5, "s2": 33.5, "sign": "np_butterfl", "face_tex": "np_tinsel"},
+    {"name": "South-East 3F Short-Time Hotel / Unphotographed Unit", "wing": "south", "s1": 33.5, "s2": 41.2, "face_tex": "np_placehld"}
+  ]
+}

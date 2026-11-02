@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gun Review</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a workbench. Tagged bins down the left, the selected gun on the bench (3D + pose sliders), then its spec sheet. */
+:root {
+  --bg: #e9ecef; --panel: #f7f8f9; --ink: #1d2329; --muted: #5b6670; --line: #c9d0d6;
+  --stage: #2a3138; --stage-ink: #dfe5ea; --hazard: #f2b300; --hazard-ink: #1d2329; --sel: #fff6d6;
+  --keep: #2f8f4e; --change: #c98a00; --remove: #c0392b;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15191d; --panel: #1d2328; --ink: #e3e8ec; --muted: #94a0aa; --line: #333c44;
+    --stage: #0f1215; --sel: #2c2a1c; --keep: #4cc77a; --change: #f2b300; --remove: #ff6b5b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15191d; --panel: #1d2328; --ink: #e3e8ec; --muted: #94a0aa; --line: #333c44;
+  --stage: #0f1215; --sel: #2c2a1c; --keep: #4cc77a; --change: #f2b300; --remove: #ff6b5b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--body); padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 18px; }
+h1 { font: 700 2.3rem/1 var(--display); text-transform: uppercase; margin: 0; text-wrap: balance; }
+h1 .tape { display: inline-block; height: .5em; width: 2.4em; margin-left: .35em; vertical-align: .12em; background: repeating-linear-gradient(-45deg, var(--hazard) 0 8px, var(--hazard-ink) 8px 16px); }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 78ch; }
+.top { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; align-items: flex-end; }
+button { font: 600 14px var(--body); cursor: pointer; }
+.copy { background: var(--hazard); color: var(--hazard-ink); border: 0; border-radius: 4px; padding: 9px 16px; }
+.layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.list { display: grid; gap: 6px; }
+.bin { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 9px 12px; font: inherit; width: 100%; }
+.bin[aria-current="true"] { background: var(--sel); border-color: var(--hazard); }
+.bin b { font: 700 1.15rem var(--display); text-transform: uppercase; letter-spacing: .02em; }
+.bin small { color: var(--muted); font-family: var(--mono); font-size: 12px; grid-column: 1; }
+.tag { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.tag.keep { color: var(--keep); border-color: var(--keep); } .tag.change { color: var(--change); border-color: var(--change); } .tag.remove { color: var(--remove); border-color: var(--remove); }
+.removed { color: var(--muted); font-size: 13px; border: 1px dashed var(--line); border-radius: 5px; padding: 8px 12px; }
+.bay { background: var(--stage); color: #dfe5ea; border-radius: 6px; overflow: hidden; min-width: 0; }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+.stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.note { position: absolute; left: 12px; bottom: 10px; font: 12px var(--mono); opacity: .75; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #ffffff1a; }
+.seg { display: inline-flex; border: 1px solid #ffffff33; border-radius: 4px; overflow: hidden; }
+.seg button { background: transparent; color: #dfe5ea; border: 0; padding: 6px 12px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--hazard); color: #1d2329; }
+.adj { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 18px; padding: 12px 14px; border-top: 1px solid #ffffff1a; }
+.adj label { display: grid; grid-template-columns: 62px 1fr 52px; align-items: center; gap: 8px; font: 12px var(--mono); }
+.adj input[type=range] { width: 100%; accent-color: var(--hazard); }
+.adj .vals { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.adj code { font: 12px var(--mono); background: #ffffff14; padding: 3px 7px; border-radius: 3px; overflow-wrap: anywhere; }
+.adj button { background: #ffffff1f; color: #dfe5ea; border: 1px solid #ffffff33; border-radius: 4px; padding: 5px 10px; font-weight: 500; }
+.sheet { display: grid; gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.card h2 { font: 700 1.25rem var(--display); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+.card p { margin: 0; max-width: 80ch; }
+.card ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 80ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font: 13px var(--mono); color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 500; }
+.snd { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.snd:first-of-type { border-top: 0; }
+.snd code { font: 12px var(--mono); color: var(--muted); }
+.snd button { background: var(--hazard); color: var(--hazard-ink); border: 0; border-radius: 4px; padding: 6px 14px; }
+.snd span { grid-column: 1; max-width: 70ch; }
+.verdict { display: flex; flex-wrap: wrap; gap: 8px; }
+.verdict label { cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 7px 16px; font-weight: 600; background: var(--bg); }
+.verdict input { position: absolute; opacity: 0; }
+.verdict label:has(input:checked) { color: #fff; }
+.verdict label.k:has(input:checked) { background: var(--keep); border-color: var(--keep); }
+.verdict label.c:has(input:checked) { background: var(--change); border-color: var(--change); color: #1d2329; }
+.verdict label.r:has(input:checked) { background: var(--remove); border-color: var(--remove); }
+.verdict label:has(input:focus-visible) { outline: 2px solid var(--hazard); outline-offset: 2px; }
+textarea { width: 100%; min-height: 84px; font: 14px var(--body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; resize: vertical; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+.thumbs img { height: 70px; width: auto; }
+.credit { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Gun Review<span class="tape" aria-hidden="true"></span></h1>
+      <p class="sub">Every custom gun in Combat+ so far: how it looks in your hand, what it does, every sound it plays, and a verdict for each. Pick a gun, set Keep, Change or Remove, write what you want, then copy the review and paste it to me. Nothing here changes the game until I rebuild it.</p>
+    </div>
+    <button class="copy" id="copy" type="button">Copy my review</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="list" id="list" role="list"></div>
+      <p class="removed" style="margin-top:10px">Already removed: Phantom Mask (the homing mask gun), at your request.</p>
+      <p class="credit" style="margin-top:10px">Props: NVIDIA SimReady assets (CC-BY), a bazooka and the BFG from MegaKartArena, friends and voices from MegaKartArena / the Larry clips. This page stays on your computer.</p>
+    </aside>
+    <main class="sheet">
+      <section class="bay" aria-label="Model viewer">
+        <div class="stage" id="stage"><div class="note" id="note"></div></div>
+        <div class="bar">
+          <div class="seg" role="group" aria-label="View"><button type="button" id="v-orbit" aria-pressed="true">Orbit</button><button type="button" id="v-pov" aria-pressed="false">In-game view</button></div>
+          <span id="hint" style="font:12px var(--mono);opacity:.75"></span>
+        </div>
+        <div class="adj" id="adj" hidden></div>
+      </section>
+      <section class="card" id="info"></section>
+      <section class="card"><h2>Sounds</h2><div id="sounds"></div><p class="credit" id="stock"></p></section>
+      <section class="card" id="friendsCard" hidden><h2>The friends it can spawn</h2><div class="thumbs" id="thumbs"></div></section>
+      <section class="card">
+        <h2>Your verdict</h2>
+        <div class="verdict" id="verdict">
+          <label class="k"><input type="radio" name="v" value="keep"> Keep</label>
+          <label class="c"><input type="radio" name="v" value="change"> Change</label>
+          <label class="r"><input type="radio" name="v" value="remove"> Remove</label>
+        </div>
+        <textarea id="notes" placeholder="What should change? Sounds, damage, size, how it looks, anything."></textarea>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const GUNS = /*GUNS*/[];
+const FRIENDS = /*FRIENDS*/{};
+
+// ---- state (verdicts, notes, pose tweaks) kept in this browser only
+let store = {};
+try { store = JSON.parse(localStorage.getItem("gunreview") || "{}"); } catch (e) {}
+function save() { try { localStorage.setItem("gunreview", JSON.stringify(store)); } catch (e) {} }
+function st(id) { return store[id] || (store[id] = {}); }
+
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+renderer.outputEncoding = THREE.sRGBEncoding;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x22292f);
+const camera = new THREE.PerspectiveCamera(35, 16 / 9, 0.1, 2000);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xeef3ff, 0x30363c, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0); sun.position.set(30, 50, 40); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffd27a, 0.4); fill.position.set(-40, 10, -30); scene.add(fill);
+
+// Quake axes (x forward, y left, z up) -> three (x right, y up, -z forward)
+function q2t(x, y, z) { return [-y, z, -x]; }
+const D2R = Math.PI / 180;
+function rotX(p, d) { const c = Math.cos(d * D2R), s = Math.sin(d * D2R); return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]; }
+function rotY(p, d) { const c = Math.cos(d * D2R), s = Math.sin(d * D2R); return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; }
+function rotZ(p, d) { const c = Math.cos(d * D2R), s = Math.sin(d * D2R); return [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]; }
+
+function f32(b64) { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Float32Array(u.buffer); }
+function u16(b64) { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Uint16Array(u.buffer); }
+
+const loader = new THREE.TextureLoader();
+let cur = -1, group = null, parts = [], mode = "orbit", grid = null, handBox = null;
+
+function pose(g) {
+  const o = st(g.id).pose;
+  return o || (g.adjust ? { scale: g.adjust.scale, rot: g.adjust.rot.slice(), pos: g.adjust.pos.slice() } : null);
+}
+
+function buildGroup(g) {
+  if (group) scene.remove(group);
+  group = new THREE.Group();
+  parts = [];
+  g.mesh.forEach(s => {
+    const raw = f32(s.pos), geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(raw.length), 3));
+    geo.setAttribute("uv", new THREE.BufferAttribute(f32(s.uv), 2));
+    geo.setIndex(new THREE.BufferAttribute(u16(s.idx), 1));
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.1, side: THREE.DoubleSide });
+    if (s.tex) { const t = loader.load(s.tex); t.encoding = THREE.sRGBEncoding; t.flipY = true; mat.map = t; } else mat.color.set(0xb0b0b0);
+    const mesh = new THREE.Mesh(geo, mat);
+    group.add(mesh);
+    parts.push({ raw, geo });
+  });
+  scene.add(group);
+  applyPose(g);
+}
+
+function applyPose(g) {
+  const P = pose(g);
+  let ctr = [0, 0, 0];
+  if (P) {
+    let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    parts.forEach(p => { for (let i = 0; i < p.raw.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], p.raw[i + k]); mx[k] = Math.max(mx[k], p.raw[i + k]); } });
+    ctr = [0, 1, 2].map(k => (mn[k] + mx[k]) / 2);
+  }
+  parts.forEach(p => {
+    const pos = p.geo.attributes.position;
+    for (let i = 0; i < p.raw.length; i += 3) {
+      let v = [p.raw[i], p.raw[i + 1], p.raw[i + 2]];
+      if (P) {
+        v = [(v[0] - ctr[0]) * P.scale, (v[1] - ctr[1]) * P.scale, (v[2] - ctr[2]) * P.scale];
+        v = rotZ(rotY(rotX(v, P.rot[0]), P.rot[1]), P.rot[2]);
+        v = [v[0] + P.pos[0], v[1] + P.pos[1], v[2] + P.pos[2]];
+      }
+      const t = q2t(v[0], v[1], v[2]);
+      pos.setXYZ(i / 3, t[0], t[1], t[2]);
+    }
+    pos.needsUpdate = true;
+    p.geo.computeVertexNormals();
+    p.geo.computeBoundingSphere();
+  });
+  frameCamera(g);
+}
+
+function frameCamera(g) {
+  if (grid) { scene.remove(grid); grid = null; }
+  if (handBox) { scene.remove(handBox); handBox = null; }
+  if (mode === "pov") {
+    camera.fov = 2 * Math.atan(Math.tan(55.5 * D2R) / camera.aspect) / D2R;
+    camera.near = 0.5; camera.far = 500; camera.updateProjectionMatrix();
+    camera.position.set(0, 0, 0); camera.up.set(0, 1, 0); camera.lookAt(0, 0, -10);
+    controls.enabled = false;
+    // an outline of the floor line and the crosshair spot, so placement reads
+    const ch = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.8, 0, -40), new THREE.Vector3(0.8, 0, -40), new THREE.Vector3(0, -0.8, -40), new THREE.Vector3(0, 0.8, -40)]), new THREE.LineBasicMaterial({ color: 0x3cff6a }));
+    handBox = ch; scene.add(handBox);
+    return;
+  }
+  controls.enabled = true;
+  camera.fov = 35; camera.near = 0.1; camera.far = 2000; camera.updateProjectionMatrix();
+  const box = new THREE.Box3().setFromObject(group), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const r = Math.max(s.x, s.y, s.z) * 0.75 + 1;
+  const d = r / Math.sin(camera.fov * D2R / 2);
+  camera.position.set(c.x + d * 0.6, c.y + d * 0.35, c.z + d * 0.8);
+  controls.target.copy(c); controls.update();
+  grid = new THREE.GridHelper(Math.max(8, Math.ceil(r * 3 / 8) * 8), 16, 0x55606a, 0x39424a);
+  grid.position.y = box.min.y - 0.01; scene.add(grid);
+}
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  if (mode === "pov") camera.fov = 2 * Math.atan(Math.tan(55.5 * D2R) / camera.aspect) / D2R;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+function renderAdj(g) {
+  const box = $("adj");
+  if (!g.adjust) { box.hidden = true; return; }
+  box.hidden = false;
+  const P = pose(g);
+  const rows = [["scale", "scale", 0.1, 4, 0.01, () => P.scale, v => P.scale = v],
+    ["roll", "roll", -180, 180, 1, () => P.rot[0], v => P.rot[0] = v], ["pitch", "pitch", -180, 180, 1, () => P.rot[1], v => P.rot[1] = v], ["yaw", "yaw", -180, 360, 1, () => P.rot[2], v => P.rot[2] = v],
+    ["forward", "x fwd", 4, 40, 0.1, () => P.pos[0], v => P.pos[0] = v], ["left", "y left", -25, 25, 0.1, () => P.pos[1], v => P.pos[1] = v], ["up", "z up", -25, 15, 0.1, () => P.pos[2], v => P.pos[2] = v]];
+  box.innerHTML = "";
+  const out = document.createElement("div"); out.className = "vals";
+  const code = document.createElement("code");
+  const upd = () => { code.textContent = `("${g.adjust.prop}", ..., ${P.scale.toFixed(2)}, (${P.rot.map(v => Math.round(v)).join(", ")}), (${P.pos.map(v => v.toFixed(1)).join(", ")}))`; };
+  rows.forEach(([id, label, mn, mx, step, get, set]) => {
+    const l = document.createElement("label"), n = document.createElement("span"), r = document.createElement("input"), o = document.createElement("span");
+    n.textContent = label; r.type = "range"; r.min = mn; r.max = mx; r.step = step; r.value = get(); o.textContent = (+get()).toFixed(step < 1 ? 2 : 0);
+    r.addEventListener("input", () => { set(+r.value); o.textContent = (+r.value).toFixed(step < 1 ? 2 : 0); st(g.id).pose = P; save(); applyPose(g); upd(); });
+    l.append(n, r, o); box.append(l);
+  });
+  const reset = document.createElement("button"); reset.type = "button"; reset.textContent = "Reset pose";
+  reset.addEventListener("click", () => { delete st(g.id).pose; save(); renderAdj(g); applyPose(g); });
+  out.append(code, reset); box.append(out); upd();
+}
+
+function tagFor(id) { const v = st(id).verdict; return v ? `<span class="tag ${v}">${v}</span>` : ""; }
+function renderList() {
+  $("list").innerHTML = "";
+  GUNS.forEach((g, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "bin"; b.setAttribute("aria-current", i === cur ? "true" : "false");
+    b.innerHTML = `<b>${g.name}</b>${tagFor(g.id)}<small>${g.key}</small>`;
+    b.addEventListener("click", () => show(i));
+    $("list").append(b);
+  });
+}
+
+let playing = null;
+function play(uri, btn) {
+  if (playing) { playing.pause(); }
+  playing = new Audio(uri); playing.volume = 0.8; playing.play().catch(() => {});
+}
+
+function show(i) {
+  cur = i; const g = GUNS[i];
+  renderList();
+  buildGroup(g); renderAdj(g);
+  $("note").textContent = g.adjust ? "Pose is adjustable: drag the sliders, then tell me the numbers." : "This model is already baked into its in-game pose.";
+  $("hint").textContent = mode === "pov" ? "What you see holding it, 111 degree view, green cross = crosshair" : "Drag to orbit, scroll to zoom";
+  $("info").innerHTML = `<h2>${g.name}</h2><p>${g.summary}</p>
+    <div class="meta"><span>Type: <b>${g.kind}</b></span><span>Key: <b>${g.key}</b></span><span>Kill message: <b>"${g.kill}"</b></span></div>
+    <h2 style="margin-top:6px">How it works</h2><ul>${g.how.map(h => `<li>${h}</li>`).join("")}</ul>
+    <h2 style="margin-top:6px">Status</h2><p>${g.status}</p>`;
+  const sn = $("sounds"); sn.innerHTML = "";
+  g.sounds.forEach(s => {
+    const row = document.createElement("div"); row.className = "snd";
+    row.innerHTML = `<span>${s.desc}</span><button type="button">Play</button><code>${s.file}</code>`;
+    row.querySelector("button").addEventListener("click", () => play(s.uri));
+    sn.append(row);
+  });
+  $("stock").textContent = g.stock || "";
+  const fc = $("friendsCard");
+  if (g.id === "rob" || g.id === "bfg" || g.id === "hack" || g.id === "john") {
+    fc.hidden = false;
+    const names = g.id === "john" ? Object.keys(FRIENDS).filter(k => k.startsWith("john")) : g.id === "bfg" ? Object.keys(FRIENDS) : ["rob"];
+    $("thumbs").innerHTML = names.map(n => `<figure style="margin:0;text-align:center"><img alt="${n}" src="${FRIENDS[n]}"><figcaption class="credit">${n}</figcaption></figure>`).join("");
+  } else fc.hidden = true;
+  const v = st(g.id).verdict;
+  document.querySelectorAll("#verdict input").forEach(r => { r.checked = r.value === v; });
+  $("notes").value = st(g.id).notes || "";
+}
+
+document.querySelectorAll("#verdict input").forEach(r => r.addEventListener("change", () => { st(GUNS[cur].id).verdict = r.value; save(); renderList(); }));
+$("notes").addEventListener("input", () => { st(GUNS[cur].id).notes = $("notes").value; save(); });
+function setMode(m) {
+  mode = m;
+  $("v-orbit").setAttribute("aria-pressed", String(m === "orbit")); $("v-pov").setAttribute("aria-pressed", String(m === "pov"));
+  if (cur >= 0) { frameCamera(GUNS[cur]); $("hint").textContent = m === "pov" ? "What you see holding it, 111 degree view, green cross = crosshair" : "Drag to orbit, scroll to zoom"; }
+  resize();
+}
+$("v-orbit").addEventListener("click", () => setMode("orbit"));
+$("v-pov").addEventListener("click", () => setMode("pov"));
+
+$("copy").addEventListener("click", () => {
+  const lines = ["GUN REVIEW", ""];
+  GUNS.forEach(g => {
+    const s = st(g.id);
+    lines.push(`${g.name}: ${s.verdict ? s.verdict.toUpperCase() : "(no verdict)"}`);
+    if (s.notes) lines.push("  " + s.notes.replace(/\n/g, "\n  "));
+    if (s.pose && g.adjust) lines.push(`  held pose: scale ${s.pose.scale.toFixed(2)}, rot (${s.pose.rot.map(v => Math.round(v)).join(", ")}), pos (${s.pose.pos.map(v => v.toFixed(1)).join(", ")})`);
+  });
+  const text = lines.join("\n");
+  const done = () => { $("copy").textContent = "Copied!"; setTimeout(() => $("copy").textContent = "Copy my review", 1600); };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => { prompt("Copy this:", text); });
+  else prompt("Copy this:", text);
+});
+
+resize(); show(0);
+(function loop() { requestAnimationFrame(loop); if (mode === "orbit") controls.update(); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>

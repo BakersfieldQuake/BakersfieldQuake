@@ -1,0 +1,67 @@
+{
+  "stage": 5,
+  "description": "Stage 5 — Every photo-verified vehicle, street-food cart, umbrella, bin, traffic cone, barrier bar, shrine, and tree in exact reference spot, orientation, proportions, and color.",
+  "vehicles": [
+    {"type": "vw_bus", "name": "Sports Bus VW Type 2 Camper (ref_081, ref_297)", "frame": "plaza", "s": 42.0, "w": -4.2, "z": 0.15, "yaw_rel": 95.0, "tex": "np_vw_bus"},
+    {"type": "pickup_canopy", "name": "Courtyard Silver Songthaew Pickup (ref_190, ref_255)", "frame": "plaza", "s": 13.8, "w": -2.5, "z": 0.15, "yaw_rel": 180.0, "tex": "np_pickup_sv"},
+    {"type": "pickup", "name": "Courtyard Silver Bed-Rail Pickup (ref_208, ref_247)", "frame": "plaza", "s": 19.6, "w": 3.5, "z": 0.15, "yaw_rel": 180.0, "tex": "np_pickup_sv"},
+    {"type": "taxi", "name": "Soi 4 Mouth Bright Green Taxi (ref_045, ref_052)", "frame": "world", "x": -34.2, "y": 57.8, "z": 0.0, "yaw": 93.0, "tex": "np_taxi_grn"},
+    {"type": "tuktuk", "name": "Soi 4 Mouth Blue/Silver Tuk-Tuk (ref_045, ref_052)", "frame": "world", "x": -36.1, "y": 51.5, "z": 0.0, "yaw": 90.0, "tex": "np_tuktuk"},
+    {"type": "taxi", "name": "Soi 4 Green-Yellow Taxi-Meter (ref_188, ref_370, z20_sat)", "frame": "world", "x": -32.2, "y": -6.5, "z": 0.0, "yaw": 270.0, "tex": "np_taxi_gy"},
+    {"type": "taxi", "name": "Soi 4 Pink Taxi outside Blez (ref_344, z20_sat)", "frame": "world", "x": -35.6, "y": -25.0, "z": 0.0, "yaw": 90.0, "tex": "np_taxi_pnk"},
+    {"type": "tuktuk", "name": "Nana Plaza Arch Southbound Tuk-Tuk (ref_020)", "frame": "world", "x": -33.8, "y": 7.8, "z": 0.0, "yaw": 265.0, "tex": "np_tuktuk"},
+    {"type": "sedan_white", "name": "Sukhumvit Crosswalk White Sedan (ref_045)", "frame": "world", "x": -33.0, "y": 77.5, "z": 0.0, "yaw": 148.8, "tex": "np_pickup_sv"},
+    {"type": "sedan_white", "name": "Nana Hotel Compound Parked White Sedan (ref_042, ref_043)", "frame": "world", "x": -48.5, "y": 18.2, "z": 0.0, "yaw": 0.0, "tex": "np_pickup_sv"},
+    {"type": "scooter_row", "name": "Hooters West Patio Scooter Row (ref_033, ref_034)", "frame": "world", "x": -38.8, "y1": -12.0, "y2": 3.6, "count": 10, "yaw": 0.0},
+    {"type": "scooter_row", "name": "Nana Hotel South Driveway Scooters (ref_035)", "frame": "world", "x": -42.4, "y1": 2.2, "y2": 4.4, "count": 3, "yaw": 90.0},
+    {"type": "scooter_row", "name": "Bunny / Kickoff East Kerb Scooter Row (ref_032, ref_033)", "frame": "world", "x": -29.8, "y1": -14.0, "y2": -5.5, "count": 5, "yaw": 180.0},
+    {"type": "scooter_row", "name": "Stumble Inn / Arch North Kerb Scooters (ref_029, ref_030)", "frame": "world", "x": -30.2, "y1": 15.2, "y2": 16.0, "count": 2, "yaw": 165.0},
+    {"type": "scooter_row", "name": "Morning Night Kerb Scooters (ref_048)", "frame": "world", "x": -29.8, "y1": 38.5, "y2": 41.2, "count": 2, "yaw": 160.0},
+    {"type": "scooter_row", "name": "PTT Mouth West Kerb Scooters (ref_045)", "frame": "world", "x": -38.3, "y1": 54.0, "y2": 58.5, "count": 3, "yaw": 0.0}
+  ],
+  "umbrellas_and_carts": [
+    {"x": -29.8, "y": 2.3, "z": 0.15, "tex": "np_umb_blue", "cart": true, "green_bin": true, "note": "Blue umbrella + snack cart + green wheelie bin south of PRO EXCHANGE (ref_032, ref_033)"},
+    {"x": -29.8, "y": -0.2, "z": 0.15, "tex": "np_umb_turq", "cart": false},
+    {"x": -42.8, "y": 17.6, "z": 0.05, "tex": "np_white_pnl", "cart": true, "note": "Nana Hotel north driveway vendor stall (ref_035)"},
+    {"x": -29.9, "y": 17.6, "z": 0.15, "tex": "np_umb_blue", "blue_metal_cart": true, "note": "Twin blue sheet-metal carts north of arch (ref_029, ref_030)"},
+    {"x": -29.8, "y": 21.6, "z": 0.15, "tex": "np_umb_turq", "cart": true, "note": "Stumble Inn seafoam wok stall umbrellas (ref_038, ref_039)"},
+    {"x": -29.8, "y": 24.6, "z": 0.15, "tex": "np_umb_turq", "cart": true},
+    {"x": -29.8, "y": 27.6, "z": 0.15, "tex": "np_umb_blue", "cart": false},
+    {"x": -29.8, "y": 47.2, "z": 0.15, "tex": "np_umb_turq", "cart": true, "note": "Fried banana cart at Soi 4 east mouth (ref_046, ref_047)"},
+    {"x": -29.8, "y": 50.6, "z": 0.15, "tex": "np_umb_turq", "cart": true},
+    {"x": -39.1, "y": 47.6, "z": 0.16, "tex": "np_umb_turq", "cart": true, "note": "West mouth sidewalk stalls beside grey compound wall north of cam_08 (ref_045 left foreground)"},
+    {"x": -39.1, "y": 51.4, "z": 0.16, "tex": "np_umb_blue", "cart": true},
+    {"x": -39.1, "y": 55.2, "z": 0.16, "tex": "np_umb_turq", "cart": true},
+    {"x": -39.0, "y": 60.5, "z": 0.16, "tex": "np_umb_blue", "cart": true, "note": "PTT west mouth sidewalk stalls north of grey compound wall (ref_045, ref_052)"},
+    {"x": -39.0, "y": 63.8, "z": 0.16, "tex": "np_umb_turq", "cart": true}
+  ],
+  "cones_and_barriers": {
+    "arch_cone_barrier": {
+      "x": -29.3,
+      "y_list": [6.0, 7.2, 8.4, 9.6, 10.8, 12.0, 13.2, 14.4],
+      "pole_bar_y": [7.2, 9.6],
+      "note": "8 orange/white kerbside cones + sleek chrome stanchions & red/white security barrier arm across Nana Plaza mouth (ref_031, ref_182)"
+    },
+    "extra_cones": [
+      [-38.6, 42.1], [-38.6, 41.1],
+      [-39.4, 5.2], [-39.4, 15.0],
+      [-43.2, 17.5], [-41.8, 18.8],
+      [-30.4, 16.0], [-30.4, 22.8], [-30.4, 23.8],
+      [-30.4, 34.5], [-30.4, 35.8], [-30.3, 2.8]
+    ]
+  },
+  "trees": [
+    {"x": -45.5, "y": 11.2, "h": 6.4},
+    {"x": -50.5, "y": 13.0, "h": 6.8},
+    {"x": -56.0, "y": 14.5, "h": 7.0},
+    {"x": -46.5, "y": 18.8, "h": 6.6},
+    {"x": -51.5, "y": 19.8, "h": 6.8},
+    {"x": -43.5, "y": 27.8, "h": 7.2},
+    {"x": -41.8, "y": 58.0, "h": 6.8},
+    {"x": -42.5, "y": 64.5, "h": 7.2},
+    {"x": 42.0, "y": 24.0, "h": 7.5},
+    {"x": 54.0, "y": 17.0, "h": 7.5},
+    {"x": 6.0, "y": 74.0, "h": 7.0},
+    {"x": -58.0, "y": -58.0, "h": 7.5}
+  ]
+}

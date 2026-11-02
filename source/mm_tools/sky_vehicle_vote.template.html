@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quake 3D Sky-Vehicle Voting Studio · 4 Combined Versions</title>
+<style>
+:root {
+  --bg: #090d16;
+  --bg-card: rgba(15, 21, 34, 0.86);
+  --panel: rgba(14, 19, 31, 0.90);
+  --panel-solid: #111726;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-hi: rgba(56, 189, 248, 0.62);
+  --win: #34d399;
+  --win-bg: rgba(52, 211, 153, 0.15);
+  --run: #fbbf24;
+  --run-bg: rgba(251, 191, 36, 0.15);
+  --text: #eef3fb;
+  --muted: #94a3b8;
+  --cyan: #38bdf8;
+  --pink: #f472b6;
+  --amber: #ffb454;
+  --amber-ink: #1a0f02;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+/* Shared Full-Window WebGL2 Canvas behind Scissored Card Viewports */
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+main#page {
+  position: relative;
+  z-index: 1;
+  max-width: 1580px;
+  margin: 0 auto;
+  padding: 0 20px 140px;
+}
+body.detail-open main#page { visibility: hidden; }
+body.detail-open { overflow: hidden; }
+
+/* Header & 4-Video Fusion Strip */
+header.hero {
+  padding: 22px 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+}
+.kicker {
+  margin: 0 0 3px;
+  color: var(--cyan);
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.7vw, 31px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 92ch;
+}
+.hero-stats {
+  color: var(--muted);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 8px 14px;
+}
+.hero-stats b { color: var(--text); }
+
+.sources-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .sources-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.src-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.src-item img {
+  width: 62px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: #1a2234;
+  flex-shrink: 0;
+}
+.src-item .stitle {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text);
+  line-height: 1.25;
+}
+.src-item .ssub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+/* Sticky Studio & Animation Toolbar */
+.toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 15px;
+  margin: 0 0 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.lbl {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-right: 3px;
+}
+button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s, color 0.13s, transform 0.08s;
+  white-space: nowrap;
+}
+button:hover { background: rgba(255, 255, 255, 0.14); }
+button:active { transform: translateY(1px); }
+button[aria-pressed="true"], button.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  font-weight: 800;
+}
+button.lie-btn[aria-pressed="true"], button.lie-btn.active {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: #230414;
+}
+label.slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+input[type="range"] {
+  width: 84px;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+output {
+  min-width: 3.3ch;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+/* 2x2 Candidate Grid */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 980px) {
+  #grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: transparent;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  border-color: var(--line-hi);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
+}
+.card.is-winner {
+  border-color: var(--win);
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.28), 0 14px 36px rgba(16, 185, 129, 0.22);
+}
+.card.is-runner {
+  border-color: var(--run);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.24), 0 12px 30px rgba(245, 158, 11, 0.16);
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: transparent;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.stage.drag { cursor: grabbing; }
+
+.stage-top {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(9, 13, 22, 0.84);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.pill.vtag { color: var(--cyan); border-color: rgba(56, 189, 248, 0.4); }
+.pill.win-pill { background: var(--win); color: #042317; border-color: var(--win); display: none; }
+.pill.run-pill { background: var(--run); color: #241602; border-color: var(--run); display: none; }
+.card.is-winner .pill.win-pill { display: inline-block; }
+.card.is-runner .pill.run-pill { display: inline-block; }
+
+.stage-btm {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.mini-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+.mini-btn {
+  font-size: 11px;
+  padding: 3px 9px;
+  background: rgba(9, 13, 22, 0.84);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.card-body {
+  padding: 14px 16px 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.card.is-winner .card-body { background: linear-gradient(180deg, rgba(16, 48, 39, 0.92), rgba(14, 22, 34, 0.95)); }
+.card.is-runner .card-body { background: linear-gradient(180deg, rgba(48, 37, 15, 0.90), rgba(14, 22, 34, 0.95)); }
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.card-body h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.md3-tag {
+  font-size: 11.5px;
+  color: var(--cyan);
+}
+.desc {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.parts-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  margin: 0;
+  padding: 8px 10px;
+  list-style: none;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.parts-list b { color: var(--text); }
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.chip {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px dashed rgba(255, 255, 255, 0.20);
+  color: var(--muted);
+}
+.chip.picked {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid var(--cyan);
+  color: #e0f2fe;
+  font-weight: 750;
+}
+
+.vote-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.btn-win {
+  flex: 1.4;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 800;
+  border-radius: 11px;
+  background: rgba(52, 211, 153, 0.13);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #a7f3d0;
+}
+.btn-win:hover { background: rgba(52, 211, 153, 0.25); }
+.card.is-winner .btn-win {
+  background: var(--win);
+  border-color: var(--win);
+  color: #032216;
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.35);
+}
+.btn-run {
+  flex: 0.9;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  font-weight: 750;
+  border-radius: 11px;
+  background: rgba(251, 191, 36, 0.10);
+  border: 1px solid rgba(251, 191, 36, 0.36);
+  color: #fde68a;
+}
+.card.is-runner .btn-run {
+  background: var(--run);
+  border-color: var(--run);
+  color: #241602;
+}
+
+/* Sticky Bottom Vote Ballot Bar */
+footer#vote-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  background: rgba(11, 16, 27, 0.95);
+  border-top: 1px solid rgba(56, 189, 248, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 11px 20px;
+  box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.55);
+}
+.vote-inner {
+  max-width: 1580px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+.vote-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 13.5px;
+}
+.vote-summary b.win-txt { color: var(--win); font-size: 15px; }
+.vote-summary b.run-txt { color: var(--run); }
+input#vote-note {
+  flex: 1;
+  min-width: 260px;
+  max-width: 520px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+input#vote-note::placeholder { color: var(--muted); }
+button#btn-copy-vote {
+  background: linear-gradient(135deg, #34d399, #38bdf8);
+  border: none;
+  color: #041d1c;
+  font-size: 14px;
+  font-weight: 850;
+  padding: 9px 20px;
+  border-radius: 11px;
+  box-shadow: 0 4px 18px rgba(52, 211, 153, 0.32);
+}
+button#btn-copy-vote:hover { filter: brightness(1.08); }
+#copy-status {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--win);
+}
+
+/* Fullscreen 3D Studio Modal */
+#detail {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: none;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  pointer-events: none;
+}
+#detail.open { display: grid; }
+@media (max-width: 960px) {
+  #detail { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+}
+#detail-stage {
+  position: relative;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+#detail-stage.drag { cursor: grabbing; }
+.detail-hud {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.detail-side {
+  pointer-events: auto;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.scrubber { width: 100%; accent-color: var(--cyan); }
+
+/* Copy Fallback Modal */
+#ballot-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  place-items: center;
+  background: rgba(4, 7, 14, 0.78);
+  padding: 20px;
+}
+#ballot-modal.open { display: grid; }
+.ballot-box {
+  width: min(640px, 100%);
+  background: var(--panel-solid);
+  border: 1px solid var(--cyan);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ballot-box textarea {
+  width: 100%;
+  height: 170px;
+  font: 12.5px/1.45 ui-monospace, Consolas, monospace;
+  background: #080c14;
+  color: #e2e8f0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Loading Overlay */
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div>
+    <div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:6px">Unpacking 4 Quake Sky-Vehicle MD3s…</div>
+    <div style="color:var(--muted);font-size:13px">Decompressing 224 animated frames &amp; WebGL2 sky shaders</div>
+  </div>
+</div>
+
+<canvas id="gl"></canvas>
+
+<main id="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">BakersfieldQuake · Live 3D MD3 Sky-Vehicle Ballot</p>
+      <h1>Vote for Your Quake Flying Sky-Vehicle (4 Combined Versions)</h1>
+      <p class="sub">
+        Every candidate below is a real 56-frame Quake <span class="mono">.md3</span> combining <b>all 4 uploaded videos</b>, complete with
+        <b>3 Flying animations</b> (<span class="mono">fly_cruise</span>, <span class="mono">fly_boost</span>, <span class="mono">fly_hover</span>) and a
+        <b>Lying / Landed animation</b> (<span class="mono">lie_rest</span>). Drag any 3D viewport to orbit, test animations, pick your favorite (plus any mix-and-match parts), and click <b>Copy My Vote</b>!
+      </p>
+    </div>
+    <div class="hero-stats" id="hero-stats">Loading MD3 stats…</div>
+  </header>
+
+  <section class="sources-strip" id="sources-strip"></section>
+
+  <section class="toolbar">
+    <div class="bar-row">
+      <div class="group" id="clip-btns">
+        <span class="lbl">Animation:</span>
+      </div>
+      <div class="group">
+        <span class="lbl">Studio:</span>
+        <button id="btn-spin" aria-pressed="true">Auto-Orbit</button>
+        <button id="btn-scale" aria-pressed="false">Quake Player Scale</button>
+        <button id="btn-wire" aria-pressed="false">Wireframe</button>
+        <button id="btn-hdr" aria-pressed="false">Quake Torch Light</button>
+        <label class="slider">Speed <input type="range" id="rng-speed" min="0.2" max="2.0" step="0.1" value="1.0"><output id="out-speed">1.0×</output></label>
+      </div>
+    </div>
+  </section>
+
+  <section id="grid"></section>
+</main>
+
+<footer id="vote-bar">
+  <div class="vote-inner">
+    <div class="vote-summary">
+      <span>#1 Winner: <b class="win-txt" id="sum-win">Click a version to vote!</b></span>
+      <span>#2 Backup: <b class="run-txt" id="sum-run">None</b></span>
+      <span id="sum-chips" style="color:var(--cyan);font-size:12px"></span>
+    </div>
+    <input type="text" id="vote-note" placeholder="Optional mashup / tweak note (e.g. V2 Osprey rotors + V1 dorsal Big-Ears)">
+    <div class="group">
+      <button id="btn-reset-vote">Reset</button>
+      <button id="btn-save-json">Save JSON</button>
+      <button id="btn-copy-vote">📋 Copy My Vote</button>
+      <span id="copy-status"></span>
+    </div>
+  </div>
+</footer>
+
+<div id="detail">
+  <div id="detail-stage">
+    <div style="position:absolute;left:16px;top:16px;display:flex;gap:8px">
+      <button id="d-prev">← Prev Version</button>
+      <button id="d-next">Next Version →</button>
+    </div>
+    <div class="detail-hud">
+      <div class="bar-row">
+        <div class="group" id="d-clips"></div>
+        <div class="group">
+          <button id="d-play" aria-pressed="true">⏸ Pause</button>
+          <span class="mono" id="d-frame-lbl" style="font-size:12px;color:var(--cyan)">frame 0 / 55</span>
+        </div>
+      </div>
+      <input type="range" class="scrubber" id="d-scrub" min="0" max="55" step="0.05" value="0">
+      <div class="bar-row">
+        <div class="group">
+          <span class="lbl">Camera:</span>
+          <button data-cam="front">Front 3/4</button>
+          <button data-cam="side">Side Profile</button>
+          <button data-cam="rear">Rear Thrusters</button>
+          <button data-cam="top">Top Ornithopter</button>
+          <button data-cam="belly">Belly Gear</button>
+        </div>
+        <div class="group">
+          <button id="d-wire" aria-pressed="false">Wireframe</button>
+          <button id="d-scale" aria-pressed="false">Ranger Box</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="detail-side">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="pill vtag" id="d-vtag">VERSION</span>
+      <button id="d-close">Close Studio ✕</button>
+    </div>
+    <h2 id="d-title" style="margin:0;font-size:21px"></h2>
+    <div class="mono" id="d-file" style="color:var(--cyan);font-size:12px"></div>
+    <p id="d-desc" style="margin:0;color:#cbd5e1;font-size:13px"></p>
+    <div class="mono" id="d-stats" style="font-size:11.5px;color:var(--muted);padding:9px;background:rgba(0,0,0,0.3);border-radius:9px"></div>
+    <div>
+      <div class="lbl" style="margin-bottom:6px">Tag Favorite Parts (Mix &amp; Match):</div>
+      <div class="chip-row" id="d-chips"></div>
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <button class="btn-win" id="d-vote-win">★ Vote #1 Winner</button>
+      <button class="btn-run" id="d-vote-run">☆ Pick #2 Runner-Up</button>
+    </div>
+  </aside>
+</div>
+
+<div id="ballot-modal">
+  <div class="ballot-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong style="font-size:16px;color:var(--win)">✓ Your Quake Sky-Vehicle Vote Summary</strong>
+      <button id="bm-close">Close ✕</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--muted)">Copied to clipboard (or press Ctrl+C below) — paste directly into chat!</div>
+    <textarea id="bm-text" readonly></textarea>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const DATA = /*__SKYVEH_DATA__*/null;
+const $ = id => document.getElementById(id);
+
+const CLIPS = [
+  { id: 'fly_cruise', label: '✈ Fly: Cruise',  short: 'Cruise', start: 0,  count: 16, fps: 12.0, lie: false },
+  { id: 'fly_boost',  label: '🔥 Fly: Boost',   short: 'Boost',  start: 16, count: 16, fps: 18.0, lie: false },
+  { id: 'fly_hover',  label: '🚁 Fly: Hover',   short: 'Hover',  start: 32, count: 12, fps: 10.0, lie: false },
+  { id: 'lie_rest',   label: '🛬 Lie: Resting', short: 'Lie',    start: 44, count: 12, fps: 8.0,  lie: true  },
+  { id: 'all_56',     label: '🎬 All 56f',      short: 'All',    start: 0,  count: 56, fps: 12.0, lie: false },
+];
+
+async function gunzip(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  writer.write(bin);
+  writer.close();
+  return await new Response(ds.readable).arrayBuffer();
+}
+
+function mat4Mul(out, a, b) {
+  const a00=a[0], a01=a[1], a02=a[2], a03=a[3], a10=a[4], a11=a[5], a12=a[6], a13=a[7],
+        a20=a[8], a21=a[9], a22=a[10], a23=a[11], a30=a[12], a31=a[13], a32=a[14], a33=a[15];
+  const b00=b[0], b01=b[1], b02=b[2], b03=b[3], b10=b[4], b11=b[5], b12=b[6], b13=b[7],
+        b20=b[8], b21=b[9], b22=b[10], b23=b[11], b30=b[12], b31=b[13], b32=b[14], b33=b[15];
+  out[0]=a00*b00+a10*b01+a20*b02+a30*b03; out[1]=a01*b00+a11*b01+a21*b02+a31*b03;
+  out[2]=a02*b00+a12*b01+a22*b02+a32*b03; out[3]=a03*b00+a13*b01+a23*b02+a33*b03;
+  out[4]=a00*b10+a10*b11+a20*b12+a30*b13; out[5]=a01*b10+a11*b11+a21*b12+a31*b13;
+  out[6]=a02*b10+a12*b11+a22*b12+a32*b13; out[7]=a03*b10+a13*b11+a23*b12+a33*b13;
+  out[8]=a00*b20+a10*b21+a20*b22+a30*b23; out[9]=a01*b20+a11*b21+a21*b22+a31*b23;
+  out[10]=a02*b20+a12*b21+a22*b22+a32*b23; out[11]=a03*b20+a13*b21+a23*b22+a33*b23;
+  out[12]=a00*b30+a10*b31+a20*b32+a30*b33; out[13]=a01*b30+a11*b31+a21*b32+a31*b33;
+  out[14]=a02*b30+a12*b31+a22*b32+a32*b33; out[15]=a03*b30+a13*b31+a23*b32+a33*b33;
+  return out;
+}
+function mat4Persp(out, fovy, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovy * 0.5), nf = 1.0 / (near - far);
+  out.fill(0);
+  out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+  return out;
+}
+function mat4LookAt(out, eye, ctr, up) {
+  let zx = eye[0]-ctr[0], zy = eye[1]-ctr[1], zz = eye[2]-ctr[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+  return out;
+}
+
+// Populate 4 Source Video Strip
+for (const src of DATA.sources) {
+  const el = document.createElement('div');
+  el.className = 'src-item';
+  el.innerHTML = `<img src="${src.uri}" alt=""><div><div class="stitle">${src.title}</div><div class="ssub">${src.sub}</div></div>`;
+  $('sources-strip').appendChild(el);
+}
+
+// Persistent Vote State
+const VOTE_KEY = 'bq_skyveh_vote_v1';
+let vote = { winner: '', runner: '', chips: [], note: '' };
+try {
+  const saved = JSON.parse(localStorage.getItem(VOTE_KEY) || 'null');
+  if (saved && typeof saved === 'object') {
+    vote.winner = saved.winner || '';
+    vote.runner = saved.runner || '';
+    vote.chips = Array.isArray(saved.chips) ? saved.chips : [];
+    vote.note = saved.note || '';
+  }
+} catch (_) {}
+$('vote-note').value = vote.note;
+
+function saveVote() {
+  try { localStorage.setItem(VOTE_KEY, JSON.stringify(vote)); } catch (_) {}
+  syncVoteUI();
+}
+
+async function boot() {
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) {
+    $('loading').innerHTML = '<div style="color:#fb7185;font-weight:700">WebGL2 is required to view the 3D Sky Vehicles.</div>';
+    return;
+  }
+
+  const AB = await gunzip(DATA.binGz);
+  const u16 = ([o, l]) => new Uint16Array(AB, o, l >> 1);
+  const i16 = ([o, l]) => new Int16Array(AB, o, l >> 1);
+  const i8  = ([o, l]) => new Int8Array(AB, o, l);
+  const f32 = ([o, l]) => new Float32Array(AB, o, l >> 2);
+
+  function compileProg(vsSrc, fsSrc) {
+    const p = gl.createProgram();
+    for (const [tp, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const uni = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+
+  // 1. Sky Backdrop Gradient Shader
+  const pSky = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec2 aQ;
+out vec2 vUv;
+void main() {
+  vUv = aQ * 0.5 + 0.5;
+  gl_Position = vec4(aQ, 0.9999, 1.0);
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec2 vUv;
+uniform int uLieMode;
+uniform int uTorch;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  vec3 top = uTorch == 1 ? vec3(0.06, 0.05, 0.08) : (uLieMode == 1 ? vec3(0.08, 0.12, 0.20) : vec3(0.09, 0.20, 0.38));
+  vec3 mid = uTorch == 1 ? vec3(0.14, 0.10, 0.12) : (uLieMode == 1 ? vec3(0.14, 0.19, 0.28) : vec3(0.20, 0.39, 0.62));
+  vec3 bot = uTorch == 1 ? vec3(0.07, 0.06, 0.08) : (uLieMode == 1 ? vec3(0.09, 0.11, 0.16) : vec3(0.12, 0.22, 0.35));
+  float h = clamp(vUv.y, 0.0, 1.0);
+  vec3 col = h > 0.38 ? mix(mid, top, (h - 0.38) / 0.62) : mix(bot, mid, h / 0.38);
+  if (uLieMode == 0 && uTorch == 0) {
+    float wisp = sin(vUv.x * 9.0 + uTime * 0.8) * cos(vUv.y * 14.0 - uTime * 0.3);
+    col += vec3(0.03, 0.05, 0.07) * max(0.0, wisp) * smoothstep(0.15, 0.75, h);
+  }
+  fragColor = vec4(col, 1.0);
+}`);
+  const uSky = uni(pSky, ['uLieMode', 'uTorch', 'uTime']);
+
+  // 2. MD3 Vertex-Interpolated Mesh + Van Glow + Planar Shadow Shader
+  const pMesh = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uShadowPass;
+out vec3 vWPos;
+out vec3 vWNrm;
+out vec2 vUv;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale + uOffset;
+  if (uShadowPass == 1) {
+    vec3 L = normalize(vec3(0.32, -0.35, 1.25));
+    float h = max(0.0, p.z);
+    vec3 sp = vec3(p.x - L.x * (h / L.z), p.y - L.y * (h / L.z), 0.12);
+    vWPos = sp;
+    vWNrm = vec3(0.0, 0.0, 1.0);
+    vUv = aUv;
+    gl_Position = uVP * vec4(sp, 1.0);
+  } else {
+    vWPos = p;
+    vWNrm = normalize(mix(aNrm0, aNrm1, uLerp));
+    vUv = aUv;
+    gl_Position = uVP * vec4(p, 1.0);
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vWPos;
+in vec3 vWNrm;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform sampler2D uGlowTex;
+uniform int uHasGlow;
+uniform vec3 uEye;
+uniform float uExposure;
+uniform float uMetallic;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uUnlit;
+uniform int uTorch;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+out vec4 fragColor;
+void main() {
+  if (uShadowPass == 1) {
+    fragColor = vec4(0.02, 0.04, 0.08, uShadowAlpha);
+    return;
+  }
+  vec4 texel = texture(uTex, vUv);
+  if (uUnlit == 1) {
+    fragColor = vec4(texel.rgb * 1.18, 1.0);
+    return;
+  }
+  vec3 N = normalize(gl_FrontFacing ? vWNrm : -vWNrm);
+  vec3 V = normalize(uEye - vWPos);
+
+  vec3 L1 = normalize(vec3( 0.45, -0.42, 0.79));
+  vec3 L2 = normalize(vec3(-0.62,  0.55, 0.56));
+  vec3 L3 = normalize(vec3( 0.15,  0.78, 0.25));
+
+  vec3 c1 = uTorch == 1 ? vec3(1.18, 0.90, 0.64) : vec3(1.06, 1.04, 1.00);
+  vec3 c2 = uTorch == 1 ? vec3(0.38, 0.54, 0.85) : vec3(0.55, 0.66, 0.82);
+  vec3 c3 = uTorch == 1 ? vec3(0.32, 0.72, 0.95) : vec3(0.36, 0.46, 0.58);
+
+  vec3 hemi = mix(vec3(0.20, 0.22, 0.28), vec3(0.42, 0.48, 0.58), 0.5 + 0.5 * N.z);
+  vec3 diff = hemi + c1 * max(dot(N, L1), 0.0) * 0.88 + c2 * max(dot(N, L2), 0.0) * 0.42 + c3 * max(dot(N, L3), 0.0) * 0.24;
+
+  float shin = mix(140.0, 14.0, uRoughness);
+  float sp1 = pow(max(dot(N, normalize(L1 + V)), 0.0), shin);
+  vec3 R = reflect(-V, N);
+  float skyRef = smoothstep(-0.2, 0.6, R.z);
+  vec3 envCol = mix(vec3(0.16, 0.19, 0.25), vec3(0.92, 0.96, 1.0), skyRef);
+
+  vec3 lit = texel.rgb * diff * (1.0 - 0.28 * uMetallic)
+           + texel.rgb * envCol * (uMetallic * 0.65)
+           + c1 * sp1 * uSpec * 0.45;
+  if (uHasGlow == 1) {
+    lit += texture(uGlowTex, vUv).rgb * 1.35;
+  }
+  lit *= uExposure;
+  lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+  fragColor = vec4(lit, 1.0);
+}`);
+  const uMesh = uni(pMesh, [
+    'uVP', 'uOffset', 'uLerp', 'uPosScale', 'uShadowPass', 'uShadowAlpha',
+    'uTex', 'uGlowTex', 'uHasGlow', 'uEye', 'uExposure', 'uMetallic', 'uRoughness', 'uSpec', 'uUnlit', 'uTorch'
+  ]);
+
+  // 3. Ground / Altitude Deck Shader
+  const pGround = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec2 aQ;
+uniform mat4 uVP;
+uniform float uSize;
+out vec2 vP;
+void main() {
+  vP = aQ * uSize;
+  gl_Position = uVP * vec4(vP, 0.0, 1.0);
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec2 vP;
+uniform int uLieMode;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  float scrollX = uLieMode == 1 ? 0.0 : uTime * 95.0;
+  vec2 q = (vP + vec2(scrollX, 0.0)) / 32.0;
+  float chk = mod(floor(q.x) + floor(q.y), 2.0);
+  vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
+  float line = 1.0 - min(min(g.x, g.y), 1.0);
+  float fade = 1.0 - smoothstep(120.0, 420.0, length(vP));
+  if (uLieMode == 1) {
+    vec3 pad = mix(vec3(0.11, 0.14, 0.20), vec3(0.15, 0.19, 0.26), chk) + line * 0.05;
+    fragColor = vec4(pad, fade * 0.92);
+  } else {
+    vec3 skyGrid = vec3(0.32, 0.65, 0.95) * (0.14 + line * 0.36);
+    fragColor = vec4(skyGrid, fade * 0.34);
+  }
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uLieMode', 'uTime']);
+
+  // 4. Wireframe Shader
+  const pWire = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale + uOffset;
+  gl_Position = uVP * vec4(p, 1.0);
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP', 'uOffset', 'uLerp', 'uPosScale', 'uColor']);
+
+  // 5. 3D Line Shader (Wind Streaks & Quake 32x32x56 Ranger Bounding Box)
+  const pLine = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() {
+  vCol = aCol;
+  gl_Position = uVP * vec4(aPos, 1.0);
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b);
+    gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 16384 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(16384);
+
+  // Upload Textures
+  const glTextures = DATA.textures.map(t => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([140, 155, 180, 255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+    img.src = t.uri;
+    return tex;
+  });
+
+  // Upload 4 Sky Vehicle MD3s
+  const models = DATA.models.map((d, idx) => {
+    const m = Object.assign({}, d, { idx });
+    const [mn, mx] = m.bbox;
+    m.size = [mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]];
+    m.center = [(mn[0] + mx[0]) * 0.5, (mn[1] + mx[1]) * 0.5, (mn[2] + mx[2]) * 0.5];
+    m.R = Math.hypot(m.size[0], m.size[1], m.size[2]) * 0.48;
+    // Center X and Y, keep Z=0 as exact Quake ground plane!
+    m.offset = [-m.center[0], -m.center[1], 0.0];
+    for (const s of m.surfaces) {
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2);
+      gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3);
+      gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, f32(s.uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.tris), gl.STATIC_DRAW);
+      s._lastKey = -1;
+    }
+    return m;
+  });
+
+  const totTris = models.reduce((s, m) => s + m.nt, 0);
+  const totVerts = models.reduce((s, m) => s + m.nv, 0);
+  $('hero-stats').innerHTML =
+    `<b>4</b> Quake MD3 Versions · <b>56</b> Frames Each (Cruise / Boost / Hover / Lie) · <b>${totTris.toLocaleString()}</b> Total Tris · <b>${totVerts.toLocaleString()}</b> Verts`;
+
+  const state = {
+    clipIdx: 0,
+    spin: true,
+    scaleBox: false,
+    wire: false,
+    torch: false,
+    speed: 1.0,
+  };
+
+  // Global Clip Buttons
+  const globalClipBtns = CLIPS.map((cl, ci) => {
+    const b = document.createElement('button');
+    if (cl.lie) b.className = 'lie-btn';
+    b.textContent = cl.label;
+    b.setAttribute('aria-pressed', ci === 0);
+    b.onclick = () => {
+      state.clipIdx = ci;
+      globalClipBtns.forEach((btn, i) => btn.setAttribute('aria-pressed', i === ci));
+      for (const c of cards) {
+        c.clipIdx = ci;
+        c.syncMiniClips();
+      }
+      if (detail.m) syncDetailClips();
+    };
+    $('clip-btns').appendChild(b);
+    return b;
+  });
+
+  function bindToggle(btnIds, key) {
+    for (const id of btnIds) {
+      const el = $(id);
+      if (!el) continue;
+      el.onclick = () => {
+        state[key] = !state[key];
+        for (const bid of btnIds) if ($(bid)) $(bid).setAttribute('aria-pressed', state[key]);
+      };
+    }
+  }
+  bindToggle(['btn-spin'], 'spin');
+  bindToggle(['btn-scale', 'd-scale'], 'scaleBox');
+  bindToggle(['btn-wire', 'd-wire'], 'wire');
+  bindToggle(['btn-hdr'], 'torch');
+
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('out-speed').textContent = state.speed.toFixed(1) + '×';
+  };
+
+  // Orbit Camera Controller
+  function attachOrbit(el, view, onInteract) {
+    let dragging = false, lx = 0, ly = 0;
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      dragging = true;
+      lx = e.clientX; ly = e.clientY;
+      el.classList.add('drag');
+      el.setPointerCapture(e.pointerId);
+      if (onInteract) onInteract();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      view.az -= dx * 0.0085;
+      view.el = Math.max(-0.45, Math.min(1.38, view.el + dy * 0.0075));
+    });
+    const end = () => { dragging = false; el.classList.remove('drag'); };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+
+  // Build 4 Candidate Cards
+  const cards = models.map((m, idx) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    const defDist = m.R * 2.38;
+    const view = {
+      az: 0.66 + idx * 0.08,
+      el: 0.28,
+      dist: defDist,
+      minDist: m.R * 0.9,
+      maxDist: m.R * 5.2,
+      userTouched: false,
+    };
+
+    const partsHtml = m.fusion.map(([k, v]) => `<li><b>${k}:</b> ${v}</li>`).join('');
+    card.innerHTML = `
+      <div class="stage">
+        <div class="stage-top">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill vtag">${m.badge}</span>
+            <span class="pill mono">${m.nt.toLocaleString()} tris · 56f</span>
+          </div>
+          <div>
+            <span class="pill win-pill">★ #1 WINNER</span>
+            <span class="pill run-pill">☆ #2 BACKUP</span>
+          </div>
+        </div>
+        <div class="stage-btm">
+          <div class="mini-bar" data-role="clips"></div>
+          <div class="mini-bar">
+            <button class="mini-btn" data-role="reset" title="Reset Camera">↺</button>
+            <button class="mini-btn" data-role="open">Fullscreen 3D ⤢</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="title-row">
+          <h2>${m.title}</h2>
+          <span class="mono md3-tag">${m.file}</span>
+        </div>
+        <p class="desc">${m.desc}</p>
+        <ul class="parts-list">${partsHtml}</ul>
+        <div class="chip-row" data-role="chips">
+          <span class="lbl">Mix &amp; Match:</span>
+        </div>
+        <div class="vote-actions">
+          <button class="btn-win" data-role="win">★ Vote #1 Winner</button>
+          <button class="btn-run" data-role="run">☆ #2 Runner-Up</button>
+        </div>
+      </div>
+    `;
+    $('grid').appendChild(card);
+
+    const stageEl = card.querySelector('.stage');
+    attachOrbit(stageEl, view, () => { view.userTouched = true; });
+    stageEl.addEventListener('dblclick', e => {
+      if (!e.target.closest('button')) openDetail(idx);
+    });
+
+    const cObj = { m, card, stageEl, view, clipIdx: 0, miniBtns: [], chipBtns: [] };
+
+    const clipWrap = card.querySelector('[data-role="clips"]');
+    CLIPS.slice(0, 4).forEach((cl, ci) => {
+      const b = document.createElement('button');
+      b.className = 'mini-btn' + (cl.lie ? ' lie-btn' : '');
+      b.textContent = cl.short;
+      b.onclick = () => {
+        cObj.clipIdx = ci;
+        cObj.syncMiniClips();
+      };
+      clipWrap.appendChild(b);
+      cObj.miniBtns.push(b);
+    });
+    cObj.syncMiniClips = () => {
+      cObj.miniBtns.forEach((b, ci) => b.classList.toggle('active', cObj.clipIdx === ci));
+    };
+    cObj.syncMiniClips();
+
+    card.querySelector('[data-role="reset"]').onclick = () => {
+      view.az = 0.66; view.el = 0.28; view.dist = defDist; view.userTouched = false;
+    };
+    card.querySelector('[data-role="open"]').onclick = () => openDetail(idx);
+
+    // Mix-and-match chips
+    const chipWrap = card.querySelector('[data-role="chips"]');
+    for (const tag of m.chips) {
+      const cb = document.createElement('button');
+      cb.className = 'chip';
+      cb.textContent = '+ ' + tag;
+      cb.onclick = () => toggleChip(tag);
+      chipWrap.appendChild(cb);
+      cObj.chipBtns.push({ tag, el: cb });
+    }
+
+    card.querySelector('[data-role="win"]').onclick = () => pickWinner(m.id);
+    card.querySelector('[data-role="run"]').onclick = () => pickRunner(m.id);
+
+    return cObj;
+  });
+
+  function pickWinner(id) {
+    vote.winner = (vote.winner === id) ? '' : id;
+    if (vote.winner && vote.runner === vote.winner) vote.runner = '';
+    saveVote();
+  }
+  function pickRunner(id) {
+    vote.runner = (vote.runner === id) ? '' : id;
+    if (vote.runner && vote.winner === vote.runner) vote.winner = '';
+    saveVote();
+  }
+  function toggleChip(tag) {
+    const i = vote.chips.indexOf(tag);
+    if (i >= 0) vote.chips.splice(i, 1);
+    else vote.chips.push(tag);
+    saveVote();
+  }
+
+  // Fullscreen Detail Modal
+  const detail = {
+    m: null,
+    idx: 0,
+    playing: true,
+    scrubFrame: 0,
+    view: { az: 0.65, el: 0.26, dist: 300, minDist: 90, maxDist: 800 },
+    clipBtns: [],
+  };
+  attachOrbit($('detail-stage'), detail.view);
+
+  CLIPS.forEach((cl, ci) => {
+    const b = document.createElement('button');
+    if (cl.lie) b.className = 'lie-btn';
+    b.textContent = cl.label;
+    b.onclick = () => {
+      state.clipIdx = ci;
+      detail.playing = true;
+      $('d-play').setAttribute('aria-pressed', 'true');
+      $('d-play').textContent = '⏸ Pause';
+      syncDetailClips();
+    };
+    $('d-clips').appendChild(b);
+    detail.clipBtns.push(b);
+  });
+
+  function syncDetailClips() {
+    detail.clipBtns.forEach((b, ci) => b.setAttribute('aria-pressed', state.clipIdx === ci));
+    globalClipBtns.forEach((b, ci) => b.setAttribute('aria-pressed', state.clipIdx === ci));
+  }
+
+  function openDetail(idx) {
+    const m = models[(idx + models.length) % models.length];
+    detail.m = m;
+    detail.idx = m.idx;
+    detail.playing = true;
+    detail.view.dist = m.R * 2.25;
+    detail.view.minDist = m.R * 0.85;
+    detail.view.maxDist = m.R * 5.5;
+    $('d-vtag').textContent = m.badge;
+    $('d-title').textContent = m.title;
+    $('d-file').textContent = `${m.file} · scripts/skyveh.shader`;
+    $('d-desc').textContent = m.desc;
+    $('d-stats').innerHTML =
+      `Vertices: ${m.nv.toLocaleString()} (${m.surfaces.length} MD3 surfaces, max 3,702/surf)<br>` +
+      `Triangles: ${m.nt.toLocaleString()}<br>` +
+      `Animations: 56 frames (Cruise 0..15, Boost 16..31, Hover 32..43, Lie 44..55)<br>` +
+      `Quake Size: ${m.size[0].toFixed(0)} × ${m.size[1].toFixed(0)} × ${m.size[2].toFixed(0)} units`;
+
+    const dc = $('d-chips');
+    dc.innerHTML = '';
+    for (const tag of m.chips) {
+      const cb = document.createElement('button');
+      cb.className = 'chip' + (vote.chips.includes(tag) ? ' picked' : '');
+      cb.textContent = '+ ' + tag;
+      cb.onclick = () => toggleChip(tag);
+      dc.appendChild(cb);
+    }
+    $('d-vote-win').onclick = () => pickWinner(m.id);
+    $('d-vote-run').onclick = () => pickRunner(m.id);
+
+    syncDetailClips();
+    syncVoteUI();
+    document.body.classList.add('detail-open');
+    $('detail').classList.add('open');
+  }
+
+  function closeDetail() {
+    detail.m = null;
+    document.body.classList.remove('detail-open');
+    $('detail').classList.remove('open');
+  }
+  $('d-close').onclick = closeDetail;
+  $('d-prev').onclick = () => openDetail(detail.idx - 1);
+  $('d-next').onclick = () => openDetail(detail.idx + 1);
+  $('d-play').onclick = () => {
+    detail.playing = !detail.playing;
+    $('d-play').setAttribute('aria-pressed', detail.playing);
+    $('d-play').textContent = detail.playing ? '⏸ Pause' : '▶ Play';
+  };
+  $('d-scrub').oninput = e => {
+    detail.playing = false;
+    $('d-play').setAttribute('aria-pressed', 'false');
+    $('d-play').textContent = '▶ Play';
+    detail.scrubFrame = parseFloat(e.target.value);
+  };
+  document.querySelectorAll('[data-cam]').forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.dataset.cam;
+      if (k === 'front') { detail.view.az = 0.62; detail.view.el = 0.25; }
+      else if (k === 'side') { detail.view.az = -1.57; detail.view.el = 0.14; }
+      else if (k === 'rear') { detail.view.az = 2.55; detail.view.el = 0.30; }
+      else if (k === 'top') { detail.view.az = 0.40; detail.view.el = 1.25; }
+      else if (k === 'belly') { detail.view.az = 0.55; detail.view.el = -0.32; }
+    };
+  });
+  window.addEventListener('keydown', e => {
+    if ($('ballot-modal').classList.contains('open')) {
+      if (e.key === 'Escape') $('ballot-modal').classList.remove('open');
+      return;
+    }
+    if (!detail.m) return;
+    if (e.key === 'Escape') closeDetail();
+    else if (e.key === 'ArrowLeft') openDetail(detail.idx - 1);
+    else if (e.key === 'ArrowRight') openDetail(detail.idx + 1);
+  });
+
+  function syncVoteUI() {
+    const wMod = models.find(x => x.id === vote.winner);
+    const rMod = models.find(x => x.id === vote.runner);
+    $('sum-win').textContent = wMod ? `${wMod.badge} — ${wMod.title}` : 'Click a version to vote!';
+    $('sum-run').textContent = rMod ? `${rMod.badge}` : 'None';
+    $('sum-chips').textContent = vote.chips.length ? `Mix-in (${vote.chips.length}): ${vote.chips.join(', ')}` : '';
+
+    for (const c of cards) {
+      const isW = vote.winner === c.m.id;
+      const isR = vote.runner === c.m.id;
+      c.card.classList.toggle('is-winner', isW);
+      c.card.classList.toggle('is-runner', isR);
+      c.card.querySelector('[data-role="win"]').textContent = isW ? '✓ Voted #1 Winner!' : '★ Vote #1 Winner';
+      c.card.querySelector('[data-role="run"]').textContent = isR ? '✓ #2 Runner-Up' : '☆ #2 Runner-Up';
+      for (const ch of c.chipBtns) ch.el.classList.toggle('picked', vote.chips.includes(ch.tag));
+    }
+    if (detail.m) {
+      const isW = vote.winner === detail.m.id;
+      const isR = vote.runner === detail.m.id;
+      $('d-vote-win').textContent = isW ? '✓ Voted #1 Winner!' : '★ Vote #1 Winner';
+      $('d-vote-run').textContent = isR ? '✓ #2 Runner-Up' : '☆ Pick #2 Runner-Up';
+      [...$('d-chips').children].forEach(el => {
+        const tag = el.textContent.replace(/^\+\s*/, '');
+        el.classList.toggle('picked', vote.chips.includes(tag));
+      });
+    }
+  }
+  syncVoteUI();
+
+  $('vote-note').addEventListener('input', e => {
+    vote.note = e.target.value;
+    saveVote();
+  });
+
+  function formatBallotText() {
+    const wMod = models.find(x => x.id === vote.winner);
+    const rMod = models.find(x => x.id === vote.runner);
+    const lines = [
+      `QUAKE SKY-VEHICLE VOTE:`,
+      `- #1 Winner: ${wMod ? `${wMod.badge} (${wMod.title} — ${wMod.file})` : 'Undecided'}`,
+    ];
+    if (rMod) lines.push(`- #2 Runner-Up: ${rMod.badge} (${rMod.title} — ${rMod.file})`);
+    if (vote.chips.length) lines.push(`- Favorite Parts / Mix-and-Match: ${vote.chips.join(', ')}`);
+    if (vote.note.trim()) lines.push(`- Notes: ${vote.note.trim()}`);
+    return lines.join('\n');
+  }
+
+  $('btn-copy-vote').onclick = async () => {
+    const txt = formatBallotText();
+    $('bm-text').value = txt;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(txt);
+      ok = true;
+    } catch (_) {
+      $('ballot-modal').classList.add('open');
+      $('bm-text').focus();
+      $('bm-text').select();
+    }
+    $('copy-status').textContent = ok ? '✓ Copied! Paste in chat.' : 'Select & copy from box';
+    if (ok) $('ballot-modal').classList.add('open');
+    setTimeout(() => { $('copy-status').textContent = ''; }, 4500);
+  };
+  $('bm-close').onclick = () => $('ballot-modal').classList.remove('open');
+
+  $('btn-save-json').onclick = () => {
+    const blob = new Blob([JSON.stringify({ ...vote, summary: formatBallotText(), ts: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sky_vehicle_vote.json';
+    a.click();
+  };
+  $('btn-reset-vote').onclick = () => {
+    vote = { winner: '', runner: '', chips: [], note: '' };
+    $('vote-note').value = '';
+    saveVote();
+  };
+
+  // WebGL2 Viewport Renderer
+  const matP = new Float32Array(16);
+  const matV = new Float32Array(16);
+  const matVP = new Float32Array(16);
+
+  function addBoxLines(ptr, x0, y0, z0, x1, y1, z1, r, g, b, a) {
+    const pts = [
+      [x0,y0,z0],[x1,y0,z0], [x1,y0,z0],[x1,y1,z0], [x1,y1,z0],[x0,y1,z0], [x0,y1,z0],[x0,y0,z0],
+      [x0,y0,z1],[x1,y0,z1], [x1,y0,z1],[x1,y1,z1], [x1,y1,z1],[x0,y1,z1], [x0,y1,z1],[x0,y0,z1],
+      [x0,y0,z0],[x0,y0,z1], [x1,y0,z0],[x1,y0,z1], [x1,y1,z0],[x1,y1,z1], [x0,y1,z0],[x0,y1,z1],
+    ];
+    for (const p of pts) {
+      lineData[ptr++] = p[0]; lineData[ptr++] = p[1]; lineData[ptr++] = p[2];
+      lineData[ptr++] = r; lineData[ptr++] = g; lineData[ptr++] = b; lineData[ptr++] = a;
+    }
+    return ptr;
+  }
+
+  function renderViewport(m, view, clip, tSec, exactOverride) {
+    let fa, fb, frac;
+    if (exactOverride !== null) {
+      const clp = Math.max(0, Math.min(m.nf - 1, exactOverride));
+      fa = Math.floor(clp);
+      fb = (fa + 1) % m.nf;
+      frac = clp - fa;
+    } else {
+      const pos = ((tSec * state.speed * clip.fps) % clip.count + clip.count) % clip.count;
+      const i0 = Math.floor(pos);
+      const i1 = (i0 + 1) % clip.count;
+      fa = clip.start + i0;
+      fb = clip.start + i1;
+      frac = pos - i0;
+    }
+
+    // Sky gradient backdrop
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.useProgram(pSky);
+    gl.uniform1i(uSky.uLieMode, clip.lie ? 1 : 0);
+    gl.uniform1i(uSky.uTorch, state.torch ? 1 : 0);
+    gl.uniform1f(uSky.uTime, tSec * state.speed);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+
+    const tgtZ = clip.lie ? m.size[2] * 0.36 : m.size[2] * 0.56;
+    const tgt = [0.0, 0.0, tgtZ];
+    const eye = [
+      tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+      tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+      tgt[2] + view.dist * Math.sin(view.el),
+    ];
+    mat4Persp(matP, 0.60, view.aspect, 2.0, 2600.0);
+    mat4LookAt(matV, eye, tgt, [0, 0, 1]);
+    mat4Mul(matVP, matP, matV);
+
+    // Ground landing pad / sky altitude grid
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+    gl.useProgram(pGround);
+    gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+    gl.uniform1f(uGround.uSize, 440.0);
+    gl.uniform1i(uGround.uLieMode, clip.lie ? 1 : 0);
+    gl.uniform1f(uGround.uTime, tSec * state.speed * (clip.id === 'fly_boost' ? 2.1 : 1.0));
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Planar ground/altitude shadow (uniform single-hit alpha via depth test when camera is above ground!)
+    if (eye[2] > 2.0) {
+      gl.depthMask(true);
+      gl.depthFunc(gl.LESS);
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniform3f(uMesh.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+      gl.uniform1i(uMesh.uShadowPass, 1);
+      gl.uniform1f(uMesh.uShadowAlpha, clip.lie ? 0.42 : 0.24);
+      gl.uniform1f(uMesh.uLerp, frac);
+      for (const s of m.surfaces) {
+        if (s.additive) continue;
+        gl.bindVertexArray(s.vao);
+        const poseKey = fa * 65536 + fb;
+        if (s._lastKey !== poseKey) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+          gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+          gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+          gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+          gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+          s._lastKey = poseKey;
+        }
+        gl.uniform1f(uMesh.uPosScale, s.posScale);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.depthFunc(gl.LEQUAL);
+    }
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+
+    // Wind streaks (flying modes) + optional Quake 32x32x56 Ranger Scale Box
+    let ptr = 0;
+    if (!clip.lie && clip.id !== 'fly_hover') {
+      const spdMul = clip.id === 'fly_boost' ? 420.0 : 210.0;
+      const streakLen = clip.id === 'fly_boost' ? 44.0 : 24.0;
+      for (let i = 0; i < 22; i++) {
+        const sy = ((i * 53) % 220) - 110.0;
+        const sz = 18.0 + ((i * 37) % 145);
+        if (Math.abs(sy) < 42 && sz < 105) continue;
+        const sx = 220.0 - (((tSec * state.speed * spdMul + i * 67.0) % 440.0 + 440.0) % 440.0);
+        lineData[ptr++] = sx; lineData[ptr++] = sy; lineData[ptr++] = sz;
+        lineData[ptr++] = 0.72; lineData[ptr++] = 0.92; lineData[ptr++] = 1.0; lineData[ptr++] = 0.42;
+        lineData[ptr++] = sx - streakLen; lineData[ptr++] = sy; lineData[ptr++] = sz;
+        lineData[ptr++] = 0.35; lineData[ptr++] = 0.75; lineData[ptr++] = 1.0; lineData[ptr++] = 0.0;
+      }
+    }
+    if (state.scaleBox) {
+      const bx = 0.0, by = m.size[1] * 0.5 + 30.0, bz = clip.lie ? 0.0 : 26.0;
+      ptr = addBoxLines(ptr, bx - 16, by - 16, bz, bx + 16, by + 16, bz + 56, 0.22, 0.92, 0.68, 0.90);
+    }
+    if (ptr > 0) {
+      gl.useProgram(pLine);
+      gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+      gl.bindVertexArray(lineVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr));
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.LINES, 0, ptr / 7);
+      gl.disable(gl.BLEND);
+    }
+
+    // Opaque & Additive MD3 Surfaces
+    const ordered = m.surfaces.slice().sort((a, b) => a.additive - b.additive);
+    for (const s of ordered) {
+      gl.bindVertexArray(s.vao);
+      const poseKey = fa * 65536 + fb;
+      if (s._lastKey !== poseKey) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+        gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+        gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+        gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+        s._lastKey = poseKey;
+      }
+
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniform3f(uMesh.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+      gl.uniform1f(uMesh.uLerp, frac);
+      gl.uniform1f(uMesh.uPosScale, s.posScale);
+      gl.uniform1i(uMesh.uShadowPass, 0);
+      gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+      gl.uniform1f(uMesh.uExposure, state.wire ? 0.50 : 1.04);
+      gl.uniform1f(uMesh.uMetallic, s.metallic);
+      gl.uniform1f(uMesh.uRoughness, s.roughness);
+      gl.uniform1f(uMesh.uSpec, s.spec);
+      gl.uniform1i(uMesh.uUnlit, s.unlit);
+      gl.uniform1i(uMesh.uTorch, state.torch ? 1 : 0);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, glTextures[s.tex]);
+      gl.uniform1i(uMesh.uTex, 0);
+
+      if (s.glowTex >= 0) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTextures[s.glowTex]);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 1);
+      } else {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTextures[s.tex]);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 0);
+      }
+
+      if (s.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+      }
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      if (s.additive) {
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      }
+
+      if (state.wire && !s.additive) {
+        gl.useProgram(pWire);
+        gl.uniformMatrix4fv(uWire.uVP, false, matVP);
+        gl.uniform3f(uWire.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+        gl.uniform1f(uWire.uLerp, frac);
+        gl.uniform1f(uWire.uPosScale, s.posScale);
+        gl.uniform4f(uWire.uColor, 0.30, 0.85, 1.0, 0.55);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+        gl.disable(gl.BLEND);
+      }
+    }
+    return fa + frac;
+  }
+
+  $('loading').style.display = 'none';
+
+  let lastNow = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastNow) * 0.001);
+    lastNow = now;
+    const tSec = now * 0.001;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr);
+    const ch = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.035, 0.05, 0.086, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (detail.m) {
+      const r = $('detail-stage').getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) {
+        const vx = Math.floor(r.left * dpr);
+        const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr);
+        const vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh);
+        gl.scissor(vx, vy, vw, vh);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        detail.view.aspect = vw / vh;
+        const cl = CLIPS[state.clipIdx];
+        const fShown = renderViewport(detail.m, detail.view, cl, tSec, detail.playing ? null : detail.scrubFrame);
+        if (detail.playing) {
+          detail.scrubFrame = fShown;
+          $('d-scrub').value = fShown.toFixed(2);
+        }
+        $('d-frame-lbl').textContent = `frame ${Math.floor(fShown)} / 55 (${cl.short})`;
+      }
+    } else {
+      for (const c of cards) {
+        if (state.spin && !c.view.userTouched) {
+          c.view.az += dt * 0.34 * state.speed;
+        }
+        const r = c.stageEl.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight || r.width < 4 || r.height < 4) continue;
+        const vx = Math.floor(r.left * dpr);
+        const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr);
+        const vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh);
+        gl.scissor(vx, vy, vw, vh);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        c.view.aspect = vw / vh;
+        renderViewport(c.m, c.view, CLIPS[c.clipIdx], tSec, null);
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch(err => {
+  $('loading').innerHTML = `<div style="color:#fb7185;max-width:600px;padding:20px"><b>Viewer Error:</b><br><pre style="text-align:left;white-space:pre-wrap">${err && err.stack ? err.stack : err}</pre></div>`;
+});
+})();
+</script>
+</body>
+</html>

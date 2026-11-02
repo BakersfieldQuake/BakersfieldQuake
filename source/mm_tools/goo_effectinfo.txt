@@ -1,0 +1,139 @@
+// ---- Goo Gun begin (goo.qc; patch_goo_combat.py swaps this whole block in effectinfo.txt)
+// a glob splatting onto something
+effect goo_splat
+count 22
+type alphastatic
+tex 0 8
+color 0x636367 0x8d8d91
+size 2 4
+alpha 220 256 200
+originjitter 3 3 3
+velocityjitter 160 160 160
+gravity 0.8
+airfriction 1.5
+bounce 0.2
+
+effect goo_splat
+count 6
+type alphastatic
+tex 0 8
+color 0x717175 0x909094
+size 5 8
+sizeincrease 20
+alpha 50 90 240
+originjitter 4 4 4
+velocityjitter 30 30 30
+airfriction 3
+
+// a shot hitting a blob (the velocity passed in is the unit vector out of the hit side): chips, snow, a little dust.
+// Colours are dark on purpose: Combat+ runs r_hdr_scenebrightness 2.5, so 0x70 already reads as near white
+effect goo_chip
+count 16
+type alphastatic
+tex 0 8
+color 0x515155 0x828286
+size 1.5 3.5
+alpha 256 256 50
+originjitter 4 4 4
+velocitymultiplier 170
+velocityjitter 120 120 110
+velocityoffset 0 0 70
+gravity 1
+airfriction 0.4
+bounce 0.35
+
+effect goo_chip
+count 30
+type alphastatic
+tex 0 8
+color 0x909094 0x909094
+size 1 2
+alpha 200 256 26
+originjitter 6 6 6
+velocitymultiplier 70
+velocityjitter 70 70 50
+velocityoffset 0 0 35
+gravity 0.06
+airfriction 1.2
+bounce 0.05
+
+effect goo_chip
+count 3
+type alphastatic
+tex 0 8
+color 0x6d6d71 0x909094
+size 5 8
+sizeincrease 14
+alpha 40 70 70
+originjitter 3 3 3
+velocitymultiplier 25
+airfriction 3
+
+// a blob bursting: lots of chunks fly out, bounce and lie around, a grey cloud
+effect goo_burst
+count 90
+type alphastatic
+tex 0 8
+color 0x4e4e52 0x828286
+size 2.5 6
+alpha 256 256 40
+originjitter 16 16 16
+velocityjitter 300 300 240
+velocityoffset 0 0 110
+gravity 1
+airfriction 0.6
+bounce 0.3
+
+effect goo_burst
+count 10
+type alphastatic
+tex 0 8
+color 0x66666a 0x89898d
+size 10 16
+sizeincrease 22
+alpha 40 70 45
+originjitter 18 18 18
+velocityjitter 60 60 50
+airfriction 3
+
+// ...and the "snow": flakes that drift down, settle and linger for eight to ten seconds
+effect goo_snow
+count 110
+type snow
+tex 0 8
+color 0x909094 0x909094
+size 1 2.5
+alpha 200 256 30
+originjitter 30 30 30
+velocityjitter 150 150 120
+velocityoffset 0 0 90
+gravity 0.05
+airfriction 1
+
+effect goo_snow
+count 140
+type alphastatic
+tex 0 8
+color 0x909094 0x909094
+size 1.2 3
+alpha 190 256 24
+originjitter 28 28 28
+velocityjitter 130 130 100
+velocityoffset 0 0 80
+gravity 0.07
+airfriction 1.2
+bounce 0.05
+
+// the goo coming off a player when it wears off
+effect goo_puff
+count 18
+type alphastatic
+tex 0 8
+color 0x636367 0x909094
+size 2 4
+alpha 200 256 200
+originjitter 12 12 20
+velocityjitter 90 90 90
+gravity 1
+airfriction 1.5
+// ---- Goo Gun end

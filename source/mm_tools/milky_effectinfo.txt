@@ -1,0 +1,240 @@
+// ---- Milky Gun begin (milky.qc; patch_milky_combat.py swaps this whole block in effectinfo.txt)
+// Full-sRGB bright creamy-white milk colours (0xecf0ea..0xffffff) so every splash, glob, and drip pops cleanly.
+// The burst: streaks of milk flying out, droplets raining down, a white mist (no flash)
+effect milky_boom
+count 160
+type spark
+blend alpha
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 4.2 7.5
+alpha 256 256 230
+originjitter 22 22 22
+velocityjitter 1350 1350 1026
+velocityoffset 0 0 364
+gravity 1
+airfriction 0.45
+bounce -1
+
+// the drops: fat milk that rains down and lies about
+effect milky_boom
+count 130
+type alphastatic
+tex 0 8
+color 0xecf0ea 0xffffff
+size 4.2 8.5
+alpha 256 256 105
+originjitter 30 30 30
+velocityjitter 1026 1026 756
+velocityoffset 0 0 390
+gravity 1
+airfriction 0.3
+bounce 0.16
+
+// a fountain straight up out of the middle
+effect milky_boom
+count 60
+type alphastatic
+tex 0 8
+color 0xf0f3ee 0xffffff
+size 4.0 7.6
+alpha 256 256 145
+originjitter 12 12 40
+velocityjitter 202.5 202.5 351
+velocityoffset 0 0 832
+gravity 1
+airfriction 0.2
+
+// the white mist
+effect milky_boom
+count 12
+type alphastatic
+tex 0 8
+color 0xe0e4de 0xf8faf6
+size 55 90
+sizeincrease 65
+alpha 70 110 115
+originjitter 60 60 50
+velocityjitter 297 297 202.5
+airfriction 2
+
+// fine spray, flung far
+effect milky_boom
+count 70
+type alphastatic
+tex 0 8
+color 0xf0f2ee 0xffffff
+size 1.8 3.6
+alpha 256 256 250
+originjitter 10 10 10
+velocityjitter 1890 1890 1080
+gravity 0.7
+airfriction 1
+
+// a shot hitting her (the velocity passed in is the unit vector out of the side that was shot): a spurt of milk
+effect milky_hit
+count 42
+type spark
+blend alpha
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 1.8 3.6
+alpha 256 256 320
+originjitter 4 4 4
+velocitymultiplier 260
+velocityjitter 110 110 90
+velocityoffset 0 0 60
+gravity 1
+airfriction 0.4
+bounce -1
+
+effect milky_hit
+count 28
+type alphastatic
+tex 0 8
+color 0xeef0ea 0xffffff
+size 2.0 4.5
+alpha 256 256 150
+originjitter 5 5 5
+velocitymultiplier 150
+velocityjitter 90 90 80
+gravity 1
+bounce 0.15
+
+// glossy drops + falling milk streak dripping off a splat or off her pods
+effect milk_drip
+count 2
+type alphastatic
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 2.2 4.2
+alpha 256 256 62
+originjitter 3 3 2
+velocityjitter 8 8 6
+velocityoffset 0 0 -42
+gravity 1
+bounce 0.14
+
+effect milk_drip
+count 1
+type spark
+blend alpha
+tex 0 8
+color 0xf4f6f0 0xffffff
+size 1.5 2.8
+alpha 256 256 95
+originjitter 2 2 2
+velocityjitter 5 5 4
+velocityoffset 0 0 -75
+gravity 1
+bounce -1
+
+// sliding on a puddle: milk kicked up round your feet (the velocity passed in is a third of yours)
+effect milk_skid
+count 18
+type alphastatic
+tex 0 8
+color 0xeef2ec 0xffffff
+size 1.6 3.4
+alpha 256 256 280
+originjitter 10 10 2
+velocitymultiplier 1
+velocityjitter 65 65 45
+velocityoffset 0 0 115
+gravity 1
+bounce -1
+
+// a glob of milk in flight: it leaves a bright trail of drops & liquid streaks
+effect milk_glob
+trailspacing 3.2
+type alphastatic
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 3.2 6.0
+alpha 256 256 205
+originjitter 2 2 2
+velocityjitter 26 26 26
+gravity 0.85
+bounce -1
+
+effect milk_glob
+trailspacing 7
+type spark
+blend alpha
+tex 0 8
+color 0xf4f6f0 0xffffff
+size 1.6 3.0
+alpha 256 256 240
+originjitter 2 2 2
+velocityjitter 18 18 18
+gravity 0.9
+bounce -1
+
+// milk running off her as she floats: fat creamy drops & glossy falling milk threads
+effect milk_ooze
+count 11
+type alphastatic
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 5.0 10.5
+alpha 256 256 85
+originjitter 12 12 8
+velocityjitter 38 38 18
+velocityoffset 0 0 -45
+gravity 0.9
+bounce 0.14
+
+effect milk_ooze
+count 7
+type spark
+blend alpha
+tex 0 8
+color 0xf4f6f2 0xffffff
+size 2.0 3.8
+alpha 256 256 125
+originjitter 14 14 8
+velocityjitter 24 24 14
+velocityoffset 0 0 -85
+gravity 1.0
+bounce -1
+
+// her trail through the air: bright creamy dribbles & dewy milk drops raining down behind her
+effect milky_trail
+trailspacing 16
+type alphastatic
+tex 0 8
+color 0xeef2ec 0xffffff
+size 5.0 9.8
+alpha 256 256 105
+originjitter 26 26 36
+velocityjitter 22 22 22
+gravity 0.8
+bounce 0.12
+
+effect milky_trail
+trailspacing 22
+type alphastatic
+tex 0 8
+color 0xf4f6f2 0xffffff
+size 2.2 4.5
+alpha 256 256 90
+originjitter 22 22 30
+velocityoffset 0 0 -35
+velocityjitter 18 18 16
+gravity 1.0
+bounce -1
+
+// the rain of milk that goes on a few seconds after the burst
+effect milk_rain
+count 2
+type alphastatic
+tex 0 8
+color 0xf0f2ec 0xffffff
+size 2.5 5.2
+alpha 256 256 85
+velocityoffset 0 0 -240
+velocityjitter 35 35 45
+gravity 1
+bounce 0.12
+
+// ---- Milky Gun end

@@ -1,0 +1,2360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🦅 Winged Breezy-Hair John · Flyable Quake Vehicle &amp; 3D Model Showcase</title>
+<style>
+:root {
+  --bg: #070b14;
+  --bg-soft: #0d1424;
+  --panel: rgba(13, 20, 35, 0.92);
+  --panel-solid: #10192b;
+  --card: rgba(15, 23, 40, 0.88);
+  --line: rgba(255, 255, 255, 0.13);
+  --line-hi: rgba(56, 189, 248, 0.62);
+  --text: #eef4fc;
+  --muted: #94a3b8;
+  --amber: #fbbf24;
+  --amber-ink: #1e1202;
+  --cyan: #38bdf8;
+  --mint: #34d399;
+  --red: #fb7185;
+  --orange: #f97316;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.48 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.page {
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 16px 20px 64px;
+}
+
+header.hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.kicker {
+  margin: 0 0 4px;
+  color: var(--amber);
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.5vw, 31px);
+  font-weight: 850;
+  letter-spacing: -0.018em;
+}
+.sub {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 96ch;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.stat-pill {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.stat-pill b { color: var(--text); }
+.stat-pill.hi {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.08);
+}
+.stat-pill.hi b { color: var(--amber); }
+
+/* Main Interactive 3D Workspace */
+.studio-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 368px;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 1100px) {
+  .studio-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.viewport-shell {
+  position: relative;
+  min-height: 620px;
+  height: min(75vh, 720px);
+  border-radius: 18px;
+  border: 1.5px solid var(--line);
+  overflow: hidden;
+  background: #091224;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.52);
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.viewport-shell.drag { cursor: grabbing; }
+.viewport-shell.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+}
+
+canvas#gl {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hud-top {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+.hud-left, .hud-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+.hud-left > *, .hud-right > * { pointer-events: auto; }
+
+.mode-tabs {
+  display: inline-flex;
+  background: rgba(8, 13, 24, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+  backdrop-filter: blur(10px);
+}
+.mode-tabs button {
+  border: none;
+  padding: 6px 13px;
+  font-size: 12px;
+  font-weight: 800;
+  background: transparent;
+  color: var(--muted);
+}
+.mode-tabs button.active {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1c1002;
+  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.35);
+}
+
+.badge {
+  background: rgba(8, 13, 24, 0.84);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text);
+}
+.badge.hi {
+  border-color: rgba(251, 191, 36, 0.55);
+  color: var(--amber);
+}
+.badge.cyan {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #bae6fd;
+}
+
+/* Center Voice Bubble & Shootdown Banner */
+.voice-toast {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: rgba(10, 18, 34, 0.90);
+  border: 1.5px solid rgba(56, 189, 248, 0.65);
+  border-radius: 999px;
+  padding: 7px 18px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #e0f2fe;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  white-space: nowrap;
+  z-index: 8;
+}
+.voice-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.voice-toast b { color: var(--amber); }
+
+.shootdown-banner {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  background: rgba(24, 8, 12, 0.90);
+  border: 2px solid #fb7185;
+  border-radius: 16px;
+  padding: 14px 26px;
+  text-align: center;
+  box-shadow: 0 14px 40px rgba(244, 63, 94, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  z-index: 9;
+}
+.shootdown-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.shootdown-banner h3 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fda4af;
+  letter-spacing: 0.02em;
+}
+.shootdown-banner p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #fecdd3;
+}
+
+/* Flight & 5-Rocket Telemetry Bar */
+.flight-hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: rgba(9, 14, 26, 0.88);
+  border: 1px solid rgba(251, 191, 36, 0.36);
+  backdrop-filter: blur(12px);
+  border-radius: 13px;
+  padding: 8px 13px;
+  pointer-events: auto;
+}
+.hp-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rocket-pips {
+  display: inline-flex;
+  gap: 4px;
+}
+.r-pip {
+  width: 24px;
+  height: 11px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.r-pip.on {
+  background: linear-gradient(90deg, #34d399, #10b981);
+  border-color: #6ee7b7;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+}
+.r-pip.warn {
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  border-color: #fca5a5;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.hud-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: rgba(9, 14, 26, 0.84);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  border-radius: 13px;
+  padding: 8px 12px;
+  pointer-events: auto;
+}
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  white-space: nowrap;
+}
+button:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.28); }
+button:active { transform: translateY(1px); }
+button.active, button[aria-pressed="true"] {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  font-weight: 800;
+}
+button.cyan-act.active, button.cyan-act[aria-pressed="true"] {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #062134;
+}
+button.gust-btn {
+  background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+  border: none;
+  color: #041d29;
+  font-weight: 850;
+  box-shadow: 0 3px 12px rgba(34, 211, 238, 0.32);
+}
+button.rocket-btn {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  border: none;
+  color: #fff;
+  font-weight: 850;
+  padding: 6px 14px;
+  box-shadow: 0 3px 14px rgba(239, 68, 68, 0.42);
+}
+button.rocket-btn:hover { filter: brightness(1.1); }
+button.swoop-btn {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  border: none;
+  color: #1c1002;
+  font-weight: 850;
+}
+button.voice-btn {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #e0f2fe;
+  font-weight: 750;
+}
+button.snd-btn {
+  background: rgba(52, 211, 153, 0.16);
+  border-color: rgba(52, 211, 153, 0.52);
+  color: #a7f3d0;
+  font-weight: 800;
+}
+button.snd-btn.muted {
+  background: rgba(251, 113, 133, 0.15);
+  border-color: rgba(251, 113, 133, 0.5);
+  color: #fecdd3;
+}
+button.dl-btn {
+  background: rgba(52, 211, 153, 0.14);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #a7f3d0;
+  font-weight: 750;
+}
+button.dl-btn:hover { background: rgba(52, 211, 153, 0.26); }
+
+/* Right Sidebar */
+.inspector-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+}
+.sec-title {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sec-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.clip-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+.clip-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 9px;
+  padding: 6px 10px;
+  text-align: left;
+  width: 100%;
+}
+.clip-btn .cf {
+  font-size: 11px;
+  opacity: 0.78;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ctrl-row:first-child { margin-top: 0; }
+.ctrl-row:last-child { margin-bottom: 0; }
+.ctrl-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+.ctrl-row output {
+  min-width: 4.4ch;
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.part-toggles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.part-toggles button {
+  border-radius: 9px;
+  padding: 6px 5px;
+  text-align: center;
+  font-size: 11.5px;
+}
+
+.quake-keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  font-size: 11.8px;
+  color: var(--muted);
+}
+.quake-keys kbd {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font: 700 11px ui-monospace, Consolas, monospace;
+  color: var(--amber);
+  text-align: center;
+}
+
+.hint-line {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Showcase Section Below */
+.showcase-hdr {
+  margin: 28px 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.showcase-hdr h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+.showcase-hdr p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1100px) {
+  .breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .breakdown-grid { grid-template-columns: 1fr; }
+}
+.b-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.b-card:hover {
+  border-color: var(--line-hi);
+  transform: translateY(-2px);
+}
+.b-card img {
+  width: 100%;
+  aspect-ratio: 420 / 300;
+  object-fit: cover;
+  background: #0b1322;
+  border-bottom: 1px solid var(--line);
+}
+.b-card .b-body { padding: 12px 14px; }
+.b-card .b-step {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  margin-bottom: 3px;
+}
+.b-card h3 { margin: 0 0 5px; font-size: 14.5px; font-weight: 800; }
+.b-card p { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.angles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+@media (max-width: 1100px) {
+  .angles-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .angles-grid { grid-template-columns: 1fr; }
+}
+.angle-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.angle-card:hover {
+  border-color: var(--amber);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.14);
+}
+.angle-card img {
+  width: 100%;
+  aspect-ratio: 420 / 340;
+  object-fit: cover;
+  display: block;
+}
+.angle-card .ac-cap {
+  padding: 8px 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.angle-card .ac-cap span.jump {
+  font-size: 11px;
+  color: var(--amber);
+  font-weight: 750;
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 11, 20, 0.88);
+  z-index: 20;
+  font-weight: 750;
+  color: var(--cyan);
+  letter-spacing: 0.03em;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">Bakersfield Quake · Fast Flyable Avian Vehicle &amp; 3D Model Showcase</p>
+      <h1>🦅 Winged Breezy-Hair John — Flyable Vehicle &amp; 3D Inspector</h1>
+      <p class="sub">Controllable high-speed Quake flying vehicle (<b class="mono">misc_vehicle_johnbird</b> · <b>940 u/s</b> cruise / <b>1,460 u/s</b> falcon swoop) with <b>64 wind-swept 3D flapping hair locks</b>, synced <b>wing-flapping SFX</b>, <b>14 random "John" voice lines</b> while flying, and an exact <b>5-rocket shootdown (500 HP)</b>!</p>
+    </div>
+    <div class="hero-badges" id="hero-stats">
+      <div class="stat-pill">Loading 3D mesh &amp; audio…</div>
+    </div>
+  </header>
+
+  <section class="studio-grid">
+    <!-- Left: Interactive WebGL2 3D Viewport -->
+    <div class="viewport-shell" id="viewport" tabindex="0">
+      <div id="loading">Unpacking 72-frame 3D MD3 geometry, textures &amp; 23 audio clips…</div>
+      <canvas id="gl"></canvas>
+
+      <div class="voice-toast" id="voice-toast">🗣 John: <b>"Hmm... I'm floating!"</b></div>
+      <div class="shootdown-banner" id="shootdown-banner">
+        <h3>💥 SHOT DOWN ON ROCKET #5!</h3>
+        <p>500 / 500 Damage · 28 3D Feathers Scattered · Respawning…</p>
+      </div>
+
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="mode-tabs">
+            <button id="mode-sim" class="active">🎮 Flyable Vehicle Sim</button>
+            <button id="mode-inspect">🔍 3D Model Inspector</button>
+          </div>
+          <span class="badge hi" id="hud-clip">🦅 Fast Flight (940 u/s)</span>
+          <span class="badge cyan mono" id="hud-frame">Frame 00 / 71</span>
+        </div>
+        <div class="hud-right">
+          <button class="snd-btn" id="btn-audio" title="Toggle flapping &amp; random John flight audio">🔊 Audio: ON</button>
+          <button class="gust-btn" id="btn-gust" title="Send a strong wind gust through his 64 hair locks!">💨 Wind Gust!</button>
+          <button id="btn-wire" aria-pressed="false">Wireframe</button>
+          <button id="btn-full" title="Toggle Fullscreen">⤢ Fullscreen</button>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <!-- Sim Telemetry & 5-Rocket Shootdown Tester -->
+        <div class="flight-hud" id="sim-hud">
+          <div class="hp-cluster">
+            <span style="font-size:11.5px;font-weight:850;color:var(--amber);text-transform:uppercase">Durability:</span>
+            <div class="rocket-pips" id="rocket-pips">
+              <span class="r-pip on"></span><span class="r-pip on"></span><span class="r-pip on"></span><span class="r-pip on"></span><span class="r-pip on"></span>
+            </div>
+            <span class="mono" style="font-size:12px;font-weight:800" id="hud-hp">500 / 500 HP (5 Rockets Left)</span>
+            <span class="badge mono" style="padding:3px 9px;font-size:11.5px" id="hud-speed">940 u/s</span>
+          </div>
+          <div class="btn-row">
+            <button class="swoop-btn" id="btn-swoop" title="Peregrine Falcon Swoop Boost (Shift)">⚡ Swoop Boost (1,460 u/s)</button>
+            <button class="voice-btn" id="btn-voice" title="Play a random John voice clip (V)">🗣 Random "John"</button>
+            <button class="rocket-btn" id="btn-rocket" title="Launch a 100-damage Quake rocket at Winged John (R)">🚀 Fire Rocket! (R)</button>
+            <button id="btn-respawn" title="Reset 500 HP">↺ Heal</button>
+          </div>
+        </div>
+
+        <div class="hud-bar">
+          <div class="btn-row" id="inspector-cams">
+            <span style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-right:2px" id="cam-bar-lbl">Sim Controls:</span>
+            <span id="sim-key-hint" style="font-size:12px;color:#cbd5e1"><b>WASD / Arrows</b> Steer &amp; Bank · <b>Space</b> Climb · <b>Shift</b> Falcon Swoop · <b>R</b> Shoot Rocket · <b>V</b> Speak "John" · Drag to orbit chase cam</span>
+            <span id="insp-cam-btns" style="display:none;gap:5px;flex-wrap:wrap">
+              <button data-cam="hero" class="cyan-act active">3/4 Hero</button>
+              <button data-cam="face" class="cyan-act">Face &amp; Hair</button>
+              <button data-cam="side" class="cyan-act">Side</button>
+              <button data-cam="rear" class="cyan-act">Rear Roots</button>
+              <button data-cam="top" class="cyan-act">Top Span</button>
+              <button id="btn-spin" aria-pressed="false">↻ Spin</button>
+            </span>
+          </div>
+          <div class="btn-row">
+            <button class="dl-btn" id="btn-dl-glb" title="Export current 3D pose as standard glTF 2.0 binary (.glb)">⬇ Export .GLB</button>
+            <button class="dl-btn" id="btn-dl-md3" title="Download animated 72-frame Quake .MD3 file">⬇ Export .MD3</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Vehicle & 3D Inspector Sidebar -->
+    <aside class="inspector-panel">
+      <div class="sec-box" style="border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.05)">
+        <div class="sec-title"><span style="color:var(--amber)">🦅 In-Game Quake Vehicle Controls</span><span class="mono" style="color:#6ee7b7">500 HP</span></div>
+        <div class="quake-keys">
+          <kbd>P</kbd><span>Summon &amp; immediately fly anywhere (<span class="mono">impulse 98</span>)</span>
+          <kbd>H</kbd><span>Mount perched Winged John / Dismount (<span class="mono">impulse 86</span>)</span>
+          <kbd>MOUSE1</kbd><span><b>1,460 u/s</b> Falcon Swoop Boost + 95-dmg Dive-Ram!</span>
+          <kbd>SPACE</kbd><span>Rapid upward wing-climb (+540 u/s)</span>
+          <kbd>K / V</kbd><span>Toggle 3rd/1st-person camera · Speak random "John"</span>
+          <kbd>5× RL</kbd><span>Exact <b>5 rockets</b> (100 dmg × 5) shoots him out of the sky!</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="sec-title">
+          <span>5 Baked Flight &amp; Breeze Clips</span>
+          <button id="btn-play" aria-pressed="true" style="padding:3px 10px;font-size:11.5px">⏸ Playing</button>
+        </div>
+        <div class="clip-list" id="clip-list"></div>
+      </div>
+
+      <div class="sec-box">
+        <div class="sec-title"><span>Animation &amp; Live 64-Lock Breeze</span></div>
+        <div class="ctrl-row">
+          <span>Speed</span>
+          <input type="range" id="rng-speed" min="0.1" max="2.5" step="0.05" value="1.0">
+          <output id="out-speed">1.00×</output>
+        </div>
+        <div class="ctrl-row">
+          <span>Wind Gust</span>
+          <input type="range" id="rng-wind" min="0.0" max="2.6" step="0.05" value="1.15">
+          <output id="out-wind">1.15×</output>
+        </div>
+        <div class="ctrl-row">
+          <span>Scrub</span>
+          <input type="range" id="rng-scrub" min="0" max="71" step="0.1" value="0">
+          <output id="out-scrub" class="mono">f00</output>
+        </div>
+      </div>
+
+      <div class="sec-box">
+        <div class="sec-title"><span>Inspect 3D Layers &amp; Plumage</span></div>
+        <div class="part-toggles" style="margin-bottom:7px">
+          <button id="tog-head" aria-pressed="true">🗣 3D Head</button>
+          <button id="tog-hair" aria-pressed="true">💨 64 Hair</button>
+          <button id="tog-wings" aria-pressed="true">🦅 Wings</button>
+        </div>
+        <div class="btn-row" style="margin-bottom:7px">
+          <button id="plum-hawk" class="active" style="flex:1">🦅 Hawk</button>
+          <button id="plum-white" style="flex:1">🕊 White</button>
+          <button id="plum-hurt" style="flex:1">🔥 Scorched</button>
+        </div>
+        <div class="btn-row">
+          <button id="lit-day" class="cyan-act active" style="flex:1">☀ Sky Day</button>
+          <button id="lit-gold" class="cyan-act" style="flex:1">🌅 Golden</button>
+          <button id="lit-unlit" class="cyan-act" style="flex:1">💡 Flat Tex</button>
+        </div>
+      </div>
+
+      <div class="hint-line">
+        <b>Live Server:</b> <span class="mono" style="color:var(--cyan)">connect 72.62.241.93:26000</span> — Perched at Fox Theater Plaza, Padre Hotel Rooftop &amp; Larry's LAN Courtyard on <span class="mono">bklan5</span> &amp; <span class="mono">fox</span>!
+      </div>
+    </aside>
+  </section>
+
+  <!-- Showcase Breakdown Section -->
+  <div class="showcase-hdr">
+    <div>
+      <h2>What Was Made — Controllable Fast Avian Vehicle + 5-Rocket Shootdown</h2>
+      <p>100% self-contained single-file WebGL2 showcase + compiled into <span class="mono">progs.dat</span> (<span class="mono">john_bird.qc</span> &amp; <span class="mono">progs/john_bird_head.md3</span>).</p>
+    </div>
+  </div>
+
+  <section class="breakdown-grid" id="breakdown-grid"></section>
+
+  <div class="showcase-hdr" style="margin-top:26px">
+    <div>
+      <h2>Multi-Angle &amp; Animation Clip Showcase</h2>
+      <p>Click any render card below to snap the 3D Model Inspector to that exact camera angle and flight clip.</p>
+    </div>
+  </div>
+
+  <section class="angles-grid" id="angles-grid"></section>
+</div>
+
+<script>
+const DATA = /*__JBIRD_DATA__*/null;
+
+const CLIPS = [
+  { id: 'fly_breezy',    label: '🦅 Cruising Flap & Breezy Hair', frames: '0..15',  start: 0,  count: 16, fps: 13.5, perch: false },
+  { id: 'windy_soar',    label: '🌬️ Windy Thermal Soar / Glide',  frames: '16..31', start: 16, count: 16, fps: 10.5, perch: false },
+  { id: 'hover_flutter', label: '⚡ Rapid Bird Hover & Wild Hair', frames: '32..47', start: 32, count: 16, fps: 16.0, perch: false },
+  { id: 'swoop_dive',    label: '🏹 Peregrine Swoop / Dive',       frames: '48..59', start: 48, count: 12, fps: 14.0, perch: false },
+  { id: 'perch_breeze',  label: '🌿 Folded-Wing Perch + Breeze',   frames: '60..71', start: 60, count: 12, fps: 8.5,  perch: true  },
+  { id: 'all_72',        label: '🎬 Play All 72 Frames',           frames: '0..71',  start: 0,  count: 72, fps: 12.5, perch: false },
+];
+
+const $ = id => document.getElementById(id);
+
+async function gunzip(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  writer.write(bin);
+  writer.close();
+  return await new Response(ds.readable).arrayBuffer();
+}
+
+function mat4Identity(out) {
+  out.fill(0); out[0] = out[5] = out[10] = out[15] = 1; return out;
+}
+function mat4Mul(out, a, b) {
+  const a00=a[0], a01=a[1], a02=a[2], a03=a[3], a10=a[4], a11=a[5], a12=a[6], a13=a[7],
+        a20=a[8], a21=a[9], a22=a[10], a23=a[11], a30=a[12], a31=a[13], a32=a[14], a33=a[15];
+  const b00=b[0], b01=b[1], b02=b[2], b03=b[3], b10=b[4], b11=b[5], b12=b[6], b13=b[7],
+        b20=b[8], b21=b[9], b22=b[10], b23=b[11], b30=b[12], b31=b[13], b32=b[14], b33=b[15];
+  out[0]=a00*b00+a10*b01+a20*b02+a30*b03; out[1]=a01*b00+a11*b01+a21*b02+a31*b03;
+  out[2]=a02*b00+a12*b01+a22*b02+a32*b03; out[3]=a03*b00+a13*b01+a23*b02+a33*b03;
+  out[4]=a00*b10+a10*b11+a20*b12+a30*b13; out[5]=a01*b10+a11*b11+a21*b12+a31*b13;
+  out[6]=a02*b10+a12*b11+a22*b12+a32*b13; out[7]=a03*b10+a13*b11+a23*b12+a33*b13;
+  out[8]=a00*b20+a10*b21+a20*b22+a30*b23; out[9]=a01*b20+a11*b21+a21*b22+a31*b23;
+  out[10]=a02*b20+a12*b21+a22*b22+a32*b23; out[11]=a03*b20+a13*b21+a23*b22+a33*b23;
+  out[12]=a00*b30+a10*b31+a20*b32+a30*b33; out[13]=a01*b30+a11*b31+a21*b32+a31*b33;
+  out[14]=a02*b30+a12*b31+a22*b32+a32*b33; out[15]=a03*b30+a13*b31+a23*b32+a33*b33;
+  return out;
+}
+function mat4Persp(out, fovy, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovy * 0.5), nf = 1.0 / (near - far);
+  out.fill(0);
+  out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+  return out;
+}
+function mat4LookAt(out, eye, ctr, up) {
+  let zx = eye[0]-ctr[0], zy = eye[1]-ctr[1], zz = eye[2]-ctr[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+  return out;
+}
+function buildTransform(out, tx, ty, tz, yaw, pitch, roll, scale) {
+  // Quake body (+X fwd, +Y left, +Z up): Rz(yaw) * Ry(-pitch) * Rx(roll) * scale
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const cp = Math.cos(-pitch), sp = Math.sin(-pitch);
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  out[0] = (cy * cp) * scale;
+  out[1] = (sy * cp) * scale;
+  out[2] = (-sp) * scale;
+  out[3] = 0;
+  out[4] = (cy * sp * sr - sy * cr) * scale;
+  out[5] = (sy * sp * sr + cy * cr) * scale;
+  out[6] = (cp * sr) * scale;
+  out[7] = 0;
+  out[8] = (cy * sp * cr + sy * sr) * scale;
+  out[9] = (sy * sp * cr - cy * sr) * scale;
+  out[10] = (cp * cr) * scale;
+  out[11] = 0;
+  out[12] = tx; out[13] = ty; out[14] = tz; out[15] = 1;
+  return out;
+}
+
+// Populate Breakdown & Angle Showcase Cards
+for (const b of DATA.breakdown) {
+  const el = document.createElement('article');
+  el.className = 'b-card';
+  el.innerHTML = `<img src="${b.uri}" alt=""><div class="b-body"><div class="b-step">${b.step}</div><h3>${b.title}</h3><p>${b.desc}</p></div>`;
+  $('breakdown-grid').appendChild(el);
+}
+
+let jumpHandler = null;
+for (const ac of DATA.angles) {
+  const el = document.createElement('div');
+  el.className = 'angle-card';
+  el.innerHTML = `<img src="${ac.uri}" alt=""><div class="ac-cap"><span>${ac.label}</span><span class="jump">Inspect ↗</span></div>`;
+  el.onclick = () => { if (jumpHandler) jumpHandler(ac); };
+  $('angles-grid').appendChild(el);
+}
+
+async function boot() {
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) {
+    $('loading').innerHTML = '<div style="color:#fb7185">WebGL2 is required to view the interactive 3D model.</div>';
+    return;
+  }
+
+  const AB = await gunzip(DATA.binGz);
+  const u16 = ([o, l]) => new Uint16Array(AB, o, l >> 1);
+  const i16 = ([o, l]) => new Int16Array(AB, o, l >> 1);
+  const i8  = ([o, l]) => new Int8Array(AB, o, l);
+  const f32 = ([o, l]) => new Float32Array(AB, o, l >> 2);
+
+  // Embedded WebAudio Engine (flaps + swoop + 5-rocket hits + 14 John clips)
+  let audioCtx = null;
+  let audioMuted = false;
+  const sfxBuffers = {};
+  const voiceBuffers = [];
+  let audioDecoded = false;
+  let audioDecoding = false;
+
+  async function ensureAudio() {
+    if (audioMuted) return false;
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') {
+      try { await audioCtx.resume(); } catch (_) {}
+    }
+    if (!audioDecoded && !audioDecoding && DATA.audio) {
+      audioDecoding = true;
+      try {
+        for (const [k, [off, len]] of Object.entries(DATA.audio.sfx)) {
+          sfxBuffers[k] = await audioCtx.decodeAudioData(AB.slice(off, off + len));
+        }
+        for (const v of DATA.audio.voices) {
+          const [off, len] = v.buf;
+          const b = await audioCtx.decodeAudioData(AB.slice(off, off + len));
+          voiceBuffers.push({ quote: v.quote, duration: v.duration, buffer: b });
+        }
+        audioDecoded = true;
+      } catch (e) {
+        console.warn('Audio decode warning:', e);
+      }
+      audioDecoding = false;
+    }
+    return audioDecoded && audioCtx.state === 'running';
+  }
+
+  function playBuf(buf, vol = 0.8, rate = 1.0) {
+    if (!buf || !audioCtx || audioMuted || audioCtx.state !== 'running') return;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const g = audioCtx.createGain();
+    g.gain.value = vol;
+    src.connect(g);
+    g.connect(audioCtx.destination);
+    src.start();
+  }
+
+  let toastTimer = null;
+  function showVoiceToast(quote) {
+    const el = $('voice-toast');
+    el.innerHTML = `🗣 John: <b>"${quote}"</b>`;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  let lastVoice1 = -1, lastVoice2 = -1;
+  async function triggerRandomJohnVoice(forceFirst = false) {
+    const list = DATA.audio ? DATA.audio.voices : [];
+    if (!list.length) return;
+    let pick = forceFirst ? 0 : Math.floor(Math.random() * list.length);
+    for (let t = 0; t < 8 && !forceFirst && (pick === lastVoice1 || pick === lastVoice2); t++) {
+      pick = Math.floor(Math.random() * list.length);
+    }
+    lastVoice2 = lastVoice1;
+    lastVoice1 = pick;
+    showVoiceToast(list[pick].quote);
+    if (await ensureAudio() && voiceBuffers[pick]) {
+      playBuf(voiceBuffers[pick].buffer, 0.92, 1.0);
+    }
+  }
+
+  let flapCycle = 0;
+  function triggerWingFlap(vol = 0.52, rate = 1.0) {
+    flapCycle = (flapCycle + 1) & 3;
+    const b = sfxBuffers['flap' + (flapCycle + 1)];
+    if (b) playBuf(b, vol, rate);
+  }
+
+  // Unlock WebAudio on first user interaction anywhere in page
+  const unlockOnce = () => { ensureAudio(); };
+  window.addEventListener('pointerdown', unlockOnce, { passive: true });
+  window.addEventListener('keydown', unlockOnce, { passive: true });
+
+  $('btn-audio').onclick = async () => {
+    audioMuted = !audioMuted;
+    $('btn-audio').classList.toggle('muted', audioMuted);
+    $('btn-audio').textContent = audioMuted ? '🔇 Audio: Muted' : '🔊 Audio: ON';
+    if (!audioMuted) {
+      await ensureAudio();
+      triggerRandomJohnVoice(true);
+    }
+  };
+
+  function compileProg(vsSrc, fsSrc) {
+    const p = gl.createProgram();
+    for (const [tp, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const uni = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+
+  // Sky shader
+  const pSky = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aQ;
+out vec2 vUv;
+void main() { vUv = aQ * 0.5 + 0.5; gl_Position = vec4(aQ, 0.9999, 1.0); }`,
+`#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform int uGold;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  vec3 top = uGold == 1 ? vec3(0.11, 0.08, 0.18) : vec3(0.06, 0.17, 0.36);
+  vec3 mid = uGold == 1 ? vec3(0.32, 0.17, 0.16) : vec3(0.14, 0.36, 0.60);
+  vec3 bot = uGold == 1 ? vec3(0.16, 0.10, 0.12) : vec3(0.09, 0.20, 0.34);
+  float h = clamp(vUv.y, 0.0, 1.0);
+  vec3 col = h > 0.36 ? mix(mid, top, (h - 0.36) / 0.64) : mix(bot, mid, h / 0.36);
+  float wisp = sin(vUv.x * 8.5 + uTime * 0.85) * cos(vUv.y * 12.0 - uTime * 0.30);
+  col += (uGold == 1 ? vec3(0.07, 0.04, 0.02) : vec3(0.04, 0.06, 0.09)) * max(0.0, wisp) * smoothstep(0.18, 0.82, h);
+  fragColor = vec4(col, 1.0);
+}`);
+  const uSky = uni(pSky, ['uGold', 'uTime']);
+
+  // Mesh + World Matrix + Live Hair Breeze + Planar Ground Shadow Shader
+  const pMesh = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uIsHair;
+uniform float uWindExtra;
+uniform float uTime;
+uniform int uShadowPass;
+out vec3 vWPos;
+out vec3 vWNrm;
+out vec2 vUv;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale;
+  vec3 n = normalize(mix(aNrm0, aNrm1, uLerp));
+  if (uIsHair == 1 && abs(uWindExtra) > 0.001) {
+    float tipW = pow(max(0.0, (aUv.y - 0.03) / 0.95), 1.65);
+    float wv1 = sin(uTime * 8.5 - aUv.y * 5.2 + aUv.x * 19.0);
+    float wv2 = cos(uTime * 12.0 - aUv.y * 7.4 + aUv.x * 31.0);
+    vec3 gust = vec3(
+      -3.4 * max(0.0, uWindExtra) + 1.25 * uWindExtra * wv2,
+      -0.85 * max(0.0, uWindExtra) + 1.85 * uWindExtra * wv1,
+      0.35 * uWindExtra + 1.55 * uWindExtra * wv1
+    ) * tipW;
+    p += gust;
+  }
+  vec3 wp = (uModel * vec4(p, 1.0)).xyz;
+  vec3 wn = normalize(mat3(uModel) * n);
+  if (uShadowPass == 1) {
+    vec3 L = normalize(vec3(0.35, -0.32, 1.28));
+    float h = max(0.0, wp.z);
+    vec3 sp = vec3(wp.x - L.x * (h / L.z), wp.y - L.y * (h / L.z), 0.12);
+    vWPos = sp;
+    vWNrm = vec3(0.0, 0.0, 1.0);
+    vUv = aUv;
+    gl_Position = uVP * vec4(sp, 1.0);
+  } else {
+    vWPos = wp;
+    vWNrm = wn;
+    vUv = aUv;
+    gl_Position = uVP * vec4(wp, 1.0);
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vWPos;
+in vec3 vWNrm;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform vec3 uEye;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uUnlit;
+uniform int uGold;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+uniform float uHitFlash;
+out vec4 fragColor;
+void main() {
+  if (uShadowPass == 1) {
+    fragColor = vec4(0.02, 0.04, 0.08, uShadowAlpha);
+    return;
+  }
+  vec4 texel = texture(uTex, vUv);
+  if (uUnlit == 1) {
+    fragColor = vec4(texel.rgb * 1.06, 1.0);
+    return;
+  }
+  vec3 N = normalize(gl_FrontFacing ? vWNrm : -vWNrm);
+  vec3 V = normalize(uEye - vWPos);
+
+  vec3 L1 = normalize(vec3( 0.52, -0.38, 0.76));
+  vec3 L2 = normalize(vec3(-0.62,  0.54, 0.57));
+  vec3 L3 = normalize(vec3(-0.25, -0.78, 0.35));
+
+  vec3 c1 = uGold == 1 ? vec3(1.22, 0.92, 0.66) : vec3(1.06, 1.03, 0.99);
+  vec3 c2 = uGold == 1 ? vec3(0.42, 0.52, 0.82) : vec3(0.54, 0.68, 0.86);
+  vec3 c3 = vec3(0.32, 0.44, 0.58);
+
+  vec3 hemi = mix(vec3(0.24, 0.26, 0.32), vec3(0.46, 0.52, 0.62), 0.5 + 0.5 * N.z);
+  vec3 diff = hemi + c1 * max(dot(N, L1), 0.0) * 0.85 + c2 * max(dot(N, L2), 0.0) * 0.40 + c3 * max(dot(N, L3), 0.0) * 0.22;
+
+  float shin = mix(96.0, 14.0, uRoughness);
+  float sp1 = pow(max(dot(N, normalize(L1 + V)), 0.0), shin);
+  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.2) * 0.18;
+
+  vec3 lit = texel.rgb * diff + c1 * sp1 * uSpec * 0.42 + c2 * rim;
+  lit *= 1.06;
+  lit = mix(lit, vec3(1.4, 0.48, 0.18), uHitFlash);
+  lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+  fragColor = vec4(lit, 1.0);
+}`);
+  const uMesh = uni(pMesh, [
+    'uVP', 'uModel', 'uLerp', 'uPosScale', 'uIsHair', 'uWindExtra', 'uTime',
+    'uShadowPass', 'uShadowAlpha', 'uTex', 'uEye', 'uRoughness', 'uSpec', 'uUnlit', 'uGold', 'uHitFlash'
+  ]);
+
+  // Ground grid & Bakersfield flight arena floor
+  const pGround = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aQ;
+uniform mat4 uVP;
+uniform float uSize;
+uniform vec2 uCenter;
+out vec2 vP;
+out vec2 vLocal;
+void main() {
+  vLocal = aQ * uSize;
+  vP = uCenter + vLocal;
+  gl_Position = uVP * vec4(vP, 0.0, 1.0);
+}`, `#version 300 es
+precision highp float;
+in vec2 vP;
+in vec2 vLocal;
+uniform int uPerch;
+uniform int uSimMode;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  float scrollX = (uSimMode == 1 || uPerch == 1) ? 0.0 : uTime * 85.0;
+  float cell = uSimMode == 1 ? 64.0 : 24.0;
+  vec2 q = (vP + vec2(scrollX, 0.0)) / cell;
+  float chk = mod(floor(q.x) + floor(q.y), 2.0);
+  vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
+  float line = 1.0 - min(min(g.x, g.y), 1.0);
+  float maxR = uSimMode == 1 ? 1650.0 : 320.0;
+  float fade = 1.0 - smoothstep(maxR * 0.35, maxR, length(vLocal));
+  if (uSimMode == 1) {
+    // Stylized Bakersfield street grid & golden avenue lines
+    float roadX = smoothstep(26.0, 22.0, abs(mod(vP.x + 256.0, 512.0) - 256.0));
+    float roadY = smoothstep(26.0, 22.0, abs(mod(vP.y + 256.0, 512.0) - 256.0));
+    float road = max(roadX, roadY);
+    vec3 blockCol = mix(vec3(0.09, 0.13, 0.20), vec3(0.11, 0.16, 0.24), chk);
+    vec3 asph = vec3(0.06, 0.08, 0.12);
+    vec3 col = mix(blockCol, asph, road) + vec3(0.20, 0.58, 0.85) * line * 0.18;
+    float dash = step(0.5, fract(vP.x / 36.0)) * smoothstep(2.2, 0.8, abs(mod(vP.y + 256.0, 512.0) - 256.0));
+    col += vec3(0.95, 0.72, 0.18) * dash * 0.55;
+    fragColor = vec4(col, fade * 0.92);
+  } else if (uPerch == 1) {
+    vec3 pad = mix(vec3(0.10, 0.14, 0.20), vec3(0.14, 0.19, 0.26), chk) + line * 0.05;
+    fragColor = vec4(pad, fade * 0.88);
+  } else {
+    vec3 skyGrid = vec3(0.32, 0.75, 0.98) * (0.12 + line * 0.35);
+    fragColor = vec4(skyGrid, fade * 0.34);
+  }
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uCenter', 'uPerch', 'uSimMode', 'uTime']);
+
+  // Colored 3D solid shader (Bakersfield buildings, 3D rockets, fireballs)
+  const pSolid = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNrm;
+layout(location=2) in vec4 aCol;
+uniform mat4 uVP;
+out vec3 vN;
+out vec4 vC;
+void main() { vN = aNrm; vC = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`,
+`#version 300 es
+precision highp float;
+in vec3 vN;
+in vec4 vC;
+out vec4 fragColor;
+void main() {
+  vec3 N = normalize(vN);
+  float lit = 0.45 + 0.55 * max(0.0, dot(N, normalize(vec3(0.45, -0.35, 0.82))));
+  fragColor = vec4(vC.rgb * lit, vC.a);
+}`);
+  const uSolid = uni(pSolid, ['uVP']);
+
+  // Wireframe & 3D line shader
+  const pWire = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale;
+  gl_Position = uVP * uModel * vec4(p, 1.0);
+}`, `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP', 'uModel', 'uLerp', 'uPosScale', 'uColor']);
+
+  const pLine = compileProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() { vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`,
+`#version 300 es
+precision highp float;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b);
+    gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 32768 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(32768);
+
+  // Build stylized Bakersfield Skyline Buildings VAO for Flight Simulator Mode
+  const cityVerts = [];
+  function pushBox(cx, cy, z0, z1, hx, hy, r, g, b, a = 1.0) {
+    const faces = [
+      [[cx-hx,cy-hy,z0],[cx+hx,cy-hy,z0],[cx+hx,cy-hy,z1],[cx-hx,cy-hy,z1],[0,-1,0]],
+      [[cx+hx,cy+hy,z0],[cx-hx,cy+hy,z0],[cx-hx,cy+hy,z1],[cx+hx,cy+hy,z1],[0,1,0]],
+      [[cx+hx,cy-hy,z0],[cx+hx,cy+hy,z0],[cx+hx,cy+hy,z1],[cx+hx,cy-hy,z1],[1,0,0]],
+      [[cx-hx,cy+hy,z0],[cx-hx,cy-hy,z0],[cx-hx,cy-hy,z1],[cx-hx,cy+hy,z1],[-1,0,0]],
+      [[cx-hx,cy-hy,z1],[cx+hx,cy-hy,z1],[cx+hx,cy+hy,z1],[cx-hx,cy+hy,z1],[0,0,1]],
+    ];
+    for (const [p0, p1, p2, p3, nm] of faces) {
+      for (const p of [p0, p1, p2, p0, p2, p3]) {
+        cityVerts.push(p[0], p[1], p[2], nm[0], nm[1], nm[2], r, g, b, a);
+      }
+    }
+  }
+  // Padre Hotel Tower, Fox Theater Clocktower, Larry's Warehouse & Downtown Blocks
+  const bldSpecs = [
+    [ 380,  340, 290, 95, 85, 0.76, 0.68, 0.54], // Padre Hotel 8-story cream stucco
+    [ 380,  340, 335, 22, 22, 0.95, 0.65, 0.20], // Padre Rooftop Neon Sign Tower
+    [-380,  320, 165, 95, 75, 0.72, 0.63, 0.52], // Fox Theater Auditorium
+    [-320,  260, 285, 26, 26, 0.92, 0.42, 0.56], // Fox Theater Tower & Neon Spire
+    [-420, -360,  95, 145, 95, 0.34, 0.42, 0.54], // Larry's Warehouse / Unit 130A
+    [ 420, -360, 140, 105, 85, 0.58, 0.46, 0.36], // Golden West Casino
+    [   0,  680, 195,  80, 70, 0.28, 0.38, 0.52],
+    [   0, -680, 175,  85, 70, 0.36, 0.44, 0.55],
+    [ 720,    0, 210,  75, 90, 0.44, 0.48, 0.58],
+    [-720,    0, 180,  75, 85, 0.48, 0.42, 0.46],
+  ];
+  for (const [bx, by, bh, hx, hy, cr, cg, cb] of bldSpecs) pushBox(bx, by, 0, bh, hx, hy, cr, cg, cb, 1.0);
+  const cityVao = gl.createVertexArray();
+  gl.bindVertexArray(cityVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array(cityVerts), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+  const cityVertCount = cityVerts.length / 10;
+
+  // Dynamic Solid Buffer for 3D Rockets & Fireballs
+  const dynSolidVao = gl.createVertexArray();
+  const dynSolidBuf = gl.createBuffer();
+  gl.bindVertexArray(dynSolidVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, dynSolidBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 32768 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+
+  // Load embedded base64 textures
+  const glTextures = DATA.textures.map(t => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([120, 100, 88, 255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+    img.src = t.uri;
+    return tex;
+  });
+
+  function unpackModel(srcModel) {
+    const mod = Object.assign({}, srcModel);
+    mod.surfaces = srcModel.surfaces.map(s0 => {
+      const s = Object.assign({}, s0);
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+      s.pArr = pArr;
+      s.nArr = nArr;
+      s.uvArr = new Float32Array(f32(s.uv));
+      s.triArr = new Uint16Array(u16(s.tris));
+
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, s.uvArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris = mkBuf(gl.ELEMENT_ARRAY_BUFFER, s.triArr, gl.STATIC_DRAW);
+      s._lastKey = -1;
+      s.visible = true;
+      return s;
+    });
+    return mod;
+  }
+
+  const M = unpackModel(DATA.model);
+  const MFeather = DATA.feather ? unpackModel(DATA.feather) : null;
+
+  $('hero-stats').innerHTML = `
+    <div class="stat-pill hi"><b>Flyable Vehicle</b> · 940–1,460 u/s</div>
+    <div class="stat-pill hi"><b>5 Rockets</b> (500 HP)</div>
+    <div class="stat-pill"><b>${M.nv.toLocaleString()}</b> Verts / <b>${M.nt.toLocaleString()}</b> Tris</div>
+    <div class="stat-pill"><b>${M.nf}</b> Frames · <b>64</b> Hair Locks</div>
+  `;
+  $('loading').style.display = 'none';
+
+  // Viewer + Playable Flight Simulator State
+  const state = {
+    mode: 'sim',       // 'sim' = Playable Flight & 5-Rocket Sim, 'inspect' = 3D Model Inspector
+    clipIdx: 0,
+    playing: true,
+    scrubFrame: 0,
+    speed: 1.0,
+    windMul: 1.15,
+    gustPulse: 0.0,
+    spin: false,
+    wire: false,
+    plumage: 0,        // 0 = Woodland Hawk, 1 = Angelic White, 2 = Scorched
+    litMode: 0,
+  };
+
+  const sim = {
+    x: 0.0, y: -260.0, z: 145.0,
+    vx: 220.0, vy: 0.0, vz: 0.0,
+    yaw: 0.35, pitch: 0.0, roll: 0.0,
+    hp: 500,
+    deadUntil: 0,
+    swoopUntil: 0,
+    hitFlash: 0,
+    shake: 0,
+    autopilot: true,   // Cruises scenic loop until player presses WASD/Arrows/Space!
+    camAzOff: 0.0,
+    camEl: 0.22,
+    camDist: 175.0,
+    flapTimer: 0.25,
+    voiceTimer: 1.6,
+    rockets: [],       // Homing 100-damage test rockets
+    feathers: [],      // 3D tumbling john_bird_feather.md3 instances
+    blasts: [],        // Expanding 3D fireballs
+    rings: [
+      { x:  250, y:    0, z: 155 },
+      { x:    0, y:  290, z: 185 },
+      { x: -260, y:    0, z: 145 },
+      { x:    0, y: -290, z: 165 },
+    ],
+  };
+
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    keys[e.code] = true;
+    if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
+      if (state.mode === 'sim') {
+        sim.autopilot = false;
+        if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        state.playing = !state.playing;
+        syncPlayBtn();
+      }
+    }
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      if (state.mode === 'sim') triggerSwoop();
+    } else if (e.code === 'KeyR') {
+      fireRocketAtJohn();
+    } else if (e.code === 'KeyV') {
+      triggerRandomJohnVoice(false);
+    } else if (e.key === 'Escape' && $('viewport').classList.contains('fullscreen')) {
+      $('viewport').classList.remove('fullscreen');
+    }
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  function setMode(m) {
+    state.mode = m;
+    $('mode-sim').classList.toggle('active', m === 'sim');
+    $('mode-inspect').classList.toggle('active', m === 'inspect');
+    $('sim-hud').style.display = m === 'sim' ? 'flex' : 'none';
+    $('sim-key-hint').style.display = m === 'sim' ? 'inline' : 'none';
+    $('insp-cam-btns').style.display = m === 'inspect' ? 'inline-flex' : 'none';
+    $('cam-bar-lbl').textContent = m === 'sim' ? 'Sim Controls:' : 'Camera:';
+    if (m === 'inspect') $('shootdown-banner').classList.remove('show');
+  }
+  $('mode-sim').onclick = () => setMode('sim');
+  $('mode-inspect').onclick = () => setMode('inspect');
+
+  function updateHpHud() {
+    const pips = [...$('rocket-pips').children];
+    const rLeft = Math.ceil(Math.max(0, sim.hp) / 100);
+    pips.forEach((p, idx) => {
+      p.className = 'r-pip' + (idx < rLeft ? (rLeft <= 2 ? ' warn' : ' on') : '');
+    });
+    $('hud-hp').textContent = sim.hp > 0
+      ? `${sim.hp} / 500 HP (${rLeft} Rocket${rLeft === 1 ? '' : 's'} Left)`
+      : `0 / 500 HP — SHOT DOWN!`;
+  }
+
+  function spawnFeathers3D(ox, oy, oz, count, boost = 1.0) {
+    for (let i = 0; i < count; i++) {
+      sim.feathers.push({
+        x: ox + (Math.random() - 0.5) * 28,
+        y: oy + (Math.random() - 0.5) * 32,
+        z: oz + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 240 * boost,
+        vy: (Math.random() - 0.5) * 240 * boost,
+        vz: (70 + Math.random() * 170) * boost,
+        yaw: Math.random() * 6.28,
+        pitch: (Math.random() - 0.5) * 2.0,
+        roll: Math.random() * 6.28,
+        vyaw: (Math.random() - 0.5) * 7.0,
+        vroll: (Math.random() - 0.5) * 8.0,
+        phase: Math.random() * 6.28,
+        age: 0,
+        life: 2.3 + Math.random() * 1.2,
+        scale: 1.05 + Math.random() * 0.5,
+      });
+    }
+  }
+
+  async function triggerSwoop() {
+    if (state.mode !== 'sim') setMode('sim');
+    if (sim.hp <= 0) return;
+    sim.swoopUntil = performance.now() * 0.001 + 0.90;
+    state.gustPulse = 1.45;
+    if (await ensureAudio() && sfxBuffers.swoop) playBuf(sfxBuffers.swoop, 0.78, 1.0);
+  }
+
+  async function fireRocketAtJohn() {
+    if (state.mode !== 'sim') setMode('sim');
+    if (sim.hp <= 0) return;
+    await ensureAudio();
+    // Launch a glowing 3D Quake rocket from behind/below-side toward Winged John!
+    const ang = sim.yaw + Math.PI + (Math.random() - 0.5) * 1.3;
+    sim.rockets.push({
+      x: sim.x + Math.cos(ang) * 230,
+      y: sim.y + Math.sin(ang) * 230,
+      z: Math.max(24, sim.z - 45 + (Math.random() - 0.5) * 40),
+      age: 0,
+    });
+  }
+
+  function applyRocketImpact(now) {
+    if (sim.hp <= 0) return;
+    sim.hp = Math.max(0, sim.hp - 100);
+    sim.hitFlash = 0.95;
+    sim.shake = sim.hp === 0 ? 14.0 : 5.5;
+    updateHpHud();
+
+    if (sim.hp > 0) {
+      spawnFeathers3D(sim.x, sim.y, sim.z + 36, 9, 1.0);
+      sim.blasts.push({ x: sim.x, y: sim.y, z: sim.z + 36, r: 8, maxR: 34, age: 0, dur: 0.32 });
+      if (sfxBuffers.feather_hit) playBuf(sfxBuffers.feather_hit, 0.85, 0.96 + Math.random() * 0.1);
+      if (sim.hp <= 200 && sfxBuffers.jv_hurt) {
+        playBuf(sfxBuffers.jv_hurt, 0.88, 1.0);
+        const rl = Math.ceil(sim.hp / 100);
+        showVoiceToast(`I'm sorry! (${rl} rocket${rl === 1 ? '' : 's'} left!)`);
+      }
+    } else {
+      // 5TH ROCKET SHOOTDOWN!
+      sim.deadUntil = now + 2.4;
+      spawnFeathers3D(sim.x, sim.y, sim.z + 36, 32, 1.55);
+      sim.blasts.push({ x: sim.x, y: sim.y, z: sim.z + 36, r: 14, maxR: 92, age: 0, dur: 0.72 });
+      if (sfxBuffers.shootdown) playBuf(sfxBuffers.shootdown, 0.96, 1.0);
+      showVoiceToast("Reooow!! ... Goodbye!");
+      $('shootdown-banner').classList.add('show');
+    }
+  }
+
+  function healJohn() {
+    sim.hp = 500;
+    sim.deadUntil = 0;
+    sim.rockets.length = 0;
+    $('shootdown-banner').classList.remove('show');
+    updateHpHud();
+  }
+
+  $('btn-swoop').onclick = triggerSwoop;
+  $('btn-voice').onclick = () => triggerRandomJohnVoice(false);
+  $('btn-rocket').onclick = fireRocketAtJohn;
+  $('btn-respawn').onclick = healJohn;
+
+  const view = {
+    az: 0.50,
+    el: 0.24,
+    dist: 136.0,
+    minDist: 36.0,
+    maxDist: 380.0,
+    panX: 0.0,
+    panY: 0.0,
+    panZ: 48.0,
+  };
+
+  // Build Clip Buttons
+  const clipBtns = CLIPS.map((cl, ci) => {
+    const b = document.createElement('button');
+    b.className = 'clip-btn' + (ci === 0 ? ' active' : '');
+    b.innerHTML = `<span>${cl.label}</span><span class="cf">${cl.frames}</span>`;
+    b.onclick = () => { setMode('inspect'); selectClip(ci); };
+    $('clip-list').appendChild(b);
+    return b;
+  });
+
+  function selectClip(ci) {
+    state.clipIdx = ci;
+    state.playing = true;
+    syncPlayBtn();
+    clipBtns.forEach((b, i) => b.classList.toggle('active', i === ci));
+    $('hud-clip').textContent = CLIPS[ci].label;
+    view.panZ = CLIPS[ci].perch ? 35.0 : 48.0;
+  }
+
+  function syncPlayBtn() {
+    $('btn-play').setAttribute('aria-pressed', state.playing);
+    $('btn-play').textContent = state.playing ? '⏸ Playing' : '▶ Paused';
+  }
+
+  $('btn-play').onclick = () => { state.playing = !state.playing; syncPlayBtn(); };
+  $('btn-spin').onclick = () => {
+    state.spin = !state.spin;
+    $('btn-spin').setAttribute('aria-pressed', state.spin);
+  };
+  $('btn-wire').onclick = () => {
+    state.wire = !state.wire;
+    $('btn-wire').setAttribute('aria-pressed', state.wire);
+  };
+  $('btn-gust').onclick = () => { state.gustPulse = 1.65; };
+  $('btn-full').onclick = () => { $('viewport').classList.toggle('fullscreen'); };
+
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('out-speed').textContent = state.speed.toFixed(2) + '×';
+  };
+  $('rng-wind').oninput = e => {
+    state.windMul = parseFloat(e.target.value);
+    $('out-wind').textContent = state.windMul.toFixed(2) + '×';
+  };
+  $('rng-scrub').oninput = e => {
+    setMode('inspect');
+    state.playing = false;
+    syncPlayBtn();
+    state.scrubFrame = parseFloat(e.target.value);
+    $('out-scrub').textContent = 'f' + String(Math.floor(state.scrubFrame)).padStart(2, '0');
+  };
+
+  // Surface Layer Visibility Toggles
+  const surfMap = {
+    'tog-head': M.surfaces.find(s => s.name === 'head'),
+    'tog-hair': M.surfaces.find(s => s.name === 'hair_breezy'),
+    'tog-wings': M.surfaces.find(s => s.name === 'wings_bird'),
+  };
+  for (const [id, sObj] of Object.entries(surfMap)) {
+    $(id).onclick = () => {
+      sObj.visible = !sObj.visible;
+      $(id).setAttribute('aria-pressed', sObj.visible);
+    };
+  }
+
+  // Wing Plumage Toggle (Hawk / White / Battle-Scorched)
+  const plumBtns = [['plum-hawk', 0], ['plum-white', 1], ['plum-hurt', 2]];
+  for (const [id, pm] of plumBtns) {
+    $(id).onclick = () => {
+      state.plumage = pm;
+      for (const [bid, bm] of plumBtns) $(bid).classList.toggle('active', bm === pm);
+    };
+  }
+
+  // Lighting Mode Toggle
+  const litBtns = [['lit-day', 0], ['lit-gold', 1], ['lit-unlit', 2]];
+  for (const [id, mode] of litBtns) {
+    $(id).onclick = () => {
+      state.litMode = mode;
+      for (const [bid, bm] of litBtns) $(bid).classList.toggle('active', bm === mode);
+    };
+  }
+
+  // Camera Presets
+  const camBtns = [...document.querySelectorAll('[data-cam]')];
+  function setCameraPreset(k) {
+    setMode('inspect');
+    const pz = CLIPS[state.clipIdx].perch ? 35.0 : 48.0;
+    view.panX = 0; view.panY = 0; view.panZ = pz;
+    if (k === 'hero') { view.az = 0.50; view.el = 0.24; view.dist = 136.0; }
+    else if (k === 'face') { view.az = 0.20; view.el = 0.11; view.dist = 66.0; view.panZ = pz + 3.0; }
+    else if (k === 'side') { view.az = -1.36; view.el = 0.16; view.dist = 132.0; }
+    else if (k === 'rear') { view.az = 2.66; view.el = 0.28; view.dist = 136.0; }
+    else if (k === 'top')  { view.az = 0.35; view.el = 1.25; view.dist = 152.0; }
+    camBtns.forEach(b => b.classList.toggle('active', b.dataset.cam === k));
+  }
+  camBtns.forEach(b => { b.onclick = () => setCameraPreset(b.dataset.cam); });
+
+  jumpHandler = (ac) => {
+    setMode('inspect');
+    selectClip(ac.clipIdx);
+    view.az = ac.az;
+    view.el = ac.el;
+    view.dist = ac.dist;
+    view.panX = 0; view.panY = 0;
+    view.panZ = ac.tgtZ;
+    $('viewport').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // Orbit + Pan + Wheel Zoom
+  const vpEl = $('viewport');
+  vpEl.addEventListener('contextmenu', e => e.preventDefault());
+  let dragMode = 0, lx = 0, ly = 0;
+  vpEl.addEventListener('pointerdown', e => {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    vpEl.focus({ preventScroll: true });
+    dragMode = (e.button === 2 || e.shiftKey) ? 2 : 1;
+    lx = e.clientX; ly = e.clientY;
+    vpEl.classList.add('drag');
+    vpEl.setPointerCapture(e.pointerId);
+    state.spin = false;
+    $('btn-spin').setAttribute('aria-pressed', 'false');
+  });
+  vpEl.addEventListener('pointermove', e => {
+    if (!dragMode) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
+    if (state.mode === 'sim') {
+      sim.camAzOff -= dx * 0.0085;
+      sim.camEl = Math.max(-0.20, Math.min(1.15, sim.camEl + dy * 0.0075));
+    } else if (dragMode === 1) {
+      view.az -= dx * 0.0085;
+      view.el = Math.max(-0.55, Math.min(1.42, view.el + dy * 0.0075));
+    } else {
+      const panScale = view.dist * 0.0016;
+      view.panX += (-Math.sin(view.az) * dx) * panScale;
+      view.panY += ( Math.cos(view.az) * dx) * panScale;
+      view.panZ += dy * panScale;
+    }
+  });
+  const endDrag = () => { dragMode = 0; vpEl.classList.remove('drag'); };
+  vpEl.addEventListener('pointerup', endDrag);
+  vpEl.addEventListener('pointercancel', endDrag);
+  vpEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (state.mode === 'sim') {
+      sim.camDist = Math.max(85.0, Math.min(340.0, sim.camDist * Math.exp(e.deltaY * 0.0011)));
+    } else {
+      view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+    }
+  }, { passive: false });
+
+  // 1-Click Client-Side Quake .MD3 Binary Exporter
+  $('btn-dl-md3').onclick = () => {
+    const nf = M.nf;
+    const encStr = (str, len) => {
+      const b = new Uint8Array(len);
+      for (let i = 0; i < Math.min(str.length, len - 1); i++) b[i] = str.charCodeAt(i) & 0x7F;
+      return b;
+    };
+    const fmin = Array.from({ length: nf }, () => [1e9, 1e9, 1e9]);
+    const fmax = Array.from({ length: nf }, () => [-1e9, -1e9, -1e9]);
+    const surfBlobs = [];
+    let surfTotal = 0;
+
+    for (const s of M.surfaces) {
+      const nv = s.nv, nt = s.nt;
+      const oTri = 108, oSh = oTri + nt * 12, oSt = oSh + 68, oXyz = oSt + nv * 8, oEnd = oXyz + nf * nv * 8;
+      const sb = new ArrayBuffer(oEnd);
+      const dv = new DataView(sb);
+      const u8s = new Uint8Array(sb);
+      u8s.set(encStr('IDP3', 5).subarray(0, 4), 0);
+      u8s.set(encStr(s.name, 64), 4);
+      dv.setInt32(68, 0, true); dv.setInt32(72, nf, true); dv.setInt32(76, 1, true);
+      dv.setInt32(80, nv, true); dv.setInt32(84, nt, true);
+      dv.setInt32(88, oTri, true); dv.setInt32(92, oSh, true); dv.setInt32(96, oSt, true);
+      dv.setInt32(100, oXyz, true); dv.setInt32(104, oEnd, true);
+
+      for (let i = 0; i < nt * 3; i++) dv.setInt32(oTri + i * 4, s.triArr[i], true);
+      u8s.set(encStr('progs/john_bird_' + (s.name === 'head' ? 'head' : (s.name === 'hair_breezy' ? 'hair' : 'wings')), 64), oSh);
+      for (let i = 0; i < nv * 2; i++) dv.setFloat32(oSt + i * 4, s.uvArr[i], true);
+
+      for (let fi = 0; fi < nf; fi++) {
+        const base = fi * nv * 4;
+        let ptr = oXyz + fi * nv * 8;
+        for (let vi = 0; vi < nv; vi++) {
+          const ix = s.pArr[base + vi * 4 + 0], iy = s.pArr[base + vi * 4 + 1], iz = s.pArr[base + vi * 4 + 2];
+          const px = ix / 64.0, py = iy / 64.0, pz = iz / 64.0;
+          if (px < fmin[fi][0]) fmin[fi][0] = px; if (px > fmax[fi][0]) fmax[fi][0] = px;
+          if (py < fmin[fi][1]) fmin[fi][1] = py; if (py > fmax[fi][1]) fmax[fi][1] = py;
+          if (pz < fmin[fi][2]) fmin[fi][2] = pz; if (pz > fmax[fi][2]) fmax[fi][2] = pz;
+          const nx = s.nArr[base + vi * 4 + 0] / 127.0, ny = s.nArr[base + vi * 4 + 1] / 127.0, nz = s.nArr[base + vi * 4 + 2] / 127.0;
+          const nl = Math.hypot(nx, ny, nz) || 1.0;
+          const lng = Math.round(Math.acos(Math.max(-1, Math.min(1, nz / nl))) * 255 / (2 * Math.PI)) & 255;
+          const lat = Math.round(Math.atan2(ny / nl, nx / nl) * 255 / (2 * Math.PI)) & 255;
+          dv.setInt16(ptr, ix, true); dv.setInt16(ptr + 2, iy, true); dv.setInt16(ptr + 4, iz, true);
+          dv.setUint16(ptr + 6, (lng << 8) | lat, true);
+          ptr += 8;
+        }
+      }
+      surfBlobs.push(u8s);
+      surfTotal += oEnd;
+    }
+
+    const ofsFrames = 108, ofsSurfs = 108 + nf * 56, ofsEnd = ofsSurfs + surfTotal;
+    const out = new ArrayBuffer(ofsEnd);
+    const dv = new DataView(out);
+    const u8o = new Uint8Array(out);
+    u8o.set(encStr('IDP3', 5).subarray(0, 4), 0);
+    dv.setInt32(4, 15, true);
+    u8o.set(encStr('progs/john_bird_head.md3', 64), 8);
+    dv.setInt32(72, 0, true); dv.setInt32(76, nf, true); dv.setInt32(80, 0, true);
+    dv.setInt32(84, surfBlobs.length, true); dv.setInt32(88, 0, true);
+    dv.setInt32(92, ofsFrames, true); dv.setInt32(96, ofsSurfs, true);
+    dv.setInt32(100, ofsSurfs, true); dv.setInt32(104, ofsEnd, true);
+
+    for (let fi = 0; fi < nf; fi++) {
+      const o = ofsFrames + fi * 56;
+      const mn = fmin[fi], mx = fmax[fi];
+      const rad = Math.max(Math.hypot(mn[0], mn[1], mn[2]), Math.hypot(mx[0], mx[1], mx[2]));
+      dv.setFloat32(o + 0, mn[0], true); dv.setFloat32(o + 4, mn[1], true); dv.setFloat32(o + 8, mn[2], true);
+      dv.setFloat32(o + 12, mx[0], true); dv.setFloat32(o + 16, mx[1], true); dv.setFloat32(o + 20, mx[2], true);
+      dv.setFloat32(o + 36, rad, true);
+      u8o.set(encStr('frame_' + String(fi).padStart(2, '0'), 16), o + 40);
+    }
+    let cur = ofsSurfs;
+    for (const sb of surfBlobs) { u8o.set(sb, cur); cur += sb.byteLength; }
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' }));
+    a.download = 'john_bird_head.md3';
+    a.click();
+  };
+
+  // 1-Click Client-Side glTF 2.0 Binary (.GLB) Exporter
+  $('btn-dl-glb').onclick = () => {
+    const fCur = Math.floor(state.scrubFrame) % M.nf;
+    const chunks = [];
+    let byteLen = 0;
+    const bufferViews = [], accessors = [], images = [], textures = [], materials = [], primitives = [];
+    function pushBin(typed) {
+      const u = new Uint8Array(typed.buffer, typed.byteOffset, typed.byteLength);
+      const pad = (4 - (u.byteLength & 3)) & 3;
+      const bvIdx = bufferViews.length;
+      bufferViews.push({ buffer: 0, byteOffset: byteLen, byteLength: u.byteLength });
+      chunks.push(u);
+      if (pad) chunks.push(new Uint8Array(pad));
+      byteLen += u.byteLength + pad;
+      return bvIdx;
+    }
+    const texSlotMap = new Map();
+    function getMatIdx(texIdx) {
+      if (texSlotMap.has(texIdx)) return texSlotMap.get(texIdx);
+      const tInfo = DATA.textures[texIdx];
+      const [hdr, b64] = tInfo.uri.split(',');
+      const mime = hdr.includes('png') ? 'image/png' : 'image/jpeg';
+      const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const bv = pushBin(raw);
+      const imIdx = images.length;
+      images.push({ bufferView: bv, mimeType: mime });
+      textures.push({ source: imIdx });
+      const mIdx = materials.length;
+      materials.push({
+        name: 'mat_' + mIdx,
+        doubleSided: true,
+        pbrMetallicRoughness: { baseColorTexture: { index: mIdx }, metallicFactor: 0.04, roughnessFactor: 0.65 }
+      });
+      texSlotMap.set(texIdx, mIdx);
+      return mIdx;
+    }
+
+    for (const s of M.surfaces) {
+      if (!s.visible) continue;
+      const nv = s.nv;
+      const posGltf = new Float32Array(nv * 3);
+      const nrmGltf = new Float32Array(nv * 3);
+      const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+      const baseP = fCur * nv * 4;
+      for (let i = 0; i < nv; i++) {
+        const qx = s.pArr[baseP + i * 4 + 0] * s.posScale;
+        const qy = s.pArr[baseP + i * 4 + 1] * s.posScale;
+        const qz = s.pArr[baseP + i * 4 + 2] * s.posScale;
+        const gx = -qy * 0.025, gy = qz * 0.025, gz = qx * 0.025;
+        posGltf[i * 3 + 0] = gx; posGltf[i * 3 + 1] = gy; posGltf[i * 3 + 2] = gz;
+        mn[0] = Math.min(mn[0], gx); mn[1] = Math.min(mn[1], gy); mn[2] = Math.min(mn[2], gz);
+        mx[0] = Math.max(mx[0], gx); mx[1] = Math.max(mx[1], gy); mx[2] = Math.max(mx[2], gz);
+
+        const nx = s.nArr[baseP + i * 4 + 0] / 127.0;
+        const ny = s.nArr[baseP + i * 4 + 1] / 127.0;
+        const nz = s.nArr[baseP + i * 4 + 2] / 127.0;
+        const gl_l = Math.hypot(nx, ny, nz) || 1.0;
+        nrmGltf[i * 3 + 0] = -ny / gl_l; nrmGltf[i * 3 + 1] = nz / gl_l; nrmGltf[i * 3 + 2] = nx / gl_l;
+      }
+      const bvPos = pushBin(posGltf), bvNrm = pushBin(nrmGltf), bvUv = pushBin(s.uvArr), bvIdx = pushBin(s.triArr);
+      const accPos = accessors.length; accessors.push({ bufferView: bvPos, componentType: 5126, count: nv, type: 'VEC3', min: mn, max: mx });
+      const accNrm = accessors.length; accessors.push({ bufferView: bvNrm, componentType: 5126, count: nv, type: 'VEC3' });
+      const accUv  = accessors.length; accessors.push({ bufferView: bvUv,  componentType: 5126, count: nv, type: 'VEC2' });
+      const accTri = accessors.length; accessors.push({ bufferView: bvIdx, componentType: 5123, count: s.triArr.length, type: 'SCALAR' });
+
+      let tIdx = s.tex;
+      if (s.name === 'wings_bird') tIdx = state.plumage === 1 ? s.altTex : (state.plumage === 2 ? s.hurtTex : s.tex);
+      primitives.push({ attributes: { POSITION: accPos, NORMAL: accNrm, TEXCOORD_0: accUv }, indices: accTri, material: getMatIdx(tIdx) });
+    }
+
+    const gltf = {
+      asset: { version: '2.0', generator: 'BakersfieldQuake Winged John 3D Studio' },
+      scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: 'Winged_Breezy_John', mesh: 0 }],
+      meshes: [{ name: 'john_bird_head', primitives }],
+      materials, textures, images, accessors, bufferViews, buffers: [{ byteLength: byteLen }],
+    };
+    const jsonBytes = new TextEncoder().encode(JSON.stringify(gltf));
+    const jsonPad = (4 - (jsonBytes.byteLength & 3)) & 3;
+    const totalLen = 12 + 8 + jsonBytes.byteLength + jsonPad + 8 + byteLen;
+    const glb = new ArrayBuffer(totalLen);
+    const dv = new DataView(glb);
+    const outU8 = new Uint8Array(glb);
+    dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, totalLen, true);
+    dv.setUint32(12, jsonBytes.byteLength + jsonPad, true); dv.setUint32(16, 0x4E4F534A, true);
+    outU8.set(jsonBytes, 20);
+    for (let p = 0; p < jsonPad; p++) outU8[20 + jsonBytes.byteLength + p] = 0x20;
+    let bOff = 20 + jsonBytes.byteLength + jsonPad;
+    dv.setUint32(bOff, byteLen, true); dv.setUint32(bOff + 4, 0x004E4942, true); bOff += 8;
+    for (const c of chunks) { outU8.set(c, bOff); bOff += c.byteLength; }
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([glb], { type: 'model/gltf-binary' }));
+    a.download = `john_bird_head_f${String(fCur).padStart(2, '0')}.glb`;
+    a.click();
+  };
+
+  // Main Render & Flight Physics Loop
+  const matP = new Float32Array(16);
+  const matV = new Float32Array(16);
+  const matVP = new Float32Array(16);
+  const matM = new Float32Array(16);
+  const matFeather = new Float32Array(16);
+  let lastT = performance.now() * 0.001;
+  let animClock = 0.0;
+
+  function frame(nowMs) {
+    const now = nowMs * 0.001;
+    const dt = Math.min(0.05, Math.max(0.0, now - lastT));
+    lastT = now;
+
+    if (state.playing) animClock += dt * state.speed;
+    if (state.spin && state.mode === 'inspect') view.az += dt * 0.45;
+    if (state.gustPulse > 0.0) state.gustPulse = Math.max(0.0, state.gustPulse - dt * 1.15);
+    if (sim.hitFlash > 0.0) sim.hitFlash = Math.max(0.0, sim.hitFlash - dt * 3.8);
+    if (sim.shake > 0.0) sim.shake = Math.max(0.0, sim.shake - dt * 22.0);
+
+    // ---- Flight Simulator Update
+    let activeClipIdx = state.clipIdx;
+    let displayQuakeSpeed = 940;
+    if (state.mode === 'sim') {
+      if (sim.hp <= 0 && now >= sim.deadUntil) {
+        healJohn();
+        sim.z = 150.0;
+      }
+      if (sim.hp > 0) {
+        const swooping = now < sim.swoopUntil;
+        let turnIn = 0, fwdIn = 0, upIn = 0;
+        if (keys['KeyA'] || keys['ArrowLeft'])  turnIn += 1;
+        if (keys['KeyD'] || keys['ArrowRight']) turnIn -= 1;
+        if (keys['KeyW'] || keys['ArrowUp'])    fwdIn += 1;
+        if (keys['KeyS'] || keys['ArrowDown'])  fwdIn -= 1;
+        if (keys['Space'])                      upIn += 1;
+        if (keys['KeyC'])                       upIn -= 1;
+
+        if (sim.autopilot) {
+          // Fast scenic figure-8 / banking orbit around Downtown Bakersfield landmarks!
+          const tOrb = now * 0.62;
+          const tx = Math.cos(tOrb) * 280.0;
+          const ty = Math.sin(tOrb) * 265.0;
+          const tz = 152.0 + Math.sin(tOrb * 2.0) * 32.0;
+          const dx = tx - sim.x, dy = ty - sim.y, dz = tz - sim.z;
+          const wantYaw = Math.atan2(dy, dx);
+          let dyaw = wantYaw - sim.yaw;
+          while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+          while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+          sim.yaw += dyaw * Math.min(1, dt * 4.2);
+          const spdWorld = swooping ? 380.0 : 245.0;
+          sim.vx = Math.cos(sim.yaw) * spdWorld;
+          sim.vy = Math.sin(sim.yaw) * spdWorld;
+          sim.vz = dz * 2.2;
+          sim.roll += (Math.max(-0.52, Math.min(0.52, -dyaw * 0.9)) - sim.roll) * Math.min(1, dt * 6.0);
+          sim.pitch = Math.max(-0.4, Math.min(0.4, sim.vz * 0.0025));
+          displayQuakeSpeed = swooping ? 1460 : 940;
+          activeClipIdx = swooping ? 3 : 0;
+        } else {
+          sim.yaw += turnIn * dt * 2.35;
+          const topWorld = swooping ? 410.0 : 265.0;
+          const thrust = swooping ? 1.0 : fwdIn;
+          const wx = Math.cos(sim.yaw) * thrust * topWorld;
+          const wy = Math.sin(sim.yaw) * thrust * topWorld;
+          const wz = upIn * 165.0 - (thrust === 0 && upIn === 0 ? 14.0 : 0.0);
+          const accelK = Math.min(1, dt * (fwdIn < 0 ? 6.0 : 4.5));
+          if (thrust !== 0 || swooping) {
+            sim.vx += (wx - sim.vx) * accelK;
+            sim.vy += (wy - sim.vy) * accelK;
+          } else {
+            sim.vx *= (1 - dt * 1.15);
+            sim.vy *= (1 - dt * 1.15);
+          }
+          sim.vz += (wz - sim.vz) * Math.min(1, dt * 5.0);
+          sim.roll += ((-turnIn * 0.54) - sim.roll) * Math.min(1, dt * 8.0);
+          const hSpd = Math.hypot(sim.vx, sim.vy);
+          sim.pitch = Math.max(-0.55, Math.min(0.55, Math.atan2(sim.vz, Math.max(60, hSpd)) * 0.75));
+          displayQuakeSpeed = Math.round((Math.hypot(sim.vx, sim.vy, sim.vz) / 265.0) * 940);
+          if (swooping) activeClipIdx = 3;
+          else if (upIn > 0 || hSpd < 65) activeClipIdx = 2;
+          else if (fwdIn <= 0 && hSpd > 95) activeClipIdx = 1;
+          else activeClipIdx = 0;
+        }
+
+        sim.x = Math.max(-880, Math.min(880, sim.x + sim.vx * dt));
+        sim.y = Math.max(-880, Math.min(880, sim.y + sim.vy * dt));
+        sim.z = Math.max(12, Math.min(440, sim.z + sim.vz * dt));
+        $('hud-speed').textContent = `${displayQuakeSpeed} u/s`;
+        $('hud-clip').textContent = CLIPS[activeClipIdx].label;
+
+        // Synced flapping & periodic random "John" audio while flying!
+        sim.flapTimer -= dt;
+        if (sim.flapTimer <= 0) {
+          const gap = activeClipIdx === 2 ? 0.22 : (activeClipIdx === 1 ? 0.95 : (activeClipIdx === 3 ? 0.52 : 0.30));
+          sim.flapTimer = gap;
+          if (activeClipIdx !== 1) triggerWingFlap(activeClipIdx === 2 ? 0.60 : 0.46, activeClipIdx === 2 ? 1.09 : 1.0);
+        }
+        sim.voiceTimer -= dt;
+        if (sim.voiceTimer <= 0) {
+          sim.voiceTimer = 4.6 + Math.random() * 3.0;
+          triggerRandomJohnVoice(lastVoice1 < 0);
+        }
+      }
+
+      // Advance Homing Test Rockets
+      for (let i = sim.rockets.length - 1; i >= 0; i--) {
+        const r = sim.rockets[i];
+        r.age += dt;
+        const tx = sim.x, ty = sim.y, tz = sim.z + 38;
+        const dx = tx - r.x, dy = ty - r.y, dz = tz - r.z;
+        const dist = Math.hypot(dx, dy, dz) || 1;
+        const step = 540.0 * dt;
+        if (dist <= step + 22.0 || r.age > 2.5) {
+          sim.rockets.splice(i, 1);
+          applyRocketImpact(now);
+        } else {
+          r.x += (dx / dist) * step;
+          r.y += (dy / dist) * step;
+          r.z += (dz / dist) * step;
+          r.yaw = Math.atan2(dy, dx);
+        }
+      }
+    }
+
+    // Advance 3D Fluttering Feathers & Fireballs
+    for (let i = sim.feathers.length - 1; i >= 0; i--) {
+      const f = sim.feathers[i];
+      f.age += dt;
+      if (f.age >= f.life) { sim.feathers.splice(i, 1); continue; }
+      f.vx = f.vx * (1 - dt * 2.2) + Math.sin(now * 6.5 + f.phase) * 24 * dt;
+      f.vy = f.vy * (1 - dt * 2.2) + Math.cos(now * 5.8 + f.phase) * 24 * dt;
+      f.vz = Math.max(-68, f.vz - 150 * dt);
+      f.x += f.vx * dt; f.y += f.vy * dt; f.z = Math.max(1.5, f.z + f.vz * dt);
+      f.yaw += f.vyaw * dt; f.roll += f.vroll * dt;
+    }
+    for (let i = sim.blasts.length - 1; i >= 0; i--) {
+      const b = sim.blasts[i];
+      b.age += dt;
+      if (b.age >= b.dur) sim.blasts.splice(i, 1);
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const ch = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    gl.viewport(0, 0, cw, ch);
+
+    const clip = CLIPS[activeClipIdx];
+    let fa, fb, frac;
+    if (state.playing || state.mode === 'sim') {
+      const pos = ((animClock * clip.fps) % clip.count + clip.count) % clip.count;
+      const i0 = Math.floor(pos);
+      const i1 = (i0 + 1) % clip.count;
+      fa = clip.start + i0;
+      fb = clip.start + i1;
+      frac = pos - i0;
+      state.scrubFrame = fa + frac;
+      $('rng-scrub').value = state.scrubFrame.toFixed(1);
+      $('out-scrub').textContent = 'f' + String(fa).padStart(2, '0');
+    } else {
+      const clp = Math.max(0, Math.min(M.nf - 1, state.scrubFrame));
+      fa = Math.floor(clp);
+      fb = (fa + 1) % M.nf;
+      frac = clp - fa;
+    }
+    $('hud-frame').textContent = `Frame ${String(fa).padStart(2, '0')} / ${M.nf - 1}`;
+
+    // 1. Sky Pass
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.useProgram(pSky);
+    gl.uniform1i(uSky.uGold, state.litMode === 1 ? 1 : 0);
+    gl.uniform1f(uSky.uTime, animClock);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    // Camera & Bird World Matrix
+    let tgt, eye;
+    if (state.mode === 'sim') {
+      buildTransform(matM, sim.x, sim.y, sim.z, sim.yaw, sim.pitch, sim.roll, 1.0);
+      const camYaw = sim.yaw + Math.PI + sim.camAzOff;
+      const sx = (Math.random() - 0.5) * sim.shake;
+      const sy = (Math.random() - 0.5) * sim.shake;
+      tgt = [sim.x + sx, sim.y + sy, sim.z + 45.0];
+      eye = [
+        tgt[0] + sim.camDist * Math.cos(sim.camEl) * Math.cos(camYaw),
+        tgt[1] + sim.camDist * Math.cos(sim.camEl) * Math.sin(camYaw),
+        Math.max(14.0, tgt[2] + sim.camDist * Math.sin(sim.camEl)),
+      ];
+    } else {
+      mat4Identity(matM);
+      tgt = [view.panX, view.panY, view.panZ];
+      eye = [
+        tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+        tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+        tgt[2] + view.dist * Math.sin(view.el),
+      ];
+    }
+    mat4Persp(matP, 0.58, cw / ch, 2.0, 3200.0);
+    mat4LookAt(matV, eye, tgt, [0, 0, 1]);
+    mat4Mul(matVP, matP, matV);
+
+    // 2. Ground Grid / Bakersfield Street Floor
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+    gl.useProgram(pGround);
+    gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+    gl.uniform1f(uGround.uSize, state.mode === 'sim' ? 1650.0 : 340.0);
+    gl.uniform2f(uGround.uCenter, state.mode === 'sim' ? sim.x : 0.0, state.mode === 'sim' ? sim.y : 0.0);
+    gl.uniform1i(uGround.uPerch, clip.perch ? 1 : 0);
+    gl.uniform1i(uGround.uSimMode, state.mode === 'sim' ? 1 : 0);
+    gl.uniform1f(uGround.uTime, animClock);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+
+    // 3. Bakersfield Skyline Buildings + Golden Flight Rings (in Sim Mode)
+    if (state.mode === 'sim') {
+      gl.useProgram(pSolid);
+      gl.uniformMatrix4fv(uSolid.uVP, false, matVP);
+      gl.bindVertexArray(cityVao);
+      gl.drawArrays(gl.TRIANGLES, 0, cityVertCount);
+    }
+
+    const windExtra = (state.windMul - 1.0) + state.gustPulse + (state.mode === 'sim' && now < sim.swoopUntil ? 0.95 : 0.0);
+    const drawBird = (state.mode !== 'sim' || sim.hp > 0);
+
+    // 4. Planar Ground Shadow Pass
+    if (drawBird && eye[2] > 2.0) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthFunc(gl.LESS);
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniformMatrix4fv(uMesh.uModel, false, matM);
+      gl.uniform1i(uMesh.uShadowPass, 1);
+      gl.uniform1f(uMesh.uShadowAlpha, clip.perch ? 0.38 : 0.24);
+      gl.uniform1f(uMesh.uLerp, frac);
+      gl.uniform1f(uMesh.uTime, now);
+      gl.uniform1f(uMesh.uWindExtra, windExtra);
+      for (const s of M.surfaces) {
+        if (!s.visible) continue;
+        gl.bindVertexArray(s.vao);
+        const poseKey = fa * 65536 + fb;
+        if (s._lastKey !== poseKey) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+          gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+          gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+          gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+          gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+          s._lastKey = poseKey;
+        }
+        gl.uniform1i(uMesh.uIsHair, s.name === 'hair_breezy' ? 1 : 0);
+        gl.uniform1f(uMesh.uPosScale, s.posScale);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.depthFunc(gl.LEQUAL);
+      gl.disable(gl.BLEND);
+    }
+
+    // 5. Wind-Streak Lines, Golden Flight Rings & Rocket Smoke Trails
+    {
+      let ptr = 0;
+      if (!clip.perch && drawBird) {
+        const spd = 165.0 * Math.max(0.5, state.windMul + state.gustPulse);
+        const len = 20.0 * Math.max(0.7, state.windMul + state.gustPulse);
+        const bx = state.mode === 'sim' ? sim.x : 0, by = state.mode === 'sim' ? sim.y : 0, bz = state.mode === 'sim' ? sim.z : 0;
+        const cy = state.mode === 'sim' ? Math.cos(sim.yaw) : 1, sy = state.mode === 'sim' ? Math.sin(sim.yaw) : 0;
+        for (let i = 0; i < 16; i++) {
+          const seed = i * 19.73;
+          const cyc = ((animClock * spd + seed * 37.0) % 220.0) - 110.0;
+          const lx0 = -cyc, ly0 = Math.sin(seed * 2.1) * 62.0, lz0 = 30.0 + ((i * 11) % 44);
+          const wx0 = bx + lx0 * cy - ly0 * sy, wy0 = by + lx0 * sy + ly0 * cy, wz0 = bz + lz0;
+          const al = (1.0 - Math.abs(cyc) / 110.0) * 0.30;
+          lineData[ptr++] = wx0; lineData[ptr++] = wy0; lineData[ptr++] = wz0;
+          lineData[ptr++] = 0.65; lineData[ptr++] = 0.90; lineData[ptr++] = 1.0; lineData[ptr++] = al;
+          lineData[ptr++] = wx0 - len * cy; lineData[ptr++] = wy0 - len * sy; lineData[ptr++] = wz0;
+          lineData[ptr++] = 0.65; lineData[ptr++] = 0.90; lineData[ptr++] = 1.0; lineData[ptr++] = 0.0;
+        }
+      }
+      if (state.mode === 'sim') {
+        // Golden sky rings
+        for (const rg of sim.rings) {
+          const segs = 24, rad = 52.0;
+          for (let k = 0; k < segs; k++) {
+            const a0 = (k / segs) * Math.PI * 2, a1 = ((k + 1) / segs) * Math.PI * 2;
+            lineData[ptr++] = rg.x; lineData[ptr++] = rg.y + Math.cos(a0) * rad; lineData[ptr++] = rg.z + Math.sin(a0) * rad;
+            lineData[ptr++] = 1.0; lineData[ptr++] = 0.78; lineData[ptr++] = 0.18; lineData[ptr++] = 0.72;
+            lineData[ptr++] = rg.x; lineData[ptr++] = rg.y + Math.cos(a1) * rad; lineData[ptr++] = rg.z + Math.sin(a1) * rad;
+            lineData[ptr++] = 1.0; lineData[ptr++] = 0.78; lineData[ptr++] = 0.18; lineData[ptr++] = 0.72;
+          }
+        }
+        // Rocket fiery exhaust lines
+        for (const r of sim.rockets) {
+          const dx = Math.cos(r.yaw || 0) * 42, dy = Math.sin(r.yaw || 0) * 42;
+          lineData[ptr++] = r.x; lineData[ptr++] = r.y; lineData[ptr++] = r.z;
+          lineData[ptr++] = 1.0; lineData[ptr++] = 0.62; lineData[ptr++] = 0.12; lineData[ptr++] = 0.95;
+          lineData[ptr++] = r.x - dx; lineData[ptr++] = r.y - dy; lineData[ptr++] = r.z - 6;
+          lineData[ptr++] = 0.95; lineData[ptr++] = 0.22; lineData[ptr++] = 0.08; lineData[ptr++] = 0.0;
+        }
+      }
+      if (ptr > 0) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.useProgram(pLine);
+        gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+        gl.bindVertexArray(lineVao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr));
+        gl.drawArrays(gl.LINES, 0, ptr / 7);
+        gl.disable(gl.BLEND);
+      }
+    }
+
+    // 6. Lit 3D Winged Breezy-Hair John Pass
+    gl.useProgram(pMesh);
+    gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+    gl.uniform1i(uMesh.uShadowPass, 0);
+    gl.uniform1f(uMesh.uTime, now);
+    gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+    gl.uniform1i(uMesh.uGold, state.litMode === 1 ? 1 : 0);
+    gl.uniform1i(uMesh.uUnlit, state.litMode === 2 ? 1 : 0);
+    gl.uniform1i(uMesh.uTex, 0);
+
+    if (drawBird) {
+      gl.uniformMatrix4fv(uMesh.uModel, false, matM);
+      gl.uniform1f(uMesh.uLerp, frac);
+      gl.uniform1f(uMesh.uWindExtra, windExtra);
+      gl.uniform1f(uMesh.uHitFlash, state.mode === 'sim' ? sim.hitFlash : 0.0);
+
+      const useScorched = (state.plumage === 2) || (state.mode === 'sim' && sim.hp <= 200);
+      for (const s of M.surfaces) {
+        if (!s.visible) continue;
+        gl.bindVertexArray(s.vao);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+        const poseKey = fa * 65536 + fb;
+        if (s._lastKey !== poseKey) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+          gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+          gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+          gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+          gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+          s._lastKey = poseKey;
+        }
+        let texIdx = s.tex;
+        if (s.name === 'wings_bird') {
+          texIdx = useScorched ? s.hurtTex : (state.plumage === 1 ? s.altTex : s.tex);
+        }
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, glTextures[texIdx]);
+        gl.uniform1i(uMesh.uIsHair, s.name === 'hair_breezy' ? 1 : 0);
+        gl.uniform1f(uMesh.uPosScale, s.posScale);
+        gl.uniform1f(uMesh.uRoughness, s.roughness);
+        gl.uniform1f(uMesh.uSpec, s.spec);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+
+    // 7. 3D Tumbling Feathers (progs/john_bird_feather.md3) on Rocket Hits & 5th-Rocket Shootdown!
+    if (MFeather && sim.feathers.length > 0) {
+      const fs = MFeather.surfaces[0];
+      gl.bindVertexArray(fs.vao);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, fs.ibTris);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, glTextures[fs.tex]);
+      gl.uniform1f(uMesh.uLerp, 0.0);
+      gl.uniform1i(uMesh.uIsHair, 0);
+      gl.uniform1f(uMesh.uWindExtra, 0.0);
+      gl.uniform1f(uMesh.uHitFlash, 0.0);
+      gl.uniform1f(uMesh.uPosScale, fs.posScale);
+      gl.uniform1f(uMesh.uRoughness, fs.roughness);
+      gl.uniform1f(uMesh.uSpec, fs.spec);
+      for (const f of sim.feathers) {
+        buildTransform(matFeather, f.x, f.y, f.z, f.yaw, f.pitch, f.roll, f.scale);
+        gl.uniformMatrix4fv(uMesh.uModel, false, matFeather);
+        gl.drawElements(gl.TRIANGLES, fs.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+
+    // 8. 3D Rockets & Explosion Fireballs
+    if (sim.rockets.length > 0 || sim.blasts.length > 0) {
+      const dyn = [];
+      const pushDynBox = (cx, cy, cz, r, cr, cg, cb, ca) => {
+        const faces = [
+          [[cx-r,cy-r,cz-r],[cx+r,cy-r,cz-r],[cx+r,cy-r,cz+r],[cx-r,cy-r,cz+r],[0,-1,0]],
+          [[cx+r,cy+r,cz-r],[cx-r,cy+r,cz-r],[cx-r,cy+r,cz+r],[cx+r,cy+r,cz+r],[0,1,0]],
+          [[cx+r,cy-r,cz-r],[cx+r,cy+r,cz-r],[cx+r,cy+r,cz+r],[cx+r,cy-r,cz+r],[1,0,0]],
+          [[cx-r,cy+r,cz-r],[cx-r,cy-r,cz-r],[cx-r,cy-r,cz+r],[cx-r,cy+r,cz+r],[-1,0,0]],
+          [[cx-r,cy-r,cz+r],[cx+r,cy-r,cz+r],[cx+r,cy+r,cz+r],[cx-r,cy+r,cz+r],[0,0,1]],
+        ];
+        for (const [p0, p1, p2, p3, nm] of faces) {
+          for (const p of [p0, p1, p2, p0, p2, p3]) dyn.push(p[0], p[1], p[2], nm[0], nm[1], nm[2], cr, cg, cb, ca);
+        }
+      };
+      for (const r of sim.rockets) {
+        pushDynBox(r.x, r.y, r.z, 5.5, 1.0, 0.42, 0.12, 1.0);
+        pushDynBox(r.x - Math.cos(r.yaw || 0) * 7, r.y - Math.sin(r.yaw || 0) * 7, r.z, 4.2, 1.0, 0.85, 0.25, 0.9);
+      }
+      for (const b of sim.blasts) {
+        const t = b.age / b.dur;
+        const rad = b.r + (b.maxR - b.r) * Math.pow(t, 0.55);
+        pushDynBox(b.x, b.y, b.z, rad * 0.55, 1.0, 0.55 * (1 - t * 0.6), 0.12, (1 - t) * 0.82);
+      }
+      if (dyn.length > 0) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.useProgram(pSolid);
+        gl.uniformMatrix4fv(uSolid.uVP, false, matVP);
+        gl.bindVertexArray(dynSolidVao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, dynSolidBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(dyn));
+        gl.drawArrays(gl.TRIANGLES, 0, dyn.length / 10);
+        gl.disable(gl.BLEND);
+      }
+    }
+
+    // 9. Optional Wireframe Overlay
+    if (state.wire && drawBird) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(pWire);
+      gl.uniformMatrix4fv(uWire.uVP, false, matVP);
+      gl.uniformMatrix4fv(uWire.uModel, false, matM);
+      gl.uniform1f(uWire.uLerp, frac);
+      for (const s of M.surfaces) {
+        if (!s.visible) continue;
+        gl.bindVertexArray(s.vao);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges);
+        gl.uniform1f(uWire.uPosScale, s.posScale);
+        if (s.name === 'hair_breezy') gl.uniform4f(uWire.uColor, 0.22, 0.85, 0.98, 0.48);
+        else if (s.name === 'wings_bird') gl.uniform4f(uWire.uColor, 0.98, 0.75, 0.24, 0.45);
+        else gl.uniform4f(uWire.uColor, 0.85, 0.92, 1.0, 0.35);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.disable(gl.BLEND);
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch(err => {
+  console.error(err);
+  $('loading').innerHTML = `<div style="color:#fb7185;padding:20px">Error initializing 3D viewer: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>

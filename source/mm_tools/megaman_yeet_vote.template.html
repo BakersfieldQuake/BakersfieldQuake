@@ -1,0 +1,2050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · Mega Man YEET-GUN Voting Studio (3 Combined Versions)</title>
+<style>
+:root {
+  --bg: #090c13;
+  --bg-card: rgba(15, 20, 31, 0.88);
+  --panel: rgba(13, 17, 27, 0.92);
+  --panel-solid: #111624;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-hi: rgba(255, 180, 84, 0.60);
+  --win: #34d399;
+  --win-bg: rgba(52, 211, 153, 0.16);
+  --run: #fbbf24;
+  --run-bg: rgba(251, 191, 36, 0.16);
+  --text: #eef2fa;
+  --muted: #94a3b8;
+  --amber: #ffb454;
+  --amber-ink: #1c1002;
+  --cyan: #38bdf8;
+  --pink: #fb7185;
+  --fire: #ff5a36;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13.5px/1.42 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+/* Single Full-Window WebGL2 Canvas behind Scissored Card Viewports */
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #090c13;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.03em;
+}
+#loading.done { display: none; }
+
+main#page {
+  position: relative;
+  z-index: 1;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 0 18px 132px;
+}
+body.detail-open main#page { visibility: hidden; }
+body.detail-open { overflow: hidden; }
+
+/* Top Hero + 2-Asset Fusion Strip */
+header.hero {
+  padding: 14px 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 18px;
+}
+.hero-left { max-width: 820px; }
+.kicker {
+  margin: 0 0 2px;
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(20px, 2.2vw, 27px);
+  font-weight: 850;
+  letter-spacing: -0.015em;
+}
+.sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.8px;
+}
+
+.sources-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.src-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  cursor: zoom-in;
+  transition: border-color 0.14s, transform 0.1s;
+  max-width: 345px;
+}
+.src-item:hover {
+  border-color: var(--amber);
+  transform: translateY(-1px);
+}
+.src-item img {
+  width: 60px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #182032;
+  flex-shrink: 0;
+}
+.src-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.src-title {
+  font-size: 11.8px;
+  font-weight: 750;
+  color: var(--text);
+  line-height: 1.2;
+}
+.src-sub {
+  font-size: 10.6px;
+  color: var(--muted);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+/* Sticky Studio & Firing Range Bar */
+.toolbar {
+  position: sticky;
+  top: 8px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 13px;
+  margin-bottom: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
+}
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.lbl {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-right: 2px;
+}
+button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s, color 0.13s, transform 0.08s, box-shadow 0.13s;
+  white-space: nowrap;
+}
+button:hover { background: rgba(255, 255, 255, 0.14); }
+button:active { transform: translateY(1px); }
+button[aria-pressed="true"], button.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  font-weight: 800;
+}
+button.cyan-on[aria-pressed="true"] {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #031824;
+  font-weight: 800;
+}
+button.yeet-cta {
+  background: linear-gradient(135deg, #ff6c3b, #e12d17);
+  border-color: rgba(255, 175, 135, 0.72);
+  color: #fff;
+  font-size: 12.8px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  padding: 6px 15px;
+  box-shadow: 0 0 20px rgba(255, 90, 54, 0.42);
+}
+button.yeet-cta:hover {
+  background: linear-gradient(135deg, #ff8257, #f23c24);
+  box-shadow: 0 0 26px rgba(255, 105, 70, 0.68);
+}
+label.slider {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+input[type="range"] {
+  width: 82px;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+output {
+  min-width: 3.4ch;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+
+/* 3-Column Side-by-Side Voting Grid */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1150px) {
+  #grid { grid-template-columns: 1fr; }
+}
+
+article.card {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--line);
+  border-radius: 15px;
+  overflow: hidden;
+  background: transparent;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+article.card.is-winner {
+  border-color: var(--win);
+  box-shadow: 0 0 0 1px var(--win), 0 12px 34px rgba(52, 211, 153, 0.20);
+}
+article.card.is-runner {
+  border-color: var(--run);
+  box-shadow: 0 0 0 1px var(--run), 0 12px 34px rgba(251, 191, 36, 0.16);
+}
+
+.card-head {
+  padding: 10px 13px 9px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.v-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-bottom: 3px;
+}
+.card-title {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+.card-tag {
+  margin: 2px 0 0;
+  font-size: 11.8px;
+  color: var(--muted);
+}
+.card-meta {
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Transparent 3D Viewport Hole (WebGL2 Canvas Renders Behind!) */
+.stage {
+  position: relative;
+  height: 345px;
+  background: transparent;
+  cursor: grab;
+  overflow: hidden;
+  touch-action: none;
+}
+.stage.pov-cursor { cursor: crosshair; }
+.stage.dragging { cursor: grabbing; }
+
+.st-top-l {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  z-index: 2;
+}
+.st-top-r {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  z-index: 2;
+  pointer-events: none;
+}
+.st-bot {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+.st-bot > * { pointer-events: auto; }
+
+.pill {
+  background: rgba(9, 12, 19, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 750;
+  backdrop-filter: blur(6px);
+}
+.odo-pill {
+  background: rgba(9, 12, 19, 0.86);
+  border: 1px solid rgba(255, 180, 84, 0.45);
+  border-radius: 9px;
+  padding: 4px 9px;
+  text-align: right;
+  backdrop-filter: blur(6px);
+}
+.odo-val {
+  font-size: 13.5px;
+  font-weight: 900;
+  color: var(--amber);
+  letter-spacing: 0.01em;
+}
+.odo-joke {
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #f8fafc;
+  max-width: 220px;
+}
+.mini-btn {
+  padding: 4px 9px;
+  font-size: 11px;
+  background: rgba(11, 15, 24, 0.84);
+  backdrop-filter: blur(6px);
+}
+.mini-yeet {
+  background: linear-gradient(135deg, #ff6c3b, #dc2814);
+  border-color: rgba(255, 175, 135, 0.65);
+  color: #fff;
+  font-weight: 850;
+}
+
+.xhair {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.72;
+}
+.xhair::before, .xhair::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 215, 145, 0.85);
+}
+.xhair::before { left: 10px; top: 2px; width: 2px; height: 18px; }
+.xhair::after  { top: 10px; left: 2px; height: 2px; width: 18px; }
+.xhair.hidden  { display: none; }
+
+/* Card Body: Angle Presets, Engineering Humor & Mix-and-Match Chips */
+.card-body {
+  padding: 10px 13px 12px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+}
+.preset-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.preset-strip button {
+  font-size: 10.8px;
+  padding: 3px 8px;
+}
+.hi-list {
+  margin: 0;
+  padding-left: 16px;
+  color: #d4dceb;
+  font-size: 12px;
+  line-height: 1.38;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+button.part-chip {
+  font-size: 10.8px;
+  padding: 3px 8px;
+  border-style: dashed;
+  color: var(--muted);
+}
+button.part-chip[aria-pressed="true"] {
+  border-style: solid;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: var(--cyan);
+  color: #e0f2fe;
+  font-weight: 750;
+}
+
+.vote-row {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+button.btn-win {
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+button.btn-win[aria-pressed="true"] {
+  background: var(--win);
+  border-color: var(--win);
+  color: #032215;
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.38);
+}
+button.btn-run {
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 750;
+}
+button.btn-run[aria-pressed="true"] {
+  background: var(--run);
+  border-color: var(--run);
+  color: #231602;
+}
+
+/* Sticky Bottom Vote Ballot Bar */
+footer#ballot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  background: rgba(11, 15, 25, 0.95);
+  border-top: 1px solid rgba(255, 180, 84, 0.35);
+  backdrop-filter: blur(16px);
+  padding: 10px 20px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.55);
+}
+.ballot-in {
+  max-width: 1680px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.ballot-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 12.5px;
+}
+.b-slot b { color: var(--amber); }
+#mashup-note {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 11px;
+  width: min(350px, 82vw);
+}
+#mashup-note:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+button#btn-copy-vote {
+  background: var(--win);
+  border-color: var(--win);
+  color: #032114;
+  font-weight: 850;
+  font-size: 12.8px;
+  padding: 7px 16px;
+}
+
+/* Fullscreen Proving Range & Chase-Cam Modal */
+#detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  pointer-events: none;
+}
+#detail-modal.open { display: grid; }
+.det-bar {
+  pointer-events: auto;
+  background: rgba(10, 14, 22, 0.92);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  backdrop-filter: blur(12px);
+}
+#detail-stage {
+  position: relative;
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.det-foot {
+  pointer-events: auto;
+  background: rgba(10, 14, 22, 0.94);
+  border-top: 1px solid var(--line);
+  padding: 10px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+#det-scrub { width: min(340px, 48vw); }
+
+/* Lightbox Modal for Reference Photos, Textures & Ballot Text */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(5, 8, 14, 0.88);
+  display: none;
+  place-items: center;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+#lightbox.open { display: grid; }
+.lb-box {
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 92vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.lb-box img {
+  max-width: min(820px, 86vw);
+  max-height: 72vh;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+}
+.lb-box textarea {
+  width: min(640px, 84vw);
+  height: 210px;
+  background: #090c13;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12.5px;
+}
+</style>
+</head>
+<body>
+<div id="loading">Welding Square-Tube Steel, Inflation-Checking Wheelbarrow Tires &amp; Clearing airspace past Fresno…</div>
+<canvas id="gl"></canvas>
+
+<main id="page">
+  <header class="hero">
+    <div class="hero-left">
+      <p class="kicker">BakersfieldQuake · 2-Asset Weapon Fusion &amp; Long-Range Ballistics Vote</p>
+      <h1>The Mega Man YEET-CANNON · Pick Your Favorite Version</h1>
+      <p class="sub">All 3 Quake viewmodels fuse <b>Input 1 (The Mega Man Contraption)</b> + <b>Input 2 (Shop-Welded Rotary Steel Rig)</b> and blast Mega Man <b>1,400+ units downrange</b>. Fire them, orbit the 3D mechanisms, and vote!</p>
+    </div>
+    <div class="sources-strip" id="sources-strip"></div>
+  </header>
+
+  <section class="toolbar" aria-label="Studio & Range Controls">
+    <div class="group">
+      <button id="btn-yeet-all" class="yeet-cta" title="Fire all 3 weapons down the 1,600-unit proving canyon! (Spacebar)">🔥 YEET ALL 3! (Space)</button>
+      <button id="btn-autoyeet" class="cyan-on" aria-pressed="true" title="Automatically fire staggered long-range yeet salvos">Auto-Yeet Salvo</button>
+      <label class="slider" title="Launch velocity multiplier — crank to 3.0x for Low Earth Orbit!">
+        <span>Yeet Power</span>
+        <input id="power-slider" type="range" min="1.0" max="3.0" step="0.1" value="1.6">
+        <output id="power-out" class="mono">1.6×</output>
+      </label>
+    </div>
+
+    <div class="group">
+      <span class="lbl">View</span>
+      <button id="btn-mode-pov" aria-pressed="true" title="Authentic 1st-Person Quake Eye at (0,0,0) looking down the 1,600u canyon (Key: V)">🎯 Quake POV</button>
+      <button id="btn-mode-spot" aria-pressed="false" title="Elevated range-spotter angle showing the full 3D weapon + 1,600u parabolic trajectory! (Key: R)">🚀 Range Spotter</button>
+      <button id="btn-mode-orbit" aria-pressed="false" title="360° Free Mechanism Orbit — Drag to rotate, Right-drag pan, Scroll zoom (Key: O)">🔄 360° Orbit</button>
+      <button id="btn-turntable" class="cyan-on" aria-pressed="false" title="Slowly spin rigs in 360° Orbit mode">Turntable</button>
+    </div>
+
+    <div class="group">
+      <button id="btn-wire" class="cyan-on" aria-pressed="false" title="Overlay clean MD3 triangle wireframe (Key: W)">Wireframe</button>
+      <button id="btn-torch" class="cyan-on" aria-pressed="true" title="Toggle warm Quake Torch + Cyan Rim lighting vs neutral studio">Torchlight</button>
+      <button id="btn-tex-atlas" title="Inspect procedural 1024x1024 steel rig & Mega Man texture atlases">🎨 Atlases</button>
+      <button id="btn-sfx" class="cyan-on" aria-pressed="true" title="Funny synthesized helicopter, ballista-twang, tire-burnout & horn SFX">🔊 SFX</button>
+    </div>
+  </section>
+
+  <section id="grid" aria-label="3 Weapon Candidates"></section>
+</main>
+
+<footer id="ballot">
+  <div class="ballot-in">
+    <div class="ballot-status">
+      <span class="b-slot">🏆 <b>#1 Winner:</b> <span id="sum-win">Click a card's Vote #1 button</span></span>
+      <span class="b-slot">🥈 <b>#2 Backup:</b> <span id="sum-run">None</span></span>
+      <span class="b-slot">🔧 <b>Liked Parts:</b> <span id="sum-chips">0</span></span>
+    </div>
+    <div class="group">
+      <input id="mashup-note" type="text" placeholder="Optional mashup note (e.g. 'V1 rotor + V3 burnout tires!')">
+      <button id="btn-copy-vote">📋 Copy My Vote</button>
+      <button id="btn-save-json" title="Download vote ballot as JSON">💾 JSON</button>
+    </div>
+  </div>
+</footer>
+
+<!-- Fullscreen Proving Range & Chase-Cam Modal -->
+<div id="detail-modal" role="dialog" aria-label="Fullscreen Range & Chase-Cam">
+  <div class="det-bar">
+    <div class="group">
+      <button id="det-back">← Back to 3-Card Vote (Esc)</button>
+      <span id="det-title" style="font-weight:850;font-size:15px;margin-left:6px"></span>
+      <span id="det-odo" class="pill mono" style="color:var(--amber)">READY</span>
+    </div>
+    <div class="group">
+      <button id="det-pov" aria-pressed="true">🎯 Quake POV</button>
+      <button id="det-spot" aria-pressed="false">🚀 Range Spotter</button>
+      <button id="det-orbit" aria-pressed="false">🔄 360° Orbit</button>
+      <button id="det-chase" class="cyan-on" aria-pressed="false" title="Fly downrange right behind Mega Man! (Key: C)">🎥 Ride Mega Man Chase-Cam!</button>
+    </div>
+  </div>
+  <div id="detail-stage">
+    <div class="xhair" id="det-xhair"></div>
+  </div>
+  <div class="det-foot">
+    <div class="group">
+      <button id="det-fire" class="yeet-cta">🔥 YEET MEGA MAN! (Space)</button>
+      <button id="det-pause" aria-pressed="false">⏸ Pause Anim</button>
+      <input id="det-scrub" type="range" min="0" max="36" step="0.05" value="0">
+      <span id="det-frame" class="mono" style="min-width:115px">idle1 · 00/36</span>
+    </div>
+    <div class="group" id="det-presets"></div>
+  </div>
+</div>
+
+<!-- Lightbox for Source Media, Texture Atlases & Vote Summary -->
+<div id="lightbox">
+  <div class="lb-box" id="lb-content"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const DATA = /*__MMY_DATA__*/null;
+const $ = id => document.getElementById(id);
+const PARAMS = new URLSearchParams(location.search);
+
+// --------------------------------------------------------------------------- Fast Column-Major Mat4
+function mat4Identity() {
+  const m = new Float32Array(16);
+  m[0] = m[5] = m[10] = m[15] = 1;
+  return m;
+}
+function mat4Mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      o[c * 4 + r] =
+        a[0 * 4 + r] * b[c * 4 + 0] +
+        a[1 * 4 + r] * b[c * 4 + 1] +
+        a[2 * 4 + r] * b[c * 4 + 2] +
+        a[3 * 4 + r] * b[c * 4 + 3];
+    }
+  }
+  return o;
+}
+function mat4PerspectiveH(hfovDeg, aspect, near, far) {
+  const halfW = Math.tan((hfovDeg * Math.PI) / 360) * near;
+  const halfH = halfW / Math.max(0.25, aspect);
+  const m = new Float32Array(16);
+  m[0] = near / halfW;
+  m[5] = near / halfH;
+  m[10] = -(far + near) / (far - near);
+  m[11] = -1;
+  m[14] = -(2 * far * near) / (far - near);
+  return m;
+}
+function mat4LookAt(eye, target, up) {
+  let fx = target[0] - eye[0], fy = target[1] - eye[1], fz = target[2] - eye[2];
+  let fl = Math.hypot(fx, fy, fz) || 1;
+  fx /= fl; fy /= fl; fz /= fl;
+  let rx = fy * up[2] - fz * up[1];
+  let ry = fz * up[0] - fx * up[2];
+  let rz = fx * up[1] - fy * up[0];
+  let rl = Math.hypot(rx, ry, rz) || 1;
+  rx /= rl; ry /= rl; rz /= rl;
+  const ux = ry * fz - rz * fy;
+  const uy = rz * fx - rx * fz;
+  const uz = rx * fy - ry * fx;
+  const m = new Float32Array(16);
+  m[0] = rx;  m[4] = ry;  m[8]  = rz;  m[12] = -(rx * eye[0] + ry * eye[1] + rz * eye[2]);
+  m[1] = ux;  m[5] = uy;  m[9]  = uz;  m[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
+  m[2] = -fx; m[6] = -fy; m[10] = -fz; m[14] =  (fx * eye[0] + fy * eye[1] + fz * eye[2]);
+  m[15] = 1;
+  return m;
+}
+function mat4TRS(tx, ty, tz, yawDeg, pitchDeg, rollDeg, scale) {
+  const cy = Math.cos(yawDeg * Math.PI / 180), sy = Math.sin(yawDeg * Math.PI / 180);
+  const cp = Math.cos(pitchDeg * Math.PI / 180), sp = Math.sin(pitchDeg * Math.PI / 180);
+  const cr = Math.cos(rollDeg * Math.PI / 180), sr = Math.sin(rollDeg * Math.PI / 180);
+  // Rz(yaw) * Ry(pitch) * Rx(roll) * S
+  const m = new Float32Array(16);
+  m[0] = cy * cp * scale;
+  m[1] = sy * cp * scale;
+  m[2] = -sp * scale;
+  m[4] = (cy * sp * sr - sy * cr) * scale;
+  m[5] = (sy * sp * sr + cy * cr) * scale;
+  m[6] = (cp * sr) * scale;
+  m[8] = (cy * sp * cr + sy * sr) * scale;
+  m[9] = (sy * sp * cr - cy * sr) * scale;
+  m[10] = (cp * cr) * scale;
+  m[12] = tx; m[13] = ty; m[14] = tz; m[15] = 1;
+  return m;
+}
+
+// --------------------------------------------------------------------------- Comedy WebAudio Synthesizer
+let audioCtx = null;
+function playSfx(kind) {
+  if ($('btn-sfx').getAttribute('aria-pressed') !== 'true') return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+
+    if (kind === 'v1_whirly') {
+      // Electric motor spin-up + helicopter rotor WHUP-WHUP + brass pin PING!
+      const o1 = audioCtx.createOscillator(), g1 = audioCtx.createGain();
+      o1.type = 'sawtooth';
+      o1.frequency.setValueAtTime(140, now);
+      o1.frequency.exponentialRampToValueAtTime(640, now + 0.19);
+      g1.gain.setValueAtTime(0.20, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      o1.connect(g1).connect(audioCtx.destination);
+      o1.start(now); o1.stop(now + 0.26);
+
+      // Pin PING + supersonic launch!
+      const ping = audioCtx.createOscillator(), gp = audioCtx.createGain();
+      ping.type = 'sine';
+      ping.frequency.setValueAtTime(1880, now + 0.18);
+      ping.frequency.exponentialRampToValueAtTime(1320, now + 0.36);
+      gp.gain.setValueAtTime(0.0001, now);
+      gp.gain.setValueAtTime(0.28, now + 0.18);
+      gp.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+      ping.connect(gp).connect(audioCtx.destination);
+      ping.start(now + 0.18); ping.stop(now + 0.39);
+    } else if (kind === 'v2_ballista') {
+      // Heavy gear ratchet clicks + giant steel bowstring TWAAANG-SPANK!
+      for (let c = 0; c < 3; c++) {
+        const oc = audioCtx.createOscillator(), gc = audioCtx.createGain();
+        oc.type = 'square';
+        oc.frequency.setValueAtTime(380 + c * 90, now + c * 0.045);
+        gc.gain.setValueAtTime(0.16, now + c * 0.045);
+        gc.gain.exponentialRampToValueAtTime(0.001, now + c * 0.045 + 0.035);
+        oc.connect(gc).connect(audioCtx.destination);
+        oc.start(now + c * 0.045); oc.stop(now + c * 0.045 + 0.04);
+      }
+      const tw = audioCtx.createOscillator(), gt = audioCtx.createGain();
+      tw.type = 'triangle';
+      tw.frequency.setValueAtTime(195, now + 0.15);
+      tw.frequency.exponentialRampToValueAtTime(52, now + 0.48);
+      gt.gain.setValueAtTime(0.45, now + 0.15);
+      gt.gain.exponentialRampToValueAtTime(0.001, now + 0.50);
+      tw.connect(gt).connect(audioCtx.destination);
+      tw.start(now + 0.15); tw.stop(now + 0.52);
+    } else if (kind === 'v3_burnout') {
+      // Twin wheelbarrow rubber tire SCREEEECH burnout + plasma railgun ZAP!
+      const sc = audioCtx.createOscillator(), gs = audioCtx.createGain();
+      sc.type = 'sawtooth';
+      sc.frequency.setValueAtTime(820, now);
+      sc.frequency.linearRampToValueAtTime(1180, now + 0.14);
+      sc.frequency.exponentialRampToValueAtTime(220, now + 0.34);
+      gs.gain.setValueAtTime(0.20, now);
+      gs.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      sc.connect(gs).connect(audioCtx.destination);
+      sc.start(now); sc.stop(now + 0.36);
+    } else if (kind === 'meep') {
+      // Tiny roadrunner MEEP-MEEP on tire bounce downrange!
+      for (const dt of [0, 0.09]) {
+        const m = audioCtx.createOscillator(), gm = audioCtx.createGain();
+        m.type = 'square';
+        m.frequency.setValueAtTime(760, now + dt);
+        m.frequency.setValueAtTime(810, now + dt + 0.03);
+        gm.gain.setValueAtTime(0.08, now + dt);
+        gm.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.07);
+        m.connect(gm).connect(audioCtx.destination);
+        m.start(now + dt); m.stop(now + dt + 0.075);
+      }
+    } else if (kind === 'boom') {
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.38, audioCtx.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.10));
+      const src = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      f.type = 'lowpass'; f.frequency.value = 320;
+      g.gain.value = 0.36;
+      src.buffer = buf;
+      src.connect(f).connect(g).connect(audioCtx.destination);
+      src.start(now);
+    }
+  } catch (_) {}
+}
+
+async function gunzipBase64(b64) {
+  const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream('gzip');
+  const w = ds.writable.getWriter();
+  w.write(raw);
+  w.close();
+  return await new Response(ds.readable).arrayBuffer();
+}
+
+function showLightbox(html) {
+  $('lb-content').innerHTML = html;
+  $('lightbox').classList.add('open');
+}
+$('lightbox').addEventListener('click', e => {
+  if (e.target === $('lightbox')) $('lightbox').classList.remove('open');
+});
+
+// --------------------------------------------------------------------------- Boot Studio
+async function boot() {
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+  if (!gl) {
+    $('loading').textContent = 'WebGL 2 is required to view this 3D weapon voting studio.';
+    return;
+  }
+
+  const AB = await gunzipBase64(DATA.binGz);
+
+  // 1. Render 2-Source Fusion Reference Strip
+  const srcStrip = $('sources-strip');
+  DATA.sources.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'src-item';
+    el.innerHTML = `
+      <img src="${s.uri}" alt="${s.title}">
+      <div>
+        <div class="src-badge">${s.badge}</div>
+        <div class="src-title">${s.title}</div>
+        <div class="src-sub">${s.subtitle}</div>
+      </div>`;
+    el.onclick = () => showLightbox(`
+      <img src="${s.uri}" alt="${s.title}">
+      <div style="text-align:center">
+        <div style="font-weight:800;color:var(--amber)">${s.badge} · ${s.title}</div>
+        <div style="color:var(--muted);font-size:12.5px">${s.subtitle}</div>
+      </div>
+      <button onclick="document.getElementById('lightbox').classList.remove('open')">Close</button>
+    `);
+    srcStrip.appendChild(el);
+  });
+
+  // 2. Compile WebGL2 Shaders
+  function compileProg(vsSrc, fsSrc) {
+    const p = gl.createProgram();
+    for (const [tp, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, '#version 300 es\n' + src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+
+  const modelProg = compileProg(`
+    layout(location=0) in vec3 aPos0;
+    layout(location=1) in vec3 aNrm0;
+    layout(location=2) in vec3 aPos1;
+    layout(location=3) in vec3 aNrm1;
+    layout(location=4) in vec2 aUv;
+    uniform mat4 uVP;
+    uniform mat4 uM;
+    uniform float uLerp;
+    out vec3 vWPos;
+    out vec3 vWNrm;
+    out vec2 vUv;
+    void main() {
+      vec3 p = mix(aPos0, aPos1, uLerp);
+      vec3 n = normalize(mix(aNrm0, aNrm1, uLerp));
+      vec4 wp = uM * vec4(p, 1.0);
+      vWPos = wp.xyz;
+      vWNrm = normalize(mat3(uM) * n);
+      vUv = aUv;
+      gl_Position = uVP * wp;
+    }
+  `, `
+    precision highp float;
+    in vec3 vWPos;
+    in vec3 vWNrm;
+    in vec2 vUv;
+    uniform sampler2D uTex;
+    uniform vec3 uEye;
+    uniform float uExposure;
+    uniform float uMetallic;
+    uniform float uRoughness;
+    uniform float uSpec;
+    uniform int uUnlit;
+    uniform int uTorchMode;
+    uniform vec3 uTint;
+    out vec4 oCol;
+    void main() {
+      vec4 texel = texture(uTex, vUv);
+      if (uUnlit == 1) {
+        oCol = vec4(texel.rgb * uTint * (0.90 + 0.30 * uExposure), texel.a);
+        return;
+      }
+      vec3 N = normalize(gl_FrontFacing ? vWNrm : -vWNrm);
+      vec3 V = normalize(uEye - vWPos);
+
+      vec3 L1 = normalize(vec3(-0.36, -0.44, 0.82));
+      vec3 L2 = normalize(vec3( 0.68,  0.52, 0.51));
+      vec3 L3 = normalize(vec3(-0.75,  0.55, 0.36));
+
+      vec3 col1 = uTorchMode == 1 ? vec3(1.14, 0.96, 0.80) : vec3(1.04, 1.04, 1.06);
+      vec3 col2 = uTorchMode == 1 ? vec3(0.46, 0.64, 0.84) : vec3(0.58, 0.60, 0.68);
+      vec3 col3 = uTorchMode == 1 ? vec3(0.30, 0.76, 1.00) : vec3(0.38, 0.42, 0.50);
+
+      float d1 = max(dot(N, L1), 0.0);
+      float d2 = max(dot(N, L2), 0.0);
+      float d3 = max(dot(N, L3), 0.0);
+      vec3 hemi = mix(vec3(0.19, 0.17, 0.16), vec3(0.36, 0.39, 0.46), 0.5 + 0.5 * N.z);
+      vec3 diff = hemi + col1 * d1 * 0.90 + col2 * d2 * 0.46 + col3 * d3 * 0.30;
+
+      float shininess = mix(165.0, 12.0, uRoughness);
+      vec3 H1 = normalize(L1 + V);
+      vec3 H2 = normalize(L2 + V);
+      float sp1 = pow(max(dot(N, H1), 0.0), shininess);
+      float sp2 = pow(max(dot(N, H2), 0.0), shininess * 0.65);
+
+      vec3 R = reflect(-V, N);
+      float skyBand = smoothstep(-0.15, 0.55, R.z) * 0.56 + 0.30 * pow(max(0.0, 1.0 - abs(R.z - 0.18) * 3.2), 2.0);
+      vec3 envCol = mix(vec3(0.15, 0.16, 0.20), uTorchMode == 1 ? vec3(0.96, 0.90, 0.80) : vec3(0.94, 0.97, 1.0), skyBand);
+
+      vec3 specTint = mix(vec3(1.0), max(texel.rgb, vec3(0.35)), uMetallic * 0.65);
+      vec3 specLight = (col1 * sp1 * 0.88 + col2 * sp2 * 0.42) * uSpec * specTint;
+
+      vec3 lit = texel.rgb * diff * (1.0 - 0.30 * uMetallic) + texel.rgb * envCol * (uMetallic * 0.66) + specLight * 0.44;
+      lit *= uExposure * uTint;
+      lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+      oCol = vec4(lit, texel.a);
+    }
+  `);
+  const uModel = {};
+  for (const nm of ['uVP','uM','uLerp','uTex','uEye','uExposure','uMetallic','uRoughness','uSpec','uUnlit','uTorchMode','uTint']) {
+    uModel[nm] = gl.getUniformLocation(modelProg, nm);
+  }
+
+  const envProg = compileProg(`
+    layout(location=0) in vec3 aPos;
+    layout(location=1) in vec4 aCol;
+    uniform mat4 uVP;
+    out vec4 vCol;
+    void main() {
+      vCol = aCol;
+      gl_Position = uVP * vec4(aPos, 1.0);
+    }
+  `, `
+    precision highp float;
+    in vec4 vCol;
+    out vec4 oCol;
+    void main() { oCol = vCol; }
+  `);
+  const uEnvVP = gl.getUniformLocation(envProg, 'uVP');
+
+  const wireProg = compileProg(`
+    layout(location=0) in vec3 aPos0;
+    layout(location=2) in vec3 aPos1;
+    uniform mat4 uVP;
+    uniform mat4 uM;
+    uniform float uLerp;
+    void main() {
+      vec3 p = mix(aPos0, aPos1, uLerp);
+      gl_Position = uVP * uM * vec4(p, 1.0);
+      gl_Position.z -= 0.00035 * gl_Position.w;
+    }
+  `, `
+    precision highp float;
+    out vec4 oCol;
+    void main() { oCol = vec4(0.30, 0.85, 1.0, 0.45); }
+  `);
+  const uWireVP = gl.getUniformLocation(wireProg, 'uVP');
+  const uWireM  = gl.getUniformLocation(wireProg, 'uM');
+  const uWireL  = gl.getUniformLocation(wireProg, 'uLerp');
+
+  // 3. Upload Procedural Textures
+  const glTex = await Promise.all(DATA.textures.map(t => new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const tx = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tx);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      resolve(tx);
+    };
+    img.src = t.uri;
+  })));
+
+  $('btn-tex-atlas').onclick = () => {
+    const cards = DATA.textures.map(t => `
+      <div style="background:#0a0e17;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center">
+        <img src="${t.uri}" alt="${t.label}" style="width:210px;height:210px;object-fit:contain;border-radius:6px">
+        <div style="font-size:12px;font-weight:750;margin-top:5px">${t.label}</div>
+        <div class="mono" style="font-size:10.5px;color:var(--muted)">${t.file} (${t.w}×${t.h})</div>
+      </div>`).join('');
+    showLightbox(`
+      <div style="font-weight:850;font-size:15px;color:var(--amber)">Procedural Quake Texture Atlases (progs/mmy_* &amp; mmw_*)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:960px">${cards}</div>
+      <button onclick="document.getElementById('lightbox').classList.remove('open')">Close</button>
+    `);
+  };
+
+  // 4. Upload MD3 Buffers (3 Candidate Viewmodels + 1 Clean Spinning Mega Man World Projectile)
+  const gpuModels = DATA.models.map(m => {
+    const surfs = m.surfaces.map(s => {
+      const posBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(AB, s.pos[0], s.pos[1] >> 2), gl.STATIC_DRAW);
+
+      const nrmBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, nrmBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Int8Array(AB, s.nrm[0], s.nrm[1]), gl.STATIC_DRAW);
+
+      const uvBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(AB, s.uv[0], s.uv[1] >> 2), gl.STATIC_DRAW);
+
+      const triBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triBuf);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(AB, s.tris[0], s.tris[1] >> 1), gl.STATIC_DRAW);
+
+      const edgeBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, edgeBuf);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(AB, s.edges[0], s.edges[1] >> 1), gl.STATIC_DRAW);
+
+      return { ...s, posBuf, nrmBuf, uvBuf, triBuf, edgeBuf };
+    });
+    return { ...m, surfs };
+  });
+
+  const WEAPONS = gpuModels.slice(0, 3);
+  const PROJ_MODEL = gpuModels[DATA.projectileModelIndex];
+  const FLOOR_Z = -26.0;
+
+  // 5. Build 1,650-Unit Long-Range Quake Mega-Yeet Proving Canyon + 4 Glowing Distance Arches!
+  function buildProvingCanyon() {
+    const lines = [];
+    const pushLine = (x0,y0,z0, x1,y1,z1, r,g,b,a) => {
+      lines.push(x0,y0,z0, r,g,b,a, x1,y1,z1, r,g,b,a);
+    };
+    const tris = [];
+    const pushQuad = (p0,p1,p2,p3, c0,c1) => {
+      const [r0,g0,b0,a0] = c0, [r1,g1,b1,a1] = c1 || c0;
+      tris.push(
+        ...p0,r0,g0,b0,a0, ...p1,r0,g0,b0,a0, ...p2,r1,g1,b1,a1,
+        ...p0,r0,g0,b0,a0, ...p2,r1,g1,b1,a1, ...p3,r1,g1,b1,a1
+      );
+    };
+
+    // Canyon stone floor out to x = 1,750u!
+    pushQuad([-45,-125,FLOOR_Z], [1780,-125,FLOOR_Z], [1780,125,FLOOR_Z], [-45,125,FLOOR_Z], [0.09,0.088,0.10,1], [0.035,0.04,0.06,1]);
+    // glowing lava/hazard side gutters guiding the eye all the way to 1,750u
+    for (const sgn of [-1, 1]) {
+      pushQuad([-20,sgn*72,FLOOR_Z+0.12], [1760,sgn*72,FLOOR_Z+0.12], [1760,sgn*78,FLOOR_Z+0.12], [-20,sgn*78,FLOOR_Z+0.12], [0.65,0.28,0.06,1], [0.20,0.08,0.02,1]);
+      // Side canyon walls
+      pushQuad([-20,sgn*120,FLOOR_Z], [1760,sgn*120,FLOOR_Z], [1760,sgn*120,FLOOR_Z+110], [-20,sgn*120,FLOOR_Z+110], [0.06,0.065,0.085,1], [0.025,0.03,0.048,1]);
+    }
+
+    // Center runway stripe + distance grid every 50u
+    pushQuad([0,-2.2,FLOOR_Z+0.14], [1720,-2.2,FLOOR_Z+0.14], [1720,2.2,FLOOR_Z+0.14], [0,2.2,FLOOR_Z+0.14], [0.95,0.62,0.18,0.42], [0.22,0.75,0.98,0.35]);
+    for (let x = 0; x <= 1700; x += 50) {
+      const major = (x % 200 === 0);
+      pushLine(x, -72, FLOOR_Z + 0.18, x, 72, FLOOR_Z + 0.18, 0.55, 0.66, 0.84, major ? 0.34 : 0.12);
+    }
+
+    // 4 Giant Glowing Distance Portals Downrange!
+    const gates = [
+      { x: 180,  w: 44, h: 42, col: [0.22, 0.78, 0.98, 0.92] }, // 180u: Parking Lot
+      { x: 520,  w: 52, h: 54, col: [1.00, 0.70, 0.24, 0.92] }, // 520u: Bakersfield
+      { x: 960,  w: 60, h: 68, col: [0.98, 0.36, 0.58, 0.92] }, // 960u: Fresno
+      { x: 1420, w: 70, h: 84, col: [0.24, 0.95, 0.58, 0.95] }, // 1420u: Low Earth Orbit Bullseye!
+    ];
+    for (const g of gates) {
+      const pt = 3.2;
+      for (const sgn of [-1, 1]) {
+        pushQuad([g.x, sgn*(g.w-pt), FLOOR_Z], [g.x, sgn*g.w, FLOOR_Z], [g.x, sgn*g.w, FLOOR_Z+g.h], [g.x, sgn*(g.w-pt), FLOOR_Z+g.h], g.col);
+      }
+      pushQuad([g.x, -g.w, FLOOR_Z+g.h-pt], [g.x, g.w, FLOOR_Z+g.h-pt], [g.x, g.w, FLOOR_Z+g.h], [g.x, -g.w, FLOOR_Z+g.h], g.col);
+    }
+
+    // Giant Bullseye Monolith at x = 1,430u!
+    const tx = 1432;
+    pushQuad([tx,-26,FLOOR_Z], [tx,26,FLOOR_Z], [tx,26,FLOOR_Z+66], [tx,-26,FLOOR_Z+66], [0.20,0.16,0.14,1], [0.30,0.22,0.18,1]);
+    pushQuad([tx-0.6,-15,FLOOR_Z+18], [tx-0.6,15,FLOOR_Z+18], [tx-0.6,15,FLOOR_Z+48], [tx-0.6,-15,FLOOR_Z+48], [0.98,0.34,0.16,1]);
+    pushQuad([tx-1.1,-7,FLOOR_Z+26], [tx-1.1,7,FLOOR_Z+26], [tx-1.1,7,FLOOR_Z+40], [tx-1.1,-7,FLOOR_Z+40], [1.0,0.86,0.24,1]);
+
+    const tBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tris), gl.STATIC_DRAW);
+
+    const lBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
+    return { tBuf, tCount: tris.length / 7, lBuf, lCount: lines.length / 7 };
+  }
+
+  function buildOrbitGrid() {
+    const lines = [];
+    const z = -9.6;
+    for (let i = -24; i <= 56; i += 4) {
+      const a = (i % 16 === 0) ? 0.25 : 0.09;
+      lines.push(i, -36, z, 0.48, 0.58, 0.78, a, i, 36, z, 0.48, 0.58, 0.78, a);
+    }
+    for (let j = -36; j <= 36; j += 4) {
+      const c = (j === 0);
+      lines.push(-24, j, z, c ? 1.0 : 0.48, c ? 0.68 : 0.58, c ? 0.26 : 0.78, c ? 0.36 : 0.09,
+                  56, j, z, c ? 1.0 : 0.48, c ? 0.68 : 0.58, c ? 0.26 : 0.78, c ? 0.36 : 0.09);
+    }
+    const lBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
+    return { lBuf, lCount: lines.length / 7 };
+  }
+
+  const canyon = buildProvingCanyon();
+  const orbitGrid = buildOrbitGrid();
+  const dynBuf = gl.createBuffer();
+
+  // ------------------------------------------------------------------------- Per-Candidate State + Voting State
+  let camMode = PARAMS.get('mode') || 'pov'; // 'pov' | 'spotter' | 'orbit'
+  const lockedFrame = PARAMS.has('frame') ? parseFloat(PARAMS.get('frame')) : null;
+  let powerMul = 1.6;
+  let autoYeet = lockedFrame === null && !PARAMS.has('noauto');
+  let turntable = false;
+  let wireframe = false;
+  let torchMode = true;
+  let detailIdx = PARAMS.has('detail') ? parseInt(PARAMS.get('detail'), 10) : -1;
+  let chaseCam = false;
+  let detPaused = false;
+
+  const voteState = { winner: null, runner: null, chips: new Set(), note: '' };
+
+  const cards = WEAPONS.map((m, idx) => ({
+    idx,
+    m,
+    animState: 'idle', // 'idle' | 'fire'
+    framePos: (idx * 5) % 16,
+    launchedThisCycle: false,
+    az: m.orbitAz,
+    el: m.orbitEl,
+    dist: m.orbitDist,
+    pan: [0, 0, 0],
+    projs: [],     // active downrange spinning Mega Man projectiles + ribbon trails
+    blasts: [],    // impact shockwaves
+    maxDist: 0,
+    statusText: 'CHAMBERED · DO NOT OSHA',
+    stageEl: null,
+    odoValEl: null,
+    odoJokeEl: null,
+    phaseEl: null,
+    xhairEl: null,
+    cardEl: null,
+    winBtn: null,
+    runBtn: null,
+  }));
+
+  function milestoneJoke(x) {
+    if (x < 180)  return `${Math.round(x)}u · CLEARING SHOP DOOR!`;
+    if (x < 520)  return `${Math.round(x)}u · PAST PARKING LOT!`;
+    if (x < 960)  return `${Math.round(x)}u · BYE BAKERSFIELD! 🌵`;
+    if (x < 1420) return `${Math.round(x)}u · TIRE-BOUNCING FRESNO! 🛞`;
+    if (x < 1900) return `${Math.round(x)}u · ORBITAL BULLSEYE!! 💥`;
+    return `${Math.round(x)}u · LEFT CALIFORNIA 🫡`;
+  }
+
+  function spawnYeetProjectile(c, startT = 0) {
+    const mz = c.m.muzzleEye;
+    const bv = c.m.baseVel;
+    const vx = bv[0] * powerMul;
+    const vy = bv[1];
+    const vz = bv[2] * (0.82 + 0.22 * powerMul);
+    const p = {
+      x: mz[0], y: mz[1], z: mz[2],
+      vx, vy, vz,
+      yaw: 0, pitch: -8, spin: 0,
+      bounced: false,
+      age: 0,
+      trail: [[mz[0], mz[1], mz[2]]],
+      col: c.m.accentRgb,
+    };
+    if (startT > 0) {
+      const steps = Math.floor(startT / 0.025);
+      for (let s = 0; s < steps; s++) stepSingleProj(c, p, 0.025, true);
+    }
+    c.projs.push(p);
+  }
+
+  function stepSingleProj(c, p, dt, silent = false) {
+    p.age += dt;
+    p.vz -= 165.0 * dt; // Low-drag high-velocity ballistic arc so he flies 1,400+ units!
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    p.pitch = Math.max(-42, Math.min(42, -Math.atan2(p.vz, p.vx) * 180 / Math.PI));
+    p.spin = (p.spin + dt * 1080) % 360;
+
+    const last = p.trail[p.trail.length - 1];
+    if (!last || Math.hypot(p.x - last[0], p.y - last[1], p.z - last[2]) > 14.0) {
+      p.trail.push([p.x, p.y, p.z]);
+      if (p.trail.length > 95) p.trail.shift();
+    }
+
+    if (p.x > c.maxDist) c.maxDist = p.x;
+    c.statusText = milestoneJoke(p.x);
+
+    // Pneumatic Wheelbarrow Tire Bounce on Canyon Floor!
+    if (p.z <= FLOOR_Z + 4.4 && p.vz < 0) {
+      p.z = FLOOR_Z + 4.4;
+      p.vz = Math.abs(p.vz) * 0.62 + 34.0; // Pneumatic rubber tire + horn hop!
+      p.vx *= 0.94;
+      c.blasts.push({ x: p.x, y: p.y, z: FLOOR_Z + 1.0, age: 0, maxR: 26, col: [1.0, 0.84, 0.28] });
+      if (!p.bounced && !silent) {
+        p.bounced = true;
+        playSfx('meep');
+      }
+    }
+
+    // Impact on Bullseye Monolith at x >= 1430 (unless cranked past 2.2x Orbital Overdrive where he vaults over it!)
+    const hitMonolith = (p.x >= 1428 && p.x <= 1465 && Math.abs(p.y) < 30 && p.z < FLOOR_Z + 68);
+    if (hitMonolith || p.x > 2950 || p.age > 4.6) {
+      c.blasts.push({ x: p.x, y: p.y, z: Math.max(FLOOR_Z + 3, p.z), age: 0, maxR: 68, col: c.m.accentRgb, trailKeep: p.trail.slice() });
+      c.statusText = hitMonolith
+        ? `💥 ${Math.round(p.x)}u BULLSEYE! (${(p.x * 0.032).toFixed(1)}m)`
+        : `🛰️ ${Math.round(p.x)}u ORBITAL ESCAPE!`;
+      if (!silent) playSfx('boom');
+      return false;
+    }
+    return true;
+  }
+
+  function triggerYeet(c, silent = false) {
+    c.animState = 'fire';
+    c.framePos = c.m.fireRange[0];
+    c.launchedThisCycle = false;
+    c.statusText = '⚡ WINDING UP...';
+    if (!silent) playSfx(c.m.sfxKind);
+  }
+
+  // Optional ?shot=midflight pre-populates dramatic downrange arcs for instant visual inspection
+  if (PARAMS.get('shot') === 'midflight') {
+    [0.52, 0.95, 1.38].forEach((tFlight, idx) => {
+      cards[idx].animState = 'fire';
+      cards[idx].framePos = 22;
+      cards[idx].launchedThisCycle = true;
+      spawnYeetProjectile(cards[idx], tFlight);
+    });
+  }
+
+  // ------------------------------------------------------------------------- Build 3 Side-by-Side Cards DOM
+  const gridEl = $('grid');
+  cards.forEach((c, idx) => {
+    const m = c.m;
+    const art = document.createElement('article');
+    art.className = 'card';
+    art.innerHTML = `
+      <div class="card-head">
+        <div>
+          <span class="v-badge" style="background:${m.accent}26;color:${m.accent};border:1px solid ${m.accent}66">${m.badge}</span>
+          <h2 class="card-title">${m.code} · ${m.title}</h2>
+          <p class="card-tag">${m.tagline}</p>
+        </div>
+        <div class="card-meta mono">
+          <div>${m.nt.toLocaleString()} tris</div>
+          <div>${m.nf} frames</div>
+          <div style="color:${m.accent}">${m.md3Short}</div>
+        </div>
+      </div>
+
+      <div class="stage ${camMode === 'pov' ? 'pov-cursor' : ''}" data-idx="${idx}">
+        <div class="st-top-l">
+          <button class="mini-btn mini-yeet" data-act="fire">🔥 YEET!</button>
+          <span class="pill mono" data-role="phase">idle1 · 00/36</span>
+        </div>
+        <div class="st-top-r">
+          <div class="odo-pill">
+            <div class="odo-val mono" data-role="odoval">RANGE: READY</div>
+            <div class="odo-joke" data-role="odojoke">${c.statusText}</div>
+          </div>
+        </div>
+        <div class="xhair ${camMode === 'pov' ? '' : 'hidden'}" data-role="xhair"></div>
+        <div class="st-bot">
+          <span class="pill" style="font-size:10.5px;color:var(--muted)">Drag: Orbit · Click POV: Fire</span>
+          <button class="mini-btn" data-act="detail">🔍 Fullscreen &amp; Chase-Cam</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="preset-strip" data-role="presets">
+          <span class="lbl">Inspect:</span>
+        </div>
+        <ul class="hi-list">
+          ${m.highlights.map(h => `<li>${h}</li>`).join('')}
+        </ul>
+        <div class="chip-wrap" data-role="chips"></div>
+        <div class="vote-row">
+          <button class="btn-win" aria-pressed="false">🏆 Vote #1 Best (${m.code})</button>
+          <button class="btn-run" aria-pressed="false">🥈 #2 Runner-Up</button>
+        </div>
+      </div>
+    `;
+    gridEl.appendChild(art);
+
+    c.cardEl = art;
+    c.stageEl = art.querySelector('.stage');
+    c.phaseEl = art.querySelector('[data-role="phase"]');
+    c.odoValEl = art.querySelector('[data-role="odoval"]');
+    c.odoJokeEl = art.querySelector('[data-role="odojoke"]');
+    c.xhairEl = art.querySelector('[data-role="xhair"]');
+    c.winBtn = art.querySelector('.btn-win');
+    c.runBtn = art.querySelector('.btn-run');
+
+    art.querySelector('[data-act="fire"]').onclick = e => { e.stopPropagation(); triggerYeet(c); };
+    art.querySelector('[data-act="detail"]').onclick = e => { e.stopPropagation(); openDetail(idx); };
+
+    const pStrip = art.querySelector('[data-role="presets"]');
+    m.presets.forEach(([lbl, az, el, dist]) => {
+      const b = document.createElement('button');
+      b.textContent = lbl;
+      b.onclick = () => {
+        setCamMode('orbit');
+        c.az = az; c.el = el; c.dist = dist; c.pan = [0, 0, 0];
+      };
+      pStrip.appendChild(b);
+    });
+
+    const chipWrap = art.querySelector('[data-role="chips"]');
+    m.chips.forEach(chText => {
+      const cb = document.createElement('button');
+      cb.className = 'part-chip';
+      cb.setAttribute('aria-pressed', 'false');
+      cb.textContent = '+ ' + chText;
+      cb.onclick = () => {
+        const on = cb.getAttribute('aria-pressed') !== 'true';
+        cb.setAttribute('aria-pressed', String(on));
+        if (on) voteState.chips.add(chText); else voteState.chips.delete(chText);
+        refreshBallotUI();
+      };
+      chipWrap.appendChild(cb);
+    });
+
+    c.winBtn.onclick = () => {
+      voteState.winner = (voteState.winner === idx) ? null : idx;
+      if (voteState.winner !== null && voteState.runner === idx) voteState.runner = null;
+      refreshBallotUI();
+    };
+    c.runBtn.onclick = () => {
+      voteState.runner = (voteState.runner === idx) ? null : idx;
+      if (voteState.runner !== null && voteState.winner === idx) voteState.winner = null;
+      refreshBallotUI();
+    };
+
+    attachStagePointerControls(c.stageEl, () => c);
+  });
+
+  function refreshBallotUI() {
+    cards.forEach((c, idx) => {
+      const isW = voteState.winner === idx;
+      const isR = voteState.runner === idx;
+      c.cardEl.classList.toggle('is-winner', isW);
+      c.cardEl.classList.toggle('is-runner', isR);
+      c.winBtn.setAttribute('aria-pressed', String(isW));
+      c.winBtn.textContent = isW ? `🏆 #1 WINNER (${c.m.code})` : `🏆 Vote #1 Best (${c.m.code})`;
+      c.runBtn.setAttribute('aria-pressed', String(isR));
+    });
+    $('sum-win').textContent = voteState.winner !== null ? `${WEAPONS[voteState.winner].code} · ${WEAPONS[voteState.winner].title}` : 'Click Vote #1 on your favorite';
+    $('sum-run').textContent = voteState.runner !== null ? `${WEAPONS[voteState.runner].code} · ${WEAPONS[voteState.runner].title}` : 'None';
+    $('sum-chips').textContent = String(voteState.chips.size);
+  }
+
+  function buildBallotObject() {
+    return {
+      winner: voteState.winner !== null ? {
+        version: WEAPONS[voteState.winner].code,
+        title: WEAPONS[voteState.winner].title,
+        md3: WEAPONS[voteState.winner].md3File,
+      } : null,
+      runnerUp: voteState.runner !== null ? {
+        version: WEAPONS[voteState.runner].code,
+        title: WEAPONS[voteState.runner].title,
+        md3: WEAPONS[voteState.runner].md3File,
+      } : null,
+      favoriteParts: Array.from(voteState.chips),
+      mashupNote: $('mashup-note').value.trim(),
+    };
+  }
+
+  function buildBallotMarkdown() {
+    const b = buildBallotObject();
+    const lines = [
+      `### Mega Man Yeet-Cannon Vote`,
+      `- **#1 Winner**: ${b.winner ? `${b.winner.version} — ${b.winner.title} (\`${b.winner.md3}\`)` : 'Undecided'}`,
+      `- **#2 Runner-Up**: ${b.runnerUp ? `${b.runnerUp.version} — ${b.runnerUp.title}` : 'None'}`,
+    ];
+    if (b.favoriteParts.length) lines.push(`- **Favorite Parts**: ${b.favoriteParts.join(', ')}`);
+    if (b.mashupNote) lines.push(`- **Mashup / Tweak Note**: ${b.mashupNote}`);
+    return lines.join('\n');
+  }
+
+  $('btn-copy-vote').onclick = async () => {
+    const txt = buildBallotMarkdown();
+    try {
+      await navigator.clipboard.writeText(txt);
+      const btn = $('btn-copy-vote');
+      const prev = btn.textContent;
+      btn.textContent = '✅ Copied! Paste in Chat';
+      setTimeout(() => { btn.textContent = prev; }, 2200);
+    } catch (_) {
+      showLightbox(`
+        <div style="font-weight:850;color:var(--win)">Copy Your Mega Man Yeet-Gun Vote</div>
+        <textarea readonly onclick="this.select()">${txt}</textarea>
+        <button onclick="document.getElementById('lightbox').classList.remove('open')">Close</button>
+      `);
+    }
+  };
+
+  $('btn-save-json').onclick = () => {
+    const blob = new Blob([JSON.stringify(buildBallotObject(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'megaman_yeet_vote.json';
+    a.click();
+  };
+
+  // ------------------------------------------------------------------------- Camera Mode & Pointer Orbit Controls
+  function setCamMode(mode) {
+    camMode = mode;
+    if (mode !== 'pov') chaseCam = false;
+    $('btn-mode-pov').setAttribute('aria-pressed', String(mode === 'pov'));
+    $('btn-mode-spot').setAttribute('aria-pressed', String(mode === 'spotter'));
+    $('btn-mode-orbit').setAttribute('aria-pressed', String(mode === 'orbit'));
+    $('det-pov').setAttribute('aria-pressed', String(mode === 'pov' && !chaseCam));
+    $('det-spot').setAttribute('aria-pressed', String(mode === 'spotter' && !chaseCam));
+    $('det-orbit').setAttribute('aria-pressed', String(mode === 'orbit' && !chaseCam));
+    $('det-chase').setAttribute('aria-pressed', String(chaseCam));
+    cards.forEach(c => {
+      c.stageEl.classList.toggle('pov-cursor', mode === 'pov');
+      c.xhairEl.classList.toggle('hidden', mode !== 'pov');
+    });
+    $('det-xhair').classList.toggle('hidden', !(mode === 'pov' && !chaseCam));
+  }
+  setCamMode(camMode);
+
+  $('btn-mode-pov').onclick = () => setCamMode('pov');
+  $('btn-mode-spot').onclick = () => setCamMode('spotter');
+  $('btn-mode-orbit').onclick = () => setCamMode('orbit');
+
+  function attachStagePointerControls(el, getCard) {
+    let dragging = false, btn = 0, lx = 0, ly = 0, moved = 0;
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      dragging = true; btn = e.button; lx = e.clientX; ly = e.clientY; moved = 0;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      moved += Math.hypot(dx, dy);
+      if (moved > 4 && camMode === 'pov' && !chaseCam) setCamMode('orbit');
+      if (camMode === 'orbit' || camMode === 'spotter') {
+        const c = getCard();
+        if (btn === 2 || e.shiftKey) {
+          c.pan[1] += dx * 0.035;
+          c.pan[2] += dy * 0.035;
+        } else {
+          c.az -= dx * 0.0085;
+          c.el = Math.max(-1.25, Math.min(1.42, c.el + dy * 0.0085));
+        }
+      }
+    });
+    const endDrag = e => {
+      if (!dragging) return;
+      dragging = false;
+      el.classList.remove('dragging');
+      if (moved < 5 && btn === 0 && camMode === 'pov') triggerYeet(getCard());
+    };
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+    el.addEventListener('wheel', e => {
+      const c = getCard();
+      if (camMode === 'orbit') {
+        e.preventDefault();
+        c.dist = Math.max(8.5, Math.min(62.0, c.dist * Math.exp(e.deltaY * 0.0011)));
+      }
+    }, { passive: false });
+    el.addEventListener('dblclick', () => {
+      const c = getCard();
+      c.az = c.m.orbitAz; c.el = c.m.orbitEl; c.dist = c.m.orbitDist; c.pan = [0, 0, 0];
+    });
+  }
+  attachStagePointerControls($('detail-stage'), () => cards[Math.max(0, detailIdx)]);
+
+  // ------------------------------------------------------------------------- Toolbar & Fullscreen Modal Controls
+  function fireAllSalvo() {
+    cards.forEach((c, idx) => setTimeout(() => triggerYeet(c, idx > 0), idx * 140));
+  }
+  $('btn-yeet-all').onclick = fireAllSalvo;
+
+  $('btn-autoyeet').onclick = () => {
+    autoYeet = !autoYeet;
+    $('btn-autoyeet').setAttribute('aria-pressed', String(autoYeet));
+  };
+  $('btn-turntable').onclick = () => {
+    turntable = !turntable;
+    $('btn-turntable').setAttribute('aria-pressed', String(turntable));
+    if (turntable && camMode !== 'orbit') setCamMode('orbit');
+  };
+  $('btn-wire').onclick = () => {
+    wireframe = !wireframe;
+    $('btn-wire').setAttribute('aria-pressed', String(wireframe));
+  };
+  $('btn-torch').onclick = () => {
+    torchMode = !torchMode;
+    $('btn-torch').setAttribute('aria-pressed', String(torchMode));
+  };
+  $('btn-sfx').onclick = () => {
+    const on = $('btn-sfx').getAttribute('aria-pressed') !== 'true';
+    $('btn-sfx').setAttribute('aria-pressed', String(on));
+  };
+  $('power-slider').oninput = e => {
+    powerMul = parseFloat(e.target.value);
+    $('power-out').textContent = powerMul.toFixed(1) + '×';
+  };
+
+  function openDetail(idx) {
+    detailIdx = idx;
+    const c = cards[idx];
+    $('det-title').textContent = `${c.m.code} · ${c.m.title}`;
+    const dp = $('det-presets');
+    dp.innerHTML = '';
+    c.m.presets.forEach(([lbl, az, el, dist]) => {
+      const b = document.createElement('button');
+      b.textContent = lbl;
+      b.onclick = () => { chaseCam = false; setCamMode('orbit'); c.az = az; c.el = el; c.dist = dist; c.pan = [0, 0, 0]; };
+      dp.appendChild(b);
+    });
+    document.body.classList.add('detail-open');
+    $('detail-modal').classList.add('open');
+  }
+  function closeDetail() {
+    detailIdx = -1;
+    chaseCam = false;
+    detPaused = false;
+    $('det-pause').setAttribute('aria-pressed', 'false');
+    document.body.classList.remove('detail-open');
+    $('detail-modal').classList.remove('open');
+  }
+  $('det-back').onclick = closeDetail;
+  $('det-pov').onclick = () => { chaseCam = false; setCamMode('pov'); };
+  $('det-spot').onclick = () => { chaseCam = false; setCamMode('spotter'); };
+  $('det-orbit').onclick = () => { chaseCam = false; setCamMode('orbit'); };
+  $('det-chase').onclick = () => {
+    chaseCam = !chaseCam;
+    $('det-chase').setAttribute('aria-pressed', String(chaseCam));
+    if (chaseCam && detailIdx >= 0 && cards[detailIdx].projs.length === 0) triggerYeet(cards[detailIdx]);
+  };
+  $('det-fire').onclick = () => { if (detailIdx >= 0) triggerYeet(cards[detailIdx]); };
+  $('det-pause').onclick = () => {
+    detPaused = !detPaused;
+    $('det-pause').setAttribute('aria-pressed', String(detPaused));
+  };
+  $('det-scrub').oninput = e => {
+    if (detailIdx >= 0) {
+      detPaused = true;
+      $('det-pause').setAttribute('aria-pressed', 'true');
+      cards[detailIdx].framePos = parseFloat(e.target.value);
+    }
+  };
+
+  if (detailIdx >= 0 && detailIdx < 3) openDetail(detailIdx);
+
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (detailIdx >= 0) triggerYeet(cards[detailIdx]); else fireAllSalvo();
+    } else if (e.key === 'Escape') {
+      if ($('lightbox').classList.contains('open')) $('lightbox').classList.remove('open');
+      else if (detailIdx >= 0) closeDetail();
+    } else if (e.key === 'v' || e.key === 'V') setCamMode('pov');
+    else if (e.key === 'r' || e.key === 'R') setCamMode('spotter');
+    else if (e.key === 'o' || e.key === 'O') setCamMode('orbit');
+    else if (e.key === 'w' || e.key === 'W') $('btn-wire').click();
+    else if ((e.key === 'c' || e.key === 'C') && detailIdx >= 0) $('det-chase').click();
+  });
+
+  // Trigger an automatic staggered demo salvo right after load so the user immediately sees them SHOOT!
+  if (autoYeet && PARAMS.get('shot') !== 'midflight') {
+    setTimeout(() => { if (autoYeet) fireAllSalvo(); }, 550);
+  }
+
+  // ------------------------------------------------------------------------- WebGL2 Draw Routines
+  function drawModel(gpuM, f0, f1, lerp, matM, vp, eye) {
+    gl.useProgram(modelProg);
+    gl.uniformMatrix4fv(uModel.uVP, false, vp);
+    gl.uniformMatrix4fv(uModel.uM, false, matM);
+    gl.uniform1f(uModel.uLerp, lerp);
+    gl.uniform3fv(uModel.uEye, eye);
+    gl.uniform1f(uModel.uExposure, 1.24);
+    gl.uniform1i(uModel.uTorchMode, torchMode ? 1 : 0);
+    gl.uniform3f(uModel.uTint, 1, 1, 1);
+
+    for (const passAdd of [0, 1]) {
+      if (passAdd === 1) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        gl.depthMask(false);
+      } else {
+        gl.disable(gl.BLEND);
+        gl.depthMask(true);
+      }
+      for (const s of gpuM.surfs) {
+        if (s.additive !== passAdd) continue;
+        if (s.twoSided || passAdd === 1) gl.disable(gl.CULL_FACE);
+        else gl.enable(gl.CULL_FACE);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, glTex[s.tex]);
+        gl.uniform1i(uModel.uTex, 0);
+        gl.uniform1f(uModel.uMetallic, s.metallic);
+        gl.uniform1f(uModel.uRoughness, s.roughness);
+        gl.uniform1f(uModel.uSpec, s.spec);
+        gl.uniform1i(uModel.uUnlit, s.unlit);
+
+        const pStride = s.nv * 12;
+        const nStride = s.nv * 3;
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.posBuf);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, f0 * pStride);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 12, f1 * pStride);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.nrmBuf);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 3, gl.BYTE, true, 3, f0 * nStride);
+        gl.enableVertexAttribArray(3);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 3, f1 * nStride);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.uvBuf);
+        gl.enableVertexAttribArray(4);
+        gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 8, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.triBuf);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+
+    if (wireframe) {
+      gl.useProgram(wireProg);
+      gl.uniformMatrix4fv(uWireVP, false, vp);
+      gl.uniformMatrix4fv(uWireM, false, matM);
+      gl.uniform1f(uWireL, lerp);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.disableVertexAttribArray(1);
+      gl.disableVertexAttribArray(3);
+      gl.disableVertexAttribArray(4);
+      for (const s of gpuM.surfs) {
+        if (s.additive) continue;
+        const pStride = s.nv * 12;
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.posBuf);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, f0 * pStride);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 12, f1 * pStride);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.edgeBuf);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.disable(gl.BLEND);
+    }
+  }
+
+  function drawEnvBuffer(buf, count, mode, vp, additive = false) {
+    if (count <= 0) return;
+    gl.useProgram(envProg);
+    gl.uniformMatrix4fv(uEnvVP, false, vp);
+    gl.disable(gl.CULL_FACE);
+    gl.enable(gl.BLEND);
+    if (additive) {
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.depthMask(false);
+    } else {
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+    gl.disableVertexAttribArray(2);
+    gl.disableVertexAttribArray(3);
+    gl.disableVertexAttribArray(4);
+    gl.drawArrays(mode, 0, count);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+
+  function renderCandidateViewport(c, rect, dpr, isDetail) {
+    const vx = Math.round(rect.left * dpr);
+    const vy = Math.round((window.innerHeight - rect.bottom) * dpr);
+    const vw = Math.round(rect.width * dpr);
+    const vh = Math.round(rect.height * dpr);
+    if (vw <= 4 || vh <= 4 || vy + vh < 0 || vy > canvas.height) return;
+
+    gl.viewport(vx, vy, vw, vh);
+    gl.scissor(vx, vy, vw, vh);
+    gl.clearColor(0.055, 0.072, 0.115, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const aspect = vw / vh;
+    let eye, target, hfov;
+
+    if (isDetail && chaseCam && c.projs.length > 0) {
+      const p = c.projs[c.projs.length - 1];
+      eye = [p.x - 28.0, p.y - 7.5, p.z + 9.5];
+      target = [p.x + 42.0, p.y, p.z - 1.5];
+      hfov = 92;
+    } else if (camMode === 'pov') {
+      eye = [0, 0, 0];
+      target = [100, 0, -2.2];
+      hfov = 90;
+    } else if (camMode === 'spotter') {
+      const oc = c.pan;
+      eye = [-20 + oc[0], -25 + oc[1], 16 + oc[2]];
+      target = [155 + oc[0], 2 + oc[1], -11 + oc[2]];
+      hfov = 78;
+    } else {
+      const oc = c.m.orbitCenter;
+      const cx = oc[0] + c.pan[0], cy = oc[1] + c.pan[1], cz = oc[2] + c.pan[2];
+      eye = [
+        cx + c.dist * Math.cos(c.el) * Math.cos(c.az),
+        cy + c.dist * Math.cos(c.el) * Math.sin(c.az),
+        cz + c.dist * Math.sin(c.el),
+      ];
+      target = [cx, cy, cz];
+      hfov = 58;
+    }
+
+    const proj = mat4PerspectiveH(hfov, aspect, 1.0, 4200.0);
+    const view = mat4LookAt(eye, target, [0, 0, 1]);
+    const vp = mat4Mul(proj, view);
+
+    // 1) Draw Environment (1,650u Proving Canyon in POV/Spotter/Chase, Clean Grid + Downrange Line in Orbit)
+    if (camMode !== 'orbit' || (isDetail && chaseCam)) {
+      drawEnvBuffer(canyon.tBuf, canyon.tCount, gl.TRIANGLES, vp, false);
+      drawEnvBuffer(canyon.lBuf, canyon.lCount, gl.LINES, vp, false);
+    } else {
+      drawEnvBuffer(orbitGrid.lBuf, orbitGrid.lCount, gl.LINES, vp, false);
+    }
+
+    // 2) Draw Candidate Weapon Viewmodel (with DarkPlaces r_lerpmodels handling across launch boundary!)
+    const nf = c.m.nf;
+    const fRaw = Math.max(0, Math.min(nf - 1, c.framePos));
+    const f0 = Math.floor(fRaw);
+    let f1 = f0 + 1;
+    if (c.animState === 'idle') {
+      if (f1 > c.m.idleRange[1]) f1 = c.m.idleRange[0];
+    } else {
+      if (f1 > c.m.fireRange[1]) f1 = c.m.idleRange[0];
+    }
+    let lerp = fRaw - f0;
+    // Match megaman.qc: don't interpolate Mega Man shrinking across launch->empty frame!
+    if (f0 === 19 || f0 === 24) lerp = 0.0;
+
+    drawModel(c.m, f0, f1, lerp, mat4Identity(), vp, eye);
+
+    // 3) Draw Active Downrange Spinning Mega Man Projectiles + Glowing Parabolic Contrail Ribbons!
+    const ribbonTris = [];
+    for (const p of c.projs) {
+      const pf = (p.spin / 360) * 16;
+      const pf0 = Math.floor(pf) % 16;
+      const pf1 = (pf0 + 1) % 16;
+      // Scale slightly up far downrange (+0.85 base + tiny visibility boost) so spinning tires read clearly!
+      const visScale = 0.85 + Math.min(1.35, p.x * 0.0009);
+      const pm = mat4TRS(p.x, p.y, p.z, 0, p.pitch, 0, visScale);
+      drawModel(PROJ_MODEL, pf0, pf1, pf - Math.floor(pf), pm, vp, eye);
+
+      // Glowing 3D Ribbon Contrail along trajectory
+      const tr = p.trail;
+      for (let i = 0; i < tr.length - 1; i++) {
+        const a = tr[i], b = tr[i + 1];
+        const tFrac = (i + 1) / tr.length;
+        const w = 0.55 + 1.85 * tFrac;
+        const alpha = 0.14 + 0.72 * tFrac;
+        const [cr, cg, cb] = p.col;
+        ribbonTris.push(
+          a[0], a[1] - w, a[2], cr, cg, cb, alpha,
+          a[0], a[1] + w, a[2], cr, cg, cb, alpha,
+          b[0], b[1] + w, b[2], cr, cg, cb, alpha,
+          a[0], a[1] - w, a[2], cr, cg, cb, alpha,
+          b[0], b[1] + w, b[2], cr, cg, cb, alpha,
+          b[0], b[1] - w, b[2], cr, cg, cb, alpha
+        );
+      }
+    }
+
+    // 4) Draw Tire-Bounce Rings & Distant Target Explosion Shockwaves + Lingering Contrail
+    for (const bl of c.blasts) {
+      const u = Math.min(1, bl.age / 0.65);
+      const rad = 3.0 + bl.maxR * Math.pow(u, 0.55);
+      const al = (1.0 - u) * 0.88;
+      const [cr, cg, cb] = bl.col;
+      const segs = 20;
+      for (let s = 0; s < segs; s++) {
+        const a0 = (s / segs) * Math.PI * 2, a1 = ((s + 1) / segs) * Math.PI * 2;
+        const y0 = bl.y + Math.cos(a0) * rad, z0 = bl.z + Math.sin(a0) * rad;
+        const y1 = bl.y + Math.cos(a1) * rad, z1 = bl.z + Math.sin(a1) * rad;
+        ribbonTris.push(
+          bl.x, bl.y, bl.z, 1, 0.95, 0.75, al * 0.55,
+          bl.x, y0, z0, cr, cg, cb, al,
+          bl.x, y1, z1, cr, cg, cb, al
+        );
+      }
+      if (bl.trailKeep) {
+        const tr = bl.trailKeep;
+        const fade = (1.0 - u) * 0.55;
+        for (let i = 0; i < tr.length - 1; i++) {
+          const a = tr[i], b = tr[i + 1];
+          ribbonTris.push(
+            a[0], a[1] - 1.1, a[2], cr, cg, cb, fade,
+            a[0], a[1] + 1.1, a[2], cr, cg, cb, fade,
+            b[0], b[1] + 1.1, b[2], cr, cg, cb, fade,
+            a[0], a[1] - 1.1, a[2], cr, cg, cb, fade,
+            b[0], b[1] + 1.1, b[2], cr, cg, cb, fade,
+            b[0], b[1] - 1.1, b[2], cr, cg, cb, fade
+          );
+        }
+      }
+    }
+
+    if (ribbonTris.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, dynBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(ribbonTris), gl.DYNAMIC_DRAW);
+      drawEnvBuffer(dynBuf, ribbonTris.length / 7, gl.TRIANGLES, vp, true);
+    }
+  }
+
+  // ------------------------------------------------------------------------- Main Animation & Render Loop
+  let lastT = performance.now();
+  let salvoTimer = 0;
+
+  function tick(now) {
+    const dt = Math.min(0.05, Math.max(0.001, (now - lastT) / 1000));
+    lastT = now;
+
+    if (autoYeet && detailIdx < 0) {
+      salvoTimer += dt;
+      if (salvoTimer > 3.6) {
+        salvoTimer = 0;
+        fireAllSalvo();
+      }
+    } else if (autoYeet && detailIdx >= 0 && !detPaused) {
+      salvoTimer += dt;
+      if (salvoTimer > 3.2 && cards[detailIdx].animState === 'idle' && cards[detailIdx].projs.length === 0) {
+        salvoTimer = 0;
+        triggerYeet(cards[detailIdx]);
+      }
+    }
+
+    cards.forEach((c, idx) => {
+      if (turntable && camMode === 'orbit') c.az += dt * 0.52;
+
+      const pausedHere = (lockedFrame !== null) || (detailIdx === idx && detPaused);
+      if (lockedFrame !== null) {
+        c.framePos = lockedFrame;
+      } else if (!pausedHere) {
+        const fps = c.m.fps;
+        c.framePos += dt * fps;
+        if (c.animState === 'idle') {
+          const [i0, i1] = c.m.idleRange;
+          const span = i1 - i0 + 1;
+          if (c.framePos >= i1 + 1) c.framePos = i0 + ((c.framePos - i0) % span);
+        } else {
+          if (!c.launchedThisCycle && c.framePos >= c.m.launchFrame) {
+            c.launchedThisCycle = true;
+            spawnYeetProjectile(c, 0);
+          }
+          if (c.framePos >= c.m.fireRange[1] + 0.99) {
+            c.animState = 'idle';
+            c.framePos = c.m.idleRange[0];
+          }
+        }
+      }
+
+      if (lockedFrame === null) {
+        c.projs = c.projs.filter(p => stepSingleProj(c, p, dt, detailIdx >= 0 && detailIdx !== idx));
+        c.blasts = c.blasts.filter(b => { b.age += dt; return b.age < 0.65; });
+      }
+
+      // Update Card HUD Readouts
+      const fi = Math.min(c.m.nf - 1, Math.floor(c.framePos));
+      const fnm = c.m.frameNames[fi] || `f${fi}`;
+      c.phaseEl.textContent = `${fnm} · ${String(fi).padStart(2, '0')}/${c.m.nf - 1}`;
+      const liveX = c.projs.length > 0 ? c.projs[c.projs.length - 1].x : c.maxDist;
+      c.odoValEl.textContent = liveX > 1 ? `YEET: ${Math.round(liveX).toLocaleString()} u` : 'RANGE: READY';
+      c.odoJokeEl.textContent = c.statusText;
+
+      if (detailIdx === idx) {
+        $('det-frame').textContent = `${fnm} · ${String(fi).padStart(2, '0')}/${c.m.nf - 1}`;
+        if (!detPaused) $('det-scrub').value = fi;
+        $('det-odo').textContent = `${c.odoValEl.textContent} · ${c.statusText}`;
+      }
+    });
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.round(window.innerWidth * dpr);
+    const H = Math.round(window.innerHeight * dpr);
+    if (canvas.width !== W || canvas.height !== H) {
+      canvas.width = W;
+      canvas.height = H;
+    }
+
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, W, H);
+    gl.clearColor(0.035, 0.047, 0.075, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (detailIdx >= 0) {
+      renderCandidateViewport(cards[detailIdx], $('detail-stage').getBoundingClientRect(), dpr, true);
+    } else {
+      for (const c of cards) {
+        renderCandidateViewport(c, c.stageEl.getBoundingClientRect(), dpr, false);
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  $('loading').classList.add('done');
+  requestAnimationFrame(tick);
+}
+
+boot().catch(err => {
+  console.error(err);
+  $('loading').textContent = 'Error initializing WebGL2 studio: ' + err.message;
+});
+})();
+</script>
+</body>
+</html>

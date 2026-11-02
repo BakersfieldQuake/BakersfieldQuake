@@ -1,0 +1,70 @@
+{
+  "stage": 2,
+  "description": "Stage 2 — All bridges, viaducts, elevated stations, and pedestrian skybridges verified in the z=18..z=20 aerials and Street View (zero unconfirmed bridges).",
+  "bts_viaduct": {
+    "name": "BTS Sukhumvit Line Concrete Viaduct",
+    "centerline_pts_m": [
+      [-399.0, 212.0],
+      [-312.0, 188.0],
+      [-200.0, 154.5],
+      [-150.0, 136.5],
+      [-100.0, 116.5],
+      [-34.5, 84.37],
+      [0.0, 63.5],
+      [195.0, -54.5],
+      [344.0, -144.62]
+    ],
+    "soffit_z_m": 7.2,
+    "girder_top_z_m": 9.0,
+    "parapet_top_z_m": 10.3,
+    "girder_bottom_width_m": 5.2,
+    "deck_width_m": 9.8,
+    "overpass_hump_over_expressway": {
+      "x_range_m": [-355.0, -265.0],
+      "extra_z_m": 5.8,
+      "note": "BTS viaduct rises to clear the Chaloem Maha Nakhon Elevated Expressway at X=-316m (z18_hyb_grid.jpg)"
+    },
+    "piers_x_m": [-385.0, -355.0, -248.0, -212.0, -180.0, -148.0, -114.0, -82.0, -52.0, -14.0, 18.0, 50.0, 82.0, 114.0, 146.0, 178.0],
+    "note": "Note exact 38m clear span across Soi 4 / Soi 3 offset intersection between Pier at X=-52m (left of Soi 4 vista in ref_045/ref_052) and Pier at X=-14m (right-centre of Soi 4 vista in ref_045/ref_046)!"
+  },
+  "bts_nana_station": {
+    "name": "BTS Nana Station (E3)",
+    "center_m": [265.0, -96.8],
+    "yaw_deg": -31.17,
+    "length_m": 136.0,
+    "concourse_width_m": 18.5,
+    "platform_width_m": 21.6,
+    "concourse_z_m": [6.4, 8.8],
+    "platform_z_m": [11.2, 12.6],
+    "canopy_z_m": [16.2, 17.8],
+    "skybridge_ones": {
+      "pts_m": [[206.0, -64.0], [166.0, -72.0]],
+      "width_m": 4.2,
+      "z_m": [6.4, 9.6],
+      "note": "BTS Nana Exit 2 / O-NES Tower pedestrian skybridge visible in z19_hyb_grid.jpg & z18_hyb_grid.jpg"
+    }
+  },
+  "chaloem_expressway": {
+    "name": "Chaloem Maha Nakhon Elevated Expressway (ทางพิเศษเฉลิมมหานคร)",
+    "centerline_pts_m": [
+      [-335.0, 373.0],
+      [-316.0, 185.0],
+      [-300.0, 0.0],
+      [-281.0, -200.0],
+      [-266.0, -371.0]
+    ],
+    "deck_width_m": 25.0,
+    "soffit_z_m": 6.0,
+    "deck_top_z_m": 7.8,
+    "parapet_top_z_m": 8.9,
+    "pier_spacing_m": 36.0,
+    "note": "Confirmed 6-lane elevated highway bridging over Phloen Chit / Sukhumvit Rd in z18_sat_grid.jpg & z18_hyb_grid.jpg"
+  },
+  "duang_phithak_skybridge": {
+    "name": "JW Marriott — Ploenchit Center Pedestrian Link",
+    "pts_m": [[-168.0, 12.0], [-147.0, 12.0]],
+    "width_m": 3.6,
+    "z_m": [5.6, 8.6],
+    "note": "Confirmed elevated walkway over Soi 2 corridor in z18_sat_grid.jpg"
+  }
+}

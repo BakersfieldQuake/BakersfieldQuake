@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milky Gun Sounds</title>
+<style>
+:root {
+  --bg: #15131a; --panel: #211d29; --line: #3a3347; --text: #f1ecf7; --dim: #a79eb8;
+  --pink: #ff4fa0; --milk: #f4f1ea; --green: #4be08a; --red: #ff6b6b; --amber: #ffc857;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { margin: 0 0 4px; font-size: 26px; }
+h1 span { color: var(--pink); }
+h2 { margin: 28px 0 8px; font-size: 18px; }
+p.sub { color: var(--dim); margin: 0 0 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 10px 0; }
+canvas { width: 100%; display: block; background: #0f0d13; border-radius: 8px; touch-action: none; cursor: crosshair; }
+button { background: #332c40; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+button:hover { background: #413852; }
+button.go { background: var(--pink); border-color: var(--pink); color: #200816; font-weight: 700; }
+button.go:hover { background: #ff6cb0; }
+button.stop { background: #4a2a31; border-color: #7a3d49; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0; }
+label { color: var(--dim); }
+input[type=number] { width: 92px; background: #0f0d13; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font: inherit; }
+input[type=range] { width: 200px; accent-color: var(--pink); }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); }
+.g { color: var(--green); border-color: var(--green); }
+.r { color: var(--red); border-color: var(--red); }
+.a { color: var(--amber); border-color: var(--amber); }
+.fx { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.fx .card { margin: 0; }
+.fxhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.fxhead b { font-size: 16px; }
+.note { color: var(--dim); font-size: 13px; margin-top: 6px; }
+.words { max-height: 210px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: #0f0d13; }
+.words div { padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.words div:hover { background: #2a2433; }
+.words time { color: var(--amber); font-variant-numeric: tabular-nums; margin-right: 8px; }
+textarea { width: 100%; height: 130px; background: #0f0d13; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 13px/1.4 ui-monospace, Consolas, monospace; }
+.kbd { font: 12px ui-monospace, Consolas, monospace; background: #0f0d13; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+#status { color: var(--dim); }
+.steps { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin: 10px 0; }
+.step { flex: 1 1 280px; display: flex; gap: 12px; align-items: center; background: #1a1622; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.step .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--pink); color: #200816; font-weight: 800; display: grid; place-items: center; }
+.step > div { flex: 1; }
+.step small { color: var(--dim); }
+.then { align-self: center; color: var(--amber); font-weight: 700; text-align: center; padding: 0 4px; }
+button.big { font-size: 18px; padding: 12px 22px; }
+.tl { position: relative; height: 26px; background: #0f0d13; border-radius: 8px; overflow: hidden; margin: 8px 0; }
+.tl .seg1 { position: absolute; top: 0; bottom: 0; background: rgba(255,200,87,0.30); }
+.tl .seg2 { position: absolute; top: 0; bottom: 0; right: 0; background: rgba(75,224,138,0.22); }
+.tl .bar { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--pink); left: 0; }
+.tl span { position: absolute; top: 4px; font-size: 12px; color: var(--text); padding: 0 8px; }
+.cand { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.cand button.on { outline: 2px solid var(--amber); }
+select { background: #0f0d13; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>Milky Gun</span> sounds</h1>
+  <p class="sub">Everything the gun plays, on one page. Click a waveform to move the play position, drag the coloured handles to re-cut. <span class="kbd">Space</span> plays or stops the song.</p>
+  <div id="status">Loading the audio...</div>
+
+  <div class="card" id="game">
+    <b style="font-size:17px">What plays in the game, in order</b>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div><b>You press FIRE</b><br><small>the shot line, on two channels (twice as loud)</small></div><button class="go" id="gFire">&#9654; Play</button></div>
+      <div class="then">1.28 s<br>later</div>
+      <div class="step"><span class="n">2</span><div><b>She is THROWN</b><br><small>the flight song starts from her and keeps going while she floats</small></div><button class="go" id="gSong">&#9654; Play</button></div>
+    </div>
+    <div class="row">
+      <button class="go big" id="gBoth">&#9654; Play both, one after the other</button>
+      <button class="stop" id="gStop">Stop</button>
+      <label>song plays for <select id="gLen"><option value="6">6 s</option><option value="15" selected>15 s</option><option value="45">45 s</option><option value="end">to the end</option></select></label>
+    </div>
+    <div class="tl" id="tl"><div class="seg1" id="tlA"></div><div class="seg2" id="tlB"></div><div class="bar" id="tlBar"></div><span id="tlT">fire line, then the song</span></div>
+    <b>Which part of the track is the fire line?</b>
+    <div class="cand">
+      <button id="candA">1:09 &mdash; where the transcript heard "sucky sucky now mommy"</button>
+      <button id="candB">1:44 &mdash; where you said it is</button>
+      <span class="tag">clicking one plays it and makes it the fire line (amber below)</span>
+    </div>
+  </div>
+
+  <h2>1. The song, and the shot line</h2>
+  <div class="card">
+    <p class="sub" style="margin-top:0">The whole track. <span class="tag g">green</span> is where the song starts when she is thrown (the gun cuts away everything before it; she plays it all the way to the end, so people know). <span class="tag a">amber</span> is the line that plays when you press fire.</p>
+    <canvas id="wave" height="170"></canvas>
+    <div class="row">
+      <button class="go" id="playFrom">Play the flight song (from green)</button>
+      <button id="playAll">Play from the playhead</button>
+      <button id="playFire">Play the shot line (amber)</button>
+      <button class="stop" id="stop">Stop</button>
+      <span id="clock" class="tag">0:00.0</span>
+    </div>
+    <div class="row">
+      <label>Song starts at <input id="songFrom" type="number" step="0.1" min="0"> s</label>
+      <label>Shot line from <input id="fireA" type="number" step="0.05" min="0"> to <input id="fireB" type="number" step="0.05" min="0"> s</label>
+      <button id="nudgeM">-0.1</button><button id="nudgeP">+0.1</button>
+      <span class="tag">nudges both amber ends</span>
+    </div>
+    <div class="row">
+      <label>Copies of the song playing at once <input id="layers" type="range" min="1" max="4" step="1" value="4"> <b id="layersN">4</b></label>
+      <span class="tag">in game: 3 that carry far + 1 that plays across the whole map, so this is about 4</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <b>What the lyrics sound like at each place</b>
+    <p class="sub">From a speech-to-text pass over the track (rough: it is a song, so it misses words and made some up). Click a line to jump there and listen. The line you asked for, "need sucky sucky now mommy", was found here near 1:06, not at 1:45, so check both.</p>
+    <div class="words" id="words"></div>
+    <div class="row">
+      <button id="jump66">Jump to 1:05.9 (where the transcript heard it)</button>
+      <button id="jump105">Jump to 1:44 (where you said)</button>
+    </div>
+  </div>
+
+  <h2>2. The shot, and the burst</h2>
+  <p class="sub">Each one plays at the pitch and volume the gun uses (slowed down = deeper and longer).</p>
+  <div class="row">
+    <button class="go" id="burstAll">Play the whole burst (all four layered)</button>
+    <button class="stop" id="stop2">Stop</button>
+  </div>
+  <div class="fx" id="fx"></div>
+
+  <h2>3. Pick and tell me</h2>
+  <div class="card">
+    <p class="sub" style="margin-top:0">Paste this back to me (or just say what to change). It updates as you move things.</p>
+    <textarea id="picks" readonly></textarea>
+    <div class="row"><button class="go" id="save">Save picks to a file</button><button id="copy">Copy</button><span id="copied" class="tag" style="display:none">done</span><span class="tag">your picks are also remembered in this browser, so closing the page loses nothing</span></div><p class="sub" id="saveHelp" style="margin:6px 0 0">The file is called <b>milky_picks.json</b> and lands in your Downloads folder. Tell me you saved it and I will read it and update the game.</p>
+  </div>
+</main>
+
+<script>
+"use strict";
+const SONG_B64 = "/*SONG*/";
+const FX = /*FX*/[];
+const WORDS = /*WORDS*/[];
+
+const $ = id => document.getElementById(id);
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+let song = null, songDur = 0;
+const st = { songFrom: 20.1, fireA: 68.9, fireB: 71.7, head: 0 };
+const play = { src: [], t0: 0, off: 0, on: false };
+
+function bytes(b64) { const s = atob(b64), a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a.buffer; }
+const fmt = t => { const m = Math.floor(t / 60); return m + ":" + (t - m * 60).toFixed(1).padStart(4, "0"); };
+
+// ---------------------------------------------------------------- playing
+function stopAll() { play.src.forEach(s => { try { s.stop(); } catch (e) {} }); play.src = []; play.on = false; }
+function startBuf(buf, off, dur, rate, vol, dest, when) {
+  const s = AC.createBufferSource(); s.buffer = buf; s.playbackRate.value = rate || 1;
+  const g = AC.createGain(); g.gain.value = vol == null ? 1 : vol;
+  s.connect(g); g.connect(dest || master);
+  s.start(when || 0, off, dur); play.src.push(s); return s;
+}
+const master = AC.createDynamicsCompressor();   // a limiter, so stacking copies gets louder without clipping into noise
+master.threshold.value = -3; master.knee.value = 0; master.ratio.value = 20; master.attack.value = 0.002; master.release.value = 0.1;
+master.connect(AC.destination);
+
+function playSong(from, to) {
+  AC.resume(); stopAll();
+  const n = +$("layers").value;
+  const dur = (to == null ? songDur : to) - from;
+  for (let i = 0; i < n; i++) startBuf(song, from, dur, 1, 1 / Math.sqrt(n) * (i === n - 1 && n > 1 ? 0.6 : 1) * 1.15);
+  play.t0 = AC.currentTime; play.off = from; play.on = true; play.end = from + dur;
+}
+$("playFrom").onclick = () => playSong(st.songFrom);
+$("playAll").onclick = () => playSong(st.head);
+$("playFire").onclick = () => playSong(st.fireA, st.fireB);
+$("stop").onclick = $("stop2").onclick = stopAll;
+addEventListener("keydown", e => { if (e.code === "Space" && e.target.tagName !== "INPUT") { e.preventDefault(); play.on ? stopAll() : playSong(st.head > 0 ? st.head : st.songFrom); } });
+$("layers").oninput = () => { $("layersN").textContent = $("layers").value; };
+$("jump66").onclick = () => { st.head = 65.9; draw(); playSong(65.9, 72.5); };
+$("jump105").onclick = () => { st.head = 104.2; draw(); playSong(104.2, 107.4); };
+
+// ---------------------------------------------------------------- the game's order: fire line, then the song
+const WIND = 1.28;
+const gl = { on: false, t0: 0, total: 1 };
+const songLen = () => { const v = $("gLen").value; return v === "end" ? songDur - st.songFrom : Math.min(+v, songDur - st.songFrom); };
+function layerGain(i, n) { return 1 / Math.sqrt(n) * (i === n - 1 && n > 1 ? 0.6 : 1) * 1.15; }
+function fireNow(when) { for (let i = 0; i < 2; i++) startBuf(song, st.fireA, st.fireB - st.fireA, 1, 0.9, master, when); }
+function songNow(when, len) { const n = +$("layers").value; for (let i = 0; i < n; i++) startBuf(song, st.songFrom, len, 1, layerGain(i, n), master, when); }
+function timeline(total, fireLen) {
+  gl.on = true; gl.t0 = AC.currentTime + 0.05; gl.total = total; play.on = false;
+  $("tlA").style.left = "0"; $("tlA").style.width = (WIND / total * 100) + "%";
+  $("tlB").style.left = (WIND / total * 100) + "%"; $("tlB").style.width = (100 - WIND / total * 100) + "%";
+  $("tlT").textContent = "fire line (" + fireLen.toFixed(1) + " s) — thrown at 1.28 s — the song";
+}
+$("gFire").onclick = () => { AC.resume(); stopAll(); const w = AC.currentTime + 0.05; fireNow(w); timeline(st.fireB - st.fireA, st.fireB - st.fireA); $("tlA").style.width = "100%"; $("tlB").style.width = "0"; $("tlT").textContent = "the shot line"; };
+$("gSong").onclick = () => { AC.resume(); stopAll(); const w = AC.currentTime + 0.05, len = songLen(); songNow(w, len); timeline(len, 0); $("tlA").style.width = "0"; $("tlB").style.left = "0"; $("tlB").style.width = "100%"; $("tlT").textContent = "the flight song, from " + fmt(st.songFrom); };
+$("gBoth").onclick = () => { AC.resume(); stopAll(); const w = AC.currentTime + 0.05, len = songLen(); fireNow(w); songNow(w + WIND, len); timeline(WIND + len, st.fireB - st.fireA); };
+$("gStop").onclick = () => { stopAll(); gl.on = false; $("tlBar").style.left = "0"; };
+function candidate(a, b, btn) {
+  st.fireA = a; st.fireB = b; draw();
+  document.querySelectorAll(".cand button").forEach(x => x.classList.remove("on")); btn.classList.add("on");
+  AC.resume(); stopAll(); fireNow(AC.currentTime + 0.05); timeline(b - a, b - a); $("tlA").style.width = "100%"; $("tlB").style.width = "0"; $("tlT").textContent = "the shot line, " + fmt(a) + " to " + fmt(b);
+}
+$("candA").onclick = () => candidate(68.9, 71.9, $("candA"));
+$("candB").onclick = () => candidate(104.2, 107.4, $("candB"));
+
+// ---------------------------------------------------------------- the waveform
+const cv = $("wave"), cx = cv.getContext("2d");
+let peaks = null;
+function resize() { cv.width = cv.clientWidth * devicePixelRatio; cv.height = 170 * devicePixelRatio; makePeaks(); draw(); }
+function makePeaks() {
+  if (!song) return;
+  const w = cv.width, d = song.getChannelData(0), per = d.length / w; peaks = new Float32Array(w * 2);
+  for (let x = 0; x < w; x++) { let lo = 1, hi = -1; const a = Math.floor(x * per), b = Math.floor((x + 1) * per);
+    for (let i = a; i < b; i += 4) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; } peaks[2 * x] = lo; peaks[2 * x + 1] = hi; }
+}
+const X = t => t / songDur * cv.width, T = x => x / cv.width * songDur;
+function draw() {
+  if (!song) return;
+  const w = cv.width, h = cv.height, m = h / 2;
+  cx.clearRect(0, 0, w, h);
+  cx.fillStyle = "rgba(75,224,138,0.10)"; cx.fillRect(X(st.songFrom), 0, w - X(st.songFrom), h);
+  cx.fillStyle = "rgba(255,200,87,0.22)"; cx.fillRect(X(st.fireA), 0, X(st.fireB) - X(st.fireA), h);
+  cx.fillStyle = "#f4f1ea";
+  for (let x = 0; x < w; x++) { const lo = peaks[2 * x], hi = peaks[2 * x + 1]; cx.fillRect(x, m - hi * m * 0.95, 1, Math.max(1, (hi - lo) * m * 0.95)); }
+  cx.fillStyle = "#a79eb8"; cx.font = (11 * devicePixelRatio) + "px system-ui";
+  for (let t = 0; t < songDur; t += 10) { cx.fillRect(X(t), h - 14 * devicePixelRatio, 1, 14 * devicePixelRatio); cx.fillText(fmt(t).replace(".0", ""), X(t) + 3, h - 3); }
+  handle(st.songFrom, "#4be08a", "start");
+  handle(st.fireA, "#ffc857", "shot"); handle(st.fireB, "#ffc857", "");
+  cx.fillStyle = "#ff4fa0"; cx.fillRect(X(st.head), 0, 2 * devicePixelRatio, h);
+  $("songFrom").value = st.songFrom.toFixed(1); $("fireA").value = st.fireA.toFixed(2); $("fireB").value = st.fireB.toFixed(2);
+  picks();
+}
+function handle(t, col, label) {
+  const x = X(t), d = devicePixelRatio; cx.fillStyle = col; cx.fillRect(x - d, 0, 2 * d, cv.height);
+  cx.beginPath(); cx.moveTo(x - 7 * d, 0); cx.lineTo(x + 7 * d, 0); cx.lineTo(x, 12 * d); cx.fill();
+  if (label) { cx.font = (12 * d) + "px system-ui"; cx.fillText(label + " " + fmt(t), x + 8 * d, 26 * d); }
+}
+let drag = null;
+cv.addEventListener("pointerdown", e => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * cv.width / r.width, near = (t) => Math.abs(X(t) - x) < 12 * devicePixelRatio;
+  drag = near(st.songFrom) ? "songFrom" : near(st.fireA) ? "fireA" : near(st.fireB) ? "fireB" : "head";
+  cv.setPointerCapture(e.pointerId); move(e);
+});
+cv.addEventListener("pointermove", e => { if (drag) move(e); });
+cv.addEventListener("pointerup", () => { drag = null; });
+function move(e) {
+  const r = cv.getBoundingClientRect(); let t = T((e.clientX - r.left) * cv.width / r.width); t = Math.max(0, Math.min(songDur, t));
+  st[drag] = drag === "head" ? t : Math.round(t * 20) / 20; if (st.fireB < st.fireA + 0.2) st.fireB = st.fireA + 0.2; draw();
+}
+for (const [id, k] of [["songFrom", "songFrom"], ["fireA", "fireA"], ["fireB", "fireB"]]) $(id).onchange = () => { st[k] = +$(id).value; draw(); };
+$("nudgeM").onclick = () => { st.fireA -= 0.1; st.fireB -= 0.1; draw(); };
+$("nudgeP").onclick = () => { st.fireA += 0.1; st.fireB += 0.1; draw(); };
+
+(function tick() {
+  if (gl.on) { const e = AC.currentTime - gl.t0; if (e >= gl.total) { gl.on = false; $("tlBar").style.left = "100%"; } else { $("tlBar").style.left = Math.max(0, e / gl.total * 100) + "%"; } }
+  if (play.on && song) {
+    const t = play.off + (AC.currentTime - play.t0);
+    if (t >= play.end) { play.on = false; } else { st.head = t; $("clock").textContent = fmt(t); if (!drag) draw(); }
+  }
+  requestAnimationFrame(tick);
+})();
+
+// ---------------------------------------------------------------- the effects
+const fxBufs = [];
+function fxCard(f, i) {
+  const el = document.createElement("div"); el.className = "card";
+  el.innerHTML = '<div class="fxhead"><b></b><span><button class="go">Play</button> <span class="tag"></span></span></div><canvas height="64"></canvas><div class="note"></div>';
+  el.querySelector("b").textContent = f.title;
+  el.querySelector(".tag").textContent = "pitch " + f.pitch + " · volume " + f.vol;
+  el.querySelector(".note").textContent = f.file + " — " + f.note;
+  el.querySelector("button").onclick = () => { AC.resume(); stopAll(); startBuf(fxBufs[i], 0, undefined, f.pitch, f.vol); if (i === 0) startBuf(fxBufs[i], 0, undefined, f.pitch, f.vol); };
+  $("fx").appendChild(el);
+  const c = el.querySelector("canvas"); c.width = c.clientWidth * devicePixelRatio; c.height = 64 * devicePixelRatio;
+  const g = c.getContext("2d"), d = fxBufs[i].getChannelData(0), m = c.height / 2, per = d.length / c.width;
+  g.fillStyle = "#f4f1ea";
+  for (let x = 0; x < c.width; x++) { let lo = 1, hi = -1; for (let k = Math.floor(x * per); k < Math.floor((x + 1) * per); k++) { const v = d[k]; if (v < lo) lo = v; if (v > hi) hi = v; } g.fillRect(x, m - hi * m, 1, Math.max(1, (hi - lo) * m)); }
+  const dur = fxBufs[i].duration / f.pitch; el.querySelector(".tag").textContent += " · " + dur.toFixed(2) + " s as played";
+}
+$("burstAll").onclick = () => { AC.resume(); stopAll(); [1, 2, 3, 4].forEach(i => startBuf(fxBufs[i], 0, undefined, FX[i].pitch, FX[i].vol)); };
+
+// ---------------------------------------------------------------- what to paste back
+const KEY = "milky-sound-picks";
+function remember() { try { localStorage.setItem(KEY, JSON.stringify({ songFrom: st.songFrom, fireA: st.fireA, fireB: st.fireB, layers: +$("layers").value })); } catch (e) {} }
+function restore() {
+  try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (!v) return;
+    st.songFrom = v.songFrom; st.fireA = v.fireA; st.fireB = v.fireB; if (v.layers) { $("layers").value = v.layers; $("layersN").textContent = v.layers; } } catch (e) {}
+}
+function picks() {
+  remember();
+  $("picks").value =
+    "SONG_FROM = " + st.songFrom.toFixed(1) + "    # the song plays from here to the end while she floats\n" +
+    "FIRE_CUT = (" + st.fireA.toFixed(2) + ", " + st.fireB.toFixed(2) + ")    # the line when you press fire\n" +
+    "song copies at once in game: " + $("layers").value + "\n\n(build_milky_assets.py reads SONG_FROM / FIRE_CUT)";
+}
+$("save").onclick = () => {
+  const o = { SONG_FROM: +st.songFrom.toFixed(2), FIRE_CUT: [+st.fireA.toFixed(2), +st.fireB.toFixed(2)], song_copies: +$("layers").value, saved: new Date().toISOString() };
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(o, null, 2)], { type: "application/json" })); a.download = "milky_picks.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  $("copied").style.display = "inline-block"; $("copied").textContent = "saved: milky_picks.json"; setTimeout(() => $("copied").style.display = "none", 2500);
+};
+$("copy").onclick = async () => { try { await navigator.clipboard.writeText($("picks").value); } catch (e) { $("picks").select(); document.execCommand("copy"); } $("copied").style.display = "inline-block"; setTimeout(() => $("copied").style.display = "none", 1500); };
+
+// ---------------------------------------------------------------- start
+(async function () {
+  try {
+    song = await AC.decodeAudioData(bytes(SONG_B64)); songDur = song.duration;
+    for (let i = 0; i < FX.length; i++) { fxBufs.push(await AC.decodeAudioData(bytes(FX[i].data))); }
+    FX.forEach(fxCard);
+    const wl = $("words");
+    WORDS.forEach(w => { const d = document.createElement("div"); d.innerHTML = "<time>" + fmt(w[0]) + "</time>"; d.appendChild(document.createTextNode(w[2])); d.onclick = () => { st.head = w[0]; draw(); playSong(w[0], Math.min(songDur, w[1] + 1)); }; wl.appendChild(d); });
+    if (!WORDS.length) wl.textContent = "(no transcript was embedded)";
+    $("status").textContent = "Song " + fmt(songDur) + " · " + FX.length + " other sounds loaded.";
+    restore();
+    addEventListener("resize", resize); resize();
+  } catch (e) { $("status").textContent = "Could not decode the audio: " + e; }
+})();
+</script>
+</body>
+</html>

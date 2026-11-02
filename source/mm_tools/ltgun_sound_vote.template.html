@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laptop Gun Sounds</title>
+<style>
+:root{--bg:#eef2f7;--card:#fbfcfe;--ink:#14202e;--mute:#5d6b7c;--line:#d3dbe6;--acc:#2a6fdb;--acc-ink:#fff;--pick:#e3edfb;--star:#d99a00;--chip:#e4eaf2;--wave:#9db6dc;--sel:rgba(42,111,219,.28)}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202a;--ink:#e6edf6;--mute:#8e9cae;--line:#2b3644;--acc:#6aa3ff;--acc-ink:#0b1320;--pick:#1e2f4a;--star:#ffc233;--chip:#222c39;--wave:#4a6389;--sel:rgba(106,163,255,.3)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,Segoe UI,sans-serif}
+header{padding:20px 16px 8px;max-width:1100px;margin:0 auto}
+h1{margin:0 0 4px;font-size:26px}
+header p{margin:0 0 6px;color:var(--mute);max-width:75ch}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px}
+.bar-in{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:5px 12px}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+input[type=search],input[type=text],input[type=number]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit}
+input[type=search]{flex:1;min-width:160px}
+.act{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px}
+.act.primary{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
+.editor{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+.editor h2{margin:0 0 2px;font-size:18px}
+.editor .hint{margin:0 0 8px;color:var(--mute);font-size:13.5px}
+#wave{display:block;width:100%;height:120px;border-radius:8px;background:var(--bg);border:1px solid var(--line);cursor:crosshair;touch-action:none}
+.ed-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.ed-row label{color:var(--mute);display:flex;gap:6px;align-items:center}
+.ed-row input[type=number]{width:84px}
+.ed-row input[type=text]{flex:1;min-width:140px}
+#selLen{color:var(--mute)}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:18px}
+.slot{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.slot h3{margin:0 0 2px;font-size:15px}
+.slot small{color:var(--mute);display:block;margin-bottom:6px}
+.slot .none{color:var(--mute);font-style:italic}
+.pill{display:inline-flex;gap:4px;align-items:center;margin:2px 4px 2px 0;border:1px solid var(--line);background:var(--pick);border-radius:999px;padding:2px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.clip{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:44px 1fr auto;gap:4px 10px;align-items:center}
+.clip.playing{outline:2px solid var(--acc)}
+.clip.mine{border-color:var(--acc)}
+.play{width:44px;height:44px;border-radius:50%;border:none;background:var(--acc);color:var(--acc-ink);font-size:18px;grid-row:1/3}
+.meta{color:var(--mute);font-size:12.5px}
+.say{font-weight:600;min-height:1.3em;word-break:break-word}
+.star{border:none;background:none;font-size:22px;color:var(--line);padding:0}
+.star[aria-pressed=true]{color:var(--star)}
+.bt{grid-column:1/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bt button{border:1px solid var(--line);background:var(--chip);border-radius:8px;padding:4px 10px;font-size:13.5px}
+.bt button[aria-pressed=true]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.bt .small{margin-left:auto;background:none}
+.prog{grid-column:2/4;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--acc)}
+.count{color:var(--mute);margin-left:auto}
+.tag{display:inline-block;font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-right:4px;color:var(--mute)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Laptop Gun: pick the sounds</h1>
+  <p>Three kinds of clips. <b>Canis Lupus pieces</b> are the audio from canisdur.wmv cut into short parts (C0 is the whole thing, which is what plays while the head flies now). <b>Made sounds</b> are keyboard, modem, zap and crash sounds I synthesized, several takes for each job; the ones marked "in the game now" are what you hear today. <b>Your cuts</b> are parts of the Canis clip that you choose yourself with the waveform below.</p>
+  <p>Play a clip, then press the job it should do. A clip can do more than one job. The star means "this is just funny". Votes and your cuts save in your browser as you go; press Download or Copy when you are done and send me the file.</p>
+</header>
+
+<div class="bar"><div class="bar-in">
+  <button class="chip" data-f="all" aria-pressed="true">All</button>
+  <button class="chip" data-f="yours" aria-pressed="false">Your cuts</button>
+  <button class="chip" data-f="canis" aria-pressed="false">Canis Lupus pieces</button>
+  <button class="chip" data-f="made" aria-pressed="false">Made sounds</button>
+  <button class="chip" data-f="unvoted" aria-pressed="false">Not voted yet</button>
+  <button class="chip" data-f="voted" aria-pressed="false">Voted</button>
+  <input type="search" id="q" placeholder="Search the descriptions">
+  <span class="count" id="count"></span>
+  <button class="act" id="dl">Download votes</button>
+  <button class="act primary" id="cp">Copy votes</button>
+  <button class="act" id="rs">Reset</button>
+</div></div>
+
+<main>
+  <section class="editor">
+    <h2>Cut your own part of the Canis Lupus clip</h2>
+    <p class="hint">Drag across the waveform to choose a part, drag its edges to fine-tune, or type exact seconds. Play it, then save it as your clip and give it a job below.</p>
+    <canvas id="wave"></canvas>
+    <div class="ed-row">
+      <label>Start <input type="number" id="selStart" min="0" step="0.05"> s</label>
+      <label>End <input type="number" id="selEnd" min="0" step="0.05"> s</label>
+      <span id="selLen"></span>
+      <button class="act" id="edPlay">&#9654; Play selection</button>
+      <button class="act" id="edStop">Stop</button>
+    </div>
+    <div class="ed-row">
+      <input type="text" id="edName" placeholder="Name it (optional), for example: the howl">
+      <button class="act primary" id="edSave">Save as my clip</button>
+    </div>
+  </section>
+  <section class="summary" id="summary"></section>
+  <section class="grid" id="grid"></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = /*CLIPS*/[];
+const PEAKS = /*PEAKS*/[];           // 50 bars a second of the whole Canis Lupus clip (C0), 0 to 1
+const TOTAL = /*TOTAL*/0;            // its length in seconds
+const SLOTS = [
+  {k:"fly",   name:"Head flying",   hint:"plays the whole time the head is in the air (up to 8 s)"},
+  {k:"type",  name:"Typing",        hint:"the laptop typing before it sends the head (0.8 s)"},
+  {k:"send",  name:"Launch",        hint:"the moment the head leaves the laptop"},
+  {k:"zap",   name:"Shock zap",     hint:"every half second while someone is shocked"},
+  {k:"hit",   name:"Head lands",    hint:"it hits a player or a wall"}
+];
+const STORE = "ltgun_sound_votes_v1", CUTS = "ltgun_sound_cuts_v1";
+let votes = {}, mine = [];
+try { votes = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { votes = {}; }
+try { mine = JSON.parse(localStorage.getItem(CUTS) || "[]"); } catch (e) { mine = []; }
+let CLIPS = [], filter = "all", query = "", playing = null, range = null;
+const audio = new Audio();
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(votes)); localStorage.setItem(CUTS, JSON.stringify(mine)); } catch (e) {} };
+const anyVote = id => { const v = votes[id]; return !!v && (v.star || SLOTS.some(s => v[s.k])); };
+const ts = s => Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0");
+const r2 = x => Math.round(x * 100) / 100;
+
+function rebuild() {
+  CLIPS = mine.map(m => ({id: m.id, file: "C0.wav", kind: "canis", custom: true, start: m.start, end: m.end, dur: r2(m.end - m.start), text: m.text}))
+    .concat(BASE);
+}
+
+function toggle(id, key) {
+  const v = votes[id] = votes[id] || {};
+  v[key] = !v[key];
+  if (!anyVote(id)) delete votes[id];
+  save(); render();
+}
+
+// ---- playing: a whole file, or just a stretch of the Canis clip (C0.wav)
+// A cut is played from a WAV slice made in the page (works over http, where a plain server cannot seek). Opened straight from disk the
+// page cannot read the file, so it falls back to seeking inside C0.wav, which a local file allows.
+let c0 = null;
+async function loadC0() {
+  if (c0 !== null) return c0;
+  try { const r = await fetch("clips/C0.wav"); if (!r.ok) throw 0; c0 = new Uint8Array(await r.arrayBuffer()); } catch (e) { c0 = false; }
+  return c0;
+}
+function wavSlice(buf, start, end) {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const rate = dv.getUint32(24, true), bits = dv.getUint16(34, true), ch = dv.getUint16(22, true), frame = ch * bits / 8;
+  let p = 12, off = -1, len = 0;
+  while (p + 8 <= buf.length) {                       // find the "data" chunk
+    const tag = String.fromCharCode(buf[p], buf[p + 1], buf[p + 2], buf[p + 3]), n = dv.getUint32(p + 4, true);
+    if (tag === "data") { off = p + 8; len = Math.min(n, buf.length - off); break; }
+    p += 8 + n + (n & 1);
+  }
+  const a = Math.max(0, Math.floor(start * rate)) * frame, b = Math.min(len, Math.floor(end * rate) * frame);
+  const data = buf.subarray(off + a, off + Math.max(a, b)), out = new Uint8Array(44 + data.length), o = new DataView(out.buffer);
+  const w = (q, s) => { for (let k = 0; k < s.length; k++) out[q + k] = s.charCodeAt(k); };
+  w(0, "RIFF"); o.setUint32(4, 36 + data.length, true); w(8, "WAVEfmt "); o.setUint32(16, 16, true); o.setUint16(20, 1, true);
+  o.setUint16(22, ch, true); o.setUint32(24, rate, true); o.setUint32(28, rate * frame, true); o.setUint16(32, frame, true);
+  o.setUint16(34, bits, true); w(36, "data"); o.setUint32(40, data.length, true); out.set(data, 44);
+  return URL.createObjectURL(new Blob([out], {type: "audio/wav"}));
+}
+let playToken = 0;
+async function playRange(start, end, id) {
+  const token = ++playToken;
+  range = {start, end, blob: false};
+  playing = id;
+  const buf = await loadC0();
+  if (token !== playToken) return;
+  if (buf) {
+    range.blob = true;
+    audio.src = wavSlice(buf, start, end);
+    audio.play().catch(() => toast("Could not play that one"));
+  } else {
+    const go = () => { if (token === playToken) { audio.currentTime = start; audio.play().catch(() => toast("Could not play that one")); } };
+    if (audio.src.endsWith("clips/C0.wav") && audio.readyState >= 4) go();
+    else { audio.src = "clips/C0.wav"; audio.addEventListener("canplaythrough", go, {once: true}); }
+  }
+  render(true);
+}
+const absT = () => range && range.blob ? range.start + audio.currentTime : audio.currentTime;
+function play(c) {
+  if (playing === c.id && !audio.paused) { audio.pause(); return; }
+  if (c.custom) { playRange(c.start, c.end, c.id); return; }
+  range = null;
+  playToken++;
+  playing = c.id;
+  audio.src = "clips/" + c.file;
+  audio.play().catch(() => toast("Could not play that one"));
+  render(true);
+}
+audio.addEventListener("ended", () => { playing = null; render(true); });
+audio.addEventListener("pause", () => render(true));
+audio.addEventListener("play", () => { render(true); tick(); });
+function tick() {
+  if (audio.paused) { drawWave(); return; }
+  const at = absT();
+  if (range && !range.blob && !range.seeked && audio.currentTime > 0) { range.seeked = true; if (Math.abs(audio.currentTime - range.start) > 0.3) audio.currentTime = range.start; }
+  if (range && !range.blob && at >= range.end) { audio.pause(); playing = null; render(true); return; }
+  const bar = document.querySelector(".clip.playing .prog i");
+  if (bar) {
+    const a = range ? range.start : 0, b = range ? range.end : audio.duration;
+    if (b > a) bar.style.width = Math.min(100, 100 * (at - a) / (b - a)) + "%";
+  }
+  drawWave();
+  requestAnimationFrame(tick);
+}
+
+function visible(c) {
+  if (filter === "yours" && !c.custom) return false;
+  if (filter === "canis" && (c.kind !== "canis" || c.custom)) return false;
+  if (filter === "made" && c.kind !== "made") return false;
+  if (filter === "unvoted" && anyVote(c.id)) return false;
+  if (filter === "voted" && !anyVote(c.id)) return false;
+  return !query || (c.text + " " + c.id).toLowerCase().includes(query);
+}
+
+function renderSummary() {
+  $("#summary").innerHTML = SLOTS.map(s => {
+    const picks = CLIPS.filter(c => votes[c.id] && votes[c.id][s.k]);
+    const pills = picks.map(c => `<button class="pill" data-play="${c.id}" title="${esc(c.text)}">&#9654; ${c.id} &middot; ${esc(c.text.slice(0, 24))}</button>`).join("");
+    return `<div class="slot"><h3>${s.name} (${picks.length})</h3><small>${s.hint}</small>${pills || '<span class="none">nothing yet</span>'}</div>`;
+  }).join("");
+}
+
+function render(light) {
+  if (light) {
+    document.querySelectorAll(".clip").forEach(el => {
+      const on = el.dataset.id === playing && !audio.paused;
+      el.classList.toggle("playing", on);
+      el.querySelector(".play").innerHTML = on ? "&#10074;&#10074;" : "&#9654;";
+      if (!on) el.querySelector(".prog i").style.width = "0";
+    });
+    return;
+  }
+  const list = CLIPS.filter(visible);
+  $("#count").textContent = list.length + " of " + CLIPS.length + " clips, " + CLIPS.filter(c => anyVote(c.id)).length + " voted";
+  $("#grid").innerHTML = list.map(c => {
+    const v = votes[c.id] || {};
+    const on = c.id === playing && !audio.paused;
+    const where = c.kind === "canis"
+      ? `<span class="tag">${c.custom ? "your cut" : "Canis Lupus"}</span>${ts(c.start)} to ${ts(c.end)} &middot; ${c.dur.toFixed(2)} s`
+      : `<span class="tag">made</span>${c.dur.toFixed(1)} s${c.forslot ? " &middot; made for: " + esc(c.forslot) : ""}`;
+    const extra = c.custom ? `<button class="small" data-edit="${c.id}" title="Load it into the editor above">Edit</button><button class="small" data-del="${c.id}" title="Delete this cut">&times;</button>` : "";
+    return `<div class="clip${on ? " playing" : ""}${c.custom ? " mine" : ""}" data-id="${c.id}">
+      <button class="play" data-play="${c.id}" aria-label="Play clip ${c.id}">${on ? "&#10074;&#10074;" : "&#9654;"}</button>
+      <div><div class="say">${esc(c.text)}</div>
+        <div class="meta">#${c.id} &middot; ${where}</div></div>
+      <button class="star" data-vote="${c.id}:star" aria-pressed="${!!v.star}" aria-label="Funny">&#9733;</button>
+      <div class="prog"><i></i></div>
+      <div class="bt">${SLOTS.map(s => `<button data-vote="${c.id}:${s.k}" aria-pressed="${!!v[s.k]}">${s.name}</button>`).join("")}${extra}</div>
+    </div>`;
+  }).join("");
+  renderSummary();
+}
+
+function result() {
+  const out = {picks: {}, funny: [], yourCuts: mine.map(m => ({id: m.id, start: m.start, end: m.end, name: m.text}))};
+  SLOTS.forEach(s => out.picks[s.k] = []);
+  CLIPS.forEach(c => {
+    const v = votes[c.id];
+    if (!v) return;
+    const info = {id: c.id, file: c.file, kind: c.kind, what: c.text};
+    if (c.kind === "canis") { info.start = c.start; info.end = c.end; }
+    if (c.custom) info.yourCut = true;
+    SLOTS.forEach(s => { if (v[s.k]) out.picks[s.k].push(info); });
+    if (v.star) out.funny.push(info);
+  });
+  return out;
+}
+
+function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1800); }
+
+// ---- the waveform cutter
+const cv = $("#wave"), ctx = cv.getContext("2d");
+let sel = {a: Math.min(1, TOTAL), b: Math.min(2.5, TOTAL)}, drag = null;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const x2t = x => Math.max(0, Math.min(TOTAL, x / cv.clientWidth * TOTAL));
+const t2x = t => t / TOTAL * cv.clientWidth;
+
+function drawWave() {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = css("--sel");
+  ctx.fillRect(t2x(sel.a), 0, t2x(sel.b) - t2x(sel.a), h);
+  ctx.fillStyle = css("--wave");
+  const n = PEAKS.length, mid = h / 2;
+  for (let x = 0; x < w; x++) {
+    const i = Math.min(n - 1, Math.floor(x / w * n)), p = PEAKS[i] * (h / 2 - 4);
+    ctx.fillRect(x, mid - p, 1, Math.max(1, p * 2));
+  }
+  ctx.strokeStyle = css("--acc"); ctx.lineWidth = 2;
+  [sel.a, sel.b].forEach(t => { ctx.beginPath(); ctx.moveTo(t2x(t), 0); ctx.lineTo(t2x(t), h); ctx.stroke(); });
+  ctx.fillStyle = css("--mute"); ctx.font = "11px system-ui";
+  for (let s = 0; s <= TOTAL; s += 2) ctx.fillText(s + "s", Math.min(w - 22, t2x(s) + 2), h - 4);
+  if (range && !audio.paused) {
+    ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(t2x(absT()), 0); ctx.lineTo(t2x(absT()), h); ctx.stroke();
+  }
+}
+function syncInputs() {
+  $("#selStart").value = r2(sel.a); $("#selEnd").value = r2(sel.b);
+  $("#selLen").textContent = (sel.b - sel.a).toFixed(2) + " s";
+  drawWave();
+}
+cv.addEventListener("pointerdown", e => {
+  const x = e.offsetX, ea = Math.abs(x - t2x(sel.a)), eb = Math.abs(x - t2x(sel.b));
+  if (ea < 9 && ea <= eb) drag = {edge: "a"};
+  else if (eb < 9) drag = {edge: "b"};
+  else { const t = x2t(x); drag = {edge: "new", t0: t}; sel = {a: t, b: t}; }
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const t = x2t(e.offsetX);
+  if (drag.edge === "a") sel.a = Math.min(t, sel.b - 0.05);
+  else if (drag.edge === "b") sel.b = Math.max(t, sel.a + 0.05);
+  else { sel = {a: Math.min(drag.t0, t), b: Math.max(drag.t0, t)}; }
+  syncInputs();
+});
+const endDrag = () => { if (drag && sel.b - sel.a < 0.05) sel.b = Math.min(TOTAL, sel.a + 0.5); drag = null; syncInputs(); };
+cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+["#selStart", "#selEnd"].forEach(id => $(id).addEventListener("change", () => {
+  let a = parseFloat($("#selStart").value), b = parseFloat($("#selEnd").value);
+  if (isNaN(a) || isNaN(b)) { syncInputs(); return; }
+  a = Math.max(0, Math.min(TOTAL - 0.05, a)); b = Math.max(a + 0.05, Math.min(TOTAL, b));
+  sel = {a, b}; syncInputs();
+}));
+$("#edPlay").onclick = () => playRange(sel.a, sel.b, "editor");
+$("#edStop").onclick = () => { audio.pause(); playing = null; render(true); };
+$("#edSave").onclick = () => {
+  let n = 1; while (mine.some(m => m.id === "U" + n)) n++;
+  const text = $("#edName").value.trim() || ("My cut " + r2(sel.a) + " s to " + r2(sel.b) + " s");
+  mine.unshift({id: "U" + n, start: r2(sel.a), end: r2(sel.b), text});
+  $("#edName").value = "";
+  save(); rebuild(); filter = "yours";
+  document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === "yours"));
+  render(); toast("Saved as U" + n + ": give it a job below");
+};
+
+document.addEventListener("click", e => {
+  const p = e.target.closest("[data-play]");
+  if (p) { play(CLIPS.find(c => c.id === p.dataset.play)); return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { const m = mine.find(x => x.id === ed.dataset.edit); if (m) { sel = {a: m.start, b: m.end}; $("#edName").value = m.text; syncInputs(); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  const del = e.target.closest("[data-del]");
+  if (del) { const id = del.dataset.del; if (confirm("Delete cut " + id + "?")) { mine = mine.filter(m => m.id !== id); delete votes[id]; save(); rebuild(); render(); } return; }
+  const v = e.target.closest("[data-vote]");
+  if (v) { const [id, key] = v.dataset.vote.split(":"); toggle(id, key); return; }
+  const f = e.target.closest("[data-f]");
+  if (f) { filter = f.dataset.f; document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", b === f)); render(); }
+});
+$("#q").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); render(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") audio.pause(); });
+window.addEventListener("resize", drawWave);
+$("#dl").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(result(), null, 1)], {type: "application/json"}));
+  a.download = "votes.json"; a.click(); toast("votes.json downloaded");
+};
+$("#cp").onclick = async () => {
+  const text = JSON.stringify(result(), null, 1);
+  try { await navigator.clipboard.writeText(text); toast("Votes copied"); }
+  catch (e) { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); toast("Votes copied"); }
+};
+$("#rs").onclick = () => { if (confirm("Clear every vote and every cut?")) { votes = {}; mine = []; save(); rebuild(); render(); } };
+rebuild(); render(); syncInputs();
+</script>
+</body>
+</html>

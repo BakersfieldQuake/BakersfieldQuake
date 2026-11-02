@@ -1,0 +1,51 @@
+// JohnWave grenade: a water splash instead of an explosion (spawned by jw_splash.qc)
+effect johnwave_splash
+// droplets thrown out and up, falling back
+count 90
+type spark
+tex 40 40
+color 0x2a6cff 0xa8e4ff
+size 1.5 3
+alpha 256 256 380
+originjitter 6 6 6
+velocityjitter 300 300 260
+velocityoffset 0 0 180
+gravity 1
+airfriction 0.6
+bounce 0.3
+
+effect johnwave_splash
+// spray mist
+count 26
+type alphastatic
+tex 0 8
+color 0x2f78f0 0x8cc8ff
+size 10 18
+sizeincrease 46
+alpha 70 120 140
+originjitter 10 10 6
+velocityjitter 110 110 80
+velocityoffset 0 0 40
+airfriction 2.5
+
+effect johnwave_splash
+// a flat ring of spray along the ground
+count 40
+type alphastatic
+tex 0 8
+color 0x3c8cff 0xbfe8ff
+size 6 10
+sizeincrease 24
+alpha 180 230 300
+originjitter 4 4 2
+velocityjitter 360 360 0
+airfriction 3
+
+effect johnwave_splash
+// blue flash
+countabsolute 1
+type static
+alpha 0 0 0
+lightradius 320
+lightradiusfade 700
+lightcolor 0.35 0.75 2.2

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Mystery Box - who comes out?</title>
+<style>
+:root {
+  --bg: #070811;
+  --panel: rgba(13, 16, 28, 0.88);
+  --panel-hi: rgba(20, 25, 44, 0.94);
+  --line: rgba(255, 255, 255, 0.13);
+  --cyan: #22e4ff;
+  --pink: #ff3ba7;
+  --gold: #ffe44d;
+  --mint: #3dff96;
+  --text: #f1f5ff;
+  --muted: #94a3c4;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); color-scheme: dark; }
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 12% -10%, rgba(255, 59, 167, 0.16), transparent 70%),
+    radial-gradient(900px 500px at 95% 0%, rgba(34, 228, 255, 0.14), transparent 70%);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 22px 16px 60px; }
+.kicker {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  background: linear-gradient(90deg, var(--pink), var(--cyan), var(--gold));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+h1 { margin: 4px 0 8px; font-size: clamp(26px, 5vw, 40px); line-height: 1.1; font-weight: 850; letter-spacing: -0.02em; }
+h1 .q { color: var(--gold); text-shadow: 0 0 18px rgba(255, 228, 77, 0.55); }
+.intro { margin: 0 0 6px; color: var(--muted); max-width: 70ch; }
+.intro b { color: var(--text); }
+code, pre, textarea.out { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 6px; font-size: 0.92em; color: var(--cyan); }
+
+.layout { display: grid; gap: 18px; margin-top: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1040px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 340px; }
+  aside.out-panel { position: sticky; top: 74px; }
+}
+
+/* top bar */
+.bar {
+  position: sticky; top: 8px; z-index: 20;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 12px; margin-top: 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+.count { margin-left: auto; font-weight: 800; font-size: 15px; white-space: nowrap; }
+.count b { color: var(--mint); font-size: 18px; }
+.count.warn b { color: var(--pink); }
+button {
+  appearance: none; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06);
+  color: var(--text); font: inherit; font-size: 13px; font-weight: 700;
+  padding: 8px 14px; border-radius: 9px; cursor: pointer; transition: all 0.14s ease;
+}
+button:hover { border-color: var(--cyan); background: rgba(34, 228, 255, 0.13); }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { background: linear-gradient(135deg, rgba(34,228,255,0.28), rgba(255,59,167,0.26)); border-color: var(--cyan); }
+button.ghost { color: var(--muted); }
+
+h2.sec { margin: 22px 0 10px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+h2.sec:first-child { margin-top: 4px; }
+h2.sec::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+h2.sec .n { color: var(--gold); }
+
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.card {
+  position: relative; display: flex; flex-direction: column; gap: 9px; padding: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: border-color .15s, box-shadow .15s, opacity .15s;
+}
+.card.on { border-color: rgba(61,255,150,0.55); box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 18px rgba(61,255,150,0.12); }
+.card.off .thumb img { filter: grayscale(1) brightness(0.5); opacity: 0.55; }
+.card.off .nm { color: var(--muted); }
+.thumb {
+  display: block; position: relative; aspect-ratio: 1 / 1; border-radius: 11px; cursor: pointer; overflow: hidden;
+  background: radial-gradient(circle at 50% 38%, #1a2140 0%, #0b0e1c 75%);
+}
+.thumb img { width: 100%; height: 100%; object-fit: contain; display: block; transition: filter .15s, opacity .15s; }
+.badges { position: absolute; left: 8px; top: 8px; right: 8px; display: flex; justify-content: space-between; pointer-events: none; }
+.badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: rgba(7,8,17,0.8); border: 1px solid var(--line); }
+.badge.id { color: var(--gold); border-color: rgba(255,228,77,0.5); }
+.badge.k3 { color: var(--cyan); border-color: rgba(34,228,255,0.5); }
+.badge.k2 { color: var(--pink); border-color: rgba(255,59,167,0.5); }
+.nm { font-weight: 800; font-size: 16px; line-height: 1.2; min-height: 2.4em; }
+
+.tog { position: relative; display: block; }
+.tog input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 2; }
+.tog .face {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: 12px; font-weight: 850; font-size: 15px;
+  background: rgba(255,255,255,0.05); border: 2px solid var(--line); color: var(--muted);
+  transition: all .14s ease;
+}
+.tog .sw { width: 44px; height: 24px; border-radius: 99px; background: rgba(255,255,255,0.14); position: relative; flex: none; transition: background .14s; }
+.tog .sw::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #cfd8f0; transition: transform .14s, background .14s; }
+.tog input:checked + .face { color: var(--text); border-color: var(--mint); background: rgba(61,255,150,0.12); }
+.tog input:checked + .face .sw { background: var(--mint); }
+.tog input:checked + .face .sw::after { transform: translateX(20px); background: #06150d; }
+.tog input:focus-visible + .face { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tog input:hover + .face { border-color: var(--cyan); }
+.tog input:checked:hover + .face { border-color: var(--mint); }
+
+.note label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+textarea {
+  width: 100%; min-height: 54px; resize: vertical; padding: 8px 10px; border-radius: 9px;
+  background: rgba(0,0,0,0.35); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 14px;
+}
+textarea::placeholder { color: #66739a; }
+
+/* output panel */
+.out-panel { background: var(--panel-hi); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: 0 12px 34px rgba(0,0,0,0.5); }
+.out-panel h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); }
+.out-panel h3 + * { margin-top: 0; }
+pre.cvar {
+  margin: 0 0 10px; padding: 12px; border-radius: 10px; background: #03040a; border: 1px solid rgba(34,228,255,0.35);
+  color: var(--mint); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.status { min-height: 1.4em; font-size: 13px; color: var(--gold); margin-bottom: 8px; }
+textarea.out { min-height: 190px; font-size: 12.5px; color: #cfe0ff; background: #03040a; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+.hint.warn { color: var(--pink); }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 520px) {
+  .bar { top: 4px; }
+  .count { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">BakersfieldQuake / Mystery Box</div>
+  <h1>Mystery Box <span class="q">&mdash;</span> who comes out?</h1>
+  <p class="intro">
+    Throw the rainbow box, it lands and bursts into confetti, and <b>two random monsters</b> rush the nearest enemy,
+    jump on it, bounce around doing damage and explode. Switch on the characters you want in the pool (all 16 are on to start).
+    If you already know what one should do, write it in its note. The game reads the result from the cvar <code>mb_pool</code>.
+  </p>
+
+  <div class="bar" role="toolbar" aria-label="Pool controls">
+    <button type="button" id="selAll" class="primary">Select all</button>
+    <button type="button" id="selNone">Clear</button>
+    <button type="button" id="resetAll" class="ghost" title="Back to all on, and wipe the notes">Reset</button>
+    <div class="count" id="count" aria-live="polite"><b id="n">16</b> of <span id="total">16</span> in the pool</div>
+  </div>
+
+  <div class="layout">
+    <main id="cards" aria-label="Monster roster"></main>
+
+    <aside class="out-panel" aria-label="Output">
+      <h3>1. Console line</h3>
+      <pre class="cvar" id="cvar" aria-live="polite"></pre>
+      <div class="actions">
+        <button type="button" id="copyBtn" class="primary">Copy line</button>
+        <button type="button" id="copySum">Copy summary</button>
+        <button type="button" id="dlBtn">Download JSON</button>
+      </div>
+      <div class="status" id="status" role="status"></div>
+      <p class="hint" id="hint"></p>
+      <h3 style="margin-top:14px">2. Summary</h3>
+      <textarea class="out" id="summary" readonly aria-label="Text summary of the pool and notes"></textarea>
+    </aside>
+  </div>
+</div>
+
+<script>
+"use strict";
+const ROSTER = /*ROSTER_JSON*/[];
+const KEY = "bq_mbox_vote_v1";
+const byId = new Map(ROSTER.map(r => [r.id, r]));
+let state = { on: {}, note: {} };
+
+function defaults() {
+  const s = { on: {}, note: {} };
+  ROSTER.forEach(r => { s.on[r.id] = true; s.note[r.id] = ""; });
+  return s;
+}
+function load() {
+  state = defaults();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    ROSTER.forEach(r => {
+      if (o.on && typeof o.on[r.id] === "boolean") state.on[r.id] = o.on[r.id];
+      if (o.note && typeof o.note[r.id] === "string") state.note[r.id] = o.note[r.id];
+    });
+  } catch (e) { /* storage blocked or corrupt: start from defaults */ }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+
+const $ = id => document.getElementById(id);
+const cardEls = new Map();
+
+function makeCard(r) {
+  const card = document.createElement("article");
+  card.className = "card";
+  card.dataset.id = r.id;
+  const cbId = "cb" + r.id, noteId = "nt" + r.id;
+  card.innerHTML =
+    '<label class="thumb" for="' + cbId + '"><img alt="">' +
+      '<span class="badges"><span class="badge id">#' + r.id + '</span>' +
+      '<span class="badge ' + (r.kind === "3D" ? "k3" : "k2") + '">' + (r.kind === "3D" ? "3D model" : "Sprite") + '</span></span></label>' +
+    '<div class="nm"></div>' +
+    '<div class="tog"><input type="checkbox" id="' + cbId + '"><span class="face"><span>In the box</span><span class="sw" aria-hidden="true"></span></span></div>' +
+    '<div class="note"><label for="' + noteId + '">What should it do? (optional)</label>' +
+      '<textarea id="' + noteId + '" rows="2" maxlength="600" placeholder="e.g. spins like a saw, explodes bigger"></textarea></div>';
+  card.querySelector("img").src = r.img;
+  card.querySelector(".nm").textContent = r.name;
+  const cb = card.querySelector("input"), ta = card.querySelector("textarea");
+  cb.setAttribute("aria-label", "In the box: " + r.name);
+  cb.addEventListener("change", () => { state.on[r.id] = cb.checked; save(); refresh(); });
+  ta.addEventListener("input", () => { state.note[r.id] = ta.value; save(); refreshOut(); });
+  cardEls.set(r.id, { card, cb, ta });
+  return card;
+}
+
+function build() {
+  const host = $("cards");
+  [["3D", "3D models"], ["2D", "Sprites"]].forEach(([kind, label]) => {
+    const list = ROSTER.filter(r => r.kind === kind);
+    if (!list.length) return;
+    const h = document.createElement("h2");
+    h.className = "sec";
+    h.innerHTML = label + ' <span class="n">' + list.length + "</span>";
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    list.forEach(r => grid.appendChild(makeCard(r)));
+    host.appendChild(h);
+    host.appendChild(grid);
+  });
+  $("total").textContent = ROSTER.length;
+}
+
+function pool() { return ROSTER.filter(r => state.on[r.id]).map(r => r.id); }
+
+function cvarLine(ids) {
+  if (ids.length === ROSTER.length) return 'set mb_pool ""';
+  if (!ids.length) return null;
+  return 'set mb_pool "' + ids.join(" ") + '"';
+}
+
+function summaryText(ids) {
+  const out = [];
+  out.push("Mystery Box monster pool: " + ids.length + " of " + ROSTER.length);
+  const ins = ROSTER.filter(r => state.on[r.id]), outs = ROSTER.filter(r => !state.on[r.id]);
+  out.push("");
+  out.push("IN THE BOX:");
+  out.push(ins.length ? ins.map(r => "  " + r.id + " " + r.name).join("\n") : "  (nobody)");
+  out.push("");
+  out.push("LEFT OUT:");
+  out.push(outs.length ? outs.map(r => "  " + r.id + " " + r.name).join("\n") : "  (nobody)");
+  const notes = ROSTER.filter(r => (state.note[r.id] || "").trim());
+  out.push("");
+  out.push("NOTES:");
+  out.push(notes.length ? notes.map(r => "  " + r.id + " " + r.name + (state.on[r.id] ? "" : " [out]") + ": " + state.note[r.id].trim().replace(/\s*\n\s*/g, " / ")).join("\n") : "  (none)");
+  return out.join("\n");
+}
+
+function refreshOut() {
+  const ids = pool();
+  const line = cvarLine(ids);
+  $("n").textContent = ids.length;
+  $("count").classList.toggle("warn", ids.length === 0);
+  $("cvar").textContent = line === null ? "// nothing selected: pick at least one" : line;
+  $("copyBtn").disabled = line === null;
+  const hint = $("hint");
+  if (line === null) { hint.textContent = "An empty pool is not allowed. The game treats an empty mb_pool as all monsters."; hint.className = "hint warn"; }
+  else if (ids.length === ROSTER.length) { hint.textContent = "All on: an empty string means \"every monster\" in the game."; hint.className = "hint"; }
+  else { hint.textContent = "Paste into the console, or tell Claude."; hint.className = "hint"; }
+  $("summary").value = summaryText(ids);
+}
+
+function refresh() {
+  ROSTER.forEach(r => {
+    const e = cardEls.get(r.id), on = !!state.on[r.id];
+    e.cb.checked = on;
+    e.card.classList.toggle("on", on);
+    e.card.classList.toggle("off", !on);
+    if (e.ta.value !== state.note[r.id]) e.ta.value = state.note[r.id];
+  });
+  refreshOut();
+}
+
+function flash(msg) {
+  const s = $("status");
+  s.textContent = msg;
+  clearTimeout(flash.t);
+  flash.t = setTimeout(() => { s.textContent = ""; }, 2600);
+}
+
+function copyText(text, okMsg) {
+  const fallback = () => {
+    const t = document.createElement("textarea");
+    t.value = text; t.setAttribute("readonly", "");
+    t.style.cssText = "position:fixed;left:0;top:0;opacity:0;";
+    document.body.appendChild(t); t.focus(); t.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(t);
+    flash(ok ? okMsg : "Copy blocked: select the text and press Ctrl+C");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext !== false) {
+    navigator.clipboard.writeText(text).then(() => flash(okMsg), fallback);
+  } else fallback();
+}
+
+function exportJSON() {
+  const ids = pool();
+  return {
+    format: "bakersfieldquake-mystery-box-vote",
+    savedAt: new Date().toISOString(),
+    cvar: cvarLine(ids) || "",
+    poolIds: ids,
+    allOn: ids.length === ROSTER.length,
+    votes: ROSTER.map(r => ({ id: r.id, name: r.name, kind: r.kind, inPool: !!state.on[r.id], note: (state.note[r.id] || "").trim() }))
+  };
+}
+
+function download() {
+  const blob = new Blob([JSON.stringify(exportJSON(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mystery_box_vote.json";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  flash("Downloaded mystery_box_vote.json");
+}
+
+$("selAll").addEventListener("click", () => { ROSTER.forEach(r => state.on[r.id] = true); save(); refresh(); });
+$("selNone").addEventListener("click", () => { ROSTER.forEach(r => state.on[r.id] = false); save(); refresh(); });
+$("resetAll").addEventListener("click", () => {
+  const hasNotes = ROSTER.some(r => (state.note[r.id] || "").trim());
+  if (hasNotes && !window.confirm("Reset everything, including your notes?")) return;
+  state = defaults(); save(); refresh();
+});
+$("copyBtn").addEventListener("click", () => { const l = cvarLine(pool()); if (l) copyText(l, "Copied: " + l); });
+$("copySum").addEventListener("click", () => copyText($("summary").value, "Summary copied"));
+$("dlBtn").addEventListener("click", download);
+
+load();
+build();
+refresh();
+</script>
+</body>
+</html>

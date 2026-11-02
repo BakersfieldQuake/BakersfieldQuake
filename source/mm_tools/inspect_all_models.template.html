@@ -1,0 +1,1880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · Master 3D Model Inspector (All 24 Models + .MD3 Loader)</title>
+<style>
+:root {
+  --bg: #070b13;
+  --panel: rgba(13, 19, 32, 0.94);
+  --panel-solid: #0e1524;
+  --card: rgba(15, 22, 37, 0.90);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-hi: rgba(56, 189, 248, 0.65);
+  --text: #eef4fc;
+  --muted: #94a3b8;
+  --cyan: #38bdf8;
+  --amber: #ffb454;
+  --amber-ink: #1c1002;
+  --green: #34d399;
+  --pink: #f472b6;
+  --purple: #c084fc;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13.5px/1.42 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+body.grid-mode { overflow-y: auto; height: auto; min-height: 100%; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Top Master Bar */
+header#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  z-index: 20;
+  background: rgba(10, 15, 26, 0.94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  gap: 10px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brand-badge {
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: #041322;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  padding: 4px 8px;
+  border-radius: 7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.brand h1 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+}
+
+button, .file-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+button:hover, .file-btn:hover { background: rgba(255, 255, 255, 0.14); }
+button[aria-pressed="true"], button.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  font-weight: 800;
+}
+button.mode-tab {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 750;
+}
+button.mode-tab.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #031b29;
+}
+button.honk-btn {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  border: none;
+  color: #fff;
+  font-weight: 800;
+}
+button.honk-btn:hover { filter: brightness(1.1); }
+button.lie-btn.active { background: var(--pink); border-color: var(--pink); color: #240415; }
+button.roll-btn.active { background: var(--purple); border-color: var(--purple); color: #1d0531; }
+
+/* ==================== MODE 1: DEEP 3D INSPECTOR LAYOUT ==================== */
+#inspector-layout {
+  position: fixed;
+  top: 54px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 295px minmax(0, 1fr) 325px;
+  pointer-events: none;
+}
+body.grid-mode #inspector-layout { display: none; }
+@media (max-width: 1120px) {
+  #inspector-layout { grid-template-columns: 250px minmax(0, 1fr) 280px; }
+}
+
+/* Left Sidebar: All Models List */
+aside#left-sidebar {
+  pointer-events: auto;
+  background: var(--panel-solid);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.side-hdr {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.search-in {
+  width: 100%;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.model-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cat-hdr {
+  font-size: 10.5px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  padding: 8px 6px 4px;
+  margin-top: 4px;
+}
+.cat-hdr:first-child { margin-top: 0; }
+.m-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.m-item:hover { background: rgba(255, 255, 255, 0.08); }
+.m-item.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: var(--cyan);
+}
+.m-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.m-item-title {
+  font-size: 12.5px;
+  font-weight: 750;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-item-meta {
+  font-size: 10.5px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.star-dot { color: var(--green); font-weight: 900; }
+
+/* Center 3D Viewport & Floating HUD */
+#center-stage {
+  position: relative;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#center-stage.drag { cursor: grabbing; }
+
+.vp-top-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+.vp-title-card {
+  background: rgba(8, 12, 22, 0.84);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 13px;
+  backdrop-filter: blur(10px);
+  max-width: 560px;
+}
+.vp-title-card h2 { margin: 0; font-size: 17px; font-weight: 850; }
+.vp-title-card .vp-sub { color: var(--cyan); font-size: 11.5px; margin-top: 2px; }
+.vp-cams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  pointer-events: auto;
+  justify-content: flex-end;
+}
+.cam-btn {
+  font-size: 11px;
+  padding: 4px 9px;
+  background: rgba(8, 12, 22, 0.84);
+}
+
+.vp-btm-hud {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 10px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+}
+.hud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.clip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+input#frame-scrub {
+  flex: 1;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.hint-pill {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Right Sidebar: Technical & Surface Inspector */
+aside#right-sidebar {
+  pointer-events: auto;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px;
+  gap: 12px;
+}
+.insp-sec {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.sec-title {
+  font-size: 10.5px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kv-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  font-size: 11.5px;
+}
+.kv-grid span.k { color: var(--muted); }
+.kv-grid span.v { color: var(--text); text-align: right; overflow: hidden; text-overflow: ellipsis; }
+
+.shade-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.surf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.surf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 11.5px;
+}
+.surf-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 0;
+  flex: 1;
+}
+.surf-row .sname {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.surf-row .scnt { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+.solo-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+
+/* ==================== MODE 2: ALL-MODELS GRID GALLERY ==================== */
+main#grid-layout {
+  display: none;
+  position: relative;
+  z-index: 5;
+  max-width: 1660px;
+  margin: 0 auto;
+  padding: 70px 18px 80px;
+}
+body.grid-mode main#grid-layout { display: block; }
+
+.grid-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+#cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1200px) { #cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { #cards-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.gcard {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: transparent;
+}
+.gcard:hover { border-color: var(--line-hi); }
+.gcard.starred { border-color: var(--green); box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.3); }
+.gstage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.gstage-top {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.gpill {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(7, 11, 19, 0.85);
+  border: 1px solid var(--line);
+}
+.gbody {
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gbody h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.gbody p { margin: 0; font-size: 12px; color: #cbd5e1; }
+.gactions { display: flex; gap: 6px; margin-top: 4px; }
+.gactions button { flex: 1; justify-content: center; }
+
+/* Drag-drop Overlay & Loading Screen */
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(14, 165, 233, 0.22);
+  border: 3px dashed var(--cyan);
+  display: none;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 850;
+  pointer-events: none;
+}
+#drop-overlay.show { display: grid; }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div>
+    <div style="font-size:19px;font-weight:850;color:var(--cyan);margin-bottom:6px">Loading Master 3D Model Inspector…</div>
+    <div id="load-sub" style="color:var(--muted);font-size:13px">Streaming &amp; decompressing all 24 Quake 3D models</div>
+  </div>
+</div>
+
+<div id="drop-overlay">Drop any Quake .MD3 (+ optional .PNG/.JPG texture) to inspect in 3D!</div>
+
+<canvas id="gl"></canvas>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-badge">3D MD3 Inspector</span>
+    <h1>BakersfieldQuake · All Models Studio (<span id="hdr-count">24</span> Models)</h1>
+  </div>
+  <div class="top-actions">
+    <button class="mode-tab active" id="tab-inspect">🔍 Deep 3D Inspector</button>
+    <button class="mode-tab" id="tab-grid">🗂 Side-by-Side Grid (All Models)</button>
+    <label class="file-btn" title="Load any .md3 (and optional .png/.jpg skin) from your disk!">
+      📂 Open .MD3…
+      <input type="file" id="file-in" accept=".md3,.png,.jpg,.jpeg,.tga" multiple hidden>
+    </label>
+    <button class="honk-btn" id="btn-honk">🌊 "JOHN WAVE!" Horn</button>
+    <button id="btn-copy-favs" title="Copy starred favorite models to clipboard">📋 Copy Favorites (<span id="fav-count">0</span>)</button>
+  </div>
+</header>
+
+<!-- ==================== MODE 1: SINGLE-MODEL DEEP 3D INSPECTOR ==================== -->
+<div id="inspector-layout">
+  <aside id="left-sidebar">
+    <div class="side-hdr">
+      <input type="search" class="search-in" id="model-search" placeholder="Filter 24 models (e.g. john, sky, megaman, van)…">
+      <div style="display:flex;gap:5px">
+        <button id="btn-prev-m" style="flex:1;justify-content:center">← Prev [</button>
+        <button id="btn-next-m" style="flex:1;justify-content:center">Next ] →</button>
+      </div>
+    </div>
+    <div class="model-list" id="model-list"></div>
+  </aside>
+
+  <section id="center-stage">
+    <div class="vp-top-hud">
+      <div class="vp-title-card">
+        <h2 id="vp-title">Loading…</h2>
+        <div class="mono vp-sub" id="vp-file"></div>
+        <div id="vp-desc" style="color:#cbd5e1;font-size:12px;margin-top:4px"></div>
+      </div>
+      <div class="vp-cams">
+        <button class="cam-btn" data-cam="front">Front 3/4</button>
+        <button class="cam-btn" data-cam="face">Face Closeup</button>
+        <button class="cam-btn" data-cam="left">Left</button>
+        <button class="cam-btn" data-cam="right">Right</button>
+        <button class="cam-btn" data-cam="rear">Rear</button>
+        <button class="cam-btn" data-cam="top">Top</button>
+        <button class="cam-btn" data-cam="bottom">Bottom</button>
+        <button class="cam-btn" data-cam="reset">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="vp-btm-hud">
+      <div class="hud-row">
+        <div class="clip-group" id="vp-clips"></div>
+        <div class="clip-group">
+          <button id="btn-step-prev" title="Step back 1 frame (,)">⏮ -1f</button>
+          <button id="btn-play" aria-pressed="true">⏸ Pause</button>
+          <button id="btn-step-next" title="Step forward 1 frame (.)">+1f ⏭</button>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)">
+            Speed <input type="range" id="rng-speed" min="0.1" max="2.4" step="0.1" value="1.0" style="width:70px;accent-color:var(--amber)">
+            <span class="mono" id="lbl-speed" style="color:var(--text);min-width:3.2ch">1.0×</span>
+          </label>
+        </div>
+      </div>
+      <div class="scrubber-row">
+        <span class="mono" id="lbl-frame" style="font-size:12px;color:var(--cyan);min-width:165px">Frame 0 / 0</span>
+        <input type="range" id="frame-scrub" min="0" max="71" step="0.02" value="0">
+        <span class="hint-pill">Left-Drag: Orbit · Right/Shift-Drag: Pan · Wheel: Zoom</span>
+      </div>
+    </div>
+  </section>
+
+  <aside id="right-sidebar">
+    <div class="insp-sec">
+      <div class="sec-title">
+        <span>Favorite / Ballot</span>
+        <span id="copy-toast" style="color:var(--green);text-transform:none"></span>
+      </div>
+      <button id="btn-star-cur" style="width:100%;justify-content:center;padding:8px;font-weight:800">☆ Star / Favorite This Model</button>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title">Shading &amp; Inspection Overlays</div>
+      <div class="shade-grid" id="shade-btns">
+        <button data-shade="0" class="active">🎨 Textured PBR</button>
+        <button data-shade="1">💡 Flat Albedo</button>
+        <button data-shade="2">🌈 Normals RGB</button>
+        <button data-shade="3">🗿 Clay Matcap</button>
+      </div>
+      <div class="shade-grid" style="margin-top:3px">
+        <button id="tog-wire" aria-pressed="false">🕸 Wireframe</button>
+        <button id="tog-spin" aria-pressed="true">🔄 Auto-Orbit</button>
+        <button id="tog-box" aria-pressed="false">🧍 Quake Player Box</button>
+        <button id="tog-torch" aria-pressed="false">🔥 Quake Torch</button>
+        <button id="tog-grid" aria-pressed="true">🌐 Ground Grid</button>
+        <button id="tog-shadow" aria-pressed="true">🌑 Cast Shadow</button>
+      </div>
+    </div>
+
+    <div class="insp-sec">
+      <div class="sec-title">Model Telemetry (Quake Units)</div>
+      <div class="kv-grid mono" id="kv-stats"></div>
+    </div>
+
+    <div class="insp-sec" style="flex:1;min-height:180px">
+      <div class="sec-title">
+        <span>MD3 Surfaces (<span id="surf-cnt">0</span>)</span>
+        <button id="btn-show-all-surfs" class="solo-btn">Show All</button>
+      </div>
+      <div class="surf-list" id="surf-list"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ==================== MODE 2: SIDE-BY-SIDE GRID GALLERY ==================== -->
+<main id="grid-layout">
+  <div class="grid-filter-bar">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center" id="grid-cat-btns">
+      <span style="font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;margin-right:4px">Show:</span>
+      <button data-gcat="all" class="active">All Models (24)</button>
+      <button data-gcat="jw_air">🛩 John Wave Aircraft (3)</button>
+      <button data-gcat="sky_veh">🛸 4-Video Sky-Vehicles (4)</button>
+      <button data-gcat="comp">🧩 3D Heads &amp; Mega Man Parts (8)</button>
+      <button data-gcat="arsenal">🚗 Mod Vehicles &amp; Weapons (9)</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center" id="grid-clip-btns">
+      <span style="font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;margin-right:4px">Pose:</span>
+      <button data-gpose="cruise" class="active">✈ Cruise / Idle</button>
+      <button data-gpose="boost">🔥 Boost / Scream</button>
+      <button data-gpose="roll">🌀 Barrel Roll / Action</button>
+      <button data-gpose="lie">🛬 Landed / Lying</button>
+    </div>
+  </div>
+  <div id="cards-grid"></div>
+</main>
+
+<!-- Metadata JSON (tiny) + Gzipped Binary Stream (non-JS text block for zero V8 parse overhead!) -->
+<script id="meta-json" type="application/json">/*__META_JSON__*/</script>
+<script id="bin-gz" type="text/plain">/*__BIN_GZ__*/</script>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const META = JSON.parse($('meta-json').textContent);
+
+async function gunzipTextNode(el) {
+  const b64 = el.textContent.trim();
+  el.textContent = ''; // Free DOM text copy immediately!
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  const respPromise = new Response(ds.readable).arrayBuffer();
+  // Stream in multiples of 4 base64 chars (~768 KB chunks) to keep peak RAM tiny
+  const CHUNK = 786432;
+  for (let i = 0; i < b64.length; i += CHUNK) {
+    const slice = b64.slice(i, i + CHUNK);
+    const bin = Uint8Array.from(atob(slice), c => c.charCodeAt(0));
+    await writer.write(bin);
+  }
+  await writer.close();
+  return await respPromise;
+}
+
+function mat4Mul(out, a, b) {
+  const a00=a[0], a01=a[1], a02=a[2], a03=a[3], a10=a[4], a11=a[5], a12=a[6], a13=a[7],
+        a20=a[8], a21=a[9], a22=a[10], a23=a[11], a30=a[12], a31=a[13], a32=a[14], a33=a[15];
+  const b00=b[0], b01=b[1], b02=b[2], b03=b[3], b10=b[4], b11=b[5], b12=b[6], b13=b[7],
+        b20=b[8], b21=b[9], b22=b[10], b23=b[11], b30=b[12], b31=b[13], b32=b[14], b33=b[15];
+  out[0]=a00*b00+a10*b01+a20*b02+a30*b03; out[1]=a01*b00+a11*b01+a21*b02+a31*b03;
+  out[2]=a02*b00+a12*b01+a22*b02+a32*b03; out[3]=a03*b00+a13*b01+a23*b02+a33*b03;
+  out[4]=a00*b10+a10*b11+a20*b12+a30*b13; out[5]=a01*b10+a11*b11+a21*b12+a31*b13;
+  out[6]=a02*b10+a12*b11+a22*b12+a32*b13; out[7]=a03*b10+a13*b11+a23*b12+a33*b13;
+  out[8]=a00*b20+a10*b21+a20*b22+a30*b23; out[9]=a01*b20+a11*b21+a21*b22+a31*b23;
+  out[10]=a02*b20+a12*b21+a22*b22+a32*b23; out[11]=a03*b20+a13*b21+a23*b22+a33*b23;
+  out[12]=a00*b30+a10*b31+a20*b32+a30*b33; out[13]=a01*b30+a11*b31+a21*b32+a31*b33;
+  out[14]=a02*b30+a12*b31+a22*b32+a32*b33; out[15]=a03*b30+a13*b31+a23*b32+a33*b33;
+  return out;
+}
+function mat4Persp(out, fovy, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovy * 0.5), nf = 1.0 / (near - far);
+  out.fill(0);
+  out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+  return out;
+}
+function mat4LookAt(out, eye, ctr, up) {
+  let zx = eye[0]-ctr[0], zy = eye[1]-ctr[1], zz = eye[2]-ctr[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+  return out;
+}
+
+// Voice Horn Soundboard
+const audioBank = (META.sounds || []).map(s => {
+  const a = new Audio(s.uri);
+  a.preload = 'auto';
+  return a;
+});
+let honkIdx = 0;
+$('btn-honk').onclick = () => {
+  if (!audioBank.length) return;
+  const a = audioBank[honkIdx % audioBank.length];
+  honkIdx++;
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch (_) {}
+};
+
+// Persistent Favorites
+const FAV_KEY = 'bq_master_inspector_favs_v1';
+let favIds = [];
+try {
+  const s = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+  if (Array.isArray(s)) favIds = s;
+} catch (_) {}
+function saveFavs() {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favIds)); } catch (_) {}
+  $('fav-count').textContent = favIds.length;
+}
+
+async function boot() {
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) {
+    $('loading').innerHTML = '<div style="color:#fb7185;font-weight:700">WebGL2 is required for 3D Model Inspection.</div>';
+    return;
+  }
+
+  const AB = await gunzipTextNode($('bin-gz'));
+  const u16 = ([o, l]) => new Uint16Array(AB, o, l >> 1);
+  const i16 = ([o, l]) => new Int16Array(AB, o, l >> 1);
+  const i8  = ([o, l]) => new Int8Array(AB, o, l);
+  const f32 = ([o, l]) => new Float32Array(AB, o, l >> 2);
+
+  function compileProg(vsSrc, fsSrc) {
+    const p = gl.createProgram();
+    for (const [tp, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const uni = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b);
+    gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  // Shaders
+  const pSky = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec2 aQ;
+out vec2 vUv;
+void main() { vUv = aQ * 0.5 + 0.5; gl_Position = vec4(aQ, 0.9999, 1.0); }`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec2 vUv;
+uniform int uLieMode;
+uniform int uTorch;
+out vec4 fragColor;
+void main() {
+  vec3 top = uTorch == 1 ? vec3(0.06, 0.05, 0.09) : (uLieMode == 1 ? vec3(0.08, 0.11, 0.19) : vec3(0.07, 0.18, 0.36));
+  vec3 mid = uTorch == 1 ? vec3(0.14, 0.10, 0.12) : (uLieMode == 1 ? vec3(0.13, 0.18, 0.27) : vec3(0.16, 0.36, 0.58));
+  vec3 bot = uTorch == 1 ? vec3(0.07, 0.06, 0.08) : (uLieMode == 1 ? vec3(0.08, 0.10, 0.15) : vec3(0.10, 0.20, 0.33));
+  float h = clamp(vUv.y, 0.0, 1.0);
+  vec3 col = h > 0.38 ? mix(mid, top, (h - 0.38) / 0.62) : mix(bot, mid, h / 0.38);
+  fragColor = vec4(col, 1.0);
+}`);
+  const uSky = uni(pSky, ['uLieMode', 'uTorch']);
+
+  const pMesh = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uShadowPass;
+out vec3 vWPos;
+out vec3 vWNrm;
+out vec2 vUv;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale + uOffset;
+  if (uShadowPass == 1) {
+    vec3 L = normalize(vec3(0.32, -0.35, 1.25));
+    float h = max(0.0, p.z);
+    vec3 sp = vec3(p.x - L.x * (h / L.z), p.y - L.y * (h / L.z), 0.08);
+    vWPos = sp; vWNrm = vec3(0.0, 0.0, 1.0); vUv = aUv;
+    gl_Position = uVP * vec4(sp, 1.0);
+  } else {
+    vWPos = p;
+    vWNrm = normalize(mix(aNrm0, aNrm1, uLerp));
+    vUv = aUv;
+    gl_Position = uVP * vec4(p, 1.0);
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vWPos;
+in vec3 vWNrm;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform sampler2D uGlowTex;
+uniform int uHasGlow;
+uniform vec3 uEye;
+uniform float uExposure;
+uniform float uMetallic;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uUnlit;
+uniform int uTorch;
+uniform int uShadeMode;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+out vec4 fragColor;
+void main() {
+  if (uShadowPass == 1) { fragColor = vec4(0.02, 0.04, 0.08, uShadowAlpha); return; }
+  vec3 N = normalize(gl_FrontFacing ? vWNrm : -vWNrm);
+  if (uShadeMode == 2) {
+    fragColor = vec4(N * 0.5 + 0.5, 1.0);
+    return;
+  }
+  vec3 V = normalize(uEye - vWPos);
+  if (uShadeMode == 3) {
+    vec3 L1 = normalize(vec3(0.45, -0.42, 0.79));
+    vec3 L2 = normalize(vec3(-0.62, 0.55, 0.56));
+    float d = 0.28 + 0.62 * max(dot(N, L1), 0.0) + 0.28 * max(dot(N, L2), 0.0);
+    float sp = pow(max(dot(N, normalize(L1 + V)), 0.0), 36.0) * 0.35;
+    fragColor = vec4(vec3(0.76, 0.79, 0.85) * d + sp, 1.0);
+    return;
+  }
+  vec4 texel = texture(uTex, vUv);
+  if (uShadeMode == 1 || uUnlit == 1) {
+    fragColor = vec4(texel.rgb * (uUnlit == 1 ? 1.15 : 1.0), 1.0);
+    return;
+  }
+  vec3 L1 = normalize(vec3( 0.45, -0.42, 0.79));
+  vec3 L2 = normalize(vec3(-0.62,  0.55, 0.56));
+  vec3 L3 = normalize(vec3( 0.15,  0.78, 0.25));
+  vec3 c1 = uTorch == 1 ? vec3(1.18, 0.90, 0.64) : vec3(1.06, 1.04, 1.00);
+  vec3 c2 = uTorch == 1 ? vec3(0.38, 0.54, 0.85) : vec3(0.56, 0.68, 0.84);
+  vec3 c3 = uTorch == 1 ? vec3(0.32, 0.72, 0.95) : vec3(0.38, 0.48, 0.60);
+  vec3 hemi = mix(vec3(0.22, 0.24, 0.30), vec3(0.44, 0.50, 0.60), 0.5 + 0.5 * N.z);
+  vec3 diff = hemi + c1 * max(dot(N, L1), 0.0) * 0.88 + c2 * max(dot(N, L2), 0.0) * 0.42 + c3 * max(dot(N, L3), 0.0) * 0.24;
+  float shin = mix(145.0, 14.0, uRoughness);
+  float sp1 = pow(max(dot(N, normalize(L1 + V)), 0.0), shin);
+  vec3 R = reflect(-V, N);
+  vec3 envCol = mix(vec3(0.16, 0.20, 0.27), vec3(0.94, 0.98, 1.0), smoothstep(-0.2, 0.6, R.z));
+  vec3 lit = texel.rgb * diff * (1.0 - 0.28 * uMetallic)
+           + texel.rgb * envCol * (uMetallic * 0.66)
+           + c1 * sp1 * uSpec * 0.46;
+  if (uHasGlow == 1) lit += texture(uGlowTex, vUv).rgb * 1.35;
+  lit *= uExposure;
+  lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+  fragColor = vec4(lit, 1.0);
+}`);
+  const uMesh = uni(pMesh, [
+    'uVP', 'uOffset', 'uLerp', 'uPosScale', 'uShadowPass', 'uShadowAlpha',
+    'uTex', 'uGlowTex', 'uHasGlow', 'uEye', 'uExposure', 'uMetallic', 'uRoughness', 'uSpec', 'uUnlit', 'uTorch', 'uShadeMode'
+  ]);
+
+  const pGround = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec2 aQ;
+uniform mat4 uVP;
+uniform float uSize;
+out vec2 vP;
+void main() { vP = aQ * uSize; gl_Position = uVP * vec4(vP, 0.0, 1.0); }`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec2 vP;
+uniform int uLieMode;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  float scrollX = uLieMode == 1 ? 0.0 : uTime * 95.0;
+  vec2 q = (vP + vec2(scrollX, 0.0)) / 32.0;
+  float chk = mod(floor(q.x) + floor(q.y), 2.0);
+  vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
+  float line = 1.0 - min(min(g.x, g.y), 1.0);
+  float fade = 1.0 - smoothstep(100.0, 420.0, length(vP));
+  if (uLieMode == 1) {
+    vec3 pad = mix(vec3(0.11, 0.14, 0.20), vec3(0.15, 0.19, 0.26), chk) + line * 0.06;
+    fragColor = vec4(pad, fade * 0.90);
+  } else {
+    vec3 skyGrid = vec3(0.30, 0.70, 0.96) * (0.14 + line * 0.38);
+    fragColor = vec4(skyGrid, fade * 0.36);
+  }
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uLieMode', 'uTime']);
+
+  const pWire = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform vec3 uOffset;
+uniform float uLerp;
+uniform float uPosScale;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale + uOffset;
+  gl_Position = uVP * vec4(p, 1.0);
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP', 'uOffset', 'uLerp', 'uPosScale', 'uColor']);
+
+  const pLine = compileProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() { vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 4096 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(4096);
+
+  // Default fallback checkerboard texture for user-dropped MD3 files
+  function makeCheckerTex() {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    const px = new Uint8Array(64 * 64 * 4);
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) {
+        const c = ((x >> 3) + (y >> 3)) & 1 ? 205 : 135;
+        const i = (y * 64 + x) * 4;
+        px[i] = c; px[i + 1] = c + 10; px[i + 2] = c + 22; px[i + 3] = 255;
+      }
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    return tex;
+  }
+  const fallbackTex = makeCheckerTex();
+
+  const glTextures = META.textures.map(t => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([140, 155, 180, 255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+    img.src = t.uri;
+    return tex;
+  });
+
+  // Upload GPU buffers for a model lazily on first draw (keeps initial boot < 250ms!)
+  function ensureModelUploaded(m) {
+    if (m._uploaded) return;
+    const [mn, mx] = m.bbox;
+    m.size = [mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]];
+    m.center = [(mn[0] + mx[0]) * 0.5, (mn[1] + mx[1]) * 0.5, (mn[2] + mx[2]) * 0.5];
+    m.R = Math.max(8.0, Math.hypot(m.size[0], m.size[1], m.size[2]) * 0.48);
+    // Keep Z=0 grounded if mn[2] is near 0, else lift bottom onto Z=0 so shadow & grid align cleanly!
+    const zOff = (mn[2] >= -2.0 && mn[2] <= 12.0) ? 0.0 : -mn[2];
+    m.offset = [-m.center[0], -m.center[1], zOff];
+    m.ne = 0;
+
+    for (const s of m.surfaces) {
+      s.visible = true;
+      m.ne += s.ne;
+      if (s._customUploaded) continue;
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2);
+      gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3);
+      gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, f32(s.uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.tris), gl.STATIC_DRAW);
+      s._lastKey = -1;
+    }
+    m._uploaded = true;
+  }
+
+  const models = META.models.map((d, idx) => Object.assign({}, d, { idx, _uploaded: false }));
+
+  const state = {
+    gridMode: false,
+    curIdx: 0,
+    clipIdx: 0,
+    playing: true,
+    manualFrame: 0,
+    speed: 1.0,
+    shadeMode: 0,
+    wire: false,
+    spin: true,
+    scaleBox: false,
+    torch: false,
+    showGrid: true,
+    showShadow: true,
+    gridCat: 'all',
+    gridPose: 'cruise',
+  };
+
+  const mainView = {
+    az: 0.62,
+    el: 0.26,
+    dist: 240,
+    minDist: 10,
+    maxDist: 1600,
+    pan: [0, 0, 0],
+    aspect: 1.5,
+  };
+
+  // Orbit + Pan + Wheel on an element
+  function attachOrbitPan(el, view, allowPan, onTouch) {
+    let mode = 0, lx = 0, ly = 0;
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button, input, label')) return;
+      mode = (allowPan && (e.button === 2 || e.button === 1 || e.shiftKey)) ? 2 : 1;
+      lx = e.clientX; ly = e.clientY;
+      el.classList.add('drag');
+      el.setPointerCapture(e.pointerId);
+      if (onTouch) onTouch();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!mode) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      if (mode === 1) {
+        view.az -= dx * 0.0085;
+        view.el = Math.max(-1.25, Math.min(1.45, view.el + dy * 0.0075));
+      } else if (view.pan) {
+        const s = view.dist * 0.0014;
+        const rx = -Math.sin(view.az), ry = Math.cos(view.az);
+        view.pan[0] -= rx * dx * s;
+        view.pan[1] -= ry * dx * s;
+        view.pan[2] += dy * s;
+      }
+    });
+    const up = () => { mode = 0; el.classList.remove('drag'); };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+  attachOrbitPan($('center-stage'), mainView, true);
+
+  // Build Left Sidebar List
+  function renderSidebarList() {
+    const q = $('model-search').value.trim().toLowerCase();
+    const wrap = $('model-list');
+    wrap.innerHTML = '';
+    const cats = [
+      ['jw_air',  '🛩 John Wave × Mega Man Aircraft'],
+      ['sky_veh', '🛸 4-Video Combined Sky-Vehicles'],
+      ['comp',    '🧩 3D Heads & Mega Man Parts'],
+      ['arsenal', '🚗 Mod Vehicles & Weapons'],
+      ['custom',  '📂 Custom Loaded MD3 Files'],
+    ];
+    for (const [ckey, clabel] of cats) {
+      const list = models.filter(m => m.cat === ckey && (
+        !q || m.title.toLowerCase().includes(q) || m.file.toLowerCase().includes(q) || m.badge.toLowerCase().includes(q)
+      ));
+      if (!list.length) continue;
+      const hdr = document.createElement('div');
+      hdr.className = 'cat-hdr';
+      hdr.textContent = `${clabel} (${list.length})`;
+      wrap.appendChild(hdr);
+      for (const m of list) {
+        const btn = document.createElement('button');
+        btn.className = 'm-item' + (m.idx === state.curIdx ? ' active' : '');
+        const isFav = favIds.includes(m.id);
+        btn.innerHTML = `
+          <div class="m-item-top">
+            <span class="m-item-title">${m.title}</span>
+            ${isFav ? '<span class="star-dot">★</span>' : ''}
+          </div>
+          <div class="m-item-meta mono">
+            <span>${m.file.replace(/^progs\//, '')}</span>
+            <span>${m.nt.toLocaleString()}t · ${m.nf}f</span>
+          </div>
+        `;
+        btn.onclick = () => selectModel(m.idx);
+        wrap.appendChild(btn);
+      }
+    }
+    $('hdr-count').textContent = models.length;
+  }
+  $('model-search').oninput = renderSidebarList;
+
+  function selectModel(idx) {
+    const m = models[(idx + models.length) % models.length];
+    ensureModelUploaded(m);
+    state.curIdx = m.idx;
+    state.clipIdx = 0;
+    state.playing = m.nf > 1;
+    state.manualFrame = 0;
+
+    mainView.az = 0.62;
+    mainView.el = 0.25;
+    mainView.dist = m.R * 2.25;
+    mainView.minDist = m.R * 0.22;
+    mainView.maxDist = m.R * 6.5;
+    mainView.pan = [0, 0, 0];
+
+    $('vp-title').textContent = m.title;
+    $('vp-file').textContent = `${m.file} · ${m.surfaces.length} MD3 surface(s) · ${m.nf} frame(s)`;
+    $('vp-desc').textContent = m.desc;
+
+    $('frame-scrub').max = Math.max(0, m.nf - 1);
+    $('frame-scrub').value = 0;
+    syncPlayBtn();
+
+    // Populate clip buttons
+    const cwrap = $('vp-clips');
+    cwrap.innerHTML = '';
+    m.clips.forEach((cl, ci) => {
+      const b = document.createElement('button');
+      if (cl.lie) b.classList.add('lie-btn');
+      if (cl.roll) b.classList.add('roll-btn');
+      if (ci === state.clipIdx) b.classList.add('active');
+      b.textContent = cl.label;
+      b.onclick = () => {
+        state.clipIdx = ci;
+        state.playing = cl.count > 1;
+        state.manualFrame = cl.start;
+        syncPlayBtn();
+        [...cwrap.children].forEach((el, k) => el.classList.toggle('active', k === ci));
+      };
+      cwrap.appendChild(b);
+    });
+
+    // Populate telemetry stats
+    const [mn, mx] = m.bbox;
+    $('kv-stats').innerHTML = `
+      <span class="k">File</span><span class="v">${m.file}</span>
+      <span class="k">Frames</span><span class="v">${m.nf}</span>
+      <span class="k">Vertices</span><span class="v">${m.nv.toLocaleString()}</span>
+      <span class="k">Triangles</span><span class="v">${m.nt.toLocaleString()}</span>
+      <span class="k">Wire Edges</span><span class="v">${m.ne.toLocaleString()}</span>
+      <span class="k">Size (X×Y×Z)</span><span class="v">${m.size[0].toFixed(1)} × ${m.size[1].toFixed(1)} × ${m.size[2].toFixed(1)}</span>
+      <span class="k">BBox Min</span><span class="v">[${mn.map(v => v.toFixed(1)).join(', ')}]</span>
+      <span class="k">BBox Max</span><span class="v">[${mx.map(v => v.toFixed(1)).join(', ')}]</span>
+    `;
+
+    // Populate surface list
+    $('surf-cnt').textContent = m.surfaces.length;
+    renderSurfaceList(m);
+    syncStarUI();
+    renderSidebarList();
+  }
+
+  function renderSurfaceList(m) {
+    const sw = $('surf-list');
+    sw.innerHTML = '';
+    m.surfaces.forEach((s, si) => {
+      const row = document.createElement('div');
+      row.className = 'surf-row';
+      row.innerHTML = `
+        <label title="${s.shader || s.name}">
+          <input type="checkbox" ${s.visible ? 'checked' : ''}>
+          <span class="sname mono">${s.name}</span>
+        </label>
+        <span class="scnt mono">${s.nv}v / ${s.nt}t</span>
+        <button class="solo-btn" title="Solo this surface">Solo</button>
+      `;
+      row.querySelector('input').onchange = e => { s.visible = e.target.checked; };
+      row.querySelector('.solo-btn').onclick = () => {
+        const onlyThis = m.surfaces.every((x, k) => (k === si ? x.visible : !x.visible));
+        m.surfaces.forEach((x, k) => { x.visible = onlyThis ? true : (k === si); });
+        renderSurfaceList(m);
+      };
+      sw.appendChild(row);
+    });
+  }
+  $('btn-show-all-surfs').onclick = () => {
+    const m = models[state.curIdx];
+    m.surfaces.forEach(s => { s.visible = true; });
+    renderSurfaceList(m);
+  };
+
+  function syncPlayBtn() {
+    $('btn-play').setAttribute('aria-pressed', state.playing);
+    $('btn-play').textContent = state.playing ? '⏸ Pause' : '▶ Play';
+  }
+  $('btn-play').onclick = () => { state.playing = !state.playing; syncPlayBtn(); };
+  $('btn-step-prev').onclick = () => {
+    const m = models[state.curIdx];
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = (Math.floor(state.manualFrame) - 1 + m.nf) % m.nf;
+    $('frame-scrub').value = state.manualFrame;
+  };
+  $('btn-step-next').onclick = () => {
+    const m = models[state.curIdx];
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = (Math.floor(state.manualFrame) + 1) % m.nf;
+    $('frame-scrub').value = state.manualFrame;
+  };
+  $('frame-scrub').oninput = e => {
+    state.playing = false; syncPlayBtn();
+    state.manualFrame = parseFloat(e.target.value);
+  };
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('lbl-speed').textContent = state.speed.toFixed(1) + '×';
+  };
+
+  $('btn-prev-m').onclick = () => selectModel(state.curIdx - 1);
+  $('btn-next-m').onclick = () => selectModel(state.curIdx + 1);
+
+  // Camera Presets
+  document.querySelectorAll('[data-cam]').forEach(btn => {
+    btn.onclick = () => {
+      const m = models[state.curIdx];
+      const k = btn.dataset.cam;
+      mainView.pan = [0, 0, 0];
+      if (k === 'front')  { mainView.az = 0.62;  mainView.el = 0.25;  mainView.dist = m.R * 2.25; }
+      if (k === 'face')   { mainView.az = 0.14;  mainView.el = 0.08;  mainView.dist = m.R * 1.35; }
+      if (k === 'left')   { mainView.az = 1.57;  mainView.el = 0.12;  mainView.dist = m.R * 2.25; }
+      if (k === 'right')  { mainView.az = -1.57; mainView.el = 0.12;  mainView.dist = m.R * 2.25; }
+      if (k === 'rear')   { mainView.az = 2.68;  mainView.el = 0.26;  mainView.dist = m.R * 2.25; }
+      if (k === 'top')    { mainView.az = 0.0;   mainView.el = 1.36;  mainView.dist = m.R * 2.45; }
+      if (k === 'bottom') { mainView.az = 0.55;  mainView.el = -0.85; mainView.dist = m.R * 2.25; }
+      if (k === 'reset')  { mainView.az = 0.62;  mainView.el = 0.25;  mainView.dist = m.R * 2.25; }
+    };
+  });
+
+  // Shading & Overlay Toggles
+  document.querySelectorAll('[data-shade]').forEach(btn => {
+    btn.onclick = () => {
+      state.shadeMode = parseInt(btn.dataset.shade, 10);
+      document.querySelectorAll('[data-shade]').forEach(b => b.classList.toggle('active', b === btn));
+    };
+  });
+  function wireToggle(id, key) {
+    const el = $(id);
+    el.onclick = () => {
+      state[key] = !state[key];
+      el.setAttribute('aria-pressed', state[key]);
+    };
+  }
+  wireToggle('tog-wire', 'wire');
+  wireToggle('tog-spin', 'spin');
+  wireToggle('tog-box', 'scaleBox');
+  wireToggle('tog-torch', 'torch');
+  wireToggle('tog-grid', 'showGrid');
+  wireToggle('tog-shadow', 'showShadow');
+
+  // Star / Copy Favorites
+  function toggleFav(id) {
+    const i = favIds.indexOf(id);
+    if (i >= 0) favIds.splice(i, 1);
+    else favIds.push(id);
+    saveFavs();
+    syncStarUI();
+    renderSidebarList();
+  }
+  function syncStarUI() {
+    const m = models[state.curIdx];
+    const on = favIds.includes(m.id);
+    $('btn-star-cur').classList.toggle('active', on);
+    $('btn-star-cur').textContent = on ? '★ Starred in Favorites!' : '☆ Star / Favorite This Model';
+    for (const gc of gridCards) {
+      const gOn = favIds.includes(gc.m.id);
+      gc.card.classList.toggle('starred', gOn);
+      gc.starBtn.textContent = gOn ? '★ Starred' : '☆ Star';
+      gc.starBtn.classList.toggle('active', gOn);
+    }
+  }
+  $('btn-star-cur').onclick = () => toggleFav(models[state.curIdx].id);
+  $('btn-copy-favs').onclick = async () => {
+    const picked = models.filter(m => favIds.includes(m.id));
+    const lines = picked.length
+      ? ['FAVORITE QUAKE 3D MODELS:', ...picked.map((m, i) => `${i + 1}. ${m.title} (${m.file})`)]
+      : [`INSPECTED MODEL: ${models[state.curIdx].title} (${models[state.curIdx].file})`];
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      $('copy-toast').textContent = '✓ Copied!';
+      setTimeout(() => { $('copy-toast').textContent = ''; }, 3000);
+    } catch (_) {}
+  };
+
+  // ==================== SIDE-BY-SIDE GRID GALLERY ====================
+  const gridCards = [];
+  function rebuildGridCards() {
+    const wrap = $('cards-grid');
+    wrap.innerHTML = '';
+    gridCards.length = 0;
+    const list = models.filter(m => state.gridCat === 'all' || m.cat === state.gridCat);
+    for (const m of list) {
+      ensureModelUploaded(m);
+      const card = document.createElement('article');
+      card.className = 'gcard' + (favIds.includes(m.id) ? ' starred' : '');
+      const view = { az: 0.62 + m.idx * 0.08, el: 0.26, dist: m.R * 2.32, minDist: m.R * 0.5, maxDist: m.R * 5.5, touched: false };
+      card.innerHTML = `
+        <div class="gstage">
+          <div class="gstage-top">
+            <span class="gpill" style="color:var(--amber)">${m.badge}</span>
+            <span class="gpill mono">${m.nt.toLocaleString()}t · ${m.nf}f</span>
+          </div>
+        </div>
+        <div class="gbody">
+          <h3>${m.title}</h3>
+          <div class="mono" style="font-size:11px;color:var(--cyan)">${m.file}</div>
+          <p>${m.desc}</p>
+          <div class="gactions">
+            <button data-act="inspect">🔍 Inspect 3D ⤢</button>
+            <button data-act="star">${favIds.includes(m.id) ? '★ Starred' : '☆ Star'}</button>
+          </div>
+        </div>
+      `;
+      wrap.appendChild(card);
+      const stg = card.querySelector('.gstage');
+      attachOrbitPan(stg, view, false, () => { view.touched = true; });
+      stg.ondblclick = () => { selectModel(m.idx); setMode(false); };
+      card.querySelector('[data-act="inspect"]').onclick = () => { selectModel(m.idx); setMode(false); };
+      const starBtn = card.querySelector('[data-act="star"]');
+      if (favIds.includes(m.id)) starBtn.classList.add('active');
+      starBtn.onclick = () => toggleFav(m.id);
+      gridCards.push({ m, card, stg, view, starBtn });
+    }
+  }
+
+  function setMode(isGrid) {
+    state.gridMode = isGrid;
+    document.body.classList.toggle('grid-mode', isGrid);
+    $('tab-inspect').classList.toggle('active', !isGrid);
+    $('tab-grid').classList.toggle('active', isGrid);
+    if (isGrid) rebuildGridCards();
+  }
+  $('tab-inspect').onclick = () => setMode(false);
+  $('tab-grid').onclick = () => setMode(true);
+
+  document.querySelectorAll('[data-gcat]').forEach(btn => {
+    btn.onclick = () => {
+      state.gridCat = btn.dataset.gcat;
+      document.querySelectorAll('[data-gcat]').forEach(b => b.classList.toggle('active', b === btn));
+      rebuildGridCards();
+    };
+  });
+  document.querySelectorAll('[data-gpose]').forEach(btn => {
+    btn.onclick = () => {
+      state.gridPose = btn.dataset.gpose;
+      document.querySelectorAll('[data-gpose]').forEach(b => b.classList.toggle('active', b === btn));
+    };
+  });
+
+  // ==================== LIVE DRAG & DROP .MD3 PARSER ====================
+  function parseMD3Binary(buf, filename, customTexIdx) {
+    const dv = new DataView(buf);
+    const magic = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
+    if (magic !== 'IDP3') throw new Error(`${filename} is not an IDP3 MD3 file (got ${magic})`);
+    const nf = dv.getInt32(76, true);
+    const numSurfs = dv.getInt32(84, true);
+    let ofsSurf = dv.getInt32(96, true);
+
+    const surfs = [];
+    let totV = 0, totT = 0;
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+
+    for (let si = 0; si < numSurfs; si++) {
+      const sBase = ofsSurf;
+      const sNameBytes = new Uint8Array(buf, sBase + 8, 64);
+      const sName = new TextDecoder().decode(sNameBytes).split('\0')[0] || `surf_${si}`;
+      const sNf = dv.getInt32(sBase + 76, true);
+      const nv = dv.getInt32(sBase + 84, true);
+      const nt = dv.getInt32(sBase + 88, true);
+      const ofsTris = sBase + dv.getInt32(sBase + 92, true);
+      const ofsShaders = sBase + dv.getInt32(sBase + 96, true);
+      const ofsSt = sBase + dv.getInt32(sBase + 100, true);
+      const ofsXyz = sBase + dv.getInt32(sBase + 104, true);
+      const ofsEnd = sBase + dv.getInt32(sBase + 108, true);
+
+      let shName = '';
+      if (dv.getInt32(sBase + 80, true) > 0) {
+        shName = new TextDecoder().decode(new Uint8Array(buf, ofsShaders, 64)).split('\0')[0];
+      }
+
+      const triArr = new Uint16Array(nt * 3);
+      const edgeSet = new Set();
+      const edgeList = [];
+      for (let ti = 0; ti < nt; ti++) {
+        const a = dv.getInt32(ofsTris + ti * 12, true);
+        const b = dv.getInt32(ofsTris + ti * 12 + 4, true);
+        const c = dv.getInt32(ofsTris + ti * 12 + 8, true);
+        triArr[ti * 3] = a; triArr[ti * 3 + 1] = b; triArr[ti * 3 + 2] = c;
+        for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+          const lo = Math.min(u, v), hi = Math.max(u, v), k = lo * 65536 + hi;
+          if (!edgeSet.has(k)) { edgeSet.add(k); edgeList.push(lo, hi); }
+        }
+      }
+      const edgeArr = new Uint16Array(edgeList);
+      const uvArr = new Float32Array(nv * 2);
+      for (let vi = 0; vi < nv; vi++) {
+        uvArr[vi * 2] = dv.getFloat32(ofsSt + vi * 8, true);
+        uvArr[vi * 2 + 1] = dv.getFloat32(ofsSt + vi * 8 + 4, true);
+      }
+
+      const pArr = new Int16Array(sNf * nv * 4);
+      const nArr = new Int8Array(sNf * nv * 4);
+      for (let fi = 0; fi < sNf; fi++) {
+        for (let vi = 0; vi < nv; vi++) {
+          const o = ofsXyz + (fi * nv + vi) * 8;
+          const x = dv.getInt16(o, true), y = dv.getInt16(o + 2, true), z = dv.getInt16(o + 4, true);
+          const lat = dv.getUint8(o + 6) * (2 * Math.PI / 255.0);
+          const lng = dv.getUint8(o + 7) * (2 * Math.PI / 255.0);
+          const idx4 = (fi * nv + vi) * 4;
+          pArr[idx4] = x; pArr[idx4 + 1] = y; pArr[idx4 + 2] = z;
+          nArr[idx4] = Math.round(Math.cos(lng) * Math.sin(lat) * 127);
+          nArr[idx4 + 1] = Math.round(Math.sin(lng) * Math.sin(lat) * 127);
+          nArr[idx4 + 2] = Math.round(Math.cos(lat) * 127);
+          if (fi === 0) {
+            const fx = x / 64.0, fy = y / 64.0, fz = z / 64.0;
+            if (fx < mn[0]) mn[0] = fx; if (fx > mx[0]) mx[0] = fx;
+            if (fy < mn[1]) mn[1] = fy; if (fy > mx[1]) mx[1] = fy;
+            if (fz < mn[2]) mn[2] = fz; if (fz > mx[2]) mx[2] = fz;
+          }
+        }
+      }
+
+      const sObj = {
+        name: sName,
+        shader: shName,
+        nv, nt, ne: edgeArr.length >> 1,
+        posScale: 1.0 / 64.0,
+        tex: customTexIdx,
+        glowTex: -1,
+        metallic: 0.15,
+        roughness: 0.5,
+        spec: 0.4,
+        unlit: 0,
+        additive: 0,
+        visible: true,
+        _customUploaded: true,
+        _lastKey: -1,
+      };
+      sObj.vao = gl.createVertexArray();
+      gl.bindVertexArray(sObj.vao);
+      sObj.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      sObj.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      sObj.bufUv = mkBuf(gl.ARRAY_BUFFER, uvArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      sObj.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, edgeArr, gl.STATIC_DRAW);
+      sObj.ibTris = mkBuf(gl.ELEMENT_ARRAY_BUFFER, triArr, gl.STATIC_DRAW);
+
+      surfs.push(sObj);
+      totV += nv; totT += nt;
+      ofsSurf = ofsEnd;
+    }
+
+    const newIdx = models.length;
+    const newMod = {
+      id: `custom_${newIdx}`,
+      idx: newIdx,
+      cat: 'custom',
+      badge: 'CUSTOM MD3',
+      title: filename,
+      file: filename,
+      desc: `Loaded directly from disk (${numSurfs} surface(s), ${nf} frame(s)).`,
+      nf, nv: totV, nt: totT,
+      bbox: [mn, mx],
+      surfaces: surfs,
+      clips: [{ id: 'all', label: `🎬 All ${nf} Frames`, start: 0, count: nf, fps: 12.0, lie: false }],
+      _uploaded: false,
+    };
+    models.push(newMod);
+    setMode(false);
+    selectModel(newIdx);
+  }
+
+  async function handleFiles(fileList) {
+    const files = [...fileList];
+    const imgFile = files.find(f => /\.(png|jpe?g)$/i.test(f.name));
+    let texIdx = -1;
+    if (imgFile) {
+      const url = URL.createObjectURL(imgFile);
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([180, 180, 180, 255]));
+      const im = new Image();
+      im.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+        gl.generateMipmap(gl.TEXTURE_2D);
+      };
+      im.src = url;
+      texIdx = glTextures.length;
+      glTextures.push(tex);
+    }
+    for (const f of files) {
+      if (/\.md3$/i.test(f.name)) {
+        const buf = await f.arrayBuffer();
+        parseMD3Binary(buf, f.name, texIdx);
+      }
+    }
+  }
+  $('file-in').onchange = e => { if (e.target.files.length) handleFiles(e.target.files); };
+  window.addEventListener('dragover', e => { e.preventDefault(); $('drop-overlay').classList.add('show'); });
+  window.addEventListener('dragleave', e => { if (e.target === document.documentElement) $('drop-overlay').classList.remove('show'); });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    $('drop-overlay').classList.remove('show');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea')) return;
+    if (e.key === '[' || e.key === 'ArrowUp') { e.preventDefault(); selectModel(state.curIdx - 1); }
+    else if (e.key === ']' || e.key === 'ArrowDown') { e.preventDefault(); selectModel(state.curIdx + 1); }
+    else if (e.key === ' ') { e.preventDefault(); $('btn-play').click(); }
+    else if (e.key === ',') { e.preventDefault(); $('btn-step-prev').click(); }
+    else if (e.key === '.') { e.preventDefault(); $('btn-step-next').click(); }
+    else if (e.key === 'w' || e.key === 'W') { $('tog-wire').click(); }
+    else if (e.key === 'g' || e.key === 'G') { setMode(!state.gridMode); }
+  });
+
+  // ==================== WEBGL2 RENDERER ====================
+  const matP = new Float32Array(16);
+  const matV = new Float32Array(16);
+  const matVP = new Float32Array(16);
+
+  function addBoxLines(ptr, x0, y0, z0, x1, y1, z1, r, g, b, a) {
+    const pts = [
+      [x0,y0,z0],[x1,y0,z0], [x1,y0,z0],[x1,y1,z0], [x1,y1,z0],[x0,y1,z0], [x0,y1,z0],[x0,y0,z0],
+      [x0,y0,z1],[x1,y0,z1], [x1,y0,z1],[x1,y1,z1], [x1,y1,z1],[x0,y1,z1], [x0,y1,z1],[x0,y0,z1],
+      [x0,y0,z0],[x0,y0,z1], [x1,y0,z0],[x1,y0,z1], [x1,y1,z0],[x1,y1,z1], [x0,y1,z0],[x0,y1,z1],
+    ];
+    for (const p of pts) {
+      lineData[ptr++] = p[0]; lineData[ptr++] = p[1]; lineData[ptr++] = p[2];
+      lineData[ptr++] = r; lineData[ptr++] = g; lineData[ptr++] = b; lineData[ptr++] = a;
+    }
+    return ptr;
+  }
+
+  function renderModelInViewport(m, view, clip, tSec, exactOverride) {
+    let fa, fb, frac;
+    if (exactOverride !== null) {
+      const clp = Math.max(0, Math.min(m.nf - 1, exactOverride));
+      fa = Math.floor(clp);
+      fb = (fa + 1) % m.nf;
+      frac = clp - fa;
+    } else if (clip.count <= 1) {
+      fa = clip.start; fb = clip.start; frac = 0.0;
+    } else {
+      const pos = ((tSec * state.speed * clip.fps) % clip.count + clip.count) % clip.count;
+      const i0 = Math.floor(pos);
+      const i1 = (i0 + 1) % clip.count;
+      fa = clip.start + i0;
+      fb = clip.start + i1;
+      frac = pos - i0;
+    }
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.useProgram(pSky);
+    gl.uniform1i(uSky.uLieMode, clip.lie ? 1 : 0);
+    gl.uniform1i(uSky.uTorch, state.torch ? 1 : 0);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+
+    const pan = view.pan || [0, 0, 0];
+    const baseZ = (m.bbox[0][2] + m.offset[2]) + m.size[2] * (clip.lie ? 0.36 : 0.52);
+    const tgt = [pan[0], pan[1], baseZ + pan[2]];
+    const eye = [
+      tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+      tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+      tgt[2] + view.dist * Math.sin(view.el),
+    ];
+    mat4Persp(matP, 0.60, view.aspect, Math.max(0.5, m.R * 0.02), Math.max(2600.0, m.R * 18.0));
+    mat4LookAt(matV, eye, tgt, [0, 0, 1]);
+    mat4Mul(matVP, matP, matV);
+
+    if (state.showGrid) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.useProgram(pGround);
+      gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+      gl.uniform1f(uGround.uSize, Math.max(220.0, m.R * 3.8));
+      gl.uniform1i(uGround.uLieMode, (clip.lie || m.nf === 1) ? 1 : 0);
+      gl.uniform1f(uGround.uTime, (m.nf > 1 && state.playing) ? tSec * state.speed : 0.0);
+      gl.bindVertexArray(quadVao);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    if (state.showShadow && eye[2] > 1.5) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(true);
+      gl.depthFunc(gl.LESS);
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniform3f(uMesh.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+      gl.uniform1i(uMesh.uShadowPass, 1);
+      gl.uniform1f(uMesh.uShadowAlpha, clip.lie ? 0.40 : 0.24);
+      gl.uniform1f(uMesh.uLerp, frac);
+      for (const s of m.surfaces) {
+        if (!s.visible || s.additive) continue;
+        gl.bindVertexArray(s.vao);
+        const poseKey = fa * 65536 + fb;
+        if (s._lastKey !== poseKey) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+          gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+          gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+          gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+          gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+          gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+          s._lastKey = poseKey;
+        }
+        gl.uniform1f(uMesh.uPosScale, s.posScale);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+      gl.depthFunc(gl.LEQUAL);
+    }
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+
+    if (state.scaleBox) {
+      let ptr = 0;
+      const by = m.size[1] * 0.5 + 26.0;
+      ptr = addBoxLines(ptr, -16, by - 16, 0, 16, by + 16, 56, 0.22, 0.92, 0.68, 0.92);
+      gl.useProgram(pLine);
+      gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+      gl.bindVertexArray(lineVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr));
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.LINES, 0, ptr / 7);
+      gl.disable(gl.BLEND);
+    }
+
+    const ordered = m.surfaces.slice().sort((a, b) => a.additive - b.additive);
+    for (const s of ordered) {
+      if (!s.visible) continue;
+      gl.bindVertexArray(s.vao);
+      const poseKey = fa * 65536 + fb;
+      if (s._lastKey !== poseKey) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+        gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+        gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+        gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+        s._lastKey = poseKey;
+      }
+
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniform3f(uMesh.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+      gl.uniform1f(uMesh.uLerp, frac);
+      gl.uniform1f(uMesh.uPosScale, s.posScale);
+      gl.uniform1i(uMesh.uShadowPass, 0);
+      gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+      gl.uniform1f(uMesh.uExposure, state.wire ? 0.55 : 1.05);
+      gl.uniform1f(uMesh.uMetallic, s.metallic);
+      gl.uniform1f(uMesh.uRoughness, s.roughness);
+      gl.uniform1f(uMesh.uSpec, s.spec);
+      gl.uniform1i(uMesh.uUnlit, s.unlit);
+      gl.uniform1i(uMesh.uTorch, state.torch ? 1 : 0);
+      gl.uniform1i(uMesh.uShadeMode, s.additive ? 0 : state.shadeMode);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, s.tex >= 0 ? glTextures[s.tex] : fallbackTex);
+      gl.uniform1i(uMesh.uTex, 0);
+
+      if (s.glowTex >= 0) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTextures[s.glowTex]);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 1);
+      } else {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, fallbackTex);
+        gl.uniform1i(uMesh.uGlowTex, 1);
+        gl.uniform1i(uMesh.uHasGlow, 0);
+      }
+
+      if (s.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+      }
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      if (s.additive) {
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      }
+
+      if (state.wire && !s.additive) {
+        gl.useProgram(pWire);
+        gl.uniformMatrix4fv(uWire.uVP, false, matVP);
+        gl.uniform3f(uWire.uOffset, m.offset[0], m.offset[1], m.offset[2]);
+        gl.uniform1f(uWire.uLerp, frac);
+        gl.uniform1f(uWire.uPosScale, s.posScale);
+        gl.uniform4f(uWire.uColor, 0.32, 0.88, 1.0, 0.58);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+        gl.disable(gl.BLEND);
+      }
+    }
+    return fa + frac;
+  }
+
+  function pickGridClip(m) {
+    if (state.gridPose === 'lie') return m.clips.find(c => c.lie) || m.clips[0];
+    if (state.gridPose === 'boost') return m.clips.find(c => c.id.includes('boost')) || m.clips[0];
+    if (state.gridPose === 'roll') return m.clips.find(c => c.roll || c.id.includes('hover') || c.id.includes('fire')) || m.clips[0];
+    return m.clips[0];
+  }
+
+  saveFavs();
+  selectModel(0);
+  $('loading').style.display = 'none';
+
+  let lastNow = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastNow) * 0.001);
+    lastNow = now;
+    const tSec = now * 0.001;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr);
+    const ch = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.028, 0.043, 0.075, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (!state.gridMode) {
+      const m = models[state.curIdx];
+      const r = $('center-stage').getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) {
+        const vx = Math.floor(r.left * dpr);
+        const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr);
+        const vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh);
+        gl.scissor(vx, vy, vw, vh);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        if (state.spin) mainView.az += dt * 0.34;
+        mainView.aspect = vw / vh;
+        const cl = m.clips[state.clipIdx] || m.clips[0];
+        const curF = renderModelInViewport(m, mainView, cl, tSec, state.playing ? null : state.manualFrame);
+        if (state.playing) {
+          state.manualFrame = curF;
+          $('frame-scrub').value = curF.toFixed(2);
+        }
+        $('lbl-frame').textContent = `Frame ${Math.floor(curF)} / ${m.nf - 1} (${cl.id})`;
+      }
+    } else {
+      for (const gc of gridCards) {
+        const r = gc.stg.getBoundingClientRect();
+        if (r.bottom < 54 || r.top > window.innerHeight || r.width < 4 || r.height < 4) continue;
+        const vx = Math.floor(r.left * dpr);
+        const vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr);
+        const vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh);
+        gl.scissor(vx, vy, vw, vh);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        if (state.spin && !gc.view.touched) gc.view.az += dt * 0.36;
+        gc.view.aspect = vw / vh;
+        renderModelInViewport(gc.m, gc.view, pickGridClip(gc.m), tSec + gc.m.idx * 0.35, null);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch(err => {
+  console.error(err);
+  $('loading').innerHTML = `<div style="color:#fb7185;padding:20px"><b>Inspector Error:</b> ${err.message}</div>`;
+});
+})();
+</script>
+</body>
+</html>

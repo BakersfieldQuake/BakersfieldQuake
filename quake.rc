@@ -1,0 +1,58 @@
+// BakersfieldQuake (Bakersfield LAN) - replaces q15.pk3's quake.rc
+// Same as Combat+'s, except: BakersfieldQuake's own intro demo, the multiplayer settings (q15_config_coop.cfg) instead of the
+// single-player ones, and they run BEFORE config.cfg so a player's own saved settings always win.
+
+// mod defaults and clean modern binds/settings for a brand new player
+exec default.cfg
+
+// Combat+ multiplayer settings, and the hook aliases
+exec q15_config_coop.cfg
+exec hook.cfg
+
+// client look/feel defaults (also before config.cfg, so the player's own choices win)
+sbar_alpha_bg "0"
+effects_classic_explosion "1"
+r_lerplightstyles "1"
+cl_beams_instantaimhack "1"
+cl_beams_lightatend "1"
+cl_beams_polygons "0"
+r_lightningbeam_color_blue "0.7"
+r_lightningbeam_color_green "0.6"
+r_lightningbeam_color_red "0.5"
+r_lightningbeam_qmbtexture "1"
+r_lightningbeam_repeatdistance "256"
+r_lightningbeam_scroll "6"
+r_lightningbeam_thickness "8"
+rate "95000"
+gl_texturecompression "0"
+set weaponautoswitch 0		// picking up a gun never yanks the one you are holding (Combat+ sets 3 above)
+
+// the player's saved settings (written by the game on quit): binds, resolution, name, sensitivity, graphics menu...
+// (a new player gets a placeholder config.cfg from the zip; without it the game would load Combat+'s own inside q15.pk3:
+//  inverted mouse, loud music, its own keys)
+seta bm_defver 0
+exec config.cfg
+
+// default keys: ONCE, for a new player (bm_defver is saved as 1 in their config.cfg, so this never runs again and
+// their own binds / unbinds are never touched). To ship new default keys later: new file, bm_up_1 -> exec it, bump the number.
+alias bm_up_0 "exec bm_binds.cfg; seta bm_defver 1"
+alias bm_up_1 ""
+bm_up_$bm_defver
+
+// LAN rules defaults (bm_* cvars), then personal.cfg if there is one
+exec autoexec.cfg
+
+// Build no unused unvised BSP portals, or spam debug prints unless overridden on command line
+mod_bsp_portalize "0"
+developer "0"
+
+// command line (+map, +connect, +exec warmup.cfg / server.cfg ...)
+stuffcmds
+
+//DP specifics (from Combat+'s quake.rc)
+sv_gameplayfix_noairborncorpse 1
+sv_gameplayfix_setmodelrealbox 1
+sv_gameplayfix_slidemoveprojectiles 1
+
+// start intro showcase demo if not already running/joining a server
+startdemos intro

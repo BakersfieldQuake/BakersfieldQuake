@@ -1,0 +1,161 @@
+// Pickle Surprise (pickle.qc): a big green explosion with fire in it, burning pickles, and a small green puff when one fizzles
+effect pk_boom
+lightradius 900
+lightradiusfade 700
+lightcolor 0.3 1 0.2
+lightshadow 1
+
+// the fireball
+effect pk_boom
+count 70
+type alphastatic
+tex 0 8
+color 0x30c010 0xa0ff50
+size 40 80
+sizeincrease 140
+alpha 230 256 330
+originjitter 24 24 24
+velocityjitter 300 300 300
+airfriction 2.2
+
+// a hot green core
+effect pk_boom
+count 20
+type alphastatic
+tex 0 8
+color 0xc0ff80 0xf0ffd0
+size 60 110
+sizeincrease 180
+alpha 200 256 600
+originjitter 6 6 6
+velocityjitter 60 60 60
+airfriction 3
+
+// bits flying
+effect pk_boom
+count 160
+type spark
+tex 0 8
+color 0x70ff30 0xd0ffa0
+size 1.5 3
+alpha 256 256 400
+originjitter 10 10 10
+velocityjitter 700 700 700
+velocityoffset 0 0 220
+gravity 1
+bounce 1.2
+airfriction 0.3
+
+// green smoke
+effect pk_boom
+count 24
+type smoke
+tex 0 7
+color 0x203818 0x405a2c
+size 60 110
+sizeincrease 40
+alpha 140 220 55
+originjitter 20 20 20
+velocityjitter 180 180 180
+velocityoffset 0 0 60
+airfriction 1.6
+
+// FIRE with the green: an orange fireball and its light, flames rising, burning embers (all go off with the green ones above)
+effect pk_boom
+lightradius 700
+lightradiusfade 500
+lightcolor 1 0.5 0.1
+lightshadow 0
+
+effect pk_boom
+count 55
+type alphastatic
+tex 0 8
+color 0xff4000 0xffb020
+size 40 90
+sizeincrease 150
+alpha 240 256 380
+originjitter 24 24 24
+velocityjitter 280 280 280
+airfriction 2.2
+
+effect pk_boom
+count 30
+type alphastatic
+tex 0 8
+color 0xffd060 0xfff0b0
+size 50 100
+sizeincrease 170
+alpha 200 256 650
+originjitter 6 6 6
+velocityjitter 60 60 60
+airfriction 3
+
+// flames licking up off the blast
+effect pk_boom
+count 40
+type alphastatic
+tex 0 8
+color 0xff2800 0xff9000
+size 25 55
+sizeincrease -20
+alpha 220 256 160
+originjitter 40 40 10
+velocityjitter 120 120 80
+velocityoffset 0 0 260
+gravity -0.4
+airfriction 1.5
+
+// burning embers
+effect pk_boom
+count 120
+type spark
+tex 0 8
+color 0xff6000 0xffe060
+size 1.5 3
+alpha 256 256 380
+originjitter 10 10 10
+velocityjitter 650 650 650
+velocityoffset 0 0 200
+gravity 1
+bounce 1.2
+airfriction 0.3
+
+// a burning pickle: the pickles the blast throws leave a flame trail
+effect pk_flame
+trailspacing 7
+type alphastatic
+tex 0 8
+color 0xff4000 0xffc040
+size 9 15
+sizeincrease -14
+alpha 230 256 520
+originjitter 2 2 2
+velocityjitter 25 25 25
+velocityoffset 0 0 30
+gravity -0.2
+airfriction 1.5
+
+effect pk_flame
+trailspacing 14
+type smoke
+tex 0 7
+color 0x302818 0x504030
+size 10 18
+sizeincrease 12
+alpha 110 180 60
+originjitter 3 3 3
+velocityjitter 20 20 20
+airfriction 1.2
+
+effect pk_puff
+count 18
+type alphastatic
+tex 0 8
+color 0x40d020 0xa0ff60
+size 3 6
+sizeincrease 20
+alpha 200 256 300
+originjitter 4 4 4
+velocityjitter 80 80 80
+airfriction 2
