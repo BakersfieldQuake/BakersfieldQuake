@@ -819,8 +819,8 @@ void() MB_Think =
 	}
 	if (time >= self.mb_snd_t && MB_DriveSound (self.mb_type) != "")
 	{
-		FG_Snd (self, CHAN_VOICE, MB_DriveSound (self.mb_type), 0.9, 1);		// its running sound, again when the last one has ended
-		self.mb_snd_t = time + MB_DriveLen (self.mb_type);
+		FG_Snd (self, CHAN_VOICE, MB_DriveSound (self.mb_type), 0.6, 1);		// its running sound, again a little after the last one has ended
+		self.mb_snd_t = time + MB_DriveLen (self.mb_type) + 0.8;
 	}
 	if (d <= MB_REACH && fabs (self.mb_target.origin_z - self.origin_z) < 56)
 	{

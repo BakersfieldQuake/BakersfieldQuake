@@ -296,7 +296,7 @@ void(float climbing) Jetpack_Exhaust =
 
 	if (time < self.jp_flame)
 		return;
-	self.jp_flame = time + 0.065;
+	self.jp_flame = time + 0.13;		// sent to every client: 15 effects each 0.065 s was about 3.7 KB/s per flier
 	makevectors ('0 1 0' * self.v_angle_y);
 	yo = JP_NOZZLE_Y;
 	org = self.origin + v_forward * JP_NOZZLE_X + v_up * JP_NOZZLE_Z;
@@ -322,7 +322,7 @@ void(float climbing) Jetpack_Exhaust =
 		i = 0;
 		while (i < n)
 		{
-			o = self.velocity * (0 - 0.065 * i / n);
+			o = self.velocity * (0 - 0.13 * i / n);
 			gap = 0 - 1;
 			pointparticles (jp_fx_blaze, org + o + v_right * yo, self.velocity * gap, 1);
 			pointparticles (jp_fx_blaze, org + o - v_right * yo, self.velocity * gap, 1);

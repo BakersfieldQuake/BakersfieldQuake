@@ -186,11 +186,31 @@ vector(float dist) FG_Muzzle =
 // ---------------------------------------------------------------- the player side
 
 // fire pressed with a fun gun out (called from W_Attack)
+// a fun gun fired: the other fun guns wait, so one life can't dump every hazard at once (the gun itself keeps its own magazine)
+void(float g) FunGun_Lock =
+{
+	self.fg_lock_gun = g;
+	self.fg_lock_t = time + autocvar_bm_fg_lock;
+	dprint (strcat ("fungun: fired ", ftos (g), " at ", ftos (time), "\n"));
+};
+
 void() FunGun_Attack =
 {
 	local float g, a, ct;
 
 	g = self.fg_sel;
+	if (time < self.fg_lock_t && g != self.fg_lock_gun)
+	{
+		if (time >= self.fg_lock_msg)
+		{
+			self.fg_lock_msg = time + 1;
+			dprint (strcat ("fungun: locked ", ftos (g), " at ", ftos (time), "\n"));
+			centerprint (self, strcat ("Fun guns locked: ", ftos (ceil (self.fg_lock_t - time)), " s\n"));
+			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+		}
+		self.attack_finished = time + 0.3;
+		return;
+	}
 	a = FunGun_Ammo (self, g);
 	if (g == FG_MBOX && a < 1 && cvar ("mb_test"))
 		a = 1;		// mb_test: the Mystery Box never runs dry (zz_mbox2.cfg)
@@ -220,6 +240,7 @@ void() FunGun_Attack =
 	if (g == FG_NETSEND)
 	{
 		FunGun_SetAmmo (self, g, a - 1);
+		FunGun_Lock (g);
 		self.fg_fire_t = time;
 		self.ns_fire_t = time;
 		self.ns_throw_at = time + NS_THROW_DELAY;		// the hand lets go at frame 44 (FunGun_ViewFrame)
@@ -231,6 +252,7 @@ void() FunGun_Attack =
 	if (g == FG_MBOX)
 	{
 		FunGun_SetAmmo (self, g, a - 1);
+		FunGun_Lock (g);
 		self.fg_fire_t = time;
 		self.mb_fire_t = time;
 		self.mb_throw_at = time + MB_THROW_DELAY;		// the hand lets go at frame 207 (FunGun_ViewFrame)
@@ -239,6 +261,7 @@ void() FunGun_Attack =
 		return;
 	}
 	FunGun_SetAmmo (self, g, a - 1);
+	FunGun_Lock (g);
 	self.fg_fire_t = time;
 	self.bm_lastshot = time + 0.7;		// keep bm_idle_reload from putting the gun away mid-throw (bm_reload.qc)
 	player_mm1 ();		// the rocket firing pose
@@ -287,6 +310,12 @@ void(entity p) FunGun_Give =
 		FunGun_SetRegenT (p, g, 0);
 		g = g + 1;
 	}
+	p.fg_lock_t = 0;
+	p.goo_slow = 0;		// no state carries through death: you respawn able to move
+	p.milk_freeze = 0;
+	p.milk_slip = FALSE;
+	p.ltg_shock = 0;
+	p.disableclientprediction = 0;
 	p.ns_throw_at = 0;		// a throw wound up in the last life must not fire in this one
 	p.mb_throw_at = 0;
 	p.milky_wind = 0;
@@ -299,7 +328,15 @@ void(entity p) FunGun_Give =
 	// sprites must never be see-through: with r_lerpsprites on, the engine cross-fades sprite frames (the Wheelman looked ghostly)
 	ct = clienttype (p);
 	if (ct == FD_CLIENTTYPE_REAL)
+	{
 		stuffcmd (p, "r_lerpsprites 0\n");
+		if (!p.bm_fx_sent)
+		{
+			p.bm_fx_sent = TRUE;
+			stuffcmd (p, "exec zz_tone_fx.cfg\n");		// in zz_tone1.pk3: reloads the lighter effects over an older loose effectinfo.txt. No pack = \"couldn't exec\", no harm
+		}
+		stuffcmd (p, "cl_movement_track_canjump 0\n");		// hold-to-jump rebounds on the server: predict it, or every landing snaps online
+	}
 	p.scale = 1;
 	p.wc_charging = 0;
 	p.wc_cool = 0;
@@ -454,7 +491,7 @@ void() Binoc_Frame =
 		self.attack_finished = time + 0.15;		// both hands are on the binoculars
 	if (time >= self.bn_msg)
 	{
-		self.bn_msg = time + 0.12;
+		self.bn_msg = time + 0.3;		// a centerprint is reliable traffic: 8 a second lagged slow connections
 		makevectors (self.v_angle);
 		eye = self.origin + self.view_ofs;
 		traceline (eye, eye + v_forward * 8000, FALSE, self);
@@ -570,4 +607,16 @@ void() FunGun_ViewFrame =
 	else if (self.fg_fire_t && t < 0.15)
 		f = 16 + floor (t * 20);
 	self.weaponframe = f;
+};
+
+// PlayerDie: the frame hooks don't run once you are dead, so anything still playing or set stops here
+void() FunGun_PlayerDie =
+{
+	if (self.wc_charging)
+	{
+		self.wc_charging = 0;
+		sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);		// the charge whine
+	}
+	Jetpack_Off ();		// cuts the swoosh
+	self.disableclientprediction = 0;
 };

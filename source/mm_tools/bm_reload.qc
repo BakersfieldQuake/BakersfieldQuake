@@ -43,7 +43,7 @@ float(float s) BM_MagSize =
 
 	if (s == BM_SG)			n = 20;		// the Goo Gun (it took the shotgun's slot)
 	else if (s == BM_SSG)	n = 12;		// 2 shells a shot: 6 shots, 3 QC bursts
-	else if (s == BM_NG)	n = 6;		// the Laptop Gun (took the nailgun slot): was 50 nails, which made it a free spam gun
+	else if (s == BM_NG)	n = 3;		// the Laptop Gun (took the nailgun slot): was 50 nails, which made it a free spam gun
 	else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
 	else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
 	else if (s == BM_RL)	n = 5;
@@ -73,7 +73,7 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_MM)	t = 12;		// 6 s a Mega Man (was 8: 4 s)
 	else if (s == BM_FG1)	t = FG_DOB_REGEN;	// Rob Dob: one head
 	else if (s == BM_FG2)	t = 9;		// Rally Master 3 s a ball
-	else if (s == BM_FG3)	t = 8;		// Pickle Surprise 8 s a pickle
+	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)
 	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
 	else if (s == BM_FG5)	t = FG_MBOX_REGEN;		// Mystery Box: 12 s a box
 	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: BFG-slow, 25 s for the next Wheelman

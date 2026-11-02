@@ -2,7 +2,7 @@
 // Full-sRGB bright creamy-white milk colours (0xecf0ea..0xffffff) so every splash, glob, and drip pops cleanly.
 // The burst: streaks of milk flying out, droplets raining down, a white mist (no flash)
 effect milky_boom
-count 160
+count 80
 type spark
 blend alpha
 tex 0 8
@@ -18,7 +18,7 @@ bounce -1
 
 // the drops: fat milk that rains down and lies about
 effect milky_boom
-count 130
+count 65
 type alphastatic
 tex 0 8
 color 0xecf0ea 0xffffff
@@ -33,7 +33,7 @@ bounce 0.16
 
 // a fountain straight up out of the middle
 effect milky_boom
-count 60
+count 30
 type alphastatic
 tex 0 8
 color 0xf0f3ee 0xffffff
@@ -47,7 +47,7 @@ airfriction 0.2
 
 // the white mist
 effect milky_boom
-count 12
+count 6
 type alphastatic
 tex 0 8
 color 0xe0e4de 0xf8faf6
@@ -60,7 +60,7 @@ airfriction 2
 
 // fine spray, flung far
 effect milky_boom
-count 70
+count 35
 type alphastatic
 tex 0 8
 color 0xf0f2ee 0xffffff

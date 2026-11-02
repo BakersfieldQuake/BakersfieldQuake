@@ -24,6 +24,7 @@ r_lightningbeam_repeatdistance "256"
 r_lightningbeam_scroll "6"
 r_lightningbeam_thickness "8"
 rate "95000"
+cl_movement_track_canjump 0
 gl_texturecompression "0"
 set weaponautoswitch 0		// picking up a gun never yanks the one you are holding (Combat+ sets 3 above)
 

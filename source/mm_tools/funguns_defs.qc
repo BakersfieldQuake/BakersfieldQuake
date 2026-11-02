@@ -64,6 +64,14 @@ float	PK_RAISE_TIME	= 0.22;		// aggressive belt-snatch fresh Pickle raise & chee
 .float	fg_ammo1, fg_ammo2, fg_ammo3, fg_ammo4, fg_ammo5, fg_ammo6;
 .float	fg_regen1, fg_regen2, fg_regen3, fg_regen4, fg_regen5, fg_regen6;
 .float	fg_fire_t;		// player: when the last shot went
+.float	fg_lock_t;		// player: until this time only fg_lock_gun can fire (bm_fg_lock)
+.float	fg_lock_gun;	// player: the fun gun that fired last
+.float	bm_fx_sent;		// player: the lighter particle file has been asked for on this map
+.float	fg_lock_msg;	// player: next time the "locked" click and message may play
+void(float g) FunGun_Lock;
+void() FunGun_PlayerDie;
+void() BM_PredictFrame;
+void() Jetpack_Off;
 .float	fg_bot_until;	// bot: keeps its current weapon choice until then
 .float	fg_bot_fun;		// bot: TRUE while it is playing with a fun gun
 
@@ -98,7 +106,7 @@ float	BN_ZOOM_START	= 5;
 // ammo: max, seconds per round recharged
 float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 20;
 float	FG_PONG_MAX		= 3;	float	FG_PONG_REGEN	= 6;
-float	FG_PICKLE_MAX	= 4;	float	FG_PICKLE_REGEN	= 5;
+float	FG_PICKLE_MAX	= 2;	float	FG_PICKLE_REGEN	= 5;
 float	FG_MBOX_MAX		= 2;	float	FG_MBOX_REGEN	= 12;	// two boxes; 12 s to conjure the next (mbox_defs.qc)
 float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 25;	// like a BFG: one Wheelman, 25 s to reload the next (wcannon_defs.qc)
 float	FG_NETSEND_MAX	= 1;	float	FG_NETSEND_REGEN	= 30;	// one disk; 30 s to write the next LOL.BAT (netsend_defs.qc)

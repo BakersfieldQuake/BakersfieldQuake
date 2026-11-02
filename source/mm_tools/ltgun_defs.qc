@@ -24,7 +24,10 @@ float	LTG_ANIM_N		= 48;		// ... and frames in it (1.14 s: the video's 6 s at 5.2
 float	LTG_VARIANTS	= 16;		// copies of the film, each starting at a different frame (see LtGun_VModel)
 float	LTG_CLOCK_LAG	= 0.3;		// the client's shader clock runs about this far behind the server's `time` (measured on a local game)
 float	LTG_SPEED		= 360;		// the head: a little faster than a running player (320), so a lock-on cannot simply be outrun
-float	LTG_SOUND_ATTN	= 0.3;		// "out of the projectile, not me": the clip comes from the head and fades with distance (ATTN_NONE played it in your own ears)
+float	LTG_CANIS_VOL	= 0.6;
+float	LTG_CANIS_GAP	= 8;		// one Canis Lupus at a time on the whole server: seven heads stacked it
+float	ltg_canis_t;
+float	LTG_SOUND_ATTN	= 1;		// "out of the projectile, not me": the clip comes from the head and fades with distance (ATTN_NONE played it in your own ears)
 float	LTG_TURN			= 6;		// how hard it steers to the laser dot (per second)
 float	LTG_TURN_LOCK	= 4;		// and to a locked enemy (a strafing player can still dodge at close range)
 float	LTG_LIFE			= 8;

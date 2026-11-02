@@ -83,7 +83,7 @@ void() Goo_Pop =
 	sendParticle ("goo_burst", self.origin, VEC_ORIGIN, 1, 0);
 	pointparticles (particleeffectnum ("goo_snow"), self.origin, VEC_ORIGIN, 1);
 	Goo_Chunks (self.origin);
-	Goo_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.8, 0.85 + random () * 0.3);
+	Goo_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.5, 0.85 + random () * 0.3);
 	Goo_Remove ();
 };
 
@@ -385,7 +385,11 @@ void() Goo_ShotTouch =
 		if (other.health > 0 && (other.flags & FL_CLIENT))
 			Goo_StickTo (other);
 		sendParticle ("goo_splat", self.origin, VEC_ORIGIN, 1, 0);
-		Goo_Snd (other, CHAN_AUTO, "weapons/goostick.wav", 1, 0.9 + random () * 0.2);
+		if (time >= self.owner.goo_snd_t)
+		{
+			self.owner.goo_snd_t = time + 0.25;
+			Goo_Snd (other, CHAN_AUTO, "weapons/goostick.wav", 0.5, 0.9 + random () * 0.2);
+		}
 		remove (self);
 		return;
 	}
@@ -433,7 +437,11 @@ void() Goo_ShotTouch =
 		org = org + n * GOO_HALF * GOO_SINK;		// mostly sunk into the surface, like it splatted there
 	}
 	sendParticle ("goo_splat", org, VEC_ORIGIN, 1, 0);
-	Goo_Snd (self, CHAN_AUTO, "weapons/goosplat.wav", 0.9, 0.85 + random () * 0.3);
+	if (time >= self.owner.goo_snd_t)
+	{
+		self.owner.goo_snd_t = time + 0.25;
+		Goo_Snd (self, CHAN_AUTO, "weapons/goosplat.wav", 0.5, 0.85 + random () * 0.3);
+	}
 	Goo_Blob (org, self.owner);
 	remove (self);
 };
@@ -444,7 +452,7 @@ void() Goo_Fire =
 	local entity g;
 	local vector dir, org;
 
-	Goo_Snd (self, CHAN_WEAPON, "weapons/goofire.wav", 1, 0.93 + random () * 0.14);
+	Goo_Snd (self, CHAN_WEAPON, "weapons/goofire.wav", 0.7, 0.93 + random () * 0.14);
 	self.punchangle_x = -1.6;
 	self.ammo_shells = self.ammo_shells - 1;
 	self.currentammo = self.ammo_shells;

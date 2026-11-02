@@ -77,14 +77,14 @@ float(entity e) WC_PlayLarryBoom =
 			k = 1;
 	}
 	wc_last_boom = k;
-	if (k == 1) { sound (e, CHAN_AUTO, "wcannon/wc_lboom1.wav", 1, ATTN_NORM); return 0.98; }
-	if (k == 2) { sound (e, CHAN_AUTO, "wcannon/wc_lboom2.wav", 1, ATTN_NORM); return 1.73; }
-	if (k == 3) { sound (e, CHAN_AUTO, "wcannon/wc_lboom3.wav", 1, ATTN_NORM); return 2.03; }
-	if (k == 4) { sound (e, CHAN_AUTO, "wcannon/wc_lboom4.wav", 1, ATTN_NORM); return 2.60; }
-	if (k == 5) { sound (e, CHAN_AUTO, "wcannon/wc_lboom5.wav", 1, ATTN_NORM); return 1.89; }
-	if (k == 6) { sound (e, CHAN_AUTO, "wcannon/wc_lboom6.wav", 1, ATTN_NORM); return 2.70; }
-	if (k == 7) { sound (e, CHAN_AUTO, "wcannon/wc_lboom7.wav", 1, ATTN_NORM); return 2.25; }
-	sound (e, CHAN_AUTO, "wcannon/wc_lboom8.wav", 1, ATTN_NORM);
+	if (k == 1) { sound (e, CHAN_AUTO, "wcannon/wc_lboom1.wav", WC_LINE_VOL, ATTN_NORM); return 0.98; }
+	if (k == 2) { sound (e, CHAN_AUTO, "wcannon/wc_lboom2.wav", WC_LINE_VOL, ATTN_NORM); return 1.73; }
+	if (k == 3) { sound (e, CHAN_AUTO, "wcannon/wc_lboom3.wav", WC_LINE_VOL, ATTN_NORM); return 2.03; }
+	if (k == 4) { sound (e, CHAN_AUTO, "wcannon/wc_lboom4.wav", WC_LINE_VOL, ATTN_NORM); return 2.60; }
+	if (k == 5) { sound (e, CHAN_AUTO, "wcannon/wc_lboom5.wav", WC_LINE_VOL, ATTN_NORM); return 1.89; }
+	if (k == 6) { sound (e, CHAN_AUTO, "wcannon/wc_lboom6.wav", WC_LINE_VOL, ATTN_NORM); return 2.70; }
+	if (k == 7) { sound (e, CHAN_AUTO, "wcannon/wc_lboom7.wav", WC_LINE_VOL, ATTN_NORM); return 2.25; }
+	sound (e, CHAN_AUTO, "wcannon/wc_lboom8.wav", WC_LINE_VOL, ATTN_NORM);
 	return 2.70;
 };
 
@@ -102,18 +102,18 @@ float(entity e) WC_PlayLarryRun =
 	}
 	wc_last_run = k;
 	p = SNDSPD * (0.98 + random () * 0.05);
-	if (k == 1)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun01.wav", 1, ATTN_NORM, p); return 2.30; }
-	if (k == 2)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun02.wav", 1, ATTN_NORM, p); return 2.60; }
-	if (k == 3)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun03.wav", 1, ATTN_NORM, p); return 2.50; }
-	if (k == 4)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun04.wav", 1, ATTN_NORM, p); return 1.76; }
-	if (k == 5)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun05.wav", 1, ATTN_NORM, p); return 2.04; }
-	if (k == 6)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun06.wav", 1, ATTN_NORM, p); return 1.37; }
-	if (k == 7)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun07.wav", 1, ATTN_NORM, p); return 2.12; }
-	if (k == 8)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun08.wav", 1, ATTN_NORM, p); return 2.00; }
-	if (k == 9)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun09.wav", 1, ATTN_NORM, p); return 1.90; }
-	if (k == 10) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun10.wav", 1, ATTN_NORM, p); return 1.05; }
-	if (k == 11) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun11.wav", 1, ATTN_NORM, p); return 0.99; }
-	sound7 (e, CHAN_VOICE, "wcannon/wc_lrun12.wav", 1, ATTN_NORM, p);
+	if (k == 1)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun01.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.30; }
+	if (k == 2)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun02.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.60; }
+	if (k == 3)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun03.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.50; }
+	if (k == 4)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun04.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.76; }
+	if (k == 5)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun05.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.04; }
+	if (k == 6)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun06.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.37; }
+	if (k == 7)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun07.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.12; }
+	if (k == 8)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun08.wav", WC_LINE_VOL, ATTN_NORM, p); return 2.00; }
+	if (k == 9)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun09.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.90; }
+	if (k == 10) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun10.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.05; }
+	if (k == 11) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun11.wav", WC_LINE_VOL, ATTN_NORM, p); return 0.99; }
+	sound7 (e, CHAN_VOICE, "wcannon/wc_lrun12.wav", WC_LINE_VOL, ATTN_NORM, p);
 	return 1.16;
 };
 
@@ -253,21 +253,21 @@ void(vector org, float tier) WC_Debris =
 {
 	local float n, i, gcount;
 
-	n = 5 + tier * 2;		// wheels (review 2026-11-01: "the tires flying everywhere")
+	n = 3 + tier;		// wheels (tone-down 2026-11-02, was 5 + tier * 2)
 	i = 0;
 	while (i < n)
 	{
 		WC_Chunk ("progs/mm_wheel.md3", org + '0 0 20', WC_Fling (260 + tier * 40), 1.3, 5 + random () * 2);
 		i = i + 1;
 	}
-	n = 2 + (tier >= 2) + (tier >= 3);		// bars
+	n = 1 + (tier >= 2);		// bars
 	i = 0;
 	while (i < n)
 	{
 		WC_Chunk ("progs/wc_bar.md3", org + '0 0 24', WC_Fling (260 + tier * 40), 1, 5 + random () * 2);
 		i = i + 1;
 	}
-	gcount = 8 + tier * 6;		// more gibs
+	gcount = 4 + tier * 3;		// more gibs
 	i = 0;
 	while (i < gcount)
 	{
@@ -277,7 +277,7 @@ void(vector org, float tier) WC_Debris =
 			ThrowGib ("progs/gib3.mdl", -95 - tier * 35);
 		i = i + 2;
 	}
-	pointparticles (wc_fx_spark, org + '0 0 24', '0 0 160', 70 + tier * 40);
+	pointparticles (wc_fx_spark, org + '0 0 24', '0 0 160', 35 + tier * 20);
 };
 
 // normal rocket explosion at 'org' (no custom Wheelman explosion sprite), plus flying wheels, bars and gibs
@@ -308,12 +308,12 @@ void(vector org, float tier, entity hit) WC_Boom =
 	if (pc == CONTENT_WATER || pc == CONTENT_SLIME || pc == CONTENT_LAVA)
 	{
 		sound7 (b, CHAN_WEAPON, "weapons/xpld_wat.wav", 1, ATTN_NORM, SNDSPD - 10);
-		sound7 (b, CHAN_AUTO, "weapons/explodedist.wav", 0.5, ATTN_NONE, SNDSPD - 10);
+		sound7 (b, CHAN_AUTO, "weapons/explodedist.wav", 0.5, 0.4, SNDSPD - 10);
 	}
 	else
 	{
 		sound7 (b, CHAN_WEAPON, "weapons/r_exp3.wav", 1, ATTN_NORM, SNDSPD);
-		sound7 (b, CHAN_AUTO, "weapons/explodedist.wav", 0.3, ATTN_NONE, SNDSPD);
+		sound7 (b, CHAN_AUTO, "weapons/explodedist.wav", 0.3, 0.4, SNDSPD);
 	}
 	wc_boom_dur = WC_PlayLarryBoom (b);
 	me = self;
@@ -515,7 +515,7 @@ void() WC_DancerThink =
 
 	if (time >= self.wc_snd)
 	{
-		self.wc_snd = time + WC_PlayLarryRun (self) + 0.16 + random () * 0.25;
+		self.wc_snd = time + WC_PlayLarryRun (self) + 1 + random ();
 	}
 };
 
@@ -761,8 +761,8 @@ void() WC_Think =
 	}
 	if (time >= self.wc_snd)
 	{
-		self.wc_snd = time + 1.4;
-		sound (self, CHAN_VOICE, "wcannon/wc_scream.wav", 1, ATTN_NORM);
+		self.wc_snd = time + WC_SCREAM_GAP;
+		sound (self, CHAN_VOICE, "wcannon/wc_scream.wav", WC_SCREAM_VOL, ATTN_NORM);
 	}
 };
 
@@ -787,6 +787,7 @@ void(float c) WC_Fire =
 	self.wc_cool = time + WC_COOLDOWN;
 	self.attack_finished = time + WC_COOLDOWN;
 	FunGun_SetAmmo (self, FG_WCANNON, a - 1);
+	FunGun_Lock (FG_WCANNON);
 	self.fg_fire_t = time;
 	tier = floor (c * 4);
 	if (tier > 3)
@@ -826,9 +827,9 @@ void(float c) WC_Fire =
 	p.touch = WC_Touch;
 	p.think = WC_Think;
 	p.nextthink = time + 0.02;
-	p.wc_snd = time + 1.4;
-	sound (p, CHAN_VOICE, "wcannon/wc_scream.wav", 1, ATTN_NORM);
-	FG_Snd (self, CHAN_WEAPON, "wcannon/wc_shoot.wav", 1, 1);
+	p.wc_snd = time + WC_SCREAM_GAP;
+	sound (p, CHAN_VOICE, "wcannon/wc_scream.wav", WC_SCREAM_VOL, ATTN_NORM);
+	FG_Snd (self, CHAN_WEAPON, "wcannon/wc_shoot.wav", 0.8, 1);
 	dprint (strcat ("wcannon: fire tier ", strcat (ftos (tier), strcat (" speed ", strcat (ftos (spd), "\n")))));
 	pointparticles (wc_fx_muzzle, org + '0 0 30', aim * 120, 1);
 	self.punchangle_x = -6 - 4 * c;
@@ -914,6 +915,14 @@ void() WC_Frame =
 		if (e)
 			T_Damage (e, self, self, 60);
 	}
+	if (self.impulse == 83 && cvar ("sv_cheats"))
+	{
+		// test: shoot the first pickle in the world (zz_tone.cfg)
+		self.impulse = 0;
+		e = find (world, classname, "pickle");
+		if (e)
+			T_Damage (e, self, self, 30);
+	}
 	if (!self.wc_charging)
 		return;
 	if (self.health <= 0 || self.weapon != IT_FUNGUN || self.fg_sel != FG_WCANNON || time - self.wc_charging > WC_CHARGE_TIME + 1)
@@ -933,7 +942,7 @@ void() WC_Frame =
 	self.punchangle_z = (random () - 0.5) * c * 3;
 	if (time >= self.wc_msg)
 	{
-		self.wc_msg = time + 0.12;
+		self.wc_msg = time + 0.3;		// a centerprint is reliable traffic
 		tier = floor (c * 4);
 		if (tier > 3)
 			tier = 3;

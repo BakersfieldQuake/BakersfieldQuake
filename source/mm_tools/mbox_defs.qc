@@ -27,7 +27,7 @@ float	MB_THROW_DELAY	= 0.42;		// the hand lets go at frame 207 of v_mysterybox.m
 float	MB_ANIM_FPS		= 36;		// v_mysterybox.md3 frames 192-219 play at this rate
 float	MB_LIFE_BOX		= 6;		// a box that has not landed by then is lost (and the magazine gets it back)
 float	MB_SPAWNS		= 1;		// monsters out of each box (the user cut it from 2 to 1 on 2026-11-01)
-float	MB_SPEED		= 640;		// a monster's run along the floor toward its enemy (a player runs 320)
+float	MB_SPEED		= 420;		// a monster's run along the floor toward its enemy (a player runs 320)
 float	MB_FACE			= 30;		// it stops this close to its enemy (floor distance): right in their face (a player and a monster touch at about 34)
 float	MB_STUCK		= 0.7;		// seconds without getting 48 units on before it glides through walls
 float	MB_REACH		= 64;		// it can hit an enemy this close (floor distance)
@@ -39,7 +39,7 @@ float	MB_BLAST		= 45;		// its explosion, radius damage at the centre (T_RadiusDa
 float	MB_HEALTH		= 30;		// shoot it to pieces: it explodes at once
 float	MB_RETARGET		= 0.5;		// seconds between two looks for a nearer enemy
 float	MB_WANDER		= 150;		// with nobody to chase it strolls about at this speed (review 2026-11-01: "it should start trolling around, looking around")
-float	MB_MAX			= 4;		// monsters one player can have out; the oldest go first
+float	MB_MAX			= 2;		// monsters one player can have out; the oldest go first
 
 .float	mb_type;		// monster: roster number
 .float	mb_born;		// box / monster: spawn time

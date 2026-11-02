@@ -21,7 +21,9 @@ var float	autocvar_bm_idle_reload		= 2.5;		// seconds without firing before a pa
 var float	autocvar_bm_selfdamage		= 0.6;		// self-inflicted damage x this (on top of the stock 0.5 splash halving)
 var float	autocvar_bm_rocketself		= 0.4;		// your own rockets' self-damage x this as well (0.4 = 60% less)
 var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
-var float	autocvar_bm_spawnnear		= 800;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
+var float	autocvar_bm_spawnnear		= 1200;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
+var float	autocvar_bm_fg_lock			= 10;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
+var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, goo, shock, milk): less snap-back online
 var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
 var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
 var float	autocvar_bm_regen_delay		= 5;		// seconds after the last hit before health comes back

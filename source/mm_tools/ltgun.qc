@@ -378,7 +378,11 @@ void() LtGun_Launch =
 	d.scale = 0.07;
 	h.ltg_laser = d;
 
-	sound (h, CHAN_VOICE, "ltgun/canis.wav", 1, LTG_SOUND_ATTN);
+	if (time >= ltg_canis_t)
+	{
+		ltg_canis_t = time + LTG_CANIS_GAP;
+		sound (h, CHAN_VOICE, "ltgun/canis.wav", LTG_CANIS_VOL, LTG_SOUND_ATTN);
+	}
 	if (self.ltg_hint < 3)
 	{
 		self.ltg_hint = self.ltg_hint + 1;

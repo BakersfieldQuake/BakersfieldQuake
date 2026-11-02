@@ -624,7 +624,7 @@ void(entity v, float thr) Veh_EngineSound =
 	pitch = 62 + 150 * v.veh_rpm;
 	if (time < v.veh_shift_t)
 		pitch = pitch * 0.86;
-	vol = 0.50 + 0.30 * thr;
+	vol = 0.30 + 0.20 * thr;
 	sound7 (v, VD_SOUND_CH, "vehicles/engine_grain.wav", vol, ATTN_NORM, pitch);
 	if (v.veh_eng_t < time - 0.2)
 		v.veh_eng_t = time;
@@ -640,7 +640,7 @@ void(entity v, float slip) Veh_SkidSound =
 		return;
 	vol = bound (0.3, (slip - 60) / 260, 1);
 	sound7 (v, VD_SOUND_CH, "vehicles/tire_squeal.wav", vol * 0.8, ATTN_NORM, 92 + slip * 0.03);
-	v.veh_skid_t = time + 0.14;
+	v.veh_skid_t = time + 0.3;
 	if (time >= v.veh_smoke_t2)
 	{
 		v.veh_smoke_t2 = time + 0.1;
@@ -1107,12 +1107,12 @@ float() Veh_DriveFrame =
 	if (started && time >= v.veh_music_t)
 	{
 		v.veh_music_t = time + VD_MUSIC_LEN;
-		sound (v, VD_MUSIC_CH, "vehicles/lanvan.wav", 0.9, ATTN_NORM);
+		sound (v, VD_MUSIC_CH, "vehicles/lanvan.wav", 0.5, ATTN_NORM);
 		dprint ("lanvan: chant starts\n");
 	}
 	if (self.button0 && time >= v.veh_horn_t && started)
 	{
-		v.veh_horn_t = time + 0.46;
+		v.veh_horn_t = time + 1;
 		sound (v, CHAN_WEAPON, "vehicles/horn.wav", 1, ATTN_NORM);
 	}
 

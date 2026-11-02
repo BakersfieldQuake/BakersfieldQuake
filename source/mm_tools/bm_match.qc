@@ -755,3 +755,13 @@ void() BM_TestImpulses =
 		self.impulse = 0;
 	}
 };
+
+// every frame from W_WeaponFrame: while the server overrides your speed the client's own movement guess is wrong by a whole ping
+// and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
+void() BM_PredictFrame =
+{
+	if (autocvar_bm_nopredict && (self.jp_on || time < self.goo_slow || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
+		self.disableclientprediction = 1;
+	else
+		self.disableclientprediction = 0;
+};

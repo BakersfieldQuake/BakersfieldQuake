@@ -557,14 +557,14 @@ void() Veh_DebrisTouch =
 	spd = vlen (self.velocity);
 	if (self.classname == "veh_wheel")
 	{
-		if (time < self.mm_bouncetime + 0.09 || spd < 55)
+		if (time < self.mm_bouncetime + 0.25 || spd < 55)
 			return;
 		self.mm_bouncetime = time;
 		self.mm_bounces = self.mm_bounces + 1;
 		Veh_TireSound (self, spd);
 		return;
 	}
-	if (time < self.mm_bouncetime + 0.11 || spd < 75)
+	if (time < self.mm_bouncetime + 0.25 || spd < 75)
 		return;
 	self.mm_bouncetime = time;
 	self.mm_bounces = self.mm_bounces + 1;
@@ -931,10 +931,10 @@ void() Veh_ExplodeNow =
 	// Stop burning loop on CHAN_ITEM, fire huge fuel-tank detonation sound!
 	sound (self, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);
 	if (random () < 0.5)
-		sound7 (self, CHAN_VOICE, "vehicles/car_boom1.wav", 1.0, 0.45, 95 + random () * 10);
+		sound7 (self, CHAN_VOICE, "vehicles/car_boom1.wav", 0.8, ATTN_NORM, 95 + random () * 10);
 	else
-		sound7 (self, CHAN_VOICE, "vehicles/car_boom2.wav", 1.0, 0.45, 95 + random () * 10);
-	sound7 (self, CHAN_BODY, "weapons/r_exp3.wav", 0.85, 0.55, 82 + random () * 12);
+		sound7 (self, CHAN_VOICE, "vehicles/car_boom2.wav", 0.8, ATTN_NORM, 95 + random () * 10);
+	sound7 (self, CHAN_BODY, "weapons/r_exp3.wav", 0.85, ATTN_NORM, 82 + random () * 12);
 
 	makevectors ('0 1 0' * self.angles_y);
 	fwd = v_forward;

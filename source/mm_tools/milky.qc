@@ -185,7 +185,7 @@ void() Milk_SplatThink =
 		p = self.origin + n * 2 + side * crandom () * self.milk_size * 7 - '0 0 1' * self.milk_size * (5 + random () * 5);
 	}
 	pointparticles (particleeffectnum ("milk_drip"), p, '0 0 0', 1);
-	self.milky_drip = time + 0.06 + random () * 0.25 + t * 0.04;
+	self.milky_drip = time + 0.12 + random () * 0.5 + t * 0.08;
 };
 
 // one splat of milk on a surface: floors get puddles (you slide on them), walls and ceilings get drippy splats
@@ -896,7 +896,7 @@ void() Milky_Fire =
 	self.attack_timer = 1;
 	self.attack_finished = time + MILKY_WIND + MILKY_REFIRE;		// the windup, then the cool-down
 	self.milky_hide = self.milky_wind + MILKY_FLYOUT + MILKY_HIDE;
-	Milky_Snd (self, CHAN_WEAPON, "milky/fire.wav", MILKY_SONG_VOL, MILKY_SONG_ATTN);
+	Milky_Snd (self, CHAN_WEAPON, "milky/fire.wav", 0.8, ATTN_NORM);		// the gun itself, not the song: it was at the song volume and range
 	if (cvar ("milky_debug"))
 		bprint ("milky: winding up at ", ftos (time), ", nails left ", ftos (self.ammo_nails), "\n");
 };
