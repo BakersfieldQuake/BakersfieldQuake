@@ -948,28 +948,7 @@ def _build_front_bumper_and_fascia():
             expect_n=(0.25, sgn * 0.92, 0.25), smooth=3,
         )
 
-    # 3. True 3D Hollow Chrome Ring Emblem + Horizontal Bar (smooth circular chrome UVs - zero radial stripes!)
-    r_in_b, r_out_b = 2.45, 3.35
-    x_em = 113.65
-    n_em = 24
-    for i in range(n_em):
-        a0 = 2.0 * math.pi * i / n_em
-        a1 = 2.0 * math.pi * ((i + 1) % n_em) / n_em
-        c0, s0 = math.cos(a0), math.sin(a0)
-        c1, s1 = math.cos(a1), math.sin(a1)
-        uv0_i = uv_in_rect(R_CHROME, 0.5 + 0.26 * c0, 0.5 - 0.26 * s0)
-        uv0_o = uv_in_rect(R_CHROME, 0.5 + 0.38 * c0, 0.5 - 0.38 * s0)
-        uv1_o = uv_in_rect(R_CHROME, 0.5 + 0.38 * c1, 0.5 - 0.38 * s1)
-        uv1_i = uv_in_rect(R_CHROME, 0.5 + 0.26 * c1, 0.5 - 0.26 * s1)
-        m.add_quad(
-            (x_em, c0 * r_in_b, 28.8 + s0 * r_in_b),
-            (x_em, c0 * r_out_b, 28.8 + s0 * r_out_b),
-            (x_em, c1 * r_out_b, 28.8 + s1 * r_out_b),
-            (x_em, c1 * r_in_b, 28.8 + s1 * r_in_b),
-            uvs=[uv0_i, uv0_o, uv1_o, uv1_i],
-            expect_n=(1.0, 0.0, 0.0), smooth=3,
-        )
-    m.add_box(x_em - 0.5, -3.35, 28.35, x_em + 0.2, 3.35, 29.25, region="chrome")
+    # 3. (removed 2026-11-02) The 3D chrome ring emblem sat in front of the Ram logo drawn on the front texture.
 
     # 4. Left & Right Bumper Wraparound Side Wings Stitched Directly to Front Wheel Arch Flare (cx=80, cz=14.2, r=23.2)!
     for sgn in (-1.0, 1.0):

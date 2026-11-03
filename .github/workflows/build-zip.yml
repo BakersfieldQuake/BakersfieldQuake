@@ -1,0 +1,76 @@
+# Builds a new BAKOQUAKE.zip release on demand (Actions tab > "Build BAKOQUAKE.zip" > Run workflow).
+#
+# The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
+# release (default: the latest), lays this repo's configs over BakersfieldQuake/, rebuilds zz_bakovan.pk3 from the
+# zip's own bakersfield.pk3, and publishes the result as a new release. Running it on its own output is safe: the
+# same steps give the same files.
+name: Build BAKOQUAKE.zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_tag:
+        description: "Release to take BAKOQUAKE.zip from (empty = latest)"
+        required: false
+        default: ""
+      tag:
+        description: "Tag for the new release (empty = build-YYYYMMDD-<short sha>)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_TAG: ${{ inputs.base_tag }}
+      NEW_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Download base BAKOQUAKE.zip
+        run: |
+          base="${BASE_TAG:-$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName)}"
+          echo "Base release: $base"
+          echo "BASE=$base" >> "$GITHUB_ENV"
+          gh release download "$base" -R "$GITHUB_REPOSITORY" -p BAKOQUAKE.zip
+          unzip -q BAKOQUAKE.zip -d out
+          rm BAKOQUAKE.zip
+          test -f out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
+
+      - name: Overlay repo configs
+        # lan_server.cfg is written at run time by tools/lanscan.ps1, so the repo copy is not shipped.
+        run: |
+          game=out/BAKOQUAKE/BakersfieldQuake
+          for f in repo/*.cfg repo/quake.rc; do
+            [ "$(basename "$f")" = lan_server.cfg ] && continue
+            if ! cmp -s "$f" "$game/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
+            cp "$f" "$game/"
+          done
+
+      - name: Build zz_bakovan.pk3
+        run: |
+          pip install --quiet numpy pillow
+          python -I repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
+
+      - name: Zip
+        # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
+        run: |
+          cd out
+          zip -q -r -n .pk3:.pak:.png:.jpg:.ogg ../BAKOQUAKE.zip BAKOQUAKE
+          cd ..
+          ls -l BAKOQUAKE.zip
+
+      - name: Publish release
+        run: |
+          tag="${NEW_TAG:-build-$(date -u +%Y%m%d)-${GITHUB_SHA::7}}"
+          gh release create "$tag" BAKOQUAKE.zip -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "BAKOQUAKE $tag" \
+            --notes "Playable package (Windows). Unzip, copy Quake's pak0.pak and pak1.pak from your own copy into the id1 folder, then run PLAY BAKERSFIELDQUAKE.exe.
+
+          Built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3)."
