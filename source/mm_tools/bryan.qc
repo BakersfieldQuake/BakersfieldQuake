@@ -62,6 +62,17 @@ float() Bryan_Customize =
 	if (d >= 8)
 		d = 0;
 
+	if (self.npc_dead)
+	{
+		k = self.npc_dstep;
+		if (k < 0)
+			k = 0;
+		if (k > 5)
+			k = 5;
+		self.frame = 264 + d * 6 + k;
+		return TRUE;
+	}
+
 	st = self.br_state;
 	m = bm_cvar_br_mode;
 	if (m >= 1 && m <= 4)
@@ -97,7 +108,7 @@ float() Bryan_Customize =
 
 void(entity attacker, float take) Bryan_Pain =
 {
-	if (self.health <= 0)
+	if (self.health <= 0 || self.npc_dead)
 		return;
 	if (time < self.br_special_end)
 		return;
@@ -112,6 +123,8 @@ void() Bryan_Touch =
 {
 	local vector dir;
 
+	if (self.npc_dead || self.health <= 0)
+		return;
 	if (other == world || !other.takedamage || other.health <= 0)
 		return;
 	if (other.classname == "monster_bryan")
@@ -190,20 +203,61 @@ void() Bryan_DieLoop =
 	self.nextthink = time + 0.065;
 };
 
+void() Bryan_FallStep =
+{
+	Bryan_TestCamLock();
+	self.npc_dstep = self.npc_dstep + 1;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = Bryan_FallStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = Bryan_FallStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = Bryan_FallStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	remove(self);
+};
+
 void() Bryan_Die =
 {
+	if (self.npc_dead)
+		return;
+	self.npc_dead = TRUE;
+	self.npc_dstep = 0;
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';
 	self.br_state = 0;
-	self.customizeentityforclient = SUB_Null;
-	self.br_dstep = 0;
-	self.frame = 232;
-	self.effects = BR_EF_BLUE;
-	sound(self, CHAN_VOICE, "bryan/portal_die.wav", 1, ATTN_NORM);
-	self.think = Bryan_DieLoop;
-	self.nextthink = time + 0.065;
+
+	if (NPC_ShouldGib(self))
+	{
+		self.customizeentityforclient = SUB_Null;
+		self.br_dstep = 0;
+		self.frame = 232;
+		self.effects = BR_EF_BLUE;
+		sound(self, CHAN_VOICE, "bryan/portal_die.wav", 1, ATTN_NORM);
+		self.think = Bryan_DieLoop;
+		self.nextthink = time + 0.065;
+		return;
+	}
+
+	self.effects = 0;
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "bryan/noway.wav", 1, ATTN_NORM);
+	self.think = Bryan_FallStep;
+	self.nextthink = time + 0.075;
 };
 
 void(float rad, float dmg) Bryan_DemonPulse =

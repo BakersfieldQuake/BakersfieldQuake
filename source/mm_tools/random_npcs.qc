@@ -197,6 +197,7 @@ void() RandomNPC_Respawn =
 
 void() RandomNPC_CorpseCleanup =
 {
+	self.alpha = 1;
 	if (self.npc_respawn > 0)
 	{
 		setmodel(self, "");
@@ -217,9 +218,21 @@ void() RandomNPC_DeathStep =
 		self.nextthink = time + 0.08;
 		return;
 	}
-	self.frame = 49;
-	self.think = RandomNPC_CorpseCleanup;
-	self.nextthink = time + 4.0;
+	if (self.npc_dstep == 6)
+	{
+		self.frame = 49;
+		self.think = RandomNPC_DeathStep;
+		self.nextthink = time + 2.4;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = RandomNPC_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	RandomNPC_CorpseCleanup();
 };
 
 void() RandomNPC_Die =
@@ -231,14 +244,15 @@ void() RandomNPC_Die =
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
 	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
 
-	// Heavy overkill (rockets / close SSG) splatters classic Quake gibs!
-	if (self.health < -35)
+	// Rockets / explosions / heavy overkill splatter classic Quake gibs!
+	if (NPC_ShouldGib(self))
 	{
 		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", self.health);
-		ThrowGib("progs/gib2.mdl", self.health);
-		ThrowGib("progs/gib3.mdl", self.health);
+		ThrowGib("progs/gib1.mdl", -70);
+		ThrowGib("progs/gib2.mdl", -75);
+		ThrowGib("progs/gib3.mdl", -80);
 		if (self.npc_respawn > 0)
 		{
 			setmodel(self, "");
@@ -250,6 +264,7 @@ void() RandomNPC_Die =
 		return;
 	}
 
+	self.alpha = 1;
 	RandomNPC_PlayVoice(self, 2);
 	self.frame = 44;
 	self.think = RandomNPC_DeathStep;

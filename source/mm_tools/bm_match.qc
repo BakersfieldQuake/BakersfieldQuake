@@ -29,6 +29,7 @@ void() BM_Precache =
 	GreenSuit_Precache ();
 	RobeGuy_Precache ();
 	RandomNPCs_Precache ();
+	Crowd_Precache ();
 	JohnBird_Precache ();
 };
 
@@ -38,7 +39,29 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 	bm_kb = damage;
 	bm_blocked = FALSE;
 	if (targ.classname != "player")
+	{
+		targ.bm_last_hit_dmg = damage;
+		targ.bm_last_hit_explosive = FALSE;
+		if (inflictor != world)
+		{
+			if (inflictor.classname == "missile" || inflictor.classname == "grenade"
+				|| inflictor.classname == "proximity_grenade" || inflictor.classname == "misc_explobox"
+				|| inflictor.classname == "jimrocket" || inflictor.classname == "resistexp"
+				|| inflictor.deathtype == "exploding"
+				|| inflictor.classname == "bigbanana" || inflictor.classname == "minibanana"
+				|| inflictor.classname == "mmtire" || inflictor.classname == "mmrubber"
+				|| inflictor.classname == "wc_dancer" || inflictor.classname == "wc_shot"
+				|| inflictor.classname == "mbmonster" || inflictor.classname == "mbox"
+				|| inflictor.classname == "milky" || inflictor.classname == "jwwave"
+				|| inflictor.classname == "veh_blast_inflictor" || inflictor.classname == "lan_blast_inflictor"
+				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
+				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.veh_kind > 0)
+			{
+				targ.bm_last_hit_explosive = TRUE;
+			}
+		}
 		return damage;
+	}
 	if (targ.bm_prot_t > time && damage < 1000)		// telefrags still go through
 	{
 		bm_blocked = TRUE;
@@ -51,6 +74,16 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 			damage = damage * autocvar_bm_rocketself;
 	}
 	return damage;
+};
+
+// NPCs only gib when killed by rockets / explosions / vehicles or heavy high-damage hits (>= 75)
+float(entity e) NPC_ShouldGib =
+{
+	if (e.bm_last_hit_explosive)
+		return TRUE;
+	if (e.bm_last_hit_dmg >= 75)
+		return TRUE;
+	return FALSE;
 };
 
 // end of PutClientInServer
@@ -303,6 +336,7 @@ void() BM_Stats =
 	clientstat (66, 2, jp_st_fuel);		// the jetpack's glass fuel tank (jetpack.qc, csqc/bm_hud.qc)
 	clientstat (67, 2, jp_st_max);
 	clientstat (68, 2, milk_st);		// milk on the screen after a Pink Lady burst (milky.qc, csqc/bm_hud.qc)
+	clientstat (71, 2, bm_st_slot);		// held weapon slot (16 = M4A1, csqc/bm_hud.qc)
 };
 
 float() BM_CountPlayers =
@@ -639,6 +673,7 @@ void() BM_StartFrame =
 	}
 
 	Underdog_Update ();
+	Crowd_Tick ();
 	BM_VoteTick ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
@@ -752,6 +787,24 @@ void() BM_TestImpulses =
 	else if (self.impulse == 55)
 	{
 		RandomNPC_SummonAll4 ();
+		self.impulse = 0;
+	}
+	else if (self.impulse == 56)
+	{
+		Crowd_Report ();
+		self.impulse = 0;
+	}
+	else if (self.impulse == 59)
+	{
+		Crowd_Line ();
+		self.impulse = 0;
+	}
+	else if (self.impulse == 57 || self.impulse == 58)
+	{
+		if (self.impulse == 57)
+			Crowd_Poke (25);
+		else
+			Crowd_Poke (500);
 		self.impulse = 0;
 	}
 };

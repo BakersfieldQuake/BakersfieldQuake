@@ -9,6 +9,7 @@ void() FunGun_Precache =
 	NS_Precache ();
 	MB_Precache ();
 	WC_Precache ();
+	M4_Precache ();
 };
 
 // ---------------------------------------------------------------- tables
@@ -25,6 +26,8 @@ string(float g) FunGun_VModel =
 		return "progs/v_mysterybox.md3";
 	if (g == FG_WCANNON)
 		return "progs/v_wewcannon.md3";
+	if (g == FG_M4)
+		return M4_VModel ();
 	// no pickle to throw: no hand (once any active throw + empty-claw follow-through has dropped off screen)
 	p = self;
 	if (!(self.flags & FL_CLIENT) && self.owner)
@@ -38,6 +41,8 @@ string(float g) FunGun_Name =
 {
 	if (g == FG_DOB)
 		return "ROB DOB\nfire: your head flies out. steer it.\nfire: dash (steer it). fire again: blow it up.\n";
+	if (g == FG_M4)
+		return "M4A1\nhold fire: automatic rifle, burst for range. R reloads (30 rounds).\n";
 	if (g == FG_WCANNON)
 		return "WHEELMAN CANNON\nhold fire to charge, let go to blast off a screaming Wheelman. he blows up where he crashes.\n";
 	if (g == FG_MBOX)
@@ -58,6 +63,8 @@ string(float g) FunGun_Death1 =
 		return " got jumped on by ";
 	if (g == FG_WCANNON)
 		return " got rolled over by ";
+	if (g == FG_M4)
+		return " was lit up by ";
 	return " walked into ";
 };
 
@@ -73,6 +80,8 @@ string(float g) FunGun_Death2 =
 		return "'s Mystery Box monsters\n";
 	if (g == FG_WCANNON)
 		return "'s Wheelman\n";
+	if (g == FG_M4)
+		return "'s M4\n";
 	return "\n";
 };
 
@@ -88,6 +97,8 @@ float(float g) FunGun_Max =
 		return FG_MBOX_MAX;
 	if (g == FG_WCANNON)
 		return FG_WCANNON_MAX;
+	if (g == FG_M4)
+		return FG_M4_MAX;
 	return FG_PICKLE_MAX;
 };
 
@@ -103,6 +114,8 @@ float(float g) FunGun_RegenTime =
 		return FG_MBOX_REGEN;
 	if (g == FG_WCANNON)
 		return FG_WCANNON_REGEN;
+	if (g == FG_M4)
+		return FG_M4_REGEN;
 	return FG_PICKLE_REGEN;
 };
 
@@ -118,6 +131,8 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo5;
 	if (g == FG_WCANNON)
 		return p.fg_ammo6;
+	if (g == FG_M4)
+		return p.fg_ammo7;
 	return p.fg_ammo3;
 };
 
@@ -133,6 +148,8 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo5 = v;
 	else if (g == FG_WCANNON)
 		p.fg_ammo6 = v;
+	else if (g == FG_M4)
+		p.fg_ammo7 = v;
 	else
 		p.fg_ammo3 = v;
 	if (p.weapon == IT_FUNGUN && p.fg_sel == g)
@@ -151,6 +168,8 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen5;
 	if (g == FG_WCANNON)
 		return p.fg_regen6;
+	if (g == FG_M4)
+		return p.fg_regen7;
 	return p.fg_regen3;
 };
 
@@ -166,6 +185,8 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen5 = v;
 	else if (g == FG_WCANNON)
 		p.fg_regen6 = v;
+	else if (g == FG_M4)
+		p.fg_regen7 = v;
 	else
 		p.fg_regen3 = v;
 };
@@ -199,6 +220,11 @@ void() FunGun_Attack =
 	local float g, a, ct;
 
 	g = self.fg_sel;
+	if (g == FG_M4)
+	{
+		M4_Press ();		// stand-alone automatic rifle: exempt from bm_fg_lock (m4.qc)
+		return;
+	}
 	if (time < self.fg_lock_t && g != self.fg_lock_gun)
 	{
 		if (time >= self.fg_lock_msg)
@@ -287,6 +313,8 @@ void(float g) FunGun_Select =
 	self.impulse = 0;
 	if (g == FG_PONG)
 		return;		// the Rally Master is gone: its key (impulse 62) does nothing
+	if (g == FG_M4 && !m4_ok)
+		return;		// no cs16test folder: no M4 (m4.qc)
 	if (self.has_fired == 1)
 		return;
 	self.idletimer = 1;		// weapon raise animation
@@ -327,6 +355,8 @@ void(entity p) FunGun_Give =
 		p.fg_sel = FG_PICKLE;		// the Rally Master is gone
 	// sprites must never be see-through: with r_lerpsprites on, the engine cross-fades sprite frames (the Wheelman looked ghostly)
 	ct = clienttype (p);
+	if (p.fg_sel == FG_M4 && (!m4_ok || ct != FD_CLIENTTYPE_REAL))
+		p.fg_sel = FG_PICKLE;		// bots never carry the M4, nobody does without cs16test
 	if (ct == FD_CLIENTTYPE_REAL)
 	{
 		stuffcmd (p, "r_lerpsprites 0\n");
@@ -344,6 +374,9 @@ void(entity p) FunGun_Give =
 	p.pk_threw_t = 0;
 	p.pk_reload_t = 0;
 	p.pk_empty = FALSE;
+	p.m4_bloom = 0;
+	p.m4_bloom_t = 0;
+	p.m4_shot_n = 0;
 	FD_Reset (p);		// a new life starts with no head out
 };
 
@@ -385,12 +418,22 @@ float() FunGun_CycleNext =
 	n = self.fg_sel + 1;
 	if (n == FG_PONG)
 		n = n + 1;		// the Rally Master is gone: wheel past it
+	if (n == FG_M4 && !m4_ok)
+		return FALSE;		// the M4 is only there with cs16test
 	if (n <= FG_COUNT)
 	{
 		self.fg_sel = n;
 		return TRUE;
 	}
 	return FALSE;
+};
+
+// the last fun gun that can be selected (backwards cycling from the axe lands on it)
+float() FunGun_Last =
+{
+	if (m4_ok)
+		return FG_M4;
+	return FG_WCANNON;
 };
 
 float() FunGun_CyclePrev =
@@ -589,6 +632,10 @@ void() FunGun_ViewFrame =
 		nt = time - self.mb_fire_t;
 		if (nt < 28 / MB_ANIM_FPS)
 			f = min (219, 192 + floor (nt * MB_ANIM_FPS));
+	}
+	else if (g == FG_M4)
+	{
+		f = M4_Anim ();		// v_m4.md3: CS idle / fire / reload / draw (m4.qc)
 	}
 	else if (g == FG_WCANNON)
 	{

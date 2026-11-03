@@ -106,8 +106,8 @@ for fi, f in enumerate(faces):
         e = surfedges[firstedge + k]
         pts.append(verts[edges[e][0]] if e >= 0 else verts[edges[-e][1]])
     st = [(p[0] * vec[0] + p[1] * vec[1] + p[2] * vec[2] + vec[3], p[0] * vec[4] + p[1] * vec[5] + p[2] * vec[6] + vec[7]) for p in pts]
-    mins = [math.floor(min(s[a] for s in st) / 16) for a in (0, 1)]
-    maxs = [math.ceil(max(s[a] for s in st) / 16) for a in (0, 1)]
+    mins = [math.floor(round(min(s[a] for s in st), 3) / 16) for a in (0, 1)]
+    maxs = [math.ceil(round(max(s[a] for s in st), 3) / 16) for a in (0, 1)]
     w, h = maxs[0] - mins[0] + 1, maxs[1] - mins[1] + 1
     blocks.append((h, w, fi, mins))
 blocks.sort(reverse=True)
@@ -318,7 +318,11 @@ for _fn in os.listdir(os.path.join(MOD, "scripts")):
 
 
 # ------------------------------------------------------------------ hull 1 (player) collision tree
-used_hulls = {mi: models[mi][10] for mi in bmodels}       # headnode[1]
+solid_bmodels = [0] + [int(e["model"][1:]) for e in ents()
+                       if e.get("model", "").startswith("*")
+                       and not e.get("classname", "").startswith("trigger")
+                       and e.get("classname") != "func_illusionary"]
+used_hulls = {mi: models[mi][10] for mi in solid_bmodels} # headnode[1] (skip non-solid func_illusionary)
 
 # ------------------------------------------------------------------ jump pads and teleporters (trigger_push / trigger_teleport)
 triggers = []
@@ -374,9 +378,12 @@ def find_prop_tex(tex, suffix=""):
     return None
 
 
+_ws = next((e for e in ents() if e.get("classname") == "worldspawn"), {})
 meta = {"world": [], "spots": spots, "lightmap": [AW, AH],
-        "frame": {"bklan": [-110, 225], "bklan2": [-110, 225], "bklan3": [-110, 225], "bklan4": [-110, 225], "bklan5": [-110, 225], "fox": [220, -118], "orcom": [38, 26]}.get(NAME, [0, 0]),      # generator origin (ft): dev overlay shows map feet
+        "frame": {"bklan": [-110, 225], "bklan2": [-110, 225], "bklan3": [-110, 225], "bklan4": [-110, 225], "bklan5": [-110, 225], "fox": [220, -118], "mint": [1640, -450], "nile": [0, 0], "dagnys": [0, 0], "orcom": [38, 26]}.get(NAME, [0, 0]),      # generator origin (ft): dev overlay shows map feet
         "triggers": triggers,
+        "fog": _ws.get("fog", ""),
+        "sky": _ws.get("sky") or _ws.get("skyname") or "",
         "built": __import__("time").strftime("%Y-%m-%d %H:%M", __import__("time").localtime(os.path.getmtime(os.path.join(MOD, "maps", NAME + ".bsp"))))}
 blob = bytearray()
 for tex, rows in sorted(groups.items()):
@@ -452,7 +459,20 @@ for tex in props:
                 ImageEnhance.Brightness(im).enhance(1.0 / 0.52).save(dst_p, optimize=True)
             else:
                 copy_tex(_raw, dst_p)
-if NAME in ("bklan3", "bklan4", "bklan5", "fox"):                          # the 2026-11-01 sunny sky: drawn for three's cube layout
+if NAME == "downtown" or (_ws.get("skyname") or "").startswith("dtsky"):
+    import numpy as np
+    sys.path.insert(0, os.path.join(MOD, "source", "downtown", "pieces", "lighting_assets"))
+    import build_dt_sky  # noqa: E402
+    _N = build_dt_sky.N
+    _u, _v = np.meshgrid(np.linspace(-1, 1, _N), np.linspace(-1, _N / _N, _N))
+    _one = np.ones_like(_u)
+    _gl = {"rt": (_one, -_v, -_u), "lf": (-_one, -_v, _u), "up": (_u, _one, _v), "dn": (_u, -_one, -_v), "bk": (_u, -_v, _one), "ft": (-_u, -_v, -_one)}
+    for _side, (_rx, _ry, _rz) in _gl.items():
+        _d = np.stack([-_rx, -_rz, _ry], -1)
+        _d = _d / np.linalg.norm(_d, axis=-1, keepdims=True)
+        _arr = np.clip(np.round(build_dt_sky.sky_display(_d)), 0, 255).astype(np.uint8)
+        Image.fromarray(_arr, "RGB").save(os.path.join(OUT, "sky", "%s.jpg" % _side), quality=88)
+elif NAME in ("bklan3", "bklan4", "bklan5", "fox", "mint", "nile", "dagnys", "jerrys"): # the 2026-11-01 sunny sky: drawn for three's cube layout
     import build_bklan_sky  # noqa: E402
     build_bklan_sky.web_faces(os.path.join(OUT, "sky"))
 else:

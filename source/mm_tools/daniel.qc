@@ -80,6 +80,8 @@ void() Daniel_Precache =
 	precache_sound("ccc/shoot.wav");
 	precache_sound("floathead/boing.wav");
 	precache_sound("weapons/r_exp3.wav");
+	precache_sound("player/udeath.wav");
+	precache_sound("player/pain6.wav");
 };
 
 // ---------------------------------------------------------------- Spinning Yellow 'C' Projectile (CCC! C-C-C-C!)
@@ -248,6 +250,17 @@ float() Daniel_Customize =
 	if (d >= 8)
 		d = 0;
 
+	if (self.npc_dead)
+	{
+		k = self.npc_dstep;
+		if (k < 0)
+			k = 0;
+		if (k > 5)
+			k = 5;
+		self.frame = 344 + d * 6 + k;
+		return TRUE;
+	}
+
 	st = self.dn_state;
 	m = bm_cvar_dn_mode;
 	if (m >= 1 && m <= 8)
@@ -310,7 +323,7 @@ void(entity attacker, float take) Daniel_Pain =
 {
 	local vector flat_ang;
 
-	if (self.health <= 0 || self.dn_lan_only)
+	if (self.health <= 0 || self.npc_dead || self.dn_lan_only)
 		return;
 	if (time < self.dn_phase_end && self.dn_state == 6)
 		return;
@@ -336,6 +349,9 @@ void() Daniel_Respawn =
 	self.max_health = 185;
 	self.takedamage = DAMAGE_AIM;
 	self.effects = 0;
+	self.alpha = 1;
+	self.npc_dead = FALSE;
+	self.npc_dstep = 0;
 	if (self.dn_lan_only)
 		self.dn_state = 7;
 	else
@@ -351,7 +367,7 @@ void() Daniel_Touch =
 {
 	local vector dir;
 
-	if (self.dn_lan_only)
+	if (self.dn_lan_only || self.npc_dead || self.health <= 0)
 		return;
 	if (other == world || !other.takedamage || other.health <= 0)
 		return;
@@ -372,24 +388,29 @@ void() Daniel_Touch =
 		other.flags = other.flags - FL_ONGROUND;
 };
 
-void() Daniel_Die =
+void() Daniel_DeathStep =
 {
-	self.solid = SOLID_NOT;
-	self.takedamage = DAMAGE_NO;
-	self.movetype = MOVETYPE_NONE;
-	self.effects = 0;
-	sound(self, CHAN_VOICE, "daniel/shaaa_scream.wav", 1, ATTN_NORM);
-	sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
-	Daniel_ThrowProp("progs/daniel_table.md3", self.origin + '0 0 24', '90 -110 240', 0);
-	Daniel_ThrowProp("progs/daniel_webcam.md3", self.origin + '0 0 32', '-120 95 270', 0);
-	ThrowGib("progs/gib1.mdl", -75);
-	ThrowGib("progs/gib2.mdl", -85);
-	ThrowGib("progs/gib3.mdl", -95);
-	WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte(MSG_BROADCAST, TE_EXPLOSION);
-	WriteCoord(MSG_BROADCAST, self.origin_x);
-	WriteCoord(MSG_BROADCAST, self.origin_y);
-	WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+	self.npc_dstep = self.npc_dstep + 1;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = Daniel_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = Daniel_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = Daniel_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	self.alpha = 1;
 	if (self.dn_respawn > 0)
 	{
 		setmodel(self, "");
@@ -398,6 +419,49 @@ void() Daniel_Die =
 		return;
 	}
 	remove(self);
+};
+
+void() Daniel_Die =
+{
+	if (self.npc_dead)
+		return;
+	self.npc_dead = TRUE;
+	self.npc_dstep = 0;
+	self.solid = SOLID_NOT;
+	self.takedamage = DAMAGE_NO;
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
+	self.effects = 0;
+
+	if (NPC_ShouldGib(self))
+	{
+		sound(self, CHAN_VOICE, "daniel/shaaa_scream.wav", 1, ATTN_NORM);
+		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
+		Daniel_ThrowProp("progs/daniel_table.md3", self.origin + '0 0 24', '90 -110 240', 0);
+		Daniel_ThrowProp("progs/daniel_webcam.md3", self.origin + '0 0 32', '-120 95 270', 0);
+		ThrowGib("progs/gib1.mdl", -75);
+		ThrowGib("progs/gib2.mdl", -85);
+		ThrowGib("progs/gib3.mdl", -95);
+		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
+		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
+		WriteCoord(MSG_BROADCAST, self.origin_x);
+		WriteCoord(MSG_BROADCAST, self.origin_y);
+		WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+		if (self.dn_respawn > 0)
+		{
+			setmodel(self, "");
+			self.think = Daniel_Respawn;
+			self.nextthink = time + self.dn_respawn;
+			return;
+		}
+		remove(self);
+		return;
+	}
+
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "daniel/sorry_table.wav", 1, ATTN_NORM);
+	self.think = Daniel_DeathStep;
+	self.nextthink = time + 0.075;
 };
 
 void() Daniel_Think =
@@ -643,6 +707,17 @@ float() Dad4AM_Customize =
 	if (d >= 8)
 		d = 0;
 
+	if (self.npc_dead)
+	{
+		k = self.npc_dstep;
+		if (k < 0)
+			k = 0;
+		if (k > 5)
+			k = 5;
+		self.frame = 56 + d * 6 + k;
+		return TRUE;
+	}
+
 	if (bm_cvar_dn_stay > 0)
 	{
 		self.frame = d;
@@ -659,6 +734,8 @@ void() Dad4AM_Touch =
 {
 	local vector dir;
 
+	if (self.npc_dead || self.health <= 0)
+		return;
 	if (other == world || !other.takedamage || other.health <= 0)
 		return;
 	if (other.classname == "monster_dad4am")
@@ -686,15 +763,57 @@ void() Dad4AM_Touch =
 		other.flags = other.flags - FL_ONGROUND;
 };
 
+void() Dad4AM_DeathStep =
+{
+	self.npc_dstep = self.npc_dstep + 1;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = Dad4AM_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = Dad4AM_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = Dad4AM_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	remove(self);
+};
+
 void() Dad4AM_Die =
 {
+	if (self.npc_dead)
+		return;
+	self.npc_dead = TRUE;
+	self.npc_dstep = 0;
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
 	self.effects = 0;
-	sound(self, CHAN_VOICE, "weapons/r_exp3.wav", 1, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -75);
-	ThrowGib("progs/gib2.mdl", -85);
-	remove(self);
+
+	if (NPC_ShouldGib(self))
+	{
+		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
+		ThrowGib("progs/gib1.mdl", -75);
+		ThrowGib("progs/gib2.mdl", -85);
+		ThrowGib("progs/gib3.mdl", -90);
+		remove(self);
+		return;
+	}
+
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "player/pain6.wav", 1, ATTN_NORM);
+	self.think = Dad4AM_DeathStep;
+	self.nextthink = time + 0.075;
 };
 
 void() Dad4AM_Think =

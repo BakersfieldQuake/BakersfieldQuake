@@ -11,6 +11,7 @@ exec hook.cfg
 
 // client look/feel defaults (also before config.cfg, so the player's own choices win)
 sbar_alpha_bg "0"
+cl_decals "1"
 effects_classic_explosion "1"
 r_lerplightstyles "1"
 cl_beams_instantaimhack "1"
@@ -36,8 +37,9 @@ exec config.cfg
 
 // default keys: ONCE, for a new player (bm_defver is saved as 1 in their config.cfg, so this never runs again and
 // their own binds / unbinds are never touched). To ship new default keys later: new file, bm_up_1 -> exec it, bump the number.
-alias bm_up_0 "exec bm_binds.cfg; seta bm_defver 1"
-alias bm_up_1 ""
+alias bm_up_0 "exec bm_binds.cfg; seta bm_defver 2"
+alias bm_up_1 "exec bm_up_1.cfg; seta bm_defver 2"
+alias bm_up_2 ""
 bm_up_$bm_defver
 
 // LAN rules defaults (bm_* cvars), then personal.cfg if there is one

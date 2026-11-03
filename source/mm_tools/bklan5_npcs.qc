@@ -16,8 +16,6 @@ Cheat test impulses (with sv_cheats 1):
 .float	npc_phase_end;
 .float	npc_next_stunt;
 .float	npc_next_voice;
-.float	npc_dead;
-.float	npc_dstep;
 .float	npc_respawn;
 .float	npc_radius;
 .vector	npc_home;
@@ -51,6 +49,7 @@ void() GreenSuit_Precache =
 	precache_sound("weapons/r_exp3.wav");
 	precache_sound("weapons/lstart.wav");
 	precache_sound("player/udeath.wav");
+	precache_sound("player/pain4.wav");
 	precache_sound("vehicles/idle_coupe.wav");
 };
 
@@ -66,7 +65,7 @@ float() GreenSuit_Customize =
 	if (d >= 8)
 		d = 0;
 
-	if (self.npc_dead)
+	if (self.npc_dead == 2)
 	{
 		s = self.npc_dstep;
 		if (s < 0)
@@ -74,6 +73,16 @@ float() GreenSuit_Customize =
 		if (s > 6)
 			s = 6;
 		self.frame = 200 + d * 7 + s;
+		return TRUE;
+	}
+	if (self.npc_dead == 1)
+	{
+		s = self.npc_dstep;
+		if (s < 0)
+			s = 0;
+		if (s > 5)
+			s = 5;
+		self.frame = 256 + d * 6 + s;
 		return TRUE;
 	}
 
@@ -116,6 +125,7 @@ void() GreenSuit_Respawn =
 	self.max_health = 135;
 	self.takedamage = DAMAGE_AIM;
 	self.effects = 0;
+	self.alpha = 1;
 	self.npc_dead = FALSE;
 	self.npc_dstep = 0;
 	self.npc_state = 1;
@@ -132,13 +142,45 @@ void() GreenSuit_Respawn =
 void() GreenSuit_DeathStep =
 {
 	self.npc_dstep = self.npc_dstep + 1;
-	if (self.npc_dstep <= 6)
+	if (self.npc_dead == 2)
 	{
+		if (self.npc_dstep <= 6)
+		{
+			self.think = GreenSuit_DeathStep;
+			self.nextthink = time + 0.07;
+			return;
+		}
+		self.effects = 0;
+		if (self.npc_respawn > 0)
+		{
+			setmodel(self, "");
+			self.think = GreenSuit_Respawn;
+			self.nextthink = time + self.npc_respawn;
+			return;
+		}
+		remove(self);
+		return;
+	}
+	if (self.npc_dstep <= 5)
+	{
+		self.think = GreenSuit_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = GreenSuit_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
 		self.think = GreenSuit_DeathStep;
 		self.nextthink = time + 0.07;
 		return;
 	}
-	self.effects = 0;
+	self.alpha = 1;
 	if (self.npc_respawn > 0)
 	{
 		setmodel(self, "");
@@ -153,24 +195,37 @@ void() GreenSuit_Die =
 {
 	if (self.npc_dead)
 		return;
-	self.npc_dead = TRUE;
 	self.npc_dstep = 0;
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
 	self.movetype = MOVETYPE_NONE;
-	self.effects = EF_DIMLIGHT;
-	sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-	sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -75);
-	ThrowGib("progs/gib2.mdl", -85);
-	ThrowGib("progs/gib3.mdl", -95);
-	WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte(MSG_BROADCAST, TE_EXPLOSION);
-	WriteCoord(MSG_BROADCAST, self.origin_x);
-	WriteCoord(MSG_BROADCAST, self.origin_y);
-	WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+	self.velocity = '0 0 0';
+
+	if (NPC_ShouldGib(self))
+	{
+		self.npc_dead = 2;
+		self.effects = EF_DIMLIGHT;
+		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
+		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
+		ThrowGib("progs/gib1.mdl", -75);
+		ThrowGib("progs/gib2.mdl", -85);
+		ThrowGib("progs/gib3.mdl", -95);
+		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
+		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
+		WriteCoord(MSG_BROADCAST, self.origin_x);
+		WriteCoord(MSG_BROADCAST, self.origin_y);
+		WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+		self.think = GreenSuit_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+
+	self.npc_dead = 1;
+	self.effects = 0;
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "player/pain4.wav", 1, ATTN_NORM);
 	self.think = GreenSuit_DeathStep;
-	self.nextthink = time + 0.07;
+	self.nextthink = time + 0.075;
 };
 
 void(entity attacker, float take) GreenSuit_Pain =
@@ -385,7 +440,14 @@ float() RobeGuy_Customize =
 	local float rel, d, k, st, s;
 	local vector delta;
 
-	if (self.npc_dead)
+	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 28');
+	rel = vectoyaw(delta) - self.angles_y;
+	rel = rel - 360 * floor(rel / 360);
+	d = floor(rel / 45 + 0.5);
+	if (d >= 8)
+		d = 0;
+
+	if (self.npc_dead == 2)
 	{
 		s = self.npc_dstep;
 		if (s < 0)
@@ -395,13 +457,16 @@ float() RobeGuy_Customize =
 		self.frame = 312 + s;
 		return TRUE;
 	}
-
-	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 28');
-	rel = vectoyaw(delta) - self.angles_y;
-	rel = rel - 360 * floor(rel / 360);
-	d = floor(rel / 45 + 0.5);
-	if (d >= 8)
-		d = 0;
+	if (self.npc_dead == 1)
+	{
+		s = self.npc_dstep;
+		if (s < 0)
+			s = 0;
+		if (s > 5)
+			s = 5;
+		self.frame = 336 + d * 6 + s;
+		return TRUE;
+	}
 
 	st = self.npc_state;
 	if (st <= 0)
@@ -452,6 +517,7 @@ void() RobeGuy_Respawn =
 	self.max_health = 145;
 	self.takedamage = DAMAGE_AIM;
 	self.effects = 0;
+	self.alpha = 1;
 	self.npc_dead = FALSE;
 	self.npc_dstep = 0;
 	self.npc_state = 1;
@@ -466,13 +532,45 @@ void() RobeGuy_Respawn =
 void() RobeGuy_DeathStep =
 {
 	self.npc_dstep = self.npc_dstep + 1;
-	if (self.npc_dstep <= 23)
+	if (self.npc_dead == 2)
 	{
-		self.think = RobeGuy_DeathStep;
-		self.nextthink = time + 0.05;
+		if (self.npc_dstep <= 23)
+		{
+			self.think = RobeGuy_DeathStep;
+			self.nextthink = time + 0.05;
+			return;
+		}
+		self.effects = 0;
+		if (self.npc_respawn > 0)
+		{
+			setmodel(self, "");
+			self.think = RobeGuy_Respawn;
+			self.nextthink = time + self.npc_respawn;
+			return;
+		}
+		remove(self);
 		return;
 	}
-	self.effects = 0;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = RobeGuy_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = RobeGuy_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = RobeGuy_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	self.alpha = 1;
 	if (self.npc_respawn > 0)
 	{
 		setmodel(self, "");
@@ -487,19 +585,32 @@ void() RobeGuy_Die =
 {
 	if (self.npc_dead)
 		return;
-	self.npc_dead = TRUE;
 	self.npc_dstep = 0;
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
 	self.movetype = MOVETYPE_NONE;
-	self.effects = EF_DIMLIGHT;
-	sound(self, CHAN_VOICE, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
-	sound(self, CHAN_AUTO, "player/udeath.wav", 0.85, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -70);
-	ThrowGib("progs/gib2.mdl", -80);
-	ThrowGib("progs/gib3.mdl", -90);
+	self.velocity = '0 0 0';
+
+	if (NPC_ShouldGib(self))
+	{
+		self.npc_dead = 2;
+		self.effects = EF_DIMLIGHT;
+		sound(self, CHAN_VOICE, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
+		sound(self, CHAN_AUTO, "player/udeath.wav", 0.85, ATTN_NORM);
+		ThrowGib("progs/gib1.mdl", -70);
+		ThrowGib("progs/gib2.mdl", -80);
+		ThrowGib("progs/gib3.mdl", -90);
+		self.think = RobeGuy_DeathStep;
+		self.nextthink = time + 0.05;
+		return;
+	}
+
+	self.npc_dead = 1;
+	self.effects = 0;
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "robeguy/berserker_yell.wav", 1, ATTN_NORM);
 	self.think = RobeGuy_DeathStep;
-	self.nextthink = time + 0.05;
+	self.nextthink = time + 0.075;
 };
 
 void(entity attacker, float take) RobeGuy_Pain =
