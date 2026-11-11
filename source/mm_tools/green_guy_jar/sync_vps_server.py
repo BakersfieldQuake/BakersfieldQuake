@@ -52,6 +52,25 @@ def build_zz_greenjar_pk3() -> int:
         if fn.lower().endswith(".wav"):
             rel_files.append(f"sound/greenjar/{fn}")
 
+    # Include loose eric_cannon assets if not yet packed into bakersfield.pk3 (needed by compiled progs.dat)
+    pk3_existing = set()
+    if os.path.isfile(PK3_MAIN):
+        with zipfile.ZipFile(PK3_MAIN, "r") as zf:
+            pk3_existing = set(zf.namelist())
+    eric_candidates = ["scripts/eric_cannon.shader"]
+    progs_dir = os.path.join(MOD, "progs")
+    for fn in sorted(os.listdir(progs_dir)):
+        if fn.startswith("eric_"):
+            eric_candidates.append(f"progs/{fn}")
+    eric_snd_dir = os.path.join(MOD, "sound", "eric_cannon")
+    if os.path.isdir(eric_snd_dir):
+        for fn in sorted(os.listdir(eric_snd_dir)):
+            if fn.lower().endswith(".wav"):
+                eric_candidates.append(f"sound/eric_cannon/{fn}")
+    for rel in eric_candidates:
+        if rel not in pk3_existing and os.path.isfile(os.path.join(MOD, rel.replace("/", os.sep))):
+            rel_files.append(rel)
+
     # Check if greensuit_wheelman.spr32 in bakersfield.pk3 already matches loose progs/greensuit_wheelman.spr32
     gs_rel = "progs/greensuit_wheelman.spr32"
     gs_abs = os.path.join(MOD, "progs", "greensuit_wheelman.spr32")
@@ -192,7 +211,7 @@ else:
         "chmod 644 /opt/quake/BakersfieldQuake/progs.dat "
         "/opt/quake/BakersfieldQuake/zz_greenjar.pk3 "
         "/opt/quake/BakersfieldQuake/server_vps.cfg && "
-        "nginx -t && systemctl reload nginx && "
+        "nginx -t && systemctl reload nginx && sleep 1 && "
         "curl -fsSI http://127.0.0.1:8097/zz_greenjar.pk3 | head -n 5 && "
         "systemctl restart quake-bakersfield && "
         "sleep 6 && "

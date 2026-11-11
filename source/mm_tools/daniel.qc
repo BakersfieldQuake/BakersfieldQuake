@@ -8,19 +8,21 @@ Impulses (with sv_cheats 1):
   impulse 28  Summon 360° Bakersfield LAN Station Daniel (Oak Table + 19990 Quake CRT + RGB Keyboard + QuickCam)
   impulse 29  Summon Angry 4 AM Dad ("What the fuck! It's 4 in the morning, Daniel! What is this noise?!")
 
-Full 360° 8-Direction Frame Layout on progs/daniel.spr32 (344 frames, 256x288, origin (-128, 262), scale 0.26):
+Full 360° 8-Direction Frame Layout on progs/daniel.spr32 (264 frames, 96x108, origin (-48, 98), scale 0.6935):
   0..7               8-direction Standing Squint Idle (d = 0..7)
-  8 + d*6 + k        8-direction Fast Running Cycle (d = 0..7, k = 0..5) [mbox.qc compatible]
-  56 + d*6 + k       8-direction 4 AM Moving the Wooden Table (d = 0..7, k = 0..5)
-  104 + d*6 + k      8-direction "CCC! C-C-C-C!" Rapid-Chatter Grin Barrage (d = 0..7, k = 0..5)
-  152 + d*6 + k      8-direction "SHAAAAAAAAAAAA!" Neon LAN Keyboard Rage Scream (d = 0..7, k = 0..5)
-  200 + d*6 + k      8-direction "Justin Berry's Webcam!" Blind Squint Scan (d = 0..7, k = 0..5)
-  248 + d*6 + k      8-direction Hands-Up "Sorry! I was just moving the table!" Panic Sprint (d = 0..7, k = 0..5)
-  296 + d*6 + k      8-direction 360° Bakersfield LAN Station (d = 0..7, k = 0..5)
+  8 + d*4 + k        8-direction Fast Running Cycle (d = 0..7, k = 0..3) [mbox.qc compatible]
+  40 + d*4 + k       8-direction 4 AM Moving the Wooden Table (d = 0..7, k = 0..3)
+  72 + d*4 + k       8-direction "CCC! C-C-C-C!" Rapid-Chatter Grin Barrage (d = 0..7, k = 0..3)
+  104 + d*4 + k      8-direction "SHAAAAAAAAAAAA!" Neon LAN Keyboard Rage Scream (d = 0..7, k = 0..3)
+  136 + d*4 + k      8-direction "Justin Berry's Webcam!" Blind Squint Scan (d = 0..7, k = 0..3)
+  168 + d*4 + k      8-direction Hands-Up "Sorry! I was just moving the table!" Panic Sprint (d = 0..7, k = 0..3)
+  200 + d*4 + k      8-direction 360° Bakersfield LAN Station (d = 0..7, k = 0..3)
+  232 + d*4 + k      8-direction Falling Collapse Death (d = 0..7, k = 0..3)
 
-Angry 4 AM Dad on progs/daniel_dad.spr32 (56 frames, 160x192, origin (-80, 175), scale 0.41):
+Angry 4 AM Dad on progs/daniel_dad.spr32 (88 frames, 128x154, origin (-64, 140), scale 0.5126):
   0..7               8-direction Furious 4 AM Yelling Idle (d = 0..7)
   8 + d*6 + k        8-direction Angry 4 AM Charge Run (d = 0..7, k = 0..5) [mbox.qc compatible]
+  56 + d*4 + k       8-direction Falling Collapse Death (d = 0..7, k = 0..3)
 
 Optional console cvars for inspection:
   dn_mode 0..8       0 = autonomous AI, 1 = Idle, 2 = Fast Run, 3 = 4 AM Table Move,
@@ -257,12 +259,12 @@ float() Daniel_Customize =
 
 	if (self.npc_dead)
 	{
-		k = self.npc_dstep;
+		k = floor(self.npc_dstep * 0.67);
 		if (k < 0)
 			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = 344 + d * 6 + k;
+		if (k > 3)
+			k = 3;
+		self.frame = 232 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -277,29 +279,29 @@ float() Daniel_Customize =
 		return TRUE;
 	}
 
-	fps = 14;
+	fps = 9.5;
 	if (st == 1 || st == 3 || st == 6)
-		fps = 18;	// High-cadence sprinting & rapid CCC mouth chatter!
+		fps = 12;	// High-cadence sprinting & rapid CCC mouth chatter!
 	else if (st == 4)
-		fps = 16;	// SHAAA sonic vibration!
+		fps = 10.5;	// SHAAA sonic vibration!
 
-	k = floor(time * fps + self.origin_x * 0.03);
-	k = k - 6 * floor(k / 6);
+	k = floor(time * fps + self.origin_x * 0.02);
+	k = k - 4 * floor(k / 4);
 
 	if (st == 1)
-		self.frame = 8 + d * 6 + k;
+		self.frame = 8 + d * 4 + k;
 	else if (st == 2)
-		self.frame = 56 + d * 6 + k;
+		self.frame = 40 + d * 4 + k;
 	else if (st == 3)
-		self.frame = 104 + d * 6 + k;
+		self.frame = 72 + d * 4 + k;
 	else if (st == 4)
-		self.frame = 152 + d * 6 + k;
+		self.frame = 104 + d * 4 + k;
 	else if (st == 5)
-		self.frame = 200 + d * 6 + k;
+		self.frame = 136 + d * 4 + k;
 	else if (st == 6)
-		self.frame = 248 + d * 6 + k;
+		self.frame = 168 + d * 4 + k;
 	else
-		self.frame = 296 + d * 6 + k;
+		self.frame = 200 + d * 4 + k;
 
 	return TRUE;
 };
@@ -349,7 +351,7 @@ void() Daniel_Respawn =
 {
 	setorigin(self, self.dn_home + '0 0 8');
 	setmodel(self, "progs/daniel.spr32");
-	self.scale = 0.1387;
+	self.scale = 0.6935;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 185;
@@ -725,12 +727,12 @@ float() Dad4AM_Customize =
 
 	if (self.npc_dead)
 	{
-		k = self.npc_dstep;
+		k = floor(self.npc_dstep * 0.67);
 		if (k < 0)
 			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = 56 + d * 6 + k;
+		if (k > 3)
+			k = 3;
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -914,7 +916,7 @@ entity(vector pos, float yaw_ang, float lan_mode) Daniel_SpawnOne =
 	b.classname = "monster_daniel";
 	b.origin = pos;
 	setmodel(b, "progs/daniel.spr32");
-	b.scale = 0.1387;
+	b.scale = 0.6935;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 185;
@@ -965,7 +967,7 @@ entity(vector pos, float yaw_ang, entity target_dn) Dad4AM_SpawnOne =
 	d.classname = "monster_dad4am";
 	d.origin = pos;
 	setmodel(d, "progs/daniel_dad.spr32");
-	d.scale = 0.1367;
+	d.scale = 0.5126;
 	d.solid = SOLID_SLIDEBOX;
 	d.movetype = MOVETYPE_STEP;
 	d.health = 150;
@@ -997,7 +999,7 @@ void() monster_daniel =
 	Daniel_Precache();
 	self.dn_home = self.origin;
 	setmodel(self, "progs/daniel.spr32");
-	self.scale = 0.1387;
+	self.scale = 0.6935;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 185;
@@ -1034,7 +1036,7 @@ void() monster_dad4am =
 {
 	Daniel_Precache();
 	setmodel(self, "progs/daniel_dad.spr32");
-	self.scale = 0.1367;
+	self.scale = 0.5126;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 150;

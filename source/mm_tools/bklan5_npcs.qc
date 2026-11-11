@@ -1,11 +1,11 @@
 /*
 bklan5_npcs.qc — Bakersfield Street Encounters:
   1) npc_greensuit_wheelman / monster_greensuit_wheelman
-     (progs/greensuit_wheelman.spr32 — 960 frames, true 16-angle 360° hostile jumping monster!)
+     (progs/greensuit_wheelman.spr32 — 248 frames, 8-angle 360° hostile jumping monster!)
      Prowls in Seated Low-Rider Cruise, pops a Wheelie Battle-Cry on spotting a player, sprints in
      Screaming Ab-Roller Torpedo Charge, launches Pipe-Vault Mid-Air Crane-Kick Sky-Point Jumps with
      Axle Shockwave Slams, swings 360° Wheel-Bar Whirlwind Melee, and detonates into Quake Mega-Gibs!
-  2) npc_robeguy (progs/robeguy.spr32 — 336 frames, 8-dir 360° harmless "The Flamingo Fiend")
+  2) npc_robeguy (progs/robeguy.spr32 — 228 frames, 8-dir 360° harmless "The Flamingo Fiend")
 
 Cheat test impulses (with sv_cheats 1):
   impulse 46  Summon Hostile Green-Suit Wheelman Monster in front of you
@@ -37,14 +37,14 @@ void() RobeGuy_Die;
 void(entity attacker, float take) RobeGuy_Pain;
 
 // ================================================================================================
-// 1. GREEN-SUIT WHEELMAN MONSTER (progs/greensuit_wheelman.spr32 — 960 frames, 16 compass angles)
-//   0   + d*8  + k   16-dir Seated Low-Rider Cruise      (k = 0..7,  128f: 0..127)
-//   128 + d*8  + k   16-dir Ab-Roller Torpedo Charge     (k = 0..7,  128f: 128..255)
-//   256 + d*12 + s   16-dir Pipe-Vault Sky-Point Slam    (s = 0..11, 192f: 256..447)
-//   448 + d*8  + s   16-dir 360° Whirlwind Melee         (s = 0..7,  128f: 448..575)
-//   576 + d*8  + k   16-dir Wheelie Burnout Battle-Cry   (k = 0..7,  128f: 576..703)
-//   704 + d*6  + s   16-dir Impact Recoil & Tire Skid    (s = 0..5,   96f: 704..799)
-//   800 + d*10 + s   16-dir Bloody Quake Mega-Gib Death  (s = 0..9,  160f: 800..959)
+// 1. GREEN-SUIT WHEELMAN MONSTER (progs/greensuit_wheelman.spr32 — 248 frames, 8 compass angles)
+//   0   + d*4 + k   8-dir Seated Low-Rider Cruise      (k = 0..3, 32f: 0..31)
+//   32  + d*4 + k   8-dir Ab-Roller Torpedo Charge     (k = 0..3, 32f: 32..63)
+//   64  + d*6 + s   8-dir Pipe-Vault Sky-Point Slam    (s = 0..5, 48f: 64..111)
+//   112 + d*4 + s   8-dir 360° Whirlwind Melee         (s = 0..3, 32f: 112..143)
+//   144 + d*4 + k   8-dir Wheelie Burnout Battle-Cry   (k = 0..3, 32f: 144..175)
+//   176 + d*4 + s   8-dir Impact Recoil & Tire Skid    (s = 0..3, 32f: 176..207)
+//   208 + d*5 + s   8-dir Bloody Quake Mega-Gib Death  (s = 0..4, 40f: 208..247)
 // ================================================================================================
 
 void() GreenSuit_Precache =
@@ -74,71 +74,71 @@ float() GreenSuit_Customize =
 	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 26');
 	rel = vectoyaw(delta) - self.angles_y;
 	rel = rel - 360 * floor(rel / 360);
-	d = floor(rel / 22.5 + 0.5);
-	if (d >= 16)
+	d = floor(rel / 45 + 0.5);
+	if (d >= 8)
 		d = 0;
 
 	if (self.npc_dead)
 	{
-		s = self.npc_dstep;
+		s = floor(self.npc_dstep * 0.5);
 		if (s < 0)
 			s = 0;
-		if (s > 9)
-			s = 9;
-		self.frame = 800 + d * 10 + s;
+		if (s > 4)
+			s = 4;
+		self.frame = 208 + d * 5 + s;
 		return TRUE;
 	}
 
 	st = self.npc_state;
-	if (st == 6)	// Pain recoil (6 steps)
+	if (st == 6)	// Pain recoil (4 steps)
 	{
-		s = floor((time - self.gs_anim_t0) * 17);
+		s = floor((time - self.gs_anim_t0) * 11.5);
+		if (s < 0)
+			s = 0;
+		if (s > 3)
+			s = 3;
+		self.frame = 176 + d * 4 + s;
+		return TRUE;
+	}
+	if (st == 3)	// Pipe-Vault Sky-Point Jump & Slam (6 steps)
+	{
+		s = floor(self.gs_jump_step * 0.5);
 		if (s < 0)
 			s = 0;
 		if (s > 5)
 			s = 5;
-		self.frame = 704 + d * 6 + s;
+		self.frame = 64 + d * 6 + s;
 		return TRUE;
 	}
-	if (st == 3)	// Pipe-Vault Sky-Point Jump & Slam (12 steps)
+	if (st == 4)	// 360° Whirlwind Battering-Ram Melee (4 steps)
 	{
-		s = self.gs_jump_step;
+		s = floor((time - self.gs_anim_t0) * 7.5);
 		if (s < 0)
 			s = 0;
-		if (s > 11)
-			s = 11;
-		self.frame = 256 + d * 12 + s;
+		if (s > 3)
+			s = 3;
+		self.frame = 112 + d * 4 + s;
 		return TRUE;
 	}
-	if (st == 4)	// 360° Whirlwind Battering-Ram Melee (8 steps)
+	if (st == 5)	// Wheelie Burnout Battle-Cry (4-step loop)
 	{
-		s = floor((time - self.gs_anim_t0) * 15);
-		if (s < 0)
-			s = 0;
-		if (s > 7)
-			s = 7;
-		self.frame = 448 + d * 8 + s;
+		k = floor(time * 8 + self.origin_x * 0.01);
+		k = k - 4 * floor(k / 4);
+		self.frame = 144 + d * 4 + k;
 		return TRUE;
 	}
-	if (st == 5)	// Wheelie Burnout Battle-Cry (8-step loop)
+	if (st == 2)	// Screaming Ab-Roller Torpedo Charge (4-step loop)
 	{
-		k = floor(time * 16 + self.origin_x * 0.02);
-		k = k - 8 * floor(k / 8);
-		self.frame = 576 + d * 8 + k;
-		return TRUE;
-	}
-	if (st == 2)	// Screaming Ab-Roller Torpedo Charge (8-step loop)
-	{
-		k = floor(time * 20 + self.origin_x * 0.02 + self.origin_y * 0.02);
-		k = k - 8 * floor(k / 8);
-		self.frame = 128 + d * 8 + k;
+		k = floor(time * 10 + self.origin_x * 0.01 + self.origin_y * 0.01);
+		k = k - 4 * floor(k / 4);
+		self.frame = 32 + d * 4 + k;
 		return TRUE;
 	}
 
-	// Default st == 1: Seated Low-Rider Cruise (8-step loop)
-	k = floor(time * 15 + self.origin_x * 0.02 + self.origin_y * 0.02);
-	k = k - 8 * floor(k / 8);
-	self.frame = d * 8 + k;
+	// Default st == 1: Seated Low-Rider Cruise (4-step loop)
+	k = floor(time * 7.5 + self.origin_x * 0.01 + self.origin_y * 0.01);
+	k = k - 4 * floor(k / 4);
+	self.frame = d * 4 + k;
 	return TRUE;
 };
 
@@ -225,7 +225,7 @@ void() GreenSuit_Respawn =
 {
 	setorigin(self, self.npc_home + '0 0 12');
 	setmodel(self, "progs/greensuit_wheelman.spr32");
-	self.scale = 0.52;
+	self.scale = 0.8036;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 165;
@@ -582,7 +582,7 @@ void() npc_greensuit_wheelman =
 	GreenSuit_Precache();
 	self.classname = "npc_greensuit_wheelman";
 	setmodel(self, "progs/greensuit_wheelman.spr32");
-	self.scale = 0.52;
+	self.scale = 0.8036;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 165;
@@ -640,13 +640,14 @@ void() GreenSuit_Summon =
 
 
 // ================================================================================================
-// 2. THE FLAMINGO FIEND (`robeguy`, progs/robeguy.spr32)
+// 2. THE FLAMINGO FIEND (`robeguy`, progs/robeguy.spr32 — 228 frames, 96x108, scale 0.7467)
 //   0..7             8-dir Standing Idle keyposes
 //   8 + d*6 + k      8-dir Barefoot Berserker Charge Run (k = 0..5)
-//   56 + d*8 + k     8-dir Animated Unhinged Flamingo Whisperer Idle (k = 0..7)
-//   120 + d*12 + k   8-dir Heart-Boxers Chest-Hair Laser comedic flash (k = 0..11, 0 damage!)
-//   216 + d*12 + k   8-dir Dual Lawn-Flamingo & Hot-Coffee pose (k = 0..11, 0 damage!)
-//   312..335         24-frame 4-Act Flamingo Feather & Gib Explosion!
+//   56 + d*4 + k     8-dir Animated Unhinged Flamingo Whisperer Idle (k = 0..3)
+//   88 + d*6 + k     8-dir Heart-Boxers Chest-Hair Laser comedic flash (k = 0..5, 0 damage!)
+//   136 + d*6 + k    8-dir Dual Lawn-Flamingo & Hot-Coffee pose (k = 0..5, 0 damage!)
+//   184..195         12-frame 4-Act Flamingo Feather & Gib Explosion!
+//   196 + d*4 + s    8-dir Falling Collapse Death (s = 0..3)
 // ================================================================================================
 
 void() RobeGuy_Precache =
@@ -680,22 +681,22 @@ float() RobeGuy_Customize =
 
 	if (self.npc_dead == 2)
 	{
-		s = self.npc_dstep;
+		s = floor(self.npc_dstep * 0.5);
 		if (s < 0)
 			s = 0;
-		if (s > 23)
-			s = 23;
-		self.frame = 312 + s;
+		if (s > 11)
+			s = 11;
+		self.frame = 184 + s;
 		return TRUE;
 	}
 	if (self.npc_dead == 1)
 	{
-		s = self.npc_dstep;
+		s = floor(self.npc_dstep * 0.67);
 		if (s < 0)
 			s = 0;
-		if (s > 5)
-			s = 5;
-		self.frame = 336 + d * 6 + s;
+		if (s > 3)
+			s = 3;
+		self.frame = 196 + d * 4 + s;
 		return TRUE;
 	}
 
@@ -716,24 +717,24 @@ float() RobeGuy_Customize =
 	}
 	if (st == 2)
 	{
-		// 8-frame Animated Flamingo Whisperer Idle
-		k = floor(time * 10 + self.origin_y * 0.02);
-		k = k - 8 * floor(k / 8);
-		self.frame = 56 + d * 8 + k;
+		// 4-frame Animated Flamingo Whisperer Idle
+		k = floor(time * 5 + self.origin_y * 0.01);
+		k = k - 4 * floor(k / 4);
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
 	if (st == 3)
 	{
-		// 12-frame Heart-Boxers Chest-Hair Laser comedic flash
-		k = floor(time * 12);
-		k = k - 12 * floor(k / 12);
-		self.frame = 120 + d * 12 + k;
+		// 6-frame Heart-Boxers Chest-Hair Laser comedic flash
+		k = floor(time * 6);
+		k = k - 6 * floor(k / 6);
+		self.frame = 88 + d * 6 + k;
 		return TRUE;
 	}
-	// st == 4: 12-frame Dual Lawn-Flamingo & Hot-Coffee wave
-	k = floor(time * 12);
-	k = k - 12 * floor(k / 12);
-	self.frame = 216 + d * 12 + k;
+	// st == 4: 6-frame Dual Lawn-Flamingo & Hot-Coffee wave
+	k = floor(time * 6);
+	k = k - 6 * floor(k / 6);
+	self.frame = 136 + d * 6 + k;
 	return TRUE;
 };
 
@@ -741,7 +742,7 @@ void() RobeGuy_Respawn =
 {
 	setorigin(self, self.npc_home + '0 0 12');
 	setmodel(self, "progs/robeguy.spr32");
-	self.scale = 0.16;
+	self.scale = 0.7467;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 145;
@@ -939,7 +940,7 @@ void() npc_robeguy =
 	RobeGuy_Precache();
 	self.classname = "npc_robeguy";
 	setmodel(self, "progs/robeguy.spr32");
-	self.scale = 0.16;
+	self.scale = 0.7467;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 145;

@@ -5,11 +5,11 @@ DOWNTOWN BOTS & FULL-ARSENAL DEATHMATCH AI (BakersfieldQuake)
 - Instant F1 (add enemy bot, impulse 101) & F2 (kick bot, impulse 102) without sv_cheats,
   auto-upgrading singleplayer / small-slot local games to 16-player Deathmatch if needed.
 - Clear [BOT] <Name> identity across scoreboard, obituaries, chat, and CSQC 3D overhead tags.
-- Full knowledge of all 19 BakersfieldQuake weapons (Bonk Hammer, Chainsaw, Goo Gun, Super Shotgun,
+- Full knowledge of all 20 BakersfieldQuake weapons (Bonk Hammer, Chainsaw, Goo Gun, Super Shotgun,
   Laptop Gun, Milky Gun, Grenade Launcher, Rocket Launcher, Lightning Gun, CCC Laser Cannon,
-  Mega Man Gun, Rob Dob flying head, Pickle Surprise, NetSend PC, Mystery Box, Wheelman Cannon,
-  M4A1, Thompson SMG, M1 Garand), including charging, semi-auto trigger resets, ballistic arcs,
-  and magazine reloads.
+  Mega Man Gun, Rob Dob flying head, Jar o' Green Guys, Pickle Surprise, NetSend PC, Mystery Box,
+  Wheelman Cannon, M4A1, Thompson SMG, M1 Garand), including charging, cocktail-shaking,
+  semi-auto trigger resets, ballistic arcs, and magazine reloads.
 - Aggressive yet forgiving ("pretty easy") combat pacing: smooth human aim spread, brief target
   reaction delay, burst firing, and scaled bot->player damage (bm_bot_dmg).
 - Clever downtown navigation & verticality: automatic street/rooftop waypoint graph linking
@@ -211,6 +211,7 @@ vector(float wep) BM_BotWeaponRange =
 	{
 		g = self.fg_sel;
 		if (g == FG_DOB)		return '650 260 2500';
+		if (g == FG_PONG)		return '420 90 1250';
 		if (g == FG_PICKLE)		return '260 50 850';
 		if (g == FG_NETSEND)	return '380 80 1100';
 		if (g == FG_MBOX)		return '450 110 1300';
@@ -417,11 +418,11 @@ float(float brange) BM_BotWeaponSwitch =
 		return FALSE;
 
 	// Never interrupt active charge/windup/flight states
-	if (self.fd_head != world || self.wc_charging > 0 || self.ltg_phase == 1)
+	if (self.fd_head != world || self.wc_charging > 0 || self.gj_shaking > 0 || self.ltg_phase == 1)
 		return TRUE;
 	if (self.weapon == IT_AXE && self.hm_state == 1)
 		return TRUE;
-	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.mb_throw_at > 0)
+	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.mb_throw_at > 0 || self.gj_throw_at > 0)
 		return TRUE;
 
 	cur = BM_BotCurWeaponID ();
@@ -443,14 +444,12 @@ float(float brange) BM_BotWeaponSwitch =
 	pick = 0;
 	tot = 0;
 
-	// Evaluate every weapon candidate 1..19 with range-tuned weights
+	// Evaluate every weapon candidate 1..20 with range-tuned weights
 	id = 1;
 	while (id <= 69)
 	{
 		if (id == 12)
 			id = 61;
-		if (id == 62)
-			id = 63;
 
 		w = 0;
 		if (BM_BotCanUseWeapon (id))
@@ -482,6 +481,7 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 9)	w = 15;		// CCC Laser
 				else if (id == 6)	w = 14;		// Grenade Launcher
 				else if (id == 11)	w = 14;		// Mega Man Gun
+				else if (id == 62)	w = 13;		// Jar o' Green Guys
 				else if (id == 63)	w = 13;		// Pickle Surprise
 				else if (id == 64)	w = 10;		// NetSend PC
 				else if (id == 65)	w = 12;		// Mystery Box
@@ -502,6 +502,7 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 6)	w = 13;		// Grenade Launcher
 				else if (id == 2)	w = 10;		// Goo Gun
 				else if (id == 11)	w = 16;		// Mega Man Gun
+				else if (id == 62)	w = 14;		// Jar o' Green Guys
 				else if (id == 65)	w = 14;		// Mystery Box
 				else if (id == 66)	w = 16;		// Wheelman Cannon
 				else if (id == 64)	w = 10;		// NetSend PC
@@ -570,6 +571,8 @@ void() BM_BotAimAdjust =
 		g = self.fg_sel;
 		if (g == FG_PICKLE)
 			self.b_angle_x = self.b_angle_x - bound (3, dist * 0.016, 18);
+		else if (g == FG_PONG)
+			self.b_angle_x = self.b_angle_x - bound (2, dist * 0.014, 15);
 		else if (g == FG_MBOX)
 			self.b_angle_x = self.b_angle_x - bound (3, dist * 0.015, 16);
 		else if (g == FG_NETSEND)
@@ -606,8 +609,8 @@ void() BM_BotShoot =
 	if (!self.enemy || self.enemy.health <= 0)
 		return;
 
-	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle), swap smoothly
-	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && self.hm_state != 1 && self.ltg_phase != 1)
+	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar), swap smoothly
+	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.gj_shaking && self.hm_state != 1 && self.ltg_phase != 1)
 	{
 		dist = vlen (realorigin (self.enemy) - self.origin);
 		self.bm_bot_wep_t = 0;
@@ -653,6 +656,29 @@ void() BM_BotShoot =
 	if (self.weapon == IT_FUNGUN)
 	{
 		g = self.fg_sel;
+
+		// Jar o' Green Guys: hold fire 0.25..0.65s to cocktail-shake, then release to hurl the swarm!
+		if (g == FG_PONG)
+		{
+			if (self.gj_throw_at > 0)
+			{
+				self.button0 = FALSE;
+				return;
+			}
+			if (self.gj_shaking <= 0)
+			{
+				if (time >= self.attack_finished)
+				{
+					self.button0 = TRUE;
+					self.bm_bot_wc_rel = time + 0.25 + random () * 0.40;
+				}
+			}
+			else if (time < self.bm_bot_wc_rel)
+				self.button0 = TRUE;
+			else
+				self.button0 = FALSE;
+			return;
+		}
 
 		// Wheelman Cannon: hold fire to charge 0.45..1.15s, then release to blast screaming Wheelman!
 		if (g == FG_WCANNON)
@@ -753,11 +779,27 @@ void() BM_BotSpawnLoadout =
 
 // ---------------------------------------------------------------- downtown waypoint graph builder
 
+// Windowed downtown crop (downtownsmall / bakersfielddowntown): D-feet (-340, -900)..(950, 275), SHIFT (835, -285)
+// -> map units X [-14100, 1380], Y [-7380, 6720]. Guard out-of-window nodes so bots never path into the eastern void.
+float(vector org) BM_DtWayInBounds =
+{
+	if (world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/downtownsmall.bsp"
+		|| mapname == "bakersfielddowntown" || mapname == "downtownsmall")
+	{
+		if (org_x < -14100 || org_x > 1380 || org_y < -7380 || org_y > 6720)
+			return FALSE;
+	}
+	return TRUE;
+};
+
 // Find an existing waypoint within `rad` XY and 72 Z, or create a new one
 entity(vector org, float rad) BM_EnsureWaypoint =
 {
 	local entity w;
 	local vector d;
+
+	if (!BM_DtWayInBounds (org))
+		return world;
 
 	w = way_head;
 	while (w)
@@ -794,7 +836,7 @@ void(string cname, float rad) BM_AddClassWaypoints =
 	while (e)
 	{
 		w = BM_EnsureWaypoint (e.origin + '0 0 24', rad);
-		if (e.flags & FL_ITEM)
+		if (w != world && (e.flags & FL_ITEM))
 			e.current_way = w;
 		e = find (e, classname, cname);
 	}
@@ -813,9 +855,13 @@ void() BM_BuildDowntownWaypoints =
 	e = find (world, classname, "info_skypad");
 	while (e)
 	{
-		w1 = BM_EnsureWaypoint (e.origin + '0 0 24', 96);
-		w2 = BM_EnsureWaypoint (e.pos1 + '0 0 24', 128);
-		LinkWays (w1, w2);
+		if (BM_DtWayInBounds (e.origin + '0 0 24') && BM_DtWayInBounds (e.pos1 + '0 0 24'))
+		{
+			w1 = BM_EnsureWaypoint (e.origin + '0 0 24', 96);
+			w2 = BM_EnsureWaypoint (e.pos1 + '0 0 24', 128);
+			if (w1 != world && w2 != world)
+				LinkWays (w1, w2);
+		}
 		e = find (e, classname, "info_skypad");
 	}
 
@@ -830,9 +876,13 @@ void() BM_BuildDowntownWaypoints =
 			{
 				mid = (e.absmin + e.absmax) * 0.5;
 				mid_z = e.absmin_z + 28;
-				w1 = BM_EnsureWaypoint (mid, 96);
-				w2 = BM_EnsureWaypoint (dest.origin + '0 0 24', 128);
-				TeleLinkWays (w1, w2);
+				if (BM_DtWayInBounds (mid) && BM_DtWayInBounds (dest.origin + '0 0 24'))
+				{
+					w1 = BM_EnsureWaypoint (mid, 96);
+					w2 = BM_EnsureWaypoint (dest.origin + '0 0 24', 128);
+					if (w1 != world && w2 != world)
+						TeleLinkWays (w1, w2);
+				}
 			}
 		}
 		e = find (e, classname, "trigger_teleport");
@@ -846,14 +896,18 @@ void() BM_BuildDowntownWaypoints =
 		mid = (e.absmin + e.absmax) * 0.5;
 		if (hgt >= 140)
 		{
-			w1 = BM_EnsureWaypoint (mid_x * '1 0 0' + mid_y * '0 1 0' + (e.absmin_z + 28) * '0 0 1', 96);
 			top = mid_x * '1 0 0' + mid_y * '0 1 0' + (e.absmax_z + 28) * '0 0 1';
 			makevectors (e.angles);
 			v_forward_z = 0;
 			if (vlen (v_forward) > 0.01)
 				top = top + normalize (v_forward) * 56;
-			w2 = BM_EnsureWaypoint (top, 128);
-			LinkWays (w1, w2);
+			if (BM_DtWayInBounds (mid_x * '1 0 0' + mid_y * '0 1 0' + (e.absmin_z + 28) * '0 0 1') && BM_DtWayInBounds (top))
+			{
+				w1 = BM_EnsureWaypoint (mid_x * '1 0 0' + mid_y * '0 1 0' + (e.absmin_z + 28) * '0 0 1', 96);
+				w2 = BM_EnsureWaypoint (top, 128);
+				if (w1 != world && w2 != world)
+					LinkWays (w1, w2);
+			}
 		}
 		e = find (e, classname, "trigger_push");
 	}
@@ -880,26 +934,29 @@ void() BM_BuildDowntownWaypoints =
 			mid = (e.absmin + e.absmax) * 0.5;
 			mid_z = e.absmin_z + 28;
 			w1 = BM_EnsureWaypoint (mid, 96);
-			best1 = world;
-			d1 = 1600;
-			b = way_head;
-			while (b)
+			if (w1 != world)
 			{
-				if (b.origin_z > w1.origin_z + 120)
+				best1 = world;
+				d1 = 1600;
+				b = way_head;
+				while (b)
 				{
-					d = b.origin - w1.origin;
-					d_z = 0;
-					dist = vlen (d);
-					if (dist < d1)
+					if (b.origin_z > w1.origin_z + 120)
 					{
-						d1 = dist;
-						best1 = b;
+						d = b.origin - w1.origin;
+						d_z = 0;
+						dist = vlen (d);
+						if (dist < d1)
+						{
+							d1 = dist;
+							best1 = b;
+						}
 					}
+					b = b._next;
 				}
-				b = b._next;
+				if (best1 != world)
+					LinkWays (w1, best1);
 			}
-			if (best1 != world)
-				LinkWays (w1, best1);
 		}
 		e = find (e, classname, "trigger_push");
 	}
@@ -999,10 +1056,16 @@ void() BM_BuildDowntownWaypoints =
 	dprint ("downtown bot graph built: ", ftos (waypoints), " waypoints\n");
 };
 
+float() BM_IsDowntownMap =
+{
+	return (mapname == "downtown" || mapname == "downtownsmall" || mapname == "bakersfielddowntown"
+		|| world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
+};
+
 void() BM_MapLoad =
 {
 	bm_dt_way_done = FALSE;
-	if (mapname == "downtown" || mapname == "downtownsmall")
+	if (BM_IsDowntownMap ())
 		bm_dt_way_t = time + 0.75;		// right after Jetpack_Place (0.5s) spawns the 11 jetpacks
 	else
 		bm_dt_way_t = 0;
@@ -1012,7 +1075,7 @@ void() BM_BotStartFrame =
 {
 	local float auto_n, hn;
 
-	if ((mapname == "downtown" || mapname == "downtownsmall") && !bm_dt_way_done && bm_dt_way_t > 0 && time >= bm_dt_way_t)
+	if (BM_IsDowntownMap () && !bm_dt_way_done && bm_dt_way_t > 0 && time >= bm_dt_way_t)
 	{
 		bm_dt_way_done = TRUE;
 		if (max_clients > 1)

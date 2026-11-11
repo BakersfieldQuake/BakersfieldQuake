@@ -41,6 +41,7 @@ MOD_DIR = os.path.abspath(os.path.join(HERE, "..", ".."))
 REF_DIR = os.path.join(HERE, "ref")
 VIEWS_DIR = os.path.join(REF_DIR, "wheelman_views")
 PROGS_DIR = os.path.join(MOD_DIR, "progs")
+STAGED_PROGS_DIR = os.path.abspath(os.path.join(MOD_DIR, "..", "_bakersfield_dev", "staged_assets", "progs"))
 OUT_DIR = os.path.join(HERE, "out", "wheelman")
 VIEWER_DIR = os.path.join(MOD_DIR, "wheelman_sprite")
 
@@ -48,8 +49,8 @@ CANVAS = (320, 304)
 GROUND = 288
 WIDE_CANVAS = (480, 340)
 WIDE_GROUND = 308
-SPR_CANVAS = (300, 212)   # 0.625x of WIDE_CANVAS=(480,340); paired with w.scale = 0.64 in wheelman.qc
-SPR_GROUND = 192          # round(308 * 0.625)
+SPR_CANVAS = (144, 102)   # 0.30x of WIDE_CANVAS=(480,340) (0.48x of 300x212); paired with WC_SCALE = 1.0417 in wcannon_defs.qc
+SPR_GROUND = 92           # round(308 * 0.30)
 
 N_DIR = 8
 N_ANIM = 12               # 12 smooth high-FPS rolling/driving frames per direction (96 total)
@@ -901,19 +902,61 @@ def to_spr32_toned(im_rgba):
     return tone_for_darkplaces(scaled)
 
 
+def _tight_crop_and_bleed_rgba(rgba: np.ndarray, base_ox: int, base_oy: int):
+    h, w, _ = rgba.shape
+    ys, xs = np.nonzero(rgba[:, :, 3] > 2)
+    if len(xs) == 0:
+        empty = np.zeros((2, 2, 4), dtype=np.uint8)
+        return -1, 1, 2, 2, empty.tobytes()
+    x0 = max(0, int(xs.min()) - 1)
+    y0 = max(0, int(ys.min()) - 1)
+    x1 = min(w, int(xs.max()) + 2)
+    y1 = min(h, int(ys.max()) + 2)
+    cropped = rgba[y0:y1, x0:x1].copy()
+    pad_l = 1 if x0 == int(xs.min()) else 0
+    pad_t = 1 if y0 == int(ys.min()) else 0
+    pad_r = 1 if x1 == int(xs.max()) + 1 else 0
+    pad_b = 1 if y1 == int(ys.max()) + 1 else 0
+    if pad_l or pad_t or pad_r or pad_b:
+        cropped = np.pad(cropped, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), mode="constant", constant_values=0)
+        x0 -= pad_l
+        y0 -= pad_t
+    fg = cropped[:, :, 3] >= 32
+    if not np.any(fg):
+        fg = cropped[:, :, 3] > 0
+    if np.any(fg):
+        tr = cropped[:, :, 3] == 0
+        if np.any(tr):
+            _, (iy, ix) = ndimage.distance_transform_edt(~fg, return_indices=True)
+            cropped[tr, :3] = cropped[iy[tr], ix[tr], :3]
+    cw, ch = cropped.shape[1], cropped.shape[0]
+    return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
+
+
 def write_spr32(path, frames, ground_y=SPR_GROUND):
-    """Writes DarkPlaces IDSP v32 sprite, type 0 (SPR_VP_PARALLEL_UPRIGHT), origin at wheel contact."""
+    """Writes tight-cropped DarkPlaces IDSP v32 sprite, type 0 (SPR_VP_PARALLEL_UPRIGHT), origin at wheel contact."""
     w, h = frames[0].size
-    rad = math.hypot(w / 2.0, h)
-    ox = -(w // 2)
-    oy = ground_y
-    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, w, h, len(frames), 0.0, 0))
-    for im in frames:
-        buf += struct.pack("<i", 0) + struct.pack("<iiii", ox, oy, w, h) + im.tobytes()
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "wb") as f:
-        f.write(buf)
-    print(f"wrote {path} ({len(frames)} frames, {w}x{h}, ox={ox}, oy={oy}, {len(buf)/1e6:.2f} MB)")
+    base_ox = -(w // 2)
+    base_oy = ground_y
+    packed = [_tight_crop_and_bleed_rgba(np.asarray(im.convert("RGBA"), dtype=np.uint8), base_ox, base_oy) for im in frames]
+    max_cw = max(f[2] for f in packed)
+    max_ch = max(f[3] for f in packed)
+    rad = 0.5 * math.hypot(max_cw, max_ch)
+    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+    for fox, foy, cw, ch, raw in packed:
+        buf += struct.pack("<iiiii", 0, fox, foy, cw, ch) + raw
+    targets = [path]
+    if os.path.isdir(os.path.dirname(STAGED_PROGS_DIR)):
+        stg_p = os.path.join(STAGED_PROGS_DIR, os.path.basename(path))
+        if os.path.normcase(stg_p) != os.path.normcase(path):
+            targets.append(stg_p)
+    for dst in targets:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        tmp = dst + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(buf)
+        os.replace(tmp, dst)
+    print(f"wrote {path} ({len(packed)} frames, tight max={max_cw}x{max_ch} from {w}x{h}, base_ox={base_ox}, base_oy={base_oy}, {len(buf)/1048576:.2f} MiB)")
 
 
 def save_gif_helper(frames_list, out_path, bg_rgb=(28, 30, 36), duration_ms=42):
@@ -1176,22 +1219,31 @@ def main():
         v_scream = [fx.animate_vertical_pitch_frame(vert_norm[pk], pk, k / float(N_ANIM), scream=True) for k in range(N_ANIM)] if pk != "below90" else []
         vert_dict[pk] = dict(roll=v_roll, scream=v_scream)
 
-    print("[4/6] Extracting 8-angle 360° parts, stunt kit, X-Ray skeletons, VFX plates & simulating 4 Escalating 3D Explosions...")
+    spr32_only = ("--spr32-only" in sys.argv)
+    print("[4/6] Extracting 8-angle 360° parts, stunt kit & VFX plates...")
     parts_360 = b360.extract_all_360_parts(norm_views, scream_grid, vert_norm)
     vfx_plates = b360.build_vfx_plates_dict(VIEWS_DIR)
     stunt_kit = stunts.extract_stunt_sprite_kit(norm_views, vert_norm, parts_360)
-    sim_hists = {tier: b360.simulate_3d_explosion_tier(tier) for tier in (1, 2, 3, 4)}
+    sim_hists = {} if spr32_only else {tier: b360.simulate_3d_explosion_tier(tier) for tier in (1, 2, 3, 4)}
 
-    print("[5/6] Packing 792-frame Spherical + 3x 360° Stunts + 4x 360° Explosions DarkPlaces progs/wheelman.spr32...")
+    print("[5/6] Packing compact 200-frame tight-cropped DarkPlaces progs/wheelman.spr32...")
+    # Compact 200-frame contract (matches wcannon.qc & mbox.qc):
+    #   0..7     (8)  : idle          (d = 0..7)
+    #   8..55    (48) : driving       (8 + d*6 + k, k = 0..5)
+    #   56..87   (32) : screaming     (56 + d*4 + k, k = 0..3)
+    #   88..111  (24) : above90       (88 + d*3 + k, k = 0..2)
+    #   112..135 (24) : below90       (112 + d*3 + k, k = 0..2)
+    #   136..167 (32) : fire-wheels   (136 + d*4 + k, k = 0..3)
+    #   168..199 (32) : long-bar      (168 + d*4 + k, k = 0..3)
     toned_frames = []
     for d in range(N_DIR):
         toned_frames.append(to_spr32_toned(idle_frames[d]))
     for d in range(N_DIR):
-        for k in range(N_ANIM):
-            toned_frames.append(to_spr32_toned(roll_grid[d][k]))
-    for d in range(N_DIR):
         for k in range(6):
-            toned_frames.append(to_spr32_toned(scream_grid[d][k * 2]))
+            toned_frames.append(to_spr32_toned(roll_grid[d][k * 2]))
+    for d in range(N_DIR):
+        for k in range(4):
+            toned_frames.append(to_spr32_toned(scream_grid[d][k * 3]))
     for d in range(N_DIR):
         for k in range(3):
             rot_ab = vert_dict["above90"]["roll"][k * 4].rotate(-d * 45.0, resample=Image.BICUBIC, expand=False)
@@ -1200,40 +1252,23 @@ def main():
         for k in range(3):
             rot_bl = vert_dict["below90"]["roll"][k * 4].rotate(+d * 45.0, resample=Image.BICUBIC, expand=False)
             toned_frames.append(to_spr32_toned(rot_bl))
-
-    # 200..647: 4 Escalating Explosion Tiers x 8 Directions (360°) x 14 Key Steps = 448 frames!
-    for tier in (1, 2, 3, 4):
-        kf_list = _spr_keyframes_for_tier(tier)
-        for d in range(N_DIR):
-            for fi in kf_list:
-                fr_im = b360.render_3d_explosion_frame(tier, sim_hists[tier][fi], d, parts_360, scream_grid, norm_views, vfx_plates)
-                toned_frames.append(to_spr32_toned(fr_im))
-
-    # 648..695: Stunt 1 — 🔥 Fire-Wheels Hyper-Burnout (8 dirs x 6 steps = 48 frames)
     for d in range(N_DIR):
         b_im, c_sp = norm_views[d]
-        for k in range(6):
-            fr_fw = stunts.render_fire_wheels_frame(b_im, c_sp, d, k / 6.0, animate_wheelman_frame, vfx_plates)
+        for k in range(4):
+            fr_fw = stunts.render_fire_wheels_frame(b_im, c_sp, d, k / 4.0, animate_wheelman_frame, vfx_plates)
             toned_frames.append(to_spr32_toned(fr_fw))
-
-    # 696..743: Stunt 2 — 📏 Super-Long Metal Bar & Steamroller Wheels (8 dirs x 6 steps = 48 frames)
     for d in range(N_DIR):
-        for k in range(6):
-            fr_lb = stunts.render_super_long_bar_frame(d, k / 6.0, stunt_kit, parts_360)
+        for k in range(4):
+            fr_lb = stunts.render_super_long_bar_frame(d, k / 4.0, stunt_kit, parts_360)
             toned_frames.append(to_spr32_toned(fr_lb))
 
-    # 744..791: Stunt 3 — 🚀 Jetpack Hover + Spinning Bar & Wheels (8 dirs x 6 steps = 48 frames)
-    for d in range(N_DIR):
-        for k in range(6):
-            fr_jp = stunts.render_jetpack_hover_frame(d, k / 6.0, stunt_kit, parts_360, vfx_plates)
-            toned_frames.append(to_spr32_toned(fr_jp))
-
-    assert len(toned_frames) == 792, f"Expected 792 SPR32 frames, got {len(toned_frames)}"
+    assert len(toned_frames) == 200, f"Expected 200 SPR32 frames, got {len(toned_frames)}"
     write_spr32(os.path.join(PROGS_DIR, "wheelman.spr32"), toned_frames, ground_y=SPR_GROUND)
 
-    print("[6/6] Writing showcase sheets, explosion + stunt GIFs, and self-contained wheelman_sprite/index.html...")
-    write_sheets_and_gifs(idle_frames, roll_grid, scream_grid, vert_dict, sim_hists, parts_360, stunt_kit, norm_views, vfx_plates, OUT_DIR)
-    write_viewer(idle_frames, roll_grid, scream_grid, vert_dict, parts_360, stunt_kit, norm_views, vfx_plates, VIEWER_DIR)
+    if not spr32_only:
+        print("[6/6] Writing showcase sheets, explosion + stunt GIFs, and self-contained wheelman_sprite/index.html...")
+        write_sheets_and_gifs(idle_frames, roll_grid, scream_grid, vert_dict, sim_hists, parts_360, stunt_kit, norm_views, vfx_plates, OUT_DIR)
+        write_viewer(idle_frames, roll_grid, scream_grid, vert_dict, parts_360, stunt_kit, norm_views, vfx_plates, VIEWER_DIR)
     print("ALL DONE!")
 
 

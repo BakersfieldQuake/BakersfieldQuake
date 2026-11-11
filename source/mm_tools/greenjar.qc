@@ -4,11 +4,11 @@
 // pogo-bonking the perforated lid, and tornado-spinning).
 //   * Hold Fire (`+attack`) to cocktail-shake the jar; release to whip-throw (`progs/greenjar_proj.spr32`)!
 //   * Shatters on impact into glittering glass & igniting neon-green smoke (`progs/greenjar_burst.spr32`), unleashing
-//     12 featherweight, high-pitched giggling/screaming Mini-Green-Guys (`progs/greenguy_mini.spr32`)!
-//   * They scurry fast across floors, pogo-bounce, and climb vertically straight up building walls & pillars!
-//   * On reaching a target, they swarm tightly around them for 5 full orbits (`1800 deg`) jumping right across their
-//     eyes/camera to block their view, dealing 1%-2% non-lethal annoyance pokes (CLAMPED >= 1 HP so they NEVER kill!),
-//     and then swell like party balloons and POP into rainbow confetti!
+//     12 bigger, high-pitched giggling/screaming Wheel-Driving Green Men (`progs/greenguy_mini.spr32`, scale 0.9333)!
+//   * They wheel/drive fast across floors on spinning pneumatic tires, curb-hop steps, and drive up building walls!
+//   * On reaching an enemy, they DO NOT attack right away — they swarm and wheel/drive 3 full laps (`1080 deg`)
+//     around the enemy first while giggling & revving, and ONLY THEN lunge in to attack with 1%-2% non-lethal hits
+//     (CLAMPED >= 1 HP so they NEVER kill!) before swelling like balloons and popping into rainbow confetti!
 //   * 1-Hit Low-HP Comedy Spin: shooting any gremlin sends it into a shrieking 360-degree punctured-helium-balloon
 //     cartwheel spin ricocheting off walls before bursting into rainbow confetti!
 
@@ -122,7 +122,7 @@ void() GJ_BalloonPopStep =
 	self.gj_step = self.gj_step + 1;
 	if (self.gj_step == 4)
 	{
-		// Frame 308: Balloon bursts into shockwave ring + rainbow party confetti!
+		// Frame 164: Balloon bursts into shockwave ring + rainbow party confetti!
 		FG_Snd (self, CHAN_VOICE, "greenjar/mini_pop.wav", 0.95, 0.95 + random () * 0.14);
 		sendParticle ("pk_puff", self.origin + '0 0 12', '0 0 0', 1, 0);
 	}
@@ -131,7 +131,7 @@ void() GJ_BalloonPopStep =
 		remove (self);
 		return;
 	}
-	self.frame = 304 + self.gj_step;
+	self.frame = 160 + self.gj_step;
 	self.think = GJ_BalloonPopStep;
 	self.nextthink = time + 0.045;
 };
@@ -146,12 +146,12 @@ void(entity m, float immediate_pop) GJ_StartBalloonPop =
 	if (immediate_pop)
 	{
 		m.gj_step = 3;		// next tick hits step 4 -> immediate confetti burst!
-		m.frame = 307;
+		m.frame = 163;
 	}
 	else
 	{
 		m.gj_step = 0;		// 4 frames of pressurized 1.46x balloon swell -> POP!
-		m.frame = 304;
+		m.frame = 160;
 	}
 	m.think = GJ_BalloonPopStep;
 	m.nextthink = time + 0.045;
@@ -173,7 +173,7 @@ void() GJ_ShotSpinStep =
 		GJ_StartBalloonPop (self, FALSE);
 		return;
 	}
-	self.frame = 288 + self.gj_step;
+	self.frame = 144 + self.gj_step;
 	self.think = GJ_ShotSpinStep;
 	self.nextthink = time + 0.04;
 };
@@ -214,7 +214,7 @@ void() GJ_MiniDie =
 	self.velocity_z = 260 + random () * 150;
 
 	FG_Snd (self, CHAN_VOICE, "greenjar/mini_spin_shriek.wav", 1.0, 0.94 + random () * 0.14);
-	self.frame = 288;
+	self.frame = 144;
 	self.think = GJ_ShotSpinStep;
 	self.nextthink = time + 0.04;
 };
@@ -226,12 +226,12 @@ void(entity attacker, float take) GJ_MiniPain =
 };
 
 // ================================================================
-// PER-CLIENT 16-ANGLE SPRITE CUSTOMIZER (`progs/greenguy_mini.spr32`)
-//   0   + d*6 + k   16-dir Scurry          (0..95)
-//   96  + d*6 + k   16-dir Wall-Climb      (96..191)
-//   192 + d*6 + k   16-dir Pogo Face-Jump  (192..287)
-//   288 .. 303      16f Punctured Shot-Spin
-//   304 .. 319      16f Balloon Swell & Rainbow Confetti Pop
+// PER-CLIENT 8-ANGLE SPRITE CUSTOMIZER (`progs/greenguy_mini.spr32`, 176 frames)
+//   0   + d*6 + k   8-dir Seated Wheel-Drive     (0..47)
+//   48  + d*6 + k   8-dir Vertical Wall-Drive    (48..95)
+//   96  + d*6 + k   8-dir Post-3-Lap Attack Ram  (96..143)
+//   144 .. 159      16f Punctured Shot-Spin
+//   160 .. 175      16f Balloon Swell & Rainbow Confetti Pop
 // ================================================================
 
 float() GJ_MiniCustomize =
@@ -241,63 +241,62 @@ float() GJ_MiniCustomize =
 
 	if (self.gj_state == 4)
 	{
-		self.frame = 288 + min (15, self.gj_step);
+		self.frame = 144 + min (15, self.gj_step);
 		return TRUE;
 	}
 	if (self.gj_state == 5)
 	{
-		self.frame = 304 + min (15, self.gj_step);
+		self.frame = 160 + min (15, self.gj_step);
 		return TRUE;
 	}
 
-	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 12');
+	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 24');
 	rel = vectoyaw (delta) - self.angles_y;
 	rel = rel - 360 * floor (rel / 360);
-	d = floor (rel / 22.5 + 0.5);
-	if (d >= 16)
+	d = floor (rel / 45 + 0.5);
+	if (d >= 8)
 		d = 0;
 
 	k = floor ((time - self.gj_anim_t0) * 18);
 	k = k - 6 * floor (k / 6);
 
 	if (self.gj_state == 2)
-		self.frame = 96 + d * 6 + k;		// Vertical building/wall climber!
-	else if (self.gj_state == 3 || !(self.flags & FL_ONGROUND) || self.gj_role == 1)
-		self.frame = 192 + d * 6 + k;		// Mid-air / Face-blocking pogo jumper!
+		self.frame = 48 + d * 6 + k;		// Vertical building wall-driver!
+	else if (self.gj_state == 6)
+		self.frame = 96 + d * 6 + k;		// Post-3-Lap Attack Lunge (Torpedo Charge + Sky-Point Ram)!
 	else
-		self.frame = d * 6 + k;				// Hyper-speed floor zoomer!
+		self.frame = d * 6 + k;				// Seated Wheel-Driving on spinning pneumatic tires!
 	return TRUE;
 };
 
-// Non-lethal 1%-2% annoyance poke (NEVER kills a player — strictly clamped so health >= 1!)
-void(entity m, entity victim) GJ_AnnoyPoke =
+// Post-3-Lap Swarm Attack Hit: 1%-2% non-lethal chip attack + view jolt (NEVER kills: clamped >= 1 HP!)
+void(entity m, entity victim) GJ_AttackHit =
 {
 	local float maxh, dmg;
 
 	if (time < m.gj_next_poke)
 		return;
-	m.gj_next_poke = time + 2.4 + random () * 1.8;
+	m.gj_next_poke = time + 0.75 + random () * 0.55;
 
-	// Annoying view-jiggle & high-pitched giggle right in their ears!
+	// Energetic ramming view-jiggle & high-pitched shriek/giggle!
 	if (victim.classname == "player")
 	{
-		victim.punchangle_x = crandom () * 1.1;
-		victim.punchangle_z = crandom () * 1.4;
+		victim.punchangle_x = crandom () * 2.2;
+		victim.punchangle_z = crandom () * 2.6;
 	}
 	if (time >= m.gj_next_voice)
 	{
 		GJ_PlayRandomLaugh (m);
-		m.gj_next_voice = time + 0.65 + random () * 0.55;
+		m.gj_next_voice = time + 0.55 + random () * 0.45;
 	}
 
-	// Whole swarm only does ~1%-2% total annoyance chip damage, and NEVER kills (clamped >= 1 HP)!
-	if (victim.health <= 2 || random () > 0.22)
+	if (victim.health <= 1 || random () > 0.45)
 		return;
 
 	maxh = victim.max_health;
 	if (maxh <= 0)
 		maxh = 100;
-	dmg = floor (maxh * 0.01 + 0.5);	// 1% chip damage (1 HP on 100 HP player)
+	dmg = floor (maxh * 0.015 + 0.5);	// ~1%-2% chip damage
 	if (dmg < 1)
 		dmg = 1;
 	if (dmg > victim.health - 1)
@@ -314,37 +313,59 @@ void(entity m, entity victim) GJ_AnnoyPoke =
 
 void() GJ_MiniTouch =
 {
+	local vector sep;
+
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		remove (self);
 		return;
 	}
-	if (self.gj_state >= 4)
+	if (self.gj_state == 4 || self.gj_state == 5)
 		return;
+
+	// Gentle go-kart bumper separation so 12 bigger wheeling Green Men never stack on each other
+	if (other.classname == "greenguy_mini" && other != self)
+	{
+		sep = self.origin - other.origin;
+		sep_z = 0;
+		if (vlen (sep) < 1)
+			sep = '1 0 0';
+		sep = normalize (sep);
+		self.velocity_x = self.velocity_x + sep_x * 65;
+		self.velocity_y = self.velocity_y + sep_y * 65;
+		return;
+	}
 
 	if (GJ_IsValidTarget (self, other))
 	{
 		self.enemy = other;
+		// ONLY attack if all 3 driving laps around the enemy are already complete (`gj_state == 6`)!
+		if (self.gj_state == 6)
+		{
+			GJ_AttackHit (self, other);
+			return;
+		}
+		// Otherwise begin swarming & driving 3 circles around them FIRST (zero attack)!
 		if (self.gj_state != 3)
 		{
 			self.gj_state = 3;
 			self.gj_orbit_ang = vectoyaw (self.origin - other.origin);
+			self.gj_prev_yaw = self.gj_orbit_ang;
 		}
-		GJ_AnnoyPoke (self, other);
 		return;
 	}
 };
 
 // ================================================================
-// MINI-GREMLIN AI: FAST SCURRY, VERTICAL BUILDING CLIMB & 5x EYE-ORBIT
+// GREEN MAN AI: WHEEL-DRIVE -> SWARM 3 LAPS AROUND ENEMY -> ATTACK!
 // ================================================================
 
 void() GJ_MiniThink =
 {
-	local vector dir, fwd_ang, goal, wall_check, roof_check, to_goal;
-	local float dist, spd, step_deg, eye_z, bob_z;
+	local vector dir, fwd_ang, goal, wall_check, roof_check, to_goal, vel_xy, tang;
+	local float dist, spd, step_deg, cur_yaw, d_yaw, want_yaw, yaw_diff;
 
-	if (self.gj_state >= 4)
+	if (self.gj_state == 4 || self.gj_state == 5)
 		return;
 	if (self.health <= 0)
 	{
@@ -357,6 +378,10 @@ void() GJ_MiniThink =
 		return;
 	}
 
+	// Settle tire bounce after initial radial smoke-pop so their spinning wheels hug the ground smoothly!
+	if (time > self.fg_born + 0.38)
+		self.bouncefactor = 0.12;
+
 	// Continuous overlapping helium laughing, screaming & giggling!
 	if (time >= self.gj_next_voice)
 	{
@@ -368,56 +393,134 @@ void() GJ_MiniThink =
 	if (!GJ_IsValidTarget (self, self.enemy))
 	{
 		self.enemy = GJ_FindTarget (self);
-		if (self.gj_state == 3)
+		if (self.gj_state == 3 || self.gj_state == 6)
 			self.gj_state = 1;
 	}
 
 	// ------------------------------------------------------------
-	// STATE 3: 5-ORBIT VIEW-BLOCKING FACE SWARM -> BALLOON POP!
+	// STATE 6: POST-3-LAP SWARM ATTACK FRENZY -> BALLOON POP!
+	// (Unleashed ONLY after driving 3 full laps around the enemy!)
+	// ------------------------------------------------------------
+	if (self.gj_state == 6 && GJ_IsValidTarget (self, self.enemy))
+	{
+		if (time >= self.gj_attack_end)
+		{
+			GJ_StartBalloonPop (self, FALSE);
+			return;
+		}
+
+		to_goal = (self.enemy.origin + '0 0 18') - self.origin;
+		dist = vlen (to_goal);
+		self.angles_y = vectoyaw (self.enemy.origin - self.origin);
+
+		fwd_ang = '0 0 0';
+		fwd_ang_y = self.angles_y;
+		makevectors (fwd_ang);
+
+		spd = 450 + self.gj_role * 25;
+		self.velocity_x = v_forward_x * spd;
+		self.velocity_y = v_forward_y * spd;
+
+		// Aggressive torpedo / pipe-vault ramming leaps straight at the enemy!
+		if ((self.flags & FL_ONGROUND) && time >= self.gj_next_boing)
+		{
+			self.flags = self.flags - FL_ONGROUND;
+			self.velocity_z = 215 + random () * 95;
+			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.72, 0.96 + random () * 0.18);
+			self.gj_next_boing = time + 0.38 + random () * 0.24;
+		}
+
+		if (dist < 78)
+			GJ_AttackHit (self, self.enemy);
+
+		self.think = GJ_MiniThink;
+		self.nextthink = time + 0.05;
+		return;
+	}
+
+	// ------------------------------------------------------------
+	// STATE 3: SWARM & WHEEL-DRIVE 3 FULL LAPS AROUND ENEMY FIRST!
+	// (Zero damage / zero attacking until 3 laps = 1080 deg done!)
 	// ------------------------------------------------------------
 	if (self.gj_state == 3 && GJ_IsValidTarget (self, self.enemy))
 	{
 		dist = vlen (self.enemy.origin - self.origin);
-		if (dist > 290)
+		if (dist > 360)
 		{
-			self.gj_state = 1;		// victim escaped far away; chase again!
+			self.gj_state = 1;		// victim ran far off; wheel-chase them to finish the 3 laps!
 		}
 		else
 		{
-			step_deg = (29 + self.gj_role * 5) * self.gj_orbit_dir;		// ~580..780 deg/s = ~1.8 orbits/sec!
-			self.gj_orbit_ang = self.gj_orbit_ang + step_deg;
-			self.gj_orbit_deg = self.gj_orbit_deg + fabs (step_deg);
+			// Measure real angular sweep around the enemy + steady cornering progress if hugging a wall
+			cur_yaw = vectoyaw (self.origin - self.enemy.origin);
+			d_yaw = cur_yaw - self.gj_prev_yaw;
+			while (d_yaw > 180)
+				d_yaw = d_yaw - 360;
+			while (d_yaw < -180)
+				d_yaw = d_yaw + 360;
+			self.gj_prev_yaw = cur_yaw;
 
-			// Completed 5 full circles (5 * 360 = 1800 deg) around the victim -> swell & confetti POP!
-			if (self.gj_orbit_deg >= GJ_ORBITS_TO_POP)
+			step_deg = fabs (d_yaw);
+			if (step_deg > 28)
+				step_deg = 28;
+			if (step_deg < 6 && dist < 130)
+				step_deg = 6;		// ensure cornered enemies against walls still progress smoothly
+			self.gj_orbit_deg = self.gj_orbit_deg + step_deg;
+
+			// Completed 3 full driving laps (3 * 360 = 1080 deg) -> UNLEASH SWARM ATTACK!
+			if (self.gj_orbit_deg >= GJ_ORBITS_BEFORE_ATK)
 			{
-				GJ_StartBalloonPop (self, FALSE);
+				self.gj_state = 6;
+				self.gj_attack_end = time + 4.2 + random () * 1.4;
+				self.gj_next_poke = time;
+				FG_Snd (self, CHAN_VOICE, "greenjar/mini_scream1.wav", 0.95, 1.02 + random () * 0.10);
+				if (self.flags & FL_ONGROUND)
+					self.flags = self.flags - FL_ONGROUND;
+				dir = normalize ((self.enemy.origin + '0 0 20') - self.origin);
+				self.velocity = dir * 460 + '0 0 190';
+				self.angles_y = vectoyaw (self.enemy.origin - self.origin);
+				self.think = GJ_MiniThink;
+				self.nextthink = time + 0.05;
 				return;
 			}
 
+			// Advance target angle ahead along the multi-lane go-kart circle (`R = 72..108u`)
+			self.gj_orbit_ang = cur_yaw + (24 + self.gj_role * 3) * self.gj_orbit_dir;
 			fwd_ang = '0 0 0';
 			fwd_ang_y = self.gj_orbit_ang;
 			makevectors (fwd_ang);
 
-			eye_z = self.enemy.view_ofs_z;
-			if (eye_z <= 4)
-				eye_z = 22;
-			// Jump up and down right across eye/camera height so all 12 block their view!
-			bob_z = sin ((time - self.gj_anim_t0) * 13.5);
-			bob_z = bob_z * 16;
-			goal = self.enemy.origin + v_forward * self.gj_orbit_rad;
-			goal_z = self.enemy.origin_z + eye_z - 6 + bob_z;
-
+			goal = self.enemy.origin + v_forward * (self.gj_orbit_rad * 1.12);
 			to_goal = goal - self.origin;
-			if (self.flags & FL_ONGROUND)
-				self.flags = self.flags - FL_ONGROUND;
-			self.velocity = to_goal * 11.5;
-			if (vlen (self.velocity) > 680)
-				self.velocity = normalize (self.velocity) * 680;
+			to_goal_z = 0;
 
-			// Face straight at the victim while circling & jumping in their face!
-			self.angles_y = vectoyaw (self.enemy.origin - self.origin);
-			GJ_AnnoyPoke (self, self.enemy);
+			// Tangential + radial wheel-driving velocity along the floor (tires stay grounded!)
+			tang = normalize (to_goal);
+			spd = 435 + self.gj_role * 25;
+			self.velocity_x = tang_x * spd;
+			self.velocity_y = tang_y * spd;
+
+			// Face the forward driving tangent so all 12 visibly MOTOR in a circle on spinning tires!
+			vel_xy = self.velocity;
+			vel_xy_z = 0;
+			if (vlen (vel_xy) > 20)
+				self.angles_y = vectoyaw (vel_xy);
+
+			// Small curb/stair hop ONLY if a low step blocks the circle path
+			if ((self.flags & FL_ONGROUND) && time >= self.gj_next_boing)
+			{
+				traceline (self.origin + '0 0 8', self.origin + '0 0 8' + tang * 26, TRUE, self);
+				if (trace_fraction < 0.92)
+				{
+					traceline (self.origin + '0 0 28', self.origin + '0 0 28' + tang * 28, TRUE, self);
+					if (trace_fraction > 0.92)
+					{
+						self.flags = self.flags - FL_ONGROUND;
+						self.velocity_z = 175;
+						self.gj_next_boing = time + 0.30;
+					}
+				}
+			}
 
 			self.think = GJ_MiniThink;
 			self.nextthink = time + 0.05;
@@ -426,39 +529,36 @@ void() GJ_MiniThink =
 	}
 
 	// ------------------------------------------------------------
-	// STATE 2: VERTICAL BUILDING / PILLAR WALL-CLIMB!
+	// STATE 2: VERTICAL BUILDING / PILLAR WALL-DRIVE!
 	// ------------------------------------------------------------
 	if (self.gj_state == 2)
 	{
-		// Probe straight into the wall we are climbing (`-gj_wall_n`)
-		wall_check = self.origin + '0 0 10' - self.gj_wall_n * 26;
-		traceline (self.origin + '0 0 10', wall_check, TRUE, self);
+		wall_check = self.origin + '0 0 14' - self.gj_wall_n * 28;
+		traceline (self.origin + '0 0 14', wall_check, TRUE, self);
 		if (trace_fraction >= 0.98)
 		{
-			// Cleared the top ledge / roof of the building! Vault onto the roof with a boing!
+			// Cleared the top ledge / roof of the building! Roll onto the roof!
 			self.gj_state = 1;
-			self.velocity = ('0 0 0' - self.gj_wall_n) * 230 + '0 0 210';
+			self.velocity = ('0 0 0' - self.gj_wall_n) * 240 + '0 0 195';
 			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.75, 1.0 + random () * 0.15);
 			self.think = GJ_MiniThink;
 			self.nextthink = time + 0.05;
 			return;
 		}
-		// Check ceiling overhead OR max climb time so indoor wall-climbers parkour-kick back into the room!
-		roof_check = self.origin + '0 0 34';
-		traceline (self.origin + '0 0 12', roof_check, TRUE, self);
+		roof_check = self.origin + '0 0 46';
+		traceline (self.origin + '0 0 16', roof_check, TRUE, self);
 		if (trace_fraction < 0.95 || time >= self.gj_climb_end)
 		{
 			self.gj_state = 1;
-			self.gj_wall_cool = time + 1.8;
+			self.gj_wall_cool = time + 2.2;
 			self.angles_y = vectoyaw (self.gj_wall_n) + crandom () * 45;
-			self.velocity = self.gj_wall_n * 310 + '0 0 -60';
+			self.velocity = self.gj_wall_n * 310 + '0 0 -50';
 			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.75, 1.08);
 			self.think = GJ_MiniThink;
 			self.nextthink = time + 0.05;
 			return;
 		}
 
-		// Scale rapidly straight up the vertical wall!
 		if (self.flags & FL_ONGROUND)
 			self.flags = self.flags - FL_ONGROUND;
 		self.velocity = ('0 0 0' - self.gj_wall_n) * 75 + '0 0 285';
@@ -469,28 +569,42 @@ void() GJ_MiniThink =
 	}
 
 	// ------------------------------------------------------------
-	// STATE 1: HYPER-FAST FLOOR SCURRY, POGO BOUNCE & WALL LATCH
+	// STATE 1: GROUNDED WHEEL-DRIVING ROAM & APPROACH
 	// ------------------------------------------------------------
 	if (GJ_IsValidTarget (self, self.enemy))
 	{
 		dist = vlen (self.enemy.origin - self.origin);
-		if (dist < 165)
+		if (dist < 195)
 		{
-			// Reached enemy -> enter 5-Orbit View-Blocking Face Swarm!
-			self.gj_state = 3;
-			self.gj_orbit_ang = vectoyaw (self.origin - self.enemy.origin);
-			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.85, 1.05);
+			// Reached enemy -> enter 3-Lap Wheel-Driving Swarm (or resume Attack if 3 laps already done)!
+			if (self.gj_orbit_deg >= GJ_ORBITS_BEFORE_ATK)
+				self.gj_state = 6;
+			else
+			{
+				self.gj_state = 3;
+				self.gj_orbit_ang = vectoyaw (self.origin - self.enemy.origin);
+				self.gj_prev_yaw = self.gj_orbit_ang;
+			}
 			self.think = GJ_MiniThink;
 			self.nextthink = time + 0.05;
 			return;
 		}
-		dir = normalize ((self.enemy.origin - self.origin) + v_right * crandom () * 45);
-		self.angles_y = vectoyaw (dir) + crandom () * 18;
+		want_yaw = vectoyaw (self.enemy.origin - self.origin) + crandom () * 10;
+		yaw_diff = want_yaw - self.angles_y;
+		while (yaw_diff > 180)
+			yaw_diff = yaw_diff - 360;
+		while (yaw_diff < -180)
+			yaw_diff = yaw_diff + 360;
+		if (yaw_diff > 26)
+			yaw_diff = 26;
+		if (yaw_diff < -26)
+			yaw_diff = -26;
+		self.angles_y = self.angles_y + yaw_diff;
 	}
 	else
 	{
-		// Dumb feral animal wandering & bouncing wildly all over the map!
-		self.angles_y = self.angles_y + crandom () * 34;
+		// Smooth curving go-kart steering around the map!
+		self.angles_y = self.angles_y + crandom () * 20;
 	}
 	self.angles_y = self.angles_y - 360 * floor (self.angles_y / 360);
 
@@ -498,42 +612,49 @@ void() GJ_MiniThink =
 	fwd_ang_y = self.angles_y;
 	makevectors (fwd_ang);
 
-	// Check if a vertical building/wall is right ahead -> climb straight up it!
-	if (time >= self.gj_wall_cool)
+	// Check for stairs (curb-hop) vs tall vertical building wall (wall-drive or steer off!)
+	traceline (self.origin + '0 0 8', self.origin + '0 0 8' + v_forward * 28, TRUE, self);
+	if (trace_fraction < 0.94)
 	{
-		traceline (self.origin + '0 0 10', self.origin + '0 0 10' + v_forward * 24, TRUE, self);
-		if (trace_fraction < 0.95 && fabs (trace_plane_normal_z) < 0.28)
+		traceline (self.origin + '0 0 30', self.origin + '0 0 30' + v_forward * 30, TRUE, self);
+		if (trace_fraction > 0.94)
 		{
-			self.gj_state = 2;
-			self.gj_wall_n = trace_plane_normal;
-			self.gj_climb_end = time + 1.15;
-			if (self.flags & FL_ONGROUND)
+			// Low stair/curb -> smooth wheelie hop up the step!
+			if ((self.flags & FL_ONGROUND) && time >= self.gj_next_boing)
+			{
 				self.flags = self.flags - FL_ONGROUND;
-			self.velocity = ('0 0 0' - self.gj_wall_n) * 65 + '0 0 280';
-			self.think = GJ_MiniThink;
-			self.nextthink = time + 0.05;
-			return;
+				self.velocity_z = 185;
+				self.gj_next_boing = time + 0.25;
+			}
+		}
+		else if (fabs (trace_plane_normal_z) < 0.28)
+		{
+			if (self.gj_role == 2 && time >= self.gj_wall_cool)
+			{
+				// Role-2 wall-driver drives straight up the building wall!
+				self.gj_state = 2;
+				self.gj_wall_n = trace_plane_normal;
+				self.gj_climb_end = time + 1.10;
+				if (self.flags & FL_ONGROUND)
+					self.flags = self.flags - FL_ONGROUND;
+				self.velocity = ('0 0 0' - self.gj_wall_n) * 65 + '0 0 280';
+				self.think = GJ_MiniThink;
+				self.nextthink = time + 0.05;
+				return;
+			}
+			else
+			{
+				// Steer briskly along/away from the wall and keep wheeling!
+				self.angles_y = vectoyaw (trace_plane_normal) + crandom () * 55;
+				fwd_ang_y = self.angles_y;
+				makevectors (fwd_ang);
+			}
 		}
 	}
 
-	spd = 370 + self.gj_role * 35;
+	spd = 385 + self.gj_role * 30;
 	self.velocity_x = v_forward_x * spd;
 	self.velocity_y = v_forward_y * spd;
-
-	// Rubber-flea pogo bounces!
-	if ((self.flags & FL_ONGROUND) && time >= self.gj_next_boing)
-	{
-		if (self.gj_role == 1 || random () < 0.35)
-		{
-			self.flags = self.flags - FL_ONGROUND;
-			self.velocity_z = 245 + random () * 135;
-			if (random () < 0.45)
-				FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.65, 0.95 + random () * 0.2);
-			self.gj_next_boing = time + (0.22 + random () * 0.35);
-		}
-		else
-			self.gj_next_boing = time + 0.25;
-	}
 
 	self.think = GJ_MiniThink;
 	self.nextthink = time + 0.05;
@@ -550,7 +671,7 @@ void(entity who) GJ_MakeRoomMinis =
 	e = find (world, classname, "greenguy_mini");
 	while (e)
 	{
-		if (e.owner == who && e.gj_state < 5)
+		if (e.owner == who && e.gj_state != 5)
 		{
 			n = n + 1;
 			if (e.fg_born < best_t)
@@ -575,25 +696,26 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 
 	m = spawn ();
 	m.classname = "greenguy_mini";
-	m.netname = "Mini Green Guy";
+	m.netname = "Green Wheelman";
 	m.owner = who;
 	m.fg_born = time;
 	m.gj_anim_t0 = time - random () * 0.5;
 	m.gj_state = 1;
-	m.gj_role = idx - 3 * floor (idx / 3);		// 0=zoomer, 1=pogo, 2=wall-climber
-	m.gj_orbit_dir = (idx - 2 * floor (idx / 2)) * 2 - 1;	// alternating CW / CCW orbits!
-	m.gj_orbit_rad = 36 + (idx - 4 * floor (idx / 4)) * 6;	// 36..54u tight screen-filling ring
+	m.gj_role = idx - 3 * floor (idx / 3);					// 0=cruiser, 1=sprinter, 2=wall-driver
+	m.gj_orbit_dir = (idx - 2 * floor (idx / 2)) * 2 - 1;	// alternating CW / CCW driving lanes!
+	m.gj_orbit_rad = 72 + (idx - 4 * floor (idx / 4)) * 12;	// 72..108u 4-lane go-kart circle around victim!
 	m.gj_orbit_deg = 0;
-	m.gj_die_at = time + 12.5 + random () * 2.5;
+	m.gj_attack_end = 0;
+	m.gj_die_at = time + 18.5 + random () * 3.0;
 	m.gj_next_voice = time + 0.08 * idx + random () * 0.25;
-	m.gj_next_boing = time + random () * 0.25;
+	m.gj_next_boing = time + 0.35;
 	m.gj_next_poke = time + 0.2;
 
 	m.movetype = MOVETYPE_BOUNCE;
 	m.solid = SOLID_BBOX;
-	m.bouncefactor = 0.62;
-	m.bouncestop = 0.05;
-	m.gravity = 0.75;
+	m.bouncefactor = 0.42;		// settles to 0.12 after 0.38s so tires hug the floor smoothly!
+	m.bouncestop = 0.08;
+	m.gravity = 0.85;
 	m.health = 1;
 	m.max_health = 1;
 	m.takedamage = DAMAGE_AIM;
@@ -603,19 +725,19 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 	m.customizeentityforclient = GJ_MiniCustomize;
 
 	setmodel (m, "progs/greenguy_mini.spr32");
-	m.scale = 0.44;
-	setsize (m, '-14 -14 0', '14 14 30');
+	m.scale = 0.9333;			// ~2.3x bigger in-world: waist-to-chest height mini-wheelman!
+	setsize (m, '-15 -15 0', '15 15 44');
 
-	yaw = idx * (360 / GJ_MINI_COUNT) + crandom () * 14;
+	yaw = idx * (360 / GJ_MINI_COUNT) + crandom () * 12;
 	ang_v = '0 0 0';
 	ang_v_y = yaw;
 	makevectors (ang_v);
 
-	setorigin (m, org + v_forward * 10 + '0 0 8');
+	setorigin (m, org + v_forward * 14 + '0 0 8');
 	m.angles = '0 0 0';
 	m.angles_y = yaw;
-	m.velocity = v_forward * (260 + random () * 210);
-	m.velocity_z = 180 + random () * 210;
+	m.velocity = v_forward * (280 + random () * 180);
+	m.velocity_z = 135 + random () * 115;
 
 	m.enemy = GJ_FindTarget (m);
 	m.think = GJ_MiniThink;
@@ -646,17 +768,17 @@ void(vector org, entity who) GJ_ShatterJar =
 	local float i;
 
 	FG_Snd (self, CHAN_WEAPON, "greenjar/jar_shatter.wav", 1.0, 1.0);
-	sendParticle ("pk_puff", org + '0 0 10', '0 0 0', 5, 0);
+	sendParticle ("pk_puff", org + '0 0 12', '0 0 0', 6, 0);
 
 	b = spawn ();
 	b.classname = "greenjar_burst";
 	b.movetype = MOVETYPE_NONE;
 	b.solid = SOLID_NOT;
 	setmodel (b, "progs/greenjar_burst.spr32");
-	b.scale = 1.55;
+	b.scale = 1.85;
 	b.frame = 0;
 	b.effects = EF_DIMLIGHT;
-	setorigin (b, org + '0 0 12');
+	setorigin (b, org + '0 0 16');
 	b.think = GJ_SmokeBurstStep;
 	b.nextthink = time + 0.042;
 

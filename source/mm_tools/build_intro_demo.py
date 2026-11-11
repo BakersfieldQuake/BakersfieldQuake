@@ -19,10 +19,14 @@ SRC_QC = os.path.join(MOD, "source", "qc_combat_decomp")
 TOOLS = os.path.join(MOD, "source", "mm_tools")
 BUILD_DIR = os.path.join(TOOLS, "out", "qc_intro_build")
 USERDIR = os.path.join(TOOLS, "out", "dp_intro_userdir")
-FTEQCC = r"D:\vibe\quake1opensource\engines\win64\fteqcc64.exe"
+FTEQCC = (
+    r"D:\vibe\quake1opensource\engines\win64\fteqcc64.exe"
+    if os.path.isfile(r"D:\vibe\quake1opensource\engines\win64\fteqcc64.exe")
+    else r"G:\Quake\LOLQuake\tools\fteqcc64.exe"
+)
 DARKPLACES = os.path.join(ROOT, "darkplaces.exe")
 DEMO_OUT = os.path.join(MOD, "intro.dem")
-DEMO_NAMED_OUT = os.path.join(MOD, "intro_fox360_swarm.dem")
+DEMO_NAMED_OUT = os.path.join(MOD, "intro_movie_showcase.dem")
 
 
 def patch_once(path: str, needle: str, replacement: str) -> None:
@@ -183,7 +187,7 @@ def compile_isolated_progs() -> str:
     )
     patch_once(
         os.path.join(BUILD_DIR, "client.qc"),
-        "\tAttachVwep();\n\tAttachVAxe();\n\tAttachLegs();\n\tAttachPack();\n\tif ((self.ishuman == 1))\n\t{\n\t\tSNGHeater();\n\t}",
+        "\tif ((self.model == \"progs/player_torso.mdl\"))\n\t{\n\t\tAttachVwep();\n\t\tAttachVAxe();\n\t\tAttachLegs();\n\t\tAttachPack();\n\t}\n\tif ((self.ishuman == 1))\n\t{\n\t\tSNGHeater();\n\t}",
         "\t// suppressed player weapon/torso/legs/pack/heater attachments for clean intro.dem camera",
     )
     patch_once(
@@ -238,8 +242,32 @@ def _look_angles(cpos, look):
 
 
 def eval_cam_angles(t: float):
-    if t < 6.6:
-        u = max(0.0, min(1.0, t / 6.6))
+    if t < 2.2:
+        u = t / 2.2
+        cpos = _vlerp((-8590, 2115, 128), (-8695, 2182, 64), u)
+        look = _vlerp((-9340, 2485, 310), (-9030, 2435, 88), u)
+    elif t < 5.5:
+        u = (t - 2.2) / 3.3
+        cpos = _vlerp((-8695, 2182, 64), (-8752, 2224, 55), u)
+        look = _vlerp((-9030, 2435, 88), (-8990, 2382, 62), u)
+    elif t < 11.0:
+        u = (t - 5.5) / 5.5
+        cpos = _vlerp((-8720, 2205, 50), (-8758, 2235, 56), u)
+        look = _vlerp((-8890, 2320, 48), (-8875, 2310, 56), u)
+    elif t < 17.0:
+        u = (t - 11.0) / 6.0
+        cpos = _vlerp((-8645, 2152, 68), (-8595, 2118, 88), u)
+        look = _vlerp((-8925, 2345, 58), (-8910, 2335, 72), u)
+    elif t < 24.0:
+        u = (t - 17.0) / 7.0
+        cpos = _vlerp((-8565, 2095, 76), (-8465, 2025, 162), u)
+        look = _vlerp((-9060, 2375, 96), (-9240, 2420, 205), u)
+    elif t < 27.4:
+        u = (t - 24.0) / 3.4
+        cpos = _vlerp((-8635, 2145, 78), (-8725, 2210, 92), u)
+        look = _vlerp((-8975, 2375, 96), (-9045, 2415, 112), u)
+    elif t < 31.0:
+        u = max(0.0, min(1.0, (t - 27.4) / 3.6))
         u_orb = 0.72 * u + 0.28 * _smooth(u)
         deg = -48.0 + 360.0 * u_orb
         rad = deg * 0.01745329
@@ -253,17 +281,17 @@ def eval_cam_angles(t: float):
             3440.0 + math.sin(rad) * 200.0,
             415.0,
         )
-    elif t < 11.8:
-        u = (t - 6.6) / 5.2
+    elif t < 36.2:
+        u = (t - 31.0) / 5.2
         cpos = _vlerp((-8860, 2050, 815), (-8920, 2290, 860), u)
         look = _vlerp((-9565, 2525, 875), (-9565, 2525, 890), u)
-    elif t < 15.3:
-        u = (t - 11.8) / 3.5
+    elif t < 40.5:
+        u = (t - 36.2) / 4.3
         cpos = _vlerp((-8920, 2290, 860), (-8820, 2090, 835), u)
         look = _vlerp((-9565, 2525, 890), (-9565, 2525, 885), u)
     else:
-        u = (t - 15.3) / 7.2
-        cpos = _vlerp((-8985, 2285, 285), (-9045, 2345, 300), u)
+        u = (t - 40.5) / 7.5
+        cpos = _vlerp((-8985, 2285, 285), (-9050, 2348, 302), u)
         look = _vlerp((-9485, 2545, 375), (-9505, 2565, 410), u)
     return _look_angles(cpos, look)
 
@@ -370,10 +398,10 @@ def record_demo(compiled_dat: str) -> None:
         "+stopdemo",
         "+defer", "0.5", "exec zz_intro_rec.cfg",
     ]
-    print("Recording smooth 100Hz Fox-360 + 50-Swarm intro.dem on downtown (~36.0s) in isolated userdir...")
+    print("Recording smooth 100Hz 8-Act Movie Showcase intro.dem on downtown (~48.0s) in isolated userdir...")
     proc = subprocess.Popen(cmd, cwd=ROOT)
     try:
-        proc.wait(timeout=180)
+        proc.wait(timeout=240)
     except subprocess.TimeoutExpired:
         print(f"Timeout reached; stopping our own darkplaces PID {proc.pid}")
         proc.terminate()
@@ -416,19 +444,23 @@ def verify_playback() -> None:
         "cl_showfps 0\n"
         "scr_screenshot_jpeg 0\n"
         "scr_screenshot_png 1\n"
-        'defer 0.9 "screenshot zz_f360v2_01_fox360_se_closeup_3milkys_3wheelmans.png"\n'
-        'defer 2.4 "screenshot zz_f360v2_02_fox360_east_hst_closeup.png"\n'
-        'defer 4.1 "screenshot zz_f360v2_03_fox360_north_flytower_closeup.png"\n'
-        'defer 5.7 "screenshot zz_f360v2_04_fox360_west_20thst_pipejet.png"\n'
-        'defer 7.3 "screenshot zz_f360v2_05_tower_closeup_50_swarm_reveal.png"\n'
-        'defer 9.6 "screenshot zz_f360v2_06_tower_closeup_50_sprites_milkys_spin.png"\n'
-        'defer 11.3 "screenshot zz_f360v2_07_tower_closeup_50_cyclone_peak.png"\n'
-        'defer 12.6 "screenshot zz_f360v2_08_all50_explode_wave1_lower_fireballs.png"\n'
-        'defer 13.6 "screenshot zz_f360v2_09_all50_explode_wave2_upper_fireballs.png"\n'
-        'defer 14.5 "screenshot zz_f360v2_10_spire_megablast_lens_milk_drips.png"\n'
-        'defer 16.4 "screenshot zz_f360v2_11_burning_fox_floating_cccs_dan_rob_drips.png"\n'
-        'defer 19.6 "screenshot zz_f360v2_12_burning_fox_floating_cccs_dan_rob_clear.png"\n'
-        'defer 22.3 "quit"\n'
+        'defer 1.1 "screenshot zz_movie_01_act1_fox_marquee_crane.png"\n'
+        'defer 4.4 "screenshot zz_movie_02_act1_white_van_drift_arrival.png"\n'
+        'defer 6.3 "screenshot zz_movie_03_act2_wheelman_barndoors_burnout.png"\n'
+        'defer 9.8 "screenshot zz_movie_04_act2_wheelman_pipejet_wewcannon.png"\n'
+        'defer 12.2 "screenshot zz_movie_05_act3_clowncar_tableflip_laptophead.png"\n'
+        'defer 15.6 "screenshot zz_movie_06_act3_pickle_surprise_bonk_clang.png"\n'
+        'defer 18.4 "screenshot zz_movie_07_act4_supercar_bus_bikes_garand.png"\n'
+        'defer 22.0 "screenshot zz_movie_08_act4_megaman_mbox_johnwave_trashcans.png"\n'
+        'defer 25.5 "screenshot zz_movie_09_act5_hst_milkys_puddle_spinouts.png"\n'
+        'defer 29.2 "screenshot zz_movie_10_act5_fox_360_aerial_orbit.png"\n'
+        'defer 32.4 "screenshot zz_movie_11_act6_tower_50_tornado_reveal.png"\n'
+        'defer 35.2 "screenshot zz_movie_12_act6_tower_50_tornado_peak.png"\n'
+        'defer 37.3 "screenshot zz_movie_13_act7_all50_explode_fireballs_tires.png"\n'
+        'defer 39.0 "screenshot zz_movie_14_act7_spire_megablast_lens_milk.png"\n'
+        'defer 41.8 "screenshot zz_movie_15_act8_burning_fox_wreckedvan_drips.png"\n'
+        'defer 45.6 "screenshot zz_movie_16_act8_floating_dan_wheelman_rob_cccs.png"\n'
+        'defer 48.4 "quit"\n'
     )
     cmd = [
         DARKPLACES,
@@ -447,10 +479,10 @@ def verify_playback() -> None:
         "+log_file", "zz_intro_play.log",
         "+defer", "0.3", "exec zz_verify_shots.cfg",
     ]
-    print("Verifying bare startup (`startdemos intro`) on downtown in isolated userdir + capturing 12 HD screenshots...")
+    print("Verifying bare startup (`startdemos intro`) on downtown in isolated userdir + capturing 16 HD screenshots...")
     proc = subprocess.Popen(cmd, cwd=ROOT)
     try:
-        proc.wait(timeout=180)
+        proc.wait(timeout=240)
     except subprocess.TimeoutExpired:
         proc.terminate()
         try:
@@ -458,7 +490,7 @@ def verify_playback() -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
 
-    shots = sorted(glob.glob(os.path.join(ud_bk, "zz_f360v2_*")) + glob.glob(os.path.join(ud_bk, "screenshots", "zz_f360v2_*")))
+    shots = sorted(glob.glob(os.path.join(ud_bk, "zz_movie_*")) + glob.glob(os.path.join(ud_bk, "screenshots", "zz_movie_*")))
     print(f"Captured {len(shots)} screenshots:")
     for s in shots:
         print(" ", s)

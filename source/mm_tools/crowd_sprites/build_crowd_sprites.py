@@ -27,7 +27,8 @@ Image.MAX_IMAGE_PIXELS = None
 
 SRC = r"G:\Quake\Combat\BakersfieldQuake\quake_6chars_sprites"
 DST = r"G:\Quake\Combat\BakersfieldQuake\progs"
-SCALE = 0.90
+STAGED_DST = r"G:\Quake\Combat\_bakersfield_dev\staged_assets\progs"
+SCALE = 0.21
 TARGET_LUM = 62.0
 PIVOT = (256, 464)
 UNITS_TALL = 52.0
@@ -94,17 +95,17 @@ def main(only=None):
         px, py = (PIVOT[0] - x0) * SCALE, (PIVOT[1] - y0) * SCALE
         print(f"character_{ch}: crop {box} -> {w}x{h}, pivot ({px:.1f}, {py:.1f})", flush=True)
 
-        walk = load_cells(os.path.join(cdir, "walk_sheet.png"), WALK_COLS, box, list(range(0, 24, 2)))
-        run = load_cells(os.path.join(cdir, "run_sheet.png"), RUN_COLS, box, list(range(0, 20, 2)))
+        walk = load_cells(os.path.join(cdir, "walk_sheet.png"), WALK_COLS, box, list(range(0, 24, 4)))
+        run = load_cells(os.path.join(cdir, "run_sheet.png"), RUN_COLS, box, list(range(0, 20, 4)))
 
         frames = []
         for d in range(8):
             frames.append(walk[(d, 0)])
         for d in range(8):
-            for k in range(12):
+            for k in range(6):
                 frames.append(walk[(d, k)])
         for d in range(8):
-            for k in range(10):
+            for k in range(5):
                 frames.append(run[(d, k)])
 
         small = []
@@ -132,8 +133,8 @@ def main(only=None):
         top = int(rows.min()) if rows.size else 0
         cell_height = py - top
         scale = UNITS_TALL / cell_height
-        print(f"  front view {cell_height:.0f}px tall -> entity scale {scale:.3f}", flush=True)
-        info[ch] = {"w": w, "h": h, "height_px": cell_height, "scale": round(scale, 3), "frames": len(small), "gain": round(gain, 3)}
+        print(f"  front view {cell_height:.1f}px tall -> entity scale {scale:.4f}", flush=True)
+        info[ch] = {"w": w, "h": h, "height_px": round(cell_height, 2), "scale": round(scale, 4), "frames": len(small), "gain": round(gain, 3)}
 
         path = os.path.join(DST, f"crowd_c{ch}.spr32")
         base_ox, base_oy = int(round(-px)), int(round(py))
@@ -147,13 +148,19 @@ def main(only=None):
             max_ch = max(max_ch, ch_f)
             packed.append((fox, foy, cw, ch_f, raw))
         rad = math.sqrt((max_cw / 2.0) ** 2 + (max_ch / 2.0) ** 2)
-        with open(path, "wb") as fp:
-            fp.write(b"IDSP")
-            fp.write(struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
-            for fox, foy, cw, ch_f, raw in packed:
-                fp.write(struct.pack("<iiiii", 0, fox, foy, cw, ch_f))
-                fp.write(raw)
-        print(f"  wrote {path}: {os.path.getsize(path):,} bytes", flush=True)
+        buf = bytearray(b"IDSP")
+        buf += struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0)
+        for fox, foy, cw, ch_f, raw in packed:
+            buf += struct.pack("<iiiii", 0, fox, foy, cw, ch_f)
+            buf += raw
+        write_targets = [path]
+        if os.path.isdir(os.path.dirname(STAGED_DST)):
+            write_targets.append(os.path.join(STAGED_DST, f"crowd_c{ch}.spr32"))
+        for wp in write_targets:
+            os.makedirs(os.path.dirname(wp), exist_ok=True)
+            with open(wp, "wb") as fp:
+                fp.write(buf)
+        print(f"  wrote {path}: {len(buf):,} bytes ({len(buf)/1048576:.2f} MiB)", flush=True)
 
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crowd_sprites_info.json")
     old = {}

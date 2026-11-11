@@ -8,8 +8,14 @@ import struct
 import subprocess
 import sys
 
-D = "G:\Quake\Combat\BakersfieldQuake\source\qc_combat_decomp\csqc\\"
-r = subprocess.run(["D:/vibe/quake1opensource/engines/win64/fteqcc64.exe", "-srcfile", "progs.src"], cwd=D)
+import os
+D = "G:\\Quake\\Combat\\BakersfieldQuake\\source\\qc_combat_decomp\\csqc\\"
+FTEQCC = (
+    "D:/vibe/quake1opensource/engines/win64/fteqcc64.exe"
+    if os.path.isfile("D:/vibe/quake1opensource/engines/win64/fteqcc64.exe")
+    else "G:/Quake/LOLQuake/tools/fteqcc64.exe"
+)
+r = subprocess.run([FTEQCC, "-srcfile", "progs.src"], cwd=D)
 if r.returncode:
     sys.exit("compile failed")
 d = bytearray(open(D + "progs.dat", "rb").read())

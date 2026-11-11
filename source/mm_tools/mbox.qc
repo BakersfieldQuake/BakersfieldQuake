@@ -33,7 +33,7 @@ void(float t) MB_PrecacheType =
 
 float(float t) MB_IsSprite;
 
-// the pool's character sprites (about 290 MB) load the first time a box is thrown, not on every map (see MB_Throw)
+// the pool's character sprites (~38 MB) load the first time a box is thrown, not on every map (see MB_Throw)
 float	mb_pool_loaded;
 void() MB_PrecachePool =
 {
@@ -200,38 +200,38 @@ float() MB_Customize =
 		d = 0;
 	if (self.mb_run && (self.mb_type == 9 || self.mb_type == 16))
 	{
-		// the Wheelman sprite was rebuilt on 2026-10-31 (wheelman.qc): running frames are 8 + d * 12 + k, k = 0..11
-		k = floor (time * 20 + self.origin_x * 0.05);
-		k = k - 12 * floor (k / 12);
-		self.frame = 8 + d * 12 + k;
+		// compact 200-frame wheelman.spr32: running frames are 8 + d * 6 + k, k = 0..5
+		k = floor (time * 10 + self.origin_x * 0.025);
+		k = k - 6 * floor (k / 6);
+		self.frame = 8 + d * 6 + k;
 	}
 	else if (self.mb_run && self.mb_type == 23)
 	{
-		// David Ojeda hyper-sprint: alternates fast_run (8), turbo_sprint (56), and money_run (152) at 18 fps!
-		k = floor (time * 18 + self.origin_x * 0.03);
-		k = k - 6 * floor (k / 6);
+		// David Ojeda hyper-sprint (264-frame david.spr32): alternates fast_run (8), turbo_sprint (40), and money_run (104)
+		k = floor (time * 12 + self.origin_x * 0.02);
+		k = k - 4 * floor (k / 4);
 		cyc = floor ((time - self.mb_born) * 0.65);
 		cyc = cyc - 3 * floor (cyc / 3);
 		if (cyc == 1)
-			self.frame = 56 + d * 6 + k;
+			self.frame = 40 + d * 4 + k;
 		else if (cyc == 2)
-			self.frame = 152 + d * 6 + k;
+			self.frame = 104 + d * 4 + k;
 		else
-			self.frame = 8 + d * 6 + k;
+			self.frame = 8 + d * 4 + k;
 	}
 	else if (self.mb_run && self.mb_type == 27)
 	{
-		// Daniel 4 AM LAN chaos: alternates dragging 4AM table (56), CCC grin barrage (104), and hands-up "Sorry!" sprint (248)!
-		k = floor (time * 18 + self.origin_x * 0.03);
-		k = k - 6 * floor (k / 6);
+		// Daniel 4 AM LAN chaos (264-frame daniel.spr32): alternates dragging 4AM table (40), CCC grin barrage (72), and hands-up "Sorry!" sprint (168)
+		k = floor (time * 12 + self.origin_x * 0.02);
+		k = k - 4 * floor (k / 4);
 		cyc = floor ((time - self.mb_born) * 0.70);
 		cyc = cyc - 3 * floor (cyc / 3);
 		if (cyc == 1)
-			self.frame = 104 + d * 6 + k;
+			self.frame = 72 + d * 4 + k;
 		else if (cyc == 2)
-			self.frame = 248 + d * 6 + k;
+			self.frame = 168 + d * 4 + k;
 		else
-			self.frame = 56 + d * 6 + k;
+			self.frame = 40 + d * 4 + k;
 	}
 	else if (self.mb_run)
 	{
@@ -292,37 +292,37 @@ void(entity m, float t) MB_Setup =
 		m.mb_yaw0 = 90;		// the forklift's nose is along +Y
 	}
 	else if (t == 9 || t == 16)
-		m.scale = 0.333;	// the rebuilt Wheelman picture (360x255) is 168 px tall
+		m.scale = 0.6938;	// compact Wheelman (144x102 tight-cropped; 0.333 * 300/144)
 	else if (t == 10)
-		m.scale = 0.1111;	// JessKart 505 px (640x720 HD)
+		m.scale = 0.4938;	// JessKart (144x162 tight-cropped; 0.1111 * 640/144)
 	else if (t == 11)
 	{
-		m.scale = 0.13;		// Kyle 431 px (532x560 HD)
+		m.scale = 0.5056;	// Kyle (136x144 tight-cropped; 0.13 * 35/9)
 		m.colormod = '0.5 0.5 0.5';		// his picture is twice as light as the others
 	}
 	else if (t == 17)
-		m.scale = 0.1771;	// Bryan & Demons 350 px Bryan height (560x504 HD)
+		m.scale = 0.8265;	// Bryan & Demons (120x108 tight-cropped; 0.1771 * 14/3)
 	else if (t == 18)
 	{
-		m.scale = 0.125;	// Dennis 442 px (384x512 HD)
+		m.scale = 0.4706;	// Dennis (102x136 tight-cropped; 0.125 * 512/136)
 		m.colormod = '1.45 1.45 1.45';		// his suit picture is darker than the others (mean 42, they are 55-65)
 	}
 	else if (t == 19)
-		m.scale = 0.125;	// Paul 442 px (384x512 HD)
+		m.scale = 0.4706;	// Paul (102x136 tight-cropped; 0.125 * 512/136)
 	else if (t == 20)
-		m.scale = 0.1;		// QuakeGuy 564 px (480x640 HD)
+		m.scale = 0.4211;	// QuakeGuy (114x152 tight-cropped; 0.1 / 0.2375)
 	else if (t == 21)
-		m.scale = 0.1286;	// Mr DIY 431 px (344x448 HD)
+		m.scale = 0.5144;	// Mr DIY (86x112 tight-cropped; 0.1286 * 4)
 	else if (t == 22)
-		m.scale = 0.0983;	// Rubber Finger 509 px (560x630 HD)
+		m.scale = 0.4301;	// Rubber Finger (128x144 tight-cropped; 0.0983 * 35/8)
 	else if (t == 23)
-		m.scale = 0.1387;	// David Ojeda 423 px character height (480x540 HD)
+		m.scale = 0.6935;	// David Ojeda (96x108 tight-cropped; 0.1387 * 5)
 	else if (t >= 24 && t <= 26)
-		m.scale = 0.136;	// Pregnant Runners 1..3 422 px character height (480x540 HD)
+		m.scale = 0.4800;	// Pregnant Runners 1..3 (136x153 tight-cropped; 0.136 * 60/17)
 	else if (t == 27)
-		m.scale = 0.1387;	// Daniel 423 px character height (480x540 HD)
+		m.scale = 0.6935;	// Daniel (96x108 tight-cropped; 0.1387 * 5)
 	else if (t == 28)
-		m.scale = 0.1367;	// Angry 4 AM Dad 456 px character height (480x576 HD)
+		m.scale = 0.5126;	// Angry 4 AM Dad (128x154 tight-cropped; 0.1367 * 15/4)
 	else
 		m.scale = 0.55;		// Friend Rob 102 px
 };

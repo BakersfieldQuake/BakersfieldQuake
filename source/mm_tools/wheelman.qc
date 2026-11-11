@@ -2,17 +2,15 @@
 Wheelman. Impulse 18 summons one in front of you. It rolls at the nearest player on
 progs/wheelman.spr32 (build_wheelman_sprite.py + wheelman_fx.py + wheelman_boom360.py + wheelman_stunts.py).
 
-Full Spherical 360° + Above/Below + 3x 360° Stunts + 4 Escalating 360° Explosions Layout
-(792 frames, 300x212, origin (-150, 192), w.scale = 0.64):
+Compact 360° + Above/Below + 2x 360° Stunts Layout
+(200 frames, 144x102 tight-cropped, origin (-72, 92), w.scale = 1.3333):
   0..7                         8-direction eye-level idle (d = 0..7)
-  8 + d*12 + k                 8-direction 20-FPS eye-level driving/rolling (d = 0..7, k = 0..11)
-  104 + d*6 + k                8-direction 20-FPS eye-level screaming (d = 0..7, k = 0..5)
-  152 + d*3 + k                8-direction ABOVE HIM overhead rolling (d = 0..7, k = 0..2)
-  176 + d*3 + k                8-direction BELOW HIM underneath rolling (d = 0..7, k = 0..2)
-  200 + tier*112 + d*14 + s    4 Escalating 360° Explosions (tier = 0..3, d = 0..7, step s = 0..13)
-  648 + d*6 + k                Stunt 1: Fire-Wheels Hyper-Burnout (d = 0..7, k = 0..5)
-  696 + d*6 + k                Stunt 2: Super-Long Metal Bar & Steamroller Wheels (d = 0..7, k = 0..5)
-  744 + d*6 + k                Stunt 3: Jetpack Hover + Spinning Bar & Wheels (d = 0..7, k = 0..5)
+  8 + d*6 + k                  8-direction eye-level driving/rolling (d = 0..7, k = 0..5)
+  56 + d*4 + k                 8-direction eye-level screaming (d = 0..7, k = 0..3)
+  88 + d*3 + k                 8-direction ABOVE HIM overhead rolling (d = 0..7, k = 0..2)
+  112 + d*3 + k                8-direction BELOW HIM underneath rolling (d = 0..7, k = 0..2)
+  136 + d*4 + k                Stunt 1: Fire-Wheels Hyper-Burnout (d = 0..7, k = 0..3)
+  168 + d*4 + k                Stunt 2: Super-Long Metal Bar & Steamroller Wheels (d = 0..7, k = 0..3)
 */
 
 float	wm_boom_seq;
@@ -57,10 +55,10 @@ float() Wheelman_Customize =
 	if (d >= 8)
 		d = 0;
 
-	// True 360° directional playback across all 4 escalating explosion tiers!
 	if (self.wm_dead)
 	{
-		self.frame = 200 + self.wm_tier * 112 + d * 14 + self.wm_dstep;
+		k = self.wm_dstep - 4 * floor(self.wm_dstep / 4);
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -78,7 +76,7 @@ float() Wheelman_Customize =
 		}
 		else
 			k = 0;
-		self.frame = 152 + d * 3 + k;
+		self.frame = 88 + d * 3 + k;
 		return TRUE;
 	}
 
@@ -92,34 +90,32 @@ float() Wheelman_Customize =
 		}
 		else
 			k = 0;
-		self.frame = 176 + d * 3 + k;
+		self.frame = 112 + d * 3 + k;
 		return TRUE;
 	}
 
 	if (self.wm_stunt > 0 && time < self.wm_stunt_until)
 	{
-		k = floor(time * 18);
-		k = k - 6 * floor(k / 6);
+		k = floor(time * 12);
+		k = k - 4 * floor(k / 4);
 		if (self.wm_stunt == 1)
-			self.frame = 648 + d * 6 + k;
-		else if (self.wm_stunt == 2)
-			self.frame = 696 + d * 6 + k;
+			self.frame = 136 + d * 4 + k;
 		else
-			self.frame = 744 + d * 6 + k;
+			self.frame = 168 + d * 4 + k;
 		return TRUE;
 	}
 	if (time < self.wm_scream_until)
 	{
-		k = floor(time * 18);
-		k = k - 6 * floor(k / 6);
-		self.frame = 104 + d * 6 + k;
+		k = floor(time * 12);
+		k = k - 4 * floor(k / 4);
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
 	if (self.wm_run)
 	{
-		k = floor(time * 20 + self.origin_x * 0.05);
-		k = k - 12 * floor(k / 12);
-		self.frame = 8 + d * 12 + k;
+		k = floor(time * 10 + self.origin_x * 0.025);
+		k = k - 6 * floor(k / 6);
+		self.frame = 8 + d * 6 + k;
 	}
 	else
 		self.frame = d;
@@ -166,12 +162,12 @@ void() Wheelman_DieLoop =
 	if (self.wm_dstep >= 14)
 	{
 		self.wm_dstep = 13;
-		self.frame = 200 + self.wm_tier * 112 + 13;
+		self.frame = 57;
 		self.think = SUB_Remove;
 		self.nextthink = time + 4.5;
 		return;
 	}
-	self.frame = 200 + self.wm_tier * 112 + self.wm_dstep;
+	self.frame = 56 + (self.wm_dstep - 4 * floor(self.wm_dstep / 4));
 
 	// Act 2: Critical overload whine / Tesla charge
 	if (self.wm_dstep == 3)
@@ -243,8 +239,7 @@ void() Wheelman_Die =
 	if (wm_boom_seq >= 4)
 		wm_boom_seq = 0;
 	self.wm_dstep = 0;
-	// Keep customizeentityforclient = Wheelman_Customize active so all 4 explosions are 360°!
-	self.frame = 200 + self.wm_tier * 112;
+	self.frame = 56;
 	sound(self, CHAN_VOICE, "player/pain6.wav", 1, ATTN_NORM);
 	self.think = Wheelman_DieLoop;
 	self.nextthink = time + 0.14;
@@ -351,7 +346,7 @@ void() Wheelman_Summon =
 	w.classname = "monster_wheelman";
 	w.origin = old.origin + v_forward * 112 + '0 0 24';
 	setmodel(w, "progs/wheelman.spr32");
-	w.scale = 0.64;
+	w.scale = 1.3333;
 	w.solid = SOLID_SLIDEBOX;
 	w.movetype = MOVETYPE_STEP;
 	w.health = 140;

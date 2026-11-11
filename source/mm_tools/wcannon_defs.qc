@@ -8,9 +8,9 @@ trail of fire, the burning floor and the burn were removed 2026-11-01 because th
 with a normal rocket explosion (plus flying wheels, bars, gibs and sparks), and immediately bursts out running around at crazy speed
 playing all 8 wild 360-degree Wheelman animations (progs/wheelman_dance.spr32).
 
-Frames of progs/wheelman.spr32 (792 frames, 300x212, see build_wheelman_sprite.py):
-  0..7 idle   8 + d*12 + k driving   104 + d*6 + k screaming   152.. above/below   648 + d*6 + k fire-wheels
-  696.. long bar   744.. jetpack (d = 0..7: 0 = seen from the front, 4 = seen from behind)
+Frames of progs/wheelman.spr32 (200 frames, 144x102 tight-cropped, see build_wheelman_sprite.py):
+  0..7 idle   8 + d*6 + k driving   56 + d*4 + k screaming   88.. above/below   136 + d*4 + k fire-wheels
+  168 + d*4 + k long bar (d = 0..7: 0 = seen from the front, 4 = seen from behind)
 
 Hooks: funguns.qc (tables, FunGun_Attack, FunGun_ViewFrame), bm_reload.qc (BM_FG6 magazine). Damage is dealt in the shooter's
 name with fg_inflicting = FG_WCANNON, so frags and the obituary just work (wcannon.qc).
@@ -33,7 +33,7 @@ float	WC_RADIUS_STEP	= 30;
 float	WC_DOWN			= 0.7;		// aim this steeply down (the sine of the pitch) near the floor and he crashes at once under you: a rocket jump
 float	WC_DANCE_LIFE	= 2.5;		// seconds Larry tears around playing crazy animations & shouting lines after exploding (progs/wheelman_dance.spr32)
 float	WC_DANCE_SPEED	= 540;		// how fast he sprints around after crashing (a player runs at 320)
-float	WC_SCALE		= 0.5;		// the projectile sprite's scale (the old monster was 0.64)
+float	WC_SCALE		= 1.0417;	// the projectile sprite's scale (0.5 * 300/144; old 300x212 monster was 0.64 -> 1.3333)
 
 float	WC_LINE_VOL		= 0.55;		// Larry's explosion clips and shouted lines
 float	WC_SCREAM_VOL	= 0.5;		// his scream in flight

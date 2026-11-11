@@ -39,14 +39,20 @@ if GS_DIR not in sys.path:
 
 from greensuit_core import (
     N_DIRS,
+    SS_CX,
+    SS_GROUND,
     alpha_over,
     bbox_of_rgba,
+    detect_tire_regions_and_spin,
+    draw_sparks_and_dust,
     from_premul_f32,
     harmonize_green_suit_and_contrast,
     key_magenta_plate,
+    make_contact_shadow,
     resize_rgba_premul,
     to_premul_f32,
 )
+from greensuit_anims_60fps import blend_rgba_pair, draw_smoke_puffs, warp_kinematic_rgba
 from greensuit_turnarounds import build_all_16_turnarounds
 
 
@@ -752,14 +758,16 @@ def build_projectile_and_smoke_sprites(rig: JarGauntletRig) -> Tuple[List[np.nda
 
 
 def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[str, object]:
-    """Builds the 5 Mini-Green-Guy Gremlin sprite sets (`160x160` RGBA cells):
-      - `scurry`      : 16 angles x 12 frames (hyper-fast floor & ankle-orbit zoom!)
-      - `wall_climb`  : 16 angles x 12 frames (vertical 84°-tilted building climber with emerald sparks!)
-      - `pogo_jump`   : 16 angles x 12 frames (weightless rubber-flea Crane-Kick Sky-Point face-swarm jump!)
-      - `shot_spin`   : 24 frames (1-hit punctured-helium-balloon 360°x720° pinwheel spin + green mist jet!)
-      - `balloon_pop` : 24 frames (1.55x spherical balloon swell -> shock-ring + 65 3D rainbow confetti streamers!)
+    """Builds the 5 Bigger Wheeling/Driving Green-Man Swarm sprite sets (`192x192` RGBA cells):
+      - `scurry`      : 16 angles x 12 frames — Seated Low-Rider Wheel-Driving (spinning pneumatic tires, suspension thrum, tire smoke & sparks!)
+      - `wall_climb`  : 16 angles x 12 frames — Vertical 82°-tilted Wall-Driving with spinning tires & emerald traction sparks!
+      - `pogo_jump`   : 16 angles x 12 frames — Post-3-Lap Attack Lunge & Ram (Ab-Roller Torpedo Charge -> Pipe-Vault Sky-Point Ram!)
+      - `shot_spin`   : 24 frames — 1-Hit Punctured-Helium-Balloon 360°x720° pinwheel cartwheel spin + green mist jet!
+      - `balloon_pop` : 24 frames — 1.42x spherical balloon swell -> shock-ring + 76 3D rainbow confetti streamers!
     """
-    CW = 160
+    CW = 192
+    CX = 96.0
+    CY_GROUND = 168.0
     yy, xx = np.indices((CW, CW), dtype=np.float32)
 
     scurry_grid: List[List[np.ndarray]] = [[None] * 12 for _ in range(N_DIRS)]  # type: ignore
@@ -772,75 +780,164 @@ def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[st
         jump_d = turns_16["jump"][d]
         melee_d = turns_16["melee"][d]
 
+        ang_rad = math.radians(d * 22.5)
+        fwd_x = -math.sin(ang_rad)
+        side_mag = abs(math.sin(ang_rad))
+
         for f in range(12):
-            ph = (f / 12.0) * 2.0 * math.pi
-            # 1. Hyper Floor Scurry (alternates rapid plank/seated bob + tiny green speed trail)
-            bob_y = -4.5 * abs(math.sin(ph * 2.0))
-            sq_x = 1.0 + 0.07 * math.sin(ph * 2.0)
-            sq_y = 1.0 - 0.06 * math.sin(ph * 2.0)
-            src = plank_d if (d % 2 == 0) else seat_d
+            phase = f / 12.0
+            ph = phase * 2.0 * math.pi
+
+            # 1. TRUE 16-ANGLE SEATED WHEEL-DRIVING (`scurry` slot: used when motoring & driving 3 laps around enemy!)
+            # Both black pneumatic tires + white steel hubs actively spin forward with chassis suspension bounce,
+            # forward motor lean, contact shadow, and puffs of tire-burnout smoke + chrome-pipe sparks!
+            spun_seat = detect_tire_regions_and_spin(
+                seat_d, d, spin_angle_rad=ph * 2.0, tread_strength=1.35
+            )
+            bounce_y = -4.5 * abs(math.sin(2.0 * ph))
+            pump_shear = fwd_x * 7.5 * math.sin(ph) + math.cos(ang_rad) * 3.0 * math.sin(ph)
+            scale_loom = 1.0 + 0.024 * math.cos(ang_rad) * math.sin(ph)
+            squash = 1.0 - 0.028 * math.cos(2.0 * ph)
+            rock_deg = fwd_x * 3.2 * math.sin(ph + 0.4)
+            warped_drive = warp_kinematic_rgba(
+                spun_seat,
+                dx=fwd_x * 3.5 * math.sin(ph),
+                dy=bounce_y,
+                scale_x=scale_loom / math.sqrt(squash),
+                scale_y=scale_loom * squash,
+                rot_deg=rock_deg,
+                shear_top_x=pump_shear,
+                wave_amp_x=1.8,
+                wave_phase=ph,
+            )
+            sh_w = int(round(222 - 44 * side_mag))
+            shadow = make_contact_shadow(sh_w, 34, opacity=0.44)
+            ss_drive = alpha_over(shadow, warped_drive)
+            # Exhaust / tire-burnout smoke puffs trailing behind the rolling wheels!
+            smoke_pts = [
+                (SS_CX - fwd_x * 38.0 - 26.0 * (1.0 - 0.5 * side_mag), SS_GROUND - 8.0),
+                (SS_CX - fwd_x * 38.0 + 26.0 * (1.0 - 0.5 * side_mag), SS_GROUND - 8.0),
+            ]
+            ss_drive = draw_smoke_puffs(
+                ss_drive,
+                smoke_pts,
+                phase_01=phase,
+                drift_x=-fwd_x * 0.85,
+                intensity=0.55,
+                seed=310 + d,
+            )
+            if f % 3 == 0:
+                ss_drive = draw_sparks_and_dust(
+                    ss_drive,
+                    [(SS_CX + fwd_x * 40.0, SS_GROUND - 3.0)],
+                    phase_01=(phase * 2.0) % 1.0,
+                    vel_bias=(-fwd_x, -0.45),
+                    intensity=0.55,
+                    seed=410 + d * 13 + f,
+                )
             fr_s = rotate_scale_translate_rgba(
-                src, 4.5 * math.sin(ph), 0.36 * sq_x, 0.36 * sq_y, 80.0 - 192.0, 138.0 + bob_y - 340.0, pivot=(192.0, 340.0), out_hw=(CW, CW)
+                ss_drive,
+                0.0,
+                0.56,
+                0.56,
+                CX - float(SS_CX),
+                CY_GROUND - float(SS_GROUND),
+                pivot=(float(SS_CX), float(SS_GROUND)),
+                out_hw=(CW, CW),
             )
             scurry_grid[d][f] = fr_s
 
-            # 2. Vertical Building / Wall Climber (tilted vertically up the wall at -82° / +82°!)
+            # 2. VERTICAL WALL-DRIVING (`wall_climb`: driving straight up buildings at 82° with spinning tires & emerald sparks!)
+            spun_plank = detect_tire_regions_and_spin(
+                plank_d, d, spin_angle_rad=ph * 3.0, tread_strength=1.40
+            )
             climb_tilt = -82.0 if d < 8 else 82.0
-            jitter_x = 2.5 * math.sin(ph * 2.0)
-            jitter_y = -5.0 * math.sin(ph)
+            jitter_x = 3.0 * math.sin(ph * 2.0)
+            jitter_y = -6.0 * math.sin(ph)
             fr_w = rotate_scale_translate_rgba(
-                plank_d,
-                climb_tilt + 6.0 * math.sin(ph * 2.0),
-                0.36,
-                0.36,
-                80.0 + jitter_x - 192.0,
-                84.0 + jitter_y - 240.0,
-                pivot=(192.0, 240.0),
+                spun_plank,
+                climb_tilt + 5.0 * math.sin(ph * 2.0),
+                0.50,
+                0.50,
+                CX + jitter_x - float(SS_CX),
+                98.0 + jitter_y - 242.0,
+                pivot=(float(SS_CX), 242.0),
                 out_hw=(CW, CW),
             )
-            # Tiny green wall-traction sparks!
             pil_w = Image.fromarray(fr_w, "RGBA")
             dr_w = ImageDraw.Draw(pil_w, "RGBA")
-            for sp_i in range(3):
-                sx = 80 + (-18 if d < 8 else 18) + int(6 * math.sin(ph + sp_i * 2.1))
-                sy = 104 + sp_i * 9 + int(5 * math.cos(ph * 2.0 + sp_i))
-                dr_w.ellipse([sx - 2, sy - 2, sx + 2, sy + 2], fill=(150, 255, 90, 220))
+            for sp_i in range(4):
+                sx = int(CX) + (-24 if d < 8 else 24) + int(8 * math.sin(ph + sp_i * 1.9))
+                sy = 118 + sp_i * 11 + int(6 * math.cos(ph * 2.0 + sp_i))
+                dr_w.ellipse([sx - 3, sy - 3, sx + 3, sy + 3], fill=(150, 255, 90, 230))
             wall_grid[d][f] = np.array(pil_w, dtype=np.uint8)
 
-            # 3. Weightless Rubber-Flea Pogo / Face-Blocking Sky-Point Jump! (fits cleanly inside 160x160!)
-            arc = math.sin((f / 12.0) * math.pi)
-            lift = -22.0 * arc
-            stretch_y = 0.88 + 0.18 * arc
-            stretch_x = 1.08 - 0.12 * arc
-            src_j = jump_d if (0.14 < (f / 12.0) < 0.86) else melee_d
-            fr_p = rotate_scale_translate_rgba(
-                src_j,
-                9.0 * math.sin(ph),
-                0.32 * stretch_x,
-                0.32 * stretch_y,
-                80.0 - 192.0,
-                148.0 + lift - 332.0,
-                pivot=(192.0, 332.0),
-                out_hw=(CW, CW),
-            )
+            # 3. POST-3-LAP ATTACK LUNGE & RAM (`pogo_jump` slot: Torpedo Ab-Roller Charge -> Pipe-Vault Sky-Point Ram!)
+            if f < 4 or f >= 10:
+                # Screaming Ab-Roller Torpedo Charge lunge with high-RPM spinning tires & hot sparks!
+                surge = math.sin(ph)
+                torp_ss = warp_kinematic_rgba(
+                    spun_plank,
+                    dx=fwd_x * 7.5 * surge,
+                    dy=-3.5 * abs(math.sin(2.0 * ph)),
+                    scale_x=1.03,
+                    scale_y=0.97,
+                    rot_deg=fwd_x * 3.0 * math.cos(ph),
+                    shear_top_x=fwd_x * 9.0 * surge,
+                )
+                torp_ss = alpha_over(make_contact_shadow(240, 30, opacity=0.42), torp_ss)
+                torp_ss = draw_sparks_and_dust(
+                    torp_ss,
+                    [(SS_CX + fwd_x * 54.0, SS_GROUND - 4.0)],
+                    phase_01=phase,
+                    vel_bias=(-fwd_x * 1.3, -0.5),
+                    intensity=0.95,
+                    seed=610 + d * 7 + f,
+                )
+                fr_p = rotate_scale_translate_rgba(
+                    torp_ss,
+                    0.0,
+                    0.53,
+                    0.53,
+                    CX - float(SS_CX),
+                    CY_GROUND - float(SS_GROUND),
+                    pivot=(float(SS_CX), float(SS_GROUND)),
+                    out_hw=(CW, CW),
+                )
+            else:
+                # Mid-air Pipe-Vault Sky-Point Ram right into the enemy!
+                air_u = (f - 4) / 5.0
+                arc = math.sin(air_u * math.pi)
+                lift = -20.0 * arc
+                src_atk = jump_d if (0.15 <= air_u <= 0.85) else blend_rgba_pair(melee_d, jump_d, 0.6)
+                fr_p = rotate_scale_translate_rgba(
+                    src_atk,
+                    8.0 * math.sin(ph),
+                    0.48 * (1.04 - 0.06 * arc),
+                    0.48 * (0.94 + 0.10 * arc),
+                    CX - float(SS_CX),
+                    (CY_GROUND - 4.0) + lift - 332.0,
+                    pivot=(float(SS_CX), 332.0),
+                    out_hw=(CW, CW),
+                )
             pogo_grid[d][f] = fr_p
 
-    # 4. 1-Hit Punctured-Helium-Balloon Death-Spin (24 frames @ 160x160)
+    # 4. 1-Hit Punctured-Helium-Balloon Death-Spin (24 frames @ 192x192, scaled up to match bigger Green Men!)
     shot_spin_frames: List[np.ndarray] = []
     for f in range(24):
         u = f / 24.0
         d_spin = (f * 3) % N_DIRS
         roll_deg = u * 720.0  # Two full upside-down cartwheels while spinning 360°!
-        wobble_x = 12.0 * math.sin(u * 4.0 * math.pi)
-        wobble_y = -10.0 * math.cos(u * 4.0 * math.pi)
+        wobble_x = 14.0 * math.sin(u * 4.0 * math.pi)
+        wobble_y = -12.0 * math.cos(u * 4.0 * math.pi)
         fr = rotate_scale_translate_rgba(
             turns_16["jump"][d_spin],
             roll_deg,
-            0.33 * (1.0 + 0.10 * u),
-            0.33 * (1.0 + 0.10 * u),
-            80.0 + wobble_x - 192.0,
-            82.0 + wobble_y - 210.0,
-            pivot=(192.0, 210.0),
+            0.47 * (1.0 + 0.08 * u),
+            0.47 * (1.0 + 0.08 * u),
+            CX + wobble_x - float(SS_CX),
+            98.0 + wobble_y - 210.0,
+            pivot=(float(SS_CX), 210.0),
             out_hw=(CW, CW),
         )
         # Punctured green helium mist jetting out in a spiral!
@@ -848,14 +945,14 @@ def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[st
         dr = ImageDraw.Draw(pil, "RGBA")
         jet_ang = math.radians(roll_deg + 90.0)
         for j_i in range(6):
-            dist_j = 18.0 + j_i * 7.5
-            jx = 80.0 + wobble_x + math.cos(jet_ang - j_i * 0.28) * dist_j
-            jy = 82.0 + wobble_y + math.sin(jet_ang - j_i * 0.28) * dist_j
-            rad_j = max(2, 7 - j_i)
-            dr.ellipse([jx - rad_j, jy - rad_j, jx + rad_j, jy + rad_j], fill=(120, 255, 80, max(35, 210 - j_i * 32)))
+            dist_j = 22.0 + j_i * 9.0
+            jx = CX + wobble_x + math.cos(jet_ang - j_i * 0.28) * dist_j
+            jy = 98.0 + wobble_y + math.sin(jet_ang - j_i * 0.28) * dist_j
+            rad_j = max(2, 8 - j_i)
+            dr.ellipse([jx - rad_j, jy - rad_j, jx + rad_j, jy + rad_j], fill=(120, 255, 80, max(35, 215 - j_i * 32)))
         shot_spin_frames.append(np.array(pil, dtype=np.uint8))
 
-    # 5. Over-Inflated Balloon Swell -> Rainbow Party-Confetti Pop! (24 frames @ 160x160)
+    # 5. Over-Inflated Balloon Swell -> Rainbow Party-Confetti Pop! (24 frames @ 192x192)
     CONFETTI_COLORS = [
         (255, 64, 140),   # Hot Party Pink
         (255, 214, 10),   # Bright Gold
@@ -867,38 +964,44 @@ def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[st
     ]
     rng_c = np.random.default_rng(99911)
     streamers = []
-    for i in range(68):
+    for i in range(76):
         ang = rng_c.uniform(0.0, 2.0 * math.pi)
-        spd = rng_c.uniform(22.0, 74.0)
-        grav = rng_c.uniform(18.0, 42.0)
+        spd = rng_c.uniform(26.0, 88.0)
+        grav = rng_c.uniform(22.0, 50.0)
         flutter_hz = rng_c.uniform(2.5, 6.5)
         rot0 = rng_c.uniform(0.0, math.pi)
         col = CONFETTI_COLORS[i % len(CONFETTI_COLORS)]
-        w_c = rng_c.uniform(3.2, 6.2)
-        h_c = rng_c.uniform(2.0, 3.8)
+        w_c = rng_c.uniform(3.8, 7.2)
+        h_c = rng_c.uniform(2.4, 4.5)
         streamers.append((ang, spd, grav, flutter_hz, rot0, col, w_c, h_c))
 
     balloon_pop_frames: List[np.ndarray] = []
     base_front = rotate_scale_translate_rgba(
-        turns_16["jump"][0], 0.0, 0.31, 0.31, 80.0 - 192.0, 90.0 - 210.0, pivot=(192.0, 210.0), out_hw=(CW, CW)
+        turns_16["seated"][0],
+        0.0,
+        0.46,
+        0.46,
+        CX - float(SS_CX),
+        112.0 - 225.0,
+        pivot=(float(SS_CX), 225.0),
+        out_hw=(CW, CW),
     )
     for f in range(24):
         if f < 6:
-            # Spherical balloon over-inflation (1.0x -> 1.46x round balloon bulge + bright lime flush!)
+            # Spherical balloon over-inflation (1.0x -> 1.42x round balloon bulge + bright lime flush!)
             sw_u = f / 5.0
-            scale_b = 1.0 + 0.46 * (sw_u ** 1.5)
-            rx = (xx - 80.0) / (44.0 * scale_b)
-            ry = (yy - 86.0) / (44.0 * scale_b)
+            scale_b = 1.0 + 0.42 * (sw_u ** 1.5)
+            rx = (xx - CX) / (56.0 * scale_b)
+            ry = (yy - 104.0) / (56.0 * scale_b)
             r2 = rx * rx + ry * ry
             bulge = np.where(r2 < 1.0, 1.0 - 0.34 * sw_u * (1.0 - r2), 1.0)
-            map_x = (80.0 + (xx - 80.0) / scale_b * bulge).astype(np.float32)
-            map_y = (86.0 + (yy - 86.0) / (scale_b * (0.92 + 0.08 * sw_u)) * bulge).astype(np.float32)
+            map_x = (CX + (xx - CX) / scale_b * bulge).astype(np.float32)
+            map_y = (104.0 + (yy - 104.0) / (scale_b * (0.92 + 0.08 * sw_u)) * bulge).astype(np.float32)
             pm = base_front.astype(np.float32)
             pm[..., :3] *= (pm[..., 3:4] / 255.0)
             w_pm = cv2.remap(pm, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
             wa = w_pm[..., 3:4] / 255.0
             rgb = np.where(wa > 1e-4, w_pm[..., :3] / np.maximum(wa, 1e-4), 0.0)
-            # Bright pressurized neon sheen right before bursting!
             rgb[..., 0] = np.clip(rgb[..., 0] + 65.0 * sw_u, 0, 255)
             rgb[..., 1] = np.clip(rgb[..., 1] + 55.0 * sw_u, 0, 255)
             rgb[..., 2] = np.clip(rgb[..., 2] + 45.0 * sw_u, 0, 255)
@@ -907,33 +1010,29 @@ def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[st
             fr_b[..., 3] = np.clip(np.round(w_pm[..., 3]), 0, 255).astype(np.uint8)
             balloon_pop_frames.append(fr_b)
         else:
-            # Frame 6..23: Crisp party-balloon POP shock-ring + 68 tumbling rainbow confetti streamers!
+            # Frame 6..23: Crisp party-balloon POP shock-ring + 76 tumbling rainbow confetti streamers!
             pu = (f - 6) / 17.0
             pil = Image.new("RGBA", (CW, CW), (0, 0, 0, 0))
             dr = ImageDraw.Draw(pil, "RGBA")
 
-            # Crisp white/lime balloon shock-ring on frames 6..10
             if f < 11:
                 ru = (f - 6) / 5.0
-                rr = 18.0 + 48.0 * ru
+                rr = 22.0 + 58.0 * ru
                 ra = int(235 * (1.0 - ru))
-                dr.ellipse([80 - rr, 80 - rr, 80 + rr, 80 + rr], outline=(205, 255, 150, ra), width=max(1, int(4 * (1.0 - ru))))
+                dr.ellipse([CX - rr, 98 - rr, CX + rr, 98 + rr], outline=(205, 255, 150, ra), width=max(1, int(4 * (1.0 - ru))))
 
-            # Soft green mist puff at center
             if pu < 0.55:
-                mr = 22.0 + 26.0 * pu
+                mr = 26.0 + 32.0 * pu
                 ma = int(130 * (1.0 - pu / 0.55))
-                dr.ellipse([80 - mr, 80 - mr, 80 + mr, 80 + mr], fill=(120, 255, 85, ma))
+                dr.ellipse([CX - mr, 98 - mr, CX + mr, 98 + mr], fill=(120, 255, 85, ma))
 
-            # 68 3D-tumbling rainbow party confetti streamers!
             drag_t = 1.0 - (1.0 - pu) ** 2.3
             alpha_c = int(255 * np.clip((1.0 - max(0.0, (pu - 0.62) / 0.38)), 0.0, 1.0))
             if alpha_c > 4:
                 for ang, spd, grav, fl_hz, rot0, col, w_c, h_c in streamers:
-                    cx = 80.0 + math.cos(ang) * spd * drag_t + 4.5 * math.sin(pu * fl_hz * 2.0 * math.pi + rot0)
-                    cy = 78.0 + math.sin(ang) * spd * 0.85 * drag_t + grav * (pu ** 1.65)
+                    cx = CX + math.cos(ang) * spd * drag_t + 5.2 * math.sin(pu * fl_hz * 2.0 * math.pi + rot0)
+                    cy = 96.0 + math.sin(ang) * spd * 0.85 * drag_t + grav * (pu ** 1.65)
                     if 3 < cx < CW - 3 and 3 < cy < CW - 3:
-                        # 3D tumble foreshortening
                         th = rot0 + pu * fl_hz * 4.5
                         flip_3d = 0.25 + 0.75 * abs(math.cos(th * 1.7))
                         dx1 = math.cos(th) * w_c

@@ -3,13 +3,14 @@ Tinfoil-Hat Bryan & His Demons (bryan.qc).
 Impulse 19 summons Bryan in front of you on progs/bryan.spr32
 (built by source/mm_tools/bryan/build_bryan_sprites.py).
 
-Full 360° 8-Direction Frame Layout (264 frames, 320x288, origin (-160, 263), scale 0.32):
+Full 360° 8-Direction Frame Layout (200 frames, 120x108, origin (-60, 99), scale 0.8535):
   0..7               8-direction Solo Bryan standing idle keypose (d = 0..7, NO demons)
   8 + d*6 + k        8-direction Solo Bryan 360° Running Cycle (d = 0..7, k = 0..5, NO demons) [mbox.qc compatible]
-  56 + d*6 + k       8-direction Solo Bryan Paranoid RGB Detector Scan (d = 0..7, k = 0..5, NO demons)
-  104 + d*8 + k      8-direction "A DEMON! NO WAY!" 3D Giant-Swing Demon-Whirl Attack (d = 0..7, k = 0..7)
-  168 + d*8 + k      8-direction 3-Demon Trio EMF Overload Surge (d = 0..7, k = 0..7)
-  232..263           32-frame 4-Act Hell Portal Drag-Down Death -> Smoking Tinfoil Hat & Broken Detector!
+  56 + d*4 + k       8-direction Solo Bryan Paranoid RGB Detector Scan (d = 0..7, k = 0..3, NO demons)
+  88 + d*4 + k       8-direction "A DEMON! NO WAY!" 3D Giant-Swing Demon-Whirl Attack (d = 0..7, k = 0..3)
+  120 + d*4 + k      8-direction 3-Demon Trio EMF Overload Surge (d = 0..7, k = 0..3)
+  152..167           16-frame 4-Act Hell Portal Drag-Down Death -> Smoking Tinfoil Hat & Broken Detector!
+  168 + d*4 + k      8-direction Falling Collapse Death (d = 0..7, k = 0..3)
 
 Optional console cvars for inspection:
   br_mode 0..4       0 = autonomous AI (default), 1 = Scan, 2 = Sprint, 3 = Demon-Whirl, 4 = Demon-Trio Surge
@@ -66,12 +67,12 @@ float() Bryan_Customize =
 
 	if (self.npc_dead)
 	{
-		k = self.npc_dstep;
+		k = floor(self.npc_dstep * 0.67);
 		if (k < 0)
 			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = 264 + d * 6 + k;
+		if (k > 3)
+			k = 3;
+		self.frame = 168 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -82,16 +83,16 @@ float() Bryan_Customize =
 
 	if (st == 3)
 	{
-		k = floor(time * 12 + self.origin_y * 0.03);
-		k = k - 8 * floor(k / 8);
-		self.frame = 168 + d * 8 + k;
+		k = floor(time * 6 + self.origin_y * 0.015);
+		k = k - 4 * floor(k / 4);
+		self.frame = 120 + d * 4 + k;
 		return TRUE;
 	}
 	if (st == 2)
 	{
-		k = floor(time * 14 + self.origin_x * 0.03);
-		k = k - 8 * floor(k / 8);
-		self.frame = 104 + d * 8 + k;
+		k = floor(time * 7 + self.origin_x * 0.015);
+		k = k - 4 * floor(k / 4);
+		self.frame = 88 + d * 4 + k;
 		return TRUE;
 	}
 	if (st == 1)
@@ -102,9 +103,9 @@ float() Bryan_Customize =
 		return TRUE;
 	}
 
-	k = floor(time * 8 + self.origin_y * 0.02);
-	k = k - 6 * floor(k / 6);
-	self.frame = 56 + d * 6 + k;
+	k = floor(time * 5.5 + self.origin_y * 0.015);
+	k = k - 4 * floor(k / 4);
+	self.frame = 56 + d * 4 + k;
 	return TRUE;
 };
 
@@ -173,12 +174,12 @@ void() Bryan_DieLoop =
 	if (self.br_dstep >= 32)
 	{
 		self.effects = 0;
-		self.frame = 263;	// Smoking silver tinfoil hat & broken Demon Detector on floor!
+		self.frame = 167;	// Smoking silver tinfoil hat & broken Demon Detector on floor!
 		self.think = SUB_Remove;
 		self.nextthink = time + 5.0;
 		return;
 	}
-	self.frame = 232 + self.br_dstep;
+	self.frame = 152 + floor(self.br_dstep * 0.5);
 
 	// Act 2: Demon Trio erupts from molten pentagram portal!
 	if (self.br_dstep == 8)
@@ -252,7 +253,7 @@ void() Bryan_Die =
 	{
 		self.customizeentityforclient = Bryan_ShowAll;		// was SUB_Null: a void customize function returns 0 (= not sent), so nobody saw the portal death
 		self.br_dstep = 0;
-		self.frame = 232;
+		self.frame = 152;
 		self.effects = BR_EF_BLUE;
 		sound(self, CHAN_VOICE, "bryan/portal_die.wav", 1, ATTN_NORM);
 		self.think = Bryan_DieLoop;
@@ -440,7 +441,7 @@ void() Bryan_Summon =
 	b.classname = "monster_bryan";
 	b.origin = old.origin + v_forward * 124 + '0 0 24';
 	setmodel(b, "progs/bryan.spr32");
-	b.scale = 0.1829;
+	b.scale = 0.8535;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 160;

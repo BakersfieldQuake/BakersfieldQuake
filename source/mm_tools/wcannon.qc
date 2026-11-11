@@ -16,7 +16,7 @@ float	wc_fx_spark, wc_fx_muzzle, wc_fx_chunk;
 float	wc_last_boom, wc_last_run, wc_boom_dur;
 var float	autocvar_wc_debug = 0;
 
-// the two Wheelman sprites (about 315 MB) load the first time the cannon starts charging, not on every map
+// the two Wheelman sprites (~10.5 MB) load the first time the cannon starts charging, not on every map
 float	wc_sprites_loaded;
 void() WC_PrecacheSprites =
 {
@@ -142,9 +142,9 @@ float(vector from) WC_View =
 	return d;
 };
 
-// the shot: two thirds of the time he just drives (frames 8 + d * 12 + k, or the overhead / underneath views when the viewer is
-// steeply above or below him), the rest of the time one of the weird ones (WC_Think picks): 104 screaming, 648 fire-wheels,
-// 696 weightlifting bar (no jetpack frames: owner's review 2026-11-01). In the air he screams.
+// the shot: two thirds of the time he just drives (frames 8 + d * 6 + k, or the overhead / underneath views when the viewer is
+// steeply above or below him), the rest of the time one of the weird ones (WC_Think picks): 56 screaming, 136 fire-wheels,
+// 168 weightlifting bar (no jetpack frames: owner's review 2026-11-01). In the air he screams.
 float() WC_ShotCustomize =
 {
 	local float d, k, a, dz, hd;
@@ -164,29 +164,29 @@ float() WC_ShotCustomize =
 		{
 			k = floor (time * 15);
 			k = k - 3 * floor (k / 3);
-			self.frame = 152 + d * 3 + k;
+			self.frame = 88 + d * 3 + k;
 			return TRUE;
 		}
 		if (dz < 0 - hd * 0.55)
 		{
 			k = floor (time * 15);
 			k = k - 3 * floor (k / 3);
-			self.frame = 176 + d * 3 + k;
+			self.frame = 112 + d * 3 + k;
 			return TRUE;
 		}
-		k = floor (time * 20 + self.origin_x * 0.05);
-		k = k - 12 * floor (k / 12);
-		self.frame = 8 + d * 12 + k;
+		k = floor (time * 10 + self.origin_x * 0.025);
+		k = k - 6 * floor (k / 6);
+		self.frame = 8 + d * 6 + k;
 		return TRUE;
 	}
-	k = floor (time * 18);
-	k = k - 6 * floor (k / 6);
+	k = floor (time * 12);
+	k = k - 4 * floor (k / 4);
 	if (a == 1)
-		self.frame = 104 + d * 6 + k;
+		self.frame = 56 + d * 4 + k;
 	else if (a == 2)
-		self.frame = 648 + d * 6 + k;
+		self.frame = 136 + d * 4 + k;
 	else
-		self.frame = 696 + d * 6 + k;
+		self.frame = 168 + d * 4 + k;
 	return TRUE;
 };
 
@@ -337,15 +337,16 @@ void(vector org, float tier, entity hit) WC_Boom =
 };
 
 // ---------------------------------------------------------------- the post-crash crazed runner
-// progs/wheelman_dance.spr32 (build_wheelman_dance.py, 736 frames at 176x176, scale 0.393):
-//   0..79    (0) run_stuck      0 + d * 10 + k
-//   80..159  (1) run_overhead   80 + d * 10 + k
-//   160..255 (2) dance          160 + d * 12 + k
-//   256..335 (3) hands_up_kick  256 + d * 10 + k
-//   336..431 (4) spin_bar       336 + d * 12 + k
-//   432..527 (5) weightlift     432 + d * 12 + k
-//   528..623 (6) throw_rig      528 + d * 12 + k
-//   624..735 (7) turn_robot     624 + d * 14 + step
+// progs/wheelman_dance.spr32 (build_hd_npc_sprites.py + build_npc_death_anims.py, 400 frames at 80x80 tight-cropped, scale 0.8645):
+//   0..39    (0) run_stuck      0 + d * 5 + k
+//   40..79   (1) run_overhead   40 + d * 5 + k
+//   80..127  (2) dance          80 + d * 6 + k
+//   128..167 (3) hands_up_kick  128 + d * 5 + k
+//   168..215 (4) spin_bar       168 + d * 6 + k
+//   216..263 (5) weightlift     216 + d * 6 + k
+//   264..311 (6) throw_rig      264 + d * 6 + k
+//   312..367 (7) turn_robot     312 + d * 7 + step
+//   368..399     8-dir x 4-step death frames (used by crowd_npcs.qc)
 
 float() WC_DancerCustomize =
 {
@@ -353,30 +354,30 @@ float() WC_DancerCustomize =
 
 	d = WC_View (self.origin + '0 0 28');
 	a = self.wc_anim;
-	k = floor ((time - self.wc_t0) * 24);
+	k = floor ((time - self.wc_t0) * 12);
 	if (k < 0)
 		k = 0;
 	if (a == 0)
-		self.frame = d * 10 + k - 10 * floor (k / 10);
+		self.frame = d * 5 + k - 5 * floor (k / 5);
 	else if (a == 1)
-		self.frame = 80 + d * 10 + k - 10 * floor (k / 10);
+		self.frame = 40 + d * 5 + k - 5 * floor (k / 5);
 	else if (a == 2)
-		self.frame = 160 + d * 12 + k - 12 * floor (k / 12);
+		self.frame = 80 + d * 6 + k - 6 * floor (k / 6);
 	else if (a == 3)
-		self.frame = 256 + d * 10 + k - 10 * floor (k / 10);
+		self.frame = 128 + d * 5 + k - 5 * floor (k / 5);
 	else if (a == 4)
-		self.frame = 336 + d * 12 + k - 12 * floor (k / 12);
+		self.frame = 168 + d * 6 + k - 6 * floor (k / 6);
 	else if (a == 5)
-		self.frame = 432 + d * 12 + k - 12 * floor (k / 12);
+		self.frame = 216 + d * 6 + k - 6 * floor (k / 6);
 	else if (a == 6)
-		self.frame = 528 + d * 12 + k - 12 * floor (k / 12);
+		self.frame = 264 + d * 6 + k - 6 * floor (k / 6);
 	else
 	{
-		if (k < 8)
+		if (k < 4)
 			step = k;
 		else
-			step = 8 + (k - 8) - 6 * floor ((k - 8) / 6);
-		self.frame = 624 + d * 14 + step;
+			step = 4 + (k - 4) - 3 * floor ((k - 4) / 3);
+		self.frame = 312 + d * 7 + step;
 	}
 	return TRUE;
 };
@@ -595,7 +596,7 @@ void(vector org, vector in_dir) WC_Dancer =
 	else
 		d.wc_snd = time + 0.55;
 	setmodel (d, "progs/wheelman_dance.spr32");
-	d.scale = 0.1921;		// 360x360 HD sprite scaled to player height
+	d.scale = 0.8645;		// 80x80 tight-cropped sprite scaled to player height (0.1921 * 360/80)
 	setsize (d, '-12 -12 0', '12 12 48');
 	setorigin (d, spot);
 	d.velocity = best_dir * d.wc_speed + '0 0 175';

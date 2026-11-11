@@ -83,23 +83,25 @@ string(float k) CN_Model =
 	return "progs/npc_fatguy.md3";
 };
 
-// the same picture scales mbox.qc uses (each is about a player tall); HD sprites use native 360-720 px source resolution
+// the same picture scales mbox.qc uses (each is about a player tall); crowd_c1..c7 scales come from crowd_sprites_info.json
 float(float k) CN_Scale =
 {
-	if (k == 1)		return 0.1387;
-	if (k == 2)		return 0.1367;
-	if (k == 3)		return 0.1771;
-	if (k == 4)		return 0.1387;
-	if (k >= 5 && k <= 7)	return 0.136;
-	if (k == 8)		return 0.1;
-	if (k == 9)		return 0.0983;
-	if (k == 10)	return 0.1111;
-	if (k == 11)	return 0.1921;
-	if (k == 12)	return 0.172;		// the HD crowd sprites: 52 units tall (crowd_sprites_info.json)
-	if (k == 13)	return 0.147;
-	if (k == 14)	return 0.146;
-	if (k == 15 || k == 16 || k == 17)	return 0.147;
-	if (k == 18)	return 0.15;
+	if (k == 1)		return 0.6935;
+	if (k == 2)		return 0.5126;
+	if (k == 3)		return 0.8265;
+	if (k == 4)		return 0.6935;
+	if (k >= 5 && k <= 7)	return 0.4800;
+	if (k == 8)		return 0.4211;
+	if (k == 9)		return 0.4301;
+	if (k == 10)	return 0.4938;
+	if (k == 11)	return 0.8645;
+	if (k == 12)	return 0.7328;		// the tight-cropped crowd sprites: 52 units tall (crowd_sprites_info.json)
+	if (k == 13)	return 0.6306;
+	if (k == 14)	return 0.6294;
+	if (k == 15)	return 0.6306;
+	if (k == 16)	return 0.6326;
+	if (k == 17)	return 0.6306;
+	if (k == 18)	return 0.6437;
 	return 1;
 };
 
@@ -151,7 +153,7 @@ void() Crowd_Precache =
 	k = 1;
 	while (k <= CN_KINDS)
 	{
-		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp")		// 60 MB of HD sprites: fox + downtown
+		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp")		// 60 MB of HD sprites: fox + downtown
 			precache_model (CN_Model (k));
 		s = CN_FleeSound (k);
 		precache_sound (s);
@@ -171,19 +173,19 @@ void() Crowd_Precache =
 	precache_sound ("weapons/ax1.wav");
 };
 
-// start of the 8-dir x 6-frame falling death block appended to each sprite
+// start of the 8-dir x 4-frame falling death block appended to each sprite
 float(float k) CN_DeathBase =
 {
-	if (k == 1)		return 344;
+	if (k == 1)		return 232;
 	if (k == 2)		return 56;
-	if (k == 3)		return 264;
-	if (k == 4)		return 344;
-	if (k == 11)	return 736;
-	if (k >= 12 && k <= 18)	return 184;
+	if (k == 3)		return 168;
+	if (k == 4)		return 232;
+	if (k == 11)	return 368;
+	if (k >= 12 && k <= 18)	return 96;
 	return 56;
 };
 
-// the picture a sprite shows each viewer: its side facing them (8 views, 0..7 standing, then 6 running frames per view)
+// the picture a sprite shows each viewer: its side facing them (8 views)
 float() CN_Customize =
 {
 	local float rel, d, k, n, fps;
@@ -193,49 +195,52 @@ float() CN_Customize =
 		self.cn_ftime = time;
 		if (self.npc_dead)
 		{
-			k = self.npc_dstep;
+			k = floor (self.npc_dstep * 0.67);
 			if (k < 0)
 				k = 0;
-			if (k > 5)
-				k = 5;
+			if (k > 3)
+				k = 3;
 			self.cn_fbase = CN_DeathBase (self.cn_kind) + k;
-			self.cn_fstep = 6;
+			self.cn_fstep = 4;
 		}
 		else if (self.cn_move == 0)
 		{
 			self.cn_fbase = 0;
 			if (self.cn_kind == 11)
-				self.cn_fstep = 10;		// wheelman_dance.spr32 run_stuck: 0 + d * 10 + k, no standing frames
+				self.cn_fstep = 5;		// wheelman_dance.spr32 run_stuck: 0 + d * 5 + k, no standing frames
 			else
 				self.cn_fstep = 1;
 		}
 		else if (self.cn_kind >= CN_FIRST_HD)
 		{
-			// the HD sprites: 8 + d * 12 + k walking (12 fps), 104 + d * 10 + k running (15 fps)
+			// crowd_c1..c7: 8 + d * 6 + k walking (6 fps), 56 + d * 5 + k running (7.5 fps)
 			if (self.cn_move == 1)
 			{
-				k = floor (time * 12 + self.cn_phase);
-				k = k - 12 * floor (k / 12);
+				k = floor (time * 6 + self.cn_phase);
+				k = k - 6 * floor (k / 6);
 				self.cn_fbase = 8 + k;
-				self.cn_fstep = 12;
+				self.cn_fstep = 6;
 			}
 			else
 			{
-				k = floor (time * 15 + self.cn_phase);
-				k = k - 10 * floor (k / 10);
-				self.cn_fbase = 104 + k;
-				self.cn_fstep = 10;
+				k = floor (time * 7.5 + self.cn_phase);
+				k = k - 5 * floor (k / 5);
+				self.cn_fbase = 56 + k;
+				self.cn_fstep = 5;
 			}
 		}
 		else
 		{
 			if (self.cn_kind == 11)
-				n = 10;
+				n = 5;
+			else if (self.cn_kind == 1 || self.cn_kind == 4)
+				n = 4;		// daniel.spr32 / david.spr32: 8 + d * 4 + k
 			else
 				n = 6;		// 8 + d * 6 + k
 			fps = 8;
 			if (self.cn_move == 2)
 				fps = 16;
+			fps = fps * (n / 6);
 			k = floor (time * fps + self.cn_phase);
 			k = k - n * floor (k / n);
 			if (self.cn_kind == 11)
@@ -268,7 +273,7 @@ float() CN_RandomKind =
 		crowd_seq = crowd_seq + 1;
 		return 1 + crowd_seq - CN_KINDS * floor ((crowd_seq - 1) / CN_KINDS) - 1;
 	}
-	hd_ok = (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp");
+	hd_ok = (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
 	tries = 0;
 	while (tries < 4)
 	{

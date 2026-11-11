@@ -98,14 +98,12 @@ def send_telegram_notification() -> None:
     gif_path = os.path.join(PACK_DIR, "greenjar_preview.gif")
 
     caption = (
-        "🫙🟢 JAR O' GREEN GUYS (Impulse 62) — 60 FPS Live-Action Quake Swarm Weapon Ready!\n\n"
-        "✅ Held Optical Jar Sprite (v_greenjar.md3): Swirling neon-green mist + 4 manic spaz antics, Hold-Fire Cocktail-Shaker & Whip-Throw!\n"
-        "✅ Green-Smoke Shatter -> 12 Mini-Gremlins: Fast floor zoomers, pogo-bouncers & vertical building wall-climbers!\n"
-        "✅ 5-Orbit View-Blocking Swarm: Circles victims 5x jumping in their face (1%-2% non-lethal pokes, NEVER kills) -> Rainbow Confetti Pop!\n"
-        "✅ 1-Shot Helium Spin + Voice Pack: Shoot any gremlin for a 360° cartwheel spin into confetti + helium laughing & giggling!\n\n"
-        "🌐 Interactive 3D Swarm & Shooting Gallery HTML:\n"
+        "🫙🟢 JAR O' GREEN GUYS v2 (Impulse 62) — Bigger Wheel-Driving Green Men + 3-Lap Swarm -> Attack Live!\n\n"
+        "✅ ~2.3x Bigger Green Men (scale 0.56, 160x160 sprites): Waist-to-chest height low-rider wheelmen!\n"
+        "✅ True 16-Angle Seated Wheel-Driving: Motoring smoothly across floors on spinning pneumatic tires with tire smoke & sparks + vertical building wall-drivers!\n"
+        "✅ Swarm & Drive 3 Laps FIRST -> Then Attack: Zero attacks right away — all 12 wheel/drive 3 full circles (1080°, 0 dmg!) around the enemy FIRST, then lunge in to attack (1%-2% non-lethal, >= 1 HP) -> Confetti Pop!\n"
+        "✅ Live on VPS Quake Server (72.62.241.93) + Self-Contained HTML5 Arena:\n"
         "https://bakersfield.larrywew.fun/green_guy_jar_weapon.html\n"
-        "📦 Asset Pack & Live Quake Shots:\n"
         "https://bakersfield.larrywew.fun/green-guy-jar/"
     )
 
@@ -137,7 +135,7 @@ def send_telegram_notification() -> None:
         "sendAnimation",
         {
             "chat_id": CHAT_ID,
-            "caption": "60 FPS Preview: Held Jar Spaz & Cocktail-Shake → Green Smoke Shatter → Wall-Climbing & 5x Face-Swarm → 1-Shot Helium Spin → Rainbow Confetti Pop!",
+            "caption": "60 FPS v2 Update: Bigger Seated Wheel-Driving Green Men → Drive 3 Full Laps Around Enemy First (0 Dmg!) → Leaping Attack Lunge → 1-Shot Spin & Rainbow Confetti Pop!",
         },
         "animation",
         gif_path,

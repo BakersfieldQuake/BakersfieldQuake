@@ -7,8 +7,8 @@ recharges by itself. Combat+ only (COMBATPLUS).
 
   1 Rob Dob        impulse 61  (or 17)  your head flies out of you, you steer it, then it screams into someone and blows up
                                like a rocket (floathead.qc). One head per FG_DOB_REGEN seconds. Replaced the Whack-a-Mole hammer.
-  2 Jar o' Green Guys impulse 62 clear glass jar filled with swirling neon-green mist and a spazzing Green-Suit Guy;
-                               shatters into green smoke and 12 giggling, wall-climbing, 5x face-orbiting gremlins (greenjar.qc)
+  2 Jar o' Green Guys impulse 62 (key I) clear glass jar filled with swirling neon-green mist and a spazzing Green-Suit Guy;
+                               shatters into green smoke and 12 wheel-driving green men that circle enemies 3x before attacking (greenjar.qc)
   3 Pickle Surprise impulse 63 a pickle you throw: it sticks to whatever it hits and sits there about the size of a
                                grenade. When someone comes close it goes erect, twice the height of a man, waves
                                about like a roadside inflatable, shouts "pickle surprise" and blows up green,

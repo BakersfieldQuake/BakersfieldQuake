@@ -8,11 +8,13 @@ import json
 import math
 import os
 import struct
+import sys
 import time
 from typing import Dict, List, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance
+from scipy import ndimage
 
 from build_html_showcase import write_self_contained_html
 from greensuit_anims_60fps import (
@@ -39,36 +41,78 @@ MOD_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT_PACK_DIR = os.path.join(MOD_ROOT, "greensuit_wheelman_monster")
 ATLAS_DIR = os.path.join(OUT_PACK_DIR, "atlases")
 PROGS_DIR = os.path.join(MOD_ROOT, "progs")
+STAGED_PROGS_DIR = os.path.abspath(os.path.join(MOD_ROOT, "..", "_bakersfield_dev", "staged_assets", "progs"))
 REF_PHOTOS_DIR = os.path.join(HERE, "ref_photos")
 
-# DarkPlaces 16-angle .spr32 cell specs (paired with self.scale = 0.40 in QuakeC)
-DP_W = 136
-DP_H = 136
-DP_GROUND = 120
+# DarkPlaces 8-angle tight-cropped .spr32 cell specs (11/17 of 136x136 -> 88x88; paired with self.scale = 0.8036 in QuakeC)
+DP_W = 88
+DP_H = 88
+DP_GROUND = 78
 
 
-def tone_for_darkplaces(rgba: np.ndarray) -> bytes:
+def tone_for_darkplaces_rgba(rgba: np.ndarray) -> np.ndarray:
     """Tones RGBA cell for DarkPlaces r_hdr_scenebrightness 2.5 (Contrast 1.20, Brightness 0.50)."""
     pil = Image.fromarray(rgba, "RGBA")
     rgb = ImageEnhance.Contrast(pil.convert("RGB")).enhance(1.20)
     rgb = ImageEnhance.Brightness(rgb).enhance(0.50)
     rgb.putalpha(pil.getchannel("A"))
-    return rgb.tobytes()
+    return np.asarray(rgb, dtype=np.uint8)
 
 
-def write_darkplaces_spr32(spr_path: str, raw_frame_bytes: List[bytes], w: int = DP_W, h: int = DP_H, ground_y: int = DP_GROUND) -> float:
-    """Writes DarkPlaces IDSP v32 sprite, type 0 (SPR_VP_PARALLEL_UPRIGHT), anchored at wheel ground contact."""
-    rad = math.hypot(w * 0.5, h)
-    ox = -(w // 2)
-    oy = ground_y
-    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, w, h, len(raw_frame_bytes), 0.0, 0))
-    frame_hdr = struct.pack("<i", 0) + struct.pack("<iiii", ox, oy, w, h)
-    for fb in raw_frame_bytes:
-        buf += frame_hdr
+def _tight_crop_and_bleed(rgba: np.ndarray, base_ox: int, base_oy: int) -> Tuple[int, int, int, int, bytes]:
+    h, w, _ = rgba.shape
+    ys, xs = np.nonzero(rgba[:, :, 3] > 2)
+    if len(xs) == 0:
+        empty = np.zeros((2, 2, 4), dtype=np.uint8)
+        return -1, 1, 2, 2, empty.tobytes()
+    x0 = max(0, int(xs.min()) - 1)
+    y0 = max(0, int(ys.min()) - 1)
+    x1 = min(w, int(xs.max()) + 2)
+    y1 = min(h, int(ys.max()) + 2)
+    cropped = rgba[y0:y1, x0:x1].copy()
+    pad_l = 1 if x0 == int(xs.min()) else 0
+    pad_t = 1 if y0 == int(ys.min()) else 0
+    pad_r = 1 if x1 == int(xs.max()) + 1 else 0
+    pad_b = 1 if y1 == int(ys.max()) + 1 else 0
+    if pad_l or pad_t or pad_r or pad_b:
+        cropped = np.pad(cropped, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), mode="constant", constant_values=0)
+        x0 -= pad_l
+        y0 -= pad_t
+    fg = cropped[:, :, 3] >= 32
+    if not np.any(fg):
+        fg = cropped[:, :, 3] > 0
+    if np.any(fg):
+        tr = cropped[:, :, 3] == 0
+        if np.any(tr):
+            _, (iy, ix) = ndimage.distance_transform_edt(~fg, return_indices=True)
+            cropped[tr, :3] = cropped[iy[tr], ix[tr], :3]
+    cw, ch = cropped.shape[1], cropped.shape[0]
+    return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
+
+
+def write_darkplaces_spr32(spr_path: str, toned_frames: List[np.ndarray], w: int = DP_W, h: int = DP_H, ground_y: int = DP_GROUND) -> float:
+    """Writes tight-cropped DarkPlaces IDSP v32 sprite, type 0 (SPR_VP_PARALLEL_UPRIGHT), anchored at wheel ground contact."""
+    base_ox = -(w // 2)
+    base_oy = ground_y
+    packed = [_tight_crop_and_bleed(fr, base_ox, base_oy) for fr in toned_frames]
+    max_cw = max(f[2] for f in packed)
+    max_ch = max(f[3] for f in packed)
+    rad = 0.5 * math.hypot(max_cw, max_ch)
+    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+    for fox, foy, cw, ch, fb in packed:
+        buf += struct.pack("<iiiii", 0, fox, foy, cw, ch)
         buf += fb
-    os.makedirs(os.path.dirname(spr_path), exist_ok=True)
-    with open(spr_path, "wb") as f:
-        f.write(buf)
+    targets = [spr_path]
+    if os.path.isdir(os.path.dirname(STAGED_PROGS_DIR)):
+        stg_p = os.path.join(STAGED_PROGS_DIR, os.path.basename(spr_path))
+        if os.path.normcase(stg_p) != os.path.normcase(spr_path):
+            targets.append(stg_p)
+    for dst in targets:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        tmp = dst + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(buf)
+        os.replace(tmp, dst)
     return len(buf) / (1024.0 * 1024.0)
 
 
@@ -193,18 +237,63 @@ def save_preview_gif(all_out_frames: Dict[str, List[List[np.ndarray]]], out_gif:
 
 def main() -> None:
     t0 = time.time()
+    spr32_only = ("--spr32-only" in sys.argv)
     os.makedirs(ATLAS_DIR, exist_ok=True)
     print("[1/5] Building 16-angle photorealistic studio turnarounds & real gib parts...")
     turnarounds = build_all_16_turnarounds()
     gib_parts = extract_real_gib_parts()
     gib_hist = precompute_3d_gib_trajectories(48)
 
-    save_turnaround_audit_sheet(turnarounds, os.path.join(HERE, "work", "audit_16angle_final.jpg"))
+    if not spr32_only:
+        save_turnaround_audit_sheet(turnarounds, os.path.join(HERE, "work", "audit_16angle_final.jpg"))
 
-    print("[2/5] Synthesizing all 4,224 frames (7 animations x 16 angles @ native 60 FPS)...")
+    # Compact 248-frame 8-direction layout for QuakeC GreenSuit_Customize (d = 0..7 -> even d_i = 0,2,..,14):
+    #   0   + d*4 + k : cruise          (4 steps, 32 frames, 0..31)
+    #   32  + d*4 + k : charge          (4 steps, 32 frames, 32..63)
+    #   64  + d*6 + s : jump_slam       (6 steps, 48 frames, 64..111)
+    #   112 + d*4 + s : whirlwind_melee (4 steps, 32 frames, 112..143)
+    #   144 + d*4 + k : wheelie_taunt   (4 steps, 32 frames, 144..175)
+    #   176 + d*4 + s : pain            (4 steps, 32 frames, 176..207)
+    #   208 + d*5 + s : gib_death       (5 steps, 40 frames, 208..247)
+    spr_plan = [
+        ("cruise",          [0, 9, 18, 27]),
+        ("charge",          [0, 8, 15, 23]),
+        ("jump_slam",       [2, 11, 20, 28, 38, 46]),
+        ("whirlwind_melee", [0, 10, 18, 28]),
+        ("wheelie_taunt",   [0, 9, 18, 27]),
+        ("pain",            [0, 7, 14, 21]),
+        ("gib_death",       [1, 11, 21, 33, 47]),
+    ]
+    nf_by_id = {s["id"]: s["frames"] for s in ANIM_SPECS}
+
     all_out_frames: Dict[str, List[List[np.ndarray]]] = {}
     atlas_paths: Dict[str, str] = {}
 
+    if spr32_only:
+        print("[2/3] Synthesizing 248 compact 8-angle frames for DarkPlaces progs/greensuit_wheelman.spr32...")
+        req_tasks: List[Tuple[str, int, int]] = [
+            (aid, d_i, fi)
+            for aid, kf_list in spr_plan
+            for d_i in range(0, N_DIRS, 2)
+            for fi in kf_list
+        ]
+
+        def _dp_direct(item: Tuple[str, int, int]) -> np.ndarray:
+            aid, d_i, f_i = item
+            ss_rgba = render_monster_frame_ss(aid, d_i, f_i, nf_by_id[aid], turnarounds, gib_hist, gib_parts)
+            rs = resize_rgba_premul(ss_rgba, DP_W, DP_H)
+            return tone_for_darkplaces_rgba(rs)
+
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            dp_toned = list(ex.map(_dp_direct, req_tasks))
+
+        assert len(dp_toned) == 248, f"Expected 248 SPR32 frames, got {len(dp_toned)}"
+        spr_out = os.path.join(PROGS_DIR, "greensuit_wheelman.spr32")
+        spr_mb = write_darkplaces_spr32(spr_out, dp_toned)
+        print(f"[3/3] Wrote {spr_out} (248 frames, 8 angles, tight-cropped {DP_W}x{DP_H}, {spr_mb:.2f} MiB) in {time.time() - t0:.1f}s!")
+        return
+
+    print("[2/5] Synthesizing all 4,224 frames (7 animations x 16 angles @ native 60 FPS)...")
     for spec in ANIM_SPECS:
         aid = spec["id"]
         nf = spec["frames"]
@@ -239,41 +328,24 @@ def main() -> None:
         sz_mb = os.path.getsize(webp_path) / (1024.0 * 1024.0)
         print(f"  -> {aid:16s}: {N_DIRS}x{nf:2d} = {N_DIRS*nf:3d} frames -> {sz_mb:.2f} MB WebP ({time.time() - t_anim:.1f}s)")
 
-    print("[3/5] Packing 960-frame 16-Angle DarkPlaces progs/greensuit_wheelman.spr32...")
-    # Exact frame layout for QuakeC GreenSuit_Customize (16 directions d=0..15):
-    #   0   + d*8  + k : cruise          (8 steps,  128 frames, 0..127)
-    #   128 + d*8  + k : charge          (8 steps,  128 frames, 128..255)
-    #   256 + d*12 + s : jump_slam       (12 steps, 192 frames, 256..447)
-    #   448 + d*8  + s : whirlwind_melee (8 steps,  128 frames, 448..575)
-    #   576 + d*8  + k : wheelie_taunt   (8 steps,  128 frames, 576..703)
-    #   704 + d*6  + s : pain            (6 steps,   96 frames, 704..799)
-    #   800 + d*10 + s : gib_death       (10 steps, 160 frames, 800..959)
-    spr_plan = [
-        ("cruise",          [0, 4, 9, 13, 18, 22, 27, 31]),
-        ("charge",          [0, 4, 8, 11, 15, 19, 23, 26]),
-        ("jump_slam",       [2, 6, 11, 16, 20, 24, 28, 33, 38, 43, 46, 50]),
-        ("whirlwind_melee", [0, 5, 10, 14, 18, 23, 28, 32]),
-        ("wheelie_taunt",   [0, 5, 9, 14, 18, 23, 27, 32]),
-        ("pain",            [0, 3, 7, 11, 16, 21]),
-        ("gib_death",       [1, 4, 7, 11, 16, 21, 27, 33, 40, 47]),
-    ]
+    print("[3/5] Packing 248-frame 8-Angle tight-cropped DarkPlaces progs/greensuit_wheelman.spr32...")
     dp_tasks: List[np.ndarray] = []
     for aid, kf_list in spr_plan:
-        for d_i in range(N_DIRS):
+        for d_i in range(0, N_DIRS, 2):
             for fi in kf_list:
                 dp_tasks.append(all_out_frames[aid][d_i][fi])
 
-    def _dp_tone(fr_rgba: np.ndarray) -> bytes:
+    def _dp_tone(fr_rgba: np.ndarray) -> np.ndarray:
         rs = resize_rgba_premul(fr_rgba, DP_W, DP_H)
-        return tone_for_darkplaces(rs)
+        return tone_for_darkplaces_rgba(rs)
 
     with ThreadPoolExecutor(max_workers=12) as ex:
-        dp_bytes = list(ex.map(_dp_tone, dp_tasks))
+        dp_toned = list(ex.map(_dp_tone, dp_tasks))
 
-    assert len(dp_bytes) == 960, f"Expected 960 SPR32 frames, got {len(dp_bytes)}"
+    assert len(dp_toned) == 248, f"Expected 248 SPR32 frames, got {len(dp_toned)}"
     spr_out = os.path.join(PROGS_DIR, "greensuit_wheelman.spr32")
-    spr_mb = write_darkplaces_spr32(spr_out, dp_bytes)
-    print(f"  -> Wrote {spr_out} (960 frames, 16 angles, {spr_mb:.2f} MB)")
+    spr_mb = write_darkplaces_spr32(spr_out, dp_toned)
+    print(f"  -> Wrote {spr_out} (248 frames, 8 angles, {spr_mb:.2f} MiB)")
 
     print("[4/5] Rendering Real-Photo Accuracy Poster & 360° Action Preview GIF...")
     poster_jpg = os.path.join(OUT_PACK_DIR, "turnaround_and_accuracy_poster.jpg")

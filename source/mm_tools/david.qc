@@ -7,19 +7,21 @@ Impulses:
   impulse 24  Summon David Ojeda Playing on a Casino Slot Machine (360° Spin -> 777 Jackpot -> Bust)
   impulse 25  Summon the 3 Running Pregnant Hispanic Women (preg_1, preg_2, preg_3)
 
-Full 360° 8-Direction Frame Layout on progs/david.spr32 (344 frames, 256x288, origin (-128, 262), scale 0.25):
+Full 360° 8-Direction Frame Layout on progs/david.spr32 (264 frames, 96x108, origin (-48, 98), scale 0.6935):
   0..7               8-direction Standing Idle (d = 0..7)
-  8 + d*6 + k        8-direction Fast Running Cycle (d = 0..7, k = 0..5) [mbox.qc compatible]
-  56 + d*6 + k       8-direction Turbo Speed-Burst Sprint (d = 0..7, k = 0..5)
-  104 + d*6 + k      8-direction Holding & Flexing Bag of Money (d = 0..7, k = 0..5)
-  152 + d*6 + k      8-direction Fast Heist Sprint Holding Bag of Money (d = 0..7, k = 0..5)
-  200 + d*6 + k      8-direction Playing Slot Machine: Lever Pull & Reel Spin (d = 0..7, k = 0..5)
-  248 + d*6 + k      8-direction Playing Slot Machine: 7-7-7 JACKPOT Cash Explosion (d = 0..7, k = 0..5)
-  296 + d*6 + k      8-direction Playing Slot Machine: Near-Miss BUST & Tilt Shake (d = 0..7, k = 0..5)
+  8 + d*4 + k        8-direction Fast Running Cycle (d = 0..7, k = 0..3) [mbox.qc compatible]
+  40 + d*4 + k       8-direction Turbo Speed-Burst Sprint (d = 0..7, k = 0..3)
+  72 + d*4 + k       8-direction Holding & Flexing Bag of Money (d = 0..7, k = 0..3)
+  104 + d*4 + k      8-direction Fast Heist Sprint Holding Bag of Money (d = 0..7, k = 0..3)
+  136 + d*4 + k      8-direction Playing Slot Machine: Lever Pull & Reel Spin (d = 0..7, k = 0..3)
+  168 + d*4 + k      8-direction Playing Slot Machine: 7-7-7 JACKPOT Cash Explosion (d = 0..7, k = 0..3)
+  200 + d*4 + k      8-direction Playing Slot Machine: Near-Miss BUST & Tilt Shake (d = 0..7, k = 0..3)
+  232 + d*4 + k      8-direction Falling Collapse Death (d = 0..7, k = 0..3)
 
-Pregnant Runners on progs/preg_1.spr32, progs/preg_2.spr32, progs/preg_3.spr32 (56 frames each, 128x144):
+Pregnant Runners on progs/preg_1.spr32, progs/preg_2.spr32, progs/preg_3.spr32 (88 frames each, 136x153, scale 0.4800):
   0..7               8-direction Standing Idle (d = 0..7)
   8 + d*6 + k        8-direction Running Cycle (d = 0..7, k = 0..5) [mbox.qc compatible]
+  56 + d*4 + k       8-direction Falling Collapse Death (d = 0..7, k = 0..3)
 
 Optional console cvars for inspection:
   dv_mode 0..8       0 = autonomous AI, 1 = Idle, 2 = Fast Run, 3 = Turbo Sprint,
@@ -89,12 +91,12 @@ float() David_Customize =
 
 	if (self.npc_dead)
 	{
-		k = self.npc_dstep;
+		k = floor(self.npc_dstep * 0.67);
 		if (k < 0)
 			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = 344 + d * 6 + k;
+		if (k > 3)
+			k = 3;
+		self.frame = 232 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -109,29 +111,29 @@ float() David_Customize =
 		return TRUE;
 	}
 
-	fps = 14;
+	fps = 9.5;
 	if (st == 1 || st == 2 || st == 4)
-		fps = 18;	// Fast high-cadence sprinting!
+		fps = 12;	// Fast high-cadence sprinting!
 	else if (st == 5)
-		fps = 16;	// Rapid slot reel spin!
+		fps = 10.5;	// Rapid slot reel spin!
 
-	k = floor(time * fps + self.origin_x * 0.03);
-	k = k - 6 * floor(k / 6);
+	k = floor(time * fps + self.origin_x * 0.02);
+	k = k - 4 * floor(k / 4);
 
 	if (st == 1)
-		self.frame = 8 + d * 6 + k;
+		self.frame = 8 + d * 4 + k;
 	else if (st == 2)
-		self.frame = 56 + d * 6 + k;
+		self.frame = 40 + d * 4 + k;
 	else if (st == 3)
-		self.frame = 104 + d * 6 + k;
+		self.frame = 72 + d * 4 + k;
 	else if (st == 4)
-		self.frame = 152 + d * 6 + k;
+		self.frame = 104 + d * 4 + k;
 	else if (st == 5)
-		self.frame = 200 + d * 6 + k;
+		self.frame = 136 + d * 4 + k;
 	else if (st == 6)
-		self.frame = 248 + d * 6 + k;
+		self.frame = 168 + d * 4 + k;
 	else
-		self.frame = 296 + d * 6 + k;
+		self.frame = 200 + d * 4 + k;
 
 	return TRUE;
 };
@@ -178,7 +180,7 @@ void() David_Respawn =
 {
 	setorigin(self, self.dv_home + '0 0 12');
 	setmodel(self, "progs/david.spr32");
-	self.scale = 0.1387;
+	self.scale = 0.6935;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 180;
@@ -509,12 +511,12 @@ float() PregRunner_Customize =
 
 	if (self.npc_dead)
 	{
-		k = self.npc_dstep;
+		k = floor(self.npc_dstep * 0.67);
 		if (k < 0)
 			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = 56 + d * 6 + k;
+		if (k > 3)
+			k = 3;
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
 
@@ -539,7 +541,7 @@ void() PregRunner_Respawn =
 		setmodel(self, "progs/preg_2.spr32");
 	else
 		setmodel(self, "progs/preg_3.spr32");
-	self.scale = 0.136;
+	self.scale = 0.4800;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 120;
@@ -734,7 +736,7 @@ entity(vector pos, float yaw_ang, float slot_mode) David_SpawnOne =
 	b.classname = "monster_david";
 	b.origin = pos;
 	setmodel(b, "progs/david.spr32");
-	b.scale = 0.1387;
+	b.scale = 0.6935;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 180;
@@ -790,7 +792,7 @@ entity(float idx, vector pos, float yaw_ang, entity target_dv) PregRunner_SpawnO
 		setmodel(w, "progs/preg_2.spr32");
 	else
 		setmodel(w, "progs/preg_3.spr32");
-	w.scale = 0.136;
+	w.scale = 0.4800;
 	w.dv_runner_idx = idx;
 	w.solid = SOLID_SLIDEBOX;
 	w.movetype = MOVETYPE_STEP;

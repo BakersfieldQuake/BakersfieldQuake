@@ -56,22 +56,22 @@ def upgrade_poster_typography() -> None:
     # Clean top header strip
     dr.rectangle([0, 0, W, 66], fill=(12, 18, 22))
     dr.text((26, 12), "JAR O' GREEN GUYS (IMPULSE 62) - 60 FPS LIVE-ACTION DIGITIZED QUAKE SWARM WEAPON", fill=(134, 255, 78), font=f_h1)
-    dr.text((26, 40), "4-Antic Spazzing Specimen Jar  |  Igniting Neon-Green Smoke Shatter  |  12 Wall-Climbing & 5x Face-Orbiting Gremlins  |  1-Shot Helium Spin -> Rainbow Confetti Pop!", fill=(178, 204, 218), font=f_sub)
+    dr.text((26, 40), "4-Antic Spazzing Specimen Jar  |  Igniting Green Smoke Shatter  |  12 Bigger Wheel-Driving Men (Drive 3 Laps First -> Attack!)  |  1-Shot Spin -> Confetti Pop!", fill=(178, 204, 218), font=f_sub)
 
     # Clean section headers
     dr.rectangle([16, 372, W - 16, 400], fill=(12, 18, 22))
-    dr.text((26, 375), "SHATTERING GLASS & IGNITING GREEN SMOKE  ->  12 FLOOR-ZOOMING, BUILDING-CLIMBING & EYE-LEVEL VIEW-BLOCKING GREMLINS", fill=(72, 226, 255), font=f_sec)
+    dr.text((26, 375), "SHATTERING GLASS & IGNITING GREEN SMOKE  ->  12 BIGGER WHEEL-DRIVING GREEN MEN: SWARM & DRIVE 3 LAPS FIRST, THEN ATTACK!", fill=(72, 226, 255), font=f_sec)
 
     dr.rectangle([16, 584, W - 16, 612], fill=(12, 18, 22))
-    dr.text((26, 587), "1-HIT LOW-HP COMEDY DEATH: PUNCTURED-HELIUM-BALLOON 360 DEG CARTWHEEL SPIN  ->  1.5x SWELL  ->  RAINBOW CONFETTI POP!", fill=(255, 108, 172), font=f_sec)
+    dr.text((26, 587), "1-HIT LOW-HP COMEDY DEATH: PUNCTURED-HELIUM-BALLOON 360 DEG CARTWHEEL SPIN  ->  1.45x SWELL  ->  RAINBOW CONFETTI POP!", fill=(255, 108, 172), font=f_sec)
 
     # Clean footer box
     dr.rectangle([24, 804, W - 24, 960], fill=(18, 27, 31), outline=(72, 148, 86), width=2)
     dr.text((42, 814), "BAKERSFIELD QUAKE LIVE WEAPON SPECS (FUN GUN SLOT 2 - IMPULSE 62):", fill=(134, 255, 78), font=f_sec)
     dr.text((42, 842), "* First-Person Sprite (progs/v_greenjar.md3): 4 Manic In-Jar Antics + Hold-Fire Cocktail-Shaker + Whip-Throw + Belt Reload + Muffled Jar Giggles!", fill=(226, 238, 244), font=f_bul)
-    dr.text((42, 869), "* Impact Swarm (12x greenguy_mini.spr32): Igniting Green-Smoke Burst -> Fast Floor Zoomers, Vertical Building Climbers & Pogo Face-Jumpers!", fill=(226, 238, 244), font=f_bul)
-    dr.text((42, 896), "* Pure Annoyance Distraction: Circles Victim 5 Full Orbits Jumping in Their Face (1%-2% Non-Lethal Pokes, NEVER Kills: Clamped >= 1 HP) -> Confetti Pop!", fill=(226, 238, 244), font=f_bul)
-    dr.text((42, 923), "* 1-Shot Helium Spin & Helium Voice Pack: Shoot Any Gremlin for a Shrieking 360-Deg Cartwheel Spin into Rainbow Confetti + High-Pitched Giggling!", fill=(255, 216, 92), font=f_bul)
+    dr.text((42, 869), "* Bigger Wheel-Driving Swarm (12x greenguy_mini.spr32, Scale 0.56): Seated Low-Rider Wheelmen on Spinning Pneumatic Tires + Building Wall-Drivers!", fill=(226, 238, 244), font=f_bul)
+    dr.text((42, 896), "* Drive 3 Laps First -> Then Attack: Swarms & Drives 3 Full Circles (1080 Deg, 0 Dmg!) Around Enemy FIRST, Then Lunges In (1%-2% Non-Lethal, >= 1 HP)!", fill=(226, 238, 244), font=f_bul)
+    dr.text((42, 923), "* 1-Shot Helium Spin & Helium Voice Pack: Shoot Any Green Man for a Shrieking 360-Deg Cartwheel Spin into Rainbow Confetti + High-Pitched Giggling!", fill=(255, 216, 92), font=f_bul)
     im.save(p_path, quality=93)
 
 
@@ -80,7 +80,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jar o' Green Guys (Impulse 62) — 60 FPS Quake Weapon & 12-Gremlin Swarm Simulator</title>
+<title>Jar o' Green Guys (Impulse 62) — 60 FPS Quake Weapon & 12 Wheel-Driving Green Men Simulator</title>
 <style>
   :root {
     --bg: #0a0f12;
@@ -366,14 +366,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="brand">
     <span class="badge">Impulse 62 · 60 FPS</span>
     <div>
-      <h1>JAR O' GREEN GUYS — QUAKE SWARM & DISTRACTION WEAPON</h1>
-      <div class="sub">100% Real Photo-Digitized Specimen Jar · Igniting Green Smoke · 12 Wall-Climbing / 5x Face-Orbiting Gremlins · 1-Shot Helium Spin -> Confetti Pop!</div>
+      <h1>JAR O' GREEN GUYS — QUAKE WHEEL-DRIVING SWARM WEAPON</h1>
+      <div class="sub">100% Real Photo-Digitized Specimen Jar · Igniting Green Smoke · 12 Bigger Wheel-Driving Green Men (Swarm &amp; Drive 3 Laps First -> Then Attack!) · 1-Shot Spin -> Confetti Pop!</div>
     </div>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" data-tab="arena">1. Playable 3D Swarm & Shooting Gallery</button>
-    <button class="tab-btn" data-tab="studio">2. 60 FPS First-Person Jar & Gremlin Studio</button>
-    <button class="tab-btn" data-tab="sound">3. Helium Voice Soundboard & Quake Specs</button>
+    <button class="tab-btn active" data-tab="arena">1. Playable 3D Swarm &amp; Shooting Gallery</button>
+    <button class="tab-btn" data-tab="studio">2. 60 FPS First-Person Jar &amp; Wheel-Driver Studio</button>
+    <button class="tab-btn" data-tab="sound">3. Helium Voice Soundboard &amp; Quake Specs</button>
   </div>
 </header>
 
@@ -385,7 +385,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <canvas id="arenaCanvas" width="1280" height="720"></canvas>
         <div class="hud-top">
           <div class="pill" id="hudWeaponPill">WEAPON: <b>[1] JAR O' GREEN GUYS</b> (Hold LMB to Shake -> Release to Throw!)</div>
-          <div class="pill" id="hudSwarmCount">ACTIVE GREMLINS: <b>0</b> &nbsp;|&nbsp; CONFETTI POPS: <b>0</b></div>
+          <div class="pill" id="hudSwarmCount">ACTIVE GREEN MEN: <b>0</b> &nbsp;|&nbsp; CONFETTI POPS: <b>0</b></div>
         </div>
         <div class="hud-bottom">
           <div class="quake-bar">
@@ -398,7 +398,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
               <div class="stat-lbl">Jars Ready</div>
               <div class="stat-num" id="hudAmmo" style="color:#42e3ff">∞</div>
             </div>
-            <span class="nonlethal-tag" id="hudOrbitStatus">Ready — Throw a Jar or Click "SWARM ME!"</span>
+            <span class="nonlethal-tag" id="hudOrbitStatus">Ready — Throw a Jar or Click "SWARM &amp; DRIVE AROUND ME!"</span>
           </div>
         </div>
       </div>
@@ -406,11 +406,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <aside class="side-panel">
         <h3>Instant Mastermind Actions</h3>
         <button class="act-btn" id="btnThrowJar">
-          <span>Shake & Throw Jar Forward!</span>
+          <span>Shake &amp; Throw Jar Forward!</span>
           <span class="key-cap">Hold LMB</span>
         </button>
         <button class="act-btn pink" id="btnSwarmMeNow">
-          <span>SWARM MY FACE NOW! (5x Orbit)</span>
+          <span>SWARM &amp; DRIVE 3 LAPS AROUND ME!</span>
           <span class="key-cap">G</span>
         </button>
         <button class="act-btn cyan" id="btnToggleWeapon">
@@ -422,18 +422,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
           <span class="key-cap">T</span>
         </button>
         <button class="act-btn" id="btnAudioToggle">
-          <span id="lblAudio">Helium Giggles & Screams: ON 🔊</span>
+          <span id="lblAudio">Helium Giggles &amp; Screams: ON 🔊</span>
           <span class="key-cap">M</span>
         </button>
 
         <hr style="border:none;border-top:1px solid #263d34;margin:2px 0">
         <h3>How It Works In-Game</h3>
         <div class="ctrl-list">
-          • <b>Hold Left-Click</b>: Cocktail-shakes the clear jar — neon-green mist flares & tiny Green-Suit Guy pinballs inside!<br>
-          • <b>Release Left-Click</b>: Whips jar out of splayed bronze claw -> shatters into <b>igniting green smoke</b> + <b>12 feral mini-gremlins</b>!<br>
-          • <b>Wall-Climbing & Bouncing</b>: Watch them zoom across floors, pogo-bounce, and <b>scale straight up 3D buildings</b>!<br>
-          • <b>5-Orbit View Block</b>: Circles victim <b>5 full times</b> jumping at eye-level (1% chip pokes, <b>clamped ≥ 1 HP — NEVER kills!</b>) -> swells & <b>pops into rainbow confetti</b>!<br>
-          • <b>Right-Click / Key [2]</b>: Shoot any gremlin (1 HP!) to trigger a hilarious <b>360° punctured-helium cartwheel spin</b> into confetti!<br>
+          • <b>Hold Left-Click</b>: Cocktail-shakes the clear jar — neon-green mist flares &amp; tiny Green-Suit Guy pinballs inside!<br>
+          • <b>Release Left-Click</b>: Whips jar out of splayed bronze claw -&gt; shatters into <b>igniting green smoke</b> + <b>12 bigger Wheel-Driving Green Men</b>!<br>
+          • <b>Bigger Seated Wheel-Driving</b>: Watch them motor across floors on spinning pneumatic tires with tire smoke &amp; chrome sparks, plus <b>vertical building wall-drivers</b>!<br>
+          • <b>Swarm 3 Laps FIRST -&gt; Then Attack!</b>: They <b>do NOT attack right away</b> — they drive <b>3 full circles (1080°, 0 dmg!)</b> around the enemy first, and <b>only AFTER 3 laps</b> lunge in to attack (1%–2% non-lethal hits, <b>clamped ≥ 1 HP</b>) -&gt; swell &amp; <b>pop into rainbow confetti</b>!<br>
+          • <b>Right-Click / Key [2]</b>: Shoot any Green Man (1 HP!) to trigger a hilarious <b>360° punctured-helium cartwheel spin</b> into confetti!<br>
           • <b>Move / Aim</b>: <b>WASD</b> + Move Mouse (click canvas for 360° pointer-lock, <b>ESC</b> to unlock).
         </div>
       </aside>
@@ -467,8 +467,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <h3 style="color:var(--cyan);margin-bottom:8px">BakersfieldQuake Live Integration Summary (`impulse 62` / Fun Gun Slot 2)</h3>
       • <b>First-Person Animated Jar Sprite</b>: <code>progs/v_greenjar.md3</code> + 112 optical-glass RGBA skins (<code>progs/gjvm_000..111.png</code>, <code>scripts/greenjarvm.shader</code>) cycling all 4 in-jar spaz antics, hold-to-shake cocktail windup, overhand whip-throw with splayed open claw, and belt-snatch reload.<br>
       • <b>World Projectile & Igniting Green Smoke</b>: <code>progs/greenjar_proj.spr32</code> (tumbling sealed glass jar) &amp; <code>progs/greenjar_burst.spr32</code> (glittering glass shards + igniting radioactive green smoke cloud).<br>
-      • <b>12 Unleashed 16-Angle Mini-Gremlins</b>: <code>progs/greenguy_mini.spr32</code> (320 frames across 16-angle floor scurry, 16-angle vertical building climb, 16-angle pogo face-jump, 1-hit punctured-helium 360° cartwheel spin, and pressurized balloon swell -> rainbow confetti pop).<br>
-      • <b>QuakeC Modules</b>: <code>source/mm_tools/greenjar_defs.qc</code> &amp; <code>source/mm_tools/greenjar.qc</code> wired into <code>funguns.qc</code> (<code>impulse 62</code>, 2 recharging jars, solo self-swarm test cvar <code>gj_test 1</code>).
+      • <b>12 Bigger 16-Angle Wheel-Driving Green Men</b>: <code>progs/greenguy_mini.spr32</code> (`160×160` cells, world `scale = 0.56` — ~2.3x larger waist-to-chest height!) across 16-angle seated wheel-driving with spinning pneumatic tires, 16-angle vertical building wall-driving, 16-angle post-3-lap torpedo &amp; sky-point attack lunge, 1-hit punctured-helium 360° cartwheel spin, and pressurized balloon swell -&gt; rainbow confetti pop.<br>
+      • <b>Swarm 3 Laps First -&gt; Then Attack AI</b>: <code>source/mm_tools/greenjar_defs.qc</code> &amp; <code>source/mm_tools/greenjar.qc</code> (`GJ_ORBITS_BEFORE_ATK = 1080` — 0 damage while wheeling 3 full laps around the enemy, then switches to `gj_state = 6` leaping attack frenzy clamped `>= 1 HP`, wired into <code>funguns.qc</code> `impulse 62` + `bm_reload.qc` `BM_FG2`).
     </div>
   </section>
 </main>
@@ -596,11 +596,11 @@ const STUDIO_CLIPS = [
   { id: 'vm_reload',  name: 'Held Jar: Belt-Snatch Reload (18f)', atlas: 'vm_action', start: 42, len: 18, angled: false },
   { id: 'proj_jar',   name: 'Thrown Tumbling Specimen Jar (24f)', atlas: 'proj_jar', start: 0, len: 24, angled: false },
   { id: 'smoke_burst',name: 'Glass Shatter + Green Smoke Fireball (36f)', atlas: 'smoke_burst', start: 0, len: 36, angled: false },
-  { id: 'scurry',     name: 'Gremlin: 16-Angle Floor Zoom (16×12f)', atlas: 'scurry', start: 0, len: 12, angled: true },
-  { id: 'wall_climb', name: 'Gremlin: 16-Angle Building Wall-Climb!', atlas: 'wall_climb', start: 0, len: 12, angled: true },
-  { id: 'pogo_jump',  name: 'Gremlin: 16-Angle Pogo Eye-Block Jump!', atlas: 'pogo_jump', start: 0, len: 12, angled: true },
+  { id: 'scurry',     name: 'Green Man: 16-Angle Seated Wheel-Drive!', atlas: 'scurry', start: 0, len: 12, angled: true },
+  { id: 'wall_climb', name: 'Green Man: 16-Angle Building Wall-Drive!', atlas: 'wall_climb', start: 0, len: 12, angled: true },
+  { id: 'pogo_jump',  name: 'Green Man: Post-3-Lap Torpedo & Jump Attack!', atlas: 'pogo_jump', start: 0, len: 12, angled: true },
   { id: 'shot_spin',  name: '1-Hit Death: Punctured-Helium Spin (24f)', atlas: 'mini_fx', start: 0, len: 24, angled: false, once: false },
-  { id: 'balloon_pop',name: '5-Orbit / Death: 1.5x Swell -> Confetti Pop!', atlas: 'mini_fx', start: 24, len: 24, angled: false }
+  { id: 'balloon_pop',name: 'Post-Attack / Death: 1.45x Swell -> Confetti Pop!', atlas: 'mini_fx', start: 24, len: 24, angled: false }
 ];
 
 let stClip = STUDIO_CLIPS[0];
@@ -726,9 +726,9 @@ const gremlins = [];
 
 function spawnJar(fromSelfSwarm = false) {
   if (fromSelfSwarm) {
-    // Shatter right in front of the player so 12 gremlins immediately swarm YOUR face for 5 orbits!
-    const sx = cam.x + Math.sin(cam.yaw) * 62;
-    const sz = cam.z + Math.cos(cam.yaw) * 62;
+    // Shatter right in front of the player so 12 bigger Green Men immediately drive 3 laps around YOU, then attack!
+    const sx = cam.x + Math.sin(cam.yaw) * 68;
+    const sz = cam.z + Math.cos(cam.yaw) * 68;
     shatterJarAt(sx, 8, sz, true);
     return;
   }
@@ -751,34 +751,35 @@ function shatterJarAt(x, y, z, forceSelfTarget = false) {
   playSfx('jar_shatter', 0.92, 0.97 + Math.random() * 0.08);
   bursts.push({ x, y: Math.max(12, y), z, t: 0 });
 
-  // Unleash 12 feral Mini-Green-Guys!
+  // Unleash 12 bigger Wheel-Driving Green Men!
   for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-    const outSpd = 85 + Math.random() * 115;
+    const a = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.30;
+    const outSpd = 85 + Math.random() * 95;
     gremlins.push({
-      x: x + Math.cos(a) * 8,
+      x: x + Math.cos(a) * 10,
       y: Math.max(0, y),
-      z: z + Math.sin(a) * 8,
+      z: z + Math.sin(a) * 10,
       vx: Math.cos(a) * outSpd,
-      vy: 95 + Math.random() * 125,
+      vy: 65 + Math.random() * 55,
       vz: Math.sin(a) * outSpd,
       yaw: a,
-      role: i % 3, // 0 = speed scurry, 1 = rubber-flea pogo, 2 = wall-climber
-      state: forceSelfTarget ? 'orbit' : 'search', // 'search' | 'wall' | 'orbit' | 'spin' | 'pop'
+      role: i % 3, // 0 = cruiser, 1 = sprinter, 2 = building wall-driver
+      state: forceSelfTarget ? 'orbit' : 'search', // 'search' | 'wall' | 'orbit' (3 laps, 0 dmg!) | 'attack' | 'spin' | 'pop'
       target: forceSelfTarget ? 'player' : null,
       orbitAng: a,
       orbitDir: (i % 2 === 0 ? 1 : -1),
-      orbitRad: (forceSelfTarget ? 24 : 30) + (i % 4) * 4.5,
+      orbitRad: (forceSelfTarget ? 44 : 46) + (i % 4) * 6.5,
       orbitDeg: 0,
+      attackEnd: 0,
       animT: Math.random() * 2.0,
       stepT: 0,
       wallBox: null,
       nextLaugh: 0.06 * i + Math.random() * 0.35,
-      nextPoke: 0.35 + Math.random() * 0.4,
+      nextPoke: 0.25 + Math.random() * 0.35,
       age: 0
     });
   }
-  // Cap total active gremlins at 48 so spamming stays buttery 60 FPS
+  // Cap total active Green Men at 48 so spamming stays buttery 60 FPS
   while (gremlins.length > 48) {
     const g0 = gremlins.shift();
     if (g0) confettiPopTotal++;
@@ -799,16 +800,16 @@ function fireBlaster() {
     t: 0.09
   });
 
-  // Hit-scan check against nearest gremlin within generous comedy hitbox!
+  // Hit-scan check against nearest Green Man within generous hitbox!
   let bestG = null, bestDist = 9999;
   for (const g of gremlins) {
     if (g.state === 'pop') continue;
-    const gx = g.x - cam.x, gy = (g.y + 11) - cam.y, gz = g.z - cam.z;
+    const gx = g.x - cam.x, gy = (g.y + 18) - cam.y, gz = g.z - cam.z;
     const proj = gx * dirX + gy * dirY + gz * dirZ;
-    if (proj < 8 || proj > 650) continue;
+    if (proj < 8 || proj > 680) continue;
     const px = gx - dirX * proj, py = gy - dirY * proj, pz = gz - dirZ * proj;
     const perp = Math.hypot(px, py, pz);
-    const hitRad = (proj < 65 ? 19 : 16);
+    const hitRad = (proj < 75 ? 28 : 23);
     if (perp < hitRad && proj < bestDist) {
       bestDist = proj;
       bestG = g;
@@ -888,7 +889,7 @@ function updateWeaponUI() {
 function toggleTargetMode() {
   targetSelfMode = !targetSelfMode;
   document.getElementById('lblTargetMode').textContent = targetSelfMode
-    ? 'Target: SWARM ME! (5x Eye-Block)'
+    ? 'Target: SWARM ME! (3 Laps -> Attack)'
     : 'Target: Enemy Bots + Buildings';
   document.getElementById('btnTargetMode').classList.toggle('active-mode', targetSelfMode);
 }
@@ -1036,9 +1037,13 @@ function updateArena(dt) {
     if (bursts[i].t >= 0.65) bursts.splice(i, 1);
   }
 
-  // 12-Gremlin AI (Floor Zoom, Pogo Bounce, Vertical Building Climb, 5x Orbit & Shot-Spin -> Confetti Pop!)
-  let selfSwarmers = 0;
-  let maxSelfOrbits = 0;
+  // 12 Bigger Wheel-Driving Green Men AI:
+  //   1) Grounded Wheel-Driving ('search') + Vertical Building Wall-Drive ('wall')
+  //   2) Swarm & Drive 3 Full Laps Around Enemy FIRST ('orbit', 0..1080 deg, ZERO damage!)
+  //   3) ONLY After 3 Laps -> Leaping Torpedo & Sky-Point Attack Frenzy ('attack', 1%-2% non-lethal >= 1 HP) -> Confetti Pop!
+  let activeOrbiters = 0;
+  let activeAttackers = 0;
+  let maxOrbitLaps = 0;
   for (let i = gremlins.length - 1; i >= 0; i--) {
     const g = gremlins[i];
     g.age += dt;
@@ -1084,7 +1089,7 @@ function updateArena(dt) {
       g.nextLaugh = 0.85 + Math.random() * 1.15;
     }
 
-    if (g.age > 14.5) {
+    if (g.age > 17.5) {
       g.state = 'pop'; g.stepT = 0; confettiPopTotal++;
       setTimeout(() => playSfx('mini_pop', 0.7, 1.0), 120);
       continue;
@@ -1094,97 +1099,131 @@ function updateArena(dt) {
     let tx = 0, ty = 0, tz = 0;
     if (g.target === 'player' || targetSelfMode) {
       g.target = 'player';
-      tx = cam.x; ty = cam.y - 3; tz = cam.z;
+      tx = cam.x; ty = 14; tz = cam.z;
     } else {
-      // Pick nearest bot
       let bBest = bots[0], dBest = 99999;
       for (const b of bots) {
         const d = Math.hypot(b.x - g.x, b.z - g.z);
         if (d < dBest) { dBest = d; bBest = b; }
       }
       g.target = bBest;
-      tx = bBest.x; ty = 22; tz = bBest.z;
+      tx = bBest.x; ty = 16; tz = bBest.z;
     }
 
     if (g.state === 'wall' && g.wallBox) {
-      // Scale straight UP the 3D building wall!
-      g.y += 125 * dt;
+      // Drive straight UP the 3D building wall on spinning tires!
+      g.y += 130 * dt;
       if (g.y >= g.wallBox.h) {
-        // Reached rooftop! Boing vault off the roof toward target!
         g.y = g.wallBox.h + 2;
         g.state = 'search';
         const angTo = Math.atan2(tz - g.z, tx - g.x);
         g.vx = Math.cos(angTo) * 165;
         g.vz = Math.sin(angTo) * 165;
-        g.vy = 135;
+        g.vy = 115;
         playSfx('mini_boing', 0.45, 1.08);
         g.wallBox = null;
       }
       continue;
     }
 
-    if (g.state === 'orbit') {
-      const angSpd = (10.5 + g.role * 1.6) * g.orbitDir; // rad/s (~1.8 orbits/sec!)
-      g.orbitAng += angSpd * dt;
-      g.orbitDeg += Math.abs(angSpd * dt) * (180 / Math.PI);
-
-      const gx = tx + Math.cos(g.orbitAng) * g.orbitRad;
-      const gz = tz + Math.sin(g.orbitAng) * g.orbitRad;
-      const gy = Math.max(2, ty - 6 + Math.sin(g.animT * 13.5) * 9.5);
-      g.x += (gx - g.x) * Math.min(1, dt * 14);
-      g.z += (gz - g.z) * Math.min(1, dt * 14);
-      g.y += (gy - g.y) * Math.min(1, dt * 14);
-      g.yaw = Math.atan2(tz - g.z, tx - g.x);
-
-      if (g.target === 'player') {
-        selfSwarmers++;
-        maxSelfOrbits = Math.max(maxSelfOrbits, g.orbitDeg / 360);
-      }
-
-      // Non-lethal 1% annoyance poke (strictly clamped >= 1 HP!)
-      g.nextPoke -= dt;
-      if (g.nextPoke <= 0) {
-        g.nextPoke = 0.9 + Math.random() * 0.35;
-        if (g.target === 'player') {
-          if (playerHp > 1) playerHp = Math.max(1, playerHp - 1);
-        } else if (g.target && g.target.hp > 1) {
-          g.target.hp = Math.max(1, g.target.hp - 1);
-        }
-      }
-
-      // Completed 5 full circles (1800°) -> Balloon Swell & Rainbow Confetti POP!
-      if (g.orbitDeg >= 1800) {
+    // POST-3-LAP ATTACK FRENZY ('attack') — Unleashed ONLY after 3 full driving laps (1080 deg)!
+    if (g.state === 'attack') {
+      activeAttackers++;
+      if (g.age >= g.attackEnd) {
         g.state = 'pop';
         g.stepT = 0;
         confettiPopTotal++;
         setTimeout(() => playSfx('mini_pop', 0.85, 0.95 + Math.random() * 0.16), 130);
+        continue;
+      }
+      const angTo = Math.atan2(tz - g.z, tx - g.x);
+      g.yaw = angTo;
+      const distT = Math.hypot(tx - g.x, tz - g.z);
+      const chgSpd = 175 + g.role * 16;
+      g.vx = Math.cos(angTo) * chgSpd;
+      g.vz = Math.sin(angTo) * chgSpd;
+      g.vy -= 360 * dt;
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+      g.z += g.vz * dt;
+      if (g.y <= 0) {
+        g.y = 0;
+        g.vy = 125 + Math.random() * 55;
+        playSfx('mini_boing', 0.28, 1.02 + Math.random() * 0.16);
+      }
+      if (distT < 36) {
+        g.nextPoke -= dt;
+        if (g.nextPoke <= 0) {
+          g.nextPoke = 0.72 + Math.random() * 0.40;
+          if (g.target === 'player') {
+            if (playerHp > 1) playerHp = Math.max(1, playerHp - 1);
+          } else if (g.target && g.target.hp > 1) {
+            g.target.hp = Math.max(1, g.target.hp - 1);
+          }
+          // Bounce slightly back after ramming so they keep lunging repeatedly!
+          g.x -= Math.cos(angTo) * 14;
+          g.z -= Math.sin(angTo) * 14;
+        }
       }
       continue;
     }
 
-    // State === 'search': Fast scurry + pogo bounce + building climb detection!
+    // SWARM & WHEEL-DRIVE 3 FULL LAPS FIRST ('orbit') — ZERO attacks / ZERO damage during Laps 1..3!
+    if (g.state === 'orbit') {
+      activeOrbiters++;
+      const angSpd = (5.4 + g.role * 0.65) * g.orbitDir; // ~0.92 laps/sec -> 3 full laps in ~3.2s!
+      g.orbitAng += angSpd * dt;
+      g.orbitDeg += Math.abs(angSpd * dt) * (180 / Math.PI);
+      maxOrbitLaps = Math.max(maxOrbitLaps, g.orbitDeg / 360);
+
+      const gx = tx + Math.cos(g.orbitAng) * g.orbitRad;
+      const gz = tz + Math.sin(g.orbitAng) * g.orbitRad;
+      g.x += (gx - g.x) * Math.min(1, dt * 12);
+      g.z += (gz - g.z) * Math.min(1, dt * 12);
+      g.y = Math.max(0, g.y - 280 * dt); // Tires stay smoothly planted on the floor while driving!
+
+      // Face forward along the driving circle tangent so they visibly MOTOR around the enemy!
+      const tangX = -Math.sin(g.orbitAng) * g.orbitDir;
+      const tangZ =  Math.cos(g.orbitAng) * g.orbitDir;
+      g.yaw = Math.atan2(tangZ, tangX);
+
+      // Completed 3 full driving laps (3 * 360 = 1080°) -> UNLEASH SWARM ATTACK!
+      if (g.orbitDeg >= 1080) {
+        g.state = 'attack';
+        g.attackEnd = g.age + 4.2 + Math.random() * 1.2;
+        g.vy = 135 + Math.random() * 45;
+        playSfx('mini_scream1', 0.45, 1.04 + Math.random() * 0.10);
+      }
+      continue;
+    }
+
+    // State === 'search': Smooth grounded Seated Wheel-Driving + Building Wall-Drive!
     const distT = Math.hypot(tx - g.x, tz - g.z);
-    if (distT < 52 && g.y < 48) {
+    if (distT < 74 && g.y < 36) {
       g.state = 'orbit';
       g.orbitAng = Math.atan2(g.z - tz, g.x - tx);
       continue;
     }
 
-    // Steer toward target (role 2 seeks nearby building walls first to show off climbing!)
+    // Steer smoothly like a low-rider go-kart toward target (role 2 visits nearby building wall first!)
     let goalX = tx, goalZ = tz;
-    if (g.role === 2 && g.age < 4.2) {
+    if (g.role === 2 && g.age < 3.4) {
       const bNear = BUILDINGS[i % BUILDINGS.length];
       goalX = (bNear.x0 + bNear.x1) * 0.5;
       goalZ = bNear.z0 - 4;
     }
-    const wantYaw = Math.atan2(goalZ - g.z, goalX - g.x) + Math.sin(g.animT * 5) * 0.25;
-    g.yaw = wantYaw;
-    const scurrySpd = 135 + g.role * 18;
-    g.vx = Math.cos(g.yaw) * scurrySpd;
-    g.vz = Math.sin(g.yaw) * scurrySpd;
-    g.vy -= 340 * dt;
+    const wantYaw = Math.atan2(goalZ - g.z, goalX - g.x) + Math.sin(g.animT * 3.8) * 0.18;
+    let dYaw = wantYaw - g.yaw;
+    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+    g.yaw += Math.max(-7.5 * dt, Math.min(7.5 * dt, dYaw));
 
-    // Ground / Rooftop support
+    const driveSpd = 148 + g.role * 18;
+    g.vx = Math.cos(g.yaw) * driveSpd;
+    g.vz = Math.sin(g.yaw) * driveSpd;
+    g.vy -= 380 * dt;
+
+    // Ground / Rooftop support (tires stay smoothly planted on floor!)
     let floorH = 0;
     for (const bd of BUILDINGS) {
       if (g.x >= bd.x0 && g.x <= bd.x1 && g.z >= bd.z0 && g.z <= bd.z1 && g.y >= bd.h - 8) {
@@ -1197,19 +1236,14 @@ function updateArena(dt) {
 
     if (g.y <= floorH) {
       g.y = floorH;
-      if (g.role === 1 || Math.random() < 0.06) {
-        g.vy = 115 + Math.random() * 65;
-      } else {
-        g.vy = 0;
-      }
+      g.vy = 0;
     }
 
-    // Building collision -> Latch onto vertical building wall & climb straight UP!
+    // Building collision -> Drive straight UP the vertical building wall!
     for (const bd of BUILDINGS) {
       if (g.x > bd.x0 - 6 && g.x < bd.x1 + 6 && g.z > bd.z0 - 6 && g.z < bd.z1 + 6 && g.y < bd.h - 6) {
         g.state = 'wall';
         g.wallBox = bd;
-        // Snap onto nearest exterior face
         const dL = Math.abs(g.x - bd.x0), dR = Math.abs(g.x - bd.x1);
         const dF = Math.abs(g.z - bd.z0), dB = Math.abs(g.z - bd.z1);
         const mMin = Math.min(dL, dR, dF, dB);
@@ -1224,12 +1258,14 @@ function updateArena(dt) {
 
   // Update HUD
   document.getElementById('hudHp').textContent = playerHp + '%';
-  document.getElementById('hudSwarmCount').innerHTML = `ACTIVE GREMLINS: <b>${gremlins.length}</b> &nbsp;|&nbsp; CONFETTI POPS: <b>${confettiPopTotal}</b>`;
+  document.getElementById('hudSwarmCount').innerHTML = `ACTIVE GREEN MEN: <b>${gremlins.length}</b> &nbsp;|&nbsp; CONFETTI POPS: <b>${confettiPopTotal}</b>`;
   const stEl = document.getElementById('hudOrbitStatus');
-  if (selfSwarmers > 0) {
-    stEl.textContent = `SWARMING YOUR SCREEN! Orbit ${Math.min(5, maxSelfOrbits).toFixed(1)} / 5.0 -> Confetti Pop!`;
+  if (activeAttackers > 0) {
+    stEl.textContent = `3 LAPS COMPLETE — SWARM ATTACKING! (${activeAttackers} Lunging · Clamped >= 1 HP!)`;
+  } else if (activeOrbiters > 0) {
+    stEl.textContent = `WHEEL-DRIVING LAP ${Math.min(3.0, maxOrbitLaps).toFixed(1)} / 3.0 AROUND TARGET (0 DMG) -> THEN ATTACK!`;
   } else {
-    stEl.textContent = '1% Non-Lethal Chip Pokes (Clamped >= 1 HP) · Shoot for Helium Spin!';
+    stEl.textContent = 'Drives 3 Laps Around Enemy First (0 Dmg) -> Then Attacks! · Shoot for Spin!';
   }
 }
 
@@ -1360,28 +1396,28 @@ function renderArena() {
     });
   }
 
-  // 12 Mini-Gremlins (16-Angle Scurry / Wall-Climb / Pogo-Jump / Shot-Spin / Rainbow Confetti Pop!)
+  // 12 Bigger Wheel-Driving Green Men (16-Angle Seated Wheel-Drive / Wall-Drive / Post-3-Lap Attack / Spin / Confetti Pop!)
   for (const g of gremlins) {
     const p = projectPt(g.x, g.y, g.z, W, H);
     if (!p) continue;
     drawables.push({
       z: p.z,
       draw: () => {
-        const sz = (g.state === 'pop' || g.state === 'spin' ? 36 : 30) * p.scale;
+        const sz = (g.state === 'pop' || g.state === 'spin' ? 60 : 52) * p.scale;
         if (g.state === 'spin') {
           const idx = Math.min(23, Math.floor((g.stepT / 0.60) * 24));
-          drawAtlasCell(aCtx, 'mini_fx', idx, p.sx - sz * 0.5, p.sy - sz * 0.85, sz, sz);
+          drawAtlasCell(aCtx, 'mini_fx', idx, p.sx - sz * 0.5, p.sy - sz * 0.86, sz, sz);
         } else if (g.state === 'pop') {
           const idx = 24 + Math.min(23, Math.floor(g.stepT * 38));
-          drawAtlasCell(aCtx, 'mini_fx', idx, p.sx - sz * 0.5, p.sy - sz * 0.85, sz, sz);
+          drawAtlasCell(aCtx, 'mini_fx', idx, p.sx - sz * 0.5, p.sy - sz * 0.86, sz, sz);
         } else {
           const viewYaw = Math.atan2(cam.z - g.z, cam.x - g.x);
           let rel = ((viewYaw - g.yaw) * 180 / Math.PI) % 360;
           if (rel < 0) rel += 360;
           const d16 = Math.floor(rel / 22.5 + 0.5) % 16;
-          const f12 = Math.floor(g.animT * 30) % 12;
-          const key = g.state === 'wall' ? 'wall_climb' : (g.state === 'orbit' || g.y > 4 || g.role === 1 ? 'pogo_jump' : 'scurry');
-          drawAtlasCell(aCtx, key, d16 * 12 + f12, p.sx - sz * 0.5, p.sy - sz * 0.88, sz, sz);
+          const f12 = Math.floor(g.animT * 34) % 12;
+          const key = g.state === 'wall' ? 'wall_climb' : (g.state === 'attack' ? 'pogo_jump' : 'scurry');
+          drawAtlasCell(aCtx, key, d16 * 12 + f12, p.sx - sz * 0.5, p.sy - sz * 0.89, sz, sz);
         }
       }
     });

@@ -1533,15 +1533,17 @@ void() Vehicles_Impulse =
 
 	Veh_NearPrompt ();
 	JohnBird_Impulse ();
+	EricCannon_Impulse ();
 	if (!self.impulse)
 		return;
-	// 86 = get in (when standing in a van's driver's seat or beside perched Winged John), 87 = camera,
+	// 86 = get in (when standing beside Eric Deason Cannon, perched Winged John, or van driver's seat), 87 = camera,
 	// 88 = a running van right here, nose the way you face, 89 = (sv_cheats) into the cab of the nearest van
 	if (self.impulse == 86)
 	{
 		self.impulse = 0;
-		if (!JohnBird_TryEnterKey ())
-			Veh_EnterKey ();
+		if (!EricCannon_TryEnterKey ())
+			if (!JohnBird_TryEnterKey ())
+				Veh_EnterKey ();
 		return;
 	}
 	if (self.impulse == 87)

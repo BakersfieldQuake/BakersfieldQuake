@@ -28,6 +28,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance
+from scipy import ndimage
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -45,6 +46,7 @@ import greenjar_sprites as gs
 
 MOD_ROOT = os.path.abspath(os.path.join(MM_TOOLS, "..", ".."))
 PROGS_DIR = os.path.join(MOD_ROOT, "progs")
+STAGED_PROGS_DIR = os.path.abspath(os.path.join(MOD_ROOT, "..", "_bakersfield_dev", "staged_assets", "progs"))
 SCRIPTS_DIR = os.path.join(MOD_ROOT, "scripts")
 PACK_DIR = os.path.join(MOD_ROOT, "green_guy_jar_weapon")
 ATLAS_DIR = os.path.join(PACK_DIR, "atlases")
@@ -63,26 +65,67 @@ def tone_for_quake_hdr_rgba(srgb_rgba: np.ndarray, dim: float = 0.56, contrast: 
     return np.dstack([rgb_arr, a_clean])
 
 
-def tone_for_spr32_bytes(rgba: np.ndarray) -> bytes:
+def tone_for_spr32_rgba(rgba: np.ndarray) -> np.ndarray:
     pil = Image.fromarray(rgba, "RGBA")
     rgb = ImageEnhance.Contrast(pil.convert("RGB")).enhance(1.18)
     rgb = ImageEnhance.Brightness(rgb).enhance(0.52)
     rgb.putalpha(pil.getchannel("A"))
-    return rgb.tobytes()
+    return np.asarray(rgb, dtype=np.uint8)
 
 
-def write_darkplaces_spr32(spr_path: str, raw_frame_bytes: List[bytes], w: int, h: int, ground_y: int) -> float:
-    rad = math.hypot(w * 0.5, h)
-    ox = -(w // 2)
-    oy = ground_y
-    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, w, h, len(raw_frame_bytes), 0.0, 0))
-    frame_hdr = struct.pack("<i", 0) + struct.pack("<iiii", ox, oy, w, h)
-    for fb in raw_frame_bytes:
-        buf += frame_hdr
+def _tight_crop_and_bleed(rgba: np.ndarray, base_ox: int, base_oy: int) -> Tuple[int, int, int, int, bytes]:
+    h, w, _ = rgba.shape
+    ys, xs = np.nonzero(rgba[:, :, 3] > 2)
+    if len(xs) == 0:
+        empty = np.zeros((2, 2, 4), dtype=np.uint8)
+        return -1, 1, 2, 2, empty.tobytes()
+    x0 = max(0, int(xs.min()) - 1)
+    y0 = max(0, int(ys.min()) - 1)
+    x1 = min(w, int(xs.max()) + 2)
+    y1 = min(h, int(ys.max()) + 2)
+    cropped = rgba[y0:y1, x0:x1].copy()
+    pad_l = 1 if x0 == int(xs.min()) else 0
+    pad_t = 1 if y0 == int(ys.min()) else 0
+    pad_r = 1 if x1 == int(xs.max()) + 1 else 0
+    pad_b = 1 if y1 == int(ys.max()) + 1 else 0
+    if pad_l or pad_t or pad_r or pad_b:
+        cropped = np.pad(cropped, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), mode="constant", constant_values=0)
+        x0 -= pad_l
+        y0 -= pad_t
+    fg = cropped[:, :, 3] >= 32
+    if not np.any(fg):
+        fg = cropped[:, :, 3] > 0
+    if np.any(fg):
+        tr = cropped[:, :, 3] == 0
+        if np.any(tr):
+            _, (iy, ix) = ndimage.distance_transform_edt(~fg, return_indices=True)
+            cropped[tr, :3] = cropped[iy[tr], ix[tr], :3]
+    cw, ch = cropped.shape[1], cropped.shape[0]
+    return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
+
+
+def write_darkplaces_spr32(spr_path: str, toned_frames: List[np.ndarray], w: int, h: int, ground_y: int) -> float:
+    base_ox = -(w // 2)
+    base_oy = ground_y
+    packed = [_tight_crop_and_bleed(fr, base_ox, base_oy) for fr in toned_frames]
+    max_cw = max(f[2] for f in packed)
+    max_ch = max(f[3] for f in packed)
+    rad = 0.5 * math.hypot(max_cw, max_ch)
+    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+    for fox, foy, cw, ch, fb in packed:
+        buf += struct.pack("<iiiii", 0, fox, foy, cw, ch)
         buf += fb
-    os.makedirs(os.path.dirname(spr_path), exist_ok=True)
-    with open(spr_path, "wb") as f:
-        f.write(buf)
+    targets = [spr_path]
+    if os.path.isdir(os.path.dirname(STAGED_PROGS_DIR)):
+        stg_p = os.path.join(STAGED_PROGS_DIR, os.path.basename(spr_path))
+        if os.path.normcase(stg_p) != os.path.normcase(spr_path):
+            targets.append(stg_p)
+    for dst in targets:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        tmp = dst + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(buf)
+        os.replace(tmp, dst)
     return len(buf) / (1024.0 * 1024.0)
 
 
@@ -217,7 +260,7 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
     poster = Image.new("RGB", (W, H), (12, 18, 22))
     dr = ImageDraw.Draw(poster)
     dr.text((26, 16), "JAR O' GREEN GUYS (IMPULSE 62) — 60 FPS LIVE-ACTION DIGITIZED QUAKE SWARM & DISTRACTION WEAPON", fill=(134, 255, 78))
-    dr.text((26, 40), "4-Antic Spazzing Specimen Jar · Igniting Neon-Green Smoke Shatter · 12 Wall-Climbing / 5x Face-Orbiting Gremlins · 1-Shot Helium Spin -> Rainbow Confetti Pop!", fill=(176, 198, 212))
+    dr.text((26, 40), "4-Antic Spazzing Specimen Jar · Igniting Neon-Green Smoke Shatter · 12 Bigger Wheel-Driving Gremlins (Drive 3 Laps -> Then Attack!) · 1-Shot Helium Spin -> Confetti Pop!", fill=(176, 198, 212))
 
     # Left Hero Cards: 4 Held-Jar Antics + Shake + Open-Claw Whip
     hero_cards = [
@@ -238,19 +281,19 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
         dr.rectangle([bx, by, bx + 267, by + 289], outline=(68, 132, 82), width=2)
         dr.text((bx + 8, by + 6), cap, fill=(250, 214, 65))
 
-    # Middle Strip: Shatter Sequence + 16-Angle Mini-Gremlin Wall-Climb & Pogo Face-Swarm
-    dr.text((26, 378), "SHATTERING GLASS & IGNITING GREEN SMOKE  ->  12 UNLEASHED FLOOR-ZOOMING, BUILDING-CLIMBING & EYE-LEVEL FACE-BLOCKING GREMLINS", fill=(72, 226, 255))
+    # Middle Strip: Shatter Sequence + 16-Angle Bigger Wheel-Driving, Wall-Driving & Post-3-Lap Attack Lunge!
+    dr.text((26, 378), "SHATTERING GLASS & IGNITING GREEN SMOKE  ->  12 BIGGER WHEEL-DRIVING GREEN MEN (SWARM & DRIVE 3 LAPS AROUND ENEMY -> THEN LUNGE ATTACK!)", fill=(72, 226, 255))
     mid_cards = [
         (proj[2], "Tumbling Jar"),
         (proj[9], "Mid-Air Spin"),
         (burst[1], "Ignition Flash!"),
         (burst[7], "Glass Shatter!"),
         (burst[15], "Green Smoke Cloud!"),
-        (mini["scurry"][0][2], "Floor Zoom 0°"),
-        (mini["scurry"][4][6], "Ankle Orbit 90°"),
-        (mini["wall_climb"][2][2], "Wall-Climb Up!"),
-        (mini["wall_climb"][13][6], "Building Scale!"),
-        (mini["pogo_jump"][0][6], "Eye-Level Block!"),
+        (mini["scurry"][0][2], "Wheel-Drive 0°"),
+        (mini["scurry"][4][6], "Wheel-Drive 90°"),
+        (mini["scurry"][6][4], "3-Lap Circle 135°"),
+        (mini["wall_climb"][2][2], "Wall-Drive Up!"),
+        (mini["pogo_jump"][0][6], "Post-3-Lap Attack!"),
     ]
     for idx, (arr, cap) in enumerate(mid_cards):
         bx = 24 + idx * 168
@@ -290,8 +333,8 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
     dr.rectangle([24, 804, W - 24, 956], fill=(18, 27, 31), outline=(72, 148, 86), width=2)
     dr.text((42, 818), "BAKERSFIELD QUAKE LIVE WEAPON SPECS (FUN GUN SLOT 2 — IMPULSE 62):", fill=(134, 255, 78))
     dr.text((42, 846), "• First-Person Sprite (`progs/v_greenjar.md3`): 4 Manic In-Jar Antics + Hold-Fire Cocktail-Shaker + Whip-Throw + Belt Reload + Muffled Jar Giggles!", fill=(226, 238, 244))
-    dr.text((42, 872), "• Impact Swarm (`12x greenguy_mini.spr32`): Igniting Green-Smoke Burst -> Fast Floor Zoomers, 90° Vertical Building Climbers & Pogo Face-Jumpers!", fill=(226, 238, 244))
-    dr.text((42, 898), "• Pure Annoyance Distraction: Circles Victim 5 Full Orbits Jumping in Their Face (1%-2% Non-Lethal Chip Pokes, NEVER Kills: Clamped >= 1 HP) -> Confetti Pop!", fill=(226, 238, 244))
+    dr.text((42, 872), "• Impact Swarm (`12x greenguy_mini.spr32`): Igniting Green-Smoke Burst -> Bigger Wheel-Driving Green Men on Spinning Pneumatic Tires + Wall-Drivers!", fill=(226, 238, 244))
+    dr.text((42, 898), "• 3-Lap Go-Kart Swarm -> Attack: Drives 3 Full Circles Around Victim First (0 Damage While Circling!), THEN Lunges in to Attack (Non-Lethal >= 1 HP) -> Confetti Pop!", fill=(226, 238, 244))
     dr.text((42, 924), "• 1-Shot Helium Spin & Helium Voice Pack: Shoot Any Gremlin for a Shrieking 360° Cartwheel Spin into Rainbow Confetti + High-Pitched Laughing & Giggling!", fill=(255, 216, 92))
 
     poster_path = os.path.join(PACK_DIR, "greenjar_poster.jpg")
@@ -329,12 +372,12 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
             lbl_r = "SHATTER & GREEN SMOKE IGNITION!"
         elif gf < 44:
             sub_k = gf - 24
-            if sub_k < 10:
-                r_arr = mini["wall_climb"][(sub_k * 2) % 16][sub_k % 12]
-                lbl_r = "12x GREMLINS: WALL-CLIMBING!"
+            if sub_k < 12:
+                r_arr = mini["scurry"][(sub_k * 2) % 16][(sub_k * 2) % 12]
+                lbl_r = "WHEELING 3 LAPS AROUND ENEMY!"
             else:
-                r_arr = mini["pogo_jump"][((sub_k - 10) * 2) % 16][(sub_k * 2) % 12]
-                lbl_r = "5x FACE-BLOCKING ORBIT JUMP!"
+                r_arr = mini["pogo_jump"][((sub_k - 12) * 2) % 16][(sub_k * 2) % 12]
+                lbl_r = "LAP 3 DONE -> LUNGE ATTACK!"
         elif gf < 53:
             r_arr = mini["shot_spin"][min(23, int((gf - 44) * 2.6))]
             lbl_r = "1-SHOT HELIUM CARTWHEEL SPIN!"
@@ -353,6 +396,7 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
 
 def main() -> None:
     t0 = time.time()
+    spr32_only = ("--spr32-only" in sys.argv)
     os.makedirs(gs.WORK_DIR, exist_ok=True)
     os.makedirs(PROGS_DIR, exist_ok=True)
     os.makedirs(SCRIPTS_DIR, exist_ok=True)
@@ -362,98 +406,100 @@ def main() -> None:
     turns = build_all_16_turnarounds()
     rig = gs.JarGauntletRig(turns)
 
-    print("[2/5] Synthesizing 60 FPS Held-Jar Viewmodel, Projectile, Green-Smoke Ignition & 12-Gremlin Sprites...")
-    vm = rig.render_viewmodel_sequences_out()
+    print("[2/5] Synthesizing Projectile, Green-Smoke Ignition & Gremlin Sprites...")
     proj, burst = gs.build_projectile_and_smoke_sprites(rig)
     mini = gs.build_mini_gremlin_sprites(turns)
 
-    audit_p = os.path.join(gs.WORK_DIR, "audit_greenjar_all.jpg")
-    save_audit_sheet(rig, vm, proj, burst, mini, audit_p)
-    print(f"      Saved visual audit sheet -> {audit_p}")
+    if not spr32_only:
+        vm = rig.render_viewmodel_sequences_out()
+        audit_p = os.path.join(gs.WORK_DIR, "audit_greenjar_all.jpg")
+        save_audit_sheet(rig, vm, proj, burst, mini, audit_p)
+        print(f"      Saved visual audit sheet -> {audit_p}")
 
-    print("[3/5] Exporting DarkPlaces `progs/v_greenjar.md3` + 112 skins + `scripts/greenjarvm.shader`...")
-    for old in glob.glob(os.path.join(PROGS_DIR, "gjvm_*.png")) + glob.glob(os.path.join(PROGS_DIR, "v_greenjar.md3_*.skin")):
-        os.remove(old)
+        print("[3/5] Exporting DarkPlaces `progs/v_greenjar.md3` + 112 skins + `scripts/greenjarvm.shader`...")
+        for old in glob.glob(os.path.join(PROGS_DIR, "gjvm_*.png")) + glob.glob(os.path.join(PROGS_DIR, "v_greenjar.md3_*.skin")):
+            os.remove(old)
 
-    # Skin table:
-    #   0..59   (60): Idle 4-antic loop (every 3rd frame of 180f -> 20 FPS = 3.0s)
-    #   60..75  (16): Cocktail-Shaker loop (16 evenly spaced frames of 24f -> 40 FPS = 0.40s)
-    #   76..93  (18): Whip-Throw & Splayed Open-Claw Release (all 18f; jar launches at skin 84!)
-    #   94..111 (18): Belt-Snatch Reload (all 18f)
-    idle_60 = [vm["vm_idle"][i * 3] for i in range(60)]
-    shake_16 = [vm["vm_shake"][int(round(i * 23 / 15.0))] for i in range(16)]
-    throw_18 = vm["vm_throw"]
-    reload_18 = vm["vm_reload"]
-    all_112 = idle_60 + shake_16 + throw_18 + reload_18
-    assert len(all_112) == 112
+        idle_60 = [vm["vm_idle"][i * 3] for i in range(60)]
+        shake_16 = [vm["vm_shake"][int(round(i * 23 / 15.0))] for i in range(16)]
+        throw_18 = vm["vm_throw"]
+        reload_18 = vm["vm_reload"]
+        all_112 = idle_60 + shake_16 + throw_18 + reload_18
+        assert len(all_112) == 112
 
-    shader_names: List[str] = []
-    for idx, fr in enumerate(all_112):
-        toned = tone_for_quake_hdr_rgba(fr, dim=0.56, contrast=1.08)
-        tex_name = f"gjvm_{idx:03d}"
-        Image.fromarray(toned, "RGBA").save(os.path.join(PROGS_DIR, f"{tex_name}.png"), optimize=False)
-        sh = f"progs/{tex_name}"
-        shader_names.append(sh)
-        with open(os.path.join(PROGS_DIR, f"v_greenjar.md3_{idx}.skin"), "wb") as sf:
-            sf.write(f"card,{sh}\n".encode("ascii"))
+        shader_names: List[str] = []
+        for idx, fr in enumerate(all_112):
+            toned = tone_for_quake_hdr_rgba(fr, dim=0.56, contrast=1.08)
+            tex_name = f"gjvm_{idx:03d}"
+            Image.fromarray(toned, "RGBA").save(os.path.join(PROGS_DIR, f"{tex_name}.png"), optimize=False)
+            sh = f"progs/{tex_name}"
+            shader_names.append(sh)
+            with open(os.path.join(PROGS_DIR, f"v_greenjar.md3_{idx}.skin"), "wb") as sf:
+                sf.write(f"card,{sh}\n".encode("ascii"))
 
-    # Viewport quad placement: jar centered comfortably in right-hand viewmodel zone, forearm sweeping past bottom-right!
-    write_card_md3(
-        os.path.join(PROGS_DIR, "v_greenjar.md3"),
-        "v_greenjar",
-        "card",
-        shader_names[0],
-        dx=14.0,
-        y_left=-1.5,
-        y_right=-26.5,
-        z_bot=-18.6,
-        z_top=8.2,
-    )
-
-    sh_lines = ["// written by source/mm_tools/green_guy_jar/bake_greenjar_all.py\n"]
-    for sh in shader_names:
-        sh_lines.append(
-            f"{sh}\n{{\n\tcull none\n\t{{\n\t\tmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
+        write_card_md3(
+            os.path.join(PROGS_DIR, "v_greenjar.md3"),
+            "v_greenjar",
+            "card",
+            shader_names[0],
+            dx=14.0,
+            y_left=-1.5,
+            y_right=-26.5,
+            z_bot=-18.6,
+            z_top=8.2,
         )
-    with open(os.path.join(SCRIPTS_DIR, "greenjarvm.shader"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("".join(sh_lines))
 
-    print("[4/5] Exporting DarkPlaces `.spr32` world sprites (`greenjar_proj`, `greenjar_burst`, `greenguy_mini`)...")
-    proj_16_bytes = [
-        tone_for_spr32_bytes(resize_rgba_premul(proj[int(round(i * 23 / 15.0))], 96, 96))
+        sh_lines = ["// written by source/mm_tools/green_guy_jar/bake_greenjar_all.py\n"]
+        for sh in shader_names:
+            sh_lines.append(
+                f"{sh}\n{{\n\tcull none\n\t{{\n\t\tmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
+            )
+        with open(os.path.join(SCRIPTS_DIR, "greenjarvm.shader"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("".join(sh_lines))
+
+    print("[4/5] Exporting tight-cropped DarkPlaces `.spr32` world sprites (`greenjar_proj`, `greenjar_burst`, `greenguy_mini`)...")
+    proj_16_toned = [
+        tone_for_spr32_rgba(resize_rgba_premul(proj[int(round(i * 23 / 15.0))], 96, 96))
         for i in range(16)
     ]
-    mb_proj = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_proj.spr32"), proj_16_bytes, 96, 96, 48)
+    mb_proj = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_proj.spr32"), proj_16_toned, 96, 96, 48)
 
-    burst_16_bytes = [
-        tone_for_spr32_bytes(resize_rgba_premul(burst[int(round(i * 35 / 15.0))], 160, 160))
+    burst_16_toned = [
+        tone_for_spr32_rgba(resize_rgba_premul(burst[int(round(i * 35 / 15.0))], 160, 160))
         for i in range(16)
     ]
-    mb_burst = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_burst.spr32"), burst_16_bytes, 160, 160, 104)
+    mb_burst = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_burst.spr32"), burst_16_toned, 160, 160, 104)
 
-    mini_bytes: List[bytes] = []
-    # 0..95: scurry (16 dirs x 6 frames)
-    for d in range(N_DIRS):
+    # Compact 176-frame 8-direction layout (0.60x of 160x160 -> 96x96, ground=84; paired with m.scale = 0.9333 in greenjar.qc):
+    #   0..47    (48): wheel_drive  (8 dirs x 6 frames)
+    #   48..95   (48): wall_climb   (8 dirs x 6 frames)
+    #   96..143  (48): attack_lunge (8 dirs x 6 frames)
+    #   144..159 (16): shot_spin    (16 frames)
+    #   160..175 (16): balloon_pop  (4 swell + 12 confetti pop frames)
+    MINI_SPR_W = 96
+    MINI_SPR_GROUND = 84  # 140 * 96 / 160 = 84 exact pneumatic tire contact line!
+    mini_toned: List[np.ndarray] = []
+    for d in range(0, N_DIRS, 2):
         for k in range(6):
-            mini_bytes.append(tone_for_spr32_bytes(resize_rgba_premul(mini["scurry"][d][k * 2], 112, 112)))
-    # 96..191: wall_climb (16 dirs x 6 frames)
-    for d in range(N_DIRS):
+            mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["scurry"][d][k * 2], MINI_SPR_W, MINI_SPR_W)))
+    for d in range(0, N_DIRS, 2):
         for k in range(6):
-            mini_bytes.append(tone_for_spr32_bytes(resize_rgba_premul(mini["wall_climb"][d][k * 2], 112, 112)))
-    # 192..287: pogo_jump (16 dirs x 6 frames)
-    for d in range(N_DIRS):
+            mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["wall_climb"][d][k * 2], MINI_SPR_W, MINI_SPR_W)))
+    for d in range(0, N_DIRS, 2):
         for k in range(6):
-            mini_bytes.append(tone_for_spr32_bytes(resize_rgba_premul(mini["pogo_jump"][d][k * 2], 112, 112)))
-    # 288..303: shot_spin (16 frames)
+            mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["pogo_jump"][d][k * 2], MINI_SPR_W, MINI_SPR_W)))
     for i in range(16):
-        mini_bytes.append(tone_for_spr32_bytes(resize_rgba_premul(mini["shot_spin"][int(round(i * 23 / 15.0))], 112, 112)))
-    # 304..319: balloon_pop (4 swell frames [0,2,4,5] + 12 confetti pop frames [6..23])
+        mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["shot_spin"][int(round(i * 23 / 15.0))], MINI_SPR_W, MINI_SPR_W)))
     pop_indices = [0, 2, 4, 5] + [6 + int(round(j * 17 / 11.0)) for j in range(12)]
     for pi in pop_indices:
-        mini_bytes.append(tone_for_spr32_bytes(resize_rgba_premul(mini["balloon_pop"][pi], 112, 112)))
-    assert len(mini_bytes) == 320
-    mb_mini = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenguy_mini.spr32"), mini_bytes, 112, 112, 98)
-    print(f"      .spr32 sizes: proj={mb_proj:.2f}MB, burst={mb_burst:.2f}MB, mini={mb_mini:.2f}MB")
+        mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["balloon_pop"][pi], MINI_SPR_W, MINI_SPR_W)))
+    assert len(mini_toned) == 176
+    mb_mini = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenguy_mini.spr32"), mini_toned, MINI_SPR_W, MINI_SPR_W, MINI_SPR_GROUND)
+    print(f"      .spr32 sizes (MiB): proj={mb_proj:.2f}, burst={mb_burst:.2f}, mini={mb_mini:.2f}")
+
+    if spr32_only:
+        print(f"DONE (--spr32-only) in {time.time() - t0:.1f}s!")
+        return
 
     print("[5/5] Packing 60 FPS WebP Atlases, Showcase Poster & Preview GIF...")
     manifest = {}
@@ -472,12 +518,12 @@ def main() -> None:
 
     for key_m, fn_m in [("scurry", "mini_scurry.webp"), ("wall_climb", "mini_wall.webp"), ("pogo_jump", "mini_pogo.webp")]:
         flat_m = [mini[key_m][d][f] for d in range(N_DIRS) for f in range(12)]
-        c, r, kb = pack_webp_grid(flat_m, 128, 128, 12, os.path.join(ATLAS_DIR, fn_m), quality=82)
-        manifest[key_m] = {"w": 128, "h": 128, "cols": c, "rows": r, "count": 192, "kb": round(kb, 1)}
+        c, r, kb = pack_webp_grid(flat_m, 156, 156, 12, os.path.join(ATLAS_DIR, fn_m), quality=82)
+        manifest[key_m] = {"w": 156, "h": 156, "cols": c, "rows": r, "count": 192, "kb": round(kb, 1)}
 
     fx_flat = mini["shot_spin"] + mini["balloon_pop"]  # 24 + 24 = 48
-    c, r, kb = pack_webp_grid(fx_flat, 140, 140, 12, os.path.join(ATLAS_DIR, "mini_fx.webp"), quality=84)
-    manifest["mini_fx"] = {"w": 140, "h": 140, "cols": c, "rows": r, "count": 48, "kb": round(kb, 1)}
+    c, r, kb = pack_webp_grid(fx_flat, 160, 160, 12, os.path.join(ATLAS_DIR, "mini_fx.webp"), quality=84)
+    manifest["mini_fx"] = {"w": 160, "h": 160, "cols": c, "rows": r, "count": 48, "kb": round(kb, 1)}
 
     with open(os.path.join(PACK_DIR, "manifest.json"), "w", encoding="utf-8") as mf:
         json.dump(manifest, mf, indent=2)

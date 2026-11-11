@@ -38,6 +38,7 @@ void() BM_Precache =
 	if (world.model == "maps/fox.bsp")
 		Crowd_Precache ();
 	JohnBird_Precache ();
+	EricCannon_Precache ();
 	SkyPad_Precache ();
 };
 
@@ -62,6 +63,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "mbmonster" || inflictor.classname == "mbox"
 				|| inflictor.classname == "milky" || inflictor.classname == "jwwave"
 				|| inflictor.classname == "veh_blast_inflictor" || inflictor.classname == "lan_blast_inflictor"
+				|| inflictor.classname == "eric_cannon_blast"
 				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
 				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.veh_kind > 0)
 			{
@@ -75,7 +77,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 		bm_blocked = TRUE;
 		return 0;
 	}
-	if (attacker == targ)
+	if (attacker == targ && inflictor.classname != "eric_cannon_blast")
 	{
 		damage = damage * autocvar_bm_selfdamage;
 		if (inflictor.classname == "missile")		// your own rocket: a further cut on top
@@ -520,10 +522,15 @@ void() BM_VoteTick =
 	}
 };
 
-// the maps a vote may pick, e.g. "fox bklan4"
+// the maps a vote may pick, e.g. "fox bklan4" (when bm_votemaps is unset locally, default to installed DM maps)
 string() BM_VoteMapList =
 {
-	return cvar_string ("bm_votemaps");
+	local string s;
+
+	s = cvar_string ("bm_votemaps");
+	if (s != "")
+		return s;
+	return "bakersfielddowntown downtownsmall downtown little_st_james fox bklan6 bakolansmall morrorock jsb_apartelle ooika soicowboy";
 };
 
 void(entity e, string m) BM_VoteStart =
