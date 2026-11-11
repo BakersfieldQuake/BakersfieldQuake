@@ -34,7 +34,7 @@ def file_crc32(path: str) -> int:
     return crc & 0xFFFFFFFF
 
 
-def build_zz_greenjar_pk3() -> int:
+def build_zz_greenjar_pk3() -> tuple[str, int]:
     t0 = time.perf_counter()
     rel_files = [
         "progs/v_greenjar.md3",
@@ -100,21 +100,26 @@ def build_zz_greenjar_pk3() -> int:
             else:
                 zf.write(src, rel, compress_type=zipfile.ZIP_DEFLATED, compresslevel=6)
 
-    os.replace(tmp_pk3, PK3_GJ)
-    pk3_size = os.path.getsize(PK3_GJ)
+    out_pk3 = PK3_GJ
+    try:
+        os.replace(tmp_pk3, PK3_GJ)
+    except PermissionError:
+        out_pk3 = tmp_pk3
+        print(f"[pk3] {PK3_GJ} is open in DarkPlaces; using freshly built {tmp_pk3} for upload")
+    pk3_size = os.path.getsize(out_pk3)
     dt = time.perf_counter() - t0
     print(
-        f"[pk3] Built {PK3_GJ}: {len(rel_files)} files, "
+        f"[pk3] Built {out_pk3}: {len(rel_files)} files, "
         f"{raw_bytes / 1048576:.2f} MB raw -> {pk3_size / 1048576:.2f} MB pk3 in {dt:.1f}s"
     )
-    return pk3_size
+    return out_pk3, pk3_size
 
 
-def sync_local_dist() -> None:
+def sync_local_dist(pk3_src: str) -> None:
     if not os.path.isdir(DIST_MOD):
         return
-    for src_path in (PROGS_DAT, PK3_GJ):
-        dst_path = os.path.join(DIST_MOD, os.path.basename(src_path))
+    for src_path, dst_name in ((PROGS_DAT, "progs.dat"), (pk3_src, "zz_greenjar.pk3")):
+        dst_path = os.path.join(DIST_MOD, dst_name)
         try:
             shutil.copy2(src_path, dst_path)
             print(f"[dist] Synced {dst_path}")
@@ -132,8 +137,8 @@ def main() -> None:
     progs_size = os.path.getsize(PROGS_DAT)
     print(f"[progs] Local progs.dat: {progs_size:,} bytes")
 
-    pk3_size = build_zz_greenjar_pk3()
-    sync_local_dist()
+    pk3_src, pk3_size = build_zz_greenjar_pk3()
+    sync_local_dist(pk3_src)
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     backup_dir = f"/opt/quake/backup/{stamp}-greenjar"
@@ -147,9 +152,18 @@ def main() -> None:
 
     print("[vps] Uploading progs.dat and zz_greenjar.pk3 ...")
     subprocess.run(
-        SCP + [PROGS_DAT, PK3_GJ, f"{HOST}:/opt/quake/BakersfieldQuake/"],
+        SCP + [PROGS_DAT, f"{HOST}:/opt/quake/BakersfieldQuake/progs.dat"],
         check=True,
     )
+    subprocess.run(
+        SCP + [pk3_src, f"{HOST}:/opt/quake/BakersfieldQuake/zz_greenjar.pk3"],
+        check=True,
+    )
+    if pk3_src != PK3_GJ and os.path.isfile(pk3_src):
+        try:
+            os.replace(pk3_src, PK3_GJ)
+        except PermissionError:
+            os.remove(pk3_src)
 
     patch_py = r"""
 import pathlib
