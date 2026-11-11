@@ -773,6 +773,11 @@ void(entity hit) MM_RocketBoom =
 void(entity hit) MegaMan_Explode =
 {
 	dprint ("Mega Man exploded at ", vtos (self.origin), "\n");
+	// he still had takedamage and health: his own splash found him, killed him and ran MegaMan_Dud (a second boom,
+	// a second set of debris) before this went on
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.classname = "mmdead";		// the explosion sprite must not count as a live Mega Man (MegaMan_Launch sets the oldest off)
 
 	// hit != world: it already took the direct damage, skip it in the splash
 	mm_inflicting = TRUE;
@@ -800,6 +805,7 @@ void() MegaMan_Dud =
 	dprint ("Mega Man fell apart at ", vtos (self.origin), "\n");
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
+	self.classname = "mmdead";		// see MegaMan_Explode
 #ifdef COMBATPLUS
 	MM_Sound (self, CHAN_VOICE, MegaMan_BoomClip (), 1, 100);
 	MM_RocketBoom (world);
@@ -866,12 +872,17 @@ entity() MegaMan_FindTarget =
 	sightd = MM_SEEK_RANGE * 2;
 	scentd = MM_SEEK_RANGE * 2;
 
-	e = findradius (self.origin, MM_SEEK_RANGE);
+	// in deathmatch only players count (MM_IsEnemy): walk the frame's player list instead of a 4000-unit findradius,
+	// which took in nearly every edict on the map (debris, gibs, goo) 20 times a second per Mega Man
+	if (deathmatch)
+		e = bm_player_head;
+	else
+		e = findradius (self.origin, MM_SEEK_RANGE);
 	while (e)
 	{
-		if (MM_IsEnemy (e))
+		d = vlen (e.origin - self.origin);
+		if (d <= MM_SEEK_RANGE && MM_IsEnemy (e))
 		{
-			d = vlen (e.origin - self.origin);
 			dd = d;
 			if (e == self.mm_target)
 				dd = d * 0.7;		// stick with the one it is after rather than flip between two
@@ -891,7 +902,10 @@ entity() MegaMan_FindTarget =
 				}
 			}
 		}
-		e = e.chain;
+		if (deathmatch)
+			e = e.bm_player_next;
+		else
+			e = e.chain;
 	}
 
 	// somebody in plain sight is the one to run down; otherwise it still heads for the nearest enemy
@@ -1203,7 +1217,16 @@ void() MegaMan_Think =
 		self.yaw_speed = MM_TURN_CHASE;
 	if (look > 16 && MM_Clear (desired, look) < 1)
 	{
-		desired = MM_OpenYaw (desired, look);
+		// the search for a way round costs up to 18 more MM_Clear checks (1-2 traceboxes each): chasing someone round a
+		// wall did it every tick. Keep the way found while it stays clear, for up to 0.25 s
+		if (time < self.mm_detour_t && MM_Clear (self.mm_detour_yaw, look) >= 1)
+			desired = self.mm_detour_yaw;
+		else
+		{
+			desired = MM_OpenYaw (desired, look);
+			self.mm_detour_yaw = desired;
+			self.mm_detour_t = time + 0.25;
+		}
 		self.yaw_speed = MM_TURN_AVOID;
 		if (!targ)
 			self.mm_heading = desired;
@@ -1459,7 +1482,7 @@ void() MegaMan_UpdateVwep =
 	local entity e;
 	local float show;
 
-	show = (self.weapon == IT_MEGAMAN && self.health > 0 && !(self.items & IT_INVISIBILITY));
+	show = (self.weapon == IT_MEGAMAN && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
 	if (!show)
 	{
 		if (self.mm_vwep)
@@ -1536,14 +1559,21 @@ void() MegaMan_ViewFrame =
 	MegaMan_UpdateVwep ();
 
 	if (self.weapon != IT_MEGAMAN)
+	{
+		self.mm_vm_var = 0;
 		return;
+	}
 
 	// Optional 4-Weapon Arsenal live switcher via cvar "mm_variant" (0=classic v_megaman, 1=cannon, 2=slingshot, 3=bow, 4=handthrow)
 	want_mdl = MM_PickVModel ();
 	mv = mm_variant_cached;
 	if (self.weaponmodel != want_mdl)
-	{
 		self.weaponmodel = want_mdl;
+	// the Combat+ adjustable view model clears weaponmodel every frame (custom_effects.qc), so a weaponmodel change can't
+	// tell when to reset: that cancelled every inspect on the next frame. Reset on switching in or changing mm_variant only.
+	if (self.mm_vm_var != mv + 1)
+	{
+		self.mm_vm_var = mv + 1;
 		self.mm_inspect_t = 0;
 		self.mm_next_inspect = time + 3.5 + random () * 4.0;
 	}

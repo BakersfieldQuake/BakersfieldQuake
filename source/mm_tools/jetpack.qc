@@ -59,7 +59,11 @@ void() Jetpack_Touch =
 	dprint ("jetpack picked up\n");
 	sound (other, CHAN_ITEM, "items/armor1.wav", 1, ATTN_NORM);
 	stuffcmd (other, "bf\n");
-	centerprint (other, "You got the JETPACK!\n\njump again in the air to fly\nhold jump to climb, J to switch off");
+	if (!other.jp_hint_shown)
+	{
+		other.jp_hint_shown = TRUE;
+		centerprint (other, "Jetpack: double-jump in air to fly (J off)");
+	}
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NONE;
 	self.avelocity = '0 0 0';
@@ -349,6 +353,15 @@ void() Jetpack_Fly =
 	local float up, vz, tgt, dv, mx, my, k, spd;
 	local vector wish, hv;
 
+	// flying Winged John, driving the van or steering a Rob Dob head: SPACE is theirs (John's climb key), and John clears
+	// FL_ONGROUND every frame, so it lit the pack (fuel, flames, voice) from inside the bird
+	if (self.jb_vehicle != world || self.veh_van != world || self.fd_head != world)
+	{
+		if (self.jp_on)
+			Jetpack_Off ();
+		self.jp_jump = self.button2;
+		return;
+	}
 	if (self.health <= 0)
 	{
 		Jetpack_Off ();
@@ -375,7 +388,6 @@ void() Jetpack_Fly =
 	{
 		Jetpack_On ();		// second jump in the air
 		self.jp_tap = time;
-		centerprint (self, "JETPACK ON\nlook where you want to go - jump climbs\ndouble-tap JUMP (or J) to switch it off\n");
 	}
 	else if (up && !self.jp_jump && self.jp_on)
 	{
@@ -480,15 +492,11 @@ void() Jetpack_Fly =
 	else
 		self.jp_fuel = self.jp_fuel - frametime * autocvar_jp_hover;
 	if (self.jp_fuel <= 5 && !self.jp_low)
-	{
 		self.jp_low = TRUE;
-		centerprint (self, "jetpack fuel low!");
-	}
 	if (self.jp_fuel <= 0)
 	{
 		self.jp_fuel = 0;
 		Jetpack_Off ();
-		centerprint (self, "jetpack out of fuel");
 		return;
 	}
 
@@ -512,10 +520,16 @@ void() NS_Test;			// netsend.qc: sv_cheats test impulse 80
 
 void() Jetpack_Frame =
 {
-	BK_Impulse ();
-	NS_Test ();
+	if (self.impulse)
+	{
+		BK_Impulse ();
+		NS_Test ();
+	}
 	Jetpack_Fly ();
 	Jetpack_WornFrame ();
-	self.jp_st_fuel = ceil (self.jp_fuel * 10);		// the HUD's glass tank (csqc/bm_hud.qc, stats 66 and 67)
-	self.jp_st_max = autocvar_jp_fuel * 10;
+	if (self.ishuman == 1)
+	{
+		self.jp_st_fuel = ceil (self.jp_fuel * 10);		// the HUD's glass tank (csqc/bm_hud.qc, stats 66 and 67)
+		self.jp_st_max = autocvar_jp_fuel * 10;
+	}
 };

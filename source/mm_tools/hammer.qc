@@ -151,7 +151,7 @@ void(entity hitent, vector org, vector dir, float tier, float hitfloor) Hammer_H
 				Hammer_Snd ("hammer/frying_pan.wav", 1);
 		}
 		// swat anything that walks and isn't huge, players included
-		if ((hitent.movetype == MOVETYPE_STEP || hitent.movetype == MOVETYPE_WALK) && hitent.maxs_x <= 32 && hitent.health > 0)
+		if ((hitent.movetype == MOVETYPE_STEP || hitent.movetype == MOVETYPE_WALK || (hitent.ishuman != 1 && hitent.classname == "player")) && hitent.maxs_x <= 32 && hitent.health > 0)
 		{
 			toss = v_forward;
 			toss_z = 0;

@@ -445,6 +445,14 @@ void(entity v) Veh_Park =
 {
 	local float snap, d;
 
+	if (v.veh_air)
+	{
+		// parked in mid-air (he got out, died or dropped during a jump): put it down first, else it hung in the sky for
+		// good, too high for anyone to get back in
+		tracebox (v.origin, v.mins, v.maxs, v.origin - '0 0 4096', TRUE, v);
+		if (!trace_startsolid && !trace_allsolid && trace_fraction < 1)
+			setorigin (v, trace_endpos + '0 0 0.5');
+	}
 	v.velocity = '0 0 0';
 	v.veh_steer = 0;
 	v.veh_yawrate = 0;
@@ -728,6 +736,8 @@ void(entity v) Veh_DriverBail =
 		return;
 	seat = v.origin + Veh_Fwd (v.angles_y) * 40 + Veh_Lft (v.angles_y) * 19.8;
 	seat_z = v.origin_z + 40;
+	if (Veh_ExitSpot (v, v.veh_driver))
+		seat = vd_exit;		// the seat is inside the wreck's solid box: a survivor (armor, pent) was stuck in it
 	vel = v.velocity * 0.6;
 	vel_z = 160;
 	Veh_Leave (v, seat, vel, TRUE);
@@ -753,7 +763,7 @@ void(entity v) Veh_DriveWatch =
 	if (p == world)
 		return;
 	if (p.classname != "player" || p.health <= 0 || p.veh_van != v)
-		Veh_Leave (v, p.origin, '0 0 0', TRUE);		// he stays where he fell (or is gone)
+		Veh_Leave (v, p.origin, '0 0 0', v.veh_state == VEH_STATE_WRECK);		// he stays where he fell (or is gone); the van is parked
 };
 
 // where can he get out? The driver's door, the passenger's, the back, the nose
@@ -824,7 +834,25 @@ void(entity p, entity v) Veh_TryExit =
 
 void(entity p, entity v) Veh_Enter =
 {
-	local entity cam;
+	local entity cam, oldself;
+
+	if (p.jp_on)
+	{
+		oldself = self;
+		self = p;
+		Jetpack_Off ();
+		self = oldself;
+	}
+	if (p.wc_charging)
+	{
+		p.wc_charging = 0;
+		sound (p, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
+	}
+	p.ltg_phase = 0;
+	p.milky_wind = 0;
+	p.pk_throw_at = 0;
+	p.ns_throw_at = 0;
+	p.mb_throw_at = 0;
 
 	v.veh_driver = p;
 	v.veh_drive_mode = TRUE;
@@ -883,7 +911,11 @@ void(entity p, entity v) Veh_Enter =
 	Veh_DriveCamera (p, v, 0.02);
 
 	sound (v, CHAN_VOICE, "vehicles/ignition.wav", 1, ATTN_NORM);
-	centerprint (p, "PROMASTER\n\nW throttle   S brake / reverse\nA D steer   SPACE handbrake   FIRE horn\nK camera   H get out\n");
+	if (!p.veh_hint_shown)
+	{
+		p.veh_hint_shown = TRUE;
+		centerprint (p, "WASD drive | SPACE brake | FIRE horn | K cam | H exit");
+	}
 };
 
 // the van this player can get into: first the one whose driver's seat he is standing in (the cab: x 30..72 forward of
@@ -940,14 +972,16 @@ void() Veh_NearPrompt =
 			self.veh_prompt_van = world;
 		return;
 	}
+	if (self.veh_hint_shown || time < self.veh_prompt_t)
+		return;
 	if (self.veh_prompt_van == v)
 	{
-		self.veh_prompt_t = time + 1.5;		// still beside it: keep the memory fresh
+		self.veh_prompt_t = time + 35;
 		return;
 	}
 	self.veh_prompt_van = v;
-	self.veh_prompt_t = time + 1.5;
-	centerprint (self, "Ram ProMaster\n\nPress H to drive\n");
+	self.veh_prompt_t = time + 35;
+	centerprint (self, "Press H to drive ProMaster");
 };
 
 // H on foot (called from Vehicles_Impulse)

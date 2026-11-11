@@ -20,17 +20,25 @@ void() BM_Precache =
 	precache_sound ("weapons/pkup.wav");
 	precache_sound ("misc/talk.wav");
 	precache_model ("progs/aura.md3");
+	// a map with sky pads raised sv_maxvelocity (SkyPad_RaiseMaxVel); the next map gets the value from before that back
+	registercvar ("bm_maxvel_saved", "0");
+	if (cvar ("bm_maxvel_saved") > 0)
+	{
+		cvar_set ("sv_maxvelocity", cvar_string ("bm_maxvel_saved"));
+		cvar_set ("bm_maxvel_saved", "0");
+	}
 	if (autocvar_bm_newbie > 0)
 		precache_sound ("funny/newbie.wav");
 	if (autocvar_bm_fun)
 		BM_Fun_Precache ();
-	David_Precache ();
-	Daniel_Precache ();
-	GreenSuit_Precache ();
-	RobeGuy_Precache ();
+	// Lazy sprite loading: David, Daniel, GreenSuit, RobeGuy and the crowd are about 1 GB of 32-bit sprites. Each of them
+	// precaches itself where it is used (summon impulses, map entities, npc_crowd), so a map that never shows them no longer
+	// loads them. Only the fox crowd is spawned by code after load, so fox still loads its crowd here.
 	RandomNPCs_Precache ();
-	Crowd_Precache ();
+	if (world.model == "maps/fox.bsp")
+		Crowd_Precache ();
 	JohnBird_Precache ();
+	SkyPad_Precache ();
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push
@@ -73,6 +81,8 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 		if (inflictor.classname == "missile")		// your own rocket: a further cut on top
 			damage = damage * autocvar_bm_rocketself;
 	}
+	else if (attacker.classname == "player" && attacker.ishuman != 1 && autocvar_bm_bot_dmg > 0)
+		damage = damage * autocvar_bm_bot_dmg;
 	return damage;
 };
 
@@ -103,7 +113,11 @@ void() BM_PlayerSpawned =
 		bprint (" invis ", ftos (max (0, self.invisible_finished - time)), " shell ", ftos (self.ud_blueshell), "\n");
 	}
 	if (self.ishuman == 1)
+	{
 		stuffcmd (self, "alias vote \"cmd vote $*\"\nv_glslgamma 1\nv_glslgamma_2d 1\n");	// map votes + apply GLSL gamma to 2D Quake HUD in windowed mode
+	}
+	else
+		BM_BotSpawnLoadout ();
 };
 
 // Underdog_Spawn, first thing: every deathmatch life starts with green armor (bm_spawnarmor), before the
@@ -176,12 +190,14 @@ void() BM_LifeFrame =
 			self.bm_prot_t = 0;
 	}
 	BM_AuraFrame ();
+	Underdog_FxFrame ();
+
+	if (self.ishuman != 1)
+		return;
 	if (self.bm_prot_t)
 		self.bm_st_prot = ceil ((self.bm_prot_t - time) * 10);
 	else
 		self.bm_st_prot = 0;
-
-	Underdog_FxFrame ();
 
 	self.bm_st_regen = (self.health > 0 && self.health < self.max_health && time > self.rg_hurt_t + Underdog_RegenDelay ());
 	self.bm_st_warmup = (autocvar_bm_warmup != 0);
@@ -202,6 +218,9 @@ void() BM_LifeFrame =
 		self.bm_st_lheat = 0;
 		self.bm_st_lshow = 0;
 	}
+
+	self.bm_st_botmask = bm_botmask_cache;
+	self.bm_st_botcnt = bot_count;
 };
 
 // SelectSpawnPoint (client.qc) asks first. bklan4 is about 28000 x 20000 units with 52 spawns scattered over it, and
@@ -228,7 +247,7 @@ entity() BM_PickSpawn =
 		{
 			dmin = 99999;
 			seen = 0;
-			p = find (world, classname, "player");
+			p = bm_player_head;
 			while (p)
 			{
 				if (p != self && p.health > 0)
@@ -243,7 +262,7 @@ entity() BM_PickSpawn =
 							seen = 1;
 					}
 				}
-				p = find (p, classname, "player");
+				p = p.bm_player_next;
 			}
 			if (dmin == 99999)
 				score = random () * 1000;
@@ -328,7 +347,7 @@ void() BM_Stats =
 	clientstat (58, 2, bm_st_regen);
 	clientstat (59, 2, bm_st_warmup);
 	clientstat (60, 2, bm_st_lheat);
-	clientstat (61, 1, bm_st_leader);
+	clientstat (72, 1, bm_st_leader);		// a string stat takes 4 slots (72-75): on 61 it ran into the coordinates on 62-64
 	clientstat (62, 2, bm_st_lx);
 	clientstat (63, 2, bm_st_ly);
 	clientstat (64, 2, bm_st_lz);
@@ -337,6 +356,8 @@ void() BM_Stats =
 	clientstat (67, 2, jp_st_max);
 	clientstat (68, 2, milk_st);		// milk on the screen after a Pink Lady burst (milky.qc, csqc/bm_hud.qc)
 	clientstat (71, 2, bm_st_slot);		// held weapon slot (16 = M4A1, csqc/bm_hud.qc)
+	clientstat (76, 2, bm_st_botmask);	// bitmask of live bot slots 0..15 (csqc/bm_hud.qc)
+	clientstat (77, 2, bm_st_botcnt);	// active bot count (csqc/bm_hud.qc)
 };
 
 float() BM_CountPlayers =
@@ -494,7 +515,7 @@ void() BM_VoteTick =
 	while (e)
 	{
 		if (e.ishuman == 1 && !e.bm_voted)
-			centerprint (e, strcat ("VOTE: change the map to ", bm_vote_map, "\n\nF5 = YES     F6 = NO\n(or type  vote yes / vote no)\n\nyes ", ftos (bm_v_yes), "   no ", ftos (bm_v_no), "   ", ftos (ceil (bm_vote_end - time)), "s left"));
+			centerprint (e, strcat ("VOTE: change the map to ", bm_vote_map, "\n\nF5 = YES     F6 = NO\n(or type  vote yes / vote no)\n\nyes ", ftos (bm_v_yes), "   no ", ftos (bm_v_no), strcat ("   ", ftos (ceil (bm_vote_end - time)), "s left")));
 		e = find (e, classname, "player");
 	}
 };
@@ -640,48 +661,66 @@ void(string s) SV_ParseClientCommand =
 // StartFrame
 void() BM_StartFrame =
 {
-	local float n, want;
+	local float n, want, cno, lim, bmask, bit;
 	local entity p, tail;
 
-	// Refresh hot cvars once per server tick instead of per-entity / per-customizeentityforclient
-	bm_cvar_grav = cvar ("sv_gravity");
-	bm_cvar_maxvel = cvar ("sv_maxvelocity");
-	bm_cvar_ltg_video = cvar ("ltg_video");
-	bm_cvar_br_mode = cvar ("br_mode");
-	bm_cvar_dv_mode = cvar ("dv_mode");
-	bm_cvar_dv_stay = cvar ("dv_stay");
-	bm_cvar_dn_mode = cvar ("dn_mode");
-	bm_cvar_dn_stay = cvar ("dn_stay");
+	// Refresh hot cvars once per server tick from engine-synced autocvars
+	bm_cvar_grav = autocvar_sv_gravity;
+	bm_cvar_maxvel = autocvar_sv_maxvelocity;
+	bm_cvar_ltg_video = autocvar_ltg_video;
+	bm_cvar_br_mode = autocvar_br_mode;
+	bm_cvar_dv_mode = autocvar_dv_mode;
+	bm_cvar_dv_stay = autocvar_dv_stay;
+	bm_cvar_dn_mode = autocvar_dn_mode;
+	bm_cvar_dn_stay = autocvar_dn_stay;
 	bm_cvar_rnpc_mode = autocvar_rnpc_mode;
 	bm_cvar_rnpc_stay = autocvar_rnpc_stay;
-	bm_cvar_pk_ofs = cvar ("pk_viewoffset");
-	bm_cvar_dev = cvar ("developer");
+	bm_cvar_pk_ofs = autocvar_pk_viewoffset;
+	bm_cvar_dev = autocvar_developer;
 
-	// Rebuild active player list once per server tick
+	// Rebuild active player list and HUD bot bitmask in a single 1..max_clients pass
 	bm_player_head = world;
 	tail = world;
-	p = find (world, classname, "player");
-	while (p)
+	bmask = 0;
+	bit = 1;
+	cno = 0;
+	lim = max_clients;
+	if (lim <= 0)
+		lim = 16;
+	p = nextent (world);
+	while (cno < lim && p != world)
 	{
-		p.bm_player_next = world;
-		if (!bm_player_head)
-			bm_player_head = p;
-		else
-			tail.bm_player_next = p;
-		tail = p;
-		p = find (p, classname, "player");
+		if (p.classname == "player")
+		{
+			p.bm_player_next = world;
+			if (!bm_player_head)
+				bm_player_head = p;
+			else
+				tail.bm_player_next = p;
+			tail = p;
+		}
+		if (cno < 16)
+		{
+			if (p.ishuman != 1 && (active_clients & bit) && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
+				bmask = bmask | bit;
+			bit = bit * 2;
+		}
+		cno = cno + 1;
+		p = nextent (p);
 	}
+	bm_botmask_cache = bmask;
 
 	Underdog_Update ();
 	Crowd_Tick ();
 	BM_VoteTick ();
+	BM_BotStartFrame ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
 		bm_debug_t = time + 2;
 		BM_DebugPrint ();
 	}
 
-	if (!deathmatch || intermission_running || time < bm_botfill_t)
+	if (!deathmatch || intermission_running || bm_manual_bots || time < bm_botfill_t)
 		return;
 	bm_botfill_t = time + 2;
 	want = autocvar_bm_botfill;
@@ -693,7 +732,7 @@ void() BM_StartFrame =
 	if (n < 1 && !autocvar_bm_botfill_empty)
 		return;		// nobody here yet: don't fill an empty server
 	if (n < want)
-		BotConnect (0, 0, cvar ("skill"));
+		BotConnect (0, 0, autocvar_skill);
 	else if (n > want && bot_count > 0)
 		KickABot ();
 };
@@ -706,7 +745,7 @@ void() BM_TestImpulses =
 	local entity e;
 	local float h0, a0;
 
-	if (!cvar ("sv_cheats"))
+	if (!self.impulse || !autocvar_sv_cheats)
 		return;
 	if (self.impulse == 48)
 	{
@@ -799,6 +838,11 @@ void() BM_TestImpulses =
 		Crowd_Line ();
 		self.impulse = 0;
 	}
+	else if (self.impulse == 60)
+	{
+		SkyPad_Report ();
+		self.impulse = 0;
+	}
 	else if (self.impulse == 57 || self.impulse == 58)
 	{
 		if (self.impulse == 57)
@@ -817,4 +861,37 @@ void() BM_PredictFrame =
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
+};
+
+// ClientDisconnect: what a leaver left in the map goes with them (NetSend PCs, armed pickles, Mega Men on the loose)
+void(entity p) BM_ClientGone =
+{
+	local entity e, nx, me;
+
+	NS_ClientGone (p);
+	FD_Reset (p);
+	me = self;
+	e = find (world, classname, "pickle");
+	while (e)
+	{
+		nx = find (e, classname, "pickle");
+		if (e.owner == p)
+		{
+			self = e;
+			Pk_Fizzle ();
+		}
+		e = nx;
+	}
+	e = find (world, classname, "megaman");
+	while (e)
+	{
+		nx = find (e, classname, "megaman");
+		if (e.owner == p)
+		{
+			self = e;
+			MegaMan_Dud ();
+		}
+		e = nx;
+	}
+	self = me;
 };

@@ -1,16 +1,19 @@
 r"""Builds the 100% Self-Contained Interactive HTML Showcase & Drop-In Pack for
-Bakersfield Quake's `bklan5` Startup Demo (`intro.dem`):
+Bakersfield Quake's Up-Close Sprite-Only Fox 360° -> 50-Swarm Explosion -> Burning Fox + Floating CCCs, DAN & ROB Intro (`intro.dem` on `maps/downtown.bsp`):
+  - Card 201 (0.0s–6.6s): Up-Close 360° Orbit of the Historic Fox Theater with 3 Milkys + 3 Pure .SPR32 Wheelman Sprites & Non-Stop Milky Song!
+  - Card 202 (6.6s–11.8s): Sudden Close-Up — 50 Milkys & Wheelman Sprites (25 + 25, Zero 3D Wheelman Models) Spinning Around the Fox Clock Tower!
+  - Card 203 (11.8s–15.3s): ALL 50 EXPLODE UP CLOSE — 25 Milky Geysers + 25 360° Wheelman Sprite Fireballs + Lens Milk Drips!
+  - Card 204 (15.3s–22.5s): FOX ON FIRE + 24 Floating Yellow CCCs + Floating DAN & ROB ("I'm floating!" & "Ah, I can't see!")!
+Outputs:
   - G:\Quake\Combat\BakersfieldQuake\bakersfield_intro_demo.html
   - G:\Quake\Combat\BakersfieldQuake\source\mm_tools\out\bakersfield_intro_demo_pack.zip
 """
 import base64
-import io
 import json
 import os
 import subprocess
 import tempfile
 import zipfile
-from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MOD_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -25,25 +28,18 @@ OUT_ZIP = os.path.join(OUT_DIR, "bakersfield_intro_demo_pack.zip")
 
 
 SHOTS_META = [
-    ("zz_shot_01_sign_white_van.png", 1, 2.8, "Card 01 • Bakersfield Sign — Solo White LAN Van Idling & Honking"),
-    ("zz_shot_02_sign_all_chars.png", 2, 8.5, "Card 02 • Bakersfield Sign — All 19 Custom Characters Pile Out of the Van!"),
-    ("zz_shot_03_fox_marquee_robdob.png", 3, 13.6, "Card 03 • Historic Fox Theater Marquee — Rob Dob Launcher & 'It's Not Pink!' Supercar"),
-    ("zz_shot_04_fox_lounge_pickle.png", 4, 18.8, "Card 04 • Fox Theater Eva's Lounge & Live TV — Giant Diva Pickle Between Dennis & Paul"),
-    ("zz_shot_05_fox_stage_wewcannon.png", 5, 23.8, "Card 05A • Fox Sunburst Stage — +58° Elastic Silver WewCannon Charge & Launch"),
-    ("zz_shot_06_fox_stage_milky_drips.png", 5, 26.8, "Card 05B • Fox Sunburst Stage — Opera Milky & Full-Screen Milk Splash Drips"),
-    ("zz_shot_07_padre_jetpack_float.png", 6, 30.2, "Card 06 • The Padre Hotel — Twin-Flame Jetpack 8-Story Ascent ('I'm Floating!!')"),
-    ("zz_shot_08_padre_roof_spanner_sentry.png", 7, 34.0, "Card 07A • Padre 96-ft Neon Rooftop — Spanner Wrench & TF Level-2 Twin Sentry"),
-    ("zz_shot_09_padre_roof_sniper_kyle.png", 7, 36.2, "Card 07B • Padre 96-ft Neon Rooftop — Sniper Laser & 'C' Bolts vs. Kyle Running With Scissors"),
-    ("zz_shot_10_larry_wh_bonk_hammer.png", 8, 39.8, "Card 08 • Larry's Warehouse (118/120 E 21st St) — Bonk Hammer *CLANG!* Launches Mr. DIY"),
-    ("zz_shot_11_blan130a_netsend.png", 9, 44.3, "Card 09A • B-LAN 130A CRT Party Hall — NetSend 3.5\" Floppy & Crashing PC ('It Won't Boot!!')"),
-    ("zz_shot_12_blan130a_laptop_gun.png", 9, 46.8, "Card 09B • B-LAN 130A CRT Party Hall — 3D Laptop Gun & Floating Head Drone Zapping Friend Rob"),
-    ("zz_shot_13_larry120a_mm_rag_polish.png", 10, 49.4, "Card 10A • Larry's 120A Mega Man Shrine — CoD Red-Rag Chrome Polish (*DING!*)"),
-    ("zz_shot_14_larry120a_megaman_bed.png", 10, 51.8, "Card 10B • Larry's 120A Mega Man Shrine — Slingshot & Wheel-Driving 3D Mega Man Over His Bed"),
-    ("zz_shot_15_orcom_googun_bigears.png", 11, 55.6, "Card 11 • ORCOM Connect Hall — Goo Gun Foam Mounds, Pong Balls, Giant Big-Ears & Rubber Finger"),
-    ("zz_shot_16_casino_david_777.png", 12, 60.5, "Card 12 • Golden West Casino — David Ojeda's 777 Money-Bag Jackpot, Pregnant Trio & Golden Horse"),
-    ("zz_shot_17_crystal_mbox_bryan.png", 13, 65.8, "Card 13 • Buck Owens' Crystal Palace & KUZZ Van — Mystery Box, Bryan ('NO WAY!') & Hell Demons"),
-    ("zz_shot_18_park_johnwave_trashcan.png", 14, 70.6, "Card 14 • Amberton Park Shelter — JohnWave Head Grenade, Wheelie Riders & NASA Rocket Trash Can"),
-    ("zz_shot_19_finale_white_van_sign.png", 15, 75.5, "Card 15 • Bakersfield Sign Finale — Open White LAN Van, Pink Supercar & Full-Circle Send-Off"),
+    ("zz_f360v2_01_fox360_se_closeup_3milkys_3wheelmans.png", 1, 0.9, "Up-Close 360° Fox Orbit (SE Marquee) — 3 Milkys & 3 Wheelman Sprites Right in Front of the Lens!"),
+    ("zz_f360v2_02_fox360_east_hst_closeup.png", 1, 2.4, "Up-Close 360° Fox Orbit (East H St) — Fire-Wheels & Jetpack Wheelman Sprites + 3 Milkys Whipping Past FOX Neon!"),
+    ("zz_f360v2_03_fox360_north_flytower_closeup.png", 1, 4.1, "Up-Close 360° Fox Orbit (North Fly-Tower) — Zero-G Close-Up Formation Behind the Historic Auditorium!"),
+    ("zz_f360v2_04_fox360_west_20thst_pipejet.png", 1, 5.7, "Up-Close 360° Fox Orbit (West → South 20th St) — Pipe-Jet Afterburner Wheelman Sprite Completing the 360°!"),
+    ("zz_f360v2_05_tower_closeup_50_swarm_reveal.png", 2, 7.3, "UP-CLOSE TOWER REVEAL — 50 Milkys & Wheelman Sprites (25 + 25) Surrounding the Fox Clock Tower!"),
+    ("zz_f360v2_06_tower_closeup_50_sprites_milkys_spin.png", 2, 9.6, "50-Sprite Clock Tower Cyclone — Pure .SPR32 Wheelman Sprites & Milkys Whipping Past the Lens!"),
+    ("zz_f360v2_07_tower_closeup_50_cyclone_peak.png", 2, 11.3, "Supersonic Vortex Peak — 25 Milkys + 25 Wheelman Sprites Spinning at Full Speed Around the Belfry!"),
+    ("zz_f360v2_08_all50_explode_wave1_lower_fireballs.png", 3, 12.6, "ALL 50 EXPLODE UP CLOSE (Wave 1) — Lower Rings Erupting in Milky Geysers & 360° Wheelman Sprite Fireballs!"),
+    ("zz_f360v2_09_all50_explode_wave2_upper_fireballs.png", 3, 13.6, "ALL 50 EXPLODE UP CLOSE (Wave 2) — Escalating 4-Tier Wheelman Fireball Sprites Climbing the Spire!"),
+    ("zz_f360v2_10_spire_megablast_lens_milk_drips.png", 3, 14.5, "Spire-Top Mega Detonation — Thick White Milk Drips Splashed Right Across the Camera Lens!"),
+    ("zz_f360v2_11_burning_fox_floating_cccs_dan_rob_drips.png", 4, 16.4, "FOX ON FIRE + FLOATING CCCs, DAN & ROB — Roaring Flames Engulf the Fox While Yellow Cs, DAN & ROB Levitate!"),
+    ("zz_f360v2_12_burning_fox_floating_cccs_dan_rob_clear.png", 4, 19.6, "\"I'm Floating!\" & \"Ah, I Can't See!\" — 24 Spinning Yellow Cs Around Floating DAN & ROB Over the Blazing Fox!"),
 ]
 
 
@@ -51,263 +47,106 @@ CARDS_DATA = [
     {
         "card": 1,
         "t0": 0.0,
-        "t1": 4.4,
-        "short": "01 • White Van Cold Open",
-        "landmark": "Bakersfield Sign // Sillect Ave",
-        "title": "Solo White LAN Van Idling & Honking",
-        "desc": "Opens right under the iconic yellow BAKERSFIELD arch on Sillect Ave showing ONLY the White LAN Van (veh_van.md3) rocking on its suspension, idling, and honking twice before chaos erupts.",
-        "weapons": ["Cinema Cold Open"],
-        "vehicles": ["White LAN Van (veh_van.md3)"],
-        "chars": ["Driver Honking Inside"],
-        "sfx_path": "sound/vehicles/horn.wav",
-        "sfx_label": "🚐 Van Horn (horn.wav)",
-        "shots": [0],
+        "t1": 6.6,
+        "short": "01 • Up-Close 360° Fox",
+        "landmark": "2001 H St // Up-Close 360° Fox Orbit (Milky Song Starts!)",
+        "title": "Up-Close 360° Fox Theater Orbit: 3 Milkys + 3 Wheelman Sprites Right in Front of the Lens!",
+        "desc": "The Milky Milky song (milky/song.ogg) kicks in from 0.0s and plays uninterrupted the entire intro while the camera whips a fast 6.6-second 360° orbit around the Historic Fox Theater with 3 Milky Milky Grenades and 3 pure .spr32 Wheelman sprites (Fire-Wheels Burnout, Jetpack Hover & Zen Lotus → Pipe-Jet) floating ~195 units right in front of the lens!",
+        "weapons": ["Non-Stop Milky Song", "Fast 6.6s 360° Orbit", "~195u Close-Up Lens Lock"],
+        "vehicles": ["1930 Historic Fox Theater"],
+        "chars": ["3 Milky Milky Grenades", "3 Pure .SPR32 Wheelman Sprites"],
+        "sfx_path": "sound/milky/song.ogg",
+        "sfx_label": "🥛🎵 Non-Stop Milky Song (Plays Whole Time!)",
+        "shots": [0, 1, 2, 3],
     },
     {
         "card": 2,
-        "t0": 4.4,
-        "t1": 11.4,
-        "short": "02 • All 19 Chars Pile Out!",
-        "landmark": "Bakersfield Sign // Sillect Ave",
-        "title": "Wait... Everybody's in the White Van?!",
-        "desc": "The rear doors burst open (veh_van_open.md3) with a Stunt-Dancer Wheelman dancing on the roof while ALL 19 custom characters pour out across Sillect Ave, calling out signature voice lines spaced ~0.74s apart so zero voices muddle together.",
-        "weapons": ["Full-Cast Roll Call"],
-        "vehicles": ["Open-Door White Van", "JessKart"],
-        "chars": ["All 19 Custom Characters", "Roof-Dancing Wheelman"],
-        "sfx_path": "sound/friends/gowewd.wav",
-        "sfx_label": "🗣 Cast Callout (gowewd.wav)",
-        "shots": [1],
+        "t0": 6.6,
+        "t1": 11.8,
+        "short": "02 • Close-Up 50 Spin!",
+        "landmark": "Fox Clock Tower // Up-Close 50-Sprite Cyclone",
+        "title": "SUDDEN CLOSE-UP: 50 Milkys & Wheelman Sprites Spinning Around the Clock Tower!",
+        "desc": "Camera snaps right up to the Fox Clock Tower (~3x closer than v1, zero letterbox clipping!) as 25 Milky Milky Grenades and 25 pure .spr32 Wheelman sprites (Fire-Wheels, B-Boy Headspin, Pipe-Jet, Jetpack Hover, Screaming, Dancer & Green-Suit — zero 3D Wheelman models!) spin up into a frantic cyclone around the belfry!",
+        "weapons": ["Up-Close Belfry Framing", "5 Stacked Rings (5×10 = 50)"],
+        "vehicles": ["74-Ft Fox Clock Tower"],
+        "chars": ["25 Milky Milky Grenades", "25 Wheelman .SPR32 Sprites Only"],
+        "sfx_path": "sound/bryan/noway.wav",
+        "sfx_label": "😱 'NO WAY!!' Close-Up 50-Sprite Swarm",
+        "shots": [4, 5, 6],
     },
     {
         "card": 3,
-        "t0": 11.4,
-        "t1": 16.4,
-        "short": "03 • Fox Marquee & Rob Dob",
-        "landmark": "Historic Fox Theater // Marquee & Clock Tower",
-        "title": "Rob Dob Head Launcher & 'It's Not Pink!' Supercar",
-        "desc": "Under the glowing FOX Bakersfield marquee and clock tower, v_robdob.mdl fires a giant spinning Fedora Rob Dob head surrounded by bouncing mini-Dobs as the gullwing 'It's Not Pink!' supercar drifts below a flying Podracer Van & Drone.",
-        "weapons": ["v_robdob.mdl (Rob Dob Launcher)"],
-        "vehicles": ["'It's Not Pink!' Supercar", "Sky Podracer Van", "Flying Drone"],
-        "chars": ["Rob Dob (Fedora Head)", "Mini-Dobs"],
-        "sfx_path": "sound/bklan/notpink.wav",
-        "sfx_label": "🏎 'It's Not Pink!' (notpink.wav)",
-        "shots": [2],
+        "t0": 11.8,
+        "t1": 15.3,
+        "short": "03 • ALL 50 EXPLODE!!",
+        "landmark": "Fox Clock Tower // Up-Close 50-Entity Detonation",
+        "title": "ALL 50 EXPLODE IN YOUR FACE: 25 Milky Geysers + 25 Wheelman Sprite Fireballs!",
+        "desc": "All 50 spinning Milkys and Wheelman sprites detonate up close in a rapid 2.2-second chain reaction: 25 white milky_boom geysers + s_explodbig.spr blasts and 25 escalating 4-tier 360° Wheelman sprite fireball explosions (zero 3D tire/axle/dome models!), splashing thick white milk drips right across the camera lens!",
+        "weapons": ["25 Milky Dairy Geysers", "25 360° Wheelman Sprite Fireballs", "Lens Milk Drips"],
+        "vehicles": ["Pure Sprite & Particle Blasts"],
+        "chars": ["All 50 Exploding Up Close!"],
+        "sfx_path": "sound/wcannon/wc_boom.wav",
+        "sfx_label": "💥🥛 50-Sprite Tower Detonation!",
+        "shots": [7, 8, 9],
     },
     {
         "card": 4,
-        "t0": 16.4,
-        "t1": 21.4,
-        "short": "04 • Eva's Lounge & Pickle",
-        "landmark": "Fox Theater Interior // Eva's Lounge & Live TV",
-        "title": "Giant Screaming Diva Pickle Surprise",
-        "desc": "Inside Eva's Lounge with bk_tv actively playing live footage on the wall, v_pickle.md3 lobs a Pickle Bomb between Dennis and Paul that sprouts into a 2x-man-height screaming Diva Pickle, swells red-hot, and explodes into 12 flying pickle gibs!",
-        "weapons": ["v_pickle.md3 (Pickle Surprise)"],
-        "vehicles": ["Live Lounge TV (bk_tv)"],
-        "chars": ["Dennis", "Paul", "Giant Diva Pickle"],
-        "sfx_path": "sound/pickle/surprise.wav",
-        "sfx_label": "🥒 Pickle Surprise! (surprise.wav)",
-        "shots": [3],
-    },
-    {
-        "card": 5,
-        "t0": 21.4,
-        "t1": 27.0,
-        "short": "05 • Fox Stage: Wew & Milky",
-        "landmark": "Fox Theater Auditorium // Golden Sunburst Stage",
-        "title": "+58° WewCannon Blast & Opera Milky Screen Splash",
-        "desc": "v_wewcannon.md3 bends upward +58° with belly-swell charge and blasts a screaming Stunt-Dancer Wheelman onto the sunburst stage, followed by v_milky.md3 summoning singing Opera Pink Lady who splashes creamy gfx/milkdrips right onto the camera lens!",
-        "weapons": ["v_wewcannon.md3 (WewCannon)", "v_milky.md3 (Milky Gun)"],
-        "vehicles": ["Sunburst Stage"],
-        "chars": ["Stunt-Dancer Wheelman", "Opera Pink Lady (Milky)"],
-        "sfx_path": "sound/milky/song.ogg",
-        "sfx_label": "🥛 Opera Milky Aria (song.ogg)",
-        "shots": [4, 5],
-    },
-    {
-        "card": 6,
-        "t0": 27.0,
-        "t1": 32.0,
-        "short": "06 • Padre Hotel Jetpack",
-        "landmark": "The Padre Hotel // 8-Story Historic Tower",
-        "title": "Twin-Flame Jetpack Skyline Ascent",
-        "desc": "With the custom orange glass CSQC JET fuel gauge burning down on HUD, QuakeGuy and Ranger ignite twin jetpack.md3 exhaust flames ('I'm floating!!') and rocket all 8 stories up the historic Padre Hotel facade.",
-        "weapons": ["jetpack.md3 + CSQC JET Gauge"],
-        "vehicles": ["Twin-Nozzle Jetpack"],
-        "chars": ["QuakeGuy", "Jetpack Ranger"],
-        "sfx_path": "sound/jetpack/floating.wav",
-        "sfx_label": "🚀 'I'm Floating!!' (floating.wav)",
-        "shots": [6],
-    },
-    {
-        "card": 7,
-        "t0": 32.0,
-        "t1": 37.0,
-        "short": "07 • Padre Roof Sentry & Sniper",
-        "landmark": "The Padre Hotel // 96-ft Neon Rooftop Sign",
-        "title": "Spanner, TF Level-2 Sentry, Sniper Laser & 'C' Bolts",
-        "desc": "Atop the 96-ft skyline roof between the giant red PADRE HOTEL neon signs, v_span.mdl deploys a twin-chaingun TF Level-2 Sentry while v_srifle.mdl paints a red laser dot and fires rapid-fire 'C' bolts (ccc.md3) chasing Kyle Running With Scissors!",
-        "weapons": ["v_span.mdl (Spanner)", "TF Level-2 Sentry", "v_srifle.mdl (Sniper)", "ccc.md3 ('C' Bolts)"],
-        "vehicles": ["Turret Platform"],
-        "chars": ["Kyle Running With Scissors"],
-        "sfx_path": "sound/weapons/sniper.wav",
-        "sfx_label": "🎯 Sniper Crack (sniper.wav)",
-        "shots": [7, 8],
-    },
-    {
-        "card": 8,
-        "t0": 37.0,
-        "t1": 42.0,
-        "short": "08 • Larry's WH Bonk Hammer",
-        "landmark": "Larry's Warehouse (118/120 E 21st St) // Pallet & TV Hall",
-        "title": "The Bonk Hammer (Frying-Pan Edition) vs. Mr. DIY",
-        "desc": "Inside Larry's iconic warehouse hall in front of the live wall TV and orange forklift, v_hammer.mdl performs its inspect twirl, charges to maximum glow, and slams down with an ear-ringing *CLANG!* sending Mr. DIY and his burst of hammers, screwdrivers & coins flying!",
-        "weapons": ["v_hammer.mdl (Bonk Hammer)"],
-        "vehicles": ["Orange Warehouse Forklift"],
-        "chars": ["Mr. DIY (+ Flying Tool Burst)"],
-        "sfx_path": "sound/hammer/frying_pan.wav",
-        "sfx_label": "🔨 Frying-Pan *CLANG!* (frying_pan.wav)",
-        "shots": [9],
-    },
-    {
-        "card": 9,
-        "t0": 42.0,
-        "t1": 47.4,
-        "short": "09 • B-LAN 130A NetSend & Laptop",
-        "landmark": "Larry's Warehouse // B-LAN 130A CRT Party Hall",
-        "title": "NetSend 3.5\" Floppy PC & 3D Laptop Gun",
-        "desc": "Among rows of beige CRT LAN rigs, v_netsend.md3 hurls a LOL.BAT floppy disk that materializes a crashing desktop PC ('It won't boot!!'), then swaps to ltg_v3d.md3 frantic two-hand keyboard hacking as the giant Floating Head Drone zaps Friend Rob!",
-        "weapons": ["v_netsend.md3 (NetSend Floppy)", "ltg_v3d.md3 (3D Laptop Gun)"],
-        "vehicles": ["ltg_head.md3 Floating Head Drone"],
-        "chars": ["Friend Rob ('M'LADY')"],
-        "sfx_path": "sound/larry/it_wont_boot.wav",
-        "sfx_label": "💾 'It Won't Boot!!' (it_wont_boot.wav)",
+        "t0": 15.3,
+        "t1": 22.5,
+        "short": "04 • Burning Fox + CCCs + DAN & ROB!",
+        "landmark": "Blazing Fox Theater // Floating CCCs, DAN & ROB",
+        "title": "FOX THEATER ON FIRE + 24 Floating CCCCCCs + Floating DAN & ROB (\"I'm Floating!\" & \"Ah, I Can't See!\")!",
+        "desc": "After everyone explodes, 28 roaring flame & black smoke columns engulf the Fox Marquee, glowing FOX sign, roofline, and Clock Tower while 24 bright yellow letter Cs (progs/ccc.md3 + ccc_trail) float all around levitating DAN (daniel.spr32 squinting blindly) and ROB (fr_rob.spr32 pedaling in mid-air) as you hear \"I'm floating!\" and \"Ah, I can't see!\" over the Milky song!",
+        "weapons": ["28 Fox Fire & Smoke Columns", "24 Floating Yellow CCCCCCs", "\"I'm Floating\" + \"Ah, I Can't See!\""],
+        "vehicles": ["Blazing Fox Marquee & Tower"],
+        "chars": ["Floating DAN (daniel.spr32)", "Floating ROB (fr_rob.spr32)"],
+        "sfx_path": "sound/ccc/shoot.wav",
+        "sfx_label": "😵🟡 \"Ah, I Can't See!\" (CCC Clip)",
         "shots": [10, 11],
     },
-    {
-        "card": 10,
-        "t0": 47.4,
-        "t1": 52.8,
-        "short": "10 • Larry's 120A MegaMan Shrine",
-        "landmark": "Larry's 120A Bedroom // Official Mega Man Shrine",
-        "title": "CoD Red-Rag Chrome Polish, Slingshot & Wheel Mega Man",
-        "desc": "Inside Larry's Mega Man bedroom shrine, v_mm_cannon.md3 triggers its Call-of-Duty red shop-rag inspect polish with a *DING!* chrome sparkle, swaps to v_mm_slingshot.md3, and launches wheel-driving 3D Mega Man over his own bed into a giant mm_explode dome!",
-        "weapons": ["v_mm_cannon.md3 (CoD Rag Polish)", "v_mm_slingshot.md3 (Slingshot)"],
-        "vehicles": ["Outboard Wheel-Drive Rig"],
-        "chars": ["3D Mega Man"],
-        "sfx_path": "sound/weapons/megahorn.wav",
-        "sfx_label": "🤖 Mega Horn! (megahorn.wav)",
-        "shots": [12, 13],
-    },
-    {
-        "card": 11,
-        "t0": 52.8,
-        "t1": 57.8,
-        "short": "11 • ORCOM Goo Gun & Pong",
-        "landmark": "ORCOM Connect // Banquet LAN Tables",
-        "title": "Expanding Goo Foam Mounds & Ricochet Pong Balls",
-        "desc": "Across the ORCOM Connect banquet hall, v_googun.md3 sprays flanking expanding polyurethane foam mounds (goo.md3) while glowing FunGun Pong Balls (fg_pongball.md3) ricochet around Giant 3D Big-Ears and Giant Rubber Finger!",
-        "weapons": ["v_googun.md3 (Goo Gun)", "fg_pongball.md3 (FunGun Pong)"],
-        "vehicles": ["ORCOM Banquet Hall"],
-        "chars": ["Giant 3D Big-Ears", "Giant Rubber Finger"],
-        "sfx_path": "sound/weapons/goosplat.wav",
-        "sfx_label": "🧪 Goo Splat! (goosplat.wav)",
-        "shots": [14],
-    },
-    {
-        "card": 12,
-        "t0": 57.8,
-        "t1": 62.8,
-        "short": "12 • Casino 777 & Golden Horse",
-        "landmark": "Golden West Casino // Giant Golden Horse Plaza",
-        "title": "David Ojeda's 777 Money-Bag Jackpot & Pregnant Trio",
-        "desc": "Out on the sunlit Golden West Casino plaza beneath the prancing golden horses, David Ojeda hits a 777 slot-machine payday and sprints off clutching his '$' money bag alongside all three Pregnant Sprinters!",
-        "weapons": ["777 Slot Jackpot Mechanic"],
-        "vehicles": ["Prancing Golden Casino Horse"],
-        "chars": ["David Ojeda ($ Money Bag)", "Pregnant Sprinter Trio"],
-        "sfx_path": "sound/david/slot_jackpot.wav",
-        "sfx_label": "🎰 777 Jackpot! (slot_jackpot.wav)",
-        "shots": [15],
-    },
-    {
-        "card": 13,
-        "t0": 62.8,
-        "t1": 68.2,
-        "short": "13 • Crystal Palace Mystery Box",
-        "landmark": "Buck Owens' Crystal Palace // KUZZ Radio Van",
-        "title": "Mystery Box, Tinfoil-Hat Bryan & Hell Pentagram",
-        "desc": "Beside Buck Owens' neon guitar marquee and the parked KUZZ Radio Van, v_mysterybox.md3 tosses a spinning '?' cube that summons Tinfoil-Hat Bryan ('NO WAY!') and rips open a glowing Hell Pentagram Vortex with three Red Demons!",
-        "weapons": ["v_mysterybox.md3 (Mystery Box)"],
-        "vehicles": ["KUZZ Radio Broadcast Van"],
-        "chars": ["Tinfoil-Hat Bryan", "3 Red Hell-Portal Demons"],
-        "sfx_path": "sound/bryan/noway.wav",
-        "sfx_label": "🛸 Bryan 'NO WAY!' (noway.wav)",
-        "shots": [16],
-    },
-    {
-        "card": 14,
-        "t0": 68.2,
-        "t1": 73.0,
-        "short": "14 • Park JohnWave & Rocket Can",
-        "landmark": "Amberton Park // Picnic Shelter & Playground",
-        "title": "JohnWave Head Grenade & NASA Rocket Trash Can",
-        "desc": "Under the Amberton Park picnic shelter, a rubber-ball bouncing JohnWave Head Grenade (johnhead3d.md3) unleashes a tidal wave ring past Suit & Squat Wheelie Riders while a giant green TRASH can ignites and blasts off into orbit!",
-        "weapons": ["JohnWave Head Grenade (jw_wave.md3)"],
-        "vehicles": ["NASA Rocket Trash Can (trashcan.md3)"],
-        "chars": ["Suit Wheelie Rider", "Squat Wheelie Rider"],
-        "sfx_path": "sound/john/jv15.wav",
-        "sfx_label": "🌊 JohnWave Callout (jv15.wav)",
-        "shots": [17],
-    },
-    {
-        "card": 15,
-        "t0": 73.0,
-        "t1": 76.0,
-        "short": "15 • Bakersfield Sign Finale",
-        "landmark": "Bakersfield Sign // Sillect Ave — Tour Complete!",
-        "title": "Full-Circle Send-Off Under the Bakersfield Arch",
-        "desc": "Returns full-circle under the yellow BAKERSFIELD Sign with the open-door White LAN Van, 'It's Not Pink!' gullwing supercar, JessKart, Orange Forklift, roof-dancing Wheelman, and the crew waving you into the menu to start fragging!",
-        "weapons": ["Seamless Loop Back to 0:00"],
-        "vehicles": ["Open White Van", "'It's Not Pink!' Supercar", "JessKart", "Orange Forklift"],
-        "chars": ["Full Bakersfield LAN Crew"],
-        "sfx_path": "sound/vehicles/lanvan.wav",
-        "sfx_label": "🏁 LAN Van Finale (lanvan.wav)",
-        "shots": [18],
-    },
+]
+
+EXTRA_SOUNDBOARD = [
+    ("🛞✨ \"I'm Floating!\" (Floating DAN, ROB & CCCs)", "sound/jetpack/floating.wav", "Act 04"),
+    ("🟡😂 \"CCC! C-C-C-C!\" (Daniel Yellow-C Burst)", "sound/daniel/ccc_burst.wav", "Act 04"),
+]
+
+ALL_CAST = [
+    "1. Non-Stop Milky Milky Soundtrack (sound/milky/song.ogg playing continuously from 0.0s to 22.5s!)",
+    "2. 3 Up-Close Milky Milky Grenades in Fast 360° Fox Orbit (~208u from lens, 16-angle video skins & milk_drip)",
+    "3. 3 Up-Close Wheelman .SPR32 Sprites in 360° Fox Orbit — Fire-Wheels Burnout, Jetpack Hover & Zen Lotus → Pipe-Jet",
+    "4. 25 Up-Close Vortex Milkys + 25 Pure .SPR32 Wheelman Sprites Spinning Around the Fox Clock Tower (Zero 3D Wheelman Models!)",
+    "5. 25 Escalating 360° 14-Frame Wheelman Sprite Fireball Explosions (progs/wheelman.spr32 tiers 0..3) + 25 Milky Geysers + Lens Milk Drips!",
+    "6. Blazing Historic Fox Theater — 28 Roaring Additive Flame Sprite Columns (torchflametop.spr32 + s_flame.spr) & Rising Black Smoke!",
+    "7. Floating DAN Up Close (progs/daniel.spr32, ~298px tall, alternating Blind \"I Can't See!\" Squint & \"CCC!\" Grin!)",
+    "8. Floating ROB Up Close (progs/fr_rob.spr32, ~299px tall, zero-gravity mid-air pedaling right beside DAN!)",
+    "9. 24 Floating Bright Yellow Letter 'C's (progs/ccc.md3 + ccc_trail) Orbiting & Tumbling in Zero-G!",
+    "10. Signature Finale Voice Cues: \"I'm floating!\" (jetpack/floating.wav + funny/imfloating.wav) & \"Ah, I can't see!\" (ccc/shoot.wav)!",
 ]
 
 
-ALL_19_CHARS = [
-    "1. Naked Wheelman (wheelman.spr32)",
-    "2. Stunt-Dancer Wheelman (wheelman_dance.spr32)",
-    "3. 3D Wheel-Drive Mega Man (megaman.md3)",
-    "4. Suit Wheelie Rider (mm_suit_rider.md3)",
-    "5. Squat Wheelie Rider (mm_squat_rider.md3)",
-    "6. Giant 3D Wheelie Big-Ears (bigears.md3)",
-    "7. Opera Pink Lady / Milky (pinklady.md3)",
-    "8. Fedora Rob Dob (floathead.mdl)",
-    "9. Giant Screaming Diva Pickle (pickle.md3)",
-    "10. David Ojeda w/ $ Money Bag (david.spr32)",
-    "11. Tinfoil-Hat Bryan (bryan.spr32)",
-    "12. JessKart Racer (jesskart.spr32)",
-    "13. Dennis (fr_dennis.spr32)",
-    "14. Paul (fr_paul.spr32)",
-    "15. Mr. DIY + Flying Tools (fr_mrdiy.spr32)",
-    "16. Kyle Running With Scissors (fr_scissors.spr32)",
-    "17. Friend Rob 'M'LADY' (fr_rob.spr32)",
-    "18. Classic QuakeGuy Sprite (fr_quakeguy.spr32)",
-    "19. Giant Rubber Finger & Pregnant Trio (fr_finger / preg_1..3)",
-]
-
-
-def encode_shot_b64(fname: str, width: int = 1280, quality: int = 87) -> str:
+def encode_shot_b64(fname: str, width: int = 1280) -> str:
     p = os.path.join(SHOTS_DIR, fname)
-    im = Image.open(p).convert("RGB")
-    if im.width != width:
-        h = int(round(im.height * (width / float(im.width))))
-        im = im.resize((width, h), Image.Resampling.LANCZOS)
-    buf = io.BytesIO()
-    im.save(buf, format="JPEG", quality=quality, optimize=True)
-    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    if not os.path.isfile(p):
+        p_alt = os.path.join(SHOTS_DIR, "screenshots", fname)
+        if os.path.isfile(p_alt):
+            p = p_alt
+        else:
+            raise FileNotFoundError(f"Missing screenshot: {p}")
+    with tempfile.TemporaryDirectory() as td:
+        dst = os.path.join(td, "shot.jpg")
+        subprocess.run(
+            [
+                FFMPEG, "-y", "-hide_banner", "-loglevel", "error",
+                "-i", p,
+                "-vf", f"scale={width}:-1:flags=lanczos",
+                "-q:v", "3",
+                dst,
+            ],
+            check=True,
+        )
+        jpg_bytes = open(dst, "rb").read()
+    return "data:image/jpeg;base64," + base64.b64encode(jpg_bytes).decode("ascii")
 
 
 def encode_sfx_mp3_b64(zf_pk3: zipfile.ZipFile, zf_pak0: zipfile.ZipFile | None, rel_path: str) -> str:
@@ -332,7 +171,7 @@ def encode_sfx_mp3_b64(zf_pk3: zipfile.ZipFile, zf_pak0: zipfile.ZipFile | None,
             [
                 FFMPEG, "-y", "-hide_banner", "-loglevel", "error",
                 "-i", src,
-                "-t", "3.8",
+                "-t", "4.4",
                 "-ac", "1", "-ar", "24000", "-b:a", "56k",
                 dst,
             ],
@@ -343,14 +182,26 @@ def encode_sfx_mp3_b64(zf_pk3: zipfile.ZipFile, zf_pak0: zipfile.ZipFile | None,
 
 
 def build_drop_in_zip() -> int:
+    dem_src = os.path.join(MOD_ROOT, "intro_fox360_swarm.dem")
+    if not os.path.isfile(dem_src):
+        dem_src = os.path.join(MOD_ROOT, "intro.dem")
+
     files_to_pack = [
-        (os.path.join(MOD_ROOT, "intro.dem"), "BakersfieldQuake/intro.dem"),
+        (dem_src, "BakersfieldQuake/intro.dem"),
+        (dem_src, "BakersfieldQuake/intro_fox360_swarm.dem"),
         (os.path.join(MOD_ROOT, "csprogs.dat"), "BakersfieldQuake/csprogs.dat"),
         (os.path.join(MOD_ROOT, "quake.rc"), "BakersfieldQuake/quake.rc"),
         (os.path.join(HERE, "intro_director.qc"), "BakersfieldQuake/source/mm_tools/intro_director.qc"),
         (os.path.join(HERE, "build_intro_demo.py"), "BakersfieldQuake/source/mm_tools/build_intro_demo.py"),
         (os.path.join(MOD_ROOT, "source", "qc_combat_decomp", "csqc", "bm_hud.qc"), "BakersfieldQuake/source/qc_combat_decomp/csqc/bm_hud.qc"),
     ]
+    tour_dem = os.path.join(MOD_ROOT, "intro_downtown_tour.dem")
+    if os.path.isfile(tour_dem):
+        files_to_pack.append((tour_dem, "BakersfieldQuake/intro_downtown_tour.dem"))
+    tour_qc = os.path.join(HERE, "intro_director_downtown_tour.qc")
+    if os.path.isfile(tour_qc):
+        files_to_pack.append((tour_qc, "BakersfieldQuake/source/mm_tools/intro_director_downtown_tour.qc"))
+
     os.makedirs(OUT_DIR, exist_ok=True)
     with zipfile.ZipFile(OUT_ZIP, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for src, arc in files_to_pack:
@@ -363,7 +214,7 @@ def main() -> None:
     zip_bytes = build_drop_in_zip()
     print(f"  -> {OUT_ZIP} ({zip_bytes / (1024*1024):.2f} MB)")
 
-    print("Encoding 19 HD 1280x720 screenshots as embedded base64...")
+    print("Encoding 12 HD 1280x720 screenshots as embedded base64...")
     shots_payload = []
     for idx, (fname, card_no, ts, cap) in enumerate(SHOTS_META):
         uri = encode_shot_b64(fname)
@@ -376,7 +227,7 @@ def main() -> None:
             "src": uri,
         })
 
-    print("Encoding 15 signature Quake sound clips as embedded base64 MP3...")
+    print("Encoding signature Milky Song, Explosion, 'I'm Floating' & 'Ah, I Can't See!' audio clips as embedded base64 MP3...")
     zf_pk3 = zipfile.ZipFile(PK3_PATH, "r")
     zf_pak0 = zipfile.ZipFile(PAK0_PATH, "r") if os.path.isfile(PAK0_PATH) else None
     cards_payload = []
@@ -385,17 +236,28 @@ def main() -> None:
         c_out = dict(c)
         c_out["sfx_uri"] = sfx_uri
         cards_payload.append(c_out)
+    extra_sfx_payload = []
+    for lbl, spath, badge in EXTRA_SOUNDBOARD:
+        extra_sfx_payload.append({
+            "label": lbl,
+            "badge": badge,
+            "uri": encode_sfx_mp3_b64(zf_pk3, zf_pak0, spath),
+        })
     zf_pk3.close()
     if zf_pak0:
         zf_pak0.close()
 
-    dem_mb = os.path.getsize(os.path.join(MOD_ROOT, "intro.dem")) / (1024 * 1024)
+    dem_src = os.path.join(MOD_ROOT, "intro_fox360_swarm.dem")
+    if not os.path.isfile(dem_src):
+        dem_src = os.path.join(MOD_ROOT, "intro.dem")
+    dem_mb = os.path.getsize(dem_src) / (1024 * 1024)
     zip_mb = zip_bytes / (1024 * 1024)
 
     data_json = json.dumps({
         "shots": shots_payload,
         "cards": cards_payload,
-        "cast19": ALL_19_CHARS,
+        "extraSfx": extra_sfx_payload,
+        "castList": ALL_CAST,
     })
 
     html = f"""<!doctype html>
@@ -403,12 +265,12 @@ def main() -> None:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bakersfield Quake — bklan5 Startup Demo (intro.dem) Interactive Showcase</title>
+<title>Bakersfield Quake — Up-Close Sprite-Only Fox 360° → 50-Swarm Explosion → Burning Fox + Floating CCCs, DAN &amp; ROB (intro.dem)</title>
 <style>
   :root {{
     --bg:#090c14; --panel:#111726; --panel2:#182036; --panel3:#212c47;
     --ink:#f8fafc; --dim:#94a3b8; --gold:#fbbf24; --gold-dim:#453209;
-    --cyan:#38bdf8; --red:#f43f5e; --lime:#4ade80; --purple:#c084fc;
+    --cyan:#38bdf8; --red:#f43f5e; --lime:#4ade80; --pink:#f472b6;
     --border:#293654;
   }}
   * {{ box-sizing:border-box; }}
@@ -446,7 +308,7 @@ def main() -> None:
   }}
   .badge.gold {{ background:linear-gradient(135deg,#fde047,#f59e0b); color:#171103; }}
   .badge.cyan {{ background:rgba(56,189,248,0.15); color:#7dd3fc; border-color:rgba(56,189,248,0.38); }}
-  .badge.red {{ background:rgba(244,63,94,0.15); color:#fda4af; border-color:rgba(244,63,94,0.38); }}
+  .badge.pink {{ background:rgba(244,114,182,0.18); color:#fbcfe8; border-color:rgba(244,114,182,0.45); }}
   .badge.lime {{ background:rgba(74,222,128,0.15); color:#86efac; border-color:rgba(74,222,128,0.38); }}
 
   h1 {{ margin:0; font-size:clamp(20px, 2.7vw, 29px); font-weight:900; letter-spacing:-0.02em; }}
@@ -473,7 +335,6 @@ def main() -> None:
     box-shadow:0 0 18px rgba(56,189,248,0.25);
   }}
 
-  /* HERO STAGE */
   .stage-card {{
     background:var(--panel); border:1px solid var(--border); border-radius:16px;
     padding:16px; box-shadow:0 18px 46px rgba(0,0,0,0.45);
@@ -506,9 +367,8 @@ def main() -> None:
   .story-cap-sub {{ font-size:12.5px; color:#cbd5e1; }}
   .story-controls {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }}
 
-  /* CHAPTER TIMELINE */
   .chapters-strip {{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:6px;
   }}
   .chap-btn {{
     background:var(--panel2); border:1px solid #2b3a59; color:#cbd5e1;
@@ -517,6 +377,7 @@ def main() -> None:
     display:flex; justify-content:space-between; align-items:center; gap:4px;
   }}
   .chap-btn:hover {{ border-color:var(--gold); color:#fff; }}
+  .chap-btn.milky {{ border-color:rgba(244,114,182,0.55); color:#fbcfe8; }}
   .chap-btn.on {{
     background:linear-gradient(135deg, #3b2a0a 0%, #241a07 100%);
     border-color:var(--gold); color:#fde68a;
@@ -525,7 +386,6 @@ def main() -> None:
   .chap-time {{ font-family:ui-monospace, Consolas, monospace; font-size:10.5px; color:#94a3b8; }}
   .chap-btn.on .chap-time {{ color:#fcd34d; }}
 
-  /* SOUNDBOARD BAR */
   .soundboard {{
     background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:16px;
     display:flex; flex-direction:column; gap:10px;
@@ -533,7 +393,7 @@ def main() -> None:
   .sec-hdr {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px; }}
   .sec-hdr h2 {{ margin:0; font-size:18px; font-weight:850; color:#fff; }}
   .sec-hdr span {{ font-size:12.5px; color:var(--dim); }}
-  .sfx-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:7px; }}
+  .sfx-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(215px, 1fr)); gap:7px; }}
   .sfx-btn {{
     background:var(--panel2); border:1px solid #304063; color:#e2e8f0;
     border-radius:9px; padding:8px 10px; font:inherit; font-size:12px; font-weight:700;
@@ -543,7 +403,6 @@ def main() -> None:
   .sfx-btn:hover {{ border-color:var(--cyan); color:#7dd3fc; transform:translateY(-1px); }}
   .sfx-btn.playing {{ border-color:var(--lime); background:#132f23; color:#86efac; }}
 
-  /* 15-CARD GRID */
   .cards-grid {{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(370px, 1fr)); gap:14px;
   }}
@@ -551,6 +410,10 @@ def main() -> None:
     background:var(--panel); border:1px solid var(--border); border-radius:14px;
     overflow:hidden; display:flex; flex-direction:column;
     transition:border-color 0.15s ease, transform 0.15s ease;
+  }}
+  .landmark-card.milky-highlight {{
+    border-color:rgba(244,114,182,0.65);
+    box-shadow:0 0 26px rgba(244,114,182,0.16);
   }}
   .landmark-card:hover {{ border-color:#4b6394; transform:translateY(-2px); }}
   .card-thumb-wrap {{ position:relative; aspect-ratio:16/9; background:#000; cursor:pointer; }}
@@ -567,7 +430,7 @@ def main() -> None:
     padding:3px 8px; border-radius:999px;
   }}
   .shot-switch {{
-    position:absolute; bottom:8px; right:8px; display:flex; gap:5px;
+    position:absolute; bottom:8px; right:8px; display:flex; gap:5px; flex-wrap:wrap;
   }}
   .mini-pill {{
     background:rgba(9,12,20,0.9); color:#e2e8f0; border:1px solid #475569;
@@ -598,7 +461,6 @@ def main() -> None:
   }}
   .sm-btn:hover {{ border-color:var(--gold); color:var(--gold); }}
 
-  /* CAST & TECH */
   .two-col {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:16px; }}
   .info-box {{
     background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px;
@@ -606,7 +468,7 @@ def main() -> None:
   }}
   .info-box h3 {{ margin:0; font-size:17px; font-weight:850; color:var(--gold); }}
   .cast-list {{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:6px;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px;
     margin:0; padding:0; list-style:none;
   }}
   .cast-list li {{
@@ -617,7 +479,6 @@ def main() -> None:
   .tech-list b {{ color:#fff; }}
   .tech-list code {{ background:#1d2842; color:#fde68a; padding:1px 5px; border-radius:4px; }}
 
-  /* LIGHTBOX */
   .lightbox {{
     position:fixed; inset:0; background:rgba(4,6,12,0.92); z-index:999;
     display:none; flex-direction:column; align-items:center; justify-content:center;
@@ -635,43 +496,39 @@ def main() -> None:
   <header>
     <div class="brand">
       <div class="badges">
-        <span class="badge gold">Bakersfield Quake • Startup Demo</span>
-        <span class="badge cyan">maps/bklan5.bsp</span>
-        <span class="badge lime">All 19 Custom Characters</span>
-        <span class="badge red">13 Custom Guns + Vehicles</span>
+        <span class="badge gold">22.5s Tight Cut • Non-Stop Milky Song</span>
+        <span class="badge cyan">0–6.6s: Up-Close 360° Fox (3+3)</span>
+        <span class="badge pink">6.6–15.3s: 50 Sprites &amp; Milkys Spin &amp; Explode!</span>
+        <span class="badge lime">15.3–22.5s: Burning Fox + CCCs + DAN &amp; ROB!</span>
       </div>
-      <h1><span>BAKERSFIELD</span> Sign-to-Sign Comedy Tour (<code>intro.dem</code>)</h1>
+      <h1><span>BAKERSFIELD QUAKE</span> — Up-Close Sprite-Only Fox 360° → 50-Swarm Explosion → Burning Fox + Floating CCCs, DAN &amp; ROB</h1>
       <p class="sub">
-        Starts automatically on launch via <code>startdemos intro</code> in <code>quake.rc</code> — opening with just the solo
-        <b>White LAN Van</b> honking under the yellow <b>BAKERSFIELD</b> Sign before all 19 custom characters pile out for a smooth 15-landmark tour across <code>bklan5</code>!
+        Punchy 22.5-second startup movie (<code>startdemos intro</code> on <code>maps/downtown.bsp</code>): <b>Milky Song playing the entire time</b>, strictly <b>Wheelman <code>.spr32</code> sprites only</b> (zero 3D Wheelman models), <b>up-close camera framing</b> across the 360° Fox orbit &amp; 50-entity Clock Tower explosion, culminating in the <b>Fox Theater on fire</b> as <b>24 yellow <code>CCCCCC</code>s + floating <code>DAN</code> &amp; <code>ROB</code></b> drift across the lens with <i>&ldquo;I&rsquo;m floating!&rdquo;</i> &amp; <i>&ldquo;Ah, I can&rsquo;t see!&rdquo;</i>
       </p>
     </div>
     <div class="actions">
       <a class="btn primary" id="dlPackBtn" href="https://bakersfield.larrywew.fun/intro-demo/bakersfield_intro_demo_pack.zip" download>⬇ Drop-In Quake Pack (.zip • {zip_mb:.1f} MB)</a>
-      <a class="btn" id="dlMp4Btn" href="https://bakersfield.larrywew.fun/intro-demo/intro_demo_bklan5.mp4" target="_blank" rel="noopener">🎬 Full 720p MP4 + Audio</a>
+      <a class="btn" id="dlMp4Btn" href="https://bakersfield.larrywew.fun/intro-demo/intro_demo_downtown.mp4" target="_blank" rel="noopener">🎬 Full 720p MP4 + Audio</a>
       <a class="btn" id="dlDemBtn" href="https://bakersfield.larrywew.fun/intro-demo/intro.dem" download>📼 Raw intro.dem ({dem_mb:.2f} MB)</a>
       <button class="btn" type="button" id="copyCmdBtn">📋 Copy <code>playdemo intro</code></button>
     </div>
   </header>
 
-  <!-- HERO DUAL-MODE CINEMA PLAYER -->
   <section class="stage-card">
     <div class="mode-tabs">
       <div class="tab-pair">
-        <button class="btn active" type="button" id="tabVideoBtn">🎬 Full 76s HD Recorded Video + Stereo Audio</button>
-        <button class="btn" type="button" id="tabStoryBtn">🖼 100% Self-Contained Offline 19-Shot Tour &amp; SFX</button>
+        <button class="btn active" type="button" id="tabVideoBtn">🎬 Full 720p HD Video (22.5s Up-Close Sprite Cut + Milky Song)</button>
+        <button class="btn" type="button" id="tabStoryBtn">🖼 100% Self-Contained Offline 12-Shot Storyboard &amp; Audio</button>
       </div>
-      <div class="now-playing" id="nowPlayingBanner">Card 01 • Bakersfield Sign — Solo White LAN Van Idling &amp; Honking</div>
+      <div class="now-playing" id="nowPlayingBanner">Act 01 (0:00–0:06) • Up-Close 360° Fox Theater — 3 Milkys + 3 Wheelman Sprites!</div>
     </div>
 
-    <!-- VIDEO VIEWPORT -->
     <div class="viewport-wrap" id="videoWrap">
       <video id="heroVideo" controls playsinline preload="metadata"></video>
     </div>
 
-    <!-- OFFLINE STORYBOARD VIEWPORT -->
     <div class="viewport-wrap hidden" id="storyWrap">
-      <img id="storyImg" alt="Bakersfield Quake bklan5 Tour Frame">
+      <img id="storyImg" alt="Bakersfield Quake Fox 360 Swarm Frame">
       <div class="story-overlay">
         <div>
           <div class="story-cap-title" id="storyTitle"></div>
@@ -679,55 +536,50 @@ def main() -> None:
         </div>
         <div class="story-controls">
           <button class="btn" type="button" id="prevShotBtn">◀ Prev</button>
-          <button class="btn primary" type="button" id="autoPlayBtn">▶ Auto-Play Tour</button>
+          <button class="btn primary" type="button" id="autoPlayBtn">▶ Auto-Play Storyboard</button>
           <button class="btn" type="button" id="nextShotBtn">Next ▶</button>
-          <button class="btn" type="button" id="storySfxBtn">🔊 Play Card SFX</button>
+          <button class="btn" type="button" id="storySfxBtn">🔊 Play Audio Clip</button>
           <button class="btn" type="button" id="zoomShotBtn">🔍 Fullscreen</button>
         </div>
       </div>
     </div>
 
-    <!-- 15 INTERACTIVE CHAPTER PILLS -->
     <div class="chapters-strip" id="chaptersStrip"></div>
   </section>
 
-  <!-- EMBEDDED OFFLINE QUAKE SOUNDBOARD -->
   <section class="soundboard">
     <div class="sec-hdr">
-      <h2>🔊 Embedded Bakersfield Quake Signature Soundboard (100% Offline Base64 Audio)</h2>
-      <span>Click any clip to preview the exact voice lines, horns &amp; weapon gags heard in <code>intro.dem</code></span>
+      <h2>🔊 Milky Song, 50-Sprite Explosion, &ldquo;I&rsquo;m Floating!&rdquo; &amp; &ldquo;Ah, I Can&rsquo;t See!&rdquo; Soundboard (Offline Base64 Audio)</h2>
+      <span>Preview the non-stop Milky song, 50-sprite reveal &amp; explosion, floating cue, and CCC &ldquo;Ah, I can&rsquo;t see!&rdquo; line</span>
     </div>
     <div class="sfx-grid" id="sfxGrid"></div>
   </section>
 
-  <!-- 15-CARD LANDMARK TOUR GRID -->
   <section style="display:flex;flex-direction:column;gap:10px;">
     <div class="sec-hdr">
-      <h2>🗺 All 15 <code>bklan5</code> Landmarks, Custom Guns, Vehicles &amp; Gags (0:00 – 1:16)</h2>
-      <span>Click any card thumbnail to zoom in 1280×720 HD, jump the video player, or trigger its gag audio</span>
+      <h2>🛞🥛🔥 All 4 Tight Acts: Up-Close 360° Fox → Close-Up 50 Spin → All 50 Explode → Burning Fox + Floating CCCs, DAN &amp; ROB</h2>
+      <span>Click any card thumbnail to inspect in 1280×720 HD, switch camera angles, or jump the video player</span>
     </div>
     <div class="cards-grid" id="cardsGrid"></div>
   </section>
 
-  <!-- FULL CAST ROLL CALL & TECHNICAL ARCHITECTURE -->
   <section class="two-col">
     <div class="info-box">
-      <h3>🚐 All 19 Custom Characters Piling Out of the White Van</h3>
+      <h3>🎭 Featured Sprites, Milkys, Fire &amp; Floating Finale Cast</h3>
       <ul class="cast-list" id="castList"></ul>
     </div>
     <div class="info-box">
-      <h3>⚙ Smooth Camera &amp; Zero-Conflict Engineering</h3>
+      <h3>⚙ Up-Close Pure-Sprite Choreography &amp; Finale FX</h3>
       <ul class="tech-list">
-        <li><b>White Van Cold Open → Staggered Roll Call:</b> Card 1 (<code>0.0–4.4s</code>) shows <i>only</i> <code>progs/veh_van.md3</code> idling, rocking on suspension &amp; honking under the yellow <code>BAKERSFIELD</code> Sign. At <code>4.4s</code>, the rear doors burst open (<code>veh_van_open.md3</code>) and all 19 custom characters fan out with signature voice cues spaced <code>~0.74s</code> apart so zero lines muddle together.</li>
-        <li><b>150+ Hz Smooth Camera + <code>.dem</code> Header Stamping:</b> <code>BM_UpdateIntroCam</code> in <code>csprogs.dat</code> evaluates C1 smoothstep tracking splines at full monitor refresh rate (<code>VF_ANGLES</code> / <code>VF_CL_VIEWANGLES</code>) with clean hard cuts between landmarks and zero view-bobbing, while <code>stamp_demo_headers()</code> writes matching 100 Hz angles into all <code>7,437</code> <code>.dem</code> packets.</li>
-        <li><b>Zero-Server-Slot CSQC Viewmodel Showcase:</b> <code>bklan5.bsp</code> uses <code>106</code> inline brush submodels. Rendering all 13 custom first-person guns (<code>v_robdob.mdl</code>, <code>v_pickle.md3</code>, <code>v_wewcannon.md3</code>, <code>v_milky.md3</code>, <code>v_span.mdl</code>, <code>v_srifle.mdl</code>, <code>v_hammer.mdl</code>, <code>v_netsend.md3</code>, <code>ltg_v3d.md3</code>, <code>v_mm_cannon.md3</code>, <code>v_mm_slingshot.md3</code>, <code>v_googun.md3</code>, <code>v_mysterybox.md3</code>) in CSQC (<code>RF_VIEWMODEL | RF_DEPTHHACK</code>) consumes <code>0</code> server <code>MAX_MODELS (256)</code> slots!</li>
-        <li><b>Live Gameplay <code>progs.dat</code> Untouched:</b> <code>intro_director.qc</code> compiles strictly inside an isolated build folder (<code>source/mm_tools/out/qc_intro_build/</code>) to record <code>intro.dem</code>, leaving live multiplayer <code>progs.dat</code> 100% untouched.</li>
+        <li><b>Wheelman Sprites ONLY + Non-Stop Milky Song (0.0s – 22.5s):</b> Strictly <code>.spr32</code> Wheelman sprites (<code>wheelman.spr32</code>, <code>wheelman_historic.spr32</code>, <code>greensuit_wheelman.spr32</code>, <code>wheelman_dance.spr32</code> — zero 3D Wheelman, tire, axle, or dome MD3s!) while <code>milky/song.ogg</code> plays continuously from start to finish.</li>
+        <li><b>3× Closer Camera Framing (0.0s – 15.3s):</b> Act 1 locks 3 Milkys + 3 Wheelman sprites at <code>~195u</code> right in front of the lens (<code>~205–255 px</code> tall) during a fast 6.6s 360° Fox orbit; Acts 2–3 move the camera right up to <code>~417u</code> from the 50-entity Clock Tower rings so every sprite &amp; 360° fireball fills the screen with zero letterbox clipping!</li>
+        <li><b>Blazing Fox + Floating <code>CCCCCC</code>s, <code>DAN</code> &amp; <code>ROB</code> (15.3s – 22.5s):</b> 28 additive fire &amp; black smoke columns engulf the Fox Marquee, <code>FOX</code> sign &amp; Clock Tower while 24 spinning yellow <code>progs/ccc.md3</code> letters orbit floating <code>DAN</code> (<code>daniel.spr32</code>) &amp; <code>ROB</code> (<code>fr_rob.spr32</code>) as <code>jetpack/floating.wav</code> (<i>&ldquo;I&rsquo;m floating!&rdquo;</i>) and <code>ccc/shoot.wav</code> (<i>&ldquo;Ah, I can&rsquo;t see!&rdquo;</i>) ring out!</li>
+        <li><b>All Cuts Preserved &amp; Live <code>progs.dat</code> Untouched:</b> <code>csprogs.dat</code> supports this new 22.5s cut (<code>cards 201..204</code>), v1 36s Fox 360 (<code>intro_fox360_v1.dem</code>, <code>101..105</code>), and the 90s Downtown Tour (<code>intro_downtown_tour.dem</code>, <code>1..20</code>) without modifying <code>progs.dat</code>.</li>
       </ul>
     </div>
   </section>
 </div>
 
-<!-- FULLSCREEN LIGHTBOX -->
 <div class="lightbox" id="lightbox">
   <img id="lbImg" alt="HD Frame">
   <div class="lightbox-bar">
@@ -752,20 +604,19 @@ const sfxGrid = document.getElementById('sfxGrid');
 const cardsGrid = document.getElementById('cardsGrid');
 const castList = document.getElementById('castList');
 
-// Smart relative/hosted URL setup so page works at /intro-demo/, /bakersfield_intro_demo.html, or offline file://
 const REMOTE_BASE = 'https://bakersfield.larrywew.fun/intro-demo/';
 const isIntroSubdir = location.pathname.includes('/intro-demo/');
 const assetBase = isIntroSubdir ? './' : REMOTE_BASE;
 
 document.getElementById('dlPackBtn').href = assetBase + 'bakersfield_intro_demo_pack.zip';
-document.getElementById('dlMp4Btn').href = assetBase + 'intro_demo_bklan5.mp4';
+document.getElementById('dlMp4Btn').href = assetBase + 'intro_demo_downtown.mp4';
 document.getElementById('dlDemBtn').href = assetBase + 'intro.dem';
 
-video.poster = DATA.shots[0].src;
-video.src = assetBase + 'intro_demo_bklan5.mp4';
+video.poster = DATA.shots[10].src;
+video.src = assetBase + 'intro_demo_downtown.mp4';
 video.addEventListener('error', () => {{
-  if (video.src !== REMOTE_BASE + 'intro_demo_bklan5.mp4') {{
-    video.src = REMOTE_BASE + 'intro_demo_bklan5.mp4';
+  if (video.src !== REMOTE_BASE + 'intro_demo_downtown.mp4') {{
+    video.src = REMOTE_BASE + 'intro_demo_downtown.mp4';
   }} else {{
     setMode('story');
   }}
@@ -829,7 +680,7 @@ function highlightChapter(cardIdx) {{
   curCardIdx = cardIdx;
   const c = DATA.cards[cardIdx];
   if (c) {{
-    nowPlayingBanner.textContent = `Card ${{String(c.card).padStart(2,'0')}} (${{fmtTime(c.t0)}}–${{fmtTime(c.t1)}}) • ${{c.landmark}} — ${{c.title}}`;
+    nowPlayingBanner.textContent = `Act ${{String(c.card).padStart(2,'0')}} (${{fmtTime(c.t0)}}–${{fmtTime(c.t1)}}) • ${{c.landmark}} — ${{c.title}}`;
   }}
   document.querySelectorAll('.chap-btn').forEach((b, i) => {{
     b.classList.toggle('on', i === cardIdx);
@@ -852,7 +703,7 @@ function stopAutoPlay() {{
     clearInterval(autoTimer);
     autoTimer = null;
   }}
-  document.getElementById('autoPlayBtn').textContent = '▶ Auto-Play Tour';
+  document.getElementById('autoPlayBtn').textContent = '▶ Auto-Play Storyboard';
 }}
 
 document.getElementById('prevShotBtn').onclick = () => {{ stopAutoPlay(); renderStoryShot(curShot - 1); }};
@@ -863,20 +714,19 @@ document.getElementById('autoPlayBtn').onclick = () => {{
     stopAutoPlay();
   }} else {{
     playCardSfx(curCardIdx, null);
-    document.getElementById('autoPlayBtn').textContent = '⏸ Pause Auto-Tour';
+    document.getElementById('autoPlayBtn').textContent = '⏸ Pause Storyboard';
     autoTimer = setInterval(() => {{
       const prevCard = curCardIdx;
       renderStoryShot(curShot + 1);
       if (curCardIdx !== prevCard) playCardSfx(curCardIdx, null);
-    }}, 3400);
+    }}, 3200);
   }}
 }};
 
-// Build 15 chapter pills
 DATA.cards.forEach((c, idx) => {{
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'chap-btn' + (idx === 0 ? ' on' : '');
+  b.className = 'chap-btn' + (idx === 0 ? ' on' : '') + ((c.card === 3 || c.card === 4) ? ' milky' : '');
   b.innerHTML = `<span>${{c.short}}</span><span class="chap-time">${{fmtTime(c.t0)}}</span>`;
   b.onclick = () => {{
     highlightChapter(idx);
@@ -902,38 +752,53 @@ video.addEventListener('timeupdate', () => {{
   }}
 }});
 
-// Build 15 Soundboard buttons
 DATA.cards.forEach((c, idx) => {{
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'sfx-btn';
-  b.innerHTML = `<span>${{c.sfx_label}}</span><span style="color:#94a3b8;font-size:11px">#${{String(c.card).padStart(2,'0')}}</span>`;
+  b.innerHTML = `<span>${{c.sfx_label}}</span><span style="color:#94a3b8;font-size:11px">Act ${{String(c.card).padStart(2,'0')}}</span>`;
   b.onclick = () => playCardSfx(idx, b);
   sfxGrid.appendChild(b);
 }});
+(DATA.extraSfx || []).forEach((ex) => {{
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'sfx-btn';
+  b.innerHTML = `<span>${{ex.label}}</span><span style="color:#94a3b8;font-size:11px">${{ex.badge}}</span>`;
+  b.onclick = () => {{
+    if (activeAudio) {{ activeAudio.pause(); activeAudio = null; }}
+    if (activeSfxBtn) activeSfxBtn.classList.remove('playing');
+    const a = new Audio(ex.uri);
+    activeAudio = a;
+    activeSfxBtn = b;
+    b.classList.add('playing');
+    a.onended = () => {{ if (activeSfxBtn === b) b.classList.remove('playing'); }};
+    a.play().catch(() => {{}});
+  }};
+  sfxGrid.appendChild(b);
+}});
 
-// Build 15 Landmark Cards
 DATA.cards.forEach((c, idx) => {{
   const el = document.createElement('article');
-  el.className = 'landmark-card';
+  el.className = 'landmark-card' + ((c.card === 3 || c.card === 4) ? ' milky-highlight' : '');
   let activeLocalShot = c.shots[0];
 
   const switchHtml = c.shots.length > 1
     ? `<div class="shot-switch">${{c.shots.map((sIdx, k) =>
-        `<button type="button" class="mini-pill ${{k===0?'on':''}}" data-sidx="${{sIdx}}">Shot ${{k+1}}</button>`
+        `<button type="button" class="mini-pill ${{k===0?'on':''}}" data-sidx="${{sIdx}}">Angle ${{k+1}}</button>`
       ).join('')}}</div>`
     : '';
 
   const tagsHtml = [
-    ...c.weapons.map(w => `<span class="tag wep">🔫 ${{w}}</span>`),
-    ...c.vehicles.map(v => `<span class="tag veh">🚐 ${{v}}</span>`),
-    ...c.chars.map(ch => `<span class="tag chr">🎭 ${{ch}}</span>`),
+    ...c.weapons.map(w => `<span class="tag wep">🎬 ${{w}}</span>`),
+    ...c.vehicles.map(v => `<span class="tag veh">🏛 ${{v}}</span>`),
+    ...c.chars.map(ch => `<span class="tag chr">✨ ${{ch}}</span>`),
   ].join('');
 
   el.innerHTML = `
     <div class="card-thumb-wrap">
       <img src="${{DATA.shots[activeLocalShot].src}}" alt="${{c.title}}">
-      <span class="card-num-pill">CARD ${{String(c.card).padStart(2,'0')}}</span>
+      <span class="card-num-pill">ACT ${{String(c.card).padStart(2,'0')}}</span>
       <span class="card-time-pill">${{c.t0.toFixed(1)}}s – ${{c.t1.toFixed(1)}}s</span>
       ${{switchHtml}}
     </div>
@@ -944,7 +809,7 @@ DATA.cards.forEach((c, idx) => {{
       <div class="tag-row">${{tagsHtml}}</div>
       <div class="card-foot">
         <button type="button" class="sm-btn seek-btn">▶ Jump Video (${{fmtTime(c.t0)}})</button>
-        <button type="button" class="sm-btn sfx-trig">🔊 Hear Gag SFX</button>
+        <button type="button" class="sm-btn sfx-trig">🔊 Hear Clip</button>
         <button type="button" class="sm-btn zoom-trig">🔍 720p HD</button>
       </div>
     </div>
@@ -972,14 +837,12 @@ DATA.cards.forEach((c, idx) => {{
   cardsGrid.appendChild(el);
 }});
 
-// Cast list
-DATA.cast19.forEach(item => {{
+DATA.castList.forEach(item => {{
   const li = document.createElement('li');
   li.textContent = item;
   castList.appendChild(li);
 }});
 
-// Lightbox
 const lb = document.getElementById('lightbox');
 let lbIdx = 0;
 function openLightbox(sIdx) {{
@@ -1007,14 +870,13 @@ window.addEventListener('keydown', (e) => {{
   }}
 }});
 
-// Copy console cmd
 document.getElementById('copyCmdBtn').onclick = (e) => {{
   navigator.clipboard.writeText('playdemo intro');
   const b = e.currentTarget;
   const old = b.innerHTML;
   b.textContent = '✓ Copied: playdemo intro';
   setTimeout(() => {{ b.innerHTML = old; }}, 1600);
-}};
+}});
 
 renderStoryShot(0);
 </script>

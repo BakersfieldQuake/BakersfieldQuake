@@ -22,7 +22,8 @@ var float	autocvar_bm_selfdamage		= 0.6;		// self-inflicted damage x this (on to
 var float	autocvar_bm_rocketself		= 0.4;		// your own rockets' self-damage x this as well (0.4 = 60% less)
 var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
 var float	autocvar_bm_spawnnear		= 1200;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
-var float	autocvar_bm_fg_lock			= 10;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
+var float	autocvar_bm_fg_lock			= 0;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
+var float	autocvar_bm_preload			= 0;		// 0 = off, 1 = preload Wheelman Cannon sprites (~315 MB), 2 = preload WC + Mystery Box pool (~605 MB)
 var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, goo, shock, milk): less snap-back online
 var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
 var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
@@ -56,6 +57,17 @@ var float	autocvar_bm_fun_gap			= 3;		// seconds between two announcer clips
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
 var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
 var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
+var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4 / Thompson / Garand, 2 = RL, 3 = M4, 4 = Thompson, 5 = Garand, 0 = MegaMan
+var float	autocvar_bm_bot_easy		= 1;		// 1 = easy, fun, aggressive bots with human aim spread (0 = full FrikBot aim)
+var float	autocvar_bm_bot_dmg			= 0.65;		// damage multiplier dealt by bots to players (keeps 5-10 aggressive bots fun & forgiving)
+var float	autocvar_bm_bot_tags		= 1;		// 1 = show floating [BOT] nameplates over visible bots
+var float	autocvar_bm_public_server	= 0;		// 1 = this is the public dedicated server (server_vps.cfg): bot cap, free-slot reserve, cooldown and idle cleanup apply (0 = local/LAN games stay unrestricted)
+var float	autocvar_bm_bots_allowed	= 1;		// public server: 1 = any player can add/kick bots (F1/F2, impulse 100-102) with no sv_cheats; 0 = off
+var float	autocvar_bm_bot_max			= 15;		// most bots that can be on the server at once
+var float	autocvar_bm_bot_reserve		= 1;		// free slots bots must leave open so a human can always join (bots step aside if humans fill them)
+var float	autocvar_bm_bot_cooldown	= 0.7;		// seconds between bot adds (stops F1 held down)
+var float	autocvar_bm_bot_idle		= 45;		// dedicated servers: seconds with no human connected before the bots are cleared (0 = never)
+var float	autocvar_bm_bot_jpfuel		= 2.2;		// starting jetpack fuel (seconds) for bots so they fly around downtown buildings
 
 // ---------------------------------------------------------------- magazines
 // slot numbers (bm_reload.qc), 0 = no magazine (axe, chainsaw, banana)
@@ -74,15 +86,16 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_FG7		= 16;		// the M4 (m4.qc)
-float	BM_SLOTS	= 16;
+float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	// M4 / Thompson / Garand
+float	BM_SLOTS	= 18;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
 
 float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 
 .float	bm_m1, bm_m2, bm_m3, bm_m4, bm_m5, bm_m6, bm_m7, bm_m8;		// stock gun magazines (ammo units)
-.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16;	// holstered refill, fractional
+.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16, bm_a17, bm_a18;	// holstered refill, fractional
+.float	bm_ns_n, bm_ns_t;	// bots: NetSend PC count and when it was last counted (BM_BotNSCount)
 .float	bm_init;			// magazines have been filled since connecting
 .float	bm_slot;			// slot whose magazine is in the ammo_* field right now
 .float	bm_shown_s, bm_shown_n, bm_shown_r, bm_shown_c;		// what we last wrote to ammo_*, to spot pickups
@@ -92,6 +105,7 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_vm_hidden;		// the gun is out of sight while it reloads: the slot being reloaded (0 = in view)
 .string	bm_vm_str;			// the held gun's model, put back when the reload is over (a strzone'd copy)
 .float	bm_lastshot;		// last time the held magazine went down
+.float	bm_holster_dt;		// time gathered for the holstered-gun refill, which runs 10 times a second (BM_Frame)
 .float	bm_lastframe;		// last BM_Frame time (holster refill dt)
 .float	bm_ssgburst;		// QC super shotgun: 15 = one barrel left (was a global shared by everyone)
 
@@ -109,6 +123,8 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_st_lx, bm_st_ly, bm_st_lz;	// the leader's position, when they show through walls (tier 3+)
 .float	bm_st_lshow;		// 1 = draw the HUD marker at bm_st_lx/ly/lz
 .string	bm_st_leader;		// the current leader's name ("" = nobody far enough ahead)
+.float	bm_st_botmask;		// bitmask of live visible bot client slots 0..15 (stat 76, csqc/bm_hud.qc)
+.float	bm_st_botcnt;		// active bot count (stat 77, csqc/bm_hud.qc)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
@@ -198,6 +214,26 @@ string	bm_vote_map;		// the map being voted on, strzoned
 // ---------------------------------------------------------------- per-frame cached cvars & active player list
 entity	bm_player_head;		// active connected "player" entities rebuilt once per frame in BM_StartFrame
 .entity	bm_player_next;
+float	bm_botmask_cache;
+var float	autocvar_sv_gravity		= 800;
+var float	autocvar_sv_maxvelocity	= 2000;
+var float	autocvar_ltg_video		= 0;
+var float	autocvar_br_mode		= 0;
+var float	autocvar_dv_mode		= 0;
+var float	autocvar_dv_stay		= 0;
+var float	autocvar_dn_mode		= 0;
+var float	autocvar_dn_stay		= 0;
+var float	autocvar_pk_viewoffset	= 0;
+var float	autocvar_developer		= 0;
+var float	autocvar_slowmo			= 1;
+var float	autocvar_chase_active	= 0;
+var float	autocvar_sv_cheats		= 0;
+var float	autocvar_teamplay		= 0;
+var float	autocvar_skill			= 1;
+var float	autocvar_sv_maxspeed	= 320;
+var float	autocvar_sv_friction	= 4;
+var float	autocvar_sv_accelerate	= 10;
+var float	autocvar_sv_stopspeed	= 100;
 float	bm_cvar_grav;
 float	bm_cvar_maxvel;
 float	bm_cvar_ltg_video;
@@ -239,3 +275,55 @@ float	jetpack_precached;
 float	bktv_precached;
 float	ltg_vid_precached;
 .float	ud_fx_t;
+.float	bm_dm_gun_alt;		// per-player DM starting weapon toggle (1 = RL, 2 = M4)
+float	bm_dm_gun_seed;
+float	skypad_precached;
+float	skypad_present;
+.float	skypad_cool_t;
+.float	skypad_safe_t;
+void() SkyPad_Precache;
+void() SkyPad_Report;
+void() info_skypad;
+
+// ---------------------------------------------------------------- downtown bots & full-arsenal AI (bm_bots.qc)
+.float	bm_bot_wep_t;
+.float	bm_bot_burst_t;
+.float	bm_bot_pause_t;
+.float	bm_bot_react_t;
+.entity	bm_bot_lastfoe;
+.float	bm_bot_gar_alt;
+.float	bm_bot_wc_rel;
+.float	bm_bot_hm_rel;
+.float	bm_bot_jp_cd;
+.float	bm_bot_jp_end;
+.float	bm_bot_stuck_t;
+.vector	bm_bot_stuck_org;
+.float	bm_bot_free_t;
+.vector	bm_bot_free_dir;
+.float	bm_bot_hunt_t;
+.float	bm_bot_roof_t;
+.vector	bm_bot_aim_err;
+.float	bm_bot_aim_t;
+float	bm_manual_bots;
+float	bm_dt_way_t;
+float	bm_dt_way_done;
+float	bm_autobot_check_t;
+float	bm_bot_add_t;
+float	bm_bot_slot_t;
+float	bm_bot_idle_t;
+
+void() BM_MapLoad;
+void(entity caller) BM_BotConnected;
+void(string kname) BM_BotNotifyKick;
+float() BM_BotImpulses;
+vector(float wep) BM_BotWeaponRange;
+float(float brange) BM_BotWeaponSwitch;
+void() BM_BotShoot;
+float(entity thing) BM_BotItemPriority;
+void() BM_BotAimAdjust;
+void() BM_BotPostAI;
+void() BM_BotSpawnLoadout;
+void() BM_BotStartFrame;
+
+// wasfreed (#353) with a real type: the Combat+ defs declare it as __variant, which cannot be tested with ! or if ()
+float(entity e) bm_wasfreed = #353;

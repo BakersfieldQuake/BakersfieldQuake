@@ -27,6 +27,8 @@ float	BR_EF_RED	= 128;		// DarkPlaces red dynamic light
 .float	br_dstep;
 .float	br_alt;
 
+.entity	br_target;		// the one he faces / goes for (Bryan_Think, rescanned every 0.25 s)
+.float	br_scan_t;
 void() Bryan_Die;
 void() Bryan_Think;
 void(entity attacker, float take) Bryan_Pain;
@@ -229,6 +231,11 @@ void() Bryan_FallStep =
 	remove(self);
 };
 
+float() Bryan_ShowAll =
+{
+	return TRUE;
+};
+
 void() Bryan_Die =
 {
 	if (self.npc_dead)
@@ -243,7 +250,7 @@ void() Bryan_Die =
 
 	if (NPC_ShouldGib(self))
 	{
-		self.customizeentityforclient = SUB_Null;
+		self.customizeentityforclient = Bryan_ShowAll;		// was SUB_Null: a void customize function returns 0 (= not sent), so nobody saw the portal death
 		self.br_dstep = 0;
 		self.frame = 232;
 		self.effects = BR_EF_BLUE;
@@ -317,9 +324,29 @@ void() Bryan_Think =
 		return;
 	}
 
-	best = world;
+	// the nearest player or monster: a 1400-unit findradius 4 times a second, not 20 (kept in br_target in between;
+	// the distance is taken fresh every think)
+	best = self.br_target;
+	if (best != world && (best.health <= 0 || !best.takedamage))
+		best = world;
 	bestd = 1400;
-	e = findradius(self.origin, 1400);
+	if (best != world)
+	{
+		bestd = vlen(best.origin - self.origin);
+		if (bestd >= 1400)
+		{
+			best = world;
+			bestd = 1400;
+		}
+	}
+	e = world;
+	if (time >= self.br_scan_t)
+	{
+		self.br_scan_t = time + 0.25;
+		best = world;
+		bestd = 1400;
+		e = findradius(self.origin, 1400);
+	}
 	while (e)
 	{
 		if (e != self && e.health > 0 && e.takedamage &&
@@ -334,6 +361,7 @@ void() Bryan_Think =
 		}
 		e = e.chain;
 	}
+	self.br_target = best;
 
 	if (best != world)
 	{
@@ -412,7 +440,7 @@ void() Bryan_Summon =
 	b.classname = "monster_bryan";
 	b.origin = old.origin + v_forward * 124 + '0 0 24';
 	setmodel(b, "progs/bryan.spr32");
-	b.scale = 0.32;
+	b.scale = 0.1829;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 160;

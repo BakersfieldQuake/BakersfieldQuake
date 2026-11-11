@@ -1,14 +1,14 @@
 /*
-bklan5_npcs.qc — Harmless, Shootable Roaming NPCs for bklan5:
-  1) npc_greensuit_wheelman  (progs/greensuit_wheelman.spr32 — 256 frames, 8-dir 360° two-wheel contraption driver)
-  2) npc_robeguy             (progs/robeguy.spr32 — 336 frames, 8-dir 360° "The Flamingo Fiend")
-
-Both NPCs roam peacefully around Bakersfield streets/plazas (following bk_route if "target" is set, or cruising
-around their spawn neighborhood), deal ZERO damage to players, and can be shot and killed with full custom
-multi-frame gib explosions (respawning 25s later so the streets stay lively).
+bklan5_npcs.qc — Bakersfield Street Encounters:
+  1) npc_greensuit_wheelman / monster_greensuit_wheelman
+     (progs/greensuit_wheelman.spr32 — 960 frames, true 16-angle 360° hostile jumping monster!)
+     Prowls in Seated Low-Rider Cruise, pops a Wheelie Battle-Cry on spotting a player, sprints in
+     Screaming Ab-Roller Torpedo Charge, launches Pipe-Vault Mid-Air Crane-Kick Sky-Point Jumps with
+     Axle Shockwave Slams, swings 360° Wheel-Bar Whirlwind Melee, and detonates into Quake Mega-Gibs!
+  2) npc_robeguy (progs/robeguy.spr32 — 336 frames, 8-dir 360° harmless "The Flamingo Fiend")
 
 Cheat test impulses (with sv_cheats 1):
-  impulse 46  Summon Green-Suit Wheelman in front of you
+  impulse 46  Summon Hostile Green-Suit Wheelman Monster in front of you
   impulse 47  Summon The Flamingo Fiend (robeguy) in front of you
 */
 
@@ -20,21 +20,31 @@ Cheat test impulses (with sv_cheats 1):
 .float	npc_radius;
 .vector	npc_home;
 
+.float	gs_anim_t0;
+.float	gs_jump_step;
+.float	gs_jump_launched;
+.float	gs_next_jump;
+.float	gs_next_pain;
+.float	gs_next_touch;
+.float	gs_melee_hit;
+
 void() GreenSuit_Think;
 void() GreenSuit_Die;
+void() GreenSuit_Touch;
 void(entity attacker, float take) GreenSuit_Pain;
 void() RobeGuy_Think;
 void() RobeGuy_Die;
 void(entity attacker, float take) RobeGuy_Pain;
 
 // ================================================================================================
-// 1. GREEN-SUIT WHEELMAN (progs/greensuit_wheelman.spr32)
-//   0..7            8-dir Idle (seated_cruise f0)
-//   8 + d*6 + k     8-dir Seated Cruise (k = 0..5)
-//   56 + d*6 + k    8-dir Scream Turbo Overdrive (k = 0..5)
-//   104 + d*6 + k   8-dir Hero Crane Point (k = 0..5)
-//   152 + d*6 + k   8-dir Ab-Roller Plank Rollout (k = 0..5)
-//   200 + d*7 + s   8-dir Gib Explosion (s = 0..6)
+// 1. GREEN-SUIT WHEELMAN MONSTER (progs/greensuit_wheelman.spr32 — 960 frames, 16 compass angles)
+//   0   + d*8  + k   16-dir Seated Low-Rider Cruise      (k = 0..7,  128f: 0..127)
+//   128 + d*8  + k   16-dir Ab-Roller Torpedo Charge     (k = 0..7,  128f: 128..255)
+//   256 + d*12 + s   16-dir Pipe-Vault Sky-Point Slam    (s = 0..11, 192f: 256..447)
+//   448 + d*8  + s   16-dir 360° Whirlwind Melee         (s = 0..7,  128f: 448..575)
+//   576 + d*8  + k   16-dir Wheelie Burnout Battle-Cry   (k = 0..7,  128f: 576..703)
+//   704 + d*6  + s   16-dir Impact Recoil & Tire Skid    (s = 0..5,   96f: 704..799)
+//   800 + d*10 + s   16-dir Bloody Quake Mega-Gib Death  (s = 0..9,  160f: 800..959)
 // ================================================================================================
 
 void() GreenSuit_Precache =
@@ -48,6 +58,9 @@ void() GreenSuit_Precache =
 	precache_model("progs/gib3.mdl");
 	precache_sound("weapons/r_exp3.wav");
 	precache_sound("weapons/lstart.wav");
+	precache_sound("weapons/ax1.wav");
+	precache_sound("demon/djump.wav");
+	precache_sound("demon/dland2.wav");
 	precache_sound("player/udeath.wav");
 	precache_sound("player/pain4.wav");
 	precache_sound("vehicles/idle_coupe.wav");
@@ -55,86 +68,184 @@ void() GreenSuit_Precache =
 
 float() GreenSuit_Customize =
 {
-	local float rel, d, k, st, fps, s;
+	local float rel, d, k, st, s;
 	local vector delta;
 
 	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 26');
 	rel = vectoyaw(delta) - self.angles_y;
 	rel = rel - 360 * floor(rel / 360);
-	d = floor(rel / 45 + 0.5);
-	if (d >= 8)
+	d = floor(rel / 22.5 + 0.5);
+	if (d >= 16)
 		d = 0;
 
-	if (self.npc_dead == 2)
+	if (self.npc_dead)
 	{
 		s = self.npc_dstep;
 		if (s < 0)
 			s = 0;
-		if (s > 6)
-			s = 6;
-		self.frame = 200 + d * 7 + s;
-		return TRUE;
-	}
-	if (self.npc_dead == 1)
-	{
-		s = self.npc_dstep;
-		if (s < 0)
-			s = 0;
-		if (s > 5)
-			s = 5;
-		self.frame = 256 + d * 6 + s;
+		if (s > 9)
+			s = 9;
+		self.frame = 800 + d * 10 + s;
 		return TRUE;
 	}
 
 	st = self.npc_state;
-	if (st <= 0)
+	if (st == 6)	// Pain recoil (6 steps)
 	{
-		self.frame = d;
+		s = floor((time - self.gs_anim_t0) * 17);
+		if (s < 0)
+			s = 0;
+		if (s > 5)
+			s = 5;
+		self.frame = 704 + d * 6 + s;
+		return TRUE;
+	}
+	if (st == 3)	// Pipe-Vault Sky-Point Jump & Slam (12 steps)
+	{
+		s = self.gs_jump_step;
+		if (s < 0)
+			s = 0;
+		if (s > 11)
+			s = 11;
+		self.frame = 256 + d * 12 + s;
+		return TRUE;
+	}
+	if (st == 4)	// 360° Whirlwind Battering-Ram Melee (8 steps)
+	{
+		s = floor((time - self.gs_anim_t0) * 15);
+		if (s < 0)
+			s = 0;
+		if (s > 7)
+			s = 7;
+		self.frame = 448 + d * 8 + s;
+		return TRUE;
+	}
+	if (st == 5)	// Wheelie Burnout Battle-Cry (8-step loop)
+	{
+		k = floor(time * 16 + self.origin_x * 0.02);
+		k = k - 8 * floor(k / 8);
+		self.frame = 576 + d * 8 + k;
+		return TRUE;
+	}
+	if (st == 2)	// Screaming Ab-Roller Torpedo Charge (8-step loop)
+	{
+		k = floor(time * 20 + self.origin_x * 0.02 + self.origin_y * 0.02);
+		k = k - 8 * floor(k / 8);
+		self.frame = 128 + d * 8 + k;
 		return TRUE;
 	}
 
-	fps = 14;
-	if (st == 2)
-		fps = 18;
-	else if (st == 3)
-		fps = 11;
-
-	k = floor(time * fps + self.origin_x * 0.02 + self.origin_y * 0.02);
-	k = k - 6 * floor(k / 6);
-
-	if (st == 1)
-		self.frame = 8 + d * 6 + k;
-	else if (st == 2)
-		self.frame = 56 + d * 6 + k;
-	else if (st == 3)
-		self.frame = 104 + d * 6 + k;
-	else
-		self.frame = 152 + d * 6 + k;
-
+	// Default st == 1: Seated Low-Rider Cruise (8-step loop)
+	k = floor(time * 15 + self.origin_x * 0.02 + self.origin_y * 0.02);
+	k = k - 8 * floor(k / 8);
+	self.frame = d * 8 + k;
 	return TRUE;
+};
+
+entity() GreenSuit_FindPlayer =
+{
+	local entity p, best;
+	local float dist, best_d;
+
+	best = world;
+	best_d = 1450;
+	p = find(world, classname, "player");
+	while (p)
+	{
+		if (p.health > 0 && p.solid != SOLID_NOT && !(p.flags & FL_NOTARGET))
+		{
+			dist = vlen(p.origin - self.origin);
+			if (dist < best_d)
+			{
+				traceline(self.origin + '0 0 32', p.origin + '0 0 24', TRUE, self);
+				if (trace_fraction >= 0.98 || dist < 320)
+				{
+					best = p;
+					best_d = dist;
+				}
+			}
+		}
+		p = find(p, classname, "player");
+	}
+	return best;
+};
+
+void(float rad, float dmg) GreenSuit_SlamBlast =
+{
+	local entity e;
+	local vector dir;
+
+	particle(self.origin + '0 0 8', '0 0 40', 232, 48);
+	e = findradius(self.origin, rad);
+	while (e)
+	{
+		if (e != self && e.takedamage && e.health > 0 && e.classname != "npc_greensuit_wheelman")
+		{
+			T_Damage(e, self, self, dmg);
+			dir = normalize((e.origin + '0 0 16') - self.origin);
+			e.velocity = e.velocity + dir * 250 + '0 0 150';
+			if (e.flags & FL_ONGROUND)
+				e.flags = e.flags - FL_ONGROUND;
+		}
+		e = e.chain;
+	}
+};
+
+void() GreenSuit_Touch =
+{
+	local vector dir;
+	local float dmg;
+
+	if (self.npc_dead || self.health <= 0)
+		return;
+	if (other == world || !other.takedamage || other.health <= 0)
+		return;
+	if (other.classname == "npc_greensuit_wheelman")
+		return;
+	if (time < self.gs_next_touch)
+		return;
+
+	if (self.npc_state == 3 && self.gs_jump_launched == 1)
+		dmg = 24;	// Flying Crane-Kick / Stainless Pipe Dive impact!
+	else if (self.npc_state == 2)
+		dmg = 12;	// Ab-Roller Torpedo ramming contact!
+	else
+		return;
+
+	self.gs_next_touch = time + 0.45;
+	sound(self, CHAN_WEAPON, "demon/dland2.wav", 0.9, ATTN_NORM);
+	T_Damage(other, self, self, dmg);
+	dir = normalize((other.origin + '0 0 16') - self.origin);
+	other.velocity = other.velocity + dir * 240 + '0 0 130';
+	if (other.flags & FL_ONGROUND)
+		other.flags = other.flags - FL_ONGROUND;
 };
 
 void() GreenSuit_Respawn =
 {
 	setorigin(self, self.npc_home + '0 0 12');
 	setmodel(self, "progs/greensuit_wheelman.spr32");
-	self.scale = 0.36;
+	self.scale = 0.52;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
-	self.health = 135;
-	self.max_health = 135;
+	self.health = 165;
+	self.max_health = 165;
 	self.takedamage = DAMAGE_AIM;
 	self.effects = 0;
 	self.alpha = 1;
+	self.enemy = world;
 	self.npc_dead = FALSE;
 	self.npc_dstep = 0;
 	self.npc_state = 1;
-	self.npc_phase_end = time + 3.0;
-	self.npc_next_stunt = time + 5.5;
+	self.gs_jump_step = 0;
+	self.gs_jump_launched = 0;
+	self.npc_phase_end = time + 2.0;
+	self.gs_next_jump = time + 1.5;
 	if (self.target != "")
 		self.goalentity = find(world, targetname, self.target);
 	setsize(self, '-18 -18 0', '18 18 54');
 	droptofloor();
+	self.touch = GreenSuit_Touch;
 	self.think = GreenSuit_Think;
 	self.nextthink = time + 0.05;
 };
@@ -142,40 +253,22 @@ void() GreenSuit_Respawn =
 void() GreenSuit_DeathStep =
 {
 	self.npc_dstep = self.npc_dstep + 1;
-	if (self.npc_dead == 2)
-	{
-		if (self.npc_dstep <= 6)
-		{
-			self.think = GreenSuit_DeathStep;
-			self.nextthink = time + 0.07;
-			return;
-		}
-		self.effects = 0;
-		if (self.npc_respawn > 0)
-		{
-			setmodel(self, "");
-			self.think = GreenSuit_Respawn;
-			self.nextthink = time + self.npc_respawn;
-			return;
-		}
-		remove(self);
-		return;
-	}
-	if (self.npc_dstep <= 5)
+	if (self.npc_dstep <= 9)
 	{
 		self.think = GreenSuit_DeathStep;
-		self.nextthink = time + 0.075;
+		self.nextthink = time + 0.065;
 		return;
 	}
-	if (self.npc_dstep == 6)
+	self.effects = 0;
+	if (self.npc_dstep == 10)
 	{
 		self.think = GreenSuit_DeathStep;
 		self.nextthink = time + 2.2;
 		return;
 	}
-	if (self.npc_dstep <= 13)
+	if (self.npc_dstep <= 16)
 	{
-		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.alpha = 1.0 - (self.npc_dstep - 10) * 0.15;
 		self.think = GreenSuit_DeathStep;
 		self.nextthink = time + 0.07;
 		return;
@@ -195,58 +288,52 @@ void() GreenSuit_Die =
 {
 	if (self.npc_dead)
 		return;
+	self.npc_dead = 2;
 	self.npc_dstep = 0;
 	self.solid = SOLID_NOT;
 	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';
+	self.effects = EF_DIMLIGHT;
 
-	if (NPC_ShouldGib(self))
-	{
-		self.npc_dead = 2;
-		self.effects = EF_DIMLIGHT;
-		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -75);
-		ThrowGib("progs/gib2.mdl", -85);
-		ThrowGib("progs/gib3.mdl", -95);
-		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
-		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
-		WriteCoord(MSG_BROADCAST, self.origin_x);
-		WriteCoord(MSG_BROADCAST, self.origin_y);
-		WriteCoord(MSG_BROADCAST, self.origin_z + 24);
-		self.think = GreenSuit_DeathStep;
-		self.nextthink = time + 0.07;
-		return;
-	}
+	sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
+	sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 0.85, ATTN_NORM);
+	ThrowGib("progs/gib1.mdl", -75);
+	ThrowGib("progs/gib2.mdl", -85);
+	ThrowGib("progs/gib3.mdl", -95);
+	particle(self.origin + '0 0 24', '0 0 30', 73, 55);
 
-	self.npc_dead = 1;
-	self.effects = 0;
-	self.alpha = 1;
-	sound(self, CHAN_VOICE, "player/pain4.wav", 1, ATTN_NORM);
 	self.think = GreenSuit_DeathStep;
-	self.nextthink = time + 0.075;
+	self.nextthink = time + 0.065;
 };
 
 void(entity attacker, float take) GreenSuit_Pain =
 {
 	if (self.health <= 0 || self.npc_dead)
 		return;
-	// Getting shot makes the harmless Wheelman hit Scream Turbo overdrive to zoom away!
-	self.npc_state = 2;
-	self.effects = EF_DIMLIGHT;
-	self.npc_phase_end = time + 1.8;
-	if (time > self.npc_next_voice)
-	{
-		sound(self, CHAN_AUTO, "weapons/lstart.wav", 0.75, ATTN_NORM);
-		self.npc_next_voice = time + 1.2;
-	}
+	if (attacker != world && attacker != self && attacker.takedamage && attacker.classname != "npc_greensuit_wheelman")
+		self.enemy = attacker;
+
+	// Do not interrupt mid-air Pipe-Vault Jump ballistic physics
+	if (self.npc_state == 3 && self.gs_jump_launched == 1)
+		return;
+	if (time < self.gs_next_pain)
+		return;
+
+	self.gs_next_pain = time + 1.35;
+	self.npc_state = 6;
+	self.gs_anim_t0 = time;
+	self.npc_phase_end = time + 0.35;
+	self.movetype = MOVETYPE_STEP;
+	sound(self, CHAN_VOICE, "player/pain4.wav", 1, ATTN_NORM);
 };
 
 void() GreenSuit_Think =
 {
-	local float want, diff, step_dist, roll_r;
-	local vector flat_d;
+	local float want, diff, step_dist, dist, elapsed;
+	local vector flat_d, jump_dir;
+	local entity targ;
 
 	if (self.health <= 0)
 	{
@@ -254,99 +341,236 @@ void() GreenSuit_Think =
 		return;
 	}
 
-	if (self.target != "" && self.goalentity == world)
-		self.goalentity = find(world, targetname, self.target);
-
-	// Cycle playful harmless stunts while driving around
-	if (time >= self.npc_phase_end)
+	// 1. Handle active Pipe-Vault Mid-Air Crane-Kick Jump & Axle Shockwave Slam!
+	if (self.npc_state == 3)
 	{
-		self.effects = 0;
-		if (time >= self.npc_next_stunt)
+		elapsed = time - self.gs_anim_t0;
+		if (self.gs_jump_launched == 0)
 		{
-			roll_r = random();
-			if (roll_r < 0.36)
+			// Brief 0.16s stainless pipe-vault plant before rocketing skyward!
+			self.gs_jump_step = floor(elapsed * 18);
+			if (self.gs_jump_step > 2)
+				self.gs_jump_step = 2;
+			if (self.enemy != world && self.enemy.health > 0)
+				self.angles_y = vectoyaw(self.enemy.origin - self.origin);
+			if (elapsed >= 0.16)
 			{
-				self.npc_state = 2;		// Scream Turbo Overdrive!
-				self.effects = EF_DIMLIGHT;
-				self.npc_phase_end = time + 2.0;
+				self.gs_jump_launched = 1;
+				self.movetype = MOVETYPE_TOSS;
+				if (self.flags & FL_ONGROUND)
+					self.flags = self.flags - FL_ONGROUND;
+				makevectors('0 1 0' * self.angles_y);
+				jump_dir = v_forward;
+				self.velocity = jump_dir * 465 + '0 0 355';
+				self.origin_z = self.origin_z + 2;
+				setorigin(self, self.origin);
+				sound(self, CHAN_VOICE, "demon/djump.wav", 1, ATTN_NORM);
 			}
-			else if (roll_r < 0.68)
-			{
-				self.npc_state = 4;		// Ab-Roller Plank Rollout!
-				self.npc_phase_end = time + 1.8;
-			}
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+		else if (self.gs_jump_launched == 1)
+		{
+			// Airborne Crane-Kick & Sky-Point arc!
+			if (self.velocity_z > 80)
+				self.gs_jump_step = 4;
+			else if (self.velocity_z > -80)
+				self.gs_jump_step = 6;		// Peak Hero Sky-Point ("OOOO!")
 			else
+				self.gs_jump_step = 8;		// Meteor Axle Dive!
+
+			if ((elapsed > 0.32 && (self.flags & FL_ONGROUND)) || elapsed > 1.45)
 			{
-				self.npc_state = 3;		// Brief Hero Crane Sky-Point pose!
-				self.npc_phase_end = time + 1.25;
+				// Touchdown -> Spark-Shower Axle Shockwave Slam!
+				self.gs_jump_launched = 2;
+				self.gs_jump_step = 10;
+				self.movetype = MOVETYPE_STEP;
+				self.velocity = '0 0 0';
+				droptofloor();
+				sound(self, CHAN_BODY, "demon/dland2.wav", 1, ATTN_NORM);
+				GreenSuit_SlamBlast(135, 20);
+				self.npc_phase_end = time + 0.22;
 			}
-			self.npc_next_stunt = time + 6.0 + random() * 4.0;
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
 		}
 		else
 		{
-			self.npc_state = 1;			// Classic Seated Wheel-Cruise!
-			self.npc_phase_end = time + 2.8 + random() * 2.0;
+			// Slam recovery frames (10..11) -> back to Torpedo Charge!
+			self.gs_jump_step = 11;
+			if (time >= self.npc_phase_end)
+			{
+				self.npc_state = 2;
+				self.gs_next_jump = time + 2.4 + random() * 1.2;
+			}
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
 		}
 	}
 
-	// Subtle rolling hum when a player is close
+	// 2. Handle Pain Recoil window
+	if (self.npc_state == 6)
+	{
+		if (time < self.npc_phase_end)
+		{
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+		self.npc_state = 2;
+	}
+
+	// 3. Handle 360° Wheel-Bar Whirlwind Battering-Ram Melee!
+	if (self.npc_state == 4)
+	{
+		elapsed = time - self.gs_anim_t0;
+		if (!self.gs_melee_hit && elapsed >= 0.22)
+		{
+			self.gs_melee_hit = TRUE;
+			GreenSuit_SlamBlast(122, 18);
+		}
+		if (elapsed < 0.52)
+		{
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+		self.npc_state = 2;
+	}
+
+	// 4. Handle Wheelie Burnout Battle-Cry Taunt!
+	if (self.npc_state == 5)
+	{
+		if (self.enemy != world && self.enemy.health > 0)
+			self.angles_y = vectoyaw(self.enemy.origin - self.origin);
+		if (time < self.npc_phase_end)
+		{
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+		self.effects = 0;
+		self.npc_state = 2;
+	}
+
+	// 5. Validate or acquire live hostile target!
+	if (self.enemy != world && (self.enemy.health <= 0 || self.enemy.solid == SOLID_NOT || (self.enemy.flags & FL_NOTARGET)))
+		self.enemy = world;
+
+	if (self.enemy == world)
+	{
+		targ = GreenSuit_FindPlayer();
+		if (targ != world)
+		{
+			self.enemy = targ;
+			self.npc_state = 5;		// Pop a Wheelie Battle-Cry when spotting prey!
+			self.effects = EF_DIMLIGHT;
+			self.gs_anim_t0 = time;
+			self.npc_phase_end = time + 0.50;
+			self.gs_next_jump = time + 1.1;
+			sound(self, CHAN_VOICE, "weapons/lstart.wav", 0.9, ATTN_NORM);
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+	}
+
+	// Rolling tire/axle hum
 	if (time > self.npc_next_voice)
 	{
-		sound(self, CHAN_BODY, "vehicles/idle_coupe.wav", 0.28, 2.2);
-		self.npc_next_voice = time + 3.5 + random() * 1.5;
+		sound(self, CHAN_BODY, "vehicles/idle_coupe.wav", 0.30, 2.0);
+		self.npc_next_voice = time + 3.2 + random() * 1.4;
 	}
 
-	// Stationary Crane Kick pose holds position briefly before rolling on
-	if (self.npc_state == 3)
+	// 6. Hostile Combat Pursuit vs Peaceful Seated Low-Rider Patrol!
+	if (self.enemy != world)
 	{
-		self.think = GreenSuit_Think;
-		self.nextthink = time + 0.05;
-		return;
-	}
-
-	if (self.goalentity != world)
-	{
-		flat_d = self.goalentity.origin - self.origin;
+		self.npc_state = 2;		// Screaming Ab-Roller Torpedo Charge!
+		flat_d = self.enemy.origin - self.origin;
 		flat_d_z = 0;
-		if (vlen(flat_d) < 110 && self.goalentity.target != "")
-			self.goalentity = find(world, targetname, self.goalentity.target);
-		want = vectoyaw(self.goalentity.origin - self.origin);
+		dist = vlen(flat_d);
+		want = vectoyaw(flat_d);
+
+		// Close range -> 360° Wheel-Bar Whirlwind Battering-Ram!
+		if (dist < 112)
+		{
+			self.npc_state = 4;
+			self.gs_anim_t0 = time;
+			self.gs_melee_hit = FALSE;
+			self.angles_y = want;
+			sound(self, CHAN_WEAPON, "weapons/ax1.wav", 1, ATTN_NORM);
+			self.think = GreenSuit_Think;
+			self.nextthink = time + 0.05;
+			return;
+		}
+
+		// Mid range -> Pipe-Vault Sky-Point Jump & Axle Slam!
+		if (dist >= 145 && dist <= 520 && time >= self.gs_next_jump)
+		{
+			traceline(self.origin + '0 0 36', self.enemy.origin + '0 0 28', TRUE, self);
+			if (trace_fraction >= 0.95)
+			{
+				self.npc_state = 3;
+				self.gs_anim_t0 = time;
+				self.gs_jump_step = 0;
+				self.gs_jump_launched = 0;
+				self.angles_y = want;
+				self.think = GreenSuit_Think;
+				self.nextthink = time + 0.05;
+				return;
+			}
+		}
 	}
-	else if (self.npc_radius > 0 && vlen(self.origin - self.npc_home) > self.npc_radius)
-		want = vectoyaw(self.npc_home - self.origin) + (random() - 0.5) * 35;
 	else
-		want = self.angles_y + (random() - 0.5) * 18;
+	{
+		self.npc_state = 1;		// Cheeky Seated Low-Rider Cruise!
+		if (self.target != "" && self.goalentity == world)
+			self.goalentity = find(world, targetname, self.target);
+
+		if (self.goalentity != world && !(self.goalentity.flags & (FL_CLIENT | FL_MONSTER)))
+		{
+			flat_d = self.goalentity.origin - self.origin;
+			flat_d_z = 0;
+			if (vlen(flat_d) < 110 && self.goalentity.target != "")
+				self.goalentity = find(world, targetname, self.goalentity.target);
+			want = vectoyaw(self.goalentity.origin - self.origin);
+		}
+		else if (self.npc_radius > 0 && vlen(self.origin - self.npc_home) > self.npc_radius)
+			want = vectoyaw(self.npc_home - self.origin) + (random() - 0.5) * 35;
+		else
+			want = self.angles_y + (random() - 0.5) * 18;
+	}
 
 	diff = want - self.angles_y;
 	while (diff > 180)
 		diff = diff - 360;
 	while (diff < -180)
 		diff = diff + 360;
-	self.angles_y = self.angles_y + diff * 0.28;
+	self.angles_y = self.angles_y + diff * 0.34;
 
-	step_dist = 12.0;		// Smooth ~240 u/s wheel-cruise
+	step_dist = 11.5;		// ~230 u/s Seated Low-Rider Cruise
 	if (self.npc_state == 2)
-		step_dist = 16.0;	// ~320 u/s Scream Turbo!
-	else if (self.npc_state == 4)
-		step_dist = 13.5;
+		step_dist = 18.0;	// ~360 u/s Ab-Roller Torpedo Charge!
 
 	if (!walkmove(self.angles_y, step_dist))
 	{
-		// Steer cleanly around parked cars, curbs, or players without harming anyone
 		if (!walkmove(self.angles_y + 42, step_dist * 0.85))
 		{
 			if (!walkmove(self.angles_y - 42, step_dist * 0.85))
 			{
-				self.angles_y = self.angles_y + 125 + random() * 70;
+				self.angles_y = self.angles_y + 115 + random() * 70;
 				while (self.angles_y >= 360)
 					self.angles_y = self.angles_y - 360;
 				walkmove(self.angles_y, step_dist * 0.75);
 			}
 			else
-				self.angles_y = self.angles_y - 35;
+				self.angles_y = self.angles_y - 32;
 		}
 		else
-			self.angles_y = self.angles_y + 35;
+			self.angles_y = self.angles_y + 32;
 	}
 
 	self.think = GreenSuit_Think;
@@ -358,11 +582,11 @@ void() npc_greensuit_wheelman =
 	GreenSuit_Precache();
 	self.classname = "npc_greensuit_wheelman";
 	setmodel(self, "progs/greensuit_wheelman.spr32");
-	self.scale = 0.36;
+	self.scale = 0.52;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
-	self.health = 135;
-	self.max_health = 135;
+	self.health = 165;
+	self.max_health = 165;
 	self.takedamage = DAMAGE_AIM;
 	self.th_stand = GreenSuit_Think;
 	self.th_walk = GreenSuit_Think;
@@ -371,14 +595,16 @@ void() npc_greensuit_wheelman =
 	self.th_missile = GreenSuit_Think;
 	self.th_pain = GreenSuit_Pain;
 	self.th_die = GreenSuit_Die;
-	self.touch = SUB_Null;
+	self.touch = GreenSuit_Touch;
 	self.customizeentityforclient = GreenSuit_Customize;
 	self.npc_state = 1;
-	self.npc_phase_end = time + 3.0 + random() * 2.0;
-	self.npc_next_stunt = time + 5.0 + random() * 3.0;
-	self.npc_next_voice = time + 1.0 + random() * 2.0;
-	if (self.npc_respawn <= 0)
-		self.npc_respawn = 25;
+	self.gs_jump_step = 0;
+	self.gs_jump_launched = 0;
+	self.npc_phase_end = time + 2.0 + random() * 1.5;
+	self.gs_next_jump = time + 1.2 + random() * 1.5;
+	self.npc_next_voice = time + 0.8 + random() * 1.5;
+	if (self.npc_respawn == 0)
+		self.npc_respawn = 25;		// -1 (a summon) = never comes back
 	if (self.npc_radius <= 0)
 		self.npc_radius = 680;
 	self.flags = FL_MONSTER;
@@ -386,7 +612,12 @@ void() npc_greensuit_wheelman =
 	droptofloor();
 	self.npc_home = self.origin;
 	self.think = GreenSuit_Think;
-	self.nextthink = time + 0.1 + random() * 0.25;
+	self.nextthink = time + 0.1 + random() * 0.2;
+};
+
+void() monster_greensuit_wheelman =
+{
+	npc_greensuit_wheelman();
 };
 
 void() GreenSuit_Summon =
@@ -398,9 +629,9 @@ void() GreenSuit_Summon =
 	flat_ang_y = self.v_angle_y;
 	makevectors(flat_ang);
 	e = spawn();
-	e.origin = self.origin + v_forward * 136 + '0 0 20';
+	e.origin = self.origin + v_forward * 220 + '0 0 20';
 	e.angles_y = self.v_angle_y + 180;
-	e.npc_respawn = 0;
+	e.npc_respawn = -1;		// a summon does not respawn (0 would be read as the default 25 s)
 	oself = self;
 	self = e;
 	npc_greensuit_wheelman();
@@ -510,7 +741,7 @@ void() RobeGuy_Respawn =
 {
 	setorigin(self, self.npc_home + '0 0 12');
 	setmodel(self, "progs/robeguy.spr32");
-	self.scale = 0.28;
+	self.scale = 0.16;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 145;
@@ -708,7 +939,7 @@ void() npc_robeguy =
 	RobeGuy_Precache();
 	self.classname = "npc_robeguy";
 	setmodel(self, "progs/robeguy.spr32");
-	self.scale = 0.28;
+	self.scale = 0.16;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 145;
@@ -726,8 +957,8 @@ void() npc_robeguy =
 	self.npc_state = 1;
 	self.npc_phase_end = time + 2.4 + random() * 2.0;
 	self.npc_next_stunt = time + 4.5 + random() * 3.0;
-	if (self.npc_respawn <= 0)
-		self.npc_respawn = 25;
+	if (self.npc_respawn == 0)
+		self.npc_respawn = 25;		// -1 (a summon) = never comes back
 	if (self.npc_radius <= 0)
 		self.npc_radius = 480;
 	self.flags = FL_MONSTER;
@@ -749,7 +980,7 @@ void() RobeGuy_Summon =
 	e = spawn();
 	e.origin = self.origin + v_forward * 136 + '0 0 20';
 	e.angles_y = self.v_angle_y + 180;
-	e.npc_respawn = 0;
+	e.npc_respawn = -1;		// a summon does not respawn (0 would be read as the default 25 s)
 	oself = self;
 	self = e;
 	npc_robeguy();

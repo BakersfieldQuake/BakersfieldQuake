@@ -347,6 +347,13 @@ void() RandomNPC_Think =
 		return;
 	}
 
+	// the base anger code (T_Damage -> FoundTarget -> HuntTarget) points goalentity at whoever hurt us: these NPCs steer
+	// by goalentity, so they sprinted at the shooter for good. Back to the route (or the home leash).
+	if (self.goalentity != world && (self.goalentity.flags & (FL_CLIENT | FL_MONSTER)))
+	{
+		self.goalentity = world;
+		self.enemy = world;
+	}
 	if (self.target != "" && self.goalentity == world)
 		self.goalentity = find(world, targetname, self.target);
 

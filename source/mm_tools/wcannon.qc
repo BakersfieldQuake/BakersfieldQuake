@@ -14,13 +14,23 @@ around really fast while cycling through all 8 crazy 360-degree animations of pr
 
 float	wc_fx_spark, wc_fx_muzzle, wc_fx_chunk;
 float	wc_last_boom, wc_last_run, wc_boom_dur;
+var float	autocvar_wc_debug = 0;
+
+// the two Wheelman sprites (about 315 MB) load the first time the cannon starts charging, not on every map
+float	wc_sprites_loaded;
+void() WC_PrecacheSprites =
+{
+	if (wc_sprites_loaded)
+		return;
+	wc_sprites_loaded = TRUE;
+	precache_model ("progs/wheelman.spr32");
+	precache_model ("progs/wheelman_dance.spr32");
+};
 
 void() WC_Precache =
 {
 	precache_model ("progs/v_wewcannon.md3");
-	precache_model ("progs/wheelman.spr32");
 	precache_model ("progs/wc_bar.md3");
-	precache_model ("progs/wheelman_dance.spr32");
 	precache_model ("progs/mm_wheel.md3");
 	precache_model ("progs/s_explod.spr");
 	precache_model ("progs/s_explodbig.spr");
@@ -64,7 +74,7 @@ void() WC_Precache =
 	wc_fx_chunk = particleeffectnum ("wc_chunk");
 };
 
-// non-repeating Larry explosion shout on CHAN_AUTO (survives BecomeExplosion() removal at 0.6s)
+// non-repeating Larry explosion shout via pointsound (survives BecomeExplosion() removal at 0.6s)
 float(entity e) WC_PlayLarryBoom =
 {
 	local float k;
@@ -77,14 +87,14 @@ float(entity e) WC_PlayLarryBoom =
 			k = 1;
 	}
 	wc_last_boom = k;
-	if (k == 1) { sound (e, CHAN_AUTO, "wcannon/wc_lboom1.wav", WC_LINE_VOL, ATTN_NORM); return 0.98; }
-	if (k == 2) { sound (e, CHAN_AUTO, "wcannon/wc_lboom2.wav", WC_LINE_VOL, ATTN_NORM); return 1.73; }
-	if (k == 3) { sound (e, CHAN_AUTO, "wcannon/wc_lboom3.wav", WC_LINE_VOL, ATTN_NORM); return 2.03; }
-	if (k == 4) { sound (e, CHAN_AUTO, "wcannon/wc_lboom4.wav", WC_LINE_VOL, ATTN_NORM); return 2.60; }
-	if (k == 5) { sound (e, CHAN_AUTO, "wcannon/wc_lboom5.wav", WC_LINE_VOL, ATTN_NORM); return 1.89; }
-	if (k == 6) { sound (e, CHAN_AUTO, "wcannon/wc_lboom6.wav", WC_LINE_VOL, ATTN_NORM); return 2.70; }
-	if (k == 7) { sound (e, CHAN_AUTO, "wcannon/wc_lboom7.wav", WC_LINE_VOL, ATTN_NORM); return 2.25; }
-	sound (e, CHAN_AUTO, "wcannon/wc_lboom8.wav", WC_LINE_VOL, ATTN_NORM);
+	if (k == 1) { pointsound (e.origin, "wcannon/wc_lboom1.wav", WC_LINE_VOL, ATTN_NORM); return 0.98; }
+	if (k == 2) { pointsound (e.origin, "wcannon/wc_lboom2.wav", WC_LINE_VOL, ATTN_NORM); return 1.73; }
+	if (k == 3) { pointsound (e.origin, "wcannon/wc_lboom3.wav", WC_LINE_VOL, ATTN_NORM); return 2.03; }
+	if (k == 4) { pointsound (e.origin, "wcannon/wc_lboom4.wav", WC_LINE_VOL, ATTN_NORM); return 2.60; }
+	if (k == 5) { pointsound (e.origin, "wcannon/wc_lboom5.wav", WC_LINE_VOL, ATTN_NORM); return 1.89; }
+	if (k == 6) { pointsound (e.origin, "wcannon/wc_lboom6.wav", WC_LINE_VOL, ATTN_NORM); return 2.70; }
+	if (k == 7) { pointsound (e.origin, "wcannon/wc_lboom7.wav", WC_LINE_VOL, ATTN_NORM); return 2.25; }
+	pointsound (e.origin, "wcannon/wc_lboom8.wav", WC_LINE_VOL, ATTN_NORM);
 	return 2.70;
 };
 
@@ -585,7 +595,7 @@ void(vector org, vector in_dir) WC_Dancer =
 	else
 		d.wc_snd = time + 0.55;
 	setmodel (d, "progs/wheelman_dance.spr32");
-	d.scale = 0.393;		// 176x176 sprite scaled to player height (matches 256x256 at 0.27)
+	d.scale = 0.1921;		// 360x360 HD sprite scaled to player height
 	setsize (d, '-12 -12 0', '12 12 48');
 	setorigin (d, spot);
 	d.velocity = best_dir * d.wc_speed + '0 0 175';
@@ -618,11 +628,21 @@ void(entity hit) WC_Crash =
 	remove (self);
 };
 
-// shot down: he blows up where he is
+void() WC_DieNow =
+{
+	WC_Crash (world);
+};
+
+// shot down: he blows up where he is, on a think of his own (not inside the T_RadiusDamage that may have killed him,
+// whose .chain list his own blast would rewrite)
 void() WC_Die =
 {
 	dprint ("wcannon: shot down\n");
-	WC_Crash (world);
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.velocity = '0 0 0';
+	self.think = WC_DieNow;
+	self.nextthink = time;
 };
 
 // something ran into him (he is solid: the engine calls this when it moves into him)
@@ -754,7 +774,7 @@ void() WC_Think =
 		else
 			self.wc_anim = 0;
 	}
-	if (cvar ("wc_debug") && time >= self.wc_dbg)
+	if (autocvar_wc_debug && time >= self.wc_dbg)
 	{
 		self.wc_dbg = time + 0.4;
 		dprint (strcat ("wcannon: at ", strcat (vtos (self.origin), strcat (" vel ", strcat (vtos (self.velocity), strcat (" air ", strcat (ftos (self.wc_air), strcat (" anim ", strcat (ftos (self.wc_anim), "\n")))))))));
@@ -775,6 +795,7 @@ void(float c) WC_Fire =
 	local vector org, aim;
 	local entity me;
 
+	WC_PrecacheSprites ();
 	a = FunGun_Ammo (self, FG_WCANNON);
 	self.wc_charging = 0;
 	centerprint (self, "");
@@ -896,6 +917,7 @@ void() WC_Press =
 {
 	if (self.wc_charging || time < self.wc_cool)
 		return;
+	WC_PrecacheSprites ();
 	self.wc_charging = time;
 	self.wc_msg = 0;
 	FG_Snd (self, CHAN_WEAPON, "wcannon/wc_charge.wav", 1, 1);
@@ -907,17 +929,17 @@ void() WC_Frame =
 	local float c, tier;
 	local entity e;
 
-	if (self.impulse == 82 && cvar ("sv_cheats"))
+	if (self.impulse == 125 && autocvar_sv_cheats)
 	{
-		// test: hurt the first Wheelman in the world as if somebody shot him (zz_wcannon2.cfg)
+		// test (impulse 125; it was 82, which the sedan spawn in vehicles.qc never got to see): hurt the first Wheelman in the world as if somebody shot him (zz_wcannon2.cfg)
 		self.impulse = 0;
 		e = find (world, classname, "wc_shot");
 		if (e)
 			T_Damage (e, self, self, 60);
 	}
-	if (self.impulse == 83 && cvar ("sv_cheats"))
+	if (self.impulse == 126 && autocvar_sv_cheats)
 	{
-		// test: shoot the first pickle in the world (zz_tone.cfg)
+		// test (impulse 126; it was 83, the van spawn): shoot the first pickle in the world (zz_tone.cfg)
 		self.impulse = 0;
 		e = find (world, classname, "pickle");
 		if (e)

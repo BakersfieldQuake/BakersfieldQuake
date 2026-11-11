@@ -37,6 +37,7 @@ float	DV_EF_RED	= 128;		// DarkPlaces red dynamic light
 .float	dv_next_act;
 .float	dv_next_voice;
 .float	dv_next_touch;
+.float	dv_scan_t;
 .float	dv_slot_only;
 .float	dv_alt;
 .float	dv_harmless;
@@ -170,11 +171,14 @@ void(entity attacker, float take) David_Pain =
 	sound(self, CHAN_VOICE, "david/sprint_rush.wav", 1, ATTN_NORM);
 };
 
+void() David_Touch;
+void() PregRunner_Touch;
+
 void() David_Respawn =
 {
 	setorigin(self, self.dv_home + '0 0 12');
 	setmodel(self, "progs/david.spr32");
-	self.scale = 0.26;
+	self.scale = 0.1387;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 180;
@@ -189,6 +193,7 @@ void() David_Respawn =
 	self.dv_next_act = time + 4.5;
 	setsize(self, '-20 -20 0', '20 20 56');
 	droptofloor();
+	self.touch = David_Touch;		// Killed set SUB_Null
 	self.think = David_Think;
 	self.nextthink = time + 0.05;
 };
@@ -401,10 +406,18 @@ void() David_Think =
 	}
 
 	// Check if any Pregnant Runner is chasing David — if close, bolt away fast; else charge nearest player!
-	chaser = find(world, classname, "monster_preg_runner");
+	chaser = self.dv_chased;
+	if ((chaser == world || chaser.health <= 0 || chaser.classname != "monster_preg_runner") && time >= self.dv_scan_t)
+	{
+		self.dv_scan_t = time + 0.5;
+		chaser = find(world, classname, "monster_preg_runner");
+		self.dv_chased = chaser;
+	}
+	else if (chaser != world && (chaser.health <= 0 || chaser.classname != "monster_preg_runner"))
+		chaser = world;
 	best = world;
 	bestd = 1600;
-	e = findradius(self.origin, 1600);
+	e = bm_player_head;		// only players count: the frame's player list, not a 1600-unit findradius 20 times a second
 	while (e)
 	{
 		if (e != self && e.health > 0 && e.takedamage && (e.flags & FL_CLIENT))
@@ -416,7 +429,7 @@ void() David_Think =
 				best = e;
 			}
 		}
-		e = e.chain;
+		e = e.bm_player_next;
 	}
 
 	if (self.dv_harmless)
@@ -505,7 +518,7 @@ float() PregRunner_Customize =
 		return TRUE;
 	}
 
-	if (cvar("dv_stay") > 0)
+	if (bm_cvar_dv_stay > 0)
 	{
 		self.frame = d;
 		return TRUE;
@@ -526,7 +539,7 @@ void() PregRunner_Respawn =
 		setmodel(self, "progs/preg_2.spr32");
 	else
 		setmodel(self, "progs/preg_3.spr32");
-	self.scale = 0.51;
+	self.scale = 0.136;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 120;
@@ -537,6 +550,7 @@ void() PregRunner_Respawn =
 	self.npc_dstep = 0;
 	setsize(self, '-18 -18 0', '18 18 56');
 	droptofloor();
+	self.touch = PregRunner_Touch;	// Killed set SUB_Null: a respawned runner who caught David no longer made him bolt
 	self.think = PregRunner_Think;
 	self.nextthink = time + 0.05;
 };
@@ -647,7 +661,7 @@ void() PregRunner_Think =
 		return;
 	}
 
-	if (cvar("dv_stay") > 0)
+	if (bm_cvar_dv_stay > 0)
 	{
 		if (cvar("dv_spin") != 0)
 			self.angles_y = self.angles_y + cvar("dv_spin");
@@ -658,12 +672,25 @@ void() PregRunner_Think =
 
 	targ = self.dv_chased;
 	if (targ == world || targ.health <= 0 || targ.classname != "monster_david")
-		targ = find(world, classname, "monster_david");
+	{
+		if (time >= self.dv_scan_t)
+		{
+			self.dv_scan_t = time + 0.5;
+			targ = find(world, classname, "monster_david");
+			self.dv_chased = targ;
+		}
+		else
+			targ = world;
+	}
 	if (targ == world && !self.dv_harmless)
 	{
-		p = find(world, classname, "player");
-		if (p != world && p.health > 0)
-			targ = p;
+		p = bm_player_head;
+		while (p)
+		{
+			if (p != self && p.health > 0 && p.takedamage && (targ == world || vlen(p.origin - self.origin) < vlen(targ.origin - self.origin)))
+				targ = p;
+			p = p.bm_player_next;
+		}
 	}
 
 	if (targ != world && targ.health > 0)
@@ -707,7 +734,7 @@ entity(vector pos, float yaw_ang, float slot_mode) David_SpawnOne =
 	b.classname = "monster_david";
 	b.origin = pos;
 	setmodel(b, "progs/david.spr32");
-	b.scale = 0.26;
+	b.scale = 0.1387;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 180;
@@ -763,7 +790,7 @@ entity(float idx, vector pos, float yaw_ang, entity target_dv) PregRunner_SpawnO
 		setmodel(w, "progs/preg_2.spr32");
 	else
 		setmodel(w, "progs/preg_3.spr32");
-	w.scale = 0.51;
+	w.scale = 0.136;
 	w.dv_runner_idx = idx;
 	w.solid = SOLID_SLIDEBOX;
 	w.movetype = MOVETYPE_STEP;

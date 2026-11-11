@@ -478,14 +478,14 @@ void() Lan_Die =
 		self.lan_attacker = self;
 
 	// Stagger domino chain explosions by 70..200 ms so adjacent monitors & towers pop in a cinematic cascade!
+	// always on a think of its own: blowing up inside the T_RadiusDamage that killed it would rewrite the .chain list
+	// that loop is walking
+	self.takedamage = DAMAGE_NO;
+	self.think = Lan_ExplodeNow;
 	if (lan_inflicting > 0)
-	{
-		self.takedamage = DAMAGE_NO;
-		self.think = Lan_ExplodeNow;
 		self.nextthink = time + 0.07 + random () * 0.13;
-		return;
-	}
-	Lan_ExplodeNow ();
+	else
+		self.nextthink = time;
 };
 
 // ---------------------------------------------------------------- Initialization & Deathmatch Respawn

@@ -206,7 +206,7 @@ void() Banana_UpdateVwep =
 	local entity e;
 	local float show;
 
-	show = (self.weapon == IT_BANANA && self.health > 0 && !(self.items & IT_INVISIBILITY));
+	show = (self.weapon == IT_BANANA && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
 	if (!show)
 	{
 		if (self.bn_vwep)

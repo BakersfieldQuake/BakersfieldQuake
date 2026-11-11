@@ -3,216 +3,129 @@
 #endif
 /*
 ================
-BAKERSFIELD QUAKE STARTUP INTRO DIRECTOR (intro_director.qc)
+BAKERSFIELD QUAKE: UP-CLOSE SPRITE-ONLY FOX 360 -> 50-SWARM -> BURNING FOX + FLOATING CCCs, DAN & ROB (intro_director.qc)
 
-Compiled ONLY into the isolated temporary build (source/mm_tools/out/qc_intro_build -> progs_intro.dat)
-by build_intro_demo.py to record BakersfieldQuake/intro.dem across bklan5's Bakersfield landmarks:
-  1-2. Bakersfield Sign (Sillect Ave): Calm White LAN Van opening -> All 19 characters pile out & make their sounds!
-  3.   Fox Theater Marquee (20th & H St): Rob Dob Gun + "It's Not Pink!" Supercar + Podracer + Mini-Dobs
-  4.   Fox Theater Eva's Lounge & Live TV: Pickle Surprise Gun ambushes Dennis & Paul watching TV
-  5.   Fox Theater Auditorium & Sunburst Stage: Wheelman Cannon (+58 deg) + Stunt Dancer + Milky Opera & Screen Milk!
-  6.   Padre Hotel (H & Wall St): 8-story sky float with Duke Nukem Jetpacks ("I'm floating!!")
-  7.   Padre Hotel 96-ft Neon Rooftop: TF Spanner -> Level-2 Sentry Gun + TF Sniper Laser + CCC 'C' Bolts vs. Kyle
-  8.   Larry's Warehouse (118/120 TV Hall): Bonk Hammer spinny + Frying-Pan SLAM vs. Mr. DIY & Orange Forklift
-  9.   Larry's B-LAN 130A CRT Party Hall: NetSend LOL.BAT Floppy PC + 3D Laptop Gun zapping Friend Rob
-  10.  Larry's 120A Mega Man Bedroom Shrine: Red-Shop-Rag Chrome Polish + Slingshot Fork + Headcrab Leap!
-  11.  ORCOM Connect Banquet LAN Hall: Goo Gun expanding foam stack + Pong Balls vs. Giant 3D Big-Ears
-  12.  Golden West Casino & Giant Horse: David Ojeda 777 Slot Jackpot, Money Bag Sprint & Pregnant Trio
-  13.  Buck Owens' Crystal Palace & KUZZ Van: Mystery Box crystal ball -> Tinfoil-Hat Bryan, 3 Demons & Hell Portal
-  14.  Amberton Park Picnic Shelter: JohnWave 3D Head Grenade tidal splash, Wheelie Riders & Rocket Trash Can
-  15.  Full-Circle Finale Back Under the Bakersfield Sign: White LAN Van + Roof-Dancing Wheelman rolls out!
+Compiled ONLY into the isolated temporary build (source/mm_tools/out/qc_intro_build -> progs.dat)
+by build_intro_demo.py to record BakersfieldQuake/intro.dem across maps/downtown.bsp (22.5s, cards 201..204):
+  - Soundtrack: milky/song.ogg plays continuously from 0.0s to 22.45s!
+  - Strictly Wheelman .spr32 sprites ONLY (zero 3D Wheelman, tire, axle, or shockwave MD3 models).
+  201. (0.0-6.6s)   Fast Up-Close 360-Degree Orbit of the Historic Fox Theater with 3 Milky Milky Grenades +
+                    3 Wheelman Sprites (~195u right in front of the camera lens)!
+  202. (6.6-11.8s)  Sudden Up-Close 50 Milkys & Wheelman Sprites (25 + 25) spinning furiously around the Fox Clock Tower!
+  203. (11.8-15.3s) ALL 50 EXPLODE UP CLOSE: 25 Milky Geysers + 25 360-Degree Escalating Wheelman Sprite Fireballs
+                    erupt up the Clock Tower, splashing white milk drips onto the lens!
+  204. (15.3-22.5s) FOX THEATER ON FIRE + FLOATING CCCCCCs + FLOATING DAN & ROB:
+                    28 roaring fire & smoke columns engulf the Fox Marquee, FOX sign & Clock Tower while 24 yellow
+                    Cs (progs/ccc.md3) float around levitating DAN (daniel.spr32) & ROB (fr_rob.spr32) with
+                    "I'm floating" (jetpack/floating.wav) and "Ah, I can't see!" (ccc/shoot.wav)!
 
-Never modifies BakersfieldQuake/progs.dat; intro.dem is a pure network packet recording that plays back
-under the normal game progs.dat + csprogs.dat via quake.rc's `startdemos intro`.
-Camera paths are lockstep-matched with BM_UpdateIntroCam() in csqc/bm_hud.qc for 150+ Hz zero-shake floating motion.
+Never modifies BakersfieldQuake/progs.dat; intro.dem plays back under normal progs.dat + csprogs.dat.
 ================
 */
 
-.float	intro_st_card;		// clientstat 69 -> CSQC BM_UpdateIntroCam, BM_UpdateIntroVM & BM_DrawIntroHUD
+.float	intro_st_card;		// clientstat 69 -> CSQC BM_UpdateIntroCam & BM_DrawIntroHUD (201..204)
 .float	intro_st_t0;		// clientstat 70 -> intro_t0 in milliseconds (constant clock anchor)
-.float	intro_tag;			// 1 on every temporary entity spawned by intro_director for instant scene cleanup
+.float	intro_tag;			// 1 on temporary entities spawned by intro_director for clean scene transitions
 .float	intro_phase;
 .float	intro_spd;
 .float	intro_rad;
-.float	intro_cx;
-.float	intro_cy;
+.float	intro_gz;
+.float	intro_lat;
 .float	intro_born;
-.vector	intro_door;
+.float	intro_fkind;
+.float	intro_slot;
+.float	intro_ring;
+.float	intro_boom_on;
+.float	intro_boom_tier;
+.float	intro_boom_step;
 
 entity	intro_dir_ent;
 entity	intro_cam;
+entity	intro_bgm_ent;
 float	intro_t0;
 float	intro_t0_ms;
 float	intro_ev;
+float	intro_bgm_on;
 float	intro_stopped;
 float	intro_quitted;
 float	intro_cam_fixed;
+float	intro_milk_until;
+float	intro_swarm_t0;
 
 vector	intro_cam_pos;
 vector	intro_cam_ang;
+vector	intro_cam_look;
 float	intro_cur_card;
 
-// Key actors across scenes
-entity	ia_van;
-entity	ia_vansurf;
-entity	ia_pinkcar;
-entity	ia_forklift;
-entity	ia_pod1;
-entity	ia_robdob;
-entity	ia_pkbomb;
-entity	ia_pickle;
-entity	ia_wheelman;
-entity	ia_dancer;
-entity	ia_milky;
-entity	ia_spot1;
-entity	ia_spot2;
-entity	ia_spot3;
-entity	ia_spot4;
-entity	ia_spot5;
-entity	ia_jp1;
-entity	ia_jp2;
-entity	ia_turrbase;
-entity	ia_turrgun;
-entity	ia_sight;
-entity	ia_nspc;
-entity	ia_nsarc;
-entity	ia_ltg_head;
-entity	ia_ltg_aura;
+vector	intro_b_pos;
+vector	intro_b_fwd;
+vector	intro_b_rgt;
+vector	intro_b_up;
+
+float	intro_fx_vfire;
+float	intro_fx_vwreck;
+float	intro_fx_vsmoke;
+float	intro_fx_bigflame;
+float	intro_fx_ccctrail;
 
 void() Intro_Precache =
 {
 	precache_model ("progs/spike.mdl");
-	precache_model ("progs/wheelman.spr32");
-	precache_model ("progs/wheelman_dance.spr32");
-	precache_model ("progs/mm_wheel.md3");
-	precache_model ("progs/pinklady.md3");
-	precache_model ("progs/milksplat.md3");
-	precache_model ("progs/floathead.mdl");
-	precache_model ("progs/pickle.md3");
-	precache_model ("progs/pickle_bomb.md3");
-	precache_model ("progs/pickle_gib.md3");
-	precache_model ("progs/david.spr32");
-	precache_model ("progs/preg_1.spr32");
-	precache_model ("progs/preg_2.spr32");
-	precache_model ("progs/preg_3.spr32");
-	precache_model ("progs/bryan.spr32");
-	precache_model ("progs/proj_mysterybox.md3");
-	precache_model ("progs/jesskart.spr32");
-	precache_model ("progs/fr_dennis.spr32");
-	precache_model ("progs/fr_paul.spr32");
-	precache_model ("progs/fr_mrdiy.spr32");
-	precache_model ("progs/fr_scissors.spr32");
-	precache_model ("progs/fr_rob.spr32");
-	precache_model ("progs/fr_quakeguy.spr32");
-	precache_model ("progs/fr_finger.spr32");
-	precache_model ("progs/player_shot.mdl");
-	precache_model ("progs/megaman.md3");
-	precache_model ("progs/mm_explode.md3");
-	precache_model ("progs/mm_suit_rider.md3");
-	precache_model ("progs/mm_squat_rider.md3");
-	precache_model ("progs/gw_horse.md3");
-	precache_model ("progs/bigears.md3");
-	precache_model ("progs/johnhead3d.md3");
-	precache_model ("progs/netsend_disk.md3");
-	precache_model ("progs/netsend_pc.md3");
-	precache_model ("progs/netsend_arc.md3");
-	precache_model ("progs/netsend_laser.md3");
-	precache_model ("progs/ltg_head.md3");
-	precache_model ("progs/ltg_aura.md3");
-	precache_model ("progs/ltg_laser.md3");
-	precache_model ("progs/grenade.mdl");
-	precache_model ("progs/jw_splash.spr32");
-	precache_model ("progs/jw_ripple.spr32");
-	precache_model ("progs/jw_wave.md3");
-	precache_model ("progs/goo.md3");
-	precache_model ("progs/ccc.md3");
-	precache_model ("progs/fg_pongball.md3");
-	precache_model ("progs/spark_blue.mdl");
-	precache_model ("progs/spark_yellow.mdl");
-	precache_model ("progs/pink_supercar.md3");
-	precache_model ("progs/skyveh_v3.md3");
-	precache_model ("progs/veh_van.md3");
-	precache_model ("progs/bklan/trashcan.md3");
-	precache_model ("progs/bklan/sr_vehicle_forklift_orange_a01.md3");
-	precache_model ("progs/jetpack.md3");
-	precache_model ("progs/turrbase.mdl");
-	precache_model ("progs/turrgun.mdl");
-	precache_model ("progs/g_srifle.mdl");
-	precache_model ("progs/sight.spr");
+	precache_model ("progs/s_explod.spr");
+	precache_model ("progs/s_explodbig.spr");
+	precache_model ("progs/s_flame.spr");
+	precache_model ("progs/torchflamebase.spr32");
+	precache_model ("progs/torchflametop.spr32");
 
-	precache_sound ("vehicles/idle_van.wav");
-	precache_sound ("vehicles/lanvan.wav");
-	precache_sound ("vehicles/horn.wav");
-	precache_sound ("vehicles/tire_squeal.wav");
-	precache_sound ("bklan/pinkcar.wav");
-	precache_sound ("bklan/notpink.wav");
-	precache_sound ("larry/love_to_play_quake.wav");
-	precache_sound ("larry/double_good.wav");
-	precache_sound ("larry/play_with_knives.wav");
-	precache_sound ("larry/it_wont_boot.wav");
-	precache_sound ("friends/hello.wav");
-	precache_sound ("friends/gowewd.wav");
-	precache_sound ("friends/no.wav");
-	precache_sound ("friends/interesting.wav");
-	precache_sound ("friends/megamayan.wav");
-	precache_sound ("wcannon/wc_charge.wav");
-	precache_sound ("wcannon/wc_shoot.wav");
-	precache_sound ("wcannon/wc_scream.wav");
-	precache_sound ("wcannon/wc_boom.wav");
-	precache_sound ("pickle/throw.wav");
-	precache_sound ("pickle/surprise.wav");
+	// Wheelman Sprites ONLY (zero 3D Wheelman / tire / bar / dome models)
+	precache_model ("progs/wheelman.spr32");
+	precache_model ("progs/wheelman_historic.spr32");
+	precache_model ("progs/greensuit_wheelman.spr32");
+	precache_model ("progs/wheelman_dance.spr32");
+
+	// Milky Milky Grenade + Floating CCCs + Floating DAN & ROB Sprites
+	precache_model ("progs/pinklady.md3");
+	precache_model ("progs/ccc.md3");
+	precache_model ("progs/daniel.spr32");
+	precache_model ("progs/fr_rob.spr32");
+
+	// Non-Stop Milky Song + Action-Comedy Voice & Fire/Explosion Audio
 	precache_sound ("milky/song.ogg");
 	precache_sound ("milky/fire.wav");
 	precache_sound ("afrit/body_explode.wav");
-	precache_sound ("weapons/goofire.wav");
+	precache_sound ("weapons/r_exp3.wav");
 	precache_sound ("weapons/goosplat.wav");
-	precache_sound ("weapons/tink1.wav");
-	precache_sound ("weapons/megamotor.wav");
+	precache_sound ("weapons/goopop.wav");
 	precache_sound ("weapons/megahorn.wav");
-	precache_sound ("weapons/rocket1i.wav");
-	precache_sound ("weapons/lhit.wav");
-	precache_sound ("weapons/lstart.wav");
-	precache_sound ("weapons/turrset.wav");
-	precache_sound ("weapons/turrspot.wav");
-	precache_sound ("weapons/sniper.wav");
-	precache_sound ("hackmon/hm_launch.wav");
-	precache_sound ("floathead/sight1.wav");
-	precache_sound ("floathead/charge.wav");
-	precache_sound ("floathead/boing.wav");
-	precache_sound ("funny/heh.wav");
-	precache_sound ("funny/fart2.wav");
-	precache_sound ("funny/quakeahh.wav");
-	precache_sound ("funny/wewe.wav");
-	precache_sound ("funny/durr.wav");
-	precache_sound ("david/shower_love.wav");
-	precache_sound ("david/money_bag.wav");
-	precache_sound ("david/slot_jackpot.wav");
-	precache_sound ("bryan/detector.wav");
-	precache_sound ("bryan/noway.wav");
-	precache_sound ("bryan/whirl.wav");
-	precache_sound ("bryan/portal_die.wav");
-	precache_sound ("mrdiy/mrdiy_jingle.wav");
-	precache_sound ("mbox/drv_boing_hop.wav");
-	precache_sound ("john/jv15.wav");
-	precache_sound ("john/jv11.wav");
-	precache_sound ("megaman/mm_fire.wav");
-	precache_sound ("netsend/wheres_disk.wav");
-	precache_sound ("netsend/ns_beep.wav");
-	precache_sound ("ltgun/type.wav");
-	precache_sound ("ltgun/canis.wav");
-	precache_sound ("ltgun/zap.wav");
-	precache_sound ("hammer/charge_full.wav");
-	precache_sound ("hammer/frying_pan.wav");
-	precache_sound ("hammer/slice1.wav");
-	precache_sound ("fungun/fg_bonk_hit.wav");
-	precache_sound ("grenade/bounce_08_rubber_ball.wav");
-	precache_sound ("grenade/boom_03_scream_launch.wav");
-	precache_sound ("grenade/boom_04_mega_fart.wav");
-	precache_sound ("jetpack/floating.wav");
-	precache_sound ("jetpack/swoosh.wav");
-	precache_sound ("ccc/shoot.wav");
-	precache_sound ("misc/r_tele5.wav");
+	precache_sound ("misc/h2ohit1.wav");
 	precache_sound ("misc/null.wav");
+	precache_sound ("wcannon/wc_shoot.wav");
+	precache_sound ("wcannon/wc_scream.wav");
+	precache_sound ("wcannon/wc_boom.wav");
+	precache_sound ("wcannon/wc_lboom4.wav");
+	precache_sound ("wcannon/wc_lrun02.wav");
+	precache_sound ("wcannon/wc_lrun05.wav");
+	precache_sound ("jetpack/floating.wav");
+	precache_sound ("funny/imfloating.wav");
+	precache_sound ("ccc/shoot.wav");
+	precache_sound ("ccc/bounce.wav");
+	precache_sound ("daniel/ccc_burst.wav");
+	precache_sound ("daniel/ccc_chant.wav");
+	precache_sound ("daniel/cant_see_webcam.wav");
+	precache_sound ("daniel/shaaa_scream.wav");
+	precache_sound ("friends/hello.wav");
+	precache_sound ("friends/gowewd.wav");
+	precache_sound ("bryan/noway.wav");
+	precache_sound ("funny/wewe.wav");
+	precache_sound ("player/inflame.wav");
+	precache_sound ("vehicles/fire_burn.wav");
+
+	wc_fx_spark = particleeffectnum ("wc_sparks");
+	intro_fx_vfire = particleeffectnum ("veh_fire");
+	intro_fx_vwreck = particleeffectnum ("veh_wreck_fire");
+	intro_fx_vsmoke = particleeffectnum ("veh_smoke");
+	intro_fx_bigflame = particleeffectnum ("particleflamebig");
+	intro_fx_ccctrail = particleeffectnum ("ccc_trail");
 };
 
 void() Intro_Stats =
@@ -265,105 +178,85 @@ vector(vector from, vector to) Intro_LookAngles =
 	return a;
 };
 
-// Exact lockstep SSQC twin of BM_UpdateIntroCam() in csqc/bm_hud.qc across all 15 bklan5 scenes (0.0s .. 78.0s)
-void(float card, float t) Intro_EvalCam =
+float(float t) Intro_FoxOrbitDeg =
 {
-	local float u;
-	local vector cpos, look;
+	local float u, u_orb;
 
-	if (card == 1)
+	u = t / 6.6;
+	if (u < 0)
+		u = 0;
+	if (u > 1)
+		u = 1;
+	u_orb = 0.72 * u + 0.28 * Intro_Smooth (u);
+	return -48 + 360 * u_orb;
+};
+
+// Exact lockstep SSQC twin of BM_UpdateIntroCam() (card >= 201) in csqc/bm_hud.qc
+void(float t) Intro_ComputeCamBasis =
+{
+	local float u, deg, rad;
+	local vector cpos, look, fwd, rgt, upv;
+
+	if (t < 0)
+		t = 0;
+
+	// 201. (0.0s .. 6.6s) FAST UP-CLOSE 360-DEGREE ORBIT OF THE HISTORIC FOX THEATER
+	if (t < 6.6)
 	{
-		u = t / 4.4;
-		cpos = Intro_LerpVec ('11520 -2736 98', '11700 -2736 62', u);
-		look = Intro_LerpVec ('12180 -2736 86', '12160 -2736 68', u);
+		u = t / 6.6;
+		if (u > 1)
+			u = 1;
+		deg = Intro_FoxOrbitDeg (t);
+		rad = deg * 0.01745329;
+		cpos_x = -9990 + ICos (rad) * 1420;
+		cpos_y = 3440 + ISin (rad) * 2010;
+		cpos_z = 450 + 150 * ISin (u * 3.1415927);
+		look_x = -9990 + ICos (rad) * 140;
+		look_y = 3440 + ISin (rad) * 200;
+		look_z = 415;
 	}
-	else if (card == 2)
+	// 202. (6.6s .. 11.8s) UP-CLOSE 50 MILKYS & WHEELMAN SPRITES SPINNING AROUND THE TOWER!
+	else if (t < 11.8)
 	{
-		u = (t - 4.4) / 7.0;
-		cpos = Intro_LerpVec ('11700 -2736 62', '11540 -2736 128', u);
-		look = Intro_LerpVec ('12160 -2736 68', '12160 -2736 88', u);
+		u = (t - 6.6) / 5.2;
+		cpos = Intro_LerpVec ('-8860 2050 815', '-8920 2290 860', u);
+		look = Intro_LerpVec ('-9565 2525 875', '-9565 2525 890', u);
 	}
-	else if (card == 3)
+	// 203. (11.8s .. 15.3s) ALL 50 EXPLODE UP CLOSE!
+	else if (t < 15.3)
 	{
-		u = (t - 11.4) / 5.0;
-		cpos = Intro_LerpVec ('1340 -11560 84', '1120 -11340 62', u);
-		look = Intro_LerpVec ('780 -11040 138', '780 -11040 125', u);
+		u = (t - 11.8) / 3.5;
+		cpos = Intro_LerpVec ('-8920 2290 860', '-8820 2090 835', u);
+		look = Intro_LerpVec ('-9565 2525 890', '-9565 2525 885', u);
 	}
-	else if (card == 4)
-	{
-		u = (t - 16.4) / 5.0;
-		cpos = Intro_LerpVec ('618 -10268 46', '618 -10198 43', u);
-		look = Intro_LerpVec ('610 -10065 56', '610 -10055 64', u);
-	}
-	else if (card == 5)
-	{
-		u = (t - 21.4) / 5.6;
-		cpos = Intro_LerpVec ('48 -9520 94', '48 -9250 78', u);
-		look = Intro_LerpVec ('48 -9030 84', '48 -9020 78', u);
-	}
-	else if (card == 6)
-	{
-		u = (t - 27.0) / 5.0;
-		cpos = Intro_LerpVec ('860 -17220 560', '780 -17300 1185', u);
-		look = Intro_LerpVec ('520 -17510 760', '280 -17555 1235', u);
-	}
-	else if (card == 7)
-	{
-		u = (t - 32.0) / 5.0;
-		cpos = Intro_LerpVec ('-240 -18120 1212', '-110 -17980 1206', u);
-		look = Intro_LerpVec ('60 -17660 1208', '90 -17640 1208', u);
-	}
-	else if (card == 8)
-	{
-		u = (t - 37.0) / 5.0;
-		cpos = Intro_LerpVec ('-744 -755 36', '-744 -675 32', u);
-		look = Intro_LerpVec ('-744 -565 48', '-744 -565 52', u);
-	}
-	else if (card == 9)
-	{
-		u = (t - 42.0) / 5.4;
-		cpos = Intro_LerpVec ('436 -758 30', '472 -758 27', u);
-		look = '548 -758 38';
-	}
-	else if (card == 10)
-	{
-		u = (t - 47.4) / 5.4;
-		cpos = Intro_LerpVec ('-1050 -2195 29', '-1098 -2195 26', u);
-		look = Intro_LerpVec ('-1215 -2190 40', '-1225 -2188 40', u);
-	}
-	else if (card == 11)
-	{
-		u = (t - 52.8) / 5.0;
-		cpos = Intro_LerpVec ('6300 1134 34', '6235 1134 30', u);
-		look = '6125 1134 38';
-	}
-	else if (card == 12)
-	{
-		u = (t - 57.8) / 5.0;
-		cpos = Intro_LerpVec ('-6397 -12145 34', '-6397 -12085 29', u);
-		look = '-6397 -11990 48';
-	}
-	else if (card == 13)
-	{
-		u = (t - 62.8) / 5.0;
-		cpos = Intro_LerpVec ('11730 -3745 34', '11730 -3792 29', u);
-		look = '11730 -3870 44';
-	}
-	else if (card == 14)
-	{
-		u = (t - 67.8) / 5.0;
-		cpos = Intro_LerpVec ('14575 -14090 34', '14625 -14090 29', u);
-		look = Intro_LerpVec ('14755 -14090 48', '14755 -14090 54', u);
-	}
+	// 204. (15.3s .. 22.5s) FOX THEATER ON FIRE + FLOATING CCCCCCs + FLOATING DAN & ROB!
 	else
 	{
-		u = (t - 72.8) / 5.2;
-		cpos = Intro_LerpVec ('11710 -2736 68', '11520 -2736 126', u);
-		look = Intro_LerpVec ('12190 -2736 92', '12280 -2736 155', u);
+		u = (t - 15.3) / 7.2;
+		cpos = Intro_LerpVec ('-8985 2285 285', '-9045 2345 300', u);
+		look = Intro_LerpVec ('-9485 2545 375', '-9505 2565 410', u);
 	}
 
-	intro_cam_pos = cpos;
-	intro_cam_ang = Intro_LookAngles (cpos, look);
+	fwd = normalize (look - cpos);
+	rgt = normalize (fwd_y * '1 0 0' - fwd_x * '0 1 0');
+	upv_x = rgt_y * fwd_z - rgt_z * fwd_y;
+	upv_y = rgt_z * fwd_x - rgt_x * fwd_z;
+	upv_z = rgt_x * fwd_y - rgt_y * fwd_x;
+
+	intro_b_pos = cpos;
+	intro_b_fwd = fwd;
+	intro_b_rgt = rgt;
+	intro_b_up = upv;
+	intro_cam_look = look;
+};
+
+void(float card, float t) Intro_EvalCam =
+{
+	if (card < 201)
+		card = 201;
+	Intro_ComputeCamBasis (t);
+	intro_cam_pos = intro_b_pos;
+	intro_cam_ang = Intro_LookAngles (intro_b_pos, intro_cam_look);
 };
 
 entity() Intro_GetPlayer =
@@ -379,59 +272,64 @@ void(string samp, float vol) Intro_Cue =
 		sound (p, CHAN_AUTO, samp, vol, ATTN_NONE);
 };
 
-void(vector org) Intro_TelePop =
+// Extra-punchy vocal cue (dual ATTN_NONE emit so key comedy lines cut straight through the music!)
+void(string samp, float vol, float ch_cam) Intro_VocalHero =
+{
+	local entity p;
+	p = Intro_GetPlayer ();
+	if (p)
+		sound (p, CHAN_AUTO, samp, vol, ATTN_NONE);
+	if (intro_cam)
+		sound (intro_cam, ch_cam, samp, vol, ATTN_NONE);
+};
+
+void(vector org) Intro_BoomFX =
 {
 	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte (MSG_BROADCAST, TE_TELEPORT);
+	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
 	WriteCoord (MSG_BROADCAST, org_x);
 	WriteCoord (MSG_BROADCAST, org_y);
 	WriteCoord (MSG_BROADCAST, org_z);
 };
 
-void(entity v) Intro_FreeCarClips =
+void() Intro_SpriteBoomThink =
 {
-	local entity clp, nxt_clp;
-	if (!v)
-		return;
-	clp = v.veh_clip_head;
-	while (clp != world)
+	self.frame = self.frame + 1;
+	if (self.frame >= 6)
 	{
-		nxt_clp = clp.enemy;
-		remove (clp);
-		clp = nxt_clp;
+		remove (self);
+		return;
 	}
-	v.veh_clip_head = world;
+	self.nextthink = time + 0.06;
+};
+
+void(vector org, float sc) Intro_SpawnSpriteBoom =
+{
+	local entity b;
+
+	b = spawn ();
+	b.classname = "intro_sprboom";
+	b.intro_tag = 1;
+	b.movetype = MOVETYPE_NONE;
+	b.solid = SOLID_NOT;
+	setmodel (b, "progs/s_explodbig.spr");
+	b.scale = sc;
+	b.effects = EF_ADDITIVE | EF_FULLBRIGHT;
+	b.frame = 0;
+	setsize (b, '0 0 0', '0 0 0');
+	setorigin (b, org);
+	b.think = Intro_SpriteBoomThink;
+	b.nextthink = time + 0.06;
 };
 
 void() Intro_ClearSpot =
 {
 	local entity e, nxt;
 
-	ia_van = world;
-	ia_vansurf = world;
-	ia_pinkcar = world;
-	ia_forklift = world;
-	ia_pod1 = world;
-	ia_robdob = world;
-	ia_pkbomb = world;
-	ia_pickle = world;
-	ia_wheelman = world;
-	ia_dancer = world;
-	ia_milky = world;
-	ia_spot1 = world;
-	ia_spot2 = world;
-	ia_spot3 = world;
-	ia_spot4 = world;
-	ia_spot5 = world;
-	ia_jp1 = world;
-	ia_jp2 = world;
-	ia_turrbase = world;
-	ia_turrgun = world;
-	ia_sight = world;
-	ia_nspc = world;
-	ia_nsarc = world;
-	ia_ltg_head = world;
-	ia_ltg_aura = world;
+	milk_qhead = world;
+	milk_qtail = world;
+	milk_count = 0;
+	milky_count = 0;
 
 	if (intro_cam)
 		sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
@@ -440,45 +338,810 @@ void() Intro_ClearSpot =
 	while (e)
 	{
 		nxt = nextent (e);
-		if (e != intro_dir_ent && e != intro_cam && e.classname != "player" && e.solid != SOLID_BSP)
+		if (e != intro_dir_ent && e != intro_cam && e != intro_bgm_ent && e.classname != "player" && e.solid != SOLID_BSP)
 		{
-			if (e.intro_tag || (e.model != "" && e.classname != "misc_model" && e.classname != "bk_tv" && e.classname != "bk_trashcan"))
-			{
-				Intro_FreeCarClips (e);
+			if (e.classname == "milky")
+				sound (e, CHAN_VOICE, "misc/null.wav", 1, ATTN_NORM);
+			if (e.intro_tag || (e.model != "" && e.classname != "misc_model" && e.classname != "bk_tv" && e.classname != "bk_trashcan" && e.classname != "skypad_fx") || e.classname == "milk_rain")
 				remove (e);
-			}
 		}
 		e = nxt;
 	}
 };
 
-entity(float mtype, float sc_mul, vector org) Intro_MakeActor =
+// ================================================================
+// 360-DEGREE SPRITE CUSTOMIZERS (WHEELMAN SPRITES + DAN + ROB)
+// ================================================================
+
+float(vector ref_org, float yaw_ang) Intro_SpriteDir8 =
 {
-	local entity m;
-	local string mdl;
+	local float rel, d;
 
-	mdl = MB_TypeModel (mtype);
-	if (mdl == "")
-		return world;
-
-	m = spawn ();
-	m.classname = "intro_spot";
-	m.intro_tag = 1;
-	m.movetype = MOVETYPE_NONE;
-	m.solid = SOLID_NOT;
-	m.mb_type = mtype;
-	m.mb_run = TRUE;
-	m.mb_born = time;
-	MB_Setup (m, mtype);
-	m.scale = m.scale * sc_mul;
-	setmodel (m, mdl);
-	setsize (m, '0 0 0', '0 0 0');
-	if (MB_IsSprite (mtype))
-		m.customizeentityforclient = MB_Customize;
-	m.angles = '0 1 0' * (vectoyaw (intro_cam_pos - org) + m.mb_yaw0);
-	setorigin (m, org);
-	return m;
+	rel = vectoyaw (intro_cam_pos - ref_org) - yaw_ang;
+	rel = rel - 360 * floor (rel / 360);
+	d = floor (rel / 45 + 0.5);
+	if (d >= 8 || d < 0)
+		d = 0;
+	return d;
 };
+
+float() Intro_HistWheelCustomize =
+{
+	local float d, k, a;
+
+	d = Intro_SpriteDir8 (self.origin + '0 0 38', self.angles_y);
+	a = self.wc_anim;
+	if (a < 0)
+	{
+		self.frame = d;
+		return TRUE;
+	}
+	k = floor (time * self.intro_spd + self.intro_phase);
+	k = k - 6 * floor (k / 6);
+	self.frame = 8 + a * 48 + d * 6 + k;
+	return TRUE;
+};
+
+float() Intro_ClassicWheelCustomize =
+{
+	local float d, k;
+
+	d = Intro_SpriteDir8 (self.origin + '0 0 36', self.angles_y);
+	if (self.intro_boom_on > 0)
+	{
+		self.frame = 200 + self.intro_boom_tier * 112 + d * 14 + self.intro_boom_step;
+		return TRUE;
+	}
+	if (self.wc_anim > 0)
+	{
+		k = floor (time * 20 + self.intro_phase);
+		k = k - 6 * floor (k / 6);
+		if (self.wc_anim == 1)
+			self.frame = 648 + d * 6 + k;
+		else if (self.wc_anim == 2)
+			self.frame = 696 + d * 6 + k;
+		else
+			self.frame = 744 + d * 6 + k;
+		return TRUE;
+	}
+	if (self.intro_fkind > 0)
+	{
+		k = floor (time * 20 + self.intro_phase);
+		k = k - 6 * floor (k / 6);
+		self.frame = 104 + d * 6 + k;
+		return TRUE;
+	}
+	k = floor (time * 20 + self.intro_phase);
+	k = k - 12 * floor (k / 12);
+	self.frame = 8 + d * 12 + k;
+	return TRUE;
+};
+
+// Floating DAN (progs/daniel.spr32): alternates Blind "I can't see!" Squint Scan (200) & "CCC!" Grin (104)!
+float() Intro_FloatDanCustomize =
+{
+	local float d, k, cyc;
+
+	d = Intro_SpriteDir8 (self.origin + '0 0 42', self.angles_y);
+	k = floor (time * 16 + self.intro_phase);
+	k = k - 6 * floor (k / 6);
+	cyc = floor ((time - self.intro_born) * 0.85);
+	cyc = cyc - 2 * floor (cyc / 2);
+	if (cyc == 0)
+		self.frame = 200 + d * 6 + k;	// Blind Squint Scan ("Ah, I can't see!")
+	else
+		self.frame = 104 + d * 6 + k;	// "CCC! C-C-C-C!" Rapid Grin
+	return TRUE;
+};
+
+// Floating ROB (progs/fr_rob.spr32): zero-gravity mid-air leg-pedaling float!
+float() Intro_FloatRobCustomize =
+{
+	local float d, k;
+
+	d = Intro_SpriteDir8 (self.origin + '0 0 44', self.angles_y);
+	k = floor (time * 13 + self.intro_phase);
+	k = k - 6 * floor (k / 6);
+	self.frame = 8 + d * 6 + k;
+	return TRUE;
+};
+
+// ================================================================
+// CARD 201 (0.0s .. 6.6s): UP-CLOSE 360 FOX ORBIT (3 MILKYS + 3 WHEELMAN SPRITES)
+// ================================================================
+
+vector(entity e, float t) Intro_Fox360FloaterPos =
+{
+	local float dst, lat, vof;
+	local vector pos;
+
+	Intro_ComputeCamBasis (t);
+	dst = e.intro_rad + 6 * ICos (t * 2.3 + e.intro_slot * 0.9);
+	lat = e.intro_lat + 9 * ISin (t * 2.6 + e.intro_slot * 1.1);
+	vof = e.intro_gz + 11 * ISin (t * 3.1 + e.intro_slot * 1.4);
+	pos = intro_b_pos + intro_b_fwd * dst + intro_b_rgt * lat + intro_b_up * vof;
+	return pos;
+};
+
+void() Intro_Fox360FloaterThink =
+{
+	local float t;
+	local vector pos, pos2;
+
+	t = time - intro_t0;
+	if (t < 0)
+		t = 0;
+	if (t >= 6.62)
+	{
+		remove (self);
+		return;
+	}
+
+	pos = Intro_Fox360FloaterPos (self, t);
+	pos2 = Intro_Fox360FloaterPos (self, t + 0.02);
+	setorigin (self, pos);
+	self.velocity = (pos2 - pos) * 50;
+
+	if (self.classname == "milky")
+	{
+		// Face & wobble right toward the viewer so the close-up Milky grenade is clearly visible!
+		self.milky_dir = normalize (intro_cam_pos - pos + intro_b_rgt * (ISin (t * 2.4 + self.intro_phase) * 95));
+		if (time >= self.milky_drip)
+		{
+			pointparticles (particleeffectnum ("milk_drip"), pos - '0 0 28', '0 0 0', 1);
+			self.milky_drip = time + 0.22 + random () * 0.14;
+		}
+	}
+	else
+	{
+		// Spin each close-up Wheelman sprite smoothly so all 8 360-deg sprite angles shine!
+		if (self.intro_slot == 5 && t >= 3.3)
+			self.wc_anim = 2; // Switch Zen Lotus Guru -> Supersonic Pipe-Jet Afterburner halfway around!
+		self.angles_y = vectoyaw (intro_cam_pos - pos) + t * 105 + self.intro_slot * 40;
+		if (time >= self.cnt)
+		{
+			self.cnt = time + 0.16;
+			pointparticles (wc_fx_spark, pos + '0 0 8', '0 0 28', 1);
+		}
+	}
+
+	self.nextthink = time + 0.01;
+};
+
+void() Intro_SpawnFox360Floaters =
+{
+	local float idx, dst, lat, vof;
+	local entity e;
+	local vector p0;
+
+	idx = 0;
+	while (idx < 6)
+	{
+		if (idx == 0)      { lat = -138; dst = 215; vof = 18; }
+		else if (idx == 1) { lat = -82;  dst = 196; vof = -34; }
+		else if (idx == 2) { lat = -28;  dst = 208; vof = 24; }
+		else if (idx == 3) { lat = 28;   dst = 194; vof = -36; }
+		else if (idx == 4) { lat = 82;   dst = 210; vof = 16; }
+		else               { lat = 138;  dst = 198; vof = -34; }
+
+		e = spawn ();
+		e.intro_tag = 1;
+		e.movetype = MOVETYPE_NOCLIP;
+		e.solid = SOLID_NOT;
+		e.effects = EF_FULLBRIGHT;
+		e.intro_slot = idx;
+		e.intro_lat = lat;
+		e.intro_rad = dst;
+		e.intro_gz = vof;
+		e.intro_phase = idx * 1.15;
+		setsize (e, '0 0 0', '0 0 0');
+
+		// Slots 0, 2, 4 = 3 Close-Up Floating Milky Milky Grenades!
+		if (idx == 0 || idx == 2 || idx == 4)
+		{
+			e.classname = "milky";
+			setmodel (e, "progs/pinklady.md3");
+			if (idx == 2)
+				e.scale = 4.0;
+			else
+				e.scale = 3.7;
+			e.milky_owner = world;
+			e.milky_born = time - 1.0;
+			e.milky_dir = '1 0 0';
+			e.milky_drip = time + 0.10 * idx;
+			e.traileffectnum = particleeffectnum ("milky_trail");
+			e.customizeentityforclient = Milky_Customize;
+		}
+		// Slot 1 = Close-Up Classic Wheelman Sprite #1 (Fire-Wheels Burnout!)
+		else if (idx == 1)
+		{
+			e.classname = "intro_wheelman_360";
+			setmodel (e, "progs/wheelman.spr32");
+			e.scale = 0.54;
+			e.colormod = '1.28 1.28 1.28';
+			e.wc_anim = 1;
+			e.customizeentityforclient = Intro_ClassicWheelCustomize;
+			e.cnt = time + 0.08;
+		}
+		// Slot 3 = Close-Up Classic Wheelman Sprite #2 (Jetpack Hover + Spinning Tire Bar!)
+		else if (idx == 3)
+		{
+			e.classname = "intro_wheelman_360";
+			setmodel (e, "progs/wheelman.spr32");
+			e.scale = 0.56;
+			e.colormod = '1.28 1.28 1.28';
+			e.wc_anim = 3;
+			e.customizeentityforclient = Intro_ClassicWheelCustomize;
+			e.cnt = time + 0.12;
+		}
+		// Slot 5 = Close-Up Historic Wheelman Sprite #3 (Zen Lotus Wheel-Guru -> Pipe-Jet!)
+		else
+		{
+			e.classname = "intro_wheelman_360";
+			setmodel (e, "progs/wheelman_historic.spr32");
+			e.scale = 0.45;
+			e.colormod = '1.30 1.30 1.30';
+			e.wc_anim = 9;
+			e.intro_spd = 16;
+			e.customizeentityforclient = Intro_HistWheelCustomize;
+			e.cnt = time + 0.16;
+		}
+
+		p0 = Intro_Fox360FloaterPos (e, 0);
+		setorigin (e, p0);
+		e.think = Intro_Fox360FloaterThink;
+		e.nextthink = time + 0.01;
+
+		idx = idx + 1;
+	}
+};
+
+// ================================================================
+// CARDS 202..203 (6.6s .. 15.3s): UP-CLOSE 50 SPRITES & MILKYS ON CLOCK TOWER -> ALL 50 EXPLODE!
+// ================================================================
+
+void() Intro_WheelBoomStepThink =
+{
+	local float s;
+
+	s = floor ((time - self.ltime) * 18);
+	if (s >= 14)
+	{
+		remove (self);
+		return;
+	}
+	if (s < 0)
+		s = 0;
+	self.intro_boom_step = s;
+	self.velocity = '0 0 36';
+	self.nextthink = time + 0.04;
+};
+
+vector(entity e, float dt) Intro_Swarm50Pos =
+{
+	local float spin, ang, rr;
+	local vector pos;
+
+	if (dt < 0)
+		dt = 0;
+	spin = dt * 138 + dt * dt * 22.0;
+	ang = (e.intro_slot * 36 + e.intro_ring * 18 + spin * (1.0 + 0.07 * e.intro_ring)) * 0.01745329;
+	rr = e.intro_rad + 14 * ISin ((intro_swarm_t0 + dt) * 2.8 + e.cnt * 0.7);
+	pos_x = -9565 + ICos (ang) * rr;
+	pos_y = 2525 + ISin (ang) * rr;
+	pos_z = e.intro_gz + 14 * ISin ((intro_swarm_t0 + dt) * 3.3 + e.cnt * 0.9);
+	return pos;
+};
+
+void() Intro_Swarm50Think =
+{
+	local float dt, idx, mod4, mod3, spin, ang;
+	local vector pos, pos2;
+
+	idx = self.cnt;
+
+	// DETONATION TIME! All 50 Milkys & Wheelman Sprites explode up close (zero 3D debris models)!
+	if (time >= self.dmgtime)
+	{
+		self.velocity = '0 0 0';
+
+		if (self.classname == "milky")
+		{
+			pointparticles (particleeffectnum ("milky_boom"), self.origin, '0 0 0', 1);
+			pointparticles (particleeffectnum ("milk_rain"), self.origin + '0 0 40', '0 0 0', 1);
+			Intro_SpawnSpriteBoom (self.origin, 1.35);
+
+			mod4 = idx - 4 * floor (idx / 4);
+			if (mod4 == 0)
+			{
+				Intro_Cue ("afrit/body_explode.wav", 0.72);
+				Intro_Cue ("weapons/goopop.wav", 0.78);
+			}
+			else if (mod4 == 2)
+			{
+				Intro_Cue ("misc/h2ohit1.wav", 0.76);
+				Intro_Cue ("weapons/goosplat.wav", 0.76);
+			}
+			remove (self);
+			return;
+		}
+
+		// Wheelman Sprite transforms in-place into progs/wheelman.spr32's 360-deg 14-frame Fireball Explosion!
+		setmodel (self, "progs/wheelman.spr32");
+		self.customizeentityforclient = Intro_ClassicWheelCustomize;
+		self.scale = 0.88;
+		self.colormod = '1.25 1.25 1.25';
+		self.effects = EF_FULLBRIGHT;
+		self.traileffectnum = 0;
+		self.intro_boom_on = 1;
+		self.intro_boom_tier = idx - 4 * floor (idx / 4);
+		self.intro_boom_step = 0;
+		self.ltime = time;
+
+		mod3 = idx - 3 * floor (idx / 3);
+		if (mod3 == 1)
+		{
+			Intro_BoomFX (self.origin);
+			pointparticles (wc_fx_spark, self.origin, '0 0 90', 2);
+			Intro_Cue ("wcannon/wc_boom.wav", 0.78);
+		}
+		else if (mod3 == 0)
+		{
+			Intro_SpawnSpriteBoom (self.origin + '0 0 24', 1.45);
+			pointparticles (wc_fx_spark, self.origin, '0 0 70', 1);
+			Intro_Cue ("weapons/r_exp3.wav", 0.70);
+		}
+		else
+		{
+			Intro_Cue ("wcannon/wc_lboom4.wav", 0.72);
+		}
+
+		// Spire-top finale blast (#49) splashes thick white milk drips onto the camera lens!
+		if (idx == 49)
+		{
+			Intro_BoomFX ('-9565 2525 1065');
+			Intro_SpawnSpriteBoom ('-9565 2525 920', 2.2);
+			Intro_SpawnSpriteBoom ('-9565 2525 1060', 2.2);
+			Intro_Cue ("weapons/megahorn.wav", 0.88);
+			Intro_Cue ("afrit/body_explode.wav", 0.88);
+			Intro_Cue ("weapons/goosplat.wav", 0.92);
+			intro_milk_until = time + 2.55;
+		}
+
+		self.think = Intro_WheelBoomStepThink;
+		self.nextthink = time + 0.04;
+		return;
+	}
+
+	dt = time - intro_swarm_t0;
+	if (dt < 0)
+		dt = 0;
+
+	pos = Intro_Swarm50Pos (self, dt);
+	pos2 = Intro_Swarm50Pos (self, dt + 0.02);
+	setorigin (self, pos);
+	self.velocity = (pos2 - pos) * 50;
+
+	spin = dt * 138 + dt * dt * 22.0;
+	ang = (self.intro_slot * 36 + self.intro_ring * 18 + spin * (1.0 + 0.07 * self.intro_ring)) * 0.01745329;
+
+	if (self.classname == "milky")
+	{
+		self.milky_dir_x = 0 - ISin (ang);
+		self.milky_dir_y = ICos (ang);
+		self.milky_dir_z = 0;
+	}
+	else
+	{
+		self.angles_y = ang * 57.29578 + 90;
+	}
+
+	self.nextthink = time + 0.01;
+};
+
+void() Intro_Spawn50TowerSwarm =
+{
+	local float idx, ring, slot, rz, rr;
+	local entity e;
+	local vector p0;
+
+	intro_swarm_t0 = time;
+
+	idx = 0;
+	while (idx < 50)
+	{
+		ring = floor (idx / 10);
+		slot = idx - ring * 10;
+
+		if (ring == 0)      { rz = 735;  rr = 286; }
+		else if (ring == 1) { rz = 810;  rr = 268; }
+		else if (ring == 2) { rz = 885;  rr = 250; }
+		else if (ring == 3) { rz = 960;  rr = 234; }
+		else                { rz = 1035; rr = 220; }
+
+		e = spawn ();
+		e.intro_tag = 1;
+		e.movetype = MOVETYPE_NOCLIP;
+		e.solid = SOLID_NOT;
+		e.effects = EF_FULLBRIGHT;
+		e.cnt = idx;
+		e.intro_ring = ring;
+		e.intro_slot = slot;
+		e.intro_gz = rz;
+		e.intro_rad = rr;
+		e.intro_phase = idx * 0.65;
+		// Rapid-fire bottom-to-top spiral chain detonation across all 50 entities (11.90s .. 14.11s)!
+		e.dmgtime = intro_swarm_t0 + 5.30 + idx * 0.045;
+		setsize (e, '0 0 0', '0 0 0');
+
+		// Even slots (0, 2, 4, 6, 8 x 5 rings = 25 Milky Milky Grenades!)
+		if (slot - 2 * floor (slot / 2) == 0)
+		{
+			e.classname = "milky";
+			setmodel (e, "progs/pinklady.md3");
+			e.scale = 5.8;
+			e.milky_owner = world;
+			e.milky_born = time - 1.0;
+			e.milky_dir = '0 1 0';
+			e.customizeentityforclient = Milky_Customize;
+			if (slot == 0 || slot == 4)
+				e.traileffectnum = particleeffectnum ("milky_trail");
+		}
+		// Odd slots (1, 3, 5, 7, 9 x 5 rings = 25 Pure .SPR32 Wheelman Sprites!)
+		else
+		{
+			e.classname = "intro_wheelman_swarm";
+			e.colormod = '1.26 1.26 1.26';
+			if (slot == 1)
+			{
+				setmodel (e, "progs/wheelman.spr32");
+				e.scale = 0.60;
+				e.wc_anim = 1; // Fire-Wheels Burnout
+				e.customizeentityforclient = Intro_ClassicWheelCustomize;
+			}
+			else if (slot == 3)
+			{
+				setmodel (e, "progs/wheelman_historic.spr32");
+				e.scale = 0.52;
+				if (ring - 2 * floor (ring / 2) == 0)
+					e.wc_anim = 8; // Inverted B-Boy Headspin
+				else
+					e.wc_anim = 2; // Pipe-Jet Afterburner
+				e.intro_spd = 20;
+				e.customizeentityforclient = Intro_HistWheelCustomize;
+			}
+			else if (slot == 5)
+			{
+				setmodel (e, "progs/wheelman.spr32");
+				e.scale = 0.60;
+				e.wc_anim = 3; // Jetpack Hover + Spinning Bar
+				e.customizeentityforclient = Intro_ClassicWheelCustomize;
+			}
+			else if (slot == 7)
+			{
+				if (ring - 2 * floor (ring / 2) == 0)
+				{
+					setmodel (e, "progs/greensuit_wheelman.spr32");
+					e.scale = 0.50;
+					e.npc_dead = 0;
+					e.npc_state = 2;
+					e.customizeentityforclient = GreenSuit_Customize;
+				}
+				else
+				{
+					setmodel (e, "progs/wheelman_dance.spr32");
+					e.scale = 0.34;
+					e.wc_anim = ring;
+					e.wc_t0 = time;
+					e.customizeentityforclient = WC_DancerCustomize;
+				}
+			}
+			else
+			{
+				setmodel (e, "progs/wheelman.spr32");
+				e.scale = 0.60;
+				e.wc_anim = 0;
+				e.intro_fkind = 1; // Screaming Wheelman
+				e.customizeentityforclient = Intro_ClassicWheelCustomize;
+			}
+		}
+
+		p0 = Intro_Swarm50Pos (e, 0);
+		setorigin (e, p0);
+		e.think = Intro_Swarm50Think;
+		e.nextthink = time + 0.01;
+
+		idx = idx + 1;
+	}
+};
+
+// ================================================================
+// CARD 204 (15.3s .. 22.5s): FOX THEATER ON FIRE + FLOATING CCCCCCs + FLOATING DAN & ROB!
+// ================================================================
+
+void() Intro_FoxFlameSpriteThink =
+{
+	local float f;
+
+	f = floor (time * 16 + self.intro_phase);
+	self.frame = f - 7 * floor (f / 7);
+	if (time >= self.cnt)
+	{
+		self.cnt = time + 0.09 + random () * 0.05;
+		pointparticles (intro_fx_vwreck, self.origin + '0 0 12', '0 0 45', 1);
+		if (self.intro_slot == 1)
+			pointparticles (intro_fx_vsmoke, self.origin + '0 0 34', '0 0 65', 1);
+	}
+	self.nextthink = time + 0.04;
+};
+
+void(vector org, float sc, float with_light, float with_smoke, float idx) Intro_SpawnFoxFireColumn =
+{
+	local entity fb, ft, fs;
+
+	// 1. Bright additive torch-top roaring flame sprite
+	ft = spawn ();
+	ft.classname = "intro_foxfire";
+	ft.intro_tag = 1;
+	ft.movetype = MOVETYPE_NONE;
+	ft.solid = SOLID_NOT;
+	setmodel (ft, "progs/torchflametop.spr32");
+	ft.scale = sc;
+	ft.effects = EF_ADDITIVE | EF_FULLBRIGHT;
+	if (with_light > 0)
+		ft.effects = ft.effects | 128 | EF_DIMLIGHT;
+	setsize (ft, '0 0 0', '0 0 0');
+	setorigin (ft, org);
+
+	// 2. Base ember glow sprite
+	fb = spawn ();
+	fb.classname = "intro_foxfire";
+	fb.intro_tag = 1;
+	fb.movetype = MOVETYPE_NONE;
+	fb.solid = SOLID_NOT;
+	setmodel (fb, "progs/torchflamebase.spr32");
+	fb.scale = sc * 0.85;
+	fb.effects = EF_ADDITIVE | EF_FULLBRIGHT;
+	setsize (fb, '0 0 0', '0 0 0');
+	setorigin (fb, org - '0 0 14');
+
+	// 3. Animated 7-frame Quake fire tongue + continuous veh_wreck_fire & black smoke plumes!
+	fs = spawn ();
+	fs.classname = "intro_foxfire_emit";
+	fs.intro_tag = 1;
+	fs.movetype = MOVETYPE_NONE;
+	fs.solid = SOLID_NOT;
+	setmodel (fs, "progs/s_flame.spr");
+	fs.scale = sc * 0.78;
+	fs.effects = EF_ADDITIVE | EF_FULLBRIGHT;
+	fs.intro_phase = idx * 0.9;
+	fs.intro_slot = with_smoke;
+	fs.cnt = time + (idx - 5 * floor (idx / 5)) * 0.02;
+	setsize (fs, '0 0 0', '0 0 0');
+	setorigin (fs, org + '0 0 18');
+	fs.think = Intro_FoxFlameSpriteThink;
+	fs.nextthink = time + 0.02;
+};
+
+void() Intro_SpawnBurningFoxTheater =
+{
+	// 8 roaring fire columns along the iconic Fox Marquee Canopy & H-Street Entrance!
+	Intro_SpawnFoxFireColumn ('-9290 2375 185', 4.6, 1, 1, 0);
+	Intro_SpawnFoxFireColumn ('-9290 2465 235', 5.2, 0, 1, 1);
+	Intro_SpawnFoxFireColumn ('-9290 2555 190', 4.8, 1, 1, 2);
+	Intro_SpawnFoxFireColumn ('-9290 2645 238', 5.4, 0, 1, 3);
+	Intro_SpawnFoxFireColumn ('-9290 2735 195', 4.6, 1, 1, 4);
+	Intro_SpawnFoxFireColumn ('-9290 2825 236', 5.0, 0, 1, 5);
+	Intro_SpawnFoxFireColumn ('-9345 2430 115', 4.0, 0, 0, 6);
+	Intro_SpawnFoxFireColumn ('-9345 2610 118', 4.2, 0, 0, 7);
+
+	// 6 fire columns wrapping the South 20th-Street Facade!
+	Intro_SpawnFoxFireColumn ('-9440 2305 195', 4.6, 1, 1, 8);
+	Intro_SpawnFoxFireColumn ('-9565 2355 215', 4.8, 0, 1, 9);
+	Intro_SpawnFoxFireColumn ('-9695 2355 205', 4.5, 0, 1, 10);
+	Intro_SpawnFoxFireColumn ('-9825 2355 225', 4.6, 0, 0, 11);
+	Intro_SpawnFoxFireColumn ('-9575 2385 385', 5.2, 0, 1, 12);
+	Intro_SpawnFoxFireColumn ('-9730 2425 410', 5.0, 0, 1, 13);
+
+	// 8 huge fire columns up the Fox Upper Facade & Vertical 'FOX' Sign!
+	Intro_SpawnFoxFireColumn ('-9420 2495 345', 5.4, 1, 1, 14);
+	Intro_SpawnFoxFireColumn ('-9420 2585 455', 5.8, 0, 1, 15);
+	Intro_SpawnFoxFireColumn ('-9420 2515 565', 5.6, 0, 1, 16);
+	Intro_SpawnFoxFireColumn ('-9420 2635 570', 5.4, 0, 1, 17);
+	Intro_SpawnFoxFireColumn ('-9550 2735 370', 5.0, 0, 1, 18);
+	Intro_SpawnFoxFireColumn ('-9550 2845 480', 5.2, 0, 1, 19);
+	Intro_SpawnFoxFireColumn ('-9550 2765 575', 5.4, 0, 1, 20);
+	Intro_SpawnFoxFireColumn ('-9550 2895 575', 5.0, 0, 0, 21);
+
+	// 6 towering inferno columns blazing on the 74-Ft Fox Clock Tower & Belfry!
+	Intro_SpawnFoxFireColumn ('-9430 2505 705', 6.0, 1, 1, 22);
+	Intro_SpawnFoxFireColumn ('-9430 2610 720', 5.8, 0, 1, 23);
+	Intro_SpawnFoxFireColumn ('-9435 2525 845', 6.4, 1, 1, 24);
+	Intro_SpawnFoxFireColumn ('-9435 2615 860', 6.0, 0, 1, 25);
+	Intro_SpawnFoxFireColumn ('-9460 2555 975', 6.5, 0, 1, 26);
+	Intro_SpawnFoxFireColumn ('-9545 2475 835', 5.8, 0, 1, 27);
+};
+
+vector(entity e, float t) Intro_FloatHeroPos =
+{
+	local float dt, dst, lat, vof;
+
+	dt = t - 15.3;
+	if (dt < 0)
+		dt = 0;
+	Intro_ComputeCamBasis (t);
+	dst = e.intro_rad + 7 * ISin (dt * 2.1 + e.intro_phase);
+	lat = e.intro_lat + 11 * ISin (dt * 1.8 + e.intro_phase * 1.3);
+	vof = e.intro_gz + 15 * ISin (dt * 2.6 + e.intro_phase);
+	return intro_b_pos + intro_b_fwd * dst + intro_b_rgt * lat + intro_b_up * vof;
+};
+
+void() Intro_FloatHeroThink =
+{
+	local float t;
+	local vector pos, pos2;
+
+	t = time - intro_t0;
+	if (t < 15.3)
+		t = 15.3;
+
+	pos = Intro_FloatHeroPos (self, t);
+	pos2 = Intro_FloatHeroPos (self, t + 0.02);
+	setorigin (self, pos);
+	self.velocity = (pos2 - pos) * 50;
+
+	// Keep DAN and ROB facing the camera while swaying gently in zero-gravity!
+	self.angles_y = vectoyaw (intro_cam_pos - pos) + 34 * ISin (t * 2.2 + self.intro_phase);
+
+	if (time >= self.cnt)
+	{
+		self.cnt = time + 0.22;
+		pointparticles (wc_fx_spark, pos + '0 0 10', '0 0 24', 1);
+	}
+	self.nextthink = time + 0.01;
+};
+
+vector(entity e, float t) Intro_FloatCCCPos =
+{
+	local float dt, ang, dst, lat, vof;
+
+	dt = t - 15.3;
+	if (dt < 0)
+		dt = 0;
+	Intro_ComputeCamBasis (t);
+	ang = e.intro_phase + dt * e.intro_spd;
+	lat = e.intro_lat + ICos (ang) * 26;
+	vof = e.intro_gz + ISin (ang * 1.3) * 20;
+	dst = e.intro_rad + ISin (ang * 0.9) * 16;
+	return intro_b_pos + intro_b_fwd * dst + intro_b_rgt * lat + intro_b_up * vof;
+};
+
+void() Intro_FloatCCCThink =
+{
+	local float t;
+	local vector pos, pos2;
+
+	t = time - intro_t0;
+	if (t < 15.3)
+		t = 15.3;
+
+	pos = Intro_FloatCCCPos (self, t);
+	pos2 = Intro_FloatCCCPos (self, t + 0.02);
+	setorigin (self, pos);
+	self.velocity = (pos2 - pos) * 50;
+	self.nextthink = time + 0.01;
+};
+
+void() Intro_SpawnFloatingCCCsDanRob =
+{
+	local entity dan, rob, c;
+	local float i, ring, slot, ang0, rx, ry, dst, sc;
+	local vector p0;
+
+	// 1. Floating DAN (progs/daniel.spr32) up close on left-center!
+	dan = spawn ();
+	dan.classname = "intro_float_dan";
+	dan.intro_tag = 1;
+	dan.movetype = MOVETYPE_NOCLIP;
+	dan.solid = SOLID_NOT;
+	setmodel (dan, "progs/daniel.spr32");
+	dan.scale = 0.24;
+	dan.colormod = '1.35 1.35 1.35';
+	dan.effects = EF_FULLBRIGHT;
+	dan.intro_rad = 154;
+	dan.intro_lat = -48;
+	dan.intro_gz = -46;
+	dan.intro_phase = 0.2;
+	dan.intro_born = time;
+	dan.cnt = time + 0.10;
+	dan.customizeentityforclient = Intro_FloatDanCustomize;
+	setsize (dan, '0 0 0', '0 0 0');
+	p0 = Intro_FloatHeroPos (dan, 15.3);
+	setorigin (dan, p0);
+	dan.think = Intro_FloatHeroThink;
+	dan.nextthink = time + 0.01;
+
+	// 2. Floating ROB (progs/fr_rob.spr32) up close on right-center!
+	rob = spawn ();
+	rob.classname = "intro_float_rob";
+	rob.intro_tag = 1;
+	rob.movetype = MOVETYPE_NOCLIP;
+	rob.solid = SOLID_NOT;
+	setmodel (rob, "progs/fr_rob.spr32");
+	rob.scale = 0.96;
+	rob.colormod = '1.35 1.35 1.35';
+	rob.effects = EF_FULLBRIGHT;
+	rob.intro_rad = 156;
+	rob.intro_lat = 48;
+	rob.intro_gz = -46;
+	rob.intro_phase = 2.1;
+	rob.intro_born = time;
+	rob.cnt = time + 0.18;
+	rob.customizeentityforclient = Intro_FloatRobCustomize;
+	setsize (rob, '0 0 0', '0 0 0');
+	p0 = Intro_FloatHeroPos (rob, 15.3);
+	setorigin (rob, p0);
+	rob.think = Intro_FloatHeroThink;
+	rob.nextthink = time + 0.01;
+
+	// 3. 24 Bright Yellow Spinning 'C's (progs/ccc.md3) floating & orbiting all around DAN & ROB!
+	i = 0;
+	while (i < 24)
+	{
+		ring = floor (i / 12);
+		slot = i - ring * 12;
+		ang0 = (slot * 30 + ring * 15) * 0.01745329;
+
+		if (ring == 0)
+		{
+			// Inner close-up halo framing DAN & ROB without blocking their faces!
+			rx = 148;
+			ry = 68;
+			dst = 156 + 18 * ISin (i * 1.7);
+			sc = 1.65;
+		}
+		else
+		{
+			// Wide outer cloud of floating yellow CCCCCCs across the burning Fox Theater!
+			rx = 215;
+			ry = 92;
+			dst = 228 + 24 * ICos (i * 1.3);
+			sc = 2.05;
+		}
+
+		c = spawn ();
+		c.classname = "intro_float_ccc";
+		c.intro_tag = 1;
+		c.movetype = MOVETYPE_NOCLIP;
+		c.solid = SOLID_NOT;
+		setmodel (c, "progs/ccc.md3");
+		c.scale = sc;
+		c.effects = EF_FULLBRIGHT;
+		if (i - 2 * floor (i / 2) == 0)
+			c.traileffectnum = intro_fx_ccctrail;
+		c.intro_lat = ICos (ang0) * rx;
+		c.intro_gz = ISin (ang0) * ry + 4;
+		c.intro_rad = dst;
+		c.intro_phase = i * 0.85;
+		c.intro_spd = 2.2 + (i - 4 * floor (i / 4)) * 0.35;
+		c.angles_x = (i * 29) - 360 * floor ((i * 29) / 360);
+		c.angles_y = (i * 67) - 360 * floor ((i * 67) / 360);
+		c.avelocity_x = 150 + (i - 3 * floor (i / 3)) * 55;
+		c.avelocity_y = 320 + (i - 5 * floor (i / 5)) * 45;
+		c.avelocity_z = 260;
+		setsize (c, '0 0 0', '0 0 0');
+		p0 = Intro_FloatCCCPos (c, 15.3);
+		setorigin (c, p0);
+		c.think = Intro_FloatCCCThink;
+		c.nextthink = time + 0.01;
+
+		i = i + 1;
+	}
+};
+
+// ================================================================
+// CAMERA & PLAYER LOCKSTEP SYNC
+// ================================================================
 
 void(entity p) Intro_PurgePlayerAttachments =
 {
@@ -490,7 +1153,7 @@ void(entity p) Intro_PurgePlayerAttachments =
 	while (e)
 	{
 		nxt = nextent (e);
-		if (e != p && e != intro_cam && e != intro_dir_ent && e.solid != SOLID_BSP)
+		if (e != p && e != intro_cam && e != intro_bgm_ent && e != intro_dir_ent && e.solid != SOLID_BSP)
 		{
 			if (e.owner == p || e.tag_entity == p || e.viewmodelforclient == p)
 				remove (e);
@@ -513,11 +1176,23 @@ void(entity p) Intro_EnsureCam =
 		setsize (intro_cam, '0 0 0', '0 0 0');
 		setorigin (intro_cam, intro_cam_pos);
 	}
+	if (!intro_bgm_ent)
+	{
+		intro_bgm_ent = spawn ();
+		intro_bgm_ent.classname = "intro_bgm";
+		intro_bgm_ent.movetype = MOVETYPE_NONE;
+		intro_bgm_ent.solid = SOLID_NOT;
+		setmodel (intro_bgm_ent, "progs/spike.mdl");
+		intro_bgm_ent.scale = 0.01;
+		intro_bgm_ent.alpha = 0.01;
+		setsize (intro_bgm_ent, '0 0 0', '0 0 0');
+		setorigin (intro_bgm_ent, intro_cam_pos);
+	}
 	if (p.clientcamera != intro_cam)
 	{
 		p.clientcamera = intro_cam;
 		msg_entity = p;
-		WriteByte (MSG_ONE, 5);		// svc_setview
+		WriteByte (MSG_ONE, 5);
 		WriteEntity (MSG_ONE, intro_cam);
 	}
 };
@@ -550,12 +1225,24 @@ float() Intro_PlayerHook =
 
 void(entity p) Intro_SyncPlayer =
 {
+	local float mst;
+
 	if (!p)
 		return;
 
 	Intro_EnsureCam (p);
 	setorigin (intro_cam, intro_cam_pos);
 	intro_cam.angles = intro_cam_ang;
+	if (intro_bgm_ent)
+		setorigin (intro_bgm_ent, intro_cam_pos);
+
+	mst = 0;
+	if (intro_milk_until > time)
+	{
+		mst = ceil ((intro_milk_until - time) * 22);
+		if (mst > 55)
+			mst = 55;
+	}
 
 	p.movetype = MOVETYPE_NONE;
 	p.solid = SOLID_NOT;
@@ -574,6 +1261,7 @@ void(entity p) Intro_SyncPlayer =
 	p.weaponmodel = "";
 	p.punchangle = '0 0 0';
 	p.viewzoom = 1;
+	p.milk_st = mst;
 	p.intro_st_card = intro_cur_card;
 	p.intro_st_t0 = intro_t0_ms;
 	p.velocity = '0 0 0';
@@ -592,1683 +1280,191 @@ void() Intro_CleanStage =
 {
 	local entity e, nxt;
 
+	cvar_set ("bm_botfill", "0");
+	cvar_set ("crowd_on", "0");
+
 	e = nextent (world);
 	while (e)
 	{
 		nxt = nextent (e);
-		if (e.classname != "player" && e != intro_dir_ent && e != intro_cam && e.solid != SOLID_BSP)
+		if (e != intro_dir_ent && e != intro_cam && e != intro_bgm_ent && e.classname != "player" && e.solid != SOLID_BSP)
 		{
-			// Strip roaming cruisers/flyers, map-spawned drivable vehicles, and floating weapon/item/jetpack pickups,
-			// while preserving all map misc_model props (CRTs, sodas, pallet racks, Mega Man bed shrine, Casino horse, KUZZ van) & live bk_tv!
-			if (e.classname == "bk_cruiser" || e.classname == "bk_flyer" || e.veh_kind > 0 || e.classname == "veh_part")
-			{
-				Intro_FreeCarClips (e);
+			if (e.classname == "crowd_spawner" || e.classname == "crowd_npc" || e.classname == "floathead_spawner" || e.classname == "floathead")
 				remove (e);
-			}
-			else if (e.classname == "misc_vehicle_van" || e.classname == "misc_vehicle_sedan" || e.classname == "misc_vehicle_coupe" || e.classname == "misc_vehicle_truck")
-			{
-				Intro_FreeCarClips (e);
+			else if (e.classname == "bklan_greensuit" || e.classname == "bklan_robeguy" || e.classname == "bklan_daniel" || e.classname == "bklan_bryan" || e.classname == "bklan_david")
 				remove (e);
-			}
-			else if (e.model == "progs/veh_van.md3" && e.origin_x > 11800 && e.origin_y > -3000 && e.origin_y < -2500)
-				remove (e);
-			else if ((e.flags & FL_ITEM) || e.model == "progs/jetpack.md3" || e.think == Jetpack_Place)
+			else if (e.classname == "bk_car" || e.classname == "bk_bicycle" || (e.flags & FL_ITEM))
 				remove (e);
 		}
 		e = nxt;
 	}
 };
 
-// ---------------------------------------------------------------- Reusable Comedy Props & Actors
-
-// Runner that emerges smoothly out of the White Van side door over 0.85s, then trots along a spacious oval path!
-void() Intro_RunnerThink =
-{
-	local float a, nx, ny, f, blend;
-	local vector target_p, np, dir;
-
-	if (time > self.ltime)
-	{
-		remove (self);
-		return;
-	}
-	a = time * self.intro_spd + self.intro_phase;
-	nx = self.intro_cx + ICos (a * 0.0174533) * self.intro_rad;
-	ny = self.intro_cy + ISin (a * 0.0174533 * 1.25) * (self.intro_rad * 0.68);
-	target_p_x = nx;
-	target_p_y = ny;
-	target_p_z = 2;
-	if (self.mb_type == 6)
-		target_p_z = 9;
-	else if (self.mb_type == 7)
-		target_p_z = 28;
-	else if (self.mb_type == 22)
-		target_p_z = 2 + fabs (ISin (time * 9 + self.intro_phase)) * 22;
-
-	blend = Intro_Smooth ((time - self.intro_born) / 0.85);
-	np = self.intro_door + (target_p - self.intro_door) * blend;
-
-	dir = np - self.origin;
-	dir_z = 0;
-	if (vlen (dir) > 0.05)
-		self.angles_y = vectoyaw (dir) + self.mb_yaw0;
-	setorigin (self, np);
-
-	if (self.mb_fn > 0)
-	{
-		f = floor (time * self.mb_fps + self.intro_phase);
-		self.frame = self.mb_f0 + f - self.mb_fn * floor (f / self.mb_fn);
-	}
-	self.nextthink = time + 0.001;
-};
-
-entity(float mtype, vector door_org, float cx, float cy, float rad, float spd, float ph, float dur, float sc_mul) Intro_SpawnVanRunner =
-{
-	local entity m;
-
-	m = Intro_MakeActor (mtype, sc_mul, door_org);
-	if (!m)
-		return world;
-	m.classname = "intro_runner";
-	m.intro_door = door_org;
-	m.intro_born = time;
-	m.intro_cx = cx;
-	m.intro_cy = cy;
-	m.intro_rad = rad;
-	m.intro_spd = spd;
-	m.intro_phase = ph;
-	m.ltime = time + dur;
-	m.think = Intro_RunnerThink;
-	m.nextthink = time + 0.001;
-	return m;
-};
-
-void(float dur) Intro_SpawnVanPileOut =
-{
-	local vector door_l, door_r;
-	door_l = '12145 -2705 2';
-	door_r = '12145 -2768 2';
-
-	// Spacious, readable rings around the White Van under the Bakersfield Sign!
-	Intro_SpawnVanRunner (19, door_l, 11925, -2670, 95,  96,  0,   dur, 1.22);	// Paul ("Hello!")
-	Intro_SpawnVanRunner (18, door_r, 11935, -2805, 95, -94,  45,  dur, 1.22);	// Dennis
-	Intro_SpawnVanRunner (22, door_l, 11885, -2736, 85,  108, 90,  dur, 1.26);	// Rubber Finger (hopping!)
-	Intro_SpawnVanRunner (21, door_r, 11985, -2620, 110, 98,  135, dur, 1.22);	// Mr. DIY
-	Intro_SpawnVanRunner (11, door_l, 11995, -2845, 110,-106, 180, dur, 1.22);	// Kyle (Scissors!)
-	Intro_SpawnVanRunner (17, door_r, 11910, -2855, 95,  92,  225, dur, 1.20);	// Tinfoil-Hat Bryan
-	Intro_SpawnVanRunner (14, door_l, 11915, -2610, 95, -92,  270, dur, 1.20);	// Friend Rob
-	Intro_SpawnVanRunner (20, door_r, 12035, -2785, 105, 95,  315, dur, 1.20);	// QuakeGuy
-	Intro_SpawnVanRunner (23, door_l, 12040, -2685, 105,-102, 25,  dur, 1.24);	// David Ojeda
-	Intro_SpawnVanRunner (24, door_r, 12075, -2850, 110, 96,  70,  dur, 1.18);	// Pregnant Runner 1
-	Intro_SpawnVanRunner (25, door_l, 12085, -2625, 110,-96,  115, dur, 1.18);	// Pregnant Runner 2
-	Intro_SpawnVanRunner (26, door_r, 12115, -2740, 115, 92,  160, dur, 1.18);	// Pregnant Runner 3
-	Intro_SpawnVanRunner (10, door_l, 11970, -2736, 155,-122, 205, dur, 1.22);	// JessKart
-	Intro_SpawnVanRunner (1,  door_r, 11895, -2795, 90,  104, 250, dur, 1.55);	// Mega Man
-	Intro_SpawnVanRunner (2,  door_l, 12055, -2900, 115,-104, 295, dur, 1.18);	// Suit Rider
-	Intro_SpawnVanRunner (4,  door_r, 12055, -2575, 115, 104, 340, dur, 1.18);	// Squat Rider
-	Intro_SpawnVanRunner (7,  door_l, 11955, -2880, 90,  88,  55,  dur, 0.94);	// Giant 3D Big-Ears
-	Intro_SpawnVanRunner (6,  door_r, 12215, -2845, 115,-92,  150, dur, 0.95);	// Golden Casino Horse
-	Intro_SpawnVanRunner (9,  door_l, 11875, -2675, 95,  116, 100, dur, 1.22);	// Wheelman
-};
-
-void(vector start, vector vel, float life) Intro_TossWheel =
-{
-	local entity w;
-
-	w = spawn ();
-	w.classname = "intro_prop";
-	w.intro_tag = 1;
-	w.movetype = MOVETYPE_BOUNCE;
-	w.solid = SOLID_BBOX;
-	setmodel (w, "progs/mm_wheel.md3");
-	w.scale = 1.55;
-	setsize (w, '0 0 0', '0 0 0');
-	setorigin (w, start);
-	w.velocity = vel;
-	w.avelocity = '360 220 420';
-	w.bouncefactor = 0.82;
-	w.think = SUB_Remove;
-	w.nextthink = time + life;
-};
-
-void(vector start, vector vel, float life) Intro_TossMiniDob =
-{
-	local entity m;
-
-	m = spawn ();
-	m.classname = "fh_mini";
-	m.intro_tag = 1;
-	m.movetype = MOVETYPE_BOUNCE;
-	m.solid = SOLID_BBOX;
-	setmodel (m, "progs/floathead.mdl");
-	m.scale = 0.72;
-	m.effects = EF_FULLBRIGHT;
-	setsize (m, '0 0 0', '0 0 0');
-	setorigin (m, start);
-	m.velocity = vel;
-	m.avelocity = '0 320 0';
-	m.bouncefactor = 0.88;
-	m.think = SUB_Remove;
-	m.nextthink = time + life;
-};
-
-void(vector org) Intro_BonkSparks =
-{
-	local float i;
-	local entity s;
-
-	sound (intro_cam, CHAN_AUTO, "hammer/frying_pan.wav", 0.98, ATTN_NONE);
-	i = 0;
-	while (i < 14)
-	{
-		s = spawn ();
-		s.classname = "intro_prop";
-		s.intro_tag = 1;
-		s.movetype = MOVETYPE_BOUNCE;
-		s.solid = SOLID_NOT;
-		if (i - 2 * floor (i / 2) == 0)
-			setmodel (s, "progs/spark_yellow.mdl");
-		else
-			setmodel (s, "progs/spark_blue.mdl");
-		s.scale = 1.70;
-		s.effects = EF_FULLBRIGHT;
-		setsize (s, '0 0 0', '0 0 0');
-		setorigin (s, org + '0 0 36');
-		s.velocity_x = crandom () * 210;
-		s.velocity_y = crandom () * 210;
-		s.velocity_z = 210 + random () * 210;
-		s.avelocity = '400 500 300';
-		s.think = SUB_Remove;
-		s.nextthink = time + 1.8;
-		i = i + 1;
-	}
-};
-
-void(vector start, vector vel, string mdl, float sc, float life) Intro_FlyBolt =
-{
-	local entity b;
-
-	b = spawn ();
-	b.classname = "intro_prop";
-	b.intro_tag = 1;
-	b.movetype = MOVETYPE_FLY;
-	b.solid = SOLID_NOT;
-	setmodel (b, mdl);
-	b.scale = sc;
-	setsize (b, '0 0 0', '0 0 0');
-	setorigin (b, start);
-	b.velocity = vel;
-	b.angles = vectoangles (vel);
-	b.avelocity = '0 0 540';
-	b.effects = EF_FULLBRIGHT;
-	b.think = SUB_Remove;
-	b.nextthink = time + life;
-};
-
-void() Intro_GooBlobSwell =
-{
-	self.cnt = self.cnt + 1;
-	if (self.cnt <= 4)
-	{
-		self.frame = self.cnt + 1;		// frames 1 -> 2 -> 3 -> 4 -> 5 swelling foam blob!
-		self.scale = self.scale + 0.09;
-		self.nextthink = time + 0.14;
-		return;
-	}
-	self.frame = 0;
-	self.think = SUB_Remove;
-	self.nextthink = time + 2.8;
-};
-
-void(vector target_org) Intro_StickGooFoam =
-{
-	local entity g;
-
-	g = spawn ();
-	g.classname = "intro_prop";
-	g.intro_tag = 1;
-	g.movetype = MOVETYPE_NONE;
-	g.solid = SOLID_NOT;
-	setmodel (g, "progs/goo.md3");
-	g.frame = 1;
-	g.scale = 0.26;
-	g.angles = '0 1 0' * (random () * 360);
-	setsize (g, '0 0 0', '0 0 0');
-	setorigin (g, target_org);
-	g.cnt = 0;
-	g.think = Intro_GooBlobSwell;
-	g.nextthink = time + 0.12;
-	sound (g, CHAN_AUTO, "weapons/goosplat.wav", 0.85, ATTN_NORM);
-};
-
-void() Intro_WaveRingThink =
-{
-	if (time >= self.ltime)
-	{
-		remove (self);
-		return;
-	}
-	self.scale = self.scale + 0.18;
-	self.alpha = 0.88 * ((self.ltime - time) / 1.8);
-	self.angles_y = self.angles_y + 8;
-	self.nextthink = time + 0.03;
-};
-
-void(vector org) Intro_SpawnJohnWave =
-{
-	local entity s, w;
-
-	s = spawn ();
-	s.classname = "grenade";
-	s.intro_tag = 1;
-	s.movetype = MOVETYPE_NONE;
-	s.solid = SOLID_NOT;
-	setmodel (s, "progs/jw_splash.spr32");
-	s.scale = 1.25;
-	setsize (s, '0 0 0', '0 0 0');
-	setorigin (s, org);
-	// JG_Splash converts self into the animated splash + floor ripples
-	{
-		local entity oldself;
-		oldself = self;
-		self = s;
-		JG_Splash ();
-		self = oldself;
-	}
-
-	w = spawn ();
-	w.classname = "intro_prop";
-	w.intro_tag = 1;
-	w.movetype = MOVETYPE_NONE;
-	w.solid = SOLID_NOT;
-	setmodel (w, "progs/jw_wave.md3");
-	w.scale = 0.65;
-	w.alpha = 0.88;
-	w.effects = EF_FULLBRIGHT;
-	setsize (w, '0 0 0', '0 0 0');
-	setorigin (w, org + '0 0 4');
-	w.ltime = time + 1.8;
-	w.think = Intro_WaveRingThink;
-	w.nextthink = time + 0.03;
-};
-
-void() Intro_MMDomeThink =
-{
-	if (time >= self.ltime)
-	{
-		remove (self);
-		return;
-	}
-	self.frame = floor (((1 - (self.ltime - time) / 0.85)) * 15);
-	if (self.frame > 15)
-		self.frame = 15;
-	self.scale = self.scale + 0.09;
-	self.nextthink = time + 0.04;
-};
-
-void(vector org) Intro_SpawnMMDome =
-{
-	local entity d;
-
-	d = spawn ();
-	d.classname = "intro_prop";
-	d.intro_tag = 1;
-	d.movetype = MOVETYPE_NONE;
-	d.solid = SOLID_NOT;
-	setmodel (d, "progs/mm_explode.md3");
-	d.scale = 1.35;
-	d.effects = EF_FULLBRIGHT;
-	setsize (d, '0 0 0', '0 0 0');
-	setorigin (d, org);
-	d.ltime = time + 0.85;
-	d.think = Intro_MMDomeThink;
-	d.nextthink = time + 0.03;
-	Intro_TossWheel (org + '0 10 14', '95 140 240', 2.0);
-	Intro_TossWheel (org + '0 -10 14', '95 -140 250', 2.0);
-};
-
-void() Intro_RocketCanThink =
-{
-	pointparticles (particleeffectnum ("rocket_trail"), self.origin, '0 0 -1', 1);
-	if (time > self.ltime)
-	{
-		remove (self);
-		return;
-	}
-	self.nextthink = time + 0.03;
-};
-
-void(vector org) Intro_LaunchTrashcan =
-{
-	local entity c;
-
-	c = spawn ();
-	c.classname = "intro_prop";
-	c.intro_tag = 1;
-	c.movetype = MOVETYPE_FLY;
-	c.solid = SOLID_NOT;
-	setmodel (c, "progs/bklan/trashcan.md3");
-	c.scale = 1.28;
-	setsize (c, '0 0 0', '0 0 0');
-	setorigin (c, org);
-	c.velocity = '15 0 420';
-	c.avelocity = '90 360 70';
-	c.ltime = time + 3.5;
-	c.think = Intro_RocketCanThink;
-	c.nextthink = time + 0.02;
-
-	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
-	WriteCoord (MSG_BROADCAST, org_x);
-	WriteCoord (MSG_BROADCAST, org_y);
-	WriteCoord (MSG_BROADCAST, org_z + 16);
-	sound (c, CHAN_WEAPON, "weapons/rocket1i.wav", 0.92, ATTN_NONE);
-};
-
-void(entity a, vector start_pos, vector mark_pos, float u, float keep_running) Intro_Spin360 =
-{
-	local vector pos;
-	local float front, s, f;
-
-	if (!a)
-		return;
-	if (u < 0.22)
-		pos = Intro_LerpVec (start_pos, mark_pos, u / 0.22);
-	else
-		pos = mark_pos;
-
-	front = vectoyaw (intro_cam_pos - pos);
-	if (u < 0.78)
-	{
-		s = Intro_Smooth (u / 0.78);
-		a.mb_run = TRUE;
-		a.angles_y = (front + a.mb_yaw0) + s * 360;
-	}
-	else
-	{
-		a.mb_run = keep_running;
-		a.angles_y = (front + a.mb_yaw0) + ISin ((u - 0.78) * 14.0) * 18;
-	}
-	if (a.mb_fn > 0)
-	{
-		f = floor (time * a.mb_fps);
-		a.frame = a.mb_f0 + f - a.mb_fn * floor (f / a.mb_fn);
-	}
-	setorigin (a, pos);
-};
-
-// ---------------------------------------------------------------- Main 100Hz bklan5 Comedy Tour Sequencer
+// ================================================================
+// MAIN DIRECTOR TIMELINE (0.0s .. 22.5s, CARDS 201..204)
+// ================================================================
 
 void() Intro_Tick =
 {
-	local entity p, oldself;
-	local float t, u, f, front;
-	local vector pos, pos2;
+	local entity p;
+	local float t;
 
-	self.nextthink = time + 0.001;
+	self.nextthink = time + 0.01;
 
 	p = Intro_GetPlayer ();
 	if (!p)
 		return;
 
-	if (!intro_t0)
+	if (intro_t0 == 0)
 	{
+		if (time < 0.25)
+			return;
 		intro_t0 = time;
-		intro_t0_ms = rint (intro_t0 * 1000);
+		intro_t0_ms = floor (intro_t0 * 1000 + 0.5);
 		Intro_CleanStage ();
-		cvar_set ("sv_gravity", "800");
+		Intro_EnsureCam (p);
 	}
 
 	t = time - intro_t0;
-	if (t < 2.0)
-		Intro_PurgePlayerAttachments (p);
+	if (t < 0)
+		t = 0;
 
 	// ================================================================
-	// CARD 1 (0.0s .. 4.4s): BAKERSFIELD SIGN — JUST THE WHITE LAN VAN!
+	// CARD 201 (0.0s .. 6.6s): UP-CLOSE 360 FOX ORBIT (3 MILKYS + 3 WHEELMAN SPRITES)
 	// ================================================================
-	if (t < 4.4)
+	if (t < 6.6)
 	{
-		intro_cur_card = 1;
+		intro_cur_card = 201;
 		if (intro_ev < 1)
 		{
 			intro_ev = 1;
-			sound (intro_cam, 6, "vehicles/idle_van.wav", 0.85, ATTN_NONE);
+			Intro_ClearSpot ();
+			Intro_EvalCam (201, t);
+			Intro_SpawnFox360Floaters ();
 
-			ia_van = spawn ();
-			ia_van.intro_tag = 1;
-			ia_van.movetype = MOVETYPE_NONE;
-			ia_van.solid = SOLID_NOT;
-			setmodel (ia_van, "progs/veh_van.md3");
-			setsize (ia_van, '0 0 0', '0 0 0');
-			ia_van.angles = '0 162 0';
-			setorigin (ia_van, '12170 -2736 2');
+			// Play the Milky song the WHOLE time (0.0s -> 22.5s uninterrupted)!
+			if (!intro_bgm_on && intro_bgm_ent)
+			{
+				intro_bgm_on = TRUE;
+				sound (intro_bgm_ent, 1, "milky/song.ogg", 0.96, ATTN_NONE);
+			}
+			Intro_Cue ("milky/fire.wav", 0.78);
+			Intro_Cue ("wcannon/wc_lrun02.wav", 0.72);
 		}
-		if (t >= 1.70 && intro_ev < 2)
+		if (t >= 3.2 && intro_ev < 2)
 		{
 			intro_ev = 2;
-			Intro_Cue ("vehicles/horn.wav", 0.95);
-		}
-		if (t >= 3.35 && intro_ev < 3)
-		{
-			intro_ev = 3;
-			Intro_Cue ("vehicles/horn.wav", 0.90);
-		}
-		if (ia_van)
-		{
-			// Funny subtle suspension rocking — like 19 people are crammed inside arguing!
-			pos = '12170 -2736 2';
-			pos_z = 2 + fabs (ISin (t * 8.5)) * 1.4;
-			if ((t >= 1.70 && t < 2.05) || (t >= 3.35 && t < 3.65))
-				pos_z = pos_z + 3.0;
-			ia_van.angles_z = ISin (t * 8.5) * 2.2;
-			setorigin (ia_van, pos);
+			Intro_Cue ("friends/hello.wav", 0.80);
+			Intro_Cue ("funny/wewe.wav", 0.76);
 		}
 	}
 
 	// ================================================================
-	// CARD 2 (4.4s .. 11.4s): BAKERSFIELD SIGN — ALL 19 CHARACTERS PILE OUT & MAKE THEIR SOUNDS!
+	// CARD 202 (6.6s .. 11.8s): SUDDEN UP-CLOSE 50 MILKYS & WHEELMAN SPRITES ON THE TOWER!
 	// ================================================================
-	else if (t < 11.4)
+	else if (t < 11.8)
 	{
-		intro_cur_card = 2;
-		if (intro_ev < 4)
+		intro_cur_card = 202;
+		if (intro_ev < 10)
 		{
-			intro_ev = 4;
-			Intro_TelePop ('12135 -2720 28');
-			Intro_TelePop ('12135 -2752 28');
-			Intro_Cue ("larry/love_to_play_quake.wav", 1.0);
-			Intro_SpawnVanPileOut (7.3);
-
-			// Stunt-dancer Wheelman pops onto the roof of the White Van!
-			ia_vansurf = spawn ();
-			ia_vansurf.intro_tag = 1;
-			ia_vansurf.movetype = MOVETYPE_NONE;
-			ia_vansurf.solid = SOLID_NOT;
-			setmodel (ia_vansurf, "progs/wheelman_dance.spr32");
-			ia_vansurf.scale = 0.42;
-			ia_vansurf.wc_anim = 2;
-			ia_vansurf.wc_t0 = time;
-			ia_vansurf.customizeentityforclient = WC_DancerCustomize;
-			setsize (ia_vansurf, '0 0 0', '0 0 0');
-			setorigin (ia_vansurf, '12170 -2736 92');
-		}
-		// Cleanly staggered voice callouts (~0.74s apart) so EVERY character's funny sound is clearly heard!
-		if (t >= 5.25 && intro_ev < 5)  { intro_ev = 5;  Intro_Cue ("friends/hello.wav", 1.0); }
-		if (t >= 6.00 && intro_ev < 6)  { intro_ev = 6;  Intro_Cue ("friends/gowewd.wav", 1.0); if (ia_vansurf) ia_vansurf.wc_anim = 4; }
-		if (t >= 6.72 && intro_ev < 7)  { intro_ev = 7;  Intro_Cue ("mbox/drv_boing_hop.wav", 0.95); }
-		if (t >= 7.45 && intro_ev < 8)  { intro_ev = 8;  Intro_Cue ("mrdiy/mrdiy_jingle.wav", 0.92); }
-		if (t >= 8.20 && intro_ev < 9)  { intro_ev = 9;  Intro_Cue ("larry/play_with_knives.wav", 1.0); if (ia_vansurf) ia_vansurf.wc_anim = 7; }
-		if (t >= 8.95 && intro_ev < 10) { intro_ev = 10; Intro_Cue ("bryan/noway.wav", 1.0); }
-		if (t >= 9.68 && intro_ev < 11) { intro_ev = 11; Intro_Cue ("john/jv15.wav", 0.95); }
-		if (t >= 10.42 && intro_ev < 12){ intro_ev = 12; Intro_Cue ("david/shower_love.wav", 1.0); }
-
-		if (ia_vansurf)
-			ia_vansurf.angles_y = 180 + ((t - 4.4) / 7.0) * 720;
-	}
-
-	// ================================================================
-	// CARD 3 (11.4s .. 16.4s): FOX THEATER MARQUEE (20TH & H ST)
-	//        Rob Dob Gun + "It's Not Pink!" Supercar + Podracer + Mini-Dobs!
-	// ================================================================
-	else if (t < 16.4)
-	{
-		intro_cur_card = 3;
-		if (intro_ev < 13)
-		{
-			intro_ev = 13;
+			intro_ev = 10;
 			Intro_ClearSpot ();
-			Intro_EvalCam (3, t);
-			Intro_Cue ("bklan/notpink.wav", 1.0);
-			sound (intro_cam, 6, "bklan/pinkcar.wav", 0.72, ATTN_NONE);
+			Intro_EvalCam (202, t);
+			Intro_Spawn50TowerSwarm ();
 
-			// "It's Not Pink!" Supercar parked right in front of the Fox Marquee!
-			ia_pinkcar = spawn ();
-			ia_pinkcar.intro_tag = 1;
-			ia_pinkcar.movetype = MOVETYPE_NONE;
-			ia_pinkcar.solid = SOLID_NOT;
-			setmodel (ia_pinkcar, "progs/pink_supercar.md3");
-			ia_pinkcar.scale = 0.95;
-			setsize (ia_pinkcar, '0 0 0', '0 0 0');
-			ia_pinkcar.angles = '0 305 0';
-			setorigin (ia_pinkcar, '940 -11155 2');
-
-			// Podracer banking past the Fox Clock Tower!
-			ia_pod1 = spawn ();
-			ia_pod1.intro_tag = 1;
-			ia_pod1.movetype = MOVETYPE_FLY;
-			ia_pod1.solid = SOLID_NOT;
-			setmodel (ia_pod1, "progs/skyveh_v3.md3");
-			ia_pod1.scale = 0.92;
-			setsize (ia_pod1, '0 0 0', '0 0 0');
-			setorigin (ia_pod1, '1180 -10890 218');
-			ia_pod1.velocity = '-115 -85 6';
-			ia_pod1.angles = '0 216 -14';
+			Intro_Cue ("bryan/noway.wav", 0.92);
+			Intro_Cue ("milky/fire.wav", 0.82);
 		}
-
-		u = (t - 11.4) / 5.0;
-		if (ia_pinkcar)
+		if (t >= 9.0 && intro_ev < 11)
 		{
-			f = floor (u * 24);
-			if (f > 15)
-				f = 15;
-			ia_pinkcar.frame = 32 + f;		// Lambo scissor doors open!
-			ia_pinkcar.angles_y = 305 + Intro_Smooth (u) * 180;
-		}
-
-		// 12.60s: Foreground v_robdob.mdl launches Rob Dob's Floating Head!
-		if (t >= 12.60 && intro_ev < 14)
-		{
-			intro_ev = 14;
-			Intro_Cue ("hackmon/hm_launch.wav", 1.0);
-			Intro_Cue ("floathead/sight1.wav", 1.0);
-
-			ia_robdob = spawn ();
-			ia_robdob.classname = "intro_robdob";
-			ia_robdob.intro_tag = 1;
-			ia_robdob.movetype = MOVETYPE_NONE;
-			ia_robdob.solid = SOLID_NOT;
-			setmodel (ia_robdob, "progs/floathead.mdl");
-			ia_robdob.scale = 2.05;
-			ia_robdob.effects = EF_FULLBRIGHT;
-			ia_robdob.traileffectnum = particleeffectnum ("fd_trail");
-			setsize (ia_robdob, '0 0 0', '0 0 0');
-			setorigin (ia_robdob, '1140 -11360 66');
-		}
-
-		if (ia_robdob)
-		{
-			if (t < 15.15)
-			{
-				f = (t - 12.60) / 0.85;
-				pos = Intro_LerpVec ('1140 -11360 66', '990 -11215 80', f);
-				pos_z = pos_z + ISin ((t - 12.60) * 5.0) * 4;
-				setorigin (ia_robdob, pos);
-				front = vectoyaw (intro_cam_pos - pos);
-				if (t < 14.15)
-				{
-					ia_robdob.angles_y = front + Intro_Smooth ((t - 12.60) / 1.55) * 360;
-					ia_robdob.skin = 0;
-					f = floor (time * 10);
-					ia_robdob.frame = f - 8 * floor (f / 8);
-				}
-				else
-				{
-					if (intro_ev < 15)
-					{
-						intro_ev = 15;
-						Intro_Cue ("floathead/charge.wav", 1.0);
-					}
-					ia_robdob.angles_y = front;
-					ia_robdob.skin = 1;
-					f = floor (time * 14);
-					ia_robdob.frame = 12 + (f - 4 * floor (f / 4));
-				}
-			}
-			else if (intro_ev < 16)
-			{
-				intro_ev = 16;
-				Intro_Cue ("weapons/lhit.wav", 0.95);
-				Intro_Cue ("funny/heh.wav", 1.0);
-				Intro_Cue ("floathead/boing.wav", 0.95);
-				FD_Shock (ia_robdob, TRUE);
-				Intro_TossMiniDob (ia_robdob.origin, '85 -95 230', 1.6);
-				Intro_TossMiniDob (ia_robdob.origin, '-95 85 240', 1.6);
-				Intro_TossMiniDob (ia_robdob.origin, '110 65 215', 1.6);
-				Intro_TossMiniDob (ia_robdob.origin, '-75 -105 225', 1.6);
-				remove (ia_robdob);
-				ia_robdob = world;
-			}
+			intro_ev = 11;
+			Intro_Cue ("wcannon/wc_scream.wav", 0.82);
+			Intro_Cue ("friends/gowewd.wav", 0.84);
 		}
 	}
 
 	// ================================================================
-	// CARD 4 (16.4s .. 21.4s): FOX THEATER EVA'S LOUNGE & LIVE SECURITY TV
-	//        Pickle Surprise Gun ambushes Dennis & Paul watching Fox's TV!
+	// CARD 203 (11.8s .. 15.3s): ALL 50 EXPLODE UP CLOSE!!
 	// ================================================================
-	else if (t < 21.4)
+	else if (t < 15.3)
 	{
-		intro_cur_card = 4;
-		if (intro_ev < 17)
-		{
-			intro_ev = 17;
-			Intro_ClearSpot ();
-			Intro_EvalCam (4, t);
-			Intro_Cue ("friends/interesting.wav", 1.0);
-
-			ia_spot1 = Intro_MakeActor (18, 1.15, '582 -10078 25');	// Dennis on Eva's Lounge stage
-			ia_spot2 = Intro_MakeActor (19, 1.15, '638 -10078 25');	// Paul watching the live wall TV
-			{
-				local entity tv;
-				tv = find (world, classname, "bk_tv");
-				while (tv)
-				{
-					if (vlen (tv.origin - '610 -10027 91') < 180)
-					{
-						oldself = self;
-						self = tv;
-						self.tv_vid = 0;
-						self.tv_chunk = 0;
-						BKTV_Think ();
-						self = oldself;
-					}
-					tv = find (tv, classname, "bk_tv");
-				}
-			}
-		}
-		if (t >= 17.55 && intro_ev < 18)
-		{
-			intro_ev = 18;
-			Intro_Cue ("pickle/throw.wav", 0.95);
-			ia_pkbomb = spawn ();
-			ia_pkbomb.intro_tag = 1;
-			ia_pkbomb.movetype = MOVETYPE_NONE;
-			ia_pkbomb.solid = SOLID_NOT;
-			setmodel (ia_pkbomb, "progs/pickle_bomb.md3");
-			ia_pkbomb.scale = 1.85;
-			setsize (ia_pkbomb, '0 0 0', '0 0 0');
-			ia_pkbomb.avelocity = '0 220 0';
-			setorigin (ia_pkbomb, '611 -10095 26');
-		}
-		if (t >= 17.85 && intro_ev < 19)
-		{
-			intro_ev = 19;
-			if (ia_pkbomb) { remove (ia_pkbomb); ia_pkbomb = world; }
-			Intro_Cue ("pickle/surprise.wav", 1.0);
-			Intro_Cue ("friends/no.wav", 1.0);
-
-			ia_pickle = spawn ();
-			ia_pickle.classname = "pickle";
-			ia_pickle.intro_tag = 1;
-			ia_pickle.movetype = MOVETYPE_NONE;
-			ia_pickle.solid = SOLID_NOT;
-			ia_pickle.pk_state = 4;
-			ia_pickle.pk_t0 = time;
-			ia_pickle.pk_t = time + 2.85;
-			ia_pickle.pk_front = 270;
-			ia_pickle.scale = 1.65;
-			setmodel (ia_pickle, "progs/pickle.md3");
-			setsize (ia_pickle, '0 0 0', '0 0 0');
-			ia_pickle.customizeentityforclient = Pk_Customize;
-			setorigin (ia_pickle, '611 -10096 26');
-		}
-
-		if (t < 20.70)
-		{
-			u = (t - 16.4) / 4.3;
-			Intro_Spin360 (ia_spot1, '582 -10078 25', '580 -10084 25', u, TRUE);
-			Intro_Spin360 (ia_spot2, '638 -10078 25', '640 -10084 25', u, TRUE);
-			if (ia_pickle)
-			{
-				f = (t - 17.85) / 2.85;
-				ia_pickle.pk_front = 270 + Intro_Smooth (f) * 360;
-				if (f < 0.68)
-				{
-					ia_pickle.scale = 1.65 + f * 1.45;
-					ia_pickle.frame = floor ((time * 18) - 24 * floor ((time * 18) / 24));
-				}
-				else
-				{
-					ia_pickle.scale = 2.64 + ((f - 0.68) / 0.32) * 1.65;
-					ia_pickle.frame = 24 + floor (((f - 0.68) / 0.32) * 11);
-				}
-			}
-		}
-		else if (intro_ev < 20)
+		intro_cur_card = 203;
+		if (intro_ev < 20)
 		{
 			intro_ev = 20;
-			Intro_Cue ("afrit/body_explode.wav", 0.95);
-			if (ia_pickle)
-			{
-				oldself = self;
-				self = ia_pickle;
-				sendParticle ("pk_boom", '611 -10094 48', '0 0 0', 1, 0);
-				f = 0;
-				while (f < 12)
-				{
-					Pk_Gib ('611 -10094 52');
-					f = f + 1;
-				}
-				self = oldself;
-				remove (ia_pickle);
-				ia_pickle = world;
-			}
-			// Pop Dennis & Paul comically upward!
-			if (ia_spot1) { ia_spot1.movetype = MOVETYPE_TOSS; ia_spot1.velocity = '-45 -30 220'; }
-			if (ia_spot2) { ia_spot2.movetype = MOVETYPE_TOSS; ia_spot2.velocity = '45 -30 230'; }
+			Intro_Cue ("wcannon/wc_shoot.wav", 0.85);
+			Intro_Cue ("daniel/shaaa_scream.wav", 0.82);
 		}
 	}
 
 	// ================================================================
-	// CARD 5 (21.4s .. 27.0s): FOX THEATER AUDITORIUM & SUNBURST STAGE
-	//        Wheelman Cannon (+58 deg) -> Stunt Dancer + Milky Opera & Screen Milk!
-	// ================================================================
-	else if (t < 27.0)
-	{
-		intro_cur_card = 5;
-		if (intro_ev < 21)
-		{
-			intro_ev = 21;
-			Intro_ClearSpot ();
-			Intro_EvalCam (5, t);
-			Intro_Cue ("wcannon/wc_charge.wav", 0.95);
-		}
-		if (t >= 22.55 && intro_ev < 22)
-		{
-			intro_ev = 22;
-			Intro_Cue ("wcannon/wc_shoot.wav", 1.0);
-			Intro_Cue ("wcannon/wc_scream.wav", 1.0);
-
-			ia_wheelman = spawn ();
-			ia_wheelman.intro_tag = 1;
-			ia_wheelman.movetype = MOVETYPE_NONE;
-			ia_wheelman.solid = SOLID_NOT;
-			setmodel (ia_wheelman, "progs/wheelman.spr32");
-			ia_wheelman.scale = 0.44;
-			ia_wheelman.wc_anim = 2;
-			ia_wheelman.angles = '0 90 0';
-			ia_wheelman.customizeentityforclient = WC_ShotCustomize;
-			setsize (ia_wheelman, '0 0 0', '0 0 0');
-			setorigin (ia_wheelman, '48 -9310 68');
-		}
-		if (ia_wheelman && t < 23.15)
-		{
-			f = (t - 22.55) / 0.60;
-			pos = Intro_LerpVec ('48 -9310 68', '24 -9045 48', f);
-			pos_z = pos_z + ISin (f * 3.14159) * 34;
-			setorigin (ia_wheelman, pos);
-			pointparticles (wc_fx_spark, pos + '0 0 12', '0 0 60', 1);
-		}
-		if (t >= 23.15 && intro_ev < 23)
-		{
-			intro_ev = 23;
-			if (ia_wheelman) { remove (ia_wheelman); ia_wheelman = world; }
-			Intro_Cue ("wcannon/wc_boom.wav", 0.90);
-			Intro_Cue ("friends/gowewd.wav", 1.0);
-			Intro_TossWheel ('24 -9045 64', '-95 -60 220', 2.2);
-			Intro_TossWheel ('24 -9045 64', '95 -60 230', 2.2);
-
-			// Stunt dancer Wheelman takes Fox Center Stage!
-			ia_dancer = spawn ();
-			ia_dancer.intro_tag = 1;
-			ia_dancer.movetype = MOVETYPE_NONE;
-			ia_dancer.solid = SOLID_NOT;
-			setmodel (ia_dancer, "progs/wheelman_dance.spr32");
-			ia_dancer.scale = 0.46;
-			ia_dancer.wc_anim = 2;
-			ia_dancer.wc_t0 = time;
-			ia_dancer.customizeentityforclient = WC_DancerCustomize;
-			setsize (ia_dancer, '0 0 0', '0 0 0');
-			setorigin (ia_dancer, '16 -9045 48');
-		}
-		if (ia_dancer)
-		{
-			if (t >= 24.4 && t < 25.4)
-				ia_dancer.wc_anim = 4;		// Spin-bar stunt!
-			else if (t >= 25.4)
-				ia_dancer.wc_anim = 7;		// Robot stunt!
-			ia_dancer.angles_y = 270 + ((t - 23.15) / 3.85) * 720;
-		}
-		// Beat 5B: Milky joins Wheelman on stage, sings opera, & splashes the camera!
-		if (t >= 24.85 && intro_ev < 24)
-		{
-			intro_ev = 24;
-			Intro_Cue ("milky/fire.wav", 0.95);
-			sound (intro_cam, 6, "milky/song.ogg", 0.95, ATTN_NONE);
-
-			ia_milky = spawn ();
-			ia_milky.classname = "milky_lady";
-			ia_milky.intro_tag = 1;
-			ia_milky.movetype = MOVETYPE_NONE;
-			ia_milky.solid = SOLID_NOT;
-			ia_milky.milky_born = time - 2;
-			ia_milky.milky_dir = '0 -1 0';
-			ia_milky.scale = 2.45;
-			ia_milky.colormod = '1 1 1';
-			ia_milky.effects = EF_FULLBRIGHT;
-			setmodel (ia_milky, "progs/pinklady.md3");
-			setsize (ia_milky, '-16 -16 -24', '16 16 24');
-			ia_milky.customizeentityforclient = Milky_Customize;
-			setorigin (ia_milky, '76 -9045 80');
-		}
-		if (ia_milky && t < 26.05)
-		{
-			f = (t - 24.85) / 1.20;
-			pos = Intro_LerpVec ('76 -9045 80', '48 -9195 76', f);
-			pos_x = pos_x + ISin (f * 6.28318) * 14;
-			setorigin (ia_milky, pos);
-			u = (270 + Intro_Smooth (f) * 360) * 0.0174533;
-			ia_milky.milky_dir_x = ICos (u);
-			ia_milky.milky_dir_y = ISin (u);
-			ia_milky.milky_dir_z = 0;
-		}
-		if (t >= 26.05 && intro_ev < 25)
-		{
-			intro_ev = 25;
-			sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
-			Intro_Cue ("weapons/goosplat.wav", 1.0);
-			if (ia_milky)
-			{
-				Milk_Splatter (ia_milky.origin);
-				Milk_Rain ('48 -9210 82');
-				remove (ia_milky);
-				ia_milky = world;
-			}
-			p.milk_scr = time - 1.55;
-		}
-	}
-
-	// ================================================================
-	// CARD 6 (27.0s .. 32.0s): PADRE HOTEL (H & WALL ST) 8-STORY SKY FLOAT
-	//        Duke Nukem Jetpacks ("I'm floating!!") ascending to the red neon sign!
-	// ================================================================
-	else if (t < 32.0)
-	{
-		intro_cur_card = 6;
-		if (intro_ev < 26)
-		{
-			intro_ev = 26;
-			Intro_ClearSpot ();
-			Intro_EvalCam (6, t);
-			Intro_Cue ("jetpack/floating.wav", 1.0);
-			sound (intro_cam, 6, "jetpack/swoosh.wav", 0.85, ATTN_NONE);
-
-			// Flyer 1: QuakeGuy with strapped-on Jetpack!
-			ia_spot1 = Intro_MakeActor (20, 1.30, '660 -17430 535');
-			ia_jp1 = spawn ();
-			ia_jp1.intro_tag = 1;
-			ia_jp1.movetype = MOVETYPE_NONE;
-			ia_jp1.solid = SOLID_NOT;
-			setmodel (ia_jp1, "progs/jetpack.md3");
-			ia_jp1.scale = 1.95;
-			setsize (ia_jp1, '0 0 0', '0 0 0');
-			setorigin (ia_jp1, '660 -17430 562');
-
-			// Flyer 2: 3D Quake Ranger (player_shot.mdl) with strapped-on Jetpack!
-			ia_spot2 = spawn ();
-			ia_spot2.intro_tag = 1;
-			ia_spot2.movetype = MOVETYPE_NONE;
-			ia_spot2.solid = SOLID_NOT;
-			setmodel (ia_spot2, "progs/player_shot.mdl");
-			ia_spot2.scale = 1.35;
-			setsize (ia_spot2, '0 0 0', '0 0 0');
-			setorigin (ia_spot2, '555 -17385 505');
-
-			ia_jp2 = spawn ();
-			ia_jp2.intro_tag = 1;
-			ia_jp2.movetype = MOVETYPE_NONE;
-			ia_jp2.solid = SOLID_NOT;
-			setmodel (ia_jp2, "progs/jetpack.md3");
-			ia_jp2.scale = 1.95;
-			setsize (ia_jp2, '0 0 0', '0 0 0');
-			setorigin (ia_jp2, '555 -17385 512');
-		}
-		if (t >= 29.60 && intro_ev < 27)
-		{
-			intro_ev = 27;
-			Intro_Cue ("larry/double_good.wav", 1.0);
-		}
-
-		u = (t - 27.0) / 5.0;
-		f = floor (time * 16);
-		f = f - 8 * floor (f / 8);		// Jetpack thrust frames 0..7!
-
-		if (ia_spot1 && ia_jp1)
-		{
-			pos = Intro_LerpVec ('660 -17430 535', '585 -17455 1192', u);
-			pos_x = pos_x + ISin (u * 6.28318) * 18;
-			front = vectoyaw (intro_cam_pos - pos) + u * 720;
-			ia_spot1.angles_y = front + ia_spot1.mb_yaw0;
-			setorigin (ia_spot1, pos);
-			makevectors ('0 1 0' * front);
-			setorigin (ia_jp1, pos - v_forward * 10 + '0 0 28');
-			ia_jp1.angles_y = front;
-			ia_jp1.frame = f;
-			pointparticles (particleeffectnum ("jp_fire"), ia_jp1.origin - '0 0 12', '0 0 -120', 1);
-		}
-		if (ia_spot2 && ia_jp2)
-		{
-			pos2 = Intro_LerpVec ('555 -17385 505', '445 -17450 1180', u);
-			pos2_y = pos2_y + ICos (u * 6.28318) * 16;
-			front = vectoyaw (intro_cam_pos - pos2) - u * 720;
-			ia_spot2.angles_y = front;
-			ia_spot2.frame = 6 + (f - 6 * floor (f / 6));
-			setorigin (ia_spot2, pos2);
-			makevectors ('0 1 0' * front);
-			setorigin (ia_jp2, pos2 - v_forward * 10 + '0 0 6');
-			ia_jp2.angles_y = front;
-			ia_jp2.frame = f;
-			pointparticles (particleeffectnum ("jp_fire"), ia_jp2.origin - '0 0 12', '0 0 -120', 1);
-		}
-	}
-
-	// ================================================================
-	// CARD 7 (32.0s .. 37.0s): PADRE HOTEL 96-FT SKYLINE ROOFTOP
-	//        TF Spanner -> Level-2 Sentry Gun + Sniper Laser + CCC 'C' Bolts vs. Kyle!
-	// ================================================================
-	else if (t < 37.0)
-	{
-		intro_cur_card = 7;
-		if (intro_ev < 28)
-		{
-			intro_ev = 28;
-			Intro_ClearSpot ();
-			Intro_EvalCam (7, t);
-			Intro_Cue ("weapons/turrset.wav", 0.95);
-			Intro_Cue ("larry/play_with_knives.wav", 1.0);
-
-			// TF Level-2 Sentry Gun tripod + twin chaingun head on the Padre Hotel roof!
-			ia_turrbase = spawn ();
-			ia_turrbase.intro_tag = 1;
-			ia_turrbase.movetype = MOVETYPE_NONE;
-			ia_turrbase.solid = SOLID_NOT;
-			setmodel (ia_turrbase, "progs/turrbase.mdl");
-			ia_turrbase.scale = 1.25;
-			setsize (ia_turrbase, '0 0 0', '0 0 0');
-			setorigin (ia_turrbase, '-70 -17915 1162');
-
-			ia_turrgun = spawn ();
-			ia_turrgun.intro_tag = 1;
-			ia_turrgun.movetype = MOVETYPE_NONE;
-			ia_turrgun.solid = SOLID_NOT;
-			setmodel (ia_turrgun, "progs/turrgun.mdl");
-			ia_turrgun.scale = 1.25;
-			ia_turrgun.skin = 1;			// TF Level-2 Sentry skin!
-			ia_turrgun.frame = 3;			// TF Level-2 Twin Chainguns!
-			setsize (ia_turrgun, '0 0 0', '0 0 0');
-			setorigin (ia_turrgun, '-70 -17915 1162');
-
-			// Rotating TF Sniper Rifle world model display beside the Sentry!
-			ia_spot2 = spawn ();
-			ia_spot2.intro_tag = 1;
-			ia_spot2.movetype = MOVETYPE_FLY;
-			ia_spot2.solid = SOLID_NOT;
-			setmodel (ia_spot2, "progs/g_srifle.mdl");
-			ia_spot2.scale = 1.35;
-			ia_spot2.avelocity = '0 160 0';
-			setsize (ia_spot2, '0 0 0', '0 0 0');
-			setorigin (ia_spot2, '8 -17885 1188');
-
-			// Kyle (Running With Scissors) sprinting right in front of the glowing red neon PADRE HOTEL sign!
-			ia_spot1 = Intro_MakeActor (11, 1.25, '-20 -17685 1164');
-
-			// Red Sniper Laser Dot!
-			ia_sight = spawn ();
-			ia_sight.intro_tag = 1;
-			ia_sight.movetype = MOVETYPE_NONE;
-			ia_sight.solid = SOLID_NOT;
-			setmodel (ia_sight, "progs/sight.spr");
-			ia_sight.scale = 1.65;
-			ia_sight.effects = EF_FULLBRIGHT;
-			setsize (ia_sight, '0 0 0', '0 0 0');
-			setorigin (ia_sight, '-20 -17695 1196');
-		}
-		if (t >= 33.15 && intro_ev < 29)
-		{
-			intro_ev = 29;
-			Intro_Cue ("weapons/turrspot.wav", 0.95);
-			Intro_Cue ("ccc/shoot.wav", 0.95);
-			Intro_FlyBolt ('-70 -17915 1195', '55 190 4', "progs/ccc.md3", 1.65, 1.3);
-			Intro_FlyBolt ('-70 -17915 1195', '85 185 8', "progs/ccc.md3", 1.65, 1.3);
-		}
-		if (t >= 35.40 && intro_ev < 30)
-		{
-			intro_ev = 30;
-			Intro_Cue ("weapons/sniper.wav", 0.95);
-			Intro_FlyBolt ('-70 -17915 1195', '95 190 6', "progs/ccc.md3", 1.65, 1.2);
-		}
-
-		u = (t - 32.0) / 5.0;
-		if (ia_spot1)
-		{
-			pos_x = 65 + ISin (u * 9.42477) * 85;
-			pos_y = -17685;
-			pos_z = 1164 + fabs (ISin (u * 18.0)) * 12;
-			ia_spot1.mb_run = TRUE;
-			f = floor (time * ia_spot1.mb_fps);
-			ia_spot1.frame = ia_spot1.mb_f0 + f - ia_spot1.mb_fn * floor (f / ia_spot1.mb_fn);
-			ia_spot1.angles_y = vectoyaw (intro_cam_pos - pos) + ia_spot1.mb_yaw0;
-			setorigin (ia_spot1, pos);
-
-			if (ia_turrgun)
-			{
-				ia_turrgun.angles_y = vectoyaw (pos - ia_turrgun.origin);
-				if (t >= 33.15)
-					ia_turrgun.frame = 3 + (floor (time * 16) - 2 * floor ((time * 16) / 2));
-			}
-			if (ia_sight)
-				setorigin (ia_sight, pos + '0 -10 34');
-		}
-	}
-
-	// ================================================================
-	// CARD 8 (37.0s .. 42.0s): LARRY'S WAREHOUSE (118/120 PALLET & LIVE TV HALL)
-	//        Bonk Hammer Spinny + HIGH Charge FRYING-PAN SLAM vs. Mr. DIY & Forklift!
-	// ================================================================
-	else if (t < 42.0)
-	{
-		intro_cur_card = 8;
-		if (intro_ev < 31)
-		{
-			intro_ev = 31;
-			Intro_ClearSpot ();
-			Intro_EvalCam (8, t);
-			sound (intro_cam, 6, "mrdiy/mrdiy_jingle.wav", 0.92, ATTN_NONE);
-			Intro_Cue ("hammer/slice1.wav", 0.90);
-
-			ia_spot1 = Intro_MakeActor (21, 1.24, '-744 -596 2');	// Mr. DIY center-stage under Larry's live TV
-			ia_forklift = Intro_MakeActor (8, 1.00, '-790 -578 2');	// Orange Warehouse Forklift
-		}
-		if (t >= 38.55 && intro_ev < 32)
-		{
-			intro_ev = 32;
-			Intro_Cue ("hammer/charge_full.wav", 0.90);
-		}
-		if (t < 39.42)
-		{
-			u = (t - 37.0) / 2.42;
-			Intro_Spin360 (ia_spot1, '-744 -585 2', '-744 -598 2', u, TRUE);
-			if (ia_forklift)
-				ia_forklift.angles_y = 315 + ISin ((t - 37.0) * 3.0) * 18;
-		}
-		else if (intro_ev < 33)
-		{
-			intro_ev = 33;
-			sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
-			Intro_BonkSparks ('-744 -598 4');
-			Intro_Cue ("funny/wewe.wav", 1.0);
-			if (ia_spot1)
-			{
-				ia_spot1.movetype = MOVETYPE_TOSS;
-				ia_spot1.velocity = '32 95 290';
-				ia_spot1.avelocity = '0 540 0';
-			}
-		}
-	}
-
-	// ================================================================
-	// CARD 9 (42.0s .. 47.4s): LARRY'S B-LAN 130A CRT PARTY HALL
-	//        NetSend 3.5" Floppy PC (LOL.BAT) + 3D Laptop Gun zapping Friend Rob!
-	// ================================================================
-	else if (t < 47.4)
-	{
-		intro_cur_card = 9;
-		if (intro_ev < 34)
-		{
-			intro_ev = 34;
-			Intro_ClearSpot ();
-			Intro_EvalCam (9, t);
-			Intro_Cue ("netsend/wheres_disk.wav", 1.0);
-
-			ia_spot1 = Intro_MakeActor (14, 1.18, '548 -748 2');	// Friend Rob among the LAN CRTs
-		}
-		// 43.15s: Floppy disk sticks & boots the killer Windows 98 CRT PC!
-		if (t >= 43.15 && intro_ev < 35)
-		{
-			intro_ev = 35;
-			Intro_Cue ("netsend/ns_beep.wav", 0.95);
-			Intro_Cue ("larry/it_wont_boot.wav", 1.0);
-
-			ia_nspc = spawn ();
-			ia_nspc.intro_tag = 1;
-			ia_nspc.movetype = MOVETYPE_NONE;
-			ia_nspc.solid = SOLID_NOT;
-			setmodel (ia_nspc, "progs/netsend_pc.md3");
-			ia_nspc.scale = 1.30;
-			setsize (ia_nspc, '0 0 0', '0 0 0');
-			setorigin (ia_nspc, '542 -782 2');
-
-			ia_nsarc = spawn ();
-			ia_nsarc.intro_tag = 1;
-			ia_nsarc.movetype = MOVETYPE_NONE;
-			ia_nsarc.solid = SOLID_NOT;
-			setmodel (ia_nsarc, "progs/netsend_arc.md3");
-			ia_nsarc.scale = 1.30;
-			ia_nsarc.effects = EF_FULLBRIGHT;
-			setsize (ia_nsarc, '0 0 0', '0 0 0');
-			setorigin (ia_nsarc, '542 -782 2');
-
-			Intro_FlyBolt ('542 -782 26', '-115 45 8', "progs/netsend_disk.md3", 1.85, 1.2);
-			Intro_FlyBolt ('542 -782 24', '-120 25 12', "progs/netsend_laser.md3", 1.55, 1.2);
-		}
-		// 44.75s: Foreground swaps to 3D Laptop Gun typing & zapping Friend Rob!
-		if (t >= 44.75 && intro_ev < 36)
-		{
-			intro_ev = 36;
-			Intro_Cue ("ltgun/type.wav", 0.95);
-			Intro_Cue ("ltgun/canis.wav", 1.0);
-
-			ia_ltg_head = spawn ();
-			ia_ltg_head.intro_tag = 1;
-			ia_ltg_head.movetype = MOVETYPE_NONE;
-			ia_ltg_head.solid = SOLID_NOT;
-			setmodel (ia_ltg_head, "progs/ltg_head.md3");
-			ia_ltg_head.scale = 1.85;
-			ia_ltg_head.colormod = '1.35 1.35 1.35';
-			ia_ltg_head.effects = EF_FULLBRIGHT;
-			setsize (ia_ltg_head, '-6 -6 -6', '6 6 6');
-			ia_ltg_head.customizeentityforclient = LtGun_HeadCustomize;
-			setorigin (ia_ltg_head, '540 -726 36');
-
-			ia_ltg_aura = spawn ();
-			ia_ltg_aura.intro_tag = 1;
-			ia_ltg_aura.movetype = MOVETYPE_NONE;
-			ia_ltg_aura.solid = SOLID_NOT;
-			setmodel (ia_ltg_aura, "progs/ltg_aura.md3");
-			ia_ltg_aura.scale = 1.85;
-			ia_ltg_aura.effects = EF_FULLBRIGHT;
-			setsize (ia_ltg_aura, '0 0 0', '0 0 0');
-			ia_ltg_aura.customizeentityforclient = LtGun_AuraCustomize;
-			setorigin (ia_ltg_aura, '540 -726 36');
-		}
-		if (t >= 45.65 && intro_ev < 37)
-		{
-			intro_ev = 37;
-			Intro_Cue ("ltgun/zap.wav", 0.95);
-			Intro_FlyBolt ('540 -726 36', '10 -28 -10', "progs/ltg_laser.md3", 1.65, 1.0);
-			Intro_FlyBolt ('540 -726 36', '-115 -35 6', "progs/ltg_laser.md3", 1.55, 1.2);
-		}
-
-		u = (t - 42.0) / 5.4;
-		if (ia_spot1)
-		{
-			Intro_Spin360 (ia_spot1, '555 -748 2', '544 -750 2', u, TRUE);
-			if (t >= 45.65)
-			{
-				pos = ia_spot1.origin;
-				pos_z = 2 + fabs (ISin ((t - 45.65) * 16.0)) * 14;
-				setorigin (ia_spot1, pos);
-			}
-		}
-		if (ia_nspc)
-		{
-			f = floor ((t - 43.15) * 10);
-			if (f > 39)
-				f = 20 + (f - 20 * floor (f / 20));
-			ia_nspc.frame = f;
-			ia_nspc.skin = NS_Skin (f);
-			ia_nspc.angles_y = vectoyaw (intro_cam_pos - ia_nspc.origin);
-			if (ia_nsarc)
-			{
-				ia_nsarc.frame = floor (time * 16) - 8 * floor ((time * 16) / 8);
-				ia_nsarc.angles_y = ia_nspc.angles_y;
-			}
-		}
-		if (ia_ltg_head)
-		{
-			pos = '540 -726 36' + '0 0 1' * (ISin (t * 5.0) * 3.5);
-			ia_ltg_head.ltg_head = vectoyaw (intro_cam_pos - pos) + (t - 44.75) * 180;
-			setorigin (ia_ltg_head, pos);
-			if (ia_ltg_aura)
-				setorigin (ia_ltg_aura, pos);
-		}
-	}
-
-	// ================================================================
-	// CARD 10 (47.4s .. 52.8s): LARRY'S 120A MEGA MAN BEDROOM SHRINE
-	//         Red-Shop-Rag Chrome Polish (*DING!*) + Slingshot + Driving Mega Man!
-	// ================================================================
-	else if (t < 52.8)
-	{
-		intro_cur_card = 10;
-		if (intro_ev < 38)
-		{
-			intro_ev = 38;
-			Intro_ClearSpot ();
-			Intro_EvalCam (10, t);
-		}
-		// 48.95s: Chrome sparkle *DING!* at frame 82 of v_mm_cannon.md3's red-shop-rag polish!
-		if (t >= 48.95 && intro_ev < 39)
-		{
-			intro_ev = 39;
-			Intro_Cue ("weapons/tink1.wav", 1.0);
-		}
-		// 49.45s: Cannon fires wheel-driving 3D Mega Man right beside his own Bed Shrine!
-		if (t >= 49.45 && intro_ev < 40)
-		{
-			intro_ev = 40;
-			Intro_Cue ("friends/megamayan.wav", 1.0);
-			Intro_Cue ("megaman/mm_fire.wav", 0.95);
-			Intro_Cue ("weapons/megahorn.wav", 0.95);
-			sound (intro_cam, 6, "weapons/megamotor.wav", 0.78, ATTN_NONE);
-
-			ia_spot1 = Intro_MakeActor (1, 1.78, '-1140 -2185 4');
-		}
-		if (ia_spot1 && t < 51.65)
-		{
-			u = (t - 49.45) / 2.20;
-			if (u < 0.72)
-				Intro_Spin360 (ia_spot1, '-1140 -2185 4', '-1192 -2170 4', u / 0.72 * 0.78, TRUE);
-			else
-			{
-				// Headcrab leap arc over his Mega Man bed!
-				f = (u - 0.72) / 0.28;
-				pos = Intro_LerpVec ('-1192 -2170 4', '-1222 -2205 26', f);
-				pos_z = pos_z + ISin (f * 3.14159) * 34;
-				ia_spot1.angles_y = vectoyaw (intro_cam_pos - pos);
-				setorigin (ia_spot1, pos);
-			}
-		}
-		if (t >= 51.65 && intro_ev < 41)
-		{
-			intro_ev = 41;
-			sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
-			Intro_Cue ("grenade/boom_04_mega_fart.wav", 1.0);
-			if (ia_spot1)
-			{
-				Intro_SpawnMMDome (ia_spot1.origin + '0 0 12');
-				remove (ia_spot1);
-				ia_spot1 = world;
-			}
-		}
-	}
-
-	// ================================================================
-	// CARD 11 (52.8s .. 57.8s): ORCOM CONNECT BANQUET LAN HALL
-	//         Goo Gun Expanding Foam Stack + Pong Balls vs. Big-Ears & Rubber Finger!
-	// ================================================================
-	else if (t < 57.8)
-	{
-		intro_cur_card = 11;
-		if (intro_ev < 42)
-		{
-			intro_ev = 42;
-			Intro_ClearSpot ();
-			Intro_EvalCam (11, t);
-			Intro_Cue ("mbox/drv_boing_hop.wav", 0.95);
-
-			ia_spot1 = Intro_MakeActor (7,  1.15, '6142 1122 30');	// Giant 3D Big-Ears
-			ia_spot2 = Intro_MakeActor (22, 1.28, '6150 1152 2');	// Rubber Finger
-		}
-		if (t >= 53.45 && intro_ev < 43)
-		{
-			intro_ev = 43;
-			Intro_Cue ("weapons/goofire.wav", 0.95);
-			Intro_StickGooFoam ('6158 1096 8');
-			Intro_FlyBolt ('6215 1120 34', '-150 22 10', "progs/fg_pongball.md3", 2.1, 1.6);
-		}
-		if (t >= 54.15 && intro_ev < 44)
-		{
-			intro_ev = 44;
-			Intro_Cue ("weapons/goofire.wav", 0.95);
-			Intro_Cue ("fungun/fg_bonk_hit.wav", 0.95);
-			Intro_StickGooFoam ('6158 1170 8');
-			Intro_FlyBolt ('6215 1148 34', '-150 -24 14', "progs/fg_pongball.md3", 2.1, 1.6);
-		}
-		if (t >= 54.85 && intro_ev < 45)
-		{
-			intro_ev = 45;
-			Intro_Cue ("weapons/goofire.wav", 0.95);
-			Intro_Cue ("funny/durr.wav", 1.0);
-			Intro_StickGooFoam ('6172 1092 22');
-			Goo_Chunks ('6158 1134 28');
-		}
-
-		u = (t - 52.8) / 5.0;
-		if (ia_spot1)
-		{
-			pos = '6142 1120 28';
-			pos_z = 28 + ISin ((t - 52.8) * 5.0) * 5;
-			ia_spot1.angles_y = vectoyaw (intro_cam_pos - pos) + Intro_Smooth (u / 0.85) * 360;
-			setorigin (ia_spot1, pos);
-		}
-		if (ia_spot2)
-		{
-			pos = '6150 1152 2';
-			pos_z = 2 + fabs (ISin ((t - 52.8) * 9.5)) * 20;
-			ia_spot2.angles_y = vectoyaw (intro_cam_pos - pos) + Intro_Smooth (u / 0.85) * 360;
-			setorigin (ia_spot2, pos);
-		}
-	}
-
-	// ================================================================
-	// CARD 12 (57.8s .. 62.8s): GOLDEN WEST CASINO & GIANT HORSE PLAZA
-	//         David Ojeda 777 Slot Jackpot, Money Bag Sprint & Pregnant Trio!
-	// ================================================================
-	else if (t < 62.8)
-	{
-		intro_cur_card = 12;
-		if (intro_ev < 46)
-		{
-			intro_ev = 46;
-			Intro_ClearSpot ();
-			Intro_EvalCam (12, t);
-			Intro_Cue ("david/slot_jackpot.wav", 0.98);
-			Intro_Cue ("david/shower_love.wav", 1.0);
-
-			ia_spot1 = spawn ();
-			ia_spot1.intro_tag = 1;
-			ia_spot1.movetype = MOVETYPE_NONE;
-			ia_spot1.solid = SOLID_NOT;
-			setmodel (ia_spot1, "progs/david.spr32");
-			ia_spot1.scale = 0.31;
-			setsize (ia_spot1, '0 0 0', '0 0 0');
-			ia_spot1.dv_state = 6;		// 777 Slot Machine Jackpot!
-			ia_spot1.angles = '0 270 0';
-			ia_spot1.customizeentityforclient = David_Customize;
-			setorigin (ia_spot1, '-6397 -11998 2');
-
-			// Placed cleanly on the flagstone plaza (y < -11985, clear of the stone flowerbed!)
-			ia_spot2 = Intro_MakeActor (24, 1.16, '-6438 -12006 2');	// Pregnant Runner 1
-			ia_spot3 = Intro_MakeActor (25, 1.16, '-6356 -12006 2');	// Pregnant Runner 2
-			ia_spot4 = Intro_MakeActor (26, 1.16, '-6420 -12020 2');	// Pregnant Runner 3
-			ia_spot5 = Intro_MakeActor (6,  0.95, '-6362 -12022 9');	// Prancing Golden Casino Horse
-		}
-
-		u = (t - 57.8) / 5.0;
-		if (ia_spot1)
-		{
-			front = vectoyaw (intro_cam_pos - ia_spot1.origin);
-			if (t < 59.30)
-			{
-				ia_spot1.dv_state = 6;
-				setorigin (ia_spot1, '-6397 -11998 2');
-				ia_spot1.angles_y = front + ISin ((t - 57.8) * 5.5) * 18;
-			}
-			else if (t < 60.65)
-			{
-				ia_spot1.dv_state = 3;
-				setorigin (ia_spot1, '-6397 -11998 2');
-				ia_spot1.angles_y = front + Intro_Smooth ((t - 59.30) / 1.35) * 360;
-			}
-			else
-			{
-				if (intro_ev < 47)
-				{
-					intro_ev = 47;
-					Intro_Cue ("david/money_bag.wav", 1.0);
-				}
-				ia_spot1.dv_state = 4;		// Money Bag getaway sprint!
-				f = (t - 60.65) / 2.15;
-				pos = Intro_LerpVec ('-6397 -11998 2', '-6342 -12014 2', f);
-				ia_spot1.angles_y = front + 24;
-				setorigin (ia_spot1, pos);
-			}
-		}
-		Intro_Spin360 (ia_spot2, '-6444 -12002 2', '-6434 -12008 2', u, TRUE);
-		Intro_Spin360 (ia_spot3, '-6350 -12002 2', '-6360 -12008 2', u, TRUE);
-		Intro_Spin360 (ia_spot4, '-6424 -12018 2', '-6416 -12022 2', u, TRUE);
-		if (ia_spot5)
-		{
-			pos = '-6362 -12022 9';
-			pos_z = 9 + fabs (ISin ((t - 57.8) * 8.5)) * 10;
-			ia_spot5.angles_y = vectoyaw (intro_cam_pos - pos) + Intro_Smooth (u / 0.85) * 360;
-			setorigin (ia_spot5, pos);
-		}
-	}
-
-	// ================================================================
-	// CARD 13 (62.8s .. 67.8s): BUCK OWENS' CRYSTAL PALACE & KUZZ RADIO VAN
-	//         Mystery Box Throw -> Tinfoil-Hat Bryan, 3 Red Demons & Hell Portal!
-	// ================================================================
-	else if (t < 67.8)
-	{
-		intro_cur_card = 13;
-		if (intro_ev < 48)
-		{
-			intro_ev = 48;
-			Intro_ClearSpot ();
-			Intro_EvalCam (13, t);
-		}
-		if (t >= 63.65 && intro_ev < 49)
-		{
-			intro_ev = 49;
-			Intro_Cue ("weapons/lstart.wav", 0.90);
-			ia_spot2 = spawn ();
-			ia_spot2.intro_tag = 1;
-			ia_spot2.movetype = MOVETYPE_TOSS;
-			ia_spot2.solid = SOLID_NOT;
-			setmodel (ia_spot2, "progs/proj_mysterybox.md3");
-			ia_spot2.scale = 1.55;
-			ia_spot2.avelocity = '180 360 120';
-			setsize (ia_spot2, '0 0 0', '0 0 0');
-			setorigin (ia_spot2, '11730 -3815 44');
-			ia_spot2.velocity = '0 -95 90';
-		}
-		if (t >= 64.15 && intro_ev < 50)
-		{
-			intro_ev = 50;
-			if (ia_spot2) { remove (ia_spot2); ia_spot2 = world; }
-			Intro_TelePop ('11730 -3862 22');
-			Intro_Cue ("misc/r_tele5.wav", 0.85);
-			Intro_Cue ("bryan/detector.wav", 0.95);
-
-			ia_spot1 = spawn ();
-			ia_spot1.intro_tag = 1;
-			ia_spot1.movetype = MOVETYPE_NONE;
-			ia_spot1.solid = SOLID_NOT;
-			setmodel (ia_spot1, "progs/bryan.spr32");
-			ia_spot1.scale = 0.37;
-			setsize (ia_spot1, '0 0 0', '0 0 0');
-			ia_spot1.br_state = 0;
-			ia_spot1.angles = '0 90 0';
-			ia_spot1.customizeentityforclient = Bryan_Customize;
-			setorigin (ia_spot1, '11730 -3862 5');
-		}
-		if (ia_spot1)
-		{
-			front = vectoyaw (intro_cam_pos - ia_spot1.origin);
-			if (t < 64.95)
-			{
-				ia_spot1.br_state = 0;
-				ia_spot1.angles_y = front + ISin ((t - 64.15) * 6.0) * 28;
-			}
-			else if (t < 66.15)
-			{
-				if (intro_ev < 51)
-				{
-					intro_ev = 51;
-					Intro_Cue ("bryan/noway.wav", 1.0);
-					Intro_Cue ("bryan/whirl.wav", 0.92);
-				}
-				ia_spot1.br_state = 3;		// 3 Red Demons orbiting Bryan!
-				ia_spot1.effects = 64;
-				ia_spot1.angles_y = front + Intro_Smooth ((t - 64.95) / 1.20) * 360;
-			}
-			else if (t < 66.75)
-			{
-				ia_spot1.br_state = 2;		// Giant Demon Tornado!
-				ia_spot1.angles_y = front + ((t - 66.15) / 0.60) * 360;
-			}
-			else
-			{
-				if (intro_ev < 52)
-				{
-					intro_ev = 52;
-					Intro_Cue ("bryan/portal_die.wav", 1.0);
-					ia_spot1.customizeentityforclient = SUB_Null;
-					ia_spot1.effects = 128;
-				}
-				f = floor (((t - 66.75) / 1.00) * 31);
-				if (f > 31)
-				{
-					f = 31;
-					ia_spot1.effects = 0;
-				}
-				ia_spot1.frame = 232 + f;
-			}
-		}
-	}
-
-	// ================================================================
-	// CARD 14 (67.8s .. 72.8s): AMBERTON PARK PICNIC SHELTER
-	//         JohnWave 3D Head Grenade, Wheelie Riders & Rocket Park Trash Can!
-	// ================================================================
-	else if (t < 72.8)
-	{
-		intro_cur_card = 14;
-		if (intro_ev < 53)
-		{
-			intro_ev = 53;
-			Intro_ClearSpot ();
-			Intro_EvalCam (14, t);
-			Intro_Cue ("john/jv15.wav", 1.0);
-			Intro_Cue ("grenade/bounce_08_rubber_ball.wav", 0.95);
-
-			ia_spot1 = Intro_MakeActor (2, 1.22, '14738 -14114 4');	// Suit Rider
-			ia_spot2 = Intro_MakeActor (4, 1.22, '14738 -14066 4');	// Squat Rider
-
-			// Standing Park Trash Can ready for rocket liftoff!
-			ia_spot3 = spawn ();
-			ia_spot3.intro_tag = 1;
-			ia_spot3.movetype = MOVETYPE_NONE;
-			ia_spot3.solid = SOLID_NOT;
-			setmodel (ia_spot3, "progs/bklan/trashcan.md3");
-			ia_spot3.scale = 1.28;
-			setsize (ia_spot3, '0 0 0', '0 0 0');
-			setorigin (ia_spot3, '14696 -14122 2');
-
-			// Giant bouncing 3D John Head Grenade!
-			ia_spot4 = spawn ();
-			ia_spot4.intro_tag = 1;
-			ia_spot4.movetype = MOVETYPE_BOUNCE;
-			ia_spot4.solid = SOLID_BBOX;
-			setmodel (ia_spot4, "progs/johnhead3d.md3");
-			ia_spot4.scale = 1.85;
-			ia_spot4.bouncefactor = 0.86;
-			ia_spot4.avelocity = '180 340 120';
-			setsize (ia_spot4, '0 0 0', '0 0 0');
-			setorigin (ia_spot4, '14712 -14090 58');
-			ia_spot4.velocity = '12 0 185';
-		}
-		if (t >= 69.35 && intro_ev < 54)
-		{
-			intro_ev = 54;
-			Intro_Cue ("grenade/boom_03_scream_launch.wav", 0.95);
-			Intro_Cue ("funny/fart2.wav", 1.0);
-			if (ia_spot4)
-			{
-				Intro_SpawnJohnWave ('14716 -14090 4');
-				remove (ia_spot4);
-				ia_spot4 = world;
-			}
-		}
-		if (t >= 70.60 && intro_ev < 55)
-		{
-			intro_ev = 55;
-			Intro_Cue ("john/jv11.wav", 0.95);
-			if (ia_spot3) { remove (ia_spot3); ia_spot3 = world; }
-			Intro_LaunchTrashcan ('14696 -14122 2');
-		}
-
-		u = (t - 67.8) / 5.0;
-		if (ia_spot1 && ia_spot2)
-		{
-			if (u < 0.58)
-			{
-				Intro_Spin360 (ia_spot1, '14752 -14116 4', '14736 -14114 4', u / 0.58 * 0.78, TRUE);
-				Intro_Spin360 (ia_spot2, '14752 -14064 4', '14736 -14066 4', u / 0.58 * 0.78, TRUE);
-			}
-			else
-			{
-				f = floor (((u - 0.58) / 0.42) * 18);
-				f = f - 8 * floor (f / 8);
-				ia_spot1.frame = 52 + f;		// Synchronized wheelie slam!
-				ia_spot2.frame = 52 + f;
-				ia_spot1.angles_y = vectoyaw (intro_cam_pos - ia_spot1.origin) - 12;
-				ia_spot2.angles_y = vectoyaw (intro_cam_pos - ia_spot2.origin) + 12;
-			}
-		}
-	}
-
-	// ================================================================
-	// CARD 15 (72.8s .. 78.0s): FULL-CIRCLE FINALE BACK UNDER THE BAKERSFIELD SIGN!
-	//         White LAN Van + Roof-Dancing Wheelman + Convoy rolls out under the Sign!
+	// CARD 204 (15.3s .. 22.5s): FOX THEATER ON FIRE + FLOATING CCCs + DAN & ROB!
 	// ================================================================
 	else
 	{
-		intro_cur_card = 15;
-		if (intro_ev < 56)
+		intro_cur_card = 204;
+		if (intro_ev < 30)
 		{
-			intro_ev = 56;
+			intro_ev = 30;
 			Intro_ClearSpot ();
-			Intro_EvalCam (15, t);
-			Intro_Cue ("vehicles/horn.wav", 0.95);
-			Intro_Cue ("funny/quakeahh.wav", 1.0);
-			sound (intro_cam, 6, "vehicles/lanvan.wav", 0.82, ATTN_NONE);
+			Intro_EvalCam (204, t);
+			Intro_SpawnBurningFoxTheater ();
+			Intro_SpawnFloatingCCCsDanRob ();
 
-			ia_van = spawn ();
-			ia_van.intro_tag = 1;
-			ia_van.movetype = MOVETYPE_NONE;
-			ia_van.solid = SOLID_NOT;
-			setmodel (ia_van, "progs/veh_van.md3");
-			setsize (ia_van, '0 0 0', '0 0 0');
-			ia_van.angles = '0 0 0';
-			setorigin (ia_van, '11890 -2736 2');
-
-			ia_vansurf = spawn ();
-			ia_vansurf.intro_tag = 1;
-			ia_vansurf.movetype = MOVETYPE_NONE;
-			ia_vansurf.solid = SOLID_NOT;
-			setmodel (ia_vansurf, "progs/wheelman_dance.spr32");
-			ia_vansurf.scale = 0.44;
-			ia_vansurf.wc_anim = 4;
-			ia_vansurf.wc_t0 = time;
-			ia_vansurf.customizeentityforclient = WC_DancerCustomize;
-			setsize (ia_vansurf, '0 0 0', '0 0 0');
-			setorigin (ia_vansurf, '11890 -2736 92');
-
-			ia_pinkcar = spawn ();
-			ia_pinkcar.intro_tag = 1;
-			ia_pinkcar.movetype = MOVETYPE_NONE;
-			ia_pinkcar.solid = SOLID_NOT;
-			setmodel (ia_pinkcar, "progs/pink_supercar.md3");
-			ia_pinkcar.frame = 47;
-			ia_pinkcar.angles = '0 0 0';
-			setsize (ia_pinkcar, '0 0 0', '0 0 0');
-			setorigin (ia_pinkcar, '11840 -2565 2');
-
-			ia_spot1 = Intro_MakeActor (10, 1.24, '11850 -2895 2');	// JessKart escort!
-			ia_forklift = Intro_MakeActor (8, 0.95, '11790 -2960 2');	// Orange Forklift!
-
-			// Cheerful wave-off runners along the sidewalks!
-			Intro_SpawnVanRunner (19, '12020 -2590 2', 12060, -2585, 65, 95, 0,   5.5, 1.20);
-			Intro_SpawnVanRunner (21, '12020 -2885 2', 12060, -2885, 65,-95, 90,  5.5, 1.20);
-			Intro_SpawnVanRunner (22, '12140 -2605 2', 12160, -2600, 60, 110,180, 5.5, 1.24);
-			Intro_SpawnVanRunner (23, '12140 -2870 2', 12160, -2875, 60,-105,270, 5.5, 1.22);
+			Intro_Cue ("player/inflame.wav", 0.78);
+			Intro_Cue ("vehicles/fire_burn.wav", 0.58);
+			Intro_Cue ("ccc/bounce.wav", 0.76);
 		}
-		if (t >= 75.0 && intro_ev < 57)
+		// 15.55s: "I'm floating!" (clear & prominent right as floating DAN, ROB & CCCs fill the screen!)
+		if (t >= 15.55 && intro_ev < 31)
 		{
-			intro_ev = 57;
-			Intro_Cue ("vehicles/horn.wav", 0.88);
+			intro_ev = 31;
+			Intro_VocalHero ("jetpack/floating.wav", 1.0, 4);
+			Intro_Cue ("funny/imfloating.wav", 0.95);
+		}
+		// 16.95s: "Ah, I can't see!" (native 0.80s CCC clip right after "I'm floating" finishes!)
+		if (t >= 16.95 && intro_ev < 32)
+		{
+			intro_ev = 32;
+			Intro_VocalHero ("ccc/shoot.wav", 1.0, 5);
+		}
+		// 18.05s: "CCC! C-C-C-C!" + ricochet boing + fire crackle
+		if (t >= 18.05 && intro_ev < 33)
+		{
+			intro_ev = 33;
+			Intro_Cue ("daniel/ccc_burst.wav", 0.88);
+			Intro_Cue ("ccc/bounce.wav", 0.72);
+			Intro_Cue ("vehicles/fire_burn.wav", 0.52);
+		}
+		// 19.80s: Second "I'm floating!" beat
+		if (t >= 19.80 && intro_ev < 34)
+		{
+			intro_ev = 34;
+			Intro_VocalHero ("jetpack/floating.wav", 1.0, 4);
+			Intro_Cue ("funny/imfloating.wav", 0.90);
+		}
+		// 21.15s: Final punchline "Ah, I can't see!" right before fadeout!
+		if (t >= 21.15 && intro_ev < 35)
+		{
+			intro_ev = 35;
+			Intro_VocalHero ("ccc/shoot.wav", 1.0, 5);
+			Intro_Cue ("ccc/bounce.wav", 0.68);
 		}
 
-		u = (t - 72.8) / 5.0;
-		if (u > 1)
-			u = 1;
-		if (ia_van)
-		{
-			pos = Intro_LerpVec ('11890 -2736 2', '12430 -2736 2', u);
-			f = floor (time * 18);
-			ia_van.frame = f - 16 * floor (f / 16);
-			setorigin (ia_van, pos);
-			if (ia_vansurf)
-			{
-				setorigin (ia_vansurf, pos + '0 0 92');
-				ia_vansurf.angles_y = 180 + u * 720;
-			}
-		}
-		if (ia_pinkcar)
-			setorigin (ia_pinkcar, Intro_LerpVec ('11840 -2565 2', '12380 -2565 2', u));
-		if (ia_spot1)
-		{
-			pos2 = Intro_LerpVec ('11850 -2895 2', '12390 -2895 2', u);
-			ia_spot1.angles_y = 0;
-			setorigin (ia_spot1, pos2);
-		}
-		if (ia_forklift)
-		{
-			pos2 = Intro_LerpVec ('11790 -2960 2', '12260 -2960 2', u);
-			ia_forklift.angles_y = 270;
-			setorigin (ia_forklift, pos2);
-		}
-
-		if (t >= 77.30 && !intro_stopped)
+		if (t >= 22.45 && !intro_stopped)
 		{
 			intro_stopped = TRUE;
-			sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
+			if (intro_bgm_ent)
+				sound (intro_bgm_ent, 1, "misc/null.wav", 1, ATTN_NONE);
+			if (intro_cam)
+			{
+				sound (intro_cam, 4, "misc/null.wav", 1, ATTN_NONE);
+				sound (intro_cam, 5, "misc/null.wav", 1, ATTN_NONE);
+				sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
+			}
 			localcmd ("stop\n");
 		}
-		if (t >= 77.80 && !intro_quitted)
+		if (t >= 22.90 && !intro_quitted)
 		{
 			intro_quitted = TRUE;
 			if (cvar ("intro_autoquit") > 0)
@@ -2285,12 +1481,15 @@ void() Intro_StartDirector =
 	intro_t0 = 0;
 	intro_t0_ms = 0;
 	intro_ev = 0;
+	intro_bgm_on = FALSE;
 	intro_stopped = FALSE;
 	intro_quitted = FALSE;
 	intro_cam_fixed = FALSE;
-	intro_cur_card = 1;
-	intro_cam_pos = '11520 -2736 98';
-	intro_cam_ang = Intro_LookAngles ('11520 -2736 98', '12180 -2736 86');
+	intro_milk_until = 0;
+	intro_swarm_t0 = 0;
+	intro_cur_card = 201;
+	intro_cam_pos = '-9040 1946 450';
+	intro_cam_ang = Intro_LookAngles ('-9040 1946 450', '-9896 3291 415');
 
 	intro_dir_ent = spawn ();
 	intro_dir_ent.classname = "intro_director";

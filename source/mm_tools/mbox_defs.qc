@@ -62,6 +62,7 @@ float	MB_MAX			= 2;		// monsters one player can have out; the oldest go first
 .float	mb_fire_t;		// player: when the throw began
 
 void() MB_Precache;
+void() MB_PrecachePool;
 void() MB_Throw;
 void() MB_BoxTouch;
 void() MB_BoxThink;

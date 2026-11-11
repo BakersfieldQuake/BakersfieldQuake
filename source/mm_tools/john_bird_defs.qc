@@ -40,6 +40,9 @@ float	jb_inflicting;					// 1 = 5-rocket shootdown blast, 2 = swoop dive-ram
 // Player fields
 .entity	jb_vehicle;						// Winged John currently piloted by this player
 .entity	jb_my_temp;						// Personal summoned Winged John (max 1 per player)
+.entity	jb_summoner;
+.float	jb_dying;							// bird: JB_Die has run (until JB_Respawn): his own blast must not kill him again
+.float	jb_feather_t;						// bird: no new hit feathers / HP line before this (full-auto fire)						// on a summoned (temp) Winged John: the player who summoned him
 .float	jb_oldmove;
 .float	jb_oldsolid;
 .float	jb_cam_mode;					// 0 = 3rd-person avian chase cam, 1 = 1st-person crown view
@@ -48,6 +51,7 @@ float	jb_inflicting;					// 1 = 5-rocket shootdown blast, 2 = swoop dive-ram
 .float	jb_prompt_scan_t;
 .float	jb_prompt_t;
 .entity	jb_prompt_ent;
+.float	jb_hint_shown;
 
 // Bird vehicle fields
 .entity	jb_pilot;						// Player currently flying this bird (world if perched / AI)

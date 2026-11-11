@@ -45,6 +45,28 @@ void() LtGun_Precache =
 	precache_sound ("ltgun/null.wav");
 };
 
+// the typing copy's model name as a constant: weaponmodel keeps the string, and a strcat () tempstring is overwritten by
+// later QC before the engine reads it (wrong / flickering model, "not precached" warnings)
+string(float v) LtGun_TypeModel =
+{
+	if (v == 0)		return "progs/ltg_type_0.md3";
+	if (v == 1)		return "progs/ltg_type_1.md3";
+	if (v == 2)		return "progs/ltg_type_2.md3";
+	if (v == 3)		return "progs/ltg_type_3.md3";
+	if (v == 4)		return "progs/ltg_type_4.md3";
+	if (v == 5)		return "progs/ltg_type_5.md3";
+	if (v == 6)		return "progs/ltg_type_6.md3";
+	if (v == 7)		return "progs/ltg_type_7.md3";
+	if (v == 8)		return "progs/ltg_type_8.md3";
+	if (v == 9)		return "progs/ltg_type_9.md3";
+	if (v == 10)		return "progs/ltg_type_10.md3";
+	if (v == 11)		return "progs/ltg_type_11.md3";
+	if (v == 12)		return "progs/ltg_type_12.md3";
+	if (v == 13)		return "progs/ltg_type_13.md3";
+	if (v == 14)		return "progs/ltg_type_14.md3";
+	return "progs/ltg_type_15.md3";
+};
+
 // the held model: the typing one while the laptop is busy. The typing film is a shader animmap, which the engine runs on
 // the clock, not from the moment you pressed fire: there are LTG_VARIANTS copies of it, each starting its loop at a
 // different moment, and ltg_var (picked when fire was pressed) is the one whose first frame is showing right now
@@ -54,7 +76,7 @@ string(entity p) LtGun_VModel =
 		return "progs/ltg_v3d.md3";		// the 3D laptop (build_laptop_gun.py): frames 0-11 idle, 12-33 typing and lightning
 	LtGun_PrecacheVideo ();
 	if (p.ltg_phase == 1)
-		return strcat ("progs/ltg_type_", ftos (p.ltg_var), ".md3");
+		return LtGun_TypeModel (p.ltg_var);
 	return "progs/ltg_view.md3";
 };
 
@@ -140,17 +162,19 @@ void() LtGun_Touch =
 		ltg_inflicting = FALSE;
 		LtGun_Shock (other, self.owner);
 	}
-	e = findradius (self.origin, LTG_RADIUS);
+	e = bm_player_head;
 	while (e)
 	{
-		if (e != other && (e != self.owner || cvar ("ltg_test")) && e.classname == "player")		// ltg_test 1: the owner can be shocked too (a test aid)
+		if (e != other && (e != self.owner || cvar ("ltg_test")) && vlen (e.origin - self.origin) <= LTG_RADIUS)		// ltg_test 1: the owner can be shocked too (a test aid)
 			LtGun_Shock (e, self.owner);
-		e = e.chain;
+		e = e.bm_player_next;
 	}
 	sound (self, CHAN_AUTO, "ltgun/hit.wav", 1, ATTN_NORM);
 	sendParticle ("ltg_boom", self.origin, '0 0 0', 1, 0);
 	LtGun_Gone ();
 };
+
+var float	autocvar_ltg_test = 0;
 
 // the nearest enemy player the head can see ahead of it (inside the LTG_CONE cone, no wall between)
 entity() LtGun_Seek =
@@ -161,11 +185,11 @@ entity() LtGun_Seek =
 
 	dir = normalize (self.velocity);
 	best = world;
-	bd = LTG_SEEK + 1;
-	e = findradius (self.origin, LTG_SEEK);
+	bd = LTG_SEEK;
+	e = bm_player_head;
 	while (e)
 	{
-		if (e.classname == "player" && e != self.owner && e.health > 0)
+		if (e != self.owner && e.health > 0)
 		{
 			to = e.origin - self.origin;
 			d = vlen (to);
@@ -179,7 +203,7 @@ entity() LtGun_Seek =
 				}
 			}
 		}
-		e = e.chain;
+		e = e.bm_player_next;
 	}
 	return best;
 };
@@ -198,7 +222,7 @@ void() LtGun_Think =
 		LtGun_Gone ();
 		return;
 	}
-	if (cvar ("ltg_test") >= 2)
+	if (autocvar_ltg_test >= 2)
 	{
 		self.velocity = '0 0 0';		// test aid: the head hangs where it was made, its face towards you, so you can walk round it
 		self.ltg_born = time;
@@ -383,10 +407,10 @@ void() LtGun_Launch =
 		ltg_canis_t = time + LTG_CANIS_GAP;
 		sound (h, CHAN_VOICE, "ltgun/canis.wav", LTG_CANIS_VOL, LTG_SOUND_ATTN);
 	}
-	if (self.ltg_hint < 3)
+	if (self.ltg_hint < 1)
 	{
 		self.ltg_hint = self.ltg_hint + 1;
-		centerprint (self, "The head locks onto anyone it sees.\nElse aim: it follows the red laser!\n");
+		centerprint (self, "Drone locks onto enemies or follows your laser");
 	}
 };
 
@@ -407,7 +431,7 @@ void() LtGun_PlayerFrame =
 	{
 		if (!self.v_weapon_position_helper)
 			self.weaponmodel = LtGun_VModel (self);		// (with the sway helper, custom_effects.qc picks the model)
-		if (!cvar ("ltg_video"))
+		if (!bm_cvar_ltg_video)
 		{
 			if (self.ltg_phase == 1)
 			{
@@ -508,7 +532,8 @@ void() LtGun_Spawn =
 	self.ltg_phase = 0;
 	self.ltg_sent = FALSE;
 	self.ltg_shock = 0;
-	stuffcmd (self, "v_cshift 0 0 0 0\n");		// clears a blue tint left by older builds
+	if (self.ishuman == 1)
+		stuffcmd (self, "v_cshift 0 0 0 0\n");		// clears a blue tint left by older builds
 };
 
 // obituary text

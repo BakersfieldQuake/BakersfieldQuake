@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 crowd_npcs.qc — the street crowd on the map "fox": ordinary people who stroll around, can be shot, and come back.
 
@@ -22,7 +25,7 @@ Cheat impulse 56 (sv_cheats 1): list every crowd member (kind, mood, health, spo
 */
 
 var float	autocvar_crowd_on	= 1;
-var float	autocvar_crowd_count	= 14;
+var float	autocvar_crowd_count	= 18;
 var float	autocvar_crowd_mad	= 0.34;
 var float	autocvar_crowd_angry	= 0.5;
 var float	autocvar_crowd_dmg	= 3;
@@ -40,12 +43,17 @@ var float	autocvar_crowd_speed	= 1;
 .float	cn_next_hit;
 .float	cn_roll_t;
 .float	cn_voice_t;
+.float	cn_ftime;
+.float	cn_fbase;
+.float	cn_fstep;
 .entity	cn_enemy;
 
 float	crowd_done;
 float	crowd_n;
 float	crowd_seq;
 float	crowd_lineno;
+float	crowd_last1;
+float	crowd_last2;
 float	CN_KINDS		= 22;
 float	CN_FIRST_MD3	= 19;		// kinds below are sprites, from here the 3D people
 float	CN_FIRST_HD		= 12;		// 12..18: the HD sprites (progs/crowd_cN.spr32)
@@ -75,23 +83,23 @@ string(float k) CN_Model =
 	return "progs/npc_fatguy.md3";
 };
 
-// the same picture scales mbox.qc uses (each is about a player tall); wheelman_dance.spr32 is 176 px at scale 0.393 (wcannon.qc)
+// the same picture scales mbox.qc uses (each is about a player tall); HD sprites use native 360-720 px source resolution
 float(float k) CN_Scale =
 {
-	if (k == 1)		return 0.26;
-	if (k == 2)		return 0.41;
-	if (k == 3)		return 0.31;
-	if (k == 4)		return 0.26;
-	if (k >= 5 && k <= 7)	return 0.51;
-	if (k == 8)		return 0.5;
-	if (k == 9)		return 0.43;
-	if (k == 10)	return 0.5;
-	if (k == 11)	return 0.393;
-	if (k == 12)	return 0.516;		// the HD sprites: 52 units tall (crowd_sprites_info.json)
-	if (k == 13)	return 0.441;
-	if (k == 14)	return 0.438;
-	if (k == 15 || k == 16 || k == 17)	return 0.441;
-	if (k == 18)	return 0.451;
+	if (k == 1)		return 0.1387;
+	if (k == 2)		return 0.1367;
+	if (k == 3)		return 0.1771;
+	if (k == 4)		return 0.1387;
+	if (k >= 5 && k <= 7)	return 0.136;
+	if (k == 8)		return 0.1;
+	if (k == 9)		return 0.0983;
+	if (k == 10)	return 0.1111;
+	if (k == 11)	return 0.1921;
+	if (k == 12)	return 0.172;		// the HD crowd sprites: 52 units tall (crowd_sprites_info.json)
+	if (k == 13)	return 0.147;
+	if (k == 14)	return 0.146;
+	if (k == 15 || k == 16 || k == 17)	return 0.147;
+	if (k == 18)	return 0.15;
 	return 1;
 };
 
@@ -131,15 +139,19 @@ string(float k) CN_AngrySound =
 };
 
 // worldspawn (BM_Precache): everything a crowd member can say or be
+float	crowd_precached;
 void() Crowd_Precache =
 {
 	local float k;
 	local string s;
 
+	if (crowd_precached)
+		return;
+	crowd_precached = TRUE;
 	k = 1;
 	while (k <= CN_KINDS)
 	{
-		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp")		// 60 MB of HD sprites: fox only
+		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp")		// 60 MB of HD sprites: fox + downtown
 			precache_model (CN_Model (k));
 		s = CN_FleeSound (k);
 		precache_sound (s);
@@ -176,61 +188,66 @@ float() CN_Customize =
 {
 	local float rel, d, k, n, fps;
 
-	rel = vectoyaw (other.origin - self.origin) - self.angles_y;
-	rel = rel - 360 * floor (rel / 360);
-	d = floor (rel / 45 + 0.5);
-	if (d >= 8)
-		d = 0;
-	if (self.npc_dead)
+	if (self.cn_ftime != time || !self.cn_fstep)
 	{
-		k = self.npc_dstep;
-		if (k < 0)
-			k = 0;
-		if (k > 5)
-			k = 5;
-		self.frame = CN_DeathBase (self.cn_kind) + d * 6 + k;
-		return TRUE;
-	}
-	if (self.cn_move == 0 && self.cn_kind == 11)
-	{
-		self.frame = d * 10;		// wheelman_dance.spr32 run_stuck: 0 + d * 10 + k, no standing frames
-		return TRUE;
-	}
-	if (self.cn_move == 0)
-	{
-		self.frame = d;
-		return TRUE;
-	}
-	if (self.cn_kind >= CN_FIRST_HD)
-	{
-		// the HD sprites: 8 + d * 12 + k walking (12 fps), 104 + d * 10 + k running (15 fps)
-		if (self.cn_move == 1)
+		self.cn_ftime = time;
+		if (self.npc_dead)
 		{
-			k = floor (time * 12 + self.cn_phase);
-			k = k - 12 * floor (k / 12);
-			self.frame = 8 + d * 12 + k;
+			k = self.npc_dstep;
+			if (k < 0)
+				k = 0;
+			if (k > 5)
+				k = 5;
+			self.cn_fbase = CN_DeathBase (self.cn_kind) + k;
+			self.cn_fstep = 6;
+		}
+		else if (self.cn_move == 0)
+		{
+			self.cn_fbase = 0;
+			if (self.cn_kind == 11)
+				self.cn_fstep = 10;		// wheelman_dance.spr32 run_stuck: 0 + d * 10 + k, no standing frames
+			else
+				self.cn_fstep = 1;
+		}
+		else if (self.cn_kind >= CN_FIRST_HD)
+		{
+			// the HD sprites: 8 + d * 12 + k walking (12 fps), 104 + d * 10 + k running (15 fps)
+			if (self.cn_move == 1)
+			{
+				k = floor (time * 12 + self.cn_phase);
+				k = k - 12 * floor (k / 12);
+				self.cn_fbase = 8 + k;
+				self.cn_fstep = 12;
+			}
+			else
+			{
+				k = floor (time * 15 + self.cn_phase);
+				k = k - 10 * floor (k / 10);
+				self.cn_fbase = 104 + k;
+				self.cn_fstep = 10;
+			}
 		}
 		else
 		{
-			k = floor (time * 15 + self.cn_phase);
-			k = k - 10 * floor (k / 10);
-			self.frame = 104 + d * 10 + k;
+			if (self.cn_kind == 11)
+				n = 10;
+			else
+				n = 6;		// 8 + d * 6 + k
+			fps = 8;
+			if (self.cn_move == 2)
+				fps = 16;
+			k = floor (time * fps + self.cn_phase);
+			k = k - n * floor (k / n);
+			if (self.cn_kind == 11)
+				self.cn_fbase = k;
+			else
+				self.cn_fbase = 8 + k;
+			self.cn_fstep = n;
 		}
-		return TRUE;
 	}
-	if (self.cn_kind == 11)
-		n = 10;
-	else
-		n = 6;		// 8 + d * 6 + k
-	fps = 8;
-	if (self.cn_move == 2)
-		fps = 16;
-	k = floor (time * fps + self.cn_phase);
-	k = k - n * floor (k / n);
-	if (self.cn_kind == 11)
-		self.frame = d * 10 + k;
-	else
-		self.frame = 8 + d * 6 + k;
+	rel = vectoyaw (other.origin - self.origin) - self.angles_y;
+	d = floor (rel / 45 + 0.5) & 7;
+	self.frame = self.cn_fbase + d * self.cn_fstep;
 	return TRUE;
 };
 
@@ -241,7 +258,7 @@ float() CN_CustomizeKeep =
 
 float() CN_RandomKind =
 {
-	local float k;
+	local float k, hd_ok, tries;
 
 	if (autocvar_crowd_kind >= 1 && autocvar_crowd_kind <= CN_KINDS)
 		return floor (autocvar_crowd_kind);
@@ -251,9 +268,30 @@ float() CN_RandomKind =
 		crowd_seq = crowd_seq + 1;
 		return 1 + crowd_seq - CN_KINDS * floor ((crowd_seq - 1) / CN_KINDS) - 1;
 	}
-	k = 1 + floor (random () * CN_KINDS);
-	if (k > CN_KINDS)
-		k = CN_KINDS;
+	hd_ok = (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp");
+	tries = 0;
+	while (tries < 4)
+	{
+		if (hd_ok)
+		{
+			k = 1 + floor (random () * CN_KINDS);
+			if (k > CN_KINDS)
+				k = CN_KINDS;
+		}
+		else
+		{
+			k = 1 + floor (random () * 15);
+			if (k > 15)
+				k = 15;
+			if (k >= CN_FIRST_HD)
+				k = k + (CN_FIRST_MD3 - CN_FIRST_HD);
+		}
+		tries = tries + 1;
+		if (k != crowd_last1 && k != crowd_last2)
+			tries = 10;
+	}
+	crowd_last2 = crowd_last1;
+	crowd_last1 = k;
 	return k;
 };
 
@@ -622,6 +660,38 @@ void(vector spot, float radius) Crowd_Spawn =
 	self.think = CN_Think;
 	self.nextthink = time + 0.1 + random () * 0.3;
 	self = oself;
+};
+
+void() CN_MapStart =
+{
+	if (!autocvar_crowd_on || crowd_n >= autocvar_crowd_count)
+	{
+		remove (self);
+		return;
+	}
+	crowd_n = crowd_n + 1;
+	self.th_pain = CN_Pain;
+	self.th_die = CN_Die;
+	CN_Setup (CN_RandomKind ());
+	CN_Place ();
+	self.npc_state = 1;
+	self.think = CN_Think;
+	self.nextthink = time + 0.1 + random () * 0.3;
+};
+
+// Map-placed street crowd entity (e.g. downtown hotspots): origin = player-height home spot, npc_radius = wander radius
+void() npc_crowd =
+{
+	Crowd_Precache ();		// a map that places a crowd member loads the sprites; other maps do not (see BM_Precache)
+	self.classname = "npc_crowd";
+	self.npc_home = self.origin;
+	if (self.npc_radius <= 0)
+		self.npc_radius = 380;
+	self.angles_y = self.angles_y + (random () - 0.5) * 45;
+	self.solid = SOLID_NOT;
+	self.movetype = MOVETYPE_NONE;
+	self.think = CN_MapStart;
+	self.nextthink = 1.0 + random () * 0.25;
 };
 
 // z is the height of a player's origin on the sidewalk (the deathmatch spawns of fox.bsp are on it)

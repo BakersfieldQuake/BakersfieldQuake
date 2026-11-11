@@ -55,5 +55,6 @@ float	WC_SCREAM_GAP	= 3;		// seconds from one scream to the next (the clip is 1.
 .float	wc_until;		// debris / survivor: lifetime end
 
 void() WC_Precache;
+void() WC_PrecacheSprites;
 void() WC_Press;
 void() WC_Frame;

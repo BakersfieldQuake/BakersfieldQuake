@@ -6,10 +6,19 @@ void() FunGun_Precache =
 	precache_sound ("weapons/sgun1.wav");
 	precache_sound ("weapons/r_exp3.wav");
 	Pickle_Precache ();
+	GreenJar_Precache ();
 	NS_Precache ();
 	MB_Precache ();
 	WC_Precache ();
 	M4_Precache ();
+	Tommy_Precache ();
+	Garand_Precache ();
+	if (autocvar_bm_preload && deathmatch)
+	{
+		WC_PrecacheSprites ();
+		if (autocvar_bm_preload >= 2)
+			MB_PrecachePool ();
+	}
 };
 
 // ---------------------------------------------------------------- tables
@@ -28,6 +37,19 @@ string(float g) FunGun_VModel =
 		return "progs/v_wewcannon.md3";
 	if (g == FG_M4)
 		return M4_VModel ();
+	if (g == FG_TOMMY)
+		return Tommy_VModel ();
+	if (g == FG_GARAND)
+		return Garand_VModel ();
+	if (g == FG_PONG)
+	{
+		p = self;
+		if (!(self.flags & FL_CLIENT) && self.owner)
+			p = self.owner;
+		if (FunGun_Ammo (p, FG_PONG) < 1 && !cvar ("gj_test") && p.gj_shaking <= 0 && p.gj_throw_at <= 0 && (!p.gj_threw_t || time >= p.gj_threw_t + GJ_FOLLOW_TIME))
+			return "";
+		return "progs/v_greenjar.md3";
+	}
 	// no pickle to throw: no hand (once any active throw + empty-claw follow-through has dropped off screen)
 	p = self;
 	if (!(self.flags & FL_CLIENT) && self.owner)
@@ -37,19 +59,46 @@ string(float g) FunGun_VModel =
 	return "progs/v_pickle.md3";
 };
 
+string(float g) FunGun_ShortName =
+{
+	if (g == FG_DOB)
+		return "Rob Dob";
+	if (g == FG_PONG)
+		return "Jar o' Green Guys";
+	if (g == FG_M4)
+		return "M4A1";
+	if (g == FG_TOMMY)
+		return "Thompson";
+	if (g == FG_GARAND)
+		return "M1 Garand";
+	if (g == FG_WCANNON)
+		return "Wheelman Cannon";
+	if (g == FG_MBOX)
+		return "Mystery Box";
+	if (g == FG_NETSEND)
+		return "NetSend";
+	return "Pickle Surprise";
+};
+
 string(float g) FunGun_Name =
 {
 	if (g == FG_DOB)
-		return "ROB DOB\nfire: your head flies out. steer it.\nfire: dash (steer it). fire again: blow it up.\n";
+		return "Rob Dob - steer head, fire to dash/detonate";
+	if (g == FG_PONG)
+		return "Jar o' Green Guys - hold fire to shake, release to swarm!";
 	if (g == FG_M4)
-		return "M4A1\nhold fire: automatic rifle, burst for range. R reloads (30 rounds).\n";
+		return "M4A1 - automatic rifle (R reloads)";
+	if (g == FG_TOMMY)
+		return "Thompson - submachine gun (R reloads)";
+	if (g == FG_GARAND)
+		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_WCANNON)
-		return "WHEELMAN CANNON\nhold fire to charge, let go to blast off a screaming Wheelman. he blows up where he crashes.\n";
+		return "Wheelman Cannon - hold fire to charge";
 	if (g == FG_MBOX)
-		return "MYSTERY BOX\nfire: throw it. confetti, then a random monster that runs at the nearest enemy.\n";
+		return "Mystery Box - throws a random monster";
 	if (g == FG_NETSEND)
-		return "NETSEND (LOL.BAT)\nfire: throw the disk. it sticks to the floor, and a PC sends NET SEND to everyone else.\n";
-	return "PICKLE SURPRISE\ndrop it on the floor. walk away.\n";
+		return "NetSend - throws a popup-spamming PC";
+	return "Pickle Surprise - drop trap";
 };
 
 // obituary: victim + FunGun_Death1 + attacker + FunGun_Death2
@@ -57,6 +106,8 @@ string(float g) FunGun_Death1 =
 {
 	if (g == FG_DOB)
 		return " got a big wet kiss from ";
+	if (g == FG_PONG)
+		return " was swarmed silly by ";
 	if (g == FG_NETSEND)
 		return " got a NET SEND from ";
 	if (g == FG_MBOX)
@@ -65,6 +116,10 @@ string(float g) FunGun_Death1 =
 		return " got rolled over by ";
 	if (g == FG_M4)
 		return " was lit up by ";
+	if (g == FG_TOMMY)
+		return " was gunned down by ";
+	if (g == FG_GARAND)
+		return " was picked off by ";
 	return " walked into ";
 };
 
@@ -72,6 +127,8 @@ string(float g) FunGun_Death2 =
 {
 	if (g == FG_PICKLE)
 		return "'s Pickle Surprise\n";
+	if (g == FG_PONG)
+		return "'s Jar o' Green Guys\n";
 	if (g == FG_DOB)
 		return "'s flying head\n";
 	if (g == FG_NETSEND)
@@ -82,6 +139,10 @@ string(float g) FunGun_Death2 =
 		return "'s Wheelman\n";
 	if (g == FG_M4)
 		return "'s M4\n";
+	if (g == FG_TOMMY)
+		return "'s Thompson\n";
+	if (g == FG_GARAND)
+		return "'s M1 Garand\n";
 	return "\n";
 };
 
@@ -99,6 +160,10 @@ float(float g) FunGun_Max =
 		return FG_WCANNON_MAX;
 	if (g == FG_M4)
 		return FG_M4_MAX;
+	if (g == FG_TOMMY)
+		return FG_TOMMY_MAX;
+	if (g == FG_GARAND)
+		return FG_GARAND_MAX;
 	return FG_PICKLE_MAX;
 };
 
@@ -116,6 +181,10 @@ float(float g) FunGun_RegenTime =
 		return FG_WCANNON_REGEN;
 	if (g == FG_M4)
 		return FG_M4_REGEN;
+	if (g == FG_TOMMY)
+		return FG_TOMMY_REGEN;
+	if (g == FG_GARAND)
+		return FG_GARAND_REGEN;
 	return FG_PICKLE_REGEN;
 };
 
@@ -133,6 +202,10 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo6;
 	if (g == FG_M4)
 		return p.fg_ammo7;
+	if (g == FG_TOMMY)
+		return p.fg_ammo8;
+	if (g == FG_GARAND)
+		return p.fg_ammo9;
 	return p.fg_ammo3;
 };
 
@@ -150,6 +223,10 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo6 = v;
 	else if (g == FG_M4)
 		p.fg_ammo7 = v;
+	else if (g == FG_TOMMY)
+		p.fg_ammo8 = v;
+	else if (g == FG_GARAND)
+		p.fg_ammo9 = v;
 	else
 		p.fg_ammo3 = v;
 	if (p.weapon == IT_FUNGUN && p.fg_sel == g)
@@ -170,6 +247,10 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen6;
 	if (g == FG_M4)
 		return p.fg_regen7;
+	if (g == FG_TOMMY)
+		return p.fg_regen8;
+	if (g == FG_GARAND)
+		return p.fg_regen9;
 	return p.fg_regen3;
 };
 
@@ -187,6 +268,10 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen6 = v;
 	else if (g == FG_M4)
 		p.fg_regen7 = v;
+	else if (g == FG_TOMMY)
+		p.fg_regen8 = v;
+	else if (g == FG_GARAND)
+		p.fg_regen9 = v;
 	else
 		p.fg_regen3 = v;
 };
@@ -225,11 +310,21 @@ void() FunGun_Attack =
 		M4_Press ();		// stand-alone automatic rifle: exempt from bm_fg_lock (m4.qc)
 		return;
 	}
+	if (g == FG_TOMMY)
+	{
+		Tommy_Press ();		// stand-alone Thompson SMG: exempt from bm_fg_lock (tommy.qc)
+		return;
+	}
+	if (g == FG_GARAND)
+	{
+		Garand_Press ();	// stand-alone M1 Garand rifle: exempt from bm_fg_lock (garand.qc)
+		return;
+	}
 	if (time < self.fg_lock_t && g != self.fg_lock_gun)
 	{
 		if (time >= self.fg_lock_msg)
 		{
-			self.fg_lock_msg = time + 1;
+			self.fg_lock_msg = time + 3;
 			dprint (strcat ("fungun: locked ", ftos (g), " at ", ftos (time), "\n"));
 			centerprint (self, strcat ("Fun guns locked: ", ftos (ceil (self.fg_lock_t - time)), " s\n"));
 			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
@@ -240,8 +335,12 @@ void() FunGun_Attack =
 	a = FunGun_Ammo (self, g);
 	if (g == FG_MBOX && a < 1 && cvar ("mb_test"))
 		a = 1;		// mb_test: the Mystery Box never runs dry (zz_mbox2.cfg)
+	if (g == FG_PONG && a < 1 && cvar ("gj_test"))
+		a = 1;		// gj_test: Jar o' Green Guys never runs dry during testing
 	if (a < 1)
 	{
+		if (g == FG_PONG)
+			centerprint (self, "The jar is still recharging\n");
 		if (g == FG_NETSEND)
 			centerprint (self, "The disk is still reloading\n");
 		if (g == FG_MBOX)
@@ -252,10 +351,9 @@ void() FunGun_Attack =
 		self.attack_finished = time + 0.3;
 		return;
 	}
-	ct = clienttype (self);		// a variant builtin: keep its result in a local
-	if (g == FG_DOB && ct != FD_CLIENTTYPE_REAL)
+	if (g == FG_PONG)
 	{
-		self.fg_sel = FG_PICKLE;		// bots cannot fly a head
+		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)
 		return;
 	}
 	if (g == FG_WCANNON)
@@ -265,6 +363,13 @@ void() FunGun_Attack =
 	}
 	if (g == FG_NETSEND)
 	{
+		if (NS_Count (self) >= NS_MAX_PCS)		// the only limit: 20 PCs standing at a time (netsend.qc)
+		{
+			centerprint (self, strcat ("All ", strcat (ftos (NS_MAX_PCS), " NET SEND PCs are already up\n")));
+			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+			self.attack_finished = time + 0.5;
+			return;
+		}
 		FunGun_SetAmmo (self, g, a - 1);
 		FunGun_Lock (g);
 		self.fg_fire_t = time;
@@ -308,21 +413,54 @@ void() FunGun_Attack =
 };
 
 // impulse FG_IMPULSE + g - 1
+float(float g) FunGun_Bit =
+{
+	if (g == 1) return 1;
+	if (g == 2) return 2;
+	if (g == 3) return 4;
+	if (g == 4) return 8;
+	if (g == 5) return 16;
+	if (g == 6) return 32;
+	if (g == 7) return 64;
+	if (g == 8) return 128;
+	return 256;
+};
+
+float(float g) FunGun_Available =
+{
+	if (g == FG_M4)
+		return m4_ok;
+	if (g == FG_TOMMY)
+		return tommy_ok;
+	if (g == FG_GARAND)
+		return garand_ok;
+	return (g >= 1 && g <= FG_COUNT);
+};
+
 void(float g) FunGun_Select =
 {
+	local float bit;
+
 	self.impulse = 0;
-	if (g == FG_PONG)
-		return;		// the Rally Master is gone: its key (impulse 62) does nothing
-	if (g == FG_M4 && !m4_ok)
-		return;		// no cs16test folder: no M4 (m4.qc)
+	if (!FunGun_Available (g))
+		return;
 	if (self.has_fired == 1)
+		return;
+	if (self.weapon == IT_FUNGUN && self.fg_sel == g)
 		return;
 	self.idletimer = 1;		// weapon raise animation
 	self.switchtimer = -5;
 	self.weapon = IT_FUNGUN;
 	self.fg_sel = g;
 	W_SetCurrentAmmo ();
-	centerprint (self, FunGun_Name (g));
+	bit = FunGun_Bit (g);
+	if (!(self.fg_seen_mask & bit))
+	{
+		self.fg_seen_mask = self.fg_seen_mask | bit;
+		centerprint (self, FunGun_Name (g));
+	}
+	else
+		centerprint (self, FunGun_ShortName (g));
 };
 
 // gives a player every fun gun, full (spawn, impulse 9) and clears leftover shrinking
@@ -351,12 +489,10 @@ void(entity p) FunGun_Give =
 		p.fg_sel = 1 + floor (random () * FG_COUNT);
 	if (p.fg_sel > FG_COUNT)
 		p.fg_sel = FG_COUNT;
-	if (p.fg_sel == FG_PONG)
-		p.fg_sel = FG_PICKLE;		// the Rally Master is gone
 	// sprites must never be see-through: with r_lerpsprites on, the engine cross-fades sprite frames (the Wheelman looked ghostly)
 	ct = clienttype (p);
-	if (p.fg_sel == FG_M4 && (!m4_ok || ct != FD_CLIENTTYPE_REAL))
-		p.fg_sel = FG_PICKLE;		// bots never carry the M4, nobody does without cs16test
+	if (!FunGun_Available (p.fg_sel))
+		p.fg_sel = FG_PICKLE;
 	if (ct == FD_CLIENTTYPE_REAL)
 	{
 		stuffcmd (p, "r_lerpsprites 0\n");
@@ -374,9 +510,16 @@ void(entity p) FunGun_Give =
 	p.pk_threw_t = 0;
 	p.pk_reload_t = 0;
 	p.pk_empty = FALSE;
+	GJ_ResetPlayer (p);
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
 	p.m4_shot_n = 0;
+	p.tom_heat = 0;
+	p.tom_heat_t = 0;
+	p.tom_shootanim = 0;
+	p.gar_ready = 1;
+	p.gar_shootanim = 0;
+	p.gar_empty_t = 0;
 	FD_Reset (p);		// a new life starts with no head out
 };
 
@@ -416,14 +559,14 @@ float() FunGun_CycleNext =
 	local float n;
 
 	n = self.fg_sel + 1;
-	if (n == FG_PONG)
-		n = n + 1;		// the Rally Master is gone: wheel past it
-	if (n == FG_M4 && !m4_ok)
-		return FALSE;		// the M4 is only there with cs16test
-	if (n <= FG_COUNT)
+	while (n <= FG_COUNT)
 	{
-		self.fg_sel = n;
-		return TRUE;
+		if (FunGun_Available (n))
+		{
+			self.fg_sel = n;
+			return TRUE;
+		}
+		n = n + 1;
 	}
 	return FALSE;
 };
@@ -431,8 +574,15 @@ float() FunGun_CycleNext =
 // the last fun gun that can be selected (backwards cycling from the axe lands on it)
 float() FunGun_Last =
 {
-	if (m4_ok)
-		return FG_M4;
+	local float n;
+
+	n = FG_COUNT;
+	while (n >= 1)
+	{
+		if (FunGun_Available (n))
+			return n;
+		n = n - 1;
+	}
 	return FG_WCANNON;
 };
 
@@ -441,12 +591,14 @@ float() FunGun_CyclePrev =
 	local float n;
 
 	n = self.fg_sel - 1;
-	if (n == FG_PONG)
-		n = n - 1;
-	if (n >= 1)
+	while (n >= 1)
 	{
-		self.fg_sel = n;
-		return TRUE;
+		if (FunGun_Available (n))
+		{
+			self.fg_sel = n;
+			return TRUE;
+		}
+		n = n - 1;
 	}
 	return FALSE;
 };
@@ -575,6 +727,9 @@ void() FunGun_ViewFrame =
 	}
 	Binoc_Frame ();		// hold the key: look through the binoculars
 	WC_Frame ();		// the Wheelman Cannon charges and launches (wcannon.qc)
+	GJ_Frame ();		// the Jar o' Green Guys cocktail-shakes and launches (greenjar.qc)
+	if (!self.button0)
+		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
 	g = 1;
 	while (g <= FG_COUNT && !autocvar_bm_reload)	// with the LAN magazines on, bm_reload.qc reloads them
 	{
@@ -588,10 +743,10 @@ void() FunGun_ViewFrame =
 	t = time - self.fg_fire_t;
 	f = floor (time * 10);
 	f = f - 16 * floor (f / 16);		// idle
-	if (g == FG_PICKLE)
+	if (g == FG_PICKLE || g == FG_PONG)
 	{
-		f = 0;			// v_pickle.md3 is one frame: its faces come from the shader (scripts/pickle.shader)
-		if (self.weaponmodel != FunGun_VModel (g))		// the hand goes when the last pickle is thrown, and comes back with the next
+		f = 0;			// v_pickle.md3 / v_greenjar.md3 are 1-frame cards: their faces come from .skin shaders
+		if (self.weaponmodel != FunGun_VModel (g))		// the hand goes when the last charge is thrown, and comes back with the next
 			self.weaponmodel = FunGun_VModel (g);
 	}
 	else if (g == FG_DOB)
@@ -637,6 +792,14 @@ void() FunGun_ViewFrame =
 	{
 		f = M4_Anim ();		// v_m4.md3: CS idle / fire / reload / draw (m4.qc)
 	}
+	else if (g == FG_TOMMY)
+	{
+		f = Tommy_Anim ();	// v_tommy.md3: DoD idle / shoot / reload / draw (tommy.qc)
+	}
+	else if (g == FG_GARAND)
+	{
+		f = Garand_Anim ();	// v_garand.md3: DoD idle / shoot / shoote / reload / draw (garand.qc)
+	}
 	else if (g == FG_WCANNON)
 	{
 		// v_wewcannon.md3: 0-15 military idle sway; 16-25 sear cocking & +5.5 deg steel overpressure flex;
@@ -666,4 +829,11 @@ void() FunGun_PlayerDie =
 	}
 	Jetpack_Off ();		// cuts the swoosh
 	self.disableclientprediction = 0;
+	if (self.bn_on)
+	{
+		// Binoc_Frame no longer runs while dead: the death cam stayed zoomed in with the BINOCULARS text up
+		self.bn_on = FALSE;
+		self.viewzoom = 0;
+		centerprint (self, "");
+	}
 };

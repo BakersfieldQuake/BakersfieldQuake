@@ -312,12 +312,27 @@ vector(entity jb, entity p) JB_FindExitPos =
 
 void(entity p, entity jb) JB_Enter =
 {
-	local entity cam;
+	local entity cam, oldself;
 
 	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.fd_head != world)
 		return;
 	if (p.jp_on)
-		p.jp_on = FALSE;
+	{
+		oldself = self;
+		self = p;
+		Jetpack_Off ();
+		self = oldself;
+	}
+	if (p.wc_charging)
+	{
+		p.wc_charging = 0;
+		sound (p, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
+	}
+	p.ltg_phase = 0;
+	p.milky_wind = 0;
+	p.pk_throw_at = 0;
+	p.ns_throw_at = 0;
+	p.mb_throw_at = 0;
 
 	jb.jb_pilot = p;
 	jb.jb_ai = FALSE;
@@ -370,7 +385,11 @@ void(entity p, entity jb) JB_Enter =
 
 	sound (jb, CHAN_ITEM, "john_bird/takeoff.wav", 1, 0.6);
 	JB_SpawnFeathers (jb.origin + '0 0 28', 4, 0.7);
-	centerprint (p, "WINGED BREEZY-HAIR JOHN  [500 HP / 5 Rockets]\n\nMouse + WASD: Fast Flight   SPACE: Climb   FIRE: Falcon Swoop!\nV: Speak 'John'   K: Camera   H / P: Dismount\n");
+	if (!p.jb_hint_shown)
+	{
+		p.jb_hint_shown = TRUE;
+		centerprint (p, "WASD+Mouse fly | SPACE climb | FIRE swoop | K cam | H exit");
+	}
 };
 
 // ---------------------------------------------------------------- Collision & Dive-Ram
@@ -676,6 +695,7 @@ float() JohnBird_Frame =
 
 void() JB_Respawn =
 {
+	self.jb_dying = FALSE;
 	self.health = JB_MAX_HP;
 	self.max_health = JB_MAX_HP;
 	self.skin = 0;
@@ -778,6 +798,11 @@ void(entity attacker, float take) JB_Pain =
 	local float r_left;
 	local string msg;
 
+	// feathers, the thud and the HP line at most 5 times a second: full-auto fire (11 hits/s) piled up hundreds of
+	// thinking feathers and flooded the shooter's console
+	if (time < self.jb_feather_t && self.health > JB_ROCKET_DMG)
+		return;
+	self.jb_feather_t = time + 0.2;
 	JB_SpawnFeathers (self.origin + '0 0 34', 8, 1.0);
 	sound (self, CHAN_AUTO, "john_bird/feather_hit.wav", 1, 0.55);
 
@@ -811,6 +836,15 @@ void() JB_Die =
 {
 	local entity pilot, killer;
 	local vector boom_org, eject_vel;
+
+	// a flying John is MOVETYPE_NONE, so Killed does not clear takedamage: without this his own blast below finds him
+	// again, kills him again and recurses until the QC stack overflows (server error). A perched (TOSS) John arrives
+	// here with takedamage already cleared by Killed, so the guard is a flag of its own, not takedamage
+	if (self.jb_dying)
+		return;
+	self.jb_dying = TRUE;
+	self.takedamage = DAMAGE_NO;
+	self.solid = SOLID_NOT;
 
 	killer = self.enemy;
 	if (killer == world)
@@ -955,14 +989,16 @@ void() JohnBird_NearPrompt =
 			self.jb_prompt_ent = world;
 		return;
 	}
+	if (self.jb_hint_shown || time < self.jb_prompt_t)
+		return;
 	if (self.jb_prompt_ent == jb)
 	{
-		self.jb_prompt_t = time + 1.5;
+		self.jb_prompt_t = time + 35;
 		return;
 	}
 	self.jb_prompt_ent = jb;
-	self.jb_prompt_t = time + 1.5;
-	centerprint (self, "Winged Breezy-Hair John\n\nPress H to fly!  (500 HP / Fast Avian Flight)\n");
+	self.jb_prompt_t = time + 35;
+	centerprint (self, "Press H to fly Winged John");
 };
 
 // Called on H (impulse 86) on foot: mounts nearest perched Winged John if within reach!
@@ -985,6 +1021,21 @@ float() JohnBird_TryEnterKey =
 	return TRUE;
 };
 
+// the player's own summoned Winged John, or world once he was shot down and freed (the edict may since be reused by
+// anything else, so jb_my_temp alone must never be trusted for a remove)
+entity(entity p) JB_MyTemp =
+{
+	local entity e;
+
+	e = p.jb_my_temp;
+	if (e != world && (bm_wasfreed (e) || e.classname != "misc_vehicle_johnbird" || !e.jb_temp || e.jb_summoner != p))
+	{
+		p.jb_my_temp = world;
+		e = world;
+	}
+	return e;
+};
+
 void() JohnBird_ClientGone =
 {
 	local entity jb;
@@ -993,11 +1044,10 @@ void() JohnBird_ClientGone =
 	if (jb != world && jb.jb_pilot == self)
 		JB_Leave (jb, jb.origin + '0 0 28', '0 0 0', FALSE);
 	self.jb_vehicle = world;
-	if (self.jb_my_temp != world && self.jb_my_temp.jb_pilot == world)
-	{
-		remove (self.jb_my_temp);
-		self.jb_my_temp = world;
-	}
+	jb = JB_MyTemp (self);
+	if (jb != world && jb.jb_pilot == world)
+		remove (jb);
+	self.jb_my_temp = world;
 };
 
 void() JB_PruneTempBirds =
@@ -1028,6 +1078,8 @@ void() JohnBird_Impulse =
 	local vector org;
 
 	JohnBird_NearPrompt ();
+	if (self.impulse < 97 || self.impulse > 99)
+		return;
 
 	// P (impulse 98): Summon & immediately fly Winged Breezy-Hair John anywhere!
 	if (self.impulse == 98)
@@ -1041,9 +1093,10 @@ void() JohnBird_Impulse =
 			return;
 		}
 		// Recycle player's previous unoccupied personal temp bird so edicts never accumulate
-		if (self.jb_my_temp != world && self.jb_my_temp.classname == "misc_vehicle_johnbird" && self.jb_my_temp.jb_pilot == world && self.jb_my_temp.health > 0)
+		jb = JB_MyTemp (self);
+		if (jb != world && jb.jb_pilot == world && jb.health > 0)
 		{
-			remove (self.jb_my_temp);
+			remove (jb);
 			self.jb_my_temp = world;
 		}
 		jb = spawn ();
@@ -1051,12 +1104,13 @@ void() JohnBird_Impulse =
 		jb.angles_y = self.v_angle_y;
 		setorigin (jb, self.origin + '0 0 12');
 		JB_InitEntity (jb, TRUE);
+		jb.jb_summoner = self;
 		self.jb_my_temp = jb;
 		JB_Enter (self, jb);
 		return;
 	}
 
-	if (!cvar ("sv_cheats"))
+	if (!autocvar_sv_cheats)
 		return;
 
 	// impulse 97: Spawn perched Winged Breezy-Hair John 180 units ahead (mount with H or test 5-rocket shootdown!)

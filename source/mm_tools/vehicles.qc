@@ -376,12 +376,14 @@ void(entity v, float kind, float is_wreck) Veh_SetRotatedBounds =
 
 void(entity attacker, float take) Veh_ClipPain =
 {
-	local entity v;
+	local entity v, oldself;
+	self.health = 1000000;
 	v = self.owner;
 	if (v != world)
 	{
 		if (v.veh_state == VEH_STATE_WRECK)
 			return;
+		oldself = self;
 		v.health = v.health - take;
 		if (v.health <= 0)
 		{
@@ -394,6 +396,7 @@ void(entity attacker, float take) Veh_ClipPain =
 			self = v;
 			self.th_pain (attacker, take);
 		}
+		self = oldself;
 	}
 };
 
@@ -406,10 +409,10 @@ void() Veh_CockpitTouch =
 	if (self.owner.veh_state == VEH_STATE_WRECK || self.owner.veh_driver != world || other.veh_van != world)
 		return;
 
-	if (time > other.veh_pain_snd_t)
+	if (!other.veh_hint_shown && time > other.veh_pain_snd_t)
 	{
-		other.veh_pain_snd_t = time + 3;
-		centerprint (other, "Ram ProMaster\n\nPress H to drive\n");
+		other.veh_pain_snd_t = time + 35;
+		centerprint (other, "Press H to drive ProMaster");
 	}
 };
 
@@ -1088,7 +1091,14 @@ void() Veh_ExplodeNow =
 	wvel = (fwd * (-310 - random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul;
 	Veh_SpawnDebris (Veh_BumperModel (kind), wpos, wvel, ang_opp, 10.5);
 
-	// 6. Scatter Twisted Scorched Shrapnel Chunks
+	// 6. Scatter Twisted Scorched Shrapnel Chunks. In a chain reaction (another car went up in the last 3 s) each car
+	// throws fewer: a parking-lot domino used to leave hundreds of thinking, networked chunks
+	if (time - veh_boom_t < 3)
+		veh_boom_n = veh_boom_n + 1;
+	else
+		veh_boom_n = 1;
+	veh_boom_t = time;
+	shrap_cnt = max (2, floor (shrap_cnt / veh_boom_n));
 	i = 0;
 	while (i < shrap_cnt)
 	{
@@ -1151,7 +1161,13 @@ void() Veh_Explode =
 		return;
 	}
 
-	Veh_ExplodeNow ();
+	// not right here: a rocket's T_RadiusDamage may be what killed it, and its own findradius would rewrite the .chain
+	// list that loop is still walking (players further out got no splash, others two). It goes off on its next think.
+	self.health = 1;
+	self.takedamage = DAMAGE_NO;
+	self.veh_chain_t = time;
+	self.think = Veh_Think;
+	self.nextthink = time;
 };
 
 // ---------------------------------------------------------------- Main Per-Vehicle State Machine Think
@@ -1478,7 +1494,7 @@ void() Veh_PruneTempWrecks =
 	e = nextent (world);
 	while (e != world)
 	{
-		if (e.veh_temp)
+		if (e.veh_temp && e.veh_driver == world)
 		{
 			n = n + 1;
 			if (oldest == world || (e.veh_state == VEH_STATE_WRECK && oldest.veh_state != VEH_STATE_WRECK))
@@ -1487,7 +1503,12 @@ void() Veh_PruneTempWrecks =
 		e = nextent (e);
 	}
 	if (n > 8 && oldest != world)
+	{
+		Veh_FreeClips (oldest);		// else its walk-in boxes stay as invisible walls, owned by a freed (reused) edict
+		if (oldest.veh_cament != world)
+			remove (oldest.veh_cament);
 		remove (oldest);
+	}
 };
 
 entity(float kind, vector org, float yaw_deg) Veh_SpawnDynamic =
@@ -1512,6 +1533,8 @@ void() Vehicles_Impulse =
 
 	Veh_NearPrompt ();
 	JohnBird_Impulse ();
+	if (!self.impulse)
+		return;
 	// 86 = get in (when standing in a van's driver's seat or beside perched Winged John), 87 = camera,
 	// 88 = a running van right here, nose the way you face, 89 = (sv_cheats) into the cab of the nearest van
 	if (self.impulse == 86)
@@ -1526,7 +1549,7 @@ void() Vehicles_Impulse =
 		self.impulse = 0;
 		return;
 	}
-	if (self.impulse == 88 && cvar ("sv_cheats"))	// test aid: unlimited vans would overflow the edicts
+	if (self.impulse == 88 && autocvar_sv_cheats)	// test aid: unlimited vans would overflow the edicts
 	{
 		self.impulse = 0;
 		Veh_SpawnAndEnter ();
@@ -1544,7 +1567,7 @@ void() Vehicles_Impulse =
 		Veh_TestTarget ();
 		return;
 	}
-	if (!cvar ("sv_cheats"))	// 81-85 & 91-94 spawn cars out of thin air: sv_cheats only
+	if (!autocvar_sv_cheats)	// 81-85 & 91-94 spawn cars out of thin air: sv_cheats only
 		return;
 	if (!((self.impulse >= 81 && self.impulse <= 85) || (self.impulse >= 91 && self.impulse <= 94)))
 		return;

@@ -73,6 +73,9 @@ void() MegaMan_ViewFrame;
 .float	mm_ammo;		// player: Mega Men in hand
 .float	mm_regen_t;		// player: when the next one recharges
 .float	mm_larry_t;		// player: the Larry clip playing now ends then
+.float	mm_detour_yaw;	// Mega Man: the way round the wall he last found (MM_OpenYaw), reused while it stays clear
+.float	mm_detour_t;	// Mega Man: until when that detour may be reused before a fresh search
+.float	mm_vm_var;		// player: mm_variant + 1 of the view model last set up (0 = not holding the gun); an inspect resets only when it changes
 .float	mm_inspect_t;	// player: when the current CoD weapon inspect started (0 = none)
 .float	mm_inspect_kind;// player: 1 = CoD Hold-Out (37..60), 2 = CoD Clean-Bar (61..88)
 .float	mm_next_inspect;// player: next random idle CoD weapon inspect timestamp

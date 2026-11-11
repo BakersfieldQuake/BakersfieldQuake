@@ -50,12 +50,12 @@ entity(entity not) Underdog_Leader =
 	local entity e, best;
 
 	best = world;
-	e = find (world, classname, "player");
+	e = bm_player_head;
 	while (e)
 	{
 		if (e != not && (!best || e.frags > best.frags))
 			best = e;
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 	return best;
 };
@@ -90,10 +90,25 @@ float(entity targ, entity attacker, float damage) Underdog_Damage =
 // a slot's numbers die with its player (ClientDisconnect): bots reuse their edict without clearing it
 void(entity p) Underdog_Reset =
 {
+	local entity e;
+
 	p.ud_streak = 0;
 	p.ud_kills = 0;
 	p.ud_deaths = 0;
 	p.ud_earned = FALSE;
+	// the kill-streak announcer's numbers too (bm_fun.qc), and nobody may take REVENGE on the next one in this slot
+	p.bm_streak = 0;
+	p.bm_streak_tier = 0;
+	p.bm_multi_n = 0;
+	p.bm_multi_t = 0;
+	p.bm_killer = world;
+	e = bm_player_head;
+	while (e)
+	{
+		if (e.bm_killer == p)
+			e.bm_killer = world;
+		e = e.bm_player_next;
+	}
 };
 
 // is 'p' in last place? Nobody else has fewer frags, and somebody has more (so a fresh 0-0 game has no loser)
@@ -103,7 +118,7 @@ float(entity p) Underdog_IsLast =
 	local float ahead;
 
 	ahead = FALSE;
-	e = find (world, classname, "player");
+	e = bm_player_head;
 	while (e)
 	{
 		if (e != p)
@@ -113,16 +128,22 @@ float(entity p) Underdog_IsLast =
 			if (e.frags > p.frags)
 				ahead = TRUE;
 		}
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 	return ahead;
 };
 
 // Killed (before the obituary adds the normal frag): the bounty, and the newbie taunt for last place
+void(entity p) Underdog_ClearFx;
+
 void(entity targ, entity attacker) Underdog_Killed =
 {
 	if (!deathmatch || targ.classname != "player")
 		return;
+	// a dead player's PostThink returns before BM_LifeFrame, so Underdog_FxFrame can't take the leader's glow, beacon and
+	// x-ray copy down: they hung frozen where the leader died until the respawn
+	if (targ.ud_aura)
+		Underdog_ClearFx (targ);
 	BM_Fun_Killed (targ, attacker);		// first blood, sprees, revenge... (bm_fun.qc)
 	targ.ud_earned = FALSE;
 	if (attacker != targ && (attacker.classname == "player" || (attacker.flags & FL_MONSTER)))
@@ -227,7 +248,7 @@ void() Underdog_FxFrame =
 	{
 		if (!b.enemy)
 		{
-			b.enemy = Underdog_FxEnt (self, "progs/player.mdl");
+			b.enemy = Underdog_FxEnt (self, "progs/player_id1.mdl");
 			b.enemy.effects = BM_EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE;
 			b.enemy.colormod = '2 1.5 0.3';
 			b.enemy.alpha = 0.45;
@@ -290,7 +311,7 @@ void() Underdog_Update =
 	sum = 0;
 	top = -99999;
 	low = 99999;
-	e = find (world, classname, "player");
+	e = bm_player_head;
 	while (e)
 	{
 		n = n + 1;
@@ -299,12 +320,12 @@ void() Underdog_Update =
 			top = e.frags;
 		if (e.frags < low)
 			low = e.frags;
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 
 	ud_leader = world;
 	besth = 0;
-	e = find (world, classname, "player");
+	e = bm_player_head;
 	while (e)
 	{
 		e.ud_lead = (n >= 2 && e.frags >= top && top > low);		// first place, with somebody behind
@@ -331,7 +352,7 @@ void() Underdog_Update =
 			besth = e.ud_heat;
 			ud_leader = e;
 		}
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 };
 
@@ -411,7 +432,6 @@ void() Underdog_Spawn =
 {
 	local float b, hp, ar, r, earned, last;
 	local entity best;
-	local string armname, why;
 
 	earned = self.ud_earned;
 	self.ud_earned = FALSE;
@@ -437,13 +457,11 @@ void() Underdog_Spawn =
 		self.health = hp;
 	// armor by boost: the classic items, so the HUD icon says which
 	ar = 0;
-	armname = "";
 	if (b >= autocvar_bm_ud_red)
 	{
 		ar = 200;
 		if (b >= 0.9)
 			ar = 250;
-		armname = "  RED ARMOR";
 		self.items = self.items - (self.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
 		self.items = self.items | IT_ARMOR3;
 		self.armortype = 0.8;
@@ -451,7 +469,6 @@ void() Underdog_Spawn =
 	else if (b >= autocvar_bm_ud_yellow)
 	{
 		ar = 150;
-		armname = "  YELLOW ARMOR";
 		self.items = self.items - (self.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
 		self.items = self.items | IT_ARMOR2;
 		self.armortype = 0.6;
@@ -508,19 +525,12 @@ void() Underdog_Spawn =
 	{
 		bprint ("^3", self.netname, " is on LAST STAND - ", ftos (self.ud_streak), " deaths in a row, Quad and pentagram for 10 seconds!\n");
 		sound (self, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
-		centerprint (self, strcat ("LAST STAND\n", ftos (self.ud_streak), " deaths in a row\nQUAD + PENTAGRAM for 10 seconds - go get them\n"));
+		centerprint (self, "^3LAST STAND: Quad + Pentagram (10s)");
 		return;
 	}
-	why = "COMEBACK BOOST";
-	if (self.ud_streak >= 2)
-		why = strcat ("COMEBACK BOOST - ", ftos (self.ud_streak), " deaths in a row");
 	best = Underdog_Leader (self);
-	if (self.ud_blueshell)
-		centerprint (self, strcat (why, "\n+", ftos (hp - 100), " health", armname, "\nfaster regen, BLUE SHELL (Mega Man hunts ", best.netname, ")\n"));
-	else if (earned && b >= 0.5)
-		centerprint (self, strcat (why, "\n+", ftos (hp - 100), " health", armname, "\nfaster regen + a free power-up\n"));
-	else
-		centerprint (self, strcat (why, "\n+", ftos (hp - 100), " health", armname, "\nfaster regen\n"));
+	if (self.ud_blueshell && best)
+		centerprint (self, strcat ("^5Blue Shell ready - Mega Man hunts ", best.netname));
 };
 
 // Mega Man launch: spend a Blue Shell on this one
@@ -536,6 +546,6 @@ void(entity m) Underdog_BlueShell =
 	self.ud_blueshell = FALSE;
 	m.ud_hunt = t;
 	m.effects = m.effects | 64;		// EF_BLUE: a blue light, like the shell
-	centerprint (self, strcat ("BLUE SHELL\nit is hunting ", t.netname, "\n"));
-	centerprint (t, "A BLUE SHELL IS COMING FOR YOU\n");
+	centerprint (self, strcat ("^5Blue Shell hunting ", t.netname));
+	centerprint (t, "^1Incoming Blue Shell!");
 };

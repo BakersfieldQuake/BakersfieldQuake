@@ -42,6 +42,7 @@ float	daniel_poster_seq;
 .float	dn_next_shot;
 .float	dn_next_voice;
 .float	dn_next_touch;
+.float	dn_scan_t;
 .float	dn_lan_only;
 .float	dn_respawn;
 .vector	dn_home;
@@ -113,6 +114,8 @@ void() Daniel_CCCTouch =
 	}
 	if (other.takedamage && other.health > 0)
 	{
+		if (bm_wasfreed(self.owner) || self.owner.classname != "monster_daniel")
+			self.owner = world;		// Daniel was gibbed (removed) since: his edict may be someone else's by now
 		T_Damage(other, self, self.owner, 9);
 		Daniel_CCCSpark();
 		return;
@@ -157,6 +160,8 @@ void() Daniel_PropTouch =
 		return;
 	if (other != world && other.takedamage && other.health > 0 && self.dmg > 0)
 	{
+		if (bm_wasfreed(self.owner) || self.owner.classname != "monster_daniel")
+			self.owner = world;		// Daniel was gibbed (removed) since: his edict may be someone else's by now
 		T_Damage(other, self, self.owner, self.dmg);
 		dir = normalize((other.origin + '0 0 16') - self.origin);
 		other.velocity = other.velocity + dir * 210 + '0 0 120';
@@ -338,11 +343,13 @@ void(entity attacker, float take) Daniel_Pain =
 	Daniel_ThrowProp("progs/daniel_table.md3", self.origin + v_forward * 20 + '0 0 22', v_forward * 190 + '0 0 165', 12);
 };
 
+void() Daniel_Touch;
+
 void() Daniel_Respawn =
 {
 	setorigin(self, self.dn_home + '0 0 8');
 	setmodel(self, "progs/daniel.spr32");
-	self.scale = 0.26;
+	self.scale = 0.1387;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 185;
@@ -359,6 +366,7 @@ void() Daniel_Respawn =
 	self.dn_phase_end = time + 2.4;
 	setsize(self, '-20 -20 0', '20 20 56');
 	droptofloor();
+	self.touch = Daniel_Touch;		// Killed set SUB_Null
 	self.think = Daniel_Think;
 	self.nextthink = time + 0.1;
 };
@@ -526,10 +534,18 @@ void() Daniel_Think =
 	}
 
 	// Find nearest player target & check if Angry 4 AM Dad is closing in!
-	dad = find(world, classname, "monster_dad4am");
+	dad = self.dn_chased;
+	if ((dad == world || dad.health <= 0 || dad.classname != "monster_dad4am") && time >= self.dn_scan_t)
+	{
+		self.dn_scan_t = time + 0.5;
+		dad = find(world, classname, "monster_dad4am");
+		self.dn_chased = dad;
+	}
+	else if (dad != world && (dad.health <= 0 || dad.classname != "monster_dad4am"))
+		dad = world;
 	best = world;
 	bestd = 1600;
-	e = findradius(self.origin, 1600);
+	e = bm_player_head;		// only players count: the frame's player list, not a 1600-unit findradius 20 times a second
 	while (e)
 	{
 		if (e != self && e.health > 0 && e.takedamage && (e.flags & FL_CLIENT))
@@ -541,7 +557,7 @@ void() Daniel_Think =
 				best = e;
 			}
 		}
-		e = e.chain;
+		e = e.bm_player_next;
 	}
 
 	// Active special signature attacks (3 = CCC Barrage, 4 = SHAAA Sonic Rage, 5 = Justin's Webcam)
@@ -844,13 +860,26 @@ void() Dad4AM_Think =
 
 	targ = self.dn_chased;
 	if (targ == world || targ.health <= 0 || targ.classname != "monster_daniel" || targ.dn_lan_only)
-		targ = find(world, classname, "monster_daniel");
+	{
+		if (time >= self.dn_scan_t)
+		{
+			self.dn_scan_t = time + 0.5;
+			targ = find(world, classname, "monster_daniel");
+			self.dn_chased = targ;
+		}
+		else
+			targ = world;
+	}
 	if (targ == world || targ.dn_lan_only)
 	{
 		targ = world;
-		p = find(world, classname, "player");
-		if (p != world && p.health > 0)
-			targ = p;
+		p = bm_player_head;
+		while (p)
+		{
+			if (p != self && p.health > 0 && p.takedamage && (targ == world || vlen(p.origin - self.origin) < vlen(targ.origin - self.origin)))
+				targ = p;
+			p = p.bm_player_next;
+		}
 	}
 
 	if (targ != world)
@@ -885,7 +914,7 @@ entity(vector pos, float yaw_ang, float lan_mode) Daniel_SpawnOne =
 	b.classname = "monster_daniel";
 	b.origin = pos;
 	setmodel(b, "progs/daniel.spr32");
-	b.scale = 0.26;
+	b.scale = 0.1387;
 	b.solid = SOLID_SLIDEBOX;
 	b.movetype = MOVETYPE_STEP;
 	b.health = 185;
@@ -936,7 +965,7 @@ entity(vector pos, float yaw_ang, entity target_dn) Dad4AM_SpawnOne =
 	d.classname = "monster_dad4am";
 	d.origin = pos;
 	setmodel(d, "progs/daniel_dad.spr32");
-	d.scale = 0.41;
+	d.scale = 0.1367;
 	d.solid = SOLID_SLIDEBOX;
 	d.movetype = MOVETYPE_STEP;
 	d.health = 150;
@@ -968,7 +997,7 @@ void() monster_daniel =
 	Daniel_Precache();
 	self.dn_home = self.origin;
 	setmodel(self, "progs/daniel.spr32");
-	self.scale = 0.26;
+	self.scale = 0.1387;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 185;
@@ -1005,7 +1034,7 @@ void() monster_dad4am =
 {
 	Daniel_Precache();
 	setmodel(self, "progs/daniel_dad.spr32");
-	self.scale = 0.41;
+	self.scale = 0.1367;
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = MOVETYPE_STEP;
 	self.health = 150;

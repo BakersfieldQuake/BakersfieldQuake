@@ -40,6 +40,7 @@ float	JP_LOWGRAV	= 0.000001;	// DarkPlaces reads gravity 0 as "normal", so hover
 .float	jp_flame;		// player: when to puff the next flames
 .float	jp_voice;		// player: when the "floating" voice may play again
 .float	jp_low;			// player: the low-fuel warning has been shown
+.float	jp_hint_shown;	// player: shown the pickup hint once on this map
 .entity	jp_armor;		// pickup: the yellow armor it stands next to
 .entity	jp_worn;		// player: the pack on their back
 .float	jp_boost;		// player: 0-1, how long forward has been held (the ramp timer)

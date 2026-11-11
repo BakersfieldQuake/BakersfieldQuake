@@ -98,7 +98,7 @@ face_lm = {}
 for fi, f in enumerate(faces):
     planenum, side, firstedge, numedges, ti, s0, s1, s2, s3, lightofs = f
     tex = miptex[texinfo[ti][8]][0]
-    if tex.startswith(SKIP) or s0 == 255 or lightofs < 0:
+    if not tex or tex.startswith(SKIP) or s0 == 255 or lightofs < 0:
         continue
     vec = texinfo[ti]
     pts = []
@@ -160,7 +160,7 @@ for fi in world_faces:
     planenum, side, firstedge, numedges, ti, s0, s1, s2, s3, lightofs = faces[fi]
     vec = texinfo[ti]
     tex, tw, th = miptex[vec[8]]
-    if tex.startswith(SKIP):
+    if not tex or tex.startswith(SKIP):
         continue
     pts = []
     for k in range(numedges):
@@ -349,7 +349,12 @@ for e in _all:
     triggers.append(t)
 
 # ------------------------------------------------------------------ spawn + teleport spots
-spots = json.load(open(os.path.join(HERE, "out", "maps", NAME + ".spots.json")))   # written by make_<name>.py
+spots_cand = [
+    os.path.join(HERE, "out", "maps", NAME + ".spots.json"),
+    os.path.join(HERE, NAME, "out", NAME + ".spots.json"),
+]
+spots_path = next((p for p in spots_cand if os.path.exists(p)), None)
+spots = json.load(open(spots_path)) if spots_path else []
 
 # ------------------------------------------------------------------ write
 os.makedirs(os.path.join(OUT, "tex"), exist_ok=True)
@@ -380,7 +385,7 @@ def find_prop_tex(tex, suffix=""):
 
 _ws = next((e for e in ents() if e.get("classname") == "worldspawn"), {})
 meta = {"world": [], "spots": spots, "lightmap": [AW, AH],
-        "frame": {"bklan": [-110, 225], "bklan2": [-110, 225], "bklan3": [-110, 225], "bklan4": [-110, 225], "bklan5": [-110, 225], "fox": [220, -118], "mint": [1640, -450], "nile": [0, 0], "dagnys": [0, 0], "orcom": [38, 26]}.get(NAME, [0, 0]),      # generator origin (ft): dev overlay shows map feet
+        "frame": {"bklan": [-110, 225], "bklan2": [-110, 225], "bklan3": [-110, 225], "bklan4": [-110, 225], "bklan5": [-110, 225], "fox": [220, -118], "mint": [1640, -450], "nile": [0, 0], "dagnys": [0, 0], "orcom": [38, 26], "goldenwest": [0, 0], "ooika": [0, 0]}.get(NAME, [0, 0]),      # generator origin (ft): dev overlay shows map feet
         "triggers": triggers,
         "fog": _ws.get("fog", ""),
         "sky": _ws.get("sky") or _ws.get("skyname") or "",
@@ -472,7 +477,7 @@ if NAME == "downtown" or (_ws.get("skyname") or "").startswith("dtsky"):
         _d = _d / np.linalg.norm(_d, axis=-1, keepdims=True)
         _arr = np.clip(np.round(build_dt_sky.sky_display(_d)), 0, 255).astype(np.uint8)
         Image.fromarray(_arr, "RGB").save(os.path.join(OUT, "sky", "%s.jpg" % _side), quality=88)
-elif NAME in ("bklan3", "bklan4", "bklan5", "fox", "mint", "nile", "dagnys", "jerrys"): # the 2026-11-01 sunny sky: drawn for three's cube layout
+elif NAME in ("bklan3", "bklan4", "bklan5", "fox", "mint", "nile", "dagnys", "jerrys", "goldenwest", "ooika"): # the 2026-11-01 sunny sky: drawn for three's cube layout
     import build_bklan_sky  # noqa: E402
     build_bklan_sky.web_faces(os.path.join(OUT, "sky"))
 else:

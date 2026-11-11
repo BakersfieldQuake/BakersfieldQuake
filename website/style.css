@@ -171,6 +171,8 @@ kbd {
 .vp-btn { font: 700 10px/1 var(--font); color: #000; background: var(--silver); border: 2px solid; border-color: #FFFFFF #404040 #404040 #FFFFFF; padding: 3px 6px; cursor: pointer; }
 .vp-btn:hover { background: var(--yellow); }
 .vp-btn.active { background: #A0A0A0; border-color: #404040 #FFFFFF #FFFFFF #404040; }
+.vp-anim { display: flex; align-items: center; justify-content: center; height: 260px; background: #000; overflow: hidden; }
+.vp-anim img { height: 100%; width: auto; max-width: 100%; object-fit: contain; display: block; }
 .vp-foot { padding: 5px 8px 7px; font-size: 12px; background: var(--black); border-top: 1px solid #333; position: relative; z-index: 20; }
 
 /* ---- pictures (also the lightbox hooks) ---- */

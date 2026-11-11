@@ -124,7 +124,10 @@ void() BK_CruiserThink =
 		self.bk_mul = self.bk_goal.speed;
 		if (self.bk_mul <= 0)
 			self.bk_mul = 1;
-		self.bk_goal = find (world, targetname, self.bk_goal.target);
+		if (self.bk_goal.target == "")
+			self.bk_goal = world;		// the route ends here: find (..., "") would match the first entity with no name (a player)
+		else
+			self.bk_goal = find (world, targetname, self.bk_goal.target);
 		if (!self.bk_goal)
 			return;
 		dprint (strcat ("bk: cruiser ", ftos (self.bk_kind), " -> ", self.bk_goal.targetname, " at ", vtos (self.origin), "\n"));
@@ -208,7 +211,9 @@ void() bk_cruiser =
 	}
 	setorigin (self, self.origin);
 	self.bk_mul = 1;
-	g = find (world, targetname, self.target);
+	g = world;
+	if (self.target != "")
+		g = find (world, targetname, self.target);
 	self.bk_goal = g;
 	if (g)
 		self.angles_y = vectoyaw (g.origin - self.origin);
@@ -232,6 +237,7 @@ void() BK_TrashBack =
 	self.traileffectnum = 0;
 	self.takedamage = DAMAGE_AIM;
 	self.health = 25;
+	self.enemy = world;		// the last life's shooter gets no credit for this one
 	self.think = SUB_Null;
 	self.nextthink = 0;
 };
@@ -250,16 +256,15 @@ void() BK_TrashSky =
 	self.nextthink = time + 30;
 };
 
-// shot: a fireball, and up it goes, burning
-void() BK_TrashDie =
+// the blast, on a think of its own (BK_TrashDie)
+void() BK_TrashBlow =
 {
 	pointparticles (particleeffectnum ("TE_EXPLOSION"), self.origin + '0 0 20', VEC_ORIGIN, 1);
 	sound (self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
 	sound (self, CHAN_WEAPON, "weapons/rocket1i.wav", 1, 0.5);
-	if (!self.enemy)
+	if (!self.enemy || self.enemy.classname != "player")
 		self.enemy = self;
 	T_RadiusDamage (self, self.enemy, 40, self);
-	self.takedamage = DAMAGE_NO;
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NOCLIP;
 	self.velocity = '0 0 1100';
@@ -268,6 +273,19 @@ void() BK_TrashDie =
 	self.effects = self.effects | EF_DIMLIGHT;
 	self.think = BK_TrashSky;
 	self.nextthink = time + 2.6;
+};
+
+// shot: a fireball, and up it goes, burning. Not inside the T_RadiusDamage that killed it (its own would rewrite the .chain
+// list that loop walks), and the kill is the killer's: a one-shot kill never ran BK_TrashPain
+void() BK_TrashDie =
+{
+	if (!self.takedamage)
+		return;
+	self.takedamage = DAMAGE_NO;
+	if (damage_attacker != world && damage_attacker != self)
+		self.enemy = damage_attacker;
+	self.think = BK_TrashBlow;
+	self.nextthink = time;
 };
 
 void(entity attacker, float take) BK_TrashPain =
@@ -294,7 +312,7 @@ void() BK_Impulse =
 	local entity e;
 
 	BKTV_Test ();
-	if (self.impulse < 77 || self.impulse > 78 || !cvar ("sv_cheats"))
+	if (self.impulse < 77 || self.impulse > 78 || !autocvar_sv_cheats)
 		return;
 	e = find (world, classname, "bk_cruiser");
 	while (e && e.bk_kind != self.impulse - 76)

@@ -84,13 +84,16 @@ float() Milky_Customize =
 	return TRUE;
 };
 
+var float	autocvar_milky_test		= 0;
+var float	autocvar_milky_debug	= 0;
+
 // someone she goes after: a live player who is not her shooter (milky_test 1: him too) or his teammate
 float(entity e) Milky_IsEnemy =
 {
 	if (e.classname != "player" || e.health <= 0 || !e.takedamage || e.solid == SOLID_NOT)
 		return FALSE;
 	if (e == self.milky_owner)
-		return (cvar ("milky_test") != 0 && time > self.milky_born + 1.5);	// test aid: she comes back for him, once clear of him
+		return (autocvar_milky_test != 0 && time > self.milky_born + 1.5);	// test aid: she comes back for him, once clear of him
 	if (teamplay && e.team > 0 && e.team == self.milky_owner.team)
 		return FALSE;
 	return TRUE;
@@ -170,6 +173,8 @@ void() Milk_SplatThink =
 		self.nextthink = time + 0.25;
 		return;
 	}
+	if (t > 1.4)		// grown: up to 120 of these, so wake only for the next drip or the fade
+		self.nextthink = max (time + 0.05, min (self.milky_drip, self.milk_born + MILK_LIFE));
 	if (time < self.milky_drip)
 		return;
 	// drip: off the bottom edge of a wall splat, anywhere off a ceiling one. It slows down as the milk dries
@@ -253,7 +258,8 @@ void() Milk_GlobTouch =
 {
 	local vector dir;
 
-	if (other == self.owner || other.classname == "milky" || other.classname == "milk_glob")
+	// the burst's globs have no owner: other == self.owner was then true for every wall and floor (world), so they never splatted
+	if ((self.owner != world && other == self.owner) || other.classname == "milky" || other.classname == "milk_glob")
 		return;
 	dir = normalize (self.velocity);
 	if (dir == VEC_ORIGIN)
@@ -375,9 +381,14 @@ float(entity p) Milk_Under =
 	if (time < p.milk_under_t)
 		return p.milk_under_cached;
 	p.milk_under_t = time + 0.08;
-	e = find (world, classname, "milk_puddle");
+	e = milk_qhead;		// every splat and puddle is in the milk queue (at most MILK_MAX): no scan over every edict
 	while (e)
 	{
+		if (e.classname != "milk_puddle")
+		{
+			e = e.milk_qnext;
+			continue;
+		}
 		d = p.origin - e.origin;
 		if (d_z > 8 && d_z < 40)		// a player's origin is 24 above his feet
 		{
@@ -388,7 +399,7 @@ float(entity p) Milk_Under =
 				return TRUE;
 			}
 		}
-		e = find (e, classname, "milk_puddle");
+		e = e.milk_qnext;
 	}
 	p.milk_under_cached = FALSE;
 	return FALSE;
@@ -482,9 +493,10 @@ float(entity c) Milky_Reaches =
 void() Milky_Trail =
 {
 	local entity c, best, near;
-	local float bt, bd, d;
+	local float bt, bd, d, budget;
 	local vector tg;
 
+	budget = 16;		// traceboxes this look may spend (one per crumb tried)
 	tg = self.milky_target.origin;
 	best = world;
 	bt = self.milky_goal_t;
@@ -493,20 +505,28 @@ void() Milky_Trail =
 	c = find (world, classname, "milk_crumb");
 	while (c)
 	{
-		if (vlen (c.origin - self.origin) < 1200)
+		if (budget > 0 && vlen (c.origin - self.origin) < 1200)
 		{
-			if (c.owner == self.milky_target && c.milk_t > bt && Milky_Reaches (c))
+			if (c.owner == self.milky_target && c.milk_t > bt)
 			{
-				best = c;
-				bt = c.milk_t;
+				budget = budget - 1;
+				if (Milky_Reaches (c))
+				{
+					best = c;
+					bt = c.milk_t;
+				}
 			}
 			else if (!best)
 			{
 				d = vlen (tg - c.origin);
-				if (d < bd && vlen (c.origin - self.origin) > 40 && Milky_Reaches (c))
+				if (d < bd && vlen (c.origin - self.origin) > 40)
 				{
-					near = c;
-					bd = d;
+					budget = budget - 1;
+					if (Milky_Reaches (c))
+					{
+						near = c;
+						bd = d;
+					}
 				}
 			}
 		}
@@ -550,7 +570,7 @@ void() Milky_Look =
 	bd = MILKY_SEEK;
 	near = world;
 	nd = 999999;
-	e = find (world, classname, "player");
+	e = bm_player_head;		// the frame's player list (Milky_IsEnemy wants players only)
 	while (e)
 	{
 		if (Milky_IsEnemy (e))
@@ -567,7 +587,7 @@ void() Milky_Look =
 				nd = d;
 			}
 		}
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 	if (best)
 	{
@@ -641,7 +661,7 @@ void() Milky_Think =
 		if (dt < MILKY_EMERGE)
 		{
 			self.nextthink = time + 0.02;
-			e = find (world, classname, "player");
+			e = bm_player_head;		// the frame's player list (Milky_IsEnemy wants players only)
 			while (e)
 			{
 				if (Milky_IsEnemy (e) && vlen (e.origin - self.origin) < MILKY_REACH && Milky_Sees (e))
@@ -649,7 +669,7 @@ void() Milky_Think =
 					Milky_Burst ();
 					return;
 				}
-				e = find (e, classname, "player");
+				e = e.bm_player_next;
 			}
 			if (dt < 0)
 				dt = 0;
@@ -1073,10 +1093,16 @@ void() Milky_PlayerFrame =
 		self.milk_v = VEC_ORIGIN;
 	}
 	// one crumb per 48 units walking; a jetpacker doing 1000+ u/s drops one per 160, or a few fliers fill the edicts
-	if (milky_count > 0 && vlen (self.origin - self.milk_crumbat) > 48 + 112 * (vlen (self.velocity) > 600))
-		Milky_Crumb ();
-	if (milk_count > 0 && (self.flags & FL_ONGROUND) && Milk_Under (self))
-		self.milk_last = time;
+	if (milky_count > 0)
+	{
+		if (vlen (self.origin - self.milk_crumbat) > 48 + 112 * (vlen (self.velocity) > 600))
+			Milky_Crumb ();
+	}
+	if (milk_count > 0 && (self.flags & FL_ONGROUND))
+	{
+		if (Milk_Under (self))
+			self.milk_last = time;
+	}
 	if (milk_count > 0 && (self.flags & FL_ONGROUND) && time < self.milk_last + MILK_COAST)
 	{
 		if (self.milk_slip)
@@ -1098,7 +1124,7 @@ void() Milky_PlayerFrame =
 			{
 				pointparticles (particleeffectnum ("milk_skid"), self.origin - '0 0 22', h * 0.3, 1);
 				self.milk_fx = time + 0.12;
-				if (cvar ("milky_debug"))
+				if (autocvar_milky_debug)
 					bprint ("milky: ", self.netname, " sliding at ", ftos (floor (vlen (h))), "\n");
 			}
 		}

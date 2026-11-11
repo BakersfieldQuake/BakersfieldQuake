@@ -4,8 +4,9 @@ THE NETSEND GUN (see netsend_defs.qc for the rules and numbers)
 
 FunGun_ViewFrame calls NS_Throw NS_THROW_DELAY after the fire (the hand lets go at frame 44 of v_netsend.md3).
 The disk is a flying entity (NS_DiskThink, NS_DiskTouch). Where it lands on a floor it turns into the PC in place
-(NS_Stick): the PC's think (NS_Think) plays the frames of progs/netsend_pc.md3, sends the NET SEND messages (NS_Send)
-and goes away (NS_Vanish). Its damage is dealt in its owner's name with fg_inflicting set, so frags and the
+(NS_Stick): the PC's think (NS_Think) plays the frames of progs/netsend_pc.md3 and sends the NET SEND messages (NS_Send).
+A PC never times out, but it can be shot to bits (NS_Die, NS_HEALTH); the only limit is NS_MAX_PCS live PCs per player
+(NS_Count). Its damage is dealt in its owner's name with fg_inflicting set, so frags and the
 obituary just work.
 ================
 */
@@ -68,34 +69,71 @@ string() NS_Line =
 	return "MESSAGE SENT [OK]\n";
 };
 
-// it is switched off (shot, thrown over, or its time is up): it shuts down, frames 40-49
-void(entity pc) NS_Off =
+// how many PCs this player has standing (NS_MAX_PCS is the limit)
+float(entity who) NS_Count =
 {
-	if (pc.ns_state >= 5)
-		return;
-	pc.ns_state = 5;
-	pc.ns_t = time;
-	pc.takedamage = DAMAGE_NO;
-	pc.solid = SOLID_NOT;
-	pointparticles (particleeffectnum ("netsend_pop"), pc.origin + '0 0 30', VEC_ORIGIN, 1);
+	local entity e;
+	local float n;
+
+	n = 0;
+	e = find (world, classname, "netsend_pc");
+	while (e)
+	{
+		if (e.owner == who)
+			n = n + 1;
+		e = find (e, classname, "netsend_pc");
+	}
+	return n;
 };
 
-// the end: the arc and the PC go, and its owner can throw another disk
-void() NS_Vanish =
+// a PC goes, with its screen and its lightning
+void(entity pc) NS_RemovePC =
 {
-	if (self.ns_arc)
-		remove (self.ns_arc);
-	if (self.ns_scr)
-		remove (self.ns_scr);
-	if (self.owner.ns_pc == self)
-		self.owner.ns_pc = world;
-	remove (self);
+	if (pc.ns_scr)
+		remove (pc.ns_scr);
+	if (pc.ns_arc)
+		remove (pc.ns_arc);
+	remove (pc);
 };
 
-// shot to bits: it shuts down like any other
+// ClientDisconnect: the leaver's PCs and disks in the air go too, else they keep shooting in an empty slot's name and the
+// next player (or bot) in that slot inherits them
+void(entity p) NS_ClientGone =
+{
+	local entity e, nx;
+
+	e = find (world, classname, "netsend_pc");
+	while (e)
+	{
+		nx = find (e, classname, "netsend_pc");
+		if (e.owner == p)
+			NS_RemovePC (e);
+		e = nx;
+	}
+	e = find (world, classname, "netsend_disk");
+	while (e)
+	{
+		nx = find (e, classname, "netsend_disk");
+		if (e.owner == p)
+			remove (e);
+		e = nx;
+	}
+};
+
+// shot to bits (th_die, self = the PC): a pop, then it is gone. The removal waits a frame: T_Damage/Killed still hold the entity
+void() NS_Burst =
+{
+	pointparticles (particleeffectnum ("netsend_pop"), self.origin + '0 0 30', VEC_ORIGIN, 1);
+	FG_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.8, 1);
+	NS_RemovePC (self);
+};
+
 void() NS_Die =
 {
-	NS_Off (self);
+	self.takedamage = DAMAGE_NO;
+	self.solid = SOLID_NOT;
+	self.think = NS_Burst;
+	self.nextthink = time + 0.05;
 };
 
 // the lightning crackling round the PC (netsend_arc.md3: additive, 8 frames, cycled in NS_Think)
@@ -121,10 +159,10 @@ entity() NS_Target =
 
 	best = world;
 	bd = NS_RANGE + 1;
-	e = find (world, classname, "player");
+	e = bm_player_head;		// the players, rebuilt once a frame (BM_StartFrame): no scan over every edict
 	while (e)
 	{
-		if (e != self.owner && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY))
+		if (e != self.owner && e.classname == "player" && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY))
 		{
 			d = vlen (e.origin - self.origin);
 			if (d < bd && visible (e))
@@ -133,7 +171,7 @@ entity() NS_Target =
 				bd = d;
 			}
 		}
-		e = find (e, classname, "player");
+		e = e.bm_player_next;
 	}
 	return best;
 };
@@ -231,7 +269,14 @@ void() NS_Sentry =
 	local float want, off, sw;
 	local vector dir;
 
-	e = NS_Target ();
+	// looking for a target (a trace per player in range) 5 times a second is plenty; in between keep the last one while it lives
+	e = self.ns_target;
+	if (time >= self.ns_scan_t || (e && (e.health <= 0 || !e.takedamage || e.classname != "player")))
+	{
+		e = NS_Target ();
+		self.ns_target = e;
+		self.ns_scan_t = time + 0.2;
+	}
 	if (e)
 	{
 		dir = e.origin + '0 0 16' - (self.origin + '0 0 34');
@@ -262,23 +307,24 @@ void() NS_ScreenSync =
 	s = self.ns_scr;
 	if (!s)
 		return;
-	setorigin (s, self.origin);
+	if (s.origin != self.origin)
+		setorigin (s, self.origin);		// the PC never moves: this only happens once, when it lands
 	s.angles = self.angles;
 	s.frame = self.frame;
 	s.skin = self.skin;
 };
 
-// the PC's think: frames 0-9 materialize, 10-19 boot, 20-39 sending (a loop), 40-49 shut down
+// the PC's think: frames 0-9 materialize, 10-19 boot, 20-39 sending (a loop, for good)
 void() NS_Think =
 {
 	local float age, f;
 
-	self.nextthink = time + 0.05;
-	if (self.owner.classname != "player")		// its owner has gone: so has it
+	if (self.owner.classname != "player")
 	{
-		NS_Vanish ();
+		NS_RemovePC (self);		// its owner left (NS_ClientGone normally got it first): nobody to credit, and the slot gets reused
 		return;
 	}
+	self.nextthink = time + 0.05;
 	age = time - self.ns_t;
 	if (self.ns_state == 2)
 	{
@@ -308,30 +354,13 @@ void() NS_Think =
 		NS_Sentry ();		// it turns to its target and shoots, like the TF sentry (it does not spin)
 		if (time >= self.ns_next)
 			NS_Send ();
-		if (age >= NS_ACTIVE)
-			NS_Off (self);
-	}
-	else
-	{
-		f = 40 + min (9, floor (age * 10));
-		if (self.ns_arc)
-		{
-			remove (self.ns_arc);
-			self.ns_arc = world;
-		}
-		if (age >= 1)
-		{
-			NS_Vanish ();
-			return;
-		}
 	}
 	self.frame = f;
 	self.skin = NS_Skin (f);
 	NS_ScreenSync ();
 	if (self.ns_arc)
 	{
-		setorigin (self.ns_arc, self.origin);
-		self.ns_arc.angles = self.angles;
+		self.ns_arc.angles = self.angles;		// its origin was set once, in NS_ArcOn
 		f = floor (time * 15);
 		self.ns_arc.frame = f - 8 * floor (f / 8);		// the 8 arcs, cycled
 	}
@@ -345,6 +374,12 @@ void(vector spot) NS_Stick =
 		remove (self);
 		return;
 	}
+	if (NS_Count (self.owner) >= NS_MAX_PCS)		// the 20th is already up: this disk goes back in the magazine
+	{
+		NS_Refund (self.owner);
+		remove (self);
+		return;
+	}
 	self.classname = "netsend_pc";
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';
@@ -354,7 +389,6 @@ void(vector spot) NS_Stick =
 	self.nextthink = time + 0.05;
 	self.ns_state = 2;
 	self.ns_t = time;
-	self.owner.ns_pc = self;
 	setmodel (self, "progs/netsend_pc.md3");
 	setsize (self, '-14 -14 0', '14 14 38');		// low enough to JUMP onto (a jump is 45): the PC is solid like the TF sentry, review 2026-11-01
 	setorigin (self, spot);
@@ -362,7 +396,7 @@ void(vector spot) NS_Stick =
 	self.angles_y = self.owner.v_angle_y + 180;		// its front (+X) looks back at whoever threw it
 	self.ns_yaw0 = self.angles_y;					// the middle of its sweep
 	self.solid = SOLID_BBOX;
-	self.takedamage = DAMAGE_AIM;
+	self.takedamage = DAMAGE_AIM;		// never times out, but it can be shot to bits (NS_Die)
 	self.health = NS_HEALTH;
 	self.th_die = NS_Die;
 	self.view_ofs = '0 0 50';		// where it looks from, for visible ()
@@ -422,7 +456,7 @@ void() NS_Test =
 {
 	local entity d, me;
 
-	if (self.impulse != 80 || !cvar ("sv_cheats"))
+	if (self.impulse != 80 || !autocvar_sv_cheats)
 		return;
 	self.impulse = 0;
 	makevectors ('0 1 0' * self.v_angle_y);
@@ -441,8 +475,6 @@ void() NS_Throw =
 {
 	local entity d;
 
-	if (self.ns_pc && self.ns_pc.classname == "netsend_pc")
-		NS_Off (self.ns_pc);		// one at a time: the old PC is switched off
 	makevectors (self.v_angle);
 	d = spawn ();
 	d.owner = self;

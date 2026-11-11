@@ -27,6 +27,7 @@ padre-hotel-gallery-self-contained.html:
 """
 from __future__ import annotations
 import math
+import os
 
 
 # Basement Gym sub-grade cutout bounds (used by make_fox.py ground slab carver)
@@ -74,23 +75,38 @@ def build_padre_hotel(ctx: dict):
     TILE = tspec("fx_tile", 6)
     GLASS = "bk_glass"
 
+    is_ezq_rev3 = True
+    open_wins = ctx.get("open_windows")
+
     def view_win_x(xa, xb, y, zb, zt):
-        """Real see-through hotel sash window along X: player-clip + exterior stucco casing + white muntin bars."""
-        box(xa, y - 0.2, zb, xb, y + 0.2, zt, "clip")
-        xm, zm = (xa + xb) / 2.0, (zb + zt) / 2.0
-        prop(xa, y - 0.18, zm - 0.14, xb, y + 0.18, zm + 0.14, WHITE)
-        prop(xm - 0.14, y - 0.18, zb, xm + 0.14, y + 0.18, zt, WHITE)
+        """Real see-through shootable hotel sash window along X: exterior stucco casing + non-solid center mullion."""
+        if not is_ezq_rev3:
+            box(xa, y - 0.2, zb, xb, y + 0.2, zt, "clip")
+            xm, zm = (xa + xb) / 2.0, (zb + zt) / 2.0
+            prop(xa, y - 0.18, zm - 0.14, xb, y + 0.18, zm + 0.14, WHITE)
+            prop(xm - 0.14, y - 0.18, zb, xm + 0.14, y + 0.18, zt, WHITE)
+        elif open_wins is not None:
+            open_wins.append(("x", y, xa, xb, zb, zt))
+            if xb - xa >= 9.0:
+                xm = 0.5 * (xa + xb)
+                box(xm - 0.28, y - 0.85, zb, xm + 0.28, y + 0.85, zt, STUCCO, group="illus")
         prop(xa - 0.7, y - 0.9, zb - 0.7, xb + 0.7, y + 0.9, zb, STUCCO)
         prop(xa - 0.7, y - 0.9, zt, xb + 0.7, y + 0.9, zt + 0.7, STUCCO)
         prop(xa - 0.7, y - 0.9, zb, xa, y + 0.9, zt, STUCCO)
         prop(xb, y - 0.9, zb, xb + 0.7, y + 0.9, zt, STUCCO)
 
     def view_win_y(x, ya, yb, zb, zt):
-        """Real see-through hotel sash window along Y: player-clip + exterior stucco casing + white muntin bars."""
-        box(x - 0.2, ya, zb, x + 0.2, yb, zt, "clip")
-        ym, zm = (ya + yb) / 2.0, (zb + zt) / 2.0
-        prop(x - 0.18, ya, zm - 0.14, x + 0.18, yb, zm + 0.14, WHITE)
-        prop(x - 0.18, ym - 0.14, zb, x + 0.18, ym + 0.14, zt, WHITE)
+        """Real see-through shootable hotel sash window along Y: exterior stucco casing + non-solid center mullion."""
+        if not is_ezq_rev3:
+            box(x - 0.2, ya, zb, x + 0.2, yb, zt, "clip")
+            ym, zm = (ya + yb) / 2.0, (zb + zt) / 2.0
+            prop(x - 0.18, ya, zm - 0.14, x + 0.18, yb, zm + 0.14, WHITE)
+            prop(x - 0.18, ym - 0.14, zb, x + 0.18, ym + 0.14, zt, WHITE)
+        elif open_wins is not None:
+            open_wins.append(("y", x, ya, yb, zb, zt))
+            if yb - ya >= 9.0:
+                ym = 0.5 * (ya + yb)
+                box(x - 0.85, ym - 0.28, zb, x + 0.85, ym + 0.28, zt, STUCCO, group="illus")
         prop(x - 0.9, ya - 0.7, zb - 0.7, x + 0.9, yb + 0.7, zb, STUCCO)
         prop(x - 0.9, ya - 0.7, zt, x + 0.9, yb + 0.7, zt + 0.7, STUCCO)
         prop(x - 0.9, ya - 0.7, zb, x + 0.9, ya, zt, STUCCO)
@@ -211,14 +227,21 @@ def build_padre_hotel(ctx: dict):
 
     # --- Exterior Ground-Floor Walls (z = 0.5 .. 16.0) ---
     # South 18th St wall (y = -666 .. -664.5):
-    #   Holes: Farmacy door (-101..-93), Main Padre Lobby Portal (-65..-53), Brimstone door (-21..-13)
+    #   Doors: Farmacy (-101..-93), Main Padre Lobby Portal (-65..-53), Brimstone (-21..-13)
+    #   Open shootable storefront windows: Farmacy (-112.5..-102.5, -91.0..-80.0), Brimstone (-46.0..-35.0, -33.5..-23.5, -11.5..-2.5)
+    f1_s_wins = [(-112.5, -102.5), (-91.0, -80.0), (-46.0, -35.0), (-33.5, -23.5), (-11.5, -2.5)]
     wall_x(-116.0, 0.0, -666.0, 1.5, 0.5, 16.0, BASE,
-           holes=[(-101.0, -93.0, 0.5, 10.5), (-65.0, -53.0, 0.5, 11.5), (-21.0, -13.0, 0.5, 10.5)])
-    # Storefront windows along 18th St:
-    prop(-113.5, -666.2, 1.8, -102.0, -665.8, 10.5, BASE, {"s": Fit("farm_win")})   # Farmacy Cafe window!
-    prop(-91.5, -666.2, 1.8, -79.5, -665.8, 10.5, BASE, {"s": Fit("farm_win")})
-    prop(-47.0, -666.2, 2.2, -23.0, -665.8, 10.5, BASE, {"s": Fit("brim_win")})     # Brimstone 18th St window!
-    prop(-11.5, -666.2, 2.2, -2.0, -665.8, 10.5, BASE, {"s": Fit("brim_win")})
+           holes=[(-101.0, -93.0, 0.5, 10.5), (-65.0, -53.0, 0.5, 11.5), (-21.0, -13.0, 0.5, 10.5)] +
+                 [(xa, xb, 2.6, 10.2) for xa, xb in f1_s_wins])
+    for xa, xb in f1_s_wins:
+        box(xa - 0.3, -666.2, 2.35, xb + 0.3, -664.3, 2.6, DARK, group="illus")
+        box(xa - 0.3, -666.2, 10.2, xb + 0.3, -664.3, 10.45, DARK, group="illus")
+        box(xa, -666.15, 2.6, xa + 0.22, -664.35, 10.2, DARK, group="illus")
+        box(xb - 0.22, -666.15, 2.6, xb, -664.35, 10.2, DARK, group="illus")
+        if xb - xa >= 9.0:
+            xm = 0.5 * (xa + xb)
+            box(xm - 0.12, -666.15, 2.6, xm + 0.12, -664.35, 10.2, DARK, group="illus")
+        box(xa, -666.12, 8.2, xb, -664.38, 8.38, DARK, group="illus")
 
     # 18th St Main Entrance Portal ('1702' + dark-blue 'THE PADRE' marquee canopy + Spanish curved gable above!)
     prop(-69.0, -667.2, 0.5, -65.0, -665.8, 16.0, BASE)
@@ -249,11 +272,21 @@ def build_padre_hotel(ctx: dict):
         fox_model("pad_stool_yellow", sx, -667.6, 0.5, yaw=90)
 
     # East H St wall (x = -1.5 .. 0.0, y = -666 .. -556):
-    #   Holes: Brimstone SE door (-650..-642), H St 'THE PADRE' portal (-602..-592)
+    #   Doors: Brimstone SE door (-650..-642), H St 'THE PADRE' portal (-602..-592)
+    #   Open shootable Brimstone storefront windows facing Padre Garage: (-662.5..-652.0), (-639.5..-623.0), (-619.0..-605.0)
+    f1_e_wins = [(-662.5, -652.0), (-639.5, -623.0), (-619.0, -605.0)]
     wall_y(-1.5, 1.5, -666.0, -556.0, 0.5, 16.0, BASE,
-           holes=[(-650.0, -642.0, 0.5, 10.5), (-602.0, -592.0, 0.5, 11.5)])
-    for wy0, wy1 in [(-663.5, -651.5), (-640.5, -622.0), (-620.0, -604.0)]:
-        prop(-0.2, wy0, 2.2, 0.2, wy1, 10.5, BASE, {"e": Fit("brim_win")})
+           holes=[(-650.0, -642.0, 0.5, 10.5), (-602.0, -592.0, 0.5, 11.5)] +
+                 [(ya, yb, 2.6, 10.2) for ya, yb in f1_e_wins])
+    for ya, yb in f1_e_wins:
+        box(-1.7, ya - 0.3, 2.35, 0.2, yb + 0.3, 2.6, DARK, group="illus")
+        box(-1.7, ya - 0.3, 10.2, 0.2, yb + 0.3, 10.45, DARK, group="illus")
+        box(-1.65, ya, 2.6, 0.15, ya + 0.22, 10.2, DARK, group="illus")
+        box(-1.65, yb - 0.22, 2.6, 0.15, yb, 10.2, DARK, group="illus")
+        if yb - ya >= 10.0:
+            ym = 0.5 * (ya + yb)
+            box(-1.65, ym - 0.12, 2.6, 0.15, ym + 0.12, 10.2, DARK, group="illus")
+        box(-1.62, ya, 8.2, 0.12, yb, 8.38, DARK, group="illus")
     for wy0, wy1 in [(-589.0, -574.0), (-572.0, -558.5)]:
         prop(-0.2, wy0, 2.2, 0.2, wy1, 10.5, BASE, {"e": Fit("farm_win")})
     # H St 'THE PADRE' secondary marquee canopy + awnings (fblk_398.jpg!)
@@ -474,14 +507,25 @@ def build_padre_hotel(ctx: dict):
     prop(-113.0, -564.0, 16.6, -107.0, -558.0, 17.0, "fx_goldleaf")
     brush_ent("trigger_push", -113.0, -564.0, 17.0, -107.0, -558.0, 21.0, angles="-78 0 0", speed="1240")
 
-    # --- Floor 2 Exterior L-Walls (z = 16.0 .. 30.5) ---
+    # --- Floor 2 Exterior L-Walls (z = 16.0 .. 30.5) with Open Shootable View Windows ---
+    f2_s_wins = [(-104.0, -88.0), (-46.0, -34.0)]
+    f2_e_wins = [(-656.0, -644.0), (-633.0, -621.0), (-614.0, -602.0), (-590.0, -578.0), (-572.0, -561.0)]
+    f2_n_wins = [(-24.0, -10.0)]
     # South 18th St 2nd-floor wall + Spanish curved Mission Gable over 1702 Entrance (padre_028.jpg!)
-    box(-116.0, -666.0, 16.0, 0.0, -664.5, 30.5, STUCCO, {"s": WINBAY, "n": DANDY})
+    wall_x(-116.0, 0.0, -666.0, 1.5, 16.0, 30.5, STUCCO,
+           faces={"s": WINBAY, "n": DANDY},
+           holes=[(xa, xb, 18.8, 26.8) for xa, xb in f2_s_wins])
+    for xa, xb in f2_s_wins:
+        view_win_x(xa, xb, -665.3, 18.8, 26.8)
     prop(-69.0, -667.0, 16.0, -49.0, -665.8, 33.5, BASE, {"s": WINBAY})
     prop(-63.0, -667.4, 33.5, -55.0, -665.8, 37.5, FRIEZE)                         # Curved Spanish central gable!
     box(-116.5, -666.8, 28.5, 0.5, -665.5, 31.2, FRIEZE)                           # Sawtooth Spanish frieze band!
-    # East H St 2nd-floor wall
-    box(-1.5, -666.0, 16.0, 0.0, -556.0, 30.5, STUCCO, {"e": WINBAY, "w": DANDY})
+    # East H St 2nd-floor wall (Fox Room & Stampede Room facing Padre Garage / H St!)
+    wall_y(-1.5, 1.5, -666.0, -556.0, 16.0, 30.5, STUCCO,
+           faces={"e": WINBAY, "w": DANDY},
+           holes=[(ya, yb, 18.8, 26.8) for ya, yb in f2_e_wins])
+    for ya, yb in f2_e_wins:
+        view_win_y(-0.7, ya, yb, 18.8, 26.8)
     box(-0.5, -666.8, 28.5, 0.8, -555.5, 31.2, FRIEZE)
     # West & North walls enclosing Floor 2 indoor L-wing around Prairie Fire:
     #   West wall at x = -116 (y = -666 .. -620)
@@ -493,8 +537,12 @@ def build_padre_hotel(ctx: dict):
     #   with wide glass doorway (-608..-596) from Upper Lobby out onto Prairie Fire (padre_108.jpg)!
     wall_y(-53.5, 1.5, -620.0, -556.0, 16.5, 30.5, STUCCO,
            holes=[(-608.0, -596.0, 16.5, 26.5)])
-    #   North wall of East Wing (y = -557.5 .. -556.0, x = -52 .. 0)
-    box(-52.0, -557.5, 16.0, 0.0, -556.0, 30.5, STUCCO, {"n": WINBAY, "s": DANDY})
+    #   North wall of East Wing (y = -557.5 .. -556.0, x = -52 .. 0) facing Fox Clock Tower
+    wall_x(-52.0, 0.0, -557.5, 1.5, 16.0, 30.5, STUCCO,
+           faces={"n": WINBAY, "s": DANDY},
+           holes=[(xa, xb, 18.8, 26.8) for xa, xb in f2_n_wins])
+    for xa, xb in f2_n_wins:
+        view_win_x(xa, xb, -556.8, 18.8, 26.8)
 
     # --- Floor 2 Interior iGUIDE Rooms ---
     # 1) Upper Lobby (x = -52..-30, y = -638..-586): PADRE HOTEL mat + gold-horseshoe dark wall + club armchairs
@@ -577,32 +625,44 @@ def build_padre_hotel(ctx: dict):
     #    + Damask L-Hallway w/ Oil-Derrick Art & North Fox-View Window!
     # ==========================================================================
     Z4 = 42.5
-    # Exterior Floor 4 walls with real transparent view windows + SE Fire Escape doorway (-18..-12, y=-666)!
+    # Exterior Floor 4 walls with real transparent view windows + SE Fire Escape doorway (-18..-11, y=-666)!
+    if is_ezq_rev3:
+        f4_s_wins = [(-102.0, -92.0), (-68.0, -58.0), (-24.5, -19.2)]
+        f4_e_wins = [(-648.5, -639.5), (-635.5, -625.5), (-614.5, -605.0), (-599.0, -588.0), (-575.0, -562.0)]
+        f4_n_wins = [(-33.5, -26.5), (-18.0, -8.0)]
+        f4_sill = Z4 + 2.0
+        if open_wins is not None:
+            open_wins.append(("x", -665.3, -18.0, -11.0, Z4, Z4 + 8.8))
+    else:
+        f4_s_wins = [(-102.0, -92.0), (-68.0, -58.0)]
+        f4_e_wins = [(-656.0, -646.0), (-626.0, -616.0), (-590.0, -580.0)]
+        f4_n_wins = [(-33.5, -26.5)]
+        f4_sill = Z4 + 2.8
+
     wall_x(-116.0, 0.0, -666.0, 1.5, Z4, Z4 + 11.0, STUCCO,
            faces={"s": WINBAY, "n": WHITE},
-           holes=[(-102.0, -92.0, Z4 + 2.8, Z4 + 8.8), (-68.0, -58.0, Z4 + 2.8, Z4 + 8.8),
-                  (-18.0, -11.0, Z4, Z4 + 8.8)])  # Walk-out fire escape opening in Corner Pocket!
-    view_win_x(-102.0, -92.0, -665.3, Z4 + 2.8, Z4 + 8.8)
-    view_win_x(-68.0, -58.0, -665.3, Z4 + 2.8, Z4 + 8.8)
+           holes=[(xa, xb, f4_sill, Z4 + 8.8) for xa, xb in f4_s_wins] + [(-18.0, -11.0, Z4, Z4 + 8.8)])
+    for xa, xb in f4_s_wins:
+        view_win_x(xa, xb, -665.3, f4_sill, Z4 + 8.8)
 
     wall_y(-1.5, 1.5, -666.0, -556.0, Z4, Z4 + 11.0, STUCCO,
            faces={"e": WINBAY, "w": WHITE},
-           holes=[(-656.0, -646.0, Z4 + 2.8, Z4 + 8.8), (-626.0, -616.0, Z4 + 2.8, Z4 + 8.8),
-                  (-590.0, -580.0, Z4 + 2.8, Z4 + 8.8)])
-    for wy0, wy1 in [(-656.0, -646.0), (-626.0, -616.0), (-590.0, -580.0)]:
-        view_win_y(-0.7, wy0, wy1, Z4 + 2.8, Z4 + 8.8)
+           holes=[(ya, yb, f4_sill, Z4 + 8.8) for ya, yb in f4_e_wins])
+    for wy0, wy1 in f4_e_wins:
+        view_win_y(-0.7, wy0, wy1, f4_sill, Z4 + 8.8)
 
     box(-116.0, -666.0, Z4, -114.5, -620.0, Z4 + 11.0, STUCCO, {"w": WINBAY, "e": WHITE})
     wall_x(-116.0, -52.0, -621.5, 1.5, Z4, Z4 + 11.0, STUCCO,
            faces={"n": WINBAY, "s": DAMASK},
-           holes=[(-96.0, -84.0, Z4 + 2.8, Z4 + 8.8)])                              # Overlooks Prairie Fire!
-    view_win_x(-96.0, -84.0, -620.8, Z4 + 2.8, Z4 + 8.8)
+           holes=[(-96.0, -84.0, f4_sill, Z4 + 8.8)])                             # Overlooks Prairie Fire!
+    view_win_x(-96.0, -84.0, -620.8, f4_sill, Z4 + 8.8)
     box(-53.5, -620.0, Z4, -52.0, -556.0, Z4 + 11.0, STUCCO, {"w": WINBAY, "e": DAMASK})
-    # North end wall (y = -557.5..-556) with Hallway Fox-Tower View Window at x = -34..-26!
+    # North end wall (y = -557.5..-556) with Hallway (+ Maverick in Rev 3) Fox-Tower View Window!
     wall_x(-52.0, 0.0, -557.5, 1.5, Z4, Z4 + 11.0, STUCCO,
            faces={"n": WINBAY, "s": DAMASK},
-           holes=[(-33.5, -26.5, Z4 + 2.5, Z4 + 9.2)])
-    view_win_x(-33.5, -26.5, -556.8, Z4 + 2.5, Z4 + 9.2)
+           holes=[(xa, xb, Z4 + (2.0 if is_ezq_rev3 else 2.5), Z4 + 9.2) for xa, xb in f4_n_wins])
+    for xa, xb in f4_n_wins:
+        view_win_x(xa, xb, -556.8, Z4 + (2.0 if is_ezq_rev3 else 2.5), Z4 + 9.2)
 
     # L-Shaped Damask Hallway partitions:
     #   South corridor runs x = -114.5 .. -26.0 along y = -638.0 .. -630.0
@@ -646,9 +706,9 @@ def build_padre_hotel(ctx: dict):
 
     # Corner Pocket (SE corner: x = -25..-1.5, y = -664.5..-638): Cal King + corner views + SE Fire Escape exit!
     box(-25.0, -639.0, Z4, -1.5, -638.0, Z4 + 11.0, WHITE)
-    for wy0, wy1 in [(-656.0, -646.0), (-626.0, -616.0), (-590.0, -580.0)]:
-        prop(-1.8, wy0 - 2.0, Z4 + 0.2, -1.5, wy0, Z4 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
-        prop(-1.8, wy1, Z4 + 0.2, -1.5, wy1 + 2.0, Z4 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
+    for wy0, wy1 in f4_e_wins:
+        prop(-1.8, wy0 - 1.8, Z4 + 0.2, -1.5, wy0, Z4 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
+        prop(-1.8, wy1, Z4 + 0.2, -1.5, wy1 + 1.8, Z4 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
     bed_unit(-1.8, -654.0, Z4, orient="e", king=True)
     fox_model("pad_chair_hound", -21.5, -642.5, Z4, yaw=315,
               clip_box=(-22.6, -643.6, Z4 + 0.4, -20.4, -641.4, Z4 + 2.4))
@@ -674,33 +734,43 @@ def build_padre_hotel(ctx: dict):
     # ==========================================================================
     Z6 = 66.5
     # Exterior Floor 6 walls with real view windows + SE Fire Escape opening (-18..-11, y=-666)!
+    if is_ezq_rev3:
+        f6_s_wins = [(-98.0, -86.0), (-73.0, -63.0), (-42.0, -30.0)]
+        f6_e_wins = [(-658.0, -648.0), (-636.0, -625.0), (-622.0, -608.0), (-598.0, -584.0)]
+        f6_sill = Z6 + 2.0
+        if open_wins is not None:
+            open_wins.append(("x", -665.3, -18.0, -11.0, Z6, Z6 + 8.8))
+    else:
+        f6_s_wins = [(-98.0, -86.0), (-42.0, -30.0)]
+        f6_e_wins = [(-656.0, -644.0), (-598.0, -584.0)]
+        f6_sill = Z6 + 2.5
+
     wall_x(-116.0, 0.0, -666.0, 1.5, Z6, Z6 + 11.0, STUCCO,
            faces={"s": WINLIT, "n": BARON},
-           holes=[(-98.0, -86.0, Z6 + 2.5, Z6 + 8.8), (-42.0, -30.0, Z6 + 2.5, Z6 + 8.8),
-                  (-18.0, -11.0, Z6, Z6 + 8.8)])
-    view_win_x(-98.0, -86.0, -665.3, Z6 + 2.5, Z6 + 8.8)
-    view_win_x(-42.0, -30.0, -665.3, Z6 + 2.5, Z6 + 8.8)
+           holes=[(xa, xb, f6_sill, Z6 + 8.8) for xa, xb in f6_s_wins] + [(-18.0, -11.0, Z6, Z6 + 8.8)])
+    for xa, xb in f6_s_wins:
+        view_win_x(xa, xb, -665.3, f6_sill, Z6 + 8.8)
 
     wall_y(-1.5, 1.5, -666.0, -556.0, Z6, Z6 + 11.0, STUCCO,
            faces={"e": WINLIT, "w": FD_RED},
-           holes=[(-656.0, -644.0, Z6 + 2.5, Z6 + 8.8), (-598.0, -584.0, Z6 + 2.5, Z6 + 8.8)])
-    view_win_y(-0.7, -656.0, -644.0, Z6 + 2.5, Z6 + 8.8)
-    view_win_y(-0.7, -598.0, -584.0, Z6 + 2.5, Z6 + 8.8)
+           holes=[(ya, yb, f6_sill, Z6 + 8.8) for ya, yb in f6_e_wins])
+    for wy0, wy1 in f6_e_wins:
+        view_win_y(-0.7, wy0, wy1, f6_sill, Z6 + 8.8)
 
     box(-116.0, -666.0, Z6, -114.5, -620.0, Z6 + 11.0, STUCCO, {"w": WINLIT, "e": BARON})
     wall_x(-116.0, -52.0, -621.5, 1.5, Z6, Z6 + 11.0, STUCCO,
            faces={"n": WINLIT, "s": WHITE},
-           holes=[(-102.0, -90.0, Z6 + 2.5, Z6 + 8.8)])
-    view_win_x(-102.0, -90.0, -620.8, Z6 + 2.5, Z6 + 8.8)
+           holes=[(-102.0, -90.0, f6_sill, Z6 + 8.8)])
+    view_win_x(-102.0, -90.0, -620.8, f6_sill, Z6 + 8.8)
     box(-53.5, -620.0, Z6, -52.0, -556.0, Z6 + 11.0, STUCCO, {"w": WINLIT, "e": DAMASK})
 
     # North wall of Floor 6: TWO panoramic Fox-Tower view windows — one in Hallway (-33.5..-26.5)
     # and one in Farmer's Daughter Suite (-22..-8, padre_144/clean.html)!
     wall_x(-52.0, 0.0, -557.5, 1.5, Z6, Z6 + 11.0, STUCCO,
            faces={"n": WINLIT, "s": FD_RED},
-           holes=[(-33.5, -26.5, Z6 + 2.5, Z6 + 9.2), (-22.0, -8.0, Z6 + 2.2, Z6 + 9.2)])
-    view_win_x(-33.5, -26.5, -556.8, Z6 + 2.5, Z6 + 9.2)
-    view_win_x(-22.0, -8.0, -556.8, Z6 + 2.2, Z6 + 9.2)
+           holes=[(-33.5, -26.5, f6_sill, Z6 + 9.2), (-22.0, -8.0, Z6 + (2.0 if is_ezq_rev3 else 2.2), Z6 + 9.2)])
+    view_win_x(-33.5, -26.5, -556.8, f6_sill, Z6 + 9.2)
+    view_win_x(-22.0, -8.0, -556.8, Z6 + (2.0 if is_ezq_rev3 else 2.2), Z6 + 9.2)
 
     # Floor 6 L-Hallway (south corridor y=-639..-631, east corridor x=-34..-26)
     wall_x(-114.5, -26.0, -639.0, 1.0, Z6, Z6 + 11.0, DAMASK,
@@ -745,8 +815,8 @@ def build_padre_hotel(ctx: dict):
     box(-26.0, -639.0, Z6, -1.5, -638.0, Z6 + 11.0, WHITE)
     for dx0, dx1 in [(-44.2, -42.0), (-30.0, -27.8)]:
         prop(dx0, -664.5, Z6 + 0.2, dx1, -664.2, Z6 + 9.6, "pad_curt_gy", {"n": Fit("pad_curt_gy")})
-    prop(-1.8, -658.2, Z6 + 0.2, -1.5, -656.0, Z6 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
-    prop(-1.8, -644.0, Z6 + 0.2, -1.5, -641.8, Z6 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
+    prop(-1.8, f6_e_wins[0][0] - 2.0, Z6 + 0.2, -1.5, f6_e_wins[0][0], Z6 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
+    prop(-1.8, f6_e_wins[0][1], Z6 + 0.2, -1.5, f6_e_wins[0][1] + 2.0, Z6 + 9.6, "pad_curt_gy", {"w": Fit("pad_curt_gy")})
     bed_unit(-44.0, -664.2, Z6, orient="s", king=True)
     fox_model("pad_sofa_leather", -28.0, -655.0, Z6, yaw=90,
               clip_box=(-31.5, -656.4, Z6 + 0.5, -24.5, -653.6, Z6 + 2.6))

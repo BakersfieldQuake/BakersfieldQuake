@@ -99,7 +99,13 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
 .float	veh_cam_yaw;		// smoothed yaw of the chase camera
 .float	veh_cam_look;		// smoothed steering lead of the cockpit camera
 .float	veh_prompt_scan_t;	// throttle Veh_NearPrompt spatial scan to 10 Hz
+.float	veh_hint_shown;		// controls hint shown once per player
 // ... on anything a van can hit:
+float	veh_boom_t, veh_boom_n;	// recent vehicle explosions (Veh_ExplodeNow): a chain reaction scatters less shrapnel per car
+.entity	veh_blast_infl;		// vehicle: the explosion (inflictor) that last hit it, and when: one blast hits it once,
+.float	veh_blast_t;		// not once for each of the van's 12 clip boxes in the radius (combat.qc T_Damage)
+void(entity v) Veh_FreeClips;
+float(entity v, entity p) Veh_ExitSpot;
 .float	veh_hit_t;			// a van ran into this at this time (so a body is hit once per pass, not once per frame)
 
 float	veh_runover;		// TRUE while a van deals ram damage (for ClientObituary)

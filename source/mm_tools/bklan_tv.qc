@@ -107,12 +107,12 @@ void() bk_tv =
 	self.nextthink = time + 0.6 + random () * 2.4;
 };
 
-// ---------------------------------------------------------------- test aid (sv_cheats 1): impulse 91 puts a 2x TV 90 units in front of you
+// ---------------------------------------------------------------- test aid (sv_cheats 1): impulse 127 puts a 2x TV 90 units in front of you
 void() BKTV_Test =
 {
 	local entity e, oself;
 
-	if (self.impulse != 91 || !cvar ("sv_cheats"))
+	if (self.impulse != 127 || !autocvar_sv_cheats)		// 127: 91 is the HD truck spawn (vehicles.qc), which this ate
 		return;
 	self.impulse = 0;
 	makevectors (self.v_angle);

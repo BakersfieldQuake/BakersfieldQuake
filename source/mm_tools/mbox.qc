@@ -31,6 +31,28 @@ void(float t) MB_PrecacheType =
 		precache_sound (s);
 };
 
+float(float t) MB_IsSprite;
+
+// the pool's character sprites (about 290 MB) load the first time a box is thrown, not on every map (see MB_Throw)
+float	mb_pool_loaded;
+void() MB_PrecachePool =
+{
+	local float n, t, f;
+
+	if (mb_pool_loaded)
+		return;
+	mb_pool_loaded = TRUE;
+	f = cvar ("mb_force");
+	n = tokenize (cvar_string ("mb_pool"));
+	t = 1;
+	while (t <= 28)
+	{
+		if ((MB_InPool (t, n) || t == f) && MB_IsSprite (t))
+			MB_PrecacheType (t);
+		t = t + 1;
+	}
+};
+
 void() MB_Precache =
 {
 	local float n, t, f;
@@ -48,7 +70,7 @@ void() MB_Precache =
 	t = 1;
 	while (t <= 28)
 	{
-		if (MB_InPool (t, n) || t == f)
+		if ((MB_InPool (t, n) || t == f) && !MB_IsSprite (t))
 			MB_PrecacheType (t);
 		t = t + 1;
 	}
@@ -272,33 +294,35 @@ void(entity m, float t) MB_Setup =
 	else if (t == 9 || t == 16)
 		m.scale = 0.333;	// the rebuilt Wheelman picture (360x255) is 168 px tall
 	else if (t == 10)
-		m.scale = 0.5;		// JessKart 113 px
+		m.scale = 0.1111;	// JessKart 505 px (640x720 HD)
 	else if (t == 11)
 	{
-		m.scale = 0.455;	// Kyle 123 px
+		m.scale = 0.13;		// Kyle 431 px (532x560 HD)
 		m.colormod = '0.5 0.5 0.5';		// his picture is twice as light as the others
 	}
 	else if (t == 17)
-		m.scale = 0.31;		// Bryan & Demons 182 px Bryan height (320x288)
+		m.scale = 0.1771;	// Bryan & Demons 350 px Bryan height (560x504 HD)
 	else if (t == 18)
 	{
-		m.scale = 0.5;		// Dennis 112 px
+		m.scale = 0.125;	// Dennis 442 px (384x512 HD)
 		m.colormod = '1.45 1.45 1.45';		// his suit picture is darker than the others (mean 42, they are 55-65)
 	}
-	else if (t == 19 || t == 20)
-		m.scale = 0.5;		// Paul 112 px, QuakeGuy 113 px
+	else if (t == 19)
+		m.scale = 0.125;	// Paul 442 px (384x512 HD)
+	else if (t == 20)
+		m.scale = 0.1;		// QuakeGuy 564 px (480x640 HD)
 	else if (t == 21)
-		m.scale = 0.45;		// Mr DIY 123 px
+		m.scale = 0.1286;	// Mr DIY 431 px (344x448 HD)
 	else if (t == 22)
-		m.scale = 0.43;		// Rubber Finger 117 px standing, 133 px running
+		m.scale = 0.0983;	// Rubber Finger 509 px (560x630 HD)
 	else if (t == 23)
-		m.scale = 0.26;		// David Ojeda 216 px character height on 256x288 stage
+		m.scale = 0.1387;	// David Ojeda 423 px character height (480x540 HD)
 	else if (t >= 24 && t <= 26)
-		m.scale = 0.51;		// Pregnant Runners 1..3 108 px character height on 128x144 stage
+		m.scale = 0.136;	// Pregnant Runners 1..3 422 px character height (480x540 HD)
 	else if (t == 27)
-		m.scale = 0.26;		// Daniel 216 px character height on 256x288 stage
+		m.scale = 0.1387;	// Daniel 423 px character height (480x540 HD)
 	else if (t == 28)
-		m.scale = 0.41;		// Angry 4 AM Dad 136 px character height on 160x192 stage
+		m.scale = 0.1367;	// Angry 4 AM Dad 456 px character height (480x576 HD)
 	else
 		m.scale = 0.55;		// Friend Rob 102 px
 };
@@ -611,6 +635,7 @@ void() MB_Throw =
 {
 	local entity b;
 
+	MB_PrecachePool ();		// the box is in the air for a moment: load the sprites now, not when it bursts
 	makevectors (self.v_angle);
 	b = spawn ();
 	b.owner = self;
@@ -678,10 +703,14 @@ void() MB_Explode =
 	remove (self);
 };
 
-// shot to bits: it goes off at once
+// shot to bits: it goes off at once, but on a think of its own: when a rocket's T_RadiusDamage is what killed it, its own
+// findradius would rewrite the .chain list that loop is walking (players further out got no splash, others got two)
 void() MB_Shot =
 {
-	MB_Explode ();
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.think = MB_Explode;
+	self.nextthink = time;
 };
 
 // self (the monster) hits 'e' in the face: MB_HIT_DMG, once every MB_HIT_GAP seconds. TRUE = that was its last hit and it exploded

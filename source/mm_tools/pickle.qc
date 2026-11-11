@@ -127,15 +127,19 @@ void() Pickle_Precache =
 	precache_sound ("pickle/surprise.wav");
 };
 
+var float	autocvar_pk_test = 0;
+
 // someone it should go off for: not the owner or a teammate. (set pk_test 1 and the owner counts too, to try it out alone:
 // zz_picklesurprise.cfg)
 float(entity e) Pk_IsEnemy =
 {
-	if ((e == self.owner && !cvar ("pk_test")) || !e.takedamage || e.health <= 0 || e.classname == "pickle" || e.classname == "pkgib")
+	if (!((e.flags & FL_CLIENT) || (e.flags & FL_MONSTER)))
+		return FALSE;
+	if ((e == self.owner && !autocvar_pk_test) || !e.takedamage || e.health <= 0 || e.classname == "pickle" || e.classname == "pkgib")
 		return FALSE;
 	if (teamplay && e.team > 0 && e.team == self.owner.team)
 		return FALSE;
-	return ((e.flags & FL_MONSTER) || (e.flags & FL_CLIENT));
+	return TRUE;
 };
 
 // a charge back for the owner (the pickle never stuck)
@@ -365,7 +369,7 @@ void() Pk_Think =
 		return;
 	}
 
-	if (self.waterlevel > 1)		// lava, slime or a lake: a bad place for a pickle
+	if (pointcontents (self.origin) <= CONTENT_WATER)		// lava, slime or a lake (waterlevel is never set for a stuck pickle)
 	{
 		Pk_Fizzle ();
 		return;
@@ -540,6 +544,8 @@ void(entity vm, float is_quad) Pickle_ViewFrame =
 	local entity p;
 	local float ammo, u, k, ease, idx, step, cycle_len, sw1, sw2, sw3, spd;
 	local vector vxy;
+
+	GreenJar_ViewFrame (vm, is_quad);
 
 	p = vm.owner;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_PICKLE)

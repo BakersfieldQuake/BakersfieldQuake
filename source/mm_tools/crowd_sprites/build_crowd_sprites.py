@@ -20,17 +20,49 @@ import struct
 import sys
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
+from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
 
 SRC = r"G:\Quake\Combat\BakersfieldQuake\quake_6chars_sprites"
 DST = r"G:\Quake\Combat\BakersfieldQuake\progs"
-SCALE = 0.30
+SCALE = 0.90
 TARGET_LUM = 62.0
 PIVOT = (256, 464)
 UNITS_TALL = 52.0
 WALK_COLS, RUN_COLS = 24, 20
+
+
+def tight_crop_and_bleed(rgba: np.ndarray, ox: int, oy: int):
+    h, w, _ = rgba.shape
+    ys, xs = np.nonzero(rgba[:, :, 3] > 2)
+    if len(xs) == 0:
+        empty = np.zeros((2, 2, 4), dtype=np.uint8)
+        return -1, 1, 2, 2, empty.tobytes()
+    x0 = max(0, int(xs.min()) - 1)
+    y0 = max(0, int(ys.min()) - 1)
+    x1 = min(w, int(xs.max()) + 2)
+    y1 = min(h, int(ys.max()) + 2)
+    cropped = rgba[y0:y1, x0:x1].copy()
+    pad_l = 1 if x0 == int(xs.min()) else 0
+    pad_t = 1 if y0 == int(ys.min()) else 0
+    pad_r = 1 if x1 == int(xs.max()) + 1 else 0
+    pad_b = 1 if y1 == int(ys.max()) + 1 else 0
+    if pad_l or pad_t or pad_r or pad_b:
+        cropped = np.pad(cropped, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), mode="constant", constant_values=0)
+        x0 -= pad_l
+        y0 -= pad_t
+    fg = cropped[:, :, 3] >= 32
+    if not np.any(fg):
+        fg = cropped[:, :, 3] > 0
+    if np.any(fg):
+        tr = cropped[:, :, 3] == 0
+        if np.any(tr):
+            _, (iy, ix) = ndimage.distance_transform_edt(~fg, return_indices=True)
+            cropped[tr, :3] = cropped[iy[tr], ix[tr], :3]
+    cw, ch = cropped.shape[1], cropped.shape[0]
+    return int(ox + x0), int(oy - y0), cw, ch, cropped.tobytes()
 
 
 def load_cells(path, cols, box, picks):
@@ -78,7 +110,9 @@ def main(only=None):
         small = []
         for im in frames:
             im = im.convert("RGBa").resize((w, h), Image.LANCZOS).convert("RGBA")
-            small.append(np.array(im, dtype=np.float32))
+            rgb_s = im.convert("RGB").filter(ImageFilter.UnsharpMask(radius=0.85, percent=32, threshold=2))
+            rgb_s.putalpha(im.getchannel("A"))
+            small.append(np.array(rgb_s, dtype=np.float32))
 
         # brightness: mean luminance of the opaque pixels over the whole set
         lum_sum, lum_n = 0.0, 0.0
@@ -102,15 +136,23 @@ def main(only=None):
         info[ch] = {"w": w, "h": h, "height_px": cell_height, "scale": round(scale, 3), "frames": len(small), "gain": round(gain, 3)}
 
         path = os.path.join(DST, f"crowd_c{ch}.spr32")
-        rad = math.sqrt((w / 2.0) ** 2 + (h / 2.0) ** 2)
+        base_ox, base_oy = int(round(-px)), int(round(py))
+        packed = []
+        max_cw, max_ch = 1, 1
+        for a in small:
+            a = a.copy()
+            a[..., :3] = np.clip(np.round(a[..., :3] * gain), 0, 255)
+            fox, foy, cw, ch_f, raw = tight_crop_and_bleed(a.astype(np.uint8), base_ox, base_oy)
+            max_cw = max(max_cw, cw)
+            max_ch = max(max_ch, ch_f)
+            packed.append((fox, foy, cw, ch_f, raw))
+        rad = math.sqrt((max_cw / 2.0) ** 2 + (max_ch / 2.0) ** 2)
         with open(path, "wb") as fp:
             fp.write(b"IDSP")
-            fp.write(struct.pack("<iifiiifi", 32, 0, rad, w, h, len(small), 0.0, 0))
-            for a in small:
-                a = a.copy()
-                a[..., :3] = np.clip(a[..., :3] * gain, 0, 255)
-                fp.write(struct.pack("<iiiii", 0, int(round(-px)), int(round(py)), w, h))
-                fp.write(a.astype(np.uint8).tobytes())
+            fp.write(struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+            for fox, foy, cw, ch_f, raw in packed:
+                fp.write(struct.pack("<iiiii", 0, fox, foy, cw, ch_f))
+                fp.write(raw)
         print(f"  wrote {path}: {os.path.getsize(path):,} bytes", flush=True)
 
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crowd_sprites_info.json")

@@ -163,18 +163,22 @@ void(entity p) FD_Restore =
 		p.fd_cam = world;
 	}
 	p.clientcamera = p;
-	msg_entity = p;
-	WriteByte (MSG_ONE, 5);			// svc_setview
-	WriteEntity (MSG_ONE, p);
+	if (p.ishuman == 1)
+	{
+		msg_entity = p;
+		WriteByte (MSG_ONE, 5);			// svc_setview
+		WriteEntity (MSG_ONE, p);
+	}
 	if (p.fd_oldsolid)
 	{
-		p.solid = p.fd_oldsolid;
+		if (p.health > 0)
+			p.solid = p.fd_oldsolid;	// a body that died meanwhile stays not solid (PlayerDie): it used to get a full player box back
 		p.fd_oldsolid = 0;
 	}
 	if (p.health > 0)					// a body that died meanwhile keeps the death toss
 	{
 		p.movetype = p.fd_oldmove;
-		if (p.movetype == MOVETYPE_NONE)
+		if (p.movetype == MOVETYPE_NONE && p.ishuman == 1)
 			p.movetype = MOVETYPE_WALK;
 	}
 	FD_Unhide (p);
@@ -498,7 +502,7 @@ void() FD_ShockThink =
 		e = self.origin + '1 0 0' * crandom () * r + '0 1 0' * crandom () * r + '0 0 1' * crandom () * r;
 		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
 		WriteByte (MSG_BROADCAST, TE_LIGHTNING2);
-		WriteEntity (MSG_BROADCAST, self);
+		WriteEntity (MSG_BROADCAST, world);		// not self: the client merges beams with the same entity, so 8 arcs showed as 1
 		WriteCoord (MSG_BROADCAST, self.origin_x);
 		WriteCoord (MSG_BROADCAST, self.origin_y);
 		WriteCoord (MSG_BROADCAST, self.origin_z);
@@ -559,7 +563,10 @@ void(entity p) FD_Dash =
 
 	h = p.fd_head;
 	makevectors (p.v_angle);
-	org = p.fd_cam.origin;
+	if (p.fd_cam)
+		org = p.fd_cam.origin;
+	else
+		org = h.origin;
 	traceline (org, org + v_forward * 4096, FALSE, h);
 	dir = trace_endpos - h.origin;
 	if (vlen (dir) < 80)
@@ -618,16 +625,7 @@ void() FD_Launch =
 	h.nextthink = time + 0.1;
 	sound (h, CHAN_VOICE, "hackmon/hm_launch.wav", 0.6, ATTN_NORM);	// a little computer booting up, not a voice
 
-	c = spawn ();
-	c.classname = "robdob_cam";
-	c.movetype = MOVETYPE_NONE;
-	c.solid = SOLID_NOT;
-	setmodel (c, "progs/s_bubble.spr");
-	setsize (c, '0 0 0', '0 0 0');
-	setorigin (c, eye);
-
 	self.fd_head = h;
-	self.fd_cam = c;
 	self.fd_btn = TRUE;
 	self.fd_oldmove = self.movetype;
 	self.fd_oldsolid = self.solid;
@@ -636,12 +634,33 @@ void() FD_Launch =
 	self.velocity = '0 0 0';
 	FD_Hide (self);
 
+	if (self.ishuman != 1)
+	{
+		self.fd_cam = world;
+		if (h.fd_end == 0)
+			h.fd_end = time + 9;
+		return;
+	}
+
+	c = spawn ();
+	c.classname = "robdob_cam";
+	c.movetype = MOVETYPE_NONE;
+	c.solid = SOLID_NOT;
+	setmodel (c, "progs/s_bubble.spr");
+	setsize (c, '0 0 0', '0 0 0');
+	setorigin (c, eye);
+	self.fd_cam = c;
+
 	self.clientcamera = c;
 	msg_entity = self;
 	WriteByte (MSG_ONE, 5);			// svc_setview
 	WriteEntity (MSG_ONE, c);
 	FD_Camera (self);
-	centerprint (self, "ROB DOB\n\nmove = fly where you look   jump = up   crouch = down\nFIRE = dash (steer with the mouse)   FIRE again = blow up\n");
+	if (!self.fd_hint_shown)
+	{
+		self.fd_hint_shown = TRUE;
+		centerprint (self, "Rob Dob: mouse steers | FIRE dash | FIRE again detonate");
+	}
 };
 
 // every frame from W_WeaponFrame (self = the player): TRUE while he is flying the head, which stops him doing anything else
@@ -673,6 +692,52 @@ float() FD_Frame =
 
 	FD_Hide (self);
 	self.velocity = '0 0 0';
+	if (self.ishuman != 1)
+	{
+		local entity foe, bestfoe;
+		local float fd, bfd;
+		local vector tofoe;
+
+		bestfoe = world;
+		bfd = 4500;
+		foe = bm_player_head;
+		while (foe)
+		{
+			if (foe != self && foe.health > 0 && foe.takedamage && !(foe.flags & FL_NOTARGET) && !(teamplay && foe.team == self.team))
+			{
+				fd = vlen (foe.origin - h.origin);
+				if (fd < bfd)
+				{
+					bestfoe = foe;
+					bfd = fd;
+				}
+			}
+			foe = foe.bm_player_next;
+		}
+		self.button0 = 0;
+		self.button2 = 0;
+		self.movement = '200 0 0';
+		if (bestfoe)
+		{
+			tofoe = (bestfoe.origin + '0 0 18') - h.origin;
+			self.v_angle = vectoangles (tofoe);
+			self.v_angle_x = 0 - self.v_angle_x;
+			if (bestfoe.origin_z + 16 > h.origin_z + 10)
+				self.button2 = 1;
+			else if (bestfoe.origin_z + 24 < h.origin_z)
+				self.movement_z = -200;
+			traceline (h.origin, bestfoe.origin + '0 0 18', TRUE, h);
+			if (!h.fd_charging && time > h.fd_arm && trace_fraction == 1 && bfd < 1250)
+				self.button0 = 1;
+			else if (h.fd_charging && time > h.fd_dashed + FD_DASH_BOOM && bfd < 90)
+				self.button0 = 1;
+		}
+		else if (time > h.fd_arm + 3.5)
+		{
+			FD_Pop ();
+			return FALSE;
+		}
+	}
 	makevectors (self.v_angle);
 	if (!self.button0)
 		self.fd_btn = FALSE;
@@ -739,7 +804,8 @@ float() FD_Frame =
 			FD_Dash (self);
 		}
 	}
-	FD_Camera (self);
+	if (self.fd_cam)
+		FD_Camera (self);
 	return TRUE;
 };
 
