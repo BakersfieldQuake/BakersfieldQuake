@@ -1,0 +1,166 @@
+# EXAMPLE ONLY - not active. To enable: git mv .github/release-update.example.yml .github/workflows/release-update.yml
+#
+# Publishes a BAKOQUAKE update as a GitHub release, from a zip you already built and uploaded somewhere.
+#
+#   Actions tab > "Release BAKOQUAKE update" > Run workflow
+#     source_url: where the new full zip is (e.g. https://larrywew.fun/bakersfield-quake/BAKOQUAKE.zip)
+#     version:    v1.6
+#     notes:      one or two lines about what changed (optional)
+#
+# What players get on the release page:
+#   BAKOQUAKE.zip                        full package (new players)
+#   BAKOQUAKE-patch-<old>-to-<new>.zip   only the files that changed since the last release: unzip over an existing
+#                                        BAKOQUAKE folder instead of downloading ~1 GB again
+#   MANIFEST.sha256                      every file + hash, so anyone can check their install
+# and release notes listing the changed / removed files and the repo commits since the last release.
+#
+# Along the way it overlays the repo's configs and launchers (the repo is the source of truth for those), stamps
+# VERSION.txt, and refuses to publish a zip that contains Quake's own pak0/pak1.
+name: Release BAKOQUAKE update
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: "URL of the new full BAKOQUAKE zip"
+        required: true
+      version:
+        description: "Version tag, e.g. v1.6"
+        required: true
+      notes:
+        description: "What changed (shown at the top of the release notes)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_URL: ${{ inputs.source_url }}
+      VERSION: ${{ inputs.version }}
+      NOTES: ${{ inputs.notes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+          fetch-depth: 0
+
+      - name: Check version is new
+        run: |
+          case "$VERSION" in v[0-9]*) ;; *) echo "::error::version must look like v1.6"; exit 1 ;; esac
+          if gh release view "$VERSION" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release $VERSION already exists"; exit 1
+          fi
+
+      - name: Download new build
+        run: |
+          curl -fL --retry 3 -o new.zip "$SOURCE_URL"
+          unzip -q new.zip -d new && rm new.zip
+          # Accept a zip whose top folder is BAKOQUAKE/ or one that was zipped from inside it.
+          if [ ! -d new/BAKOQUAKE ]; then mkdir new/BAKOQUAKE && find new -mindepth 1 -maxdepth 1 ! -name BAKOQUAKE -exec mv {} new/BAKOQUAKE/ \; ; fi
+          test -f new/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 || { echo "::error::no BakersfieldQuake/bakersfield.pk3 in the zip"; exit 1; }
+          test -f new/BAKOQUAKE/BakersfieldQuake/progs.dat       || { echo "::error::no BakersfieldQuake/progs.dat in the zip"; exit 1; }
+
+      - name: Refuse id Software data
+        # The release is public to anyone with repo access; pak0/pak1 are not ours to distribute.
+        run: |
+          found=$(find new/BAKOQUAKE/id1 -iname 'pak*.pak' 2>/dev/null || true)
+          if [ -n "$found" ]; then echo "::error::zip contains Quake data, remove it and re-upload:"; echo "$found"; exit 1; fi
+
+      - name: Overlay repo configs, launchers and version
+        # lan_server.cfg is written at run time by the LAN scanner, so the repo copy is not shipped.
+        run: |
+          game=new/BAKOQUAKE/BakersfieldQuake
+          for f in repo/*.cfg repo/quake.rc; do
+            [ "$(basename "$f")" = lan_server.cfg ] && continue
+            cmp -s "$f" "$game/$(basename "$f")" || echo "config from repo: $(basename "$f")"
+            cp "$f" "$game/"
+          done
+          for f in repo/launchers/*; do
+            [ -e "$f" ] || continue
+            cmp -s "$f" "new/BAKOQUAKE/$(basename "$f")" || echo "launcher from repo: $(basename "$f")"
+            cp "$f" new/BAKOQUAKE/
+          done
+          echo "BAKOQUAKE $VERSION" > new/BAKOQUAKE/VERSION.txt
+
+      - name: Download previous release
+        run: |
+          prev=$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+          echo "PREV=$prev" >> "$GITHUB_ENV"
+          mkdir -p old
+          if [ -n "$prev" ]; then
+            gh release download "$prev" -R "$GITHUB_REPOSITORY" -p BAKOQUAKE.zip -O old.zip
+            unzip -q old.zip -d old && rm old.zip
+          else
+            echo "No previous release: full zip only."
+          fi
+
+      - name: Diff against previous release
+        run: |
+          manifest() { (cd "$1" && find BAKOQUAKE -type f -print0 | sort -z | xargs -0 sha256sum); }
+          manifest new > MANIFEST.sha256
+          if [ -d old/BAKOQUAKE ]; then manifest old > old.sha256; else : > old.sha256; fi
+          # changed = path+hash pairs only in the new build; removed = paths only in the old build.
+          # path() strips "<64 hex>  " rather than splitting on spaces: several shipped names contain spaces.
+          path() { sed 's/^[0-9a-f]\{64\}  //'; }
+          comm -13 <(sort old.sha256) <(sort MANIFEST.sha256) | path | sort > changed.txt
+          comm -23 <(path < old.sha256 | sort) <(path < MANIFEST.sha256 | sort) > removed.txt
+          echo "changed: $(wc -l < changed.txt)  removed: $(wc -l < removed.txt)"
+
+      - name: Build zips
+        # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
+        run: |
+          (cd new && zip -q -r -n .pk3:.pak:.png:.jpg:.ogg ../BAKOQUAKE.zip BAKOQUAKE)
+          ls -l BAKOQUAKE.zip
+          if [ -n "$PREV" ] && [ -s changed.txt ]; then
+            PATCH="BAKOQUAKE-patch-${PREV}-to-${VERSION}.zip"
+            if [ -s removed.txt ]; then
+              { echo "Delete these files from your BAKOQUAKE folder:"; cat removed.txt; } > new/BAKOQUAKE/REMOVED.txt
+              echo BAKOQUAKE/REMOVED.txt >> changed.txt
+            fi
+            (cd new && zip -q -n .pk3:.pak:.png:.jpg:.ogg "../$PATCH" -@ < ../changed.txt)
+            ls -l "$PATCH"
+            echo "PATCH=$PATCH" >> "$GITHUB_ENV"
+          fi
+
+      - name: Write release notes
+        run: |
+          size() { du -h "new/$1" 2>/dev/null | cut -f1; }
+          {
+            [ -n "$NOTES" ] && printf '%s\n\n' "$NOTES"
+            if [ -n "${PATCH:-}" ]; then
+              echo "**Already have ${PREV}?** Download \`${PATCH}\` and unzip it over your BAKOQUAKE folder (replace all)."
+              echo
+            fi
+            echo "**New player?** Download \`BAKOQUAKE.zip\`, unzip, copy \`pak0.pak\` and \`pak1.pak\` from your own Quake into \`id1\`, run \`PLAY BAKERSFIELDQUAKE.exe\` (Windows) or \`Play.sh\` (Linux/macOS)."
+            echo
+            if [ -n "$PREV" ]; then
+              echo "### Files changed since ${PREV}"
+              while read -r f; do echo "- \`${f#BAKOQUAKE/}\` ($(size "$f"))"; done < <(grep -v '^BAKOQUAKE/REMOVED.txt$' changed.txt | head -100)
+              [ "$(wc -l < changed.txt)" -gt 100 ] && echo "- ...and more, see MANIFEST.sha256"
+              if [ -s removed.txt ]; then
+                echo; echo "### Removed"
+                sed 's|^BAKOQUAKE/||; s|.*|- `&`|' removed.txt
+              fi
+              prev_sha=$(git -C repo rev-list -n1 "$PREV" 2>/dev/null || true)
+              if [ -n "$prev_sha" ]; then
+                echo; echo "### Repo commits"
+                git -C repo log --format='- %s (%h)' "$prev_sha..HEAD"
+              fi
+            fi
+          } > notes.md
+          cat notes.md
+
+      - name: Publish
+        run: |
+          gh release create "$VERSION" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "BAKOQUAKE $VERSION" --notes-file notes.md \
+            BAKOQUAKE.zip MANIFEST.sha256 ${PATCH:+"$PATCH"}
