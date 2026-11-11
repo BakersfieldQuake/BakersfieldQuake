@@ -62,8 +62,8 @@ jobs:
 
       - name: Build zz_bakovan.pk3
         run: |
-          pip install --quiet numpy pillow
-          python -I repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
+          python -m pip install --quiet numpy pillow
+          python repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
 
       - name: Zip
         # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
