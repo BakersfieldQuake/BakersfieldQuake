@@ -52,11 +52,7 @@ def build_zz_greenjar_pk3() -> int:
         if fn.lower().endswith(".wav"):
             rel_files.append(f"sound/greenjar/{fn}")
 
-    # Include loose eric_cannon assets if not yet packed into bakersfield.pk3 (needed by compiled progs.dat)
-    pk3_existing = set()
-    if os.path.isfile(PK3_MAIN):
-        with zipfile.ZipFile(PK3_MAIN, "r") as zf:
-            pk3_existing = set(zf.namelist())
+    # Always include loose eric_cannon assets in zz_greenjar.pk3 so VPS / older bakersfield.pk3 installs have them too
     eric_candidates = ["scripts/eric_cannon.shader"]
     progs_dir = os.path.join(MOD, "progs")
     for fn in sorted(os.listdir(progs_dir)):
@@ -68,7 +64,7 @@ def build_zz_greenjar_pk3() -> int:
             if fn.lower().endswith(".wav"):
                 eric_candidates.append(f"sound/eric_cannon/{fn}")
     for rel in eric_candidates:
-        if rel not in pk3_existing and os.path.isfile(os.path.join(MOD, rel.replace("/", os.sep))):
+        if os.path.isfile(os.path.join(MOD, rel.replace("/", os.sep))):
             rel_files.append(rel)
 
     # Check if greensuit_wheelman.spr32 in bakersfield.pk3 already matches loose progs/greensuit_wheelman.spr32
@@ -222,7 +218,7 @@ else:
     print(v.stdout)
 
     bad = []
-    for err_kw in ("Host_Error", "Failed to load", "couldn't load", "Segmentation", "PRVM_"):
+    for err_kw in ("Host_Error", "Failed to load", "couldn't load", "Mod_LoadModel", "Segmentation", "PRVM_"):
         if err_kw.lower() in v.stdout.lower():
             bad.append(err_kw)
     if bad:
