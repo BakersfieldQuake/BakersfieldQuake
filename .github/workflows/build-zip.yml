@@ -1,7 +1,7 @@
 # Builds a new BAKOQUAKE.zip release on demand (Actions tab > "Build BAKOQUAKE.zip" > Run workflow).
 #
 # The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
-# release (default: the latest), lays this repo's configs over BakersfieldQuake/, rebuilds zz_bakovan.pk3 from the
+# release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package root, rebuilds zz_bakovan.pk3 from the
 # zip's own bakersfield.pk3, and publishes the result as a new release. Running it on its own output is safe: the
 # same steps give the same files.
 name: Build BAKOQUAKE.zip
@@ -51,6 +51,13 @@ jobs:
             [ "$(basename "$f")" = lan_server.cfg ] && continue
             if ! cmp -s "$f" "$game/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
             cp "$f" "$game/"
+          done
+
+      - name: Overlay repo launchers
+        run: |
+          for f in repo/launchers/*; do
+            if ! cmp -s "$f" "out/BAKOQUAKE/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
+            cp "$f" out/BAKOQUAKE/
           done
 
       - name: Build zz_bakovan.pk3
