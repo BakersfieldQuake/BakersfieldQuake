@@ -63,7 +63,8 @@ jobs:
       - name: Download new build
         run: |
           curl -fL --retry 3 -o new.zip "$SOURCE_URL"
-          unzip -q new.zip -d new && rm new.zip
+          unzip -q new.zip -d new
+          rm new.zip
           # Accept a zip whose top folder is BAKOQUAKE/ or one that was zipped from inside it.
           if [ ! -d new/BAKOQUAKE ]; then mkdir new/BAKOQUAKE && find new -mindepth 1 -maxdepth 1 ! -name BAKOQUAKE -exec mv {} new/BAKOQUAKE/ \; ; fi
           test -f new/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 || { echo "::error::no BakersfieldQuake/bakersfield.pk3 in the zip"; exit 1; }
