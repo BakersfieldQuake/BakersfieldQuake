@@ -72,7 +72,7 @@ jobs:
       - name: Refuse id Software data
         # The release is public to anyone with repo access; pak0/pak1 are not ours to distribute.
         run: |
-          found=$(find new/BAKOQUAKE/id1 -iname 'pak*.pak' 2>/dev/null || true)
+          found=$(find new/BAKOQUAKE -ipath '*/id1/*' -iname 'pak*.pak')
           if [ -n "$found" ]; then echo "::error::zip contains Quake data, remove it and re-upload:"; echo "$found"; exit 1; fi
 
       - name: Overlay repo configs, launchers and version
