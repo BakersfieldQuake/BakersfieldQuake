@@ -16,6 +16,7 @@ recharges by itself. Combat+ only (COMBATPLUS).
                                enemy, jump on it, bounce on it and blow up (mbox.qc)
   6 Wheelman Cannon impulse 66 (key G) hold fire to charge, let go (or full charge) and a screaming Wheelman blasts off
                                and crashes in a big explosion with flying wheels, bars and gibs (wcannon.qc)
+  7 M4A1           impulse 67  (keys C / 0) stand-alone CS 1.6 automatic rifle (m4.qc)
   4 NetSend        impulse 64  (key B or N) fire throws LOL.BAT: it sticks to the floor and grows a beige PC that sends NET SEND
                                pop-ups at everyone else for 20 seconds (netsend.qc)
 
@@ -27,7 +28,7 @@ in hand ever has (the banana gun uses key 1 the same way).
 
 float	IT_FUNGUN		= 262144;
 float	FG_IMPULSE		= 61;		// impulse 61..64 select fun gun 1..4
-float	FG_COUNT		= 6;
+float	FG_COUNT		= 7;
 
 float	FG_DOB		= 1;
 float	FG_PONG		= 2;
@@ -35,6 +36,7 @@ float	FG_PICKLE	= 3;
 float	FG_NETSEND	= 4;
 float	FG_MBOX		= 5;
 float	FG_WCANNON	= 6;
+float	FG_M4		= 7;		// CS 1.6 M4A1 (m4.qc), only when cs16test is loaded (m4_ok)
 
 float	fg_inflicting;		// which fun gun is dealing damage right now (0 = none), for the obituary
 
@@ -48,6 +50,7 @@ float(entity p) Binoc_On;
 string(float g) FunGun_VModel;
 float(entity p, float g) FunGun_Ammo;
 float() FunGun_CycleNext;
+float() FunGun_Last;
 float() FunGun_CyclePrev;
 float() FunGun_BotPick;
 void() Pickle_Precache;
@@ -61,9 +64,17 @@ float	PK_FOLLOW_TIME	= 0.24;		// mid-screen open-claw recoil shudder + slash dow
 float	PK_RAISE_TIME	= 0.22;		// aggressive belt-snatch fresh Pickle raise & cheek-squish catch settle
 
 .float	fg_sel;			// player: which fun gun is out (1..FG_COUNT)
-.float	fg_ammo1, fg_ammo2, fg_ammo3, fg_ammo4, fg_ammo5, fg_ammo6;
-.float	fg_regen1, fg_regen2, fg_regen3, fg_regen4, fg_regen5, fg_regen6;
+.float	fg_ammo1, fg_ammo2, fg_ammo3, fg_ammo4, fg_ammo5, fg_ammo6, fg_ammo7;
+.float	fg_regen1, fg_regen2, fg_regen3, fg_regen4, fg_regen5, fg_regen6, fg_regen7;
 .float	fg_fire_t;		// player: when the last shot went
+.float	fg_lock_t;		// player: until this time only fg_lock_gun can fire (bm_fg_lock)
+.float	fg_lock_gun;	// player: the fun gun that fired last
+.float	bm_fx_sent;		// player: the lighter particle file has been asked for on this map
+.float	fg_lock_msg;	// player: next time the "locked" click and message may play
+void(float g) FunGun_Lock;
+void() FunGun_PlayerDie;
+void() BM_PredictFrame;
+void() Jetpack_Off;
 .float	fg_bot_until;	// bot: keeps its current weapon choice until then
 .float	fg_bot_fun;		// bot: TRUE while it is playing with a fun gun
 
@@ -98,7 +109,8 @@ float	BN_ZOOM_START	= 5;
 // ammo: max, seconds per round recharged
 float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 20;
 float	FG_PONG_MAX		= 3;	float	FG_PONG_REGEN	= 6;
-float	FG_PICKLE_MAX	= 4;	float	FG_PICKLE_REGEN	= 5;
+float	FG_PICKLE_MAX	= 2;	float	FG_PICKLE_REGEN	= 5;
 float	FG_MBOX_MAX		= 2;	float	FG_MBOX_REGEN	= 12;	// two boxes; 12 s to conjure the next (mbox_defs.qc)
 float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 25;	// like a BFG: one Wheelman, 25 s to reload the next (wcannon_defs.qc)
+float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
 float	FG_NETSEND_MAX	= 1;	float	FG_NETSEND_REGEN	= 30;	// one disk; 30 s to write the next LOL.BAT (netsend_defs.qc)

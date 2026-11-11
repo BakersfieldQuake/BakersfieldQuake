@@ -18,8 +18,8 @@ generic fun gun one (client.qc, through fg_inflicting).
 
 float	NS_RANGE		= 900;		// it only sends to someone this close, and in its view
 float	NS_DAMAGE		= 5;		// per NET SEND
-float	NS_SHOT_GAP		= 1.5;		// seconds between two NET SENDs
-float	NS_ACTIVE		= 20;		// seconds it sends once it has booted
+float	NS_SHOT_GAP		= 4;		// seconds between two NET SENDs
+float	NS_ACTIVE		= 12;		// seconds it sends once it has booted
 float	NS_HEALTH		= 40;		// shoot it to switch it off
 float	NS_THROW		= 620;		// the disk's speed when thrown
 float	NS_THROW_DELAY	= 0.29;		// the hand lets go at frame 44 of v_netsend.md3, 0.29 s into the throw

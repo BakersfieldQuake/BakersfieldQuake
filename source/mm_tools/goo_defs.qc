@@ -50,3 +50,4 @@ void() Goo_Precache;
 void() Goo_Fire;
 void() Goo_PlayerFrame;
 float(entity targ, entity inflictor, float damage) Goo_Damage;
+.float	goo_snd_t;		// player: next time one of his blobs may make an impact sound

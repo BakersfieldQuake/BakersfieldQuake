@@ -17,14 +17,15 @@ float	PK_SAY			= 0.6;		// the shout it makes while it swells and waves: the blas
 float	PK_SCREAM		= 0.34;		// the 360-degree giant scream & balloon swell right before the blast
 float	PK_INFLATE		= 0.12;		// seconds to swell up and stand on end: it all but goes off in their face
 float	PK_ROLL			= 90;		// roll that turns the 3D pickle's face (its +Z side) out of a wall
-float	PK_BLAST		= 100;		// explosion damage at the centre (was 125; review 2026-10-31: "a little bit nerfed", and you now carry 4)
+float	PK_BLAST		= 80;		// explosion damage at the centre (was 125; review 2026-10-31: "a little bit nerfed", and you now carry 4)
 float	PK_HEALTH		= 25;		// damage that sets a stuck pickle off
-float	PK_MAX			= 4;		// pickles per player (you carry 4: review 2026-11-01, "allow me to have up to three" - a throw no longer takes an earlier one back); a fifth removes the oldest
-float	PK_GIBS			= 10;		// pickles thrown by the blast
-float	PK_GIB_LIFE		= 3;		// seconds a loose pickle (and its flame trail) lasts: 8 was far too long
+float	PK_MAX			= 2;		// pickles per player (tone-down 2026-11-02, was 4); a third removes the oldest
+float	PK_GIBS			= 4;		// pickles thrown by the blast
+float	PK_GIB_LIFE		= 1.2;		// seconds a loose pickle (and its flame trail) lasts: 8 was far too long
 float	PK_PS			= 1.7;		// scale of the 3D pickle (13 units long at scale 1): the grenade lying on the floor, ~22 long
 float	PK_S0			= 1;		// scale of the balloon mesh when it starts to swell (20 units tall at scale 1)
 float	PK_S1			= 5.7;		// scale when erect: a player is 56 tall, so this is a little over twice that
+.float	pk_safe;		// pickle: sitting out another pickle's blast
 float	PK_HALF			= 10;		// half the height of the mesh at scale 1
 
 // progs/v_pickle.md3 skin ranges (built by source/mm_tools/build_pickle_diva_overhaul.py)
@@ -161,14 +162,37 @@ void() Pk_Explode =
 {
 	local vector org;
 	local float i;
+	local entity e;
 
 	self.takedamage = DAMAGE_NO;		// its own blast must not finish it off twice
 	self.solid = SOLID_NOT;
 	org = self.origin;
+	dprint (strcat ("pickle: blast at ", ftos (time), "\n"));
 
+	// no chain reactions: the other pickles sit this blast out (they can still be shot, and other explosions still set them off)
+	e = find (world, classname, "pickle");
+	while (e)
+	{
+		if (e.takedamage == DAMAGE_YES)
+		{
+			e.pk_safe = TRUE;
+			e.takedamage = DAMAGE_NO;
+		}
+		e = find (e, classname, "pickle");
+	}
 	fg_inflicting = FG_PICKLE;
 	T_RadiusDamage (self, self.owner, PK_BLAST, world);
 	fg_inflicting = 0;
+	e = find (world, classname, "pickle");
+	while (e)
+	{
+		if (e.pk_safe)
+		{
+			e.pk_safe = FALSE;
+			e.takedamage = DAMAGE_YES;
+		}
+		e = find (e, classname, "pickle");
+	}
 
 	sendParticle ("pk_boom", org, '0 0 0', 1, 0);		// the green burst and light, with the orange fire in the same effect (effectinfo.txt)
 	FG_Snd (self, CHAN_WEAPON, "afrit/body_explode.wav", 1, 1);		// the line has just ended: now the bang
@@ -303,7 +327,6 @@ void(entity who) Pk_Trip =
 	setsize (self, '-6 -6 -6', '6 6 6');
 	self.scale = PK_S0;
 	FG_Snd (self, CHAN_VOICE, "pickle/surprise.wav", 1, 1);
-	FG_Snd (self, CHAN_ITEM, "pickle/surprise.wav", 1, 1);		// the same line on a second channel: twice as loud
 };
 
 void() Pk_Think =
@@ -682,7 +705,7 @@ void(vector org) Pk_Gib =
 	g.avelocity_x = crandom () * 600;
 	g.avelocity_y = crandom () * 600;
 	g.avelocity_z = crandom () * 600;
-	g.bouncefactor = 0.9;		// DarkPlaces: keeps nearly all its speed at each bounce (default 0.5)
+	g.bouncefactor = 0.5;		// DarkPlaces: loses half its speed at each bounce (was 0.9: they rattled round the room)
 	g.bouncestop = 0.03;		// ... and only comes to rest on something nearly flat and slow
 	g.fg_born = time;
 	g.scale = 1.1 + random () * 0.7;		// the model is 13 units long: pickles of 14 to 23

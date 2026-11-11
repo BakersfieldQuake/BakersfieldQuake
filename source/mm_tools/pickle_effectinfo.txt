@@ -1,17 +1,17 @@
 // Pickle Surprise (pickle.qc): a big green explosion with fire in it, burning pickles, and a small green puff when one fizzles
 effect pk_boom
-lightradius 900
+lightradius 400
 lightradiusfade 700
 lightcolor 0.3 1 0.2
 lightshadow 1
 
 // the fireball
 effect pk_boom
-count 70
+count 25
 type alphastatic
 tex 0 8
 color 0x30c010 0xa0ff50
-size 40 80
+size 28 52
 sizeincrease 140
 alpha 230 256 330
 originjitter 24 24 24
@@ -20,11 +20,11 @@ airfriction 2.2
 
 // a hot green core
 effect pk_boom
-count 20
+count 8
 type alphastatic
 tex 0 8
 color 0xc0ff80 0xf0ffd0
-size 60 110
+size 38 68
 sizeincrease 180
 alpha 200 256 600
 originjitter 6 6 6
@@ -33,7 +33,7 @@ airfriction 3
 
 // bits flying
 effect pk_boom
-count 160
+count 60
 type spark
 tex 0 8
 color 0x70ff30 0xd0ffa0
@@ -48,11 +48,11 @@ airfriction 0.3
 
 // green smoke
 effect pk_boom
-count 24
+count 10
 type smoke
 tex 0 7
 color 0x203818 0x405a2c
-size 60 110
+size 38 68
 sizeincrease 40
 alpha 140 220 55
 originjitter 20 20 20
@@ -62,17 +62,17 @@ airfriction 1.6
 
 // FIRE with the green: an orange fireball and its light, flames rising, burning embers (all go off with the green ones above)
 effect pk_boom
-lightradius 700
+lightradius 400
 lightradiusfade 500
 lightcolor 1 0.5 0.1
 lightshadow 0
 
 effect pk_boom
-count 55
+count 20
 type alphastatic
 tex 0 8
 color 0xff4000 0xffb020
-size 40 90
+size 28 56
 sizeincrease 150
 alpha 240 256 380
 originjitter 24 24 24
@@ -80,11 +80,11 @@ velocityjitter 280 280 280
 airfriction 2.2
 
 effect pk_boom
-count 30
+count 10
 type alphastatic
 tex 0 8
 color 0xffd060 0xfff0b0
-size 50 100
+size 32 62
 sizeincrease 170
 alpha 200 256 650
 originjitter 6 6 6
@@ -93,11 +93,11 @@ airfriction 3
 
 // flames licking up off the blast
 effect pk_boom
-count 40
+count 15
 type alphastatic
 tex 0 8
 color 0xff2800 0xff9000
-size 25 55
+size 18 38
 sizeincrease -20
 alpha 220 256 160
 originjitter 40 40 10
@@ -108,7 +108,7 @@ airfriction 1.5
 
 // burning embers
 effect pk_boom
-count 120
+count 50
 type spark
 tex 0 8
 color 0xff6000 0xffe060
@@ -123,7 +123,7 @@ airfriction 0.3
 
 // a burning pickle: the pickles the blast throws leave a flame trail
 effect pk_flame
-trailspacing 7
+trailspacing 20
 type alphastatic
 tex 0 8
 color 0xff4000 0xffc040
@@ -137,7 +137,7 @@ gravity -0.2
 airfriction 1.5
 
 effect pk_flame
-trailspacing 14
+trailspacing 40
 type smoke
 tex 0 7
 color 0x302818 0x504030

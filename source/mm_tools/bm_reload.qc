@@ -40,10 +40,12 @@ float(float s) BM_MagSize =
 		return FunGun_Max (FG_MBOX);
 	if (s == BM_FG6)
 		return FunGun_Max (FG_WCANNON);
+	if (s == BM_FG7)
+		return FunGun_Max (FG_M4);
 
 	if (s == BM_SG)			n = 20;		// the Goo Gun (it took the shotgun's slot)
 	else if (s == BM_SSG)	n = 12;		// 2 shells a shot: 6 shots, 3 QC bursts
-	else if (s == BM_NG)	n = 6;		// the Laptop Gun (took the nailgun slot): was 50 nails, which made it a free spam gun
+	else if (s == BM_NG)	n = 3;		// the Laptop Gun (took the nailgun slot): was 50 nails, which made it a free spam gun
 	else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
 	else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
 	else if (s == BM_RL)	n = 5;
@@ -73,14 +75,15 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_MM)	t = 12;		// 6 s a Mega Man (was 8: 4 s)
 	else if (s == BM_FG1)	t = FG_DOB_REGEN;	// Rob Dob: one head
 	else if (s == BM_FG2)	t = 9;		// Rally Master 3 s a ball
-	else if (s == BM_FG3)	t = 8;		// Pickle Surprise 8 s a pickle
+	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)
 	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
 	else if (s == BM_FG5)	t = FG_MBOX_REGEN;		// Mystery Box: 12 s a box
+	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
 	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: BFG-slow, 25 s for the next Wheelman
 	else
 		t = 2;
-	if (s >= BM_FG1)
-		t = t * Underdog_AmmoRate (self);	// underdogs reload fun guns faster
+	if (s >= BM_FG1 && s != BM_FG7)
+		t = t * Underdog_AmmoRate (self);	// underdogs reload fun guns faster (M4 keeps fixed 3.08s CS timing)
 	return t * autocvar_bm_reload_scale;
 };
 
@@ -134,6 +137,8 @@ float(entity p) BM_SlotOf =
 			return BM_FG5;
 		if (p.fg_sel == FG_WCANNON)
 			return BM_FG6;
+		if (p.fg_sel == FG_M4)
+			return BM_FG7;
 		return BM_FG3;
 	}
 	return 0;
@@ -164,6 +169,7 @@ float(entity p, float s) BM_GetMag =
 	if (s == BM_FG4)	return p.fg_ammo4;
 	if (s == BM_FG5)	return p.fg_ammo5;
 	if (s == BM_FG6)	return p.fg_ammo6;
+	if (s == BM_FG7)	return p.fg_ammo7;
 	return 0;
 };
 
@@ -184,6 +190,7 @@ void(entity p, float s, float v) BM_SetMag =
 	else if (s == BM_FG4)	p.fg_ammo4 = v;
 	else if (s == BM_FG5)	p.fg_ammo5 = v;
 	else if (s == BM_FG6)	p.fg_ammo6 = v;
+	else if (s == BM_FG7)	p.fg_ammo7 = v;
 };
 
 float(entity p, float s) BM_GetAcc =
@@ -202,7 +209,8 @@ float(entity p, float s) BM_GetAcc =
 	if (s == 12)	return p.bm_a12;
 	if (s == 13)	return p.bm_a13;
 	if (s == 14)	return p.bm_a14;
-	return p.bm_a15;
+	if (s == 15)	return p.bm_a15;
+	return p.bm_a16;
 };
 
 void(entity p, float s, float v) BM_SetAcc =
@@ -221,7 +229,8 @@ void(entity p, float s, float v) BM_SetAcc =
 	else if (s == 12)	p.bm_a12 = v;
 	else if (s == 13)	p.bm_a13 = v;
 	else if (s == 14)	p.bm_a14 = v;
-	else			p.bm_a15 = v;
+	else if (s == 15)	p.bm_a15 = v;
+	else			p.bm_a16 = v;
 };
 
 float(float t) BM_GetField =
@@ -339,7 +348,10 @@ void(float s) BM_StartReload =
 	self.bm_rl_slot = s;
 	self.bm_rl_start = time;
 	self.bm_rl_end = time + max (0.4, BM_ReloadTime (s) * (size - mag) / size);
-	sound7 (self, CHAN_ITEM, "weapons/lock4.wav", 0.6, ATTN_NORM, SNDSPD);
+	if (s == BM_FG7)
+		self.bm_rl_end = time + BM_ReloadTime (s);		// the M4 always plays the whole CS reload, with its own sounds (m4.qc)
+	else
+		sound7 (self, CHAN_ITEM, "weapons/lock4.wav", 0.6, ATTN_NORM, SNDSPD);
 };
 
 // replaces "switch to the best weapon" when a gun runs dry mid-burst (nailgun, LG, ...)
@@ -428,6 +440,7 @@ void() BM_Frame =
 	{
 		self.bm_st_reload = 0;
 		self.bm_st_magmax = 0;
+		self.bm_st_slot = BM_SlotOf (self);
 		return;
 	}
 	dt = time - self.bm_lastframe;
@@ -468,13 +481,14 @@ void() BM_Frame =
 				if (s == BM_SSG)
 					self.bm_ssgburst = 16;
 				self.bm_rl_slot = 0;
-				sound7 (self, CHAN_ITEM, "weapons/pkup.wav", 0.35, ATTN_NORM, SNDSPD);
+				if (s != BM_FG7)
+					sound7 (self, CHAN_ITEM, "weapons/pkup.wav", 0.35, ATTN_NORM, SNDSPD);
 				if (s == BM_MM)
 					self.mm_fire_t = time - 0.5;	// the Mega Man pops back up into the hand
 				if (s == BM_FG3)
 					self.pk_reload_t = time;		// fresh Pickle Surprise whips up into the hand
 			}
-			else if (self.button0 && mag >= BM_PerShot (s) && time > self.bm_rl_start + 0.15)
+			else if (self.button0 && mag >= BM_PerShot (s) && time > self.bm_rl_start + 0.15 && s != BM_FG7)
 				self.bm_rl_slot = 0;				// fire what's left instead
 		}
 		else if (s == BM_FG3 && (self.pk_throw_at > 0 || (self.pk_threw_t > 0 && time < self.pk_threw_t + PK_FOLLOW_TIME)))
@@ -487,7 +501,7 @@ void() BM_Frame =
 		}
 		else if (mag < BM_PerShot (s))
 			BM_StartReload (s);
-		else if (mag < size && !self.button0 && time > self.bm_lastshot + autocvar_bm_idle_reload)
+		else if (s != BM_FG7 && mag < size && !self.button0 && time > self.bm_lastshot + autocvar_bm_idle_reload)
 			BM_StartReload (s);
 	}
 
@@ -522,6 +536,7 @@ void() BM_Frame =
 	BM_WriteFields ();
 
 	// HUD
+	self.bm_st_slot = s;
 	if (s)
 	{
 		self.bm_st_mag = floor (BM_GetMag (self, s) / BM_PerShot (s) + 0.001);

@@ -86,10 +86,15 @@ void() JG_GrenadeAnimate =
 	}
 };
 
+.float	jg_bounce_t;
+
 // the bounce sound (replaces weapons/bounce.wav in GrenadeTouch)
 void() JG_BounceSound =
 {
-	sound7 (self, CHAN_WEAPON, "grenade/bounce_08_rubber_ball.wav", 1, ATTN_NORM, SNDSPD);
+	if (time < self.jg_bounce_t)
+		return;
+	self.jg_bounce_t = time + 0.2;
+	sound7 (self, CHAN_WEAPON, "grenade/bounce_08_rubber_ball.wav", 0.5, ATTN_NORM, SNDSPD);
 };
 
 // a bounce: tumble, harder the faster it hit
@@ -152,6 +157,7 @@ void() JG_Splash =
 {
 	local entity	r;
 
+	sound7 (self, CHAN_WEAPON, "weapons/r_exp3.wav", 0.8, ATTN_NORM, SNDSPD);		// a real bang under the joke (half the blasts were only a 0.27 s fart)
 	if (random () < 0.5)
 		sound (self, CHAN_VOICE, "grenade/boom_03_scream_launch.wav", 1, ATTN_NORM);
 	else

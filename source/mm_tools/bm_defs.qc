@@ -21,7 +21,9 @@ var float	autocvar_bm_idle_reload		= 2.5;		// seconds without firing before a pa
 var float	autocvar_bm_selfdamage		= 0.6;		// self-inflicted damage x this (on top of the stock 0.5 splash halving)
 var float	autocvar_bm_rocketself		= 0.4;		// your own rockets' self-damage x this as well (0.4 = 60% less)
 var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
-var float	autocvar_bm_spawnnear		= 800;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
+var float	autocvar_bm_spawnnear		= 1200;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
+var float	autocvar_bm_fg_lock			= 10;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
+var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, goo, shock, milk): less snap-back online
 var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
 var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
 var float	autocvar_bm_regen_delay		= 5;		// seconds after the last hit before health comes back
@@ -72,14 +74,15 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_SLOTS	= 15;
+float	BM_FG7		= 16;		// the M4 (m4.qc)
+float	BM_SLOTS	= 16;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
 
 float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 
 .float	bm_m1, bm_m2, bm_m3, bm_m4, bm_m5, bm_m6, bm_m7, bm_m8;		// stock gun magazines (ammo units)
-.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15;	// holstered refill, fractional
+.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16;	// holstered refill, fractional
 .float	bm_init;			// magazines have been filled since connecting
 .float	bm_slot;			// slot whose magazine is in the ammo_* field right now
 .float	bm_shown_s, bm_shown_n, bm_shown_r, bm_shown_c;		// what we last wrote to ammo_*, to spot pickups
@@ -96,6 +99,7 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_st_mag;			// held magazine (rounds)
 .float	bm_st_magmax;		// held magazine size (rounds)
 .float	bm_st_reload;		// reload progress 1..100, 0 = not reloading
+.float	bm_st_slot;			// active weapon slot (BM_*, 16 = M4)
 .float	bm_st_prot;			// spawn protection left, tenths of a second
 .float	bm_st_heat;			// your lead over the pack (leader effects)
 .float	bm_st_boost;		// your underdog boost 0..100
@@ -220,6 +224,11 @@ var float	autocvar_rnpc_stay	= 0;
 float	bm_cvar_rnpc_mode;
 float	bm_cvar_rnpc_stay;
 float	random_npcs_precached;
+.float	bm_last_hit_dmg;
+.float	bm_last_hit_explosive;
+.float	npc_dead;
+.float	npc_dstep;
+float(entity e) NPC_ShouldGib;
 void() RandomNPCs_Precache;
 void(float kind) RandomNPC_Summon;
 void() RandomNPC_SummonAll4;

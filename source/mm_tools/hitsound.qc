@@ -8,7 +8,7 @@ big ones lower. Pellets and splash landing in the same moment only tick once. Ca
 ================
 */
 
-float	HS_GAP		= 0.06;		// shortest time between two ticks for the same attacker
+float	HS_GAP		= 0.12;		// shortest time between two ticks for the same attacker
 
 .float	hs_time;			// player: when they may hear the next tick
 
@@ -32,9 +32,9 @@ void(entity targ, entity attacker, float take) HitSound_Play =
 
 	// "play" runs on the attacker's own client: full volume, no position, nobody else hears it
 	if (take < 25)
-		stuffcmd (attacker, "play misc/mmhit1.wav\n");
+		stuffcmd (attacker, "playvol misc/mmhit1.wav 0.5\n");
 	else if (take < 60)
-		stuffcmd (attacker, "play misc/mmhit2.wav\n");
+		stuffcmd (attacker, "playvol misc/mmhit2.wav 0.5\n");
 	else
-		stuffcmd (attacker, "play misc/mmhit3.wav\n");
+		stuffcmd (attacker, "playvol misc/mmhit3.wav 0.5\n");
 };

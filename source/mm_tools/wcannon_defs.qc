@@ -25,16 +25,19 @@ float	WC_LIFE			= 6;		// a Wheelman that has not crashed by then blows up where 
 float	WC_HEALTH		= 40;		// he can be shot (he is a driving projectile, not a rocket): shot down, he blows up where he is
 float	WC_STEPUP		= 18;		// he drives over steps this high
 float	WC_COOLDOWN		= 1.1;		// seconds after a shot for frames 26..47 (blast, recoil & breech lock) before reload/next charge
-float	WC_DMG_DIRECT	= 60;		// extra damage to whatever he hits head-on
-float	WC_DMG_BASE		= 110;		// radius damage of the smallest explosion (was 70: review 2026-11-01, "a lot of splash damage", you go flying)
-float	WC_DMG_STEP		= 25;		// more per tier (tier 3 = 185)
+float	WC_DMG_DIRECT	= 40;		// extra damage to whatever he hits head-on
+float	WC_DMG_BASE		= 85;		// radius damage of the smallest explosion (was 70: review 2026-11-01, "a lot of splash damage", you go flying)
+float	WC_DMG_STEP		= 18;		// more per tier (tier 3 = 139)
 float	WC_RADIUS_BASE	= 130;
 float	WC_RADIUS_STEP	= 30;
 float	WC_DOWN			= 0.7;		// aim this steeply down (the sine of the pitch) near the floor and he crashes at once under you: a rocket jump
-float	WC_DANCE_LIFE	= 6.4;		// seconds Larry tears around playing crazy animations & shouting lines after exploding (progs/wheelman_dance.spr32)
+float	WC_DANCE_LIFE	= 2.5;		// seconds Larry tears around playing crazy animations & shouting lines after exploding (progs/wheelman_dance.spr32)
 float	WC_DANCE_SPEED	= 540;		// how fast he sprints around after crashing (a player runs at 320)
 float	WC_SCALE		= 0.5;		// the projectile sprite's scale (the old monster was 0.64)
 
+float	WC_LINE_VOL		= 0.55;		// Larry's explosion clips and shouted lines
+float	WC_SCREAM_VOL	= 0.5;		// his scream in flight
+float	WC_SCREAM_GAP	= 3;		// seconds from one scream to the next (the clip is 1.4)
 .float	wc_charging;	// player: when this charge began (0 = not charging)
 .float	wc_msg;			// player: when the charge bar was last printed
 .float	wc_cool;		// player: next charge may start at this time

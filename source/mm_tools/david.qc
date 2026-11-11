@@ -70,6 +70,8 @@ void() David_Precache =
 	precache_sound("david/slot_jackpot.wav");
 	precache_sound("david/slot_bust.wav");
 	precache_sound("weapons/r_exp3.wav");
+	precache_sound("player/udeath.wav");
+	precache_sound("player/pain4.wav");
 };
 
 float() David_Customize =
@@ -83,6 +85,17 @@ float() David_Customize =
 	d = floor(rel / 45 + 0.5);
 	if (d >= 8)
 		d = 0;
+
+	if (self.npc_dead)
+	{
+		k = self.npc_dstep;
+		if (k < 0)
+			k = 0;
+		if (k > 5)
+			k = 5;
+		self.frame = 344 + d * 6 + k;
+		return TRUE;
+	}
 
 	st = self.dv_state;
 	m = bm_cvar_dv_mode;
@@ -147,7 +160,7 @@ void(float rad, float dmg) David_JackpotBlast =
 
 void(entity attacker, float take) David_Pain =
 {
-	if (self.health <= 0)
+	if (self.health <= 0 || self.npc_dead)
 		return;
 	if (time < self.dv_phase_end)
 		return;
@@ -168,6 +181,9 @@ void() David_Respawn =
 	self.max_health = 180;
 	self.takedamage = DAMAGE_AIM;
 	self.effects = 0;
+	self.alpha = 1;
+	self.npc_dead = FALSE;
+	self.npc_dstep = 0;
 	self.dv_state = 4;
 	self.dv_phase_end = time + 2.2;
 	self.dv_next_act = time + 4.5;
@@ -181,7 +197,7 @@ void() David_Touch =
 {
 	local vector dir;
 
-	if (self.dv_harmless)
+	if (self.dv_harmless || self.npc_dead || self.health <= 0)
 		return;
 	if (other == world || !other.takedamage || other.health <= 0)
 		return;
@@ -198,21 +214,29 @@ void() David_Touch =
 		other.flags = other.flags - FL_ONGROUND;
 };
 
-void() David_Die =
+void() David_DeathStep =
 {
-	self.solid = SOLID_NOT;
-	self.takedamage = DAMAGE_NO;
-	self.movetype = MOVETYPE_NONE;
-	self.effects = 0;
-	sound(self, CHAN_VOICE, "weapons/r_exp3.wav", 1, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -75);
-	ThrowGib("progs/gib2.mdl", -85);
-	ThrowGib("progs/gib3.mdl", -95);
-	WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
-	WriteByte(MSG_BROADCAST, TE_EXPLOSION);
-	WriteCoord(MSG_BROADCAST, self.origin_x);
-	WriteCoord(MSG_BROADCAST, self.origin_y);
-	WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+	self.npc_dstep = self.npc_dstep + 1;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = David_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = David_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = David_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	self.alpha = 1;
 	if (self.dv_respawn > 0)
 	{
 		setmodel(self, "");
@@ -221,6 +245,47 @@ void() David_Die =
 		return;
 	}
 	remove(self);
+};
+
+void() David_Die =
+{
+	if (self.npc_dead)
+		return;
+	self.npc_dead = TRUE;
+	self.npc_dstep = 0;
+	self.solid = SOLID_NOT;
+	self.takedamage = DAMAGE_NO;
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
+	self.effects = 0;
+
+	if (NPC_ShouldGib(self))
+	{
+		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
+		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
+		ThrowGib("progs/gib1.mdl", -75);
+		ThrowGib("progs/gib2.mdl", -85);
+		ThrowGib("progs/gib3.mdl", -95);
+		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
+		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
+		WriteCoord(MSG_BROADCAST, self.origin_x);
+		WriteCoord(MSG_BROADCAST, self.origin_y);
+		WriteCoord(MSG_BROADCAST, self.origin_z + 24);
+		if (self.dv_respawn > 0)
+		{
+			setmodel(self, "");
+			self.think = David_Respawn;
+			self.nextthink = time + self.dv_respawn;
+			return;
+		}
+		remove(self);
+		return;
+	}
+
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "david/slot_bust.wav", 1, ATTN_NORM);
+	self.think = David_DeathStep;
+	self.nextthink = time + 0.075;
 };
 
 void() David_Think =
@@ -429,6 +494,17 @@ float() PregRunner_Customize =
 	if (d >= 8)
 		d = 0;
 
+	if (self.npc_dead)
+	{
+		k = self.npc_dstep;
+		if (k < 0)
+			k = 0;
+		if (k > 5)
+			k = 5;
+		self.frame = 56 + d * 6 + k;
+		return TRUE;
+	}
+
 	if (cvar("dv_stay") > 0)
 	{
 		self.frame = d;
@@ -456,6 +532,9 @@ void() PregRunner_Respawn =
 	self.health = 120;
 	self.max_health = 120;
 	self.takedamage = DAMAGE_AIM;
+	self.alpha = 1;
+	self.npc_dead = FALSE;
+	self.npc_dstep = 0;
 	setsize(self, '-18 -18 0', '18 18 56');
 	droptofloor();
 	self.think = PregRunner_Think;
@@ -468,6 +547,8 @@ void(entity attacker, float take) PregRunner_Pain =
 
 void() PregRunner_Touch =
 {
+	if (self.npc_dead || self.health <= 0)
+		return;
 	if (other == world || !other.takedamage || other.health <= 0)
 		return;
 	if (other.classname == "monster_preg_runner")
@@ -487,14 +568,29 @@ void() PregRunner_Touch =
 	T_Damage(other, self, self, 12);
 };
 
-void() PregRunner_Die =
+void() PregRunner_DeathStep =
 {
-	self.solid = SOLID_NOT;
-	self.takedamage = DAMAGE_NO;
-	self.movetype = MOVETYPE_NONE;
-	sound(self, CHAN_VOICE, "weapons/r_exp3.wav", 1, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -70);
-	ThrowGib("progs/gib2.mdl", -80);
+	self.npc_dstep = self.npc_dstep + 1;
+	if (self.npc_dstep <= 5)
+	{
+		self.think = PregRunner_DeathStep;
+		self.nextthink = time + 0.075;
+		return;
+	}
+	if (self.npc_dstep == 6)
+	{
+		self.think = PregRunner_DeathStep;
+		self.nextthink = time + 2.2;
+		return;
+	}
+	if (self.npc_dstep <= 13)
+	{
+		self.alpha = 1.0 - (self.npc_dstep - 6) * 0.13;
+		self.think = PregRunner_DeathStep;
+		self.nextthink = time + 0.07;
+		return;
+	}
+	self.alpha = 1;
 	if (self.dv_respawn > 0)
 	{
 		setmodel(self, "");
@@ -503,6 +599,41 @@ void() PregRunner_Die =
 		return;
 	}
 	remove(self);
+};
+
+void() PregRunner_Die =
+{
+	if (self.npc_dead)
+		return;
+	self.npc_dead = TRUE;
+	self.npc_dstep = 0;
+	self.solid = SOLID_NOT;
+	self.takedamage = DAMAGE_NO;
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
+	self.effects = 0;
+
+	if (NPC_ShouldGib(self))
+	{
+		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
+		ThrowGib("progs/gib1.mdl", -70);
+		ThrowGib("progs/gib2.mdl", -80);
+		ThrowGib("progs/gib3.mdl", -85);
+		if (self.dv_respawn > 0)
+		{
+			setmodel(self, "");
+			self.think = PregRunner_Respawn;
+			self.nextthink = time + self.dv_respawn;
+			return;
+		}
+		remove(self);
+		return;
+	}
+
+	self.alpha = 1;
+	sound(self, CHAN_VOICE, "player/pain4.wav", 1, ATTN_NORM);
+	self.think = PregRunner_DeathStep;
+	self.nextthink = time + 0.075;
 };
 
 void() PregRunner_Think =

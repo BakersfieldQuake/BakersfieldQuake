@@ -46,9 +46,9 @@ void() Hammer_HitSound =
 {
 	SuperDamageSound ();
 	if (random () < 0.5)
-		Hammer_Snd ("hammer/axhit1.wav", 1);
+		Hammer_Snd ("hammer/axhit1.wav", 0.65);
 	else
-		Hammer_Snd ("hammer/axhit2.wav", 1);
+		Hammer_Snd ("hammer/axhit2.wav", 0.65);
 };
 
 // ---------------------------------------------------------------- sparks (Spark_Activate, x_spark_01..07)
@@ -130,9 +130,9 @@ void(entity hitent, vector org, vector dir, float tier, float hitfloor) Hammer_H
 			SpawnBlood (org, dir, dmg * 2);
 			T_Damage (hitent, self, self, dmg * 2);
 			if (random () < 0.5)
-				Hammer_Snd ("hammer/axhit1.wav", 1);
+				Hammer_Snd ("hammer/axhit1.wav", 0.65);
 			else
-				Hammer_Snd ("hammer/axhit2.wav", 1);
+				Hammer_Snd ("hammer/axhit2.wav", 0.65);
 			if (tier == 1)
 				Hammer_Snd ("hammer/frying_pan.wav", 0.25);
 			else if (tier == 2)

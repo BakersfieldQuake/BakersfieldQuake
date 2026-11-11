@@ -248,14 +248,14 @@ void() MM_DebrisTouch =
 	v = vlen (self.velocity);
 	if (self.classname == "mmtire" || self.classname == "mmrubber")
 	{
-		if (time < self.mm_bouncetime + 0.1 || v < 55)
+		if (time < self.mm_bouncetime + 0.25 || v < 55)
 			return;
 		self.mm_bouncetime = time;
 		self.mm_bounces = self.mm_bounces + 1;
 		MM_TireBounceSound (self, v);
 		return;
 	}
-	if (time < self.mm_bouncetime + 0.11 || v < 80)
+	if (time < self.mm_bouncetime + 0.25 || v < 80)
 		return;
 	self.mm_bouncetime = time;
 	self.mm_bounces = self.mm_bounces + 1;
@@ -763,7 +763,8 @@ void(entity hit) MM_RocketBoom =
 	else
 	{
 		MM_Sound (self, CHAN_WEAPON, "weapons/r_exp3.wav", 1, 100);
-		sound7 (self, CHAN_AUTO, "weapons/explodedist.wav", 0.3, ATTN_NONE, SNDSPD);
+		sound7 (self, CHAN_AUTO, "weapons/explodedist.wav", 0.3, 0.4, SNDSPD);
+		sound (self, CHAN_BODY, "misc/null.wav", 1, ATTN_NORM);		// the motor stops with him
 	}
 	sparklers (1);
 };
@@ -1213,7 +1214,7 @@ void() MegaMan_Think =
 	if (time >= self.mm_motor)
 	{
 #ifdef COMBATPLUS
-		MM_SoundA (self, CHAN_BODY, "megaman/mm_drive.wav", 1, pitch, 0.45);
+		MM_SoundA (self, CHAN_BODY, "megaman/mm_drive.wav", 0.35, pitch, 1);		// the loudest clip in the game, and it loops
 		self.mm_motor = time + MM_DRIVE_LEN * 100 / pitch;	// back to back, no pause
 #else
 		MM_SoundA (self, CHAN_BODY, "weapons/megamotor.wav", 1, pitch, 0.45);
@@ -1277,10 +1278,33 @@ void() MegaMan_Shot =
 };
 
 // Mega Man leaves the hand
+float	MM_MAX_LIVE = 2;
+
 void() MegaMan_Launch =
 {
-	local	entity mm;
+	local	entity mm, old;
 	local	vector dir;
+	local	float live;
+
+	// at most MM_MAX_LIVE out per player: throwing another sets the oldest off
+	live = 0;
+	old = world;
+	mm = find (world, classname, "megaman");
+	while (mm)
+	{
+		if (mm.owner == self)
+		{
+			live = live + 1;
+			if (!old || mm.mm_born < old.mm_born)
+				old = mm;
+		}
+		mm = find (mm, classname, "megaman");
+	}
+	if (live >= MM_MAX_LIVE)
+	{
+		old.think = MegaMan_Shot;
+		old.nextthink = time;
+	}
 
 	self.mm_ammo = self.mm_ammo - 1;
 	if (self.weapon == IT_MEGAMAN)
