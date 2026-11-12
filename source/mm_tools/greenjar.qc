@@ -117,14 +117,32 @@ void(entity m) GJ_PlayRandomLaugh =
 // MINI-GREMLIN BALLOON SWELL -> RAINBOW CONFETTI POP & 1-HIT SPIN
 // ================================================================
 
+float(entity m, entity e) GJ_IsValidTarget;
+
 void() GJ_BalloonPopStep =
 {
+	local entity e, nxt;
+
 	self.gj_step = self.gj_step + 1;
 	if (self.gj_step == 4)
 	{
 		// Frame 164: Balloon bursts into shockwave ring + rainbow party confetti!
 		FG_Snd (self, CHAN_VOICE, "greenjar/mini_pop.wav", 0.95, 0.95 + random () * 0.14);
 		sendParticle ("pk_puff", self.origin + '0 0 12', '0 0 0', 1, 0);
+		// Post-frenzy balloon burst deals a 12-dmg confetti pop to nearby enemies!
+		if (self.gj_attack_end > 0)
+		{
+			fg_inflicting = FG_PONG;
+			e = findradius (self.origin + '0 0 12', 95);
+			while (e)
+			{
+				nxt = e.chain;
+				if (GJ_IsValidTarget (self, e))
+					T_Damage (e, self, self.owner, 12);
+				e = nxt;
+			}
+			fg_inflicting = 0;
+		}
 	}
 	if (self.gj_step >= 16)
 	{
@@ -269,14 +287,12 @@ float() GJ_MiniCustomize =
 	return TRUE;
 };
 
-// Post-3-Lap Swarm Attack Hit: 1%-2% non-lethal chip attack + view jolt (NEVER kills: clamped >= 1 HP!)
+// Swarm Attack Hit: lethal 5-damage chaotic pokes + view jolt ("was swarmed silly by"!)
 void(entity m, entity victim) GJ_AttackHit =
 {
-	local float maxh, dmg;
-
-	if (time < m.gj_next_poke)
+	if (time < m.gj_next_poke || victim.health <= 0)
 		return;
-	m.gj_next_poke = time + 0.75 + random () * 0.55;
+	m.gj_next_poke = time + 0.42 + random () * 0.25;
 
 	// Energetic ramming view-jiggle & high-pitched shriek/giggle!
 	if (victim.classname == "player")
@@ -290,25 +306,9 @@ void(entity m, entity victim) GJ_AttackHit =
 		m.gj_next_voice = time + 0.55 + random () * 0.45;
 	}
 
-	if (victim.health <= 1 || random () > 0.45)
-		return;
-
-	maxh = victim.max_health;
-	if (maxh <= 0)
-		maxh = 100;
-	dmg = floor (maxh * 0.015 + 0.5);	// ~1%-2% chip damage
-	if (dmg < 1)
-		dmg = 1;
-	if (dmg > victim.health - 1)
-		dmg = victim.health - 1;
-	if (dmg <= 0)
-		return;
-
 	fg_inflicting = FG_PONG;
-	T_Damage (victim, m, m.owner, dmg);
+	T_Damage (victim, m, m.owner, 5);
 	fg_inflicting = 0;
-	if (victim.health < 1)
-		victim.health = 1;
 };
 
 void() GJ_MiniTouch =
@@ -417,7 +417,7 @@ void() GJ_MiniThink =
 		fwd_ang_y = self.angles_y;
 		makevectors (fwd_ang);
 
-		spd = 450 + self.gj_role * 25;
+		spd = 485 + self.gj_role * 25;
 		self.velocity_x = v_forward_x * spd;
 		self.velocity_y = v_forward_y * spd;
 
@@ -496,7 +496,7 @@ void() GJ_MiniThink =
 
 			// Tangential + radial wheel-driving velocity along the floor (tires stay grounded!)
 			tang = normalize (to_goal);
-			spd = 435 + self.gj_role * 25;
+			spd = 465 + self.gj_role * 25;
 			self.velocity_x = tang_x * spd;
 			self.velocity_y = tang_y * spd;
 
@@ -652,7 +652,7 @@ void() GJ_MiniThink =
 		}
 	}
 
-	spd = 385 + self.gj_role * 30;
+	spd = 460 + self.gj_role * 25;
 	self.velocity_x = v_forward_x * spd;
 	self.velocity_y = v_forward_y * spd;
 

@@ -56,6 +56,7 @@ void() MB_PrecachePool =
 void() MB_Precache =
 {
 	local float n, t, f;
+	local string s;
 
 	precache_model ("progs/v_mysterybox.md3");
 	precache_model ("progs/proj_mysterybox.md3");
@@ -65,11 +66,18 @@ void() MB_Precache =
 	precache_sound ("weapons/r_exp3.wav");
 	precache_sound ("weapons/tink1.wav");
 	precache_sound ("weapons/lstart.wav");
+	precache_sound ("mbox/drv_boing_hop.wav");
 	f = cvar ("mb_force");
 	n = tokenize (cvar_string ("mb_pool"));
 	t = 1;
 	while (t <= 28)
 	{
+		s = MB_DriveSound (t);
+		if (s != "")
+			precache_sound (s);
+		s = MB_ExplodeSound (t);
+		if (s != "")
+			precache_sound (s);
 		if ((MB_InPool (t, n) || t == f) && !MB_IsSprite (t))
 			MB_PrecacheType (t);
 		t = t + 1;
@@ -146,12 +154,26 @@ string(float t) MB_TypeModel =
 // no running sound, and the stock explosion.
 string(float t) MB_DriveSound =
 {
+	if (t == 1)		return "friends/megamayan.wav";
 	if (t == 2)		return "john/jv15.wav";
-	if (t == 9)		return "friends/gowewd.wav";
+	if (t == 3)		return "funny/soleet1.wav";
+	if (t == 4)		return "john/jv05.wav";
+	if (t == 5)		return "netsend/ns_beep.wav";
+	if (t == 6)		return "friends/gowewd.wav";
+	if (t == 7)		return "ltgun/canis.wav";
+	if (t == 8)		return "friends/thats_good.wav";
+	if (t == 9 || t == 16)	return "friends/gowewd.wav";
+	if (t == 10)	return "funny/giggles.wav";
+	if (t == 11)	return "friends/interesting.wav";
 	if (t == 14)	return "floathead/calc/c2.wav";
 	if (t == 17)	return "bryan/noway.wav";
+	if (t == 18)	return "friends/hello.wav";
+	if (t == 19)	return "friends/hello2.wav";
+	if (t == 20)	return "funny/quakeahh.wav";
+	if (t == 21)	return "friends/thats_good.wav";
 	if (t == 22)	return "mbox/drv_boing_hop.wav";		// vote of 2026-11-01 (drv_boing_hop, made by make_mbox_sound_vote.py)
 	if (t == 23)	return "david/shower_love.wav";
+	if (t >= 24 && t <= 26)	return "funny/giggles.wav";
 	if (t == 27)	return "daniel/ccc_chant.wav";
 	if (t == 28)	return "daniel/dad_4am.wav";
 	return "";
@@ -159,24 +181,53 @@ string(float t) MB_DriveSound =
 
 float(float t) MB_DriveLen =
 {
+	if (t == 1)		return 1.8;
 	if (t == 2)		return 0.566;
-	if (t == 9)		return 2.09;
+	if (t == 3)		return 1.6;
+	if (t == 4)		return 1.5;
+	if (t == 5)		return 1.2;
+	if (t == 6)		return 2.09;
+	if (t == 7)		return 2.5;
+	if (t == 8)		return 1.8;
+	if (t == 9 || t == 16)	return 2.09;
+	if (t == 10)	return 1.8;
+	if (t == 11)	return 1.8;
 	if (t == 14)	return 5.015;
 	if (t == 17)	return 1.74;
+	if (t == 18)	return 1.5;
+	if (t == 19)	return 1.5;
+	if (t == 20)	return 1.6;
+	if (t == 21)	return 1.8;
 	if (t == 22)	return 2;
 	if (t == 23)	return 2.65;
+	if (t >= 24 && t <= 26)	return 1.8;
 	if (t == 27)	return 4.13;
 	if (t == 28)	return 3.22;
-	return 1;
+	return 1.6;
 };
 
 string(float t) MB_ExplodeSound =
 {
+	if (t == 1)		return "funny/wewe.wav";
 	if (t == 2)		return "john/jv11.wav";
-	if (t == 9)		return "friends/no.wav";
+	if (t == 3)		return "funny/goooood.wav";
+	if (t == 4)		return "john/jv19.wav";
+	if (t == 5)		return "netsend/wheres_disk.wav";
+	if (t == 6)		return "funny/huh.wav";
+	if (t == 7)		return "ltgun/hit.wav";
+	if (t == 8)		return "funny/gg.wav";
+	if (t == 9 || t == 16)	return "friends/no.wav";
+	if (t == 10)	return "funny/giggle2.wav";
+	if (t == 11)	return "funny/soleet2.wav";
 	if (t == 14)	return "fungun/fg_bonk_hit.wav";
 	if (t == 17)	return "grenade/boom_03_scream_launch.wav";		// vote of 2026-11-01
+	if (t == 18)	return "funny/gg.wav";
+	if (t == 19)	return "funny/wun.wav";
+	if (t == 20)	return "funny/soleet1.wav";
+	if (t == 21)	return "funny/hearh.wav";
+	if (t == 22)	return "funny/huh.wav";
 	if (t == 23)	return "david/slot_jackpot.wav";
+	if (t >= 24 && t <= 26)	return "funny/wewe.wav";
 	if (t == 27)	return "daniel/shaaa_scream.wav";
 	if (t == 28)	return "daniel/sorry_table.wav";
 	return "";
@@ -687,7 +738,7 @@ void() MB_Explode =
 	e = findradius (org, MB_BLAST + 40);
 	while (e)
 	{
-		if (MB_IsEnemy (e))
+		if (MB_IsEnemy (e) && CanDamage (e, self))
 		{
 			d = vlen (e.origin + '0 0 16' - org);
 			T_Damage (e, self, self.owner, MB_BLAST * (1 - 0.5 * d / (MB_BLAST + 40)));
@@ -858,36 +909,25 @@ void() MB_Think =
 	}
 	if (d <= MB_FACE)
 		return;		// in their face: it stays put
-	// stuck (a wall, a pit, no way across): after MB_STUCK seconds without getting anywhere it glides straight at them through
-	// the geometry (noclip, still shootable). It never gives up on the rush.
-	if (!self.mb_glide)
+	// stuck (a curb, car, fence or ledge): after MB_STUCK seconds without getting anywhere, launch in a physical
+	// ballistic super-leap over obstacles instead of noclip-ghosting through solid walls!
+	if (time >= self.mb_pos_t + MB_STUCK)
 	{
-		if (time >= self.mb_pos_t + MB_STUCK)
+		if (vlen (self.origin - self.mb_pos) < 48 && d > MB_FACE)
 		{
-			if (vlen (self.origin - self.mb_pos) < 48 && d > MB_FACE)
-			{
-				self.mb_glide = TRUE;
-				self.movetype = MOVETYPE_NOCLIP;
-				self.flags = self.flags - (self.flags & FL_ONGROUND);
-				dprint ("mbox: glide\n");
-			}
+			self.flags = self.flags - (self.flags & FL_ONGROUND);
+			self.velocity = dir * 380 + '0 0 460';
+			FG_Snd (self, CHAN_BODY, "mbox/drv_boing_hop.wav", 0.7, 1.1);
 			self.mb_pos = self.origin;
 			self.mb_pos_t = time;
+			return;
 		}
+		self.mb_pos = self.origin;
+		self.mb_pos_t = time;
 	}
 	spd = MB_SPEED;
 	if (self.mb_type == 23)
 		spd = MB_SPEED * 1.45;		// David Ojeda runs extra fast!
-	if (self.mb_glide)
-	{
-		dir = self.mb_target.origin + self.mb_target.mins_z * '0 0 1' - self.origin;
-		dir_z = dir_z - self.mins_z;
-		if (vlen (dir) > MB_FACE)
-			self.velocity = normalize (dir) * spd;
-		else
-			self.velocity = '0 0 0';
-		return;
-	}
 	// run at them. On the floor that is a walk (it climbs stairs); where the walk is refused (a ledge, a wall) it is pushed along
 	// instead, so it drops off ledges and slides along walls. Off the ground it keeps its heading until it lands.
 	if (self.flags & FL_ONGROUND)

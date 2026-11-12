@@ -590,7 +590,8 @@ void(float kind) RandomNPC_InitCommon =
 		self.npc_respawn = 25;
 	if (self.npc_radius <= 0)
 		self.npc_radius = 460;
-	self.flags = FL_MONSTER;
+	// Peaceful ambient street/party NPCs: omit FL_MONSTER so Mystery Box, Green Guys, Pickle & FrikBots chase real rivals!
+	self.flags = self.flags - (self.flags & FL_MONSTER);
 	// Exact Quake player bounding box ('-16 -16 -24' to '16 16 32')!
 	setsize(self, '-16 -16 -24', '16 16 32');
 	droptofloor();

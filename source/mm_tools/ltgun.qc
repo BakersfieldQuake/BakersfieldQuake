@@ -135,9 +135,12 @@ void() LtGun_Gone =
 // whoever is shocked runs about and is electrocuted a little (LtGun_PlayerFrame)
 void(entity e, entity by) LtGun_Shock =
 {
-	if (e.classname != "player" || e.health <= 0 || e.bm_prot_t > time)
-		return;		// (spawn protection: no slow either)
+	if (e.classname != "player" || e.health <= 0 || e.bm_prot_t > time || time < e.ltg_immune_t)
+		return;		// (spawn protection or post-shock immunity: no slow either)
+	if ((e == by && !cvar ("ltg_test")) || (teamplay && by && e.team > 0 && e.team == by.team))
+		return;
 	e.ltg_shock = time + LTG_SHOCK_TIME;
+	e.ltg_immune_t = time + LTG_SHOCK_TIME + 2.5;
 	e.ltg_by = by;
 	e.ltg_zap_t = time + 0.1;
 	sound (e, CHAN_ITEM, "ltgun/zap.wav", 1, ATTN_NORM);
@@ -427,7 +430,7 @@ void() LtGun_PlayerFrame =
 		self.ltg_phase = 0;
 		self.ltg_sent = FALSE;
 	}
-	else
+	else if (self.meleeing != 1 && self.throwing != 1)
 	{
 		if (!self.v_weapon_position_helper)
 			self.weaponmodel = LtGun_VModel (self);		// (with the sway helper, custom_effects.qc picks the model)
@@ -458,15 +461,13 @@ void() LtGun_PlayerFrame =
 		self.ltg_shock = 0;
 		return;
 	}
-	// the shock slows: a shocked player crawls at LTG_SHOCK_SPEED and cannot jump (like goo)
+	// the shock slows horizontal movement to LTG_SHOCK_SPEED while still letting players jump & rocket-jump!
 	v = self.velocity;
 	z = v_z;
 	v_z = 0;
 	sp = vlen (v);
 	if (sp > LTG_SHOCK_SPEED)
 		v = normalize (v) * LTG_SHOCK_SPEED;
-	if (z > 90)
-		z = 90;
 	v_z = z;
 	self.velocity = v;
 	// the electrocution: a little damage and sparks (no screen flash: v_cshift is persistent client state and it stuck blue)
@@ -532,6 +533,7 @@ void() LtGun_Spawn =
 	self.ltg_phase = 0;
 	self.ltg_sent = FALSE;
 	self.ltg_shock = 0;
+	self.ltg_immune_t = 0;
 	if (self.ishuman == 1)
 		stuffcmd (self, "v_cshift 0 0 0 0\n");		// clears a blue tint left by older builds
 };

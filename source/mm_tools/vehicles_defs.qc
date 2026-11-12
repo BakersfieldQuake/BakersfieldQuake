@@ -34,12 +34,13 @@ float	VEH_COUPE		= 4;
 float	VEH_HDTRUCK		= 5;
 float	VEH_SCHOOLBUS	= 6;
 float	VEH_GTCAR		= 7;
+float	VEH_GOLFCART	= 8;
 
 float	VEH_STATE_IDLE	= 0;
 float	VEH_STATE_FIRE	= 1;
 float	VEH_STATE_WRECK	= 2;
 
-var float	autocvar_veh_respawn	= 0;	// > 0: seconds after wreck settles before map vehicle respawns fresh (0 = permanent charred wreck)
+var float	autocvar_veh_respawn	= 30;	// > 0: seconds after wreck settles before map vehicle respawns fresh (0 = permanent charred wreck)
 var float	autocvar_veh_debug		= 0;	// 1: log the driven van's speed / heading / steering / revs 4x a second (needs developer 1)
 
 float	veh_inflicting;						// TRUE while an exploding vehicle deals T_RadiusDamage (for ClientObituary & chain stagger)
@@ -91,8 +92,13 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
 .float	veh_smoke_t2;		// next tyre-smoke puff
 .float	veh_start_t;		// engine finishes cranking at this time (no drive before)
 .float	veh_crash_t;		// rate limit for crash damage/sounds
+.float	veh_coast_until;	// > 0 while empty vehicle is ghost-riding / coasting after a high-speed dive-bail
 // ... on the player:
-.entity	veh_van;			// the van he is driving (world = on foot)
+.entity	veh_van;			// the vehicle he is driving (world = on foot)
+.entity	veh_ride;			// the vehicle he is riding in as a drive-by passenger (world = not riding)
+.float	veh_seat;			// passenger seat index 1..5 on veh_ride
+.entity	veh_last_van;		// vehicle most recently exited via dive-bail / passenger hop
+.float	veh_bail_safe_t;	// brief ram & self-blast immunity after diving clear of veh_last_van
 .float	veh_oldmove;		// movetype / solid to give back when he gets out
 .float	veh_oldsolid;
 .float	veh_camera;			// 0 = cockpit view, 1 = chase view
@@ -112,8 +118,18 @@ float	veh_runover;		// TRUE while a van deals ram damage (for ClientObituary)
 
 void() Vehicles_Precache;
 void() Vehicles_Impulse;
+string(float kind) Veh_DisplayName;
+float(float kind) Veh_HalfLen;
+float(float kind) Veh_HalfWid;
+float(float kind) Veh_BodyHeight;
 float(entity p) Veh_Driving;				// TRUE while p is at the wheel (custom_effects.qc hides the gun on it)
+float(entity p) Veh_Riding;					// TRUE while p is riding shotgun / turret passenger
 float() Veh_DriveFrame;						// W_WeaponFrame hook: TRUE while this player is driving (he does nothing else)
+void() Veh_PassengerFrame;					// W_WeaponFrame hook: syncs passenger seat & handles H bail while keeping full weapons
+void() Veh_SpawnReset;						// PutClientInServer: clear driver/passenger fields cleanly
+void(entity v) Veh_SyncPassengers;			// lockstep passenger sync after vehicle moves
+void(entity v, float exploding) Veh_AllPassengersBail;
+void(entity v, float dt) Veh_CoastStep;		// ghost-riding empty vehicle coast & crash step
 void(entity v) Veh_DriveWatch;				// van think: let the driver go if he died or dropped
 void(entity v) Veh_DriverBail;				// the van is blowing up: throw the driver out at the seat
 void() Veh_ClientGone;					// ClientDisconnect: a driver who drops leaves the van parked
@@ -131,3 +147,4 @@ void() misc_vehicle_coupe;
 void() misc_vehicle_hdtruck;
 void() misc_vehicle_schoolbus;
 void() misc_vehicle_gtcar;
+void() misc_vehicle_golfcart;

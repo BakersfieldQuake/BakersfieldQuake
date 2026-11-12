@@ -223,7 +223,7 @@ void(vector dir) Tommy_WallImpact =
 
 void() Tommy_Press =
 {
-	local float a, spr, spd;
+	local float a, spr, spd, dist, dmg;
 	local vector dir, src;
 
 	if (self.bm_rl_slot == BM_FG8 || time < self.tom_draw_t + TOM_DRAW_LOCK)
@@ -281,7 +281,13 @@ void() Tommy_Press =
 	if (trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-			TraceAttack (TOM_DAMAGE, dir);
+		{
+			dist = trace_fraction * TOM_RANGE;
+			dmg = TOM_DAMAGE;
+			if (dist > 1200)
+				dmg = max (TOM_DAMAGE * 0.50, TOM_DAMAGE * (1 - 0.50 * ((dist - 1200) / 2000)));
+			TraceAttack (dmg, dir);
+		}
 		else
 			Tommy_WallImpact (dir);
 	}

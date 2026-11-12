@@ -136,6 +136,69 @@ float(entity p) Underdog_IsLast =
 // Killed (before the obituary adds the normal frag): the bounty, and the newbie taunt for last place
 void(entity p) Underdog_ClearFx;
 
+void() Underdog_PinataTouch =
+{
+	local entity os;
+
+	if (other.classname != "player" || other.health <= 0 || time < self.cnt)
+		return;
+	if (other.health < 220)
+	{
+		other.health = other.health + 75;
+		if (other.health > 220)
+			other.health = 220;
+	}
+	other.items = other.items | IT_QUAD;
+	other.super_time = 1;
+	if (other.super_damage_finished < time + 6)
+		other.super_damage_finished = time + 6;
+	os = self;
+	self = other;
+	BM_FillAll ();
+	self = os;
+	other.jb_cooldown_t = 0;
+	sound (other, CHAN_ITEM, "items/damage.wav", 1, ATTN_NORM);
+	particle (self.origin, '0 0 140', 192, 40);
+	if (other.ishuman == 1)
+		centerprint (other, "^3BOUNTY LOOT! +75 HP + 6s QUAD + FULL TOYS!");
+	bprint ("^3", other.netname, " scooped up the BOUNTY PINATA LOOT!\n");
+	remove (self);
+};
+
+void(vector org) Underdog_SpawnPinata =
+{
+	local entity orb;
+	local vector rv;
+
+	orb = spawn ();
+	orb.classname = "ud_pinata";
+	orb.movetype = MOVETYPE_TOSS;
+	orb.solid = SOLID_TRIGGER;
+	setmodel (orb, "progs/quaddama.mdl");
+	setsize (orb, '-16 -16 -24', '16 16 32');
+	setorigin (orb, org + '0 0 24');
+	rv = randomvec ();
+	rv_z = 0;
+	orb.velocity = rv * 55 + '0 0 235';
+	orb.avelocity = '0 160 0';
+	orb.scale = 0.85;
+	orb.effects = EF_FULLBRIGHT | EF_DIMLIGHT;
+	orb.glow_color = 192;
+	orb.glow_size = 140;
+	orb.cnt = time + 0.35;
+	orb.touch = Underdog_PinataTouch;
+	orb.think = SUB_Remove;
+	orb.nextthink = time + 15;
+};
+
+float() Underdog_PulseOn =
+{
+	local float cyc;
+
+	cyc = time - 4.5 * floor (time / 4.5);
+	return (cyc < 1.1);
+};
+
 void(entity targ, entity attacker) Underdog_Killed =
 {
 	if (!deathmatch || targ.classname != "player")
@@ -163,9 +226,14 @@ void(entity targ, entity attacker) Underdog_Killed =
 		return;
 	if (autocvar_bm_bounty && targ.ud_heat >= 4)
 	{
-		attacker.frags = attacker.frags + 1;
-		bprint (attacker.netname, " took down ", targ.netname, " - BOUNTY +1!\n");
+		attacker.frags = attacker.frags + 2;
+		bprint ("^3", attacker.netname, " POPPED ", targ.netname, "'s BOUNTY PINATA! (+2 FRAGS + LOOT ORB!)\n");
+		if (attacker.ishuman == 1)
+			centerprint (attacker, strcat ("^3BOUNTY PINATA! +2 FRAGS!\n^2Took down ", targ.netname));
 		sound (attacker, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
+		particle (targ.origin + '0 0 24', '0 0 180', 192, 64);
+		particle (targ.origin + '0 0 32', '0 0 220', 41, 48);
+		Underdog_SpawnPinata (targ.origin);
 		ud_next_t = 0;
 	}
 };
@@ -228,8 +296,11 @@ void() Underdog_FxFrame =
 	b.glow_size = min (80 + 25 * self.ud_heat, 400);
 	if (self.ud_tier >= 3)
 	{
-		// the beacon: drawn through walls, and never culled by the server
-		b.effects = BM_EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE;
+		// periodic radar beacon: pulses through walls for 1.1s every 4.5s so ambushes stay alive!
+		if (Underdog_PulseOn ())
+			b.effects = BM_EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE;
+		else
+			b.effects = EF_FULLBRIGHT | EF_ADDITIVE;
 		sn = sin (time * 6);		// sin is a __variant in Combat+'s defs
 		b.scale = 4 + sn;
 		b.alpha = 1;
@@ -249,11 +320,19 @@ void() Underdog_FxFrame =
 		if (!b.enemy)
 		{
 			b.enemy = Underdog_FxEnt (self, "progs/player_id1.mdl");
-			b.enemy.effects = BM_EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE;
 			b.enemy.colormod = '2 1.5 0.3';
-			b.enemy.alpha = 0.45;
 		}
 		x = b.enemy;
+		if (Underdog_PulseOn ())
+		{
+			x.effects = BM_EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE;
+			x.alpha = 0.45;
+		}
+		else
+		{
+			x.effects = EF_FULLBRIGHT | EF_ADDITIVE;
+			x.alpha = 0.22;
+		}
 		x.modelindex = self.modelindex;
 		x.frame = self.frame;
 		x.skin = self.skin;
@@ -343,9 +422,9 @@ void() Underdog_Update =
 		}
 		t = Underdog_Tier (e.ud_heat);
 		if (t >= 4 && e.ud_tier < 4)
-			bprint ("^3", e.netname, " is UNSTOPPABLE - they show through walls now!\n");
+			bprint ("^3", e.netname, " is UNSTOPPABLE - radar sweeps locking onto them!\n");
 		else if (t >= 3 && e.ud_tier < 3)
-			bprint ("^3", e.netname, " is DOMINATING - everyone hunt them down!\n");
+			bprint ("^3", e.netname, " is DOMINATING - radar pings active, hunt the Pinata!\n");
 		e.ud_tier = t;
 		if (e.ud_heat >= 2 && e.ud_heat > besth)
 		{
@@ -451,24 +530,17 @@ void() Underdog_Spawn =
 	if (last)
 		b = 1;		// the guarantee: it can't be diluted by a leader fade or anything else on this spawn
 
-	hp = 100 + floor (150 * b);
+	hp = 100 + floor (80 * b);
 	self.max_health = hp;
 	if (self.health < hp)
 		self.health = hp;
-	// armor by boost: the classic items, so the HUD icon says which
+	// armor by boost: capped at 150 Yellow Armor so underdogs are offensive chaos engines, not 1,000-EHP bullet sponges
 	ar = 0;
-	if (b >= autocvar_bm_ud_red)
+	if (b >= autocvar_bm_ud_yellow)
 	{
-		ar = 200;
-		if (b >= 0.9)
-			ar = 250;
-		self.items = self.items - (self.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
-		self.items = self.items | IT_ARMOR3;
-		self.armortype = 0.8;
-	}
-	else if (b >= autocvar_bm_ud_yellow)
-	{
-		ar = 150;
+		ar = 125;
+		if (b >= autocvar_bm_ud_red)
+			ar = 150;
 		self.items = self.items - (self.items & (IT_ARMOR1 | IT_ARMOR2 | IT_ARMOR3));
 		self.items = self.items | IT_ARMOR2;
 		self.armortype = 0.6;
@@ -476,6 +548,11 @@ void() Underdog_Spawn =
 	if (ar > self.armorvalue)
 		self.armorvalue = ar;
 	self.ud_level = 1 + floor (b * 4);
+	if (earned && b >= 0.60)
+	{
+		BM_FillAll ();
+		self.jb_cooldown_t = 0;
+	}
 
 	// power-ups only after a real death, so `kill` can't re-roll them
 	if (last)
@@ -533,7 +610,7 @@ void() Underdog_Spawn =
 		centerprint (self, strcat ("^5Blue Shell ready - Mega Man hunts ", best.netname));
 };
 
-// Mega Man launch: spend a Blue Shell on this one
+// Mega Man launch: spend a 3D Flying Blue Shell on this one!
 void(entity m) Underdog_BlueShell =
 {
 	local entity t;
@@ -545,7 +622,15 @@ void(entity m) Underdog_BlueShell =
 		return;
 	self.ud_blueshell = FALSE;
 	m.ud_hunt = t;
-	m.effects = m.effects | 64;		// EF_BLUE: a blue light, like the shell
-	centerprint (self, strcat ("^5Blue Shell hunting ", t.netname));
-	centerprint (t, "^1Incoming Blue Shell!");
+	m.ud_shell_stage = 1;
+	m.ud_shell_t = time + 18;
+	m.movetype = MOVETYPE_NOCLIP;
+	m.solid = SOLID_NOT;
+	m.takedamage = DAMAGE_NO;
+	m.scale = 1.35;
+	m.effects = m.effects | 64 | 8 | 512;		// EF_BLUE + EF_DIMLIGHT + EF_FULLBRIGHT
+	sound (t, CHAN_AUTO, "weapons/megahorn.wav", 1, ATTN_NORM);
+	centerprint (self, strcat ("^5FLYING BLUE SHELL airborne -> ", t.netname, "!"));
+	centerprint (t, "^1INCOMING BLUE SHELL! LISTEN FOR THE HORN!");
+	bprint ("^5", self.netname, " launched a FLYING BLUE SHELL at ", t.netname, "!\n");
 };

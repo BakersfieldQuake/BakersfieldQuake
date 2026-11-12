@@ -44,16 +44,17 @@ var float	autocvar_bm_handicap		= 1;		// 0 = no leader glow / underdog boosts
 var float	autocvar_bm_bounty			= 1;		// killing someone 4+ frags ahead of the pack is worth +1
 var float	autocvar_bm_newbie			= 0.3;		// chance that killing the player in last place plays funny/newbie.wav (0 = never)
 var float	autocvar_bm_giantslayer		= 1;		// max extra damage an underdog deals to players ranked above them
-var float	autocvar_bm_ud_resist		= 0.35;		// max cut in the damage an underdog takes from players ranked above them
+var float	autocvar_bm_ud_resist		= 0;		// max cut in the damage an underdog takes from players ranked above them (0 = reliable TTK)
 var float	autocvar_bm_ud_span			= 8;		// frags behind the leader for the full gap signal in a 1v1 (tighter with more players)
-var float	autocvar_bm_ud_streak		= 7;		// deaths in a row for Last Stand with 3-5 players (+1 in a 1v1, -1 at 6+, -2 at 10+)
+var float	autocvar_bm_ud_streak		= 6;		// deaths in a row for Last Stand with 3-5 players (+1 in a 1v1, -1 at 6+, -2 at 10+)
 var float	autocvar_bm_ud_botcap		= 0.6;		// bots' boost stops here and they never get Last Stand
 var float	autocvar_bm_spawnarmor		= 100;		// green armor every deathmatch spawn (0 = none, like stock Quake)
 var float	autocvar_bm_ud_yellow		= 0.3;		// boost for spawning with yellow armor (150)
-var float	autocvar_bm_ud_red			= 0.6;		// boost for spawning with red armor (200)
+var float	autocvar_bm_ud_red			= 0.75;		// boost for spawning with red armor (capped at 150 yellow stack by default)
 
 var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer (bm_fun.qc): no first blood, sprees, revenge, clips
-var float	autocvar_bm_fun_gap			= 3;		// seconds between two announcer clips
+var float	autocvar_bm_fun_gap			= 10;		// seconds between two global announcer voice clips
+var float	autocvar_bm_scroll_fun		= 0;		// 0 = mouse-wheel skips joke slots FG1..FG6 (keeps M4/Thompson/Garand); 1 = include all 9
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
 var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
 var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
@@ -102,6 +103,8 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_rl_slot;			// slot being reloaded (0 = none)
 .float	bm_rl_start;		// reload started
 .float	bm_rl_end;			// reload finishes
+.float	bm_rl_quiet;		// 1 = background idle top-up (keep viewmodel visible & silent)
+.float	bm_full_refill;		// 1 = backpack/supply-pack touch refills fun-gun superweapons too
 .float	bm_vm_hidden;		// the gun is out of sight while it reloads: the slot being reloaded (0 = in view)
 .string	bm_vm_str;			// the held gun's model, put back when the reload is over (a strzone'd copy)
 .float	bm_lastshot;		// last time the held magazine went down
@@ -125,6 +128,8 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .string	bm_st_leader;		// the current leader's name ("" = nobody far enough ahead)
 .float	bm_st_botmask;		// bitmask of live visible bot client slots 0..15 (stat 76, csqc/bm_hud.qc)
 .float	bm_st_botcnt;		// active bot count (stat 77, csqc/bm_hud.qc)
+.float	bm_st_toymask;		// bitmask of ready fun-gun superweapons & Winged John (stat 78, csqc/bm_hud.qc)
+.float	bm_st_toycd;		// Winged John cooldown seconds remaining (stat 79, csqc/bm_hud.qc)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
@@ -150,6 +155,9 @@ string	bm_nextmap;			// playlist pick, strzoned
 .float	ud_tier;			// leader effect tier 0..4 (announcements fire on the way up)
 .entity	ud_aura;			// leader effects entity (glow, beacon, x-ray copy)
 entity	ud_leader;			// player with the most heat (world = nobody far enough ahead)
+.float	ud_shell_stage;		// Flying Blue Shell: 0 = normal Mega Man, 1 = 3D flight, 2 = overhead lock-on, 3 = slam
+.float	ud_shell_t;			// Flying Blue Shell stage timer
+.float	mr_geyser_t;		// Morro Rock ocean-geyser rescue cooldown
 
 // ---------------------------------------------------------------- kill announcer (bm_fun.qc)
 .float	bm_streak;			// player: kills since their last death
@@ -167,6 +175,7 @@ void() BM_OutOfAmmo;
 float() BM_CheckNoAmmo;
 void() BM_Spawn;
 void() BM_FillAll;
+void() BM_FillCombatOnly;
 float(entity p, float s) BM_GetMag;
 float(float s) BM_MagSize;
 float() BM_CurSlot;
@@ -189,6 +198,7 @@ float(entity p) Underdog_IsLast;
 
 void() Underdog_Update;
 void() Underdog_FxFrame;
+float() Underdog_PulseOn;
 float() Underdog_RegenDelay;
 float() Underdog_RegenRate;
 void(float dt) Underdog_ArmorRegen;
@@ -281,7 +291,9 @@ float	skypad_precached;
 float	skypad_present;
 .float	skypad_cool_t;
 .float	skypad_safe_t;
+.float	skypad_vel_sent;
 void() SkyPad_Precache;
+void() SkyPad_LandWave;
 void() SkyPad_Report;
 void() info_skypad;
 

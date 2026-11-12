@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 DOWNTOWN BOTS & FULL-ARSENAL DEATHMATCH AI (BakersfieldQuake)
@@ -842,6 +845,112 @@ void(string cname, float rad) BM_AddClassWaypoints =
 	}
 };
 
+void(vector a_org, vector b_org, float rad) BM_LinkBiPair =
+{
+	local entity wa, wb;
+
+	wa = BM_EnsureWaypoint (a_org, rad);
+	wb = BM_EnsureWaypoint (b_org, rad);
+	if (wa != world && wb != world)
+	{
+		LinkWays (wa, wb);
+		LinkWays (wb, wa);
+	}
+};
+
+void(vector a_org, vector b_org, float rad) BM_LinkOneWayPair =
+{
+	local entity wa, wb;
+
+	wa = BM_EnsureWaypoint (a_org, rad);
+	wb = BM_EnsureWaypoint (b_org, rad);
+	if (wa != world && wb != world)
+		LinkWays (wa, wb);
+};
+
+// Explicit WALK18 stair, lobby, balcony & suite exit chains so indoor/sub-grade/elevated spawns
+// (especially Sandrini's basement, Fox lobby/mezz/stage, Padre lobby/suites/roof, Nile, Jerry's, Dagny's,
+// NE alcove, and Padre Garage L4) connect 100% into the main street waypoint graph.
+// All z values sit at resting player origin_z (floor_z + 26u) with step hops |dz| < 64u so FrikBot's
+// 32u 3D capture sphere pops every stair node cleanly without triggering bot_lost().
+void() BM_AddDowntownIndoorWaypoints =
+{
+	// 1. Sandrini's basement, booth (spawn #14), back room & staircase up to Eye St
+	BM_LinkBiPair ('-3384 276 -106', '-3559 276 -106', 44);
+	BM_LinkBiPair ('-3559 218 -60', '-3559 276 -106', 44);
+	BM_LinkBiPair ('-3559 276 -106', '-3720 300 -106', 44);
+	BM_LinkBiPair ('-3768 468 -106', '-3708 372 -106', 44);
+	BM_LinkBiPair ('-3708 372 -106', '-3720 300 -106', 44);
+	BM_LinkBiPair ('-3720 300 -106', '-3792 300 -76', 40);
+	BM_LinkBiPair ('-3792 300 -76', '-3864 300 -37', 40);
+	BM_LinkBiPair ('-3864 300 -37', '-3936 300 9', 40);
+	BM_LinkBiPair ('-3936 300 9', '-4008 300 32', 40);
+	BM_LinkBiPair ('-4008 300 32', '-4116 300 32', 44);
+	BM_LinkBiPair ('-4116 300 32', '-4330 294 26', 44);
+
+	// 2. Fox Theater lobby, mezzanine (spawn #02) & west stage exit (spawn #03)
+	BM_LinkBiPair ('-9900 2568 32', '-10080 2472 32', 48);
+	BM_LinkBiPair ('-10080 2472 32', '-10080 2304 32', 48);
+	BM_LinkBiPair ('-10080 2304 32', '-10080 2076 26', 48);
+	BM_LinkOneWayPair ('-10236 2736 276', '-9840 2736 276', 48);
+	BM_LinkOneWayPair ('-9840 2736 276', '-9780 2592 232', 48);
+	BM_LinkOneWayPair ('-9780 2592 232', '-9912 2496 172', 48);
+	BM_LinkOneWayPair ('-9912 2496 172', '-10044 2472 172', 48);
+	BM_LinkOneWayPair ('-10044 2472 172', '-10080 2304 32', 48);
+	BM_LinkBiPair ('-9912 3456 74', '-10092 3996 72', 56);
+	BM_LinkBiPair ('-10092 3996 72', '-10332 4116 72', 48);
+	BM_LinkBiPair ('-10332 4116 72', '-10500 4248 72', 48);
+	BM_LinkBiPair ('-10500 4248 72', '-10680 4248 26', 48);
+	BM_LinkBiPair ('-10680 4248 26', '-10704 3684 31', 56);
+
+	// 3. Padre Hotel lobby (spawns #04, #42), upper suites (#43..#45) & roof drops (#05)
+	BM_LinkBiPair ('-9588 -5424 32', '-9390 -5366 32', 48);
+	BM_LinkBiPair ('-9390 -5366 32', '-9156 -5652 32', 48);
+	BM_LinkBiPair ('-9156 -5652 32', '-8916 -5652 26', 48);
+	BM_LinkOneWayPair ('-9492 -4860 1256', '-9732 -4500 32', 64);
+	BM_LinkOneWayPair ('-10184 -5824 1256', '-10356 -5824 26', 64);
+	BM_LinkBiPair ('-10179 -5697 536', '-10179 -5504 536', 44);
+	BM_LinkBiPair ('-10179 -5504 536', '-9576 -5504 536', 48);
+	BM_LinkBiPair ('-9576 -5504 536', '-9576 -4862 536', 48);
+	BM_LinkOneWayPair ('-9576 -4862 536', '-9616 -4862 536', 36);
+	BM_LinkOneWayPair ('-9616 -4862 536', '-9696 -4862 35', 44);
+	BM_LinkBiPair ('-10064 -5697 824', '-9984 -5688 824', 44);
+	BM_LinkBiPair ('-9984 -5688 824', '-9984 -5568 824', 44);
+	BM_LinkBiPair ('-9984 -5568 824', '-9624 -5568 824', 48);
+	BM_LinkBiPair ('-9624 -5568 824', '-9624 -4862 824', 48);
+	BM_LinkOneWayPair ('-9624 -4862 824', '-9696 -4862 35', 44);
+	BM_LinkBiPair ('-9696 -4862 35', '-9624 -4848 35', 36);
+	BM_LinkBiPair ('-9624 -4848 35', '-9624 -4776 35', 36);
+	BM_LinkBiPair ('-9624 -4776 35', '-9816 -4776 35', 48);
+	BM_LinkBiPair ('-9816 -4776 35', '-9816 -4440 26', 48);
+
+	// 4. Nile Theater auditorium (spawn #06) & balcony drop (spawn #07)
+	BM_LinkBiPair ('-11004 -3492 26', '-10704 -3252 32', 56);
+	BM_LinkBiPair ('-10704 -3252 32', '-10774 -2814 32', 56);
+	BM_LinkBiPair ('-10774 -2814 32', '-10764 -2508 26', 56);
+	BM_LinkOneWayPair ('-10896 -3024 194', '-10740 -3096 194', 48);
+	BM_LinkOneWayPair ('-10740 -3096 194', '-10884 -3096 32', 48);
+	BM_LinkBiPair ('-10884 -3096 32', '-10774 -2814 32', 48);
+
+	// 5. Jerry's Pizza interior -> Chester Ave
+	BM_LinkBiPair ('-1140 -4032 32', '-876 -4092 32', 48);
+	BM_LinkBiPair ('-876 -4092 32', '-636 -4140 32', 48);
+	BM_LinkBiPair ('-636 -4140 32', '-444 -4140 26', 48);
+
+	// 6. Dagny's Coffee interior -> Eye & 20th St
+	BM_LinkBiPair ('-5616 2760 37', '-5820 2496 33', 48);
+	BM_LinkBiPair ('-5820 2496 33', '-5820 2268 32', 48);
+	BM_LinkBiPair ('-5820 2268 32', '-5988 1980 26', 48);
+
+	// 7. NE 20th/Chester alcove & Padre Garage L4 -> street exits
+	BM_LinkBiPair ('-1212 3780 33', '-1212 4044 26', 48);
+	BM_LinkBiPair ('-1212 4044 26', '-1212 4140 32', 48);
+	BM_LinkBiPair ('-1212 4140 32', '-444 4308 26', 48);
+	BM_LinkOneWayPair ('-7092 -5472 417', '-6924 -5448 417', 48);
+	BM_LinkOneWayPair ('-6924 -5448 417', '-6840 -5640 32', 48);
+	BM_LinkBiPair ('-6840 -5640 32', '-6840 -6276 26', 56);
+};
+
 void() BM_BuildDowntownWaypoints =
 {
 	local entity e, dest, w1, w2, a, b, best1, best2, best3, best4, bestdrop;
@@ -912,7 +1021,10 @@ void() BM_BuildDowntownWaypoints =
 		e = find (e, classname, "trigger_push");
 	}
 
-	// 4. Weapons, jetpacks, armor, powerups, and all 59 street + rooftop DM spawns
+	// 3b. Explicit indoor stair, lobby, balcony & suite exit chains (seeded before class merges)
+	BM_AddDowntownIndoorWaypoints ();
+
+	// 4. Weapons, jetpacks, armor, powerups, and all street + rooftop DM spawns
 	BM_AddClassWaypoints ("item_jetpack", 180);
 	BM_AddClassWaypoints ("item_armorInv", 180);
 	BM_AddClassWaypoints ("item_armor2", 220);
@@ -965,10 +1077,10 @@ void() BM_BuildDowntownWaypoints =
 	a = way_head;
 	while (a)
 	{
-		if (a.origin_z > 140 && BM_WayFreeSlots (a) >= 2)
+		if (a.origin_z > 140 && BM_WayFreeSlots (a) >= 1)
 		{
 			bestdrop = world;
-			ddrop = 1300;
+			ddrop = 1350;
 			b = way_head;
 			while (b)
 			{
@@ -977,9 +1089,9 @@ void() BM_BuildDowntownWaypoints =
 					d = b.origin - a.origin;
 					d_z = 0;
 					dist = vlen (d);
-					if (dist > 90 && dist < ddrop)
+					if (dist > 75 && dist < ddrop)
 					{
-						traceline (a.origin + '0 0 24', b.origin + '0 0 120', TRUE, a);
+						traceline (a.origin + '0 0 42', b.origin + '0 0 120', TRUE, a);
 						if (trace_fraction == 1)
 						{
 							ddrop = dist;
@@ -1166,7 +1278,7 @@ void() BM_BotPostAI =
 {
 	local entity goal, prey;
 	local vector d, open_dir;
-	local float dz, xydist, best_frac, yaw, s;
+	local float dz, xydist, best_frac, yaw, s, fl, fr;
 
 	if (self.health <= 0)
 		return;
@@ -1290,31 +1402,70 @@ void() BM_BotPostAI =
 		{
 			d = realorigin (self.enemy) - self.origin;
 			d_z = 0;
-			if (vlen (d) > 60)
+			if (vlen (d) > 32)
 			{
 				self.keys = (self.keys & 960) | frik_KeysForDir (d);
-				// Near roof edge: leap toward the enemy below!
 				d = normalize (d);
-				traceline (self.origin + d * 44, self.origin + d * 44 - '0 0 96', TRUE, self);
-				if (trace_fraction == 1)
-					bot_jump ();
+				traceline (self.origin + '0 0 18', self.origin + '0 0 18' + d * 64, TRUE, self);
+				fl = trace_fraction;
+				traceline (self.origin + '0 0 78', self.origin + '0 0 78' + d * 64, TRUE, self);
+				if (fl < 1 && trace_fraction == 1)
+				{
+					// Vault over 48-56u rooftop brick parapet (e.g. Padre Garage L6)
+					if (!self.jp_on && self.jp_fuel >= 0.35)
+					{
+						Jetpack_On ();
+						self.button2 = TRUE;
+						self.bm_bot_jp_end = time + 0.55;
+					}
+					else
+					{
+						self.flags = self.flags - (self.flags & FL_ONGROUND);
+						self.velocity = d * 280 + '0 0 340';
+					}
+				}
+				else
+				{
+					traceline (self.origin + d * 44, self.origin + d * 44 - '0 0 96', TRUE, self);
+					if (trace_fraction == 1)
+						bot_jump ();
+				}
 			}
 		}
 		else if (!self.enemy)
 		{
 			if (!self.bm_bot_roof_t)
-				self.bm_bot_roof_t = time + 5.5;
+				self.bm_bot_roof_t = time + 2.8;
 			else if (time >= self.bm_bot_roof_t)
 			{
-				// Don't camp empty rooftops forever: jump down toward the nearest rival!
-				self.bm_bot_roof_t = time + 4.0;
+				// Don't camp empty rooftops: vault any parapet and jump down toward the nearest rival!
+				self.bm_bot_roof_t = time + 2.2;
 				prey = BM_BotPickHuntTarget ();
 				if (prey != world && prey.origin_z + 70 < self.origin_z)
 				{
 					d = prey.origin - self.origin;
 					d_z = 0;
 					self.keys = (self.keys & 960) | frik_KeysForDir (d);
-					bot_jump ();
+					d = normalize (d);
+					traceline (self.origin + '0 0 18', self.origin + '0 0 18' + d * 64, TRUE, self);
+					fl = trace_fraction;
+					traceline (self.origin + '0 0 78', self.origin + '0 0 78' + d * 64, TRUE, self);
+					if (fl < 1 && trace_fraction == 1)
+					{
+						if (!self.jp_on && self.jp_fuel >= 0.35)
+						{
+							Jetpack_On ();
+							self.button2 = TRUE;
+							self.bm_bot_jp_end = time + 0.55;
+						}
+						else
+						{
+							self.flags = self.flags - (self.flags & FL_ONGROUND);
+							self.velocity = d * 280 + '0 0 340';
+						}
+					}
+					else
+						bot_jump ();
 				}
 			}
 		}
@@ -1322,9 +1473,21 @@ void() BM_BotPostAI =
 	else
 		self.bm_bot_roof_t = 0;
 
-	// ---------------- 3. DOWNTOWN RIVAL HUNTING ----------------
+	// Padre upper-suite west courtyard window sill hop (20u sill at x=-9636, y=-4862)
+	if ((self.flags & FL_ONGROUND) && self.origin_x >= -9655 && self.origin_x <= -9560
+		&& self.origin_y >= -4950 && self.origin_y <= -4800 && self.origin_z > 480 && self.origin_z < 880)
+	{
+		bot_jump ();
+	}
+
+	// ---------------- 3. DOWNTOWN RIVAL HUNTING & SUB-GRADE EXIT ----------------
+	// Suppress perpendicular wall-dodge inside Sandrini's narrow basement stairwell so bots walk straight up the steps
+	if (self.origin_x >= -4040 && self.origin_x <= -3660 && self.origin_y >= 240 && self.origin_y <= 360 && self.origin_z < 40)
+		self.b_aiflags = self.b_aiflags - (self.b_aiflags & AI_OBSTRUCTED);
+
 	// On a huge 28,000-unit city map, idle bots actively converge on living players for nonstop action
-	if (!self.enemy && time >= self.bm_bot_hunt_t)
+	// (immediately when sub-grade with no active goal so basement spawns climb out to Eye St right away)
+	if (!self.enemy && (time >= self.bm_bot_hunt_t || (self.origin_z < -36 && self.target1 == world)))
 	{
 		self.bm_bot_hunt_t = time + 3.5 + random () * 2.5;
 		if (self.target1 == world || (self.target1.classname != "item_jetpack" && random () < 0.45))
@@ -1356,35 +1519,65 @@ void() BM_BotPostAI =
 
 		if (!self.fd_head && !self.wc_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
 		{
-			// Find widest open street direction (biased slightly toward nearest rival) and cruise free for 0.9s
-			prey = BM_BotPickHuntTarget ();
-			best_frac = -1;
-			open_dir = '1 0 0';
-			yaw = 0;
-			while (yaw < 360)
+			// Sub-grade basement failsafe: steer directly to Sandrini's stair foot / Eye St exit instead of wall rays
+			if (self.origin_z < -20 && self.origin_x >= -4080 && self.origin_x <= -3280
+				&& self.origin_y >= 160 && self.origin_y <= 540)
 			{
-				makevectors ('0 1 0' * yaw);
-				traceline (self.origin + '0 0 18', self.origin + '0 0 18' + v_forward * 320, TRUE, self);
-				s = trace_fraction;
-				if (prey != world && trace_fraction > 0.45)
-					s = s + 0.25 * (v_forward * normalize (prey.origin - self.origin));
-				if (s > best_frac)
-				{
-					best_frac = s;
-					open_dir = v_forward;
-				}
-				yaw = yaw + 45;
+				if (self.origin_x > -3695 || self.origin_y < 262 || self.origin_y > 338)
+					open_dir = '-3720 300 -106' - self.origin;
+				else
+					open_dir = '-4116 300 32' - self.origin;
+				open_dir_z = 0;
+				open_dir = normalize (open_dir);
 			}
-			if (self.target1)
-				bot_lost (self.target1, FALSE);
+			else
+			{
+				// Find widest 3-ray hull-clear street direction (penalizing last stuck direction) and cruise free for 1.3s
+				prey = BM_BotPickHuntTarget ();
+				best_frac = -9;
+				open_dir = '1 0 0';
+				yaw = 0;
+				while (yaw < 360)
+				{
+					makevectors ('0 1 0' * yaw);
+					traceline (self.origin + '0 0 18', self.origin + '0 0 18' + v_forward * 320, TRUE, self);
+					s = trace_fraction;
+					traceline (self.origin + '0 0 18' + v_right * 20, self.origin + '0 0 18' + v_right * 20 + v_forward * 320, TRUE, self);
+					fl = trace_fraction;
+					traceline (self.origin + '0 0 18' - v_right * 20, self.origin + '0 0 18' - v_right * 20 + v_forward * 320, TRUE, self);
+					fr = trace_fraction;
+					if (fl < s) s = fl;
+					if (fr < s) s = fr;
+					if (vlen (self.bm_bot_free_dir) > 0.5 && (v_forward * self.bm_bot_free_dir) > 0.65)
+						s = s - 0.45;
+					if (prey != world && s > 0.45)
+						s = s + 0.20 * (v_forward * normalize (prey.origin - self.origin));
+					if (s > best_frac)
+					{
+						best_frac = s;
+						open_dir = v_forward;
+					}
+					yaw = yaw + 30;
+				}
+			}
+			self.target1 = world;
+			self.target2 = world;
+			self.target3 = world;
+			self.target4 = world;
+			self.current_way = world;
+			self.b_aiflags = 0;
+			self.bm_bot_hunt_t = time + 1.5;
 			self.bm_bot_free_dir = open_dir;
-			self.bm_bot_free_t = time + 0.90;
+			self.bm_bot_free_t = time + 1.30;
 			self.b_angle_y = vectoyaw (open_dir);
 			self.v_angle_y = self.b_angle_y;
 			self.keys = frik_KeysForDir (open_dir);
 			if (self.flags & FL_ONGROUND)
-				bot_jump ();
-			else if (!self.jp_on && self.jp_fuel >= 0.6)
+			{
+				if (self.origin_z >= -20)
+					bot_jump ();
+			}
+			else if (!self.jp_on && self.jp_fuel >= 0.6 && self.origin_z >= -20)
 			{
 				Jetpack_On ();
 				self.button2 = TRUE;

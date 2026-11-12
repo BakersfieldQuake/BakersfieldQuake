@@ -55,6 +55,7 @@ float(entity p) Binoc_On;
 string(float g) FunGun_VModel;
 float(float g) FunGun_Available;
 float(entity p, float g) FunGun_Ammo;
+float() FunGun_First;
 float() FunGun_CycleNext;
 float() FunGun_Last;
 float() FunGun_CyclePrev;
@@ -119,7 +120,7 @@ float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 20;
 float	FG_PONG_MAX		= 2;	float	FG_PONG_REGEN	= 10;	// two Jars o' Green Guys; 10 s per jar recharge (greenjar.qc)
 float	FG_PICKLE_MAX	= 2;	float	FG_PICKLE_REGEN	= 5;
 float	FG_MBOX_MAX		= 2;	float	FG_MBOX_REGEN	= 12;	// two boxes; 12 s to conjure the next (mbox_defs.qc)
-float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 25;	// like a BFG: one Wheelman, 25 s to reload the next (wcannon_defs.qc)
+float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 18;	// like a BFG: one Wheelman, 18 s to reload the next (wcannon_defs.qc)
 float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
 float	FG_TOMMY_MAX	= 30;	float	FG_TOMMY_REGEN	= 0.2;	// Thompson 30-round stick mag (tommy_defs.qc)
 float	FG_GARAND_MAX	= 8;	float	FG_GARAND_REGEN	= 0.35;	// M1 Garand 8-round en-bloc clip (garand_defs.qc)

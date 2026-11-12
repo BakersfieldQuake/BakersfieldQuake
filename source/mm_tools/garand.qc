@@ -224,7 +224,7 @@ void(vector dir) Garand_WallImpact =
 
 void() Garand_Press =
 {
-	local float a, spr, spd;
+	local float a, spr, spd, dist, dmg;
 	local vector dir, src;
 
 	if (!self.gar_ready)
@@ -285,7 +285,13 @@ void() Garand_Press =
 	if (trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-			TraceAttack (GAR_DAMAGE, dir);
+		{
+			dist = trace_fraction * GAR_RANGE;
+			dmg = GAR_DAMAGE;
+			if (dist > 1400)
+				dmg = max (GAR_DAMAGE * 0.55, GAR_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
+			TraceAttack (dmg, dir);
+		}
 		else
 			Garand_WallImpact (dir);
 	}

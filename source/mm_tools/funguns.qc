@@ -363,13 +363,8 @@ void() FunGun_Attack =
 	}
 	if (g == FG_NETSEND)
 	{
-		if (NS_Count (self) >= NS_MAX_PCS)		// the only limit: 20 PCs standing at a time (netsend.qc)
-		{
-			centerprint (self, strcat ("All ", strcat (ftos (NS_MAX_PCS), " NET SEND PCs are already up\n")));
-			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
-			self.attack_finished = time + 0.5;
-			return;
-		}
+		if (NS_Count (self) >= NS_MAX_PCS)		// FIFO cap: pop the oldest active PC to make room (netsend.qc)
+			NS_MakeRoom (self);
 		FunGun_SetAmmo (self, g, a - 1);
 		FunGun_Lock (g);
 		self.fg_fire_t = time;
@@ -553,12 +548,34 @@ float() FunGun_BotPick =
 	return FALSE;
 };
 
-// weapon cycling inside the fun-gun block; FALSE when it ran off the end
-float() FunGun_CycleNext =
+// first fun gun visited when scrolling forward off the Banana (skips joke slots 1..6 unless bm_scroll_fun 1)
+float() FunGun_First =
 {
 	local float n;
 
+	n = FG_M4;
+	if (autocvar_bm_scroll_fun)
+		n = 1;
+	while (n <= FG_COUNT)
+	{
+		if (FunGun_Available (n))
+			return n;
+		n = n + 1;
+	}
+	return 0;
+};
+
+// weapon cycling inside the fun-gun block; FALSE when it ran off the end
+float() FunGun_CycleNext =
+{
+	local float n, min_g;
+
+	min_g = FG_M4;
+	if (autocvar_bm_scroll_fun)
+		min_g = 1;
 	n = self.fg_sel + 1;
+	if (n < min_g)
+		n = min_g;
 	while (n <= FG_COUNT)
 	{
 		if (FunGun_Available (n))
@@ -574,24 +591,30 @@ float() FunGun_CycleNext =
 // the last fun gun that can be selected (backwards cycling from the axe lands on it)
 float() FunGun_Last =
 {
-	local float n;
+	local float n, min_g;
 
+	min_g = FG_M4;
+	if (autocvar_bm_scroll_fun)
+		min_g = 1;
 	n = FG_COUNT;
-	while (n >= 1)
+	while (n >= min_g)
 	{
 		if (FunGun_Available (n))
 			return n;
 		n = n - 1;
 	}
-	return FG_WCANNON;
+	return 0;
 };
 
 float() FunGun_CyclePrev =
 {
-	local float n;
+	local float n, min_g;
 
+	min_g = FG_M4;
+	if (autocvar_bm_scroll_fun)
+		min_g = 1;
 	n = self.fg_sel - 1;
-	while (n >= 1)
+	while (n >= min_g)
 	{
 		if (FunGun_Available (n))
 		{
@@ -737,7 +760,7 @@ void() FunGun_ViewFrame =
 		g = g + 1;
 	}
 
-	if (self.weapon != IT_FUNGUN)
+	if (self.weapon != IT_FUNGUN || self.meleeing == 1 || self.throwing == 1)
 		return;
 	g = self.fg_sel;
 	t = time - self.fg_fire_t;

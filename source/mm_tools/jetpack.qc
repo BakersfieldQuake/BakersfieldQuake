@@ -62,7 +62,7 @@ void() Jetpack_Touch =
 	if (!other.jp_hint_shown)
 	{
 		other.jp_hint_shown = TRUE;
-		centerprint (other, "Jetpack: double-jump in air to fly (J off)");
+		centerprint (other, "Jetpack: double-tap SPACE in air (or press J) to fly!");
 	}
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NONE;
@@ -82,21 +82,21 @@ void() Jetpack_Place =
 	armor = self.jp_armor;
 	base = armor.origin;
 	self.scale = 3;		// the model is only 24 units tall at scale 1 (origin near its middle, bottom at -11); armor is 56
-	setsize (self, '-30 -30 -57', '30 30 45');		// the box reaches down to the floor, so droptofloor leaves the origin 57 up: the pack floats 24 off it
+	setsize (self, '-26 -26 -46', '26 26 22');
 	i = 0;
 	while (i < 8)
 	{
 		makevectors ('0 1 0' * (i * 45));
-		org = base + v_forward * 64 + '0 0 61';
-		traceline (base + '0 0 24', org + '0 0 16', TRUE, armor);
+		org = base + v_forward * 60 + '0 0 48';
+		traceline (base + '0 0 20', org + '0 0 8', TRUE, armor);
 		if (trace_fraction == 1)
 		{
-			tracebox (org, '-30 -30 -57', '30 30 45', org, TRUE, self);
+			tracebox (org, '-26 -26 -46', '26 26 22', org, TRUE, self);
 			if (!trace_startsolid && !trace_allsolid)
 			{
 				setorigin (self, org);
 				z0 = org_z;
-				if (droptofloor () && z0 - self.origin_z < 40)
+				if (droptofloor () && z0 - self.origin_z < 48)
 				{
 					self.mdl = self.model;
 					self.solid = SOLID_TRIGGER;
@@ -118,6 +118,25 @@ void() Jetpack_Place =
 	dprint (vtos (base));
 	dprint ("\n");
 	remove (self);
+};
+
+// Standalone map entity: item_jetpack
+void() item_jetpack =
+{
+	Jetpack_Precache ();
+	self.classname = "item_jetpack";
+	self.scale = 3;
+	setmodel (self, "progs/jetpack.md3");
+	setsize (self, '-26 -26 -46', '26 26 22');
+	setorigin (self, self.origin + '0 0 24');
+	droptofloor ();
+	self.mdl = self.model;
+	self.solid = SOLID_TRIGGER;
+	self.movetype = MOVETYPE_NOCLIP;
+	self.avelocity = '0 120 0';
+	self.oldorigin = self.origin;
+	self.touch = Jetpack_Touch;
+	Jetpack_Spin ();
 };
 
 // item_armor2 calls this: spawn the jetpack that stands beside it
@@ -181,6 +200,7 @@ void() Jetpack_Spawn =
 	self.jp_st_fuel = 0;
 	self.jp_on = FALSE;
 	self.jp_jump = FALSE;
+	self.jp_air_tap = 0;
 	self.jp_low = FALSE;
 	self.gravity = 1;
 };
@@ -355,7 +375,7 @@ void() Jetpack_Fly =
 
 	// flying Winged John, driving the van or steering a Rob Dob head: SPACE is theirs (John's climb key), and John clears
 	// FL_ONGROUND every frame, so it lit the pack (fuel, flames, voice) from inside the bird
-	if (self.jb_vehicle != world || self.veh_van != world || self.fd_head != world)
+	if (self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || self.fd_head != world)
 	{
 		if (self.jp_on)
 			Jetpack_Off ();
@@ -368,6 +388,8 @@ void() Jetpack_Fly =
 		self.jp_fuel = 0;
 		return;
 	}
+	if (self.flags & FL_ONGROUND)
+		self.jp_air_tap = 0;
 	up = self.button2;
 	if (self.impulse >= 73 && self.impulse <= 76)
 	{
@@ -386,8 +408,15 @@ void() Jetpack_Fly =
 	}
 	else if (up && !self.jp_jump && !self.jp_on && self.jp_fuel > 0 && !(self.flags & FL_ONGROUND) && self.waterlevel < 2)
 	{
-		Jetpack_On ();		// second jump in the air
-		self.jp_tap = time;
+		// Require a deliberate double-tap of SPACE in mid-air so bunnyhops, rocket-jumps & SkyPads don't waste fuel!
+		if (time - self.jp_air_tap < JP_DTAP)
+		{
+			Jetpack_On ();
+			self.jp_air_tap = 0;
+			self.jp_tap = 0;
+		}
+		else
+			self.jp_air_tap = time;
 	}
 	else if (up && !self.jp_jump && self.jp_on)
 	{

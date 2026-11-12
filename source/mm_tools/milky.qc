@@ -417,12 +417,15 @@ void(vector org, float caught) Milk_Flash =
 	p = bm_player_head;
 	while (p)
 	{
-		if (p.health > 0 && p.bm_prot_t <= time)		// spawn protection: no freeze either
+		if (p.health > 0 && p.bm_prot_t <= time && (p != self.milky_owner || autocvar_milky_test) && !(teamplay && self.milky_owner && p.team > 0 && p.team == self.milky_owner.team))
 		{
 			d = vlen (p.origin + p.view_ofs - org);
-			traceline (org, p.origin + p.view_ofs, TRUE, world);
-			if (d < MILKY_BLAST + 40 && (trace_fraction == 1 || d < 200))
-				p.milk_freeze = time + MILKY_FREEZE;
+			if (d < MILKY_BLAST + 40)
+			{
+				traceline (org, p.origin + p.view_ofs, TRUE, world);
+				if (trace_fraction == 1)
+					p.milk_freeze = time + MILKY_FREEZE;
+			}
 		}
 		p = p.bm_player_next;
 	}
@@ -439,17 +442,21 @@ void() Milky_Burst =
 {
 	local vector org;
 	local entity who;
+	local float bdmg;
 
 	org = self.origin;
 	self.takedamage = DAMAGE_NO;
 	self.solid = SOLID_NOT;
 	self.touch = SUB_Null;
 	Milky_Hush ();
-	who = self.enemy;		// whoever shot her down gets the credit (like a barrel); else her shooter
+	who = self.milky_owner;		// always credit her summoner so shooting her down never barrel-teamkills her owner!
 	if (!who || who.classname != "player")
-		who = self.milky_owner;
+		who = self;
+	bdmg = MILKY_BLAST;
+	if (self.milky_hp <= 0)
+		bdmg = MILKY_BLAST * 0.65;
 	milky_inflicting = TRUE;
-	T_RadiusDamage (self, who, MILKY_BLAST, world);
+	T_RadiusDamage (self, who, bdmg, world);
 	milky_inflicting = FALSE;
 	pointparticles (particleeffectnum ("milky_boom"), org, '0 0 0', 1);
 	Milky_SndP (self, CHAN_AUTO, "afrit/body_explode.wav", 0.55, 1.4, 0.8);
@@ -652,8 +659,16 @@ void() Milky_Think =
 	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
-		Milky_Vanish ();
-		return;
+		// Nudge back below low open-air sky ceilings on rooftop maps instead of instantly vanishing!
+		setorigin (self, self.origin - '0 0 28');
+		if (self.milky_dir_z > -0.35)
+			self.milky_dir_z = -0.35;
+		self.milky_dir = normalize (self.milky_dir);
+		if (pointcontents (self.origin) == CONTENT_SKY)
+		{
+			Milky_Vanish ();
+			return;
+		}
 	}
 	if (!self.milky_emerged)
 	{

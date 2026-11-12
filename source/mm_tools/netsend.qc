@@ -96,6 +96,33 @@ void(entity pc) NS_RemovePC =
 	remove (pc);
 };
 
+// FIFO replacement: when throwing beyond NS_MAX_PCS, pop the player's oldest active PC cleanly
+void(entity who) NS_MakeRoom =
+{
+	local entity e, oldest;
+	local float n;
+
+	n = 0;
+	oldest = world;
+	e = find (world, classname, "netsend_pc");
+	while (e)
+	{
+		if (e.owner == who)
+		{
+			n = n + 1;
+			if (!oldest || e.fg_born < oldest.fg_born)
+				oldest = e;
+		}
+		e = find (e, classname, "netsend_pc");
+	}
+	if (n >= NS_MAX_PCS && oldest != world)
+	{
+		pointparticles (particleeffectnum ("netsend_pop"), oldest.origin + '0 0 30', VEC_ORIGIN, 1);
+		FG_Snd (oldest, CHAN_AUTO, "weapons/goopop.wav", 0.7, 1);
+		NS_RemovePC (oldest);
+	}
+};
+
 // ClientDisconnect: the leaver's PCs and disks in the air go too, else they keep shooting in an empty slot's name and the
 // next player (or bot) in that slot inherits them
 void(entity p) NS_ClientGone =
@@ -162,7 +189,7 @@ entity() NS_Target =
 	e = bm_player_head;		// the players, rebuilt once a frame (BM_StartFrame): no scan over every edict
 	while (e)
 	{
-		if (e != self.owner && e.classname == "player" && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY))
+		if (e != self.owner && e.classname == "player" && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY) && !(teamplay && self.owner && e.team > 0 && e.team == self.owner.team))
 		{
 			d = vlen (e.origin - self.origin);
 			if (d < bd && visible (e))
@@ -324,6 +351,11 @@ void() NS_Think =
 		NS_RemovePC (self);		// its owner left (NS_ClientGone normally got it first): nobody to credit, and the slot gets reused
 		return;
 	}
+	if (self.fg_born > 0 && time - self.fg_born > NS_LIFE)
+	{
+		NS_Die ();
+		return;
+	}
 	self.nextthink = time + 0.05;
 	age = time - self.ns_t;
 	if (self.ns_state == 2)
@@ -374,12 +406,9 @@ void(vector spot) NS_Stick =
 		remove (self);
 		return;
 	}
-	if (NS_Count (self.owner) >= NS_MAX_PCS)		// the 20th is already up: this disk goes back in the magazine
-	{
-		NS_Refund (self.owner);
-		remove (self);
-		return;
-	}
+	if (NS_Count (self.owner) >= NS_MAX_PCS)
+		NS_MakeRoom (self.owner);
+	self.fg_born = time;
 	self.classname = "netsend_pc";
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';

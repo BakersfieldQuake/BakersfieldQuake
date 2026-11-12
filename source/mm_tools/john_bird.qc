@@ -275,11 +275,32 @@ void(entity jb, vector exit_pos, vector exit_vel, float exploding) JB_Leave =
 	}
 	if (p != world && p.classname == "player")
 	{
+		if (!exploding && jb.jb_temp && jb.jb_summoner == p)
+		{
+			if (p.ud_boost >= 0.5)
+				p.jb_cooldown_t = max (p.jb_cooldown_t, time + 12.0);
+			else
+				p.jb_cooldown_t = max (p.jb_cooldown_t, time + 25.0);
+		}
 		yaw = p.v_angle_y;
 		JB_ReleasePlayer (p, exit_pos, exit_vel, yaw);
 	}
 	if (!exploding)
-		JB_Park (jb);
+	{
+		if (jb.jb_temp && jb.jb_summoner != world)
+		{
+			// Personal pocket-summoned bird flies off & despawns on dismount so empty 500-HP decoys don't clutter streets
+			jb.jb_pilot = world;
+			jb.solid = SOLID_NOT;
+			jb.takedamage = DAMAGE_NO;
+			jb.movetype = MOVETYPE_NONE;
+			jb.model = string_null;
+			jb.think = SUB_Remove;
+			jb.nextthink = time + 0.2;
+		}
+		else
+			JB_Park (jb);
+	}
 };
 
 float(entity p, vector pos) JB_SpotClear =
@@ -314,7 +335,7 @@ void(entity p, entity jb) JB_Enter =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.fd_head != world)
+	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.veh_ride != world || p.fd_head != world)
 		return;
 	if (p.jp_on)
 	{
@@ -406,6 +427,8 @@ void(entity jb, entity pilot, entity hit) JB_CheckSwoopRam =
 		return;
 	if (vlen (jb.velocity) < 720)
 		return;
+	if (time >= jb.jb_swoop_until && jb.velocity_z > -420)
+		return;
 
 	jb.jb_ram_cd = time + 0.45;
 	sound (jb, CHAN_AUTO, "john_bird/feather_hit.wav", 1, ATTN_NORM);
@@ -437,6 +460,12 @@ void(entity jb, entity pilot, float dt) JB_SlideMove =
 
 	start = jb.origin;
 	dest = start + jb.velocity * dt;
+	if (pointcontents (dest + '0 0 52') == CONTENT_SKY)
+	{
+		dest_z = min (dest_z, start_z);
+		if (jb.velocity_z > 0)
+			jb.velocity_z = 0;
+	}
 	tracebox (start, jb.mins, jb.maxs, dest, FALSE, jb);
 	if (trace_allsolid || trace_startsolid)
 	{
@@ -856,7 +885,15 @@ void() JB_Die =
 	// Eject pilot cleanly BEFORE blast so camera & solid state are restored
 	if (pilot != world)
 	{
-		pilot.jb_cooldown_t = time + 2.0;
+		if (self.jb_temp)
+		{
+			if (pilot.ud_boost >= 0.5)
+				pilot.jb_cooldown_t = time + 20.0;
+			else
+				pilot.jb_cooldown_t = time + 60.0;
+		}
+		else
+			pilot.jb_cooldown_t = time + 6.0;
 		eject_vel = self.velocity * 0.45 + '0 0 240';
 		JB_Leave (self, JB_FindExitPos (self, pilot), eject_vel, TRUE);
 	}
@@ -977,7 +1014,7 @@ void() JohnBird_NearPrompt =
 {
 	local entity jb;
 
-	if (!jb_has_birds || self.ishuman != 1 || self.health <= 0 || self.jb_vehicle != world || self.veh_van != world || self.classname != "player")
+	if (!jb_has_birds || self.ishuman != 1 || self.health <= 0 || self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || self.classname != "player")
 		return;
 	if (time < self.jb_prompt_scan_t)
 		return;
@@ -1006,7 +1043,7 @@ float() JohnBird_TryEnterKey =
 {
 	local entity jb, van;
 
-	if (self.health <= 0 || self.jb_vehicle != world || self.veh_van != world)
+	if (self.health <= 0 || self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world)
 		return FALSE;
 	jb = JohnBird_NearPerched (self);
 	if (jb == world)
@@ -1081,15 +1118,21 @@ void() JohnBird_Impulse =
 	if (self.impulse < 97 || self.impulse > 99)
 		return;
 
-	// P (impulse 98): Summon & immediately fly Winged Breezy-Hair John anywhere!
+	// P (impulse 98): Summon & immediately fly Winged Breezy-Hair John anywhere with open sky/headroom!
 	if (self.impulse == 98)
 	{
 		self.impulse = 0;
-		if (self.health <= 0 || self.veh_van != world || self.fd_head != world)
+		if (self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.fd_head != world)
 			return;
 		if (time < self.jb_cooldown_t)
 		{
-			sprint (self, "Winged John is recovering feathers...\n");
+			sprint (self, strcat ("Winged John recovering feathers (", ftos (ceil (self.jb_cooldown_t - time)), "s)...\n"));
+			return;
+		}
+		tracebox (self.origin + '0 0 14', '-28 -36 -4', '28 36 58', self.origin + '0 0 28', FALSE, self);
+		if (trace_startsolid || trace_allsolid || trace_fraction < 1)
+		{
+			sprint (self, "Need open headroom to summon Winged John!\n");
 			return;
 		}
 		// Recycle player's previous unoccupied personal temp bird so edicts never accumulate

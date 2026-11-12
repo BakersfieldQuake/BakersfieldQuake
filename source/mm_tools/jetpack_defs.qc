@@ -14,19 +14,19 @@ Model/sound: progs/jetpack.md3 and sound/jetpack/swoosh.wav (build_jetpack_asset
 ================
 */
 
-var float	autocvar_jp_fuel	= 60;		// seconds of fuel a pickup gives (it was 30: "you should be able to float longer")
-var float	autocvar_jp_hover	= 0.4;		// fuel used per second while hovering (climbing uses 1 a second)
+var float	autocvar_jp_fuel	= 40;		// seconds of fuel a pickup gives
+var float	autocvar_jp_hover	= 0.8;		// fuel used per second while hovering (climbing uses 1 a second)
 var float	autocvar_jp_respawn	= 30;		// seconds before a taken jetpack comes back
 
 float	JP_CLIMB	= 260;		// climb speed while jump is held
 float	JP_DOWN		= 220;		// descent speed while crouch is held
 float	JP_SINK		= 110;		// with no keys held you sink this fast (review 2026-10-31: "let go and do nothing, I should float down faster")
-float	JP_DTAP		= 0.3;		// two jump presses this close together switch it off ("there's no way to get out of it")
+float	JP_DTAP		= 0.32;		// two jump presses this close together ignite in mid-air or switch off
 float	JP_SPEED	= 320;		// sideways speed: as fast as a player runs (Quake's own air control is about 30 and can't steer)
 float	JP_STEER	= 4;		// how quickly you reach it (1/s: about a quarter of a second)
 float	JP_BRAKE	= 2.5;		// how quickly you slow to a hover when you let go of the move keys
 float	JP_ACCEL	= 1400;		// how fast it gets there (and brakes to a hover)
-float	JP_MAXSPEED	= 1700;		// top sideways speed after holding forward a while (sv_maxvelocity is 2000)
+float	JP_MAXSPEED	= 1150;		// top sideways speed after holding forward a while
 float	JP_RAMP		= 7;		// seconds of holding forward to get from JP_SPEED to the top (it eases in: slow at first, then faster and faster)
 float	JP_COAST	= 2.5;		// seconds to lose it all again when you let go of forward
 float	JP_LOWGRAV	= 0.000001;	// DarkPlaces reads gravity 0 as "normal", so hover with almost none
@@ -36,6 +36,7 @@ float	JP_LOWGRAV	= 0.000001;	// DarkPlaces reads gravity 0 as "normal", so hover
 .float	jp_t0;			// player: when it was lit
 .float	jp_jump;		// player: jump was held last frame
 .float	jp_tap;			// player: when jump was last pressed while it burned (for the double tap)
+.float	jp_air_tap;		// player: when jump was last pressed in mid-air while off (double-tap ignition!)
 .float	jp_snd;			// player: when to restart the swoosh
 .float	jp_flame;		// player: when to puff the next flames
 .float	jp_voice;		// player: when the "floating" voice may play again
@@ -65,6 +66,7 @@ entity	jp_test;		// sv_cheats test: the stand-in armor (impulse 75)
 
 void() Jetpack_Precache;
 void(entity armor) Jetpack_ForArmor;
+void() item_jetpack;
 void() Jetpack_Spawn;
 void() Jetpack_Frame;
 void() Jetpack_Fly;

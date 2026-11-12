@@ -20,7 +20,8 @@ generic fun gun one (client.qc, through fg_inflicting).
 float	NS_RANGE		= 900;		// it only sends to someone this close, and in its view
 float	NS_DAMAGE		= 5;		// per NET SEND
 float	NS_SHOT_GAP		= 4;		// seconds between two NET SENDs
-float	NS_MAX_PCS		= 20;		// PCs one player can have standing at once (they never expire; they can be shot, bug report 2026-11-07)
+float	NS_MAX_PCS		= 3;		// PCs one player can have standing at once (oldest pops on #4)
+float	NS_LIFE			= 45;		// battery lifetime (seconds) before a deployed PC powers down & pops
 float	NS_HEALTH		= 40;		// shoot it to bits and it is gone (its owner can have another standing in its place)
 float	NS_THROW		= 620;		// the disk's speed when thrown
 float	NS_THROW_DELAY	= 0.29;		// the hand lets go at frame 44 of v_netsend.md3, 0.29 s into the throw
@@ -54,4 +55,5 @@ void() NS_DiskTouch;
 void() NS_Think;
 void() NS_LaserTouch;
 float(entity who) NS_Count;
+void(entity who) NS_MakeRoom;
 void(entity p) NS_ClientGone;

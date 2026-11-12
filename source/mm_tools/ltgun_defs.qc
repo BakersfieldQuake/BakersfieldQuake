@@ -23,7 +23,7 @@ float	LTG_ANIM_FPS	= 42;		// the typing film: frames a second ...
 float	LTG_ANIM_N		= 48;		// ... and frames in it (1.14 s: the video's 6 s at 5.25x). build_ltgun_assets.py writes the same numbers
 float	LTG_VARIANTS	= 16;		// copies of the film, each starting at a different frame (see LtGun_VModel)
 float	LTG_CLOCK_LAG	= 0.3;		// the client's shader clock runs about this far behind the server's `time` (measured on a local game)
-float	LTG_SPEED		= 360;		// the head: a little faster than a running player (320), so a lock-on cannot simply be outrun
+float	LTG_SPEED		= 620;		// snappy drone flight speed across large custom maps (was 360)
 float	LTG_CANIS_VOL	= 0.6;
 float	LTG_CANIS_GAP	= 8;		// one Canis Lupus at a time on the whole server: seven heads stacked it
 float	ltg_canis_t;
@@ -33,8 +33,8 @@ float	LTG_TURN_LOCK	= 4;		// and to a locked enemy (a strafing player can still 
 float	LTG_LIFE			= 8;
 float	LTG_DAMAGE		= 40;		// was 12: the typing (0.8 s) has to buy something
 float	LTG_RADIUS		= 80;		// anyone this close to the blast is shocked too
-float	LTG_SHOCK_TIME	= 4;
-float	LTG_SHOCK_SPEED	= 150;		// the shock now SLOWS: a shocked player crawls at this ground speed and cannot jump (like goo). Was a 700 sprint
+float	LTG_SHOCK_TIME	= 1.5;		// brisk 1.5s shock (was 4s)
+float	LTG_SHOCK_SPEED	= 185;		// ground slow while still allowing jumps & rocket-jumps (was 150)
 float	LTG_ZAP_EVERY	= 0.5;
 float	LTG_SEEK		= 1500;		// the head locks onto the nearest enemy this close that it can see ahead of it ...
 float	LTG_CONE		= 0.5;		// ... within this cos of its heading (60 degrees each way)
@@ -49,6 +49,7 @@ float	ltg_inflicting;		// TRUE while the laptop is dealing damage (obituary)
 .float	ltg_sent;			// player: the head for this typing has gone
 .float	ltg_var;			// player: which copy of the typing film is on (LtGun_Variant)
 .float	ltg_shock;			// player: shocked until this time
+.float	ltg_immune_t;		// player: post-shock re-stun immunity until this time
 .float	ltg_zap_t;			// player: next electrocution
 .entity	ltg_by;				// player: who shocked them
 .float	ltg_hint;			// player: shots so far that showed the "follow the laser" hint

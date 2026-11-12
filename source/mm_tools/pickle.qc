@@ -12,12 +12,12 @@
 float	PK_THROW		= 980;		// violent overhand whip-throw speed
 float	PK_FLY			= 5;		// seconds in the air before it gives up and the charge comes back
 float	PK_ARM			= 0.6;		// seconds after it sticks before it can go off
-float	PK_RADIUS		= 80;		// "touching it": a player is 32 wide, the pickle about 20 long
-float	PK_SAY			= 0.6;		// the shout it makes while it swells and waves: the blast goes off when it ends (the clip is 0.76 s: the old 1.45 s one sped up)
-float	PK_SCREAM		= 0.34;		// the 360-degree giant scream & balloon swell right before the blast
+float	PK_RADIUS		= 105;		// generous trigger radius for fast strafe-jumping Quake players
+float	PK_SAY			= 0.42;		// snappy "pickle surprise" shout before blast
+float	PK_SCREAM		= 0.24;		// the 360-degree giant scream & balloon swell right before the blast
 float	PK_INFLATE		= 0.12;		// seconds to swell up and stand on end: it all but goes off in their face
 float	PK_ROLL			= 90;		// roll that turns the 3D pickle's face (its +Z side) out of a wall
-float	PK_BLAST		= 80;		// explosion damage at the centre (was 125; review 2026-10-31: "a little bit nerfed", and you now carry 4)
+float	PK_BLAST		= 95;		// punchy explosion damage at the centre
 float	PK_HEALTH		= 25;		// damage that sets a stuck pickle off
 float	PK_MAX			= 2;		// pickles per player (tone-down 2026-11-02, was 4); a third removes the oldest
 float	PK_GIBS			= 4;		// pickles thrown by the blast
@@ -385,6 +385,18 @@ void() Pk_Think =
 	if (self.pk_state == 3)		// armed: watching who comes close
 	{
 		self.nextthink = time + 0.05;
+		// If the door, lift, or van it stuck to moved away, fall & re-stick instead of floating in mid-air!
+		traceline (self.origin + self.pk_n * 4, self.origin - self.pk_n * 10, TRUE, self);
+		if (trace_fraction == 1)
+		{
+			self.pk_state = 1;
+			self.movetype = MOVETYPE_TOSS;
+			self.takedamage = DAMAGE_NO;
+			setmodel (self, "progs/pickle_throw.md3");
+			self.scale = 1;
+			self.fg_born = time;
+			return;
+		}
 		e = findradius (self.origin, PK_RADIUS);
 		while (e)
 		{
@@ -734,6 +746,8 @@ void() Pk_GibTouch =
 		return;
 	}
 	if (!other.takedamage || other.health <= 0)
+		return;
+	if (other == self.owner && !autocvar_pk_test)
 		return;
 	m = other.max_health;
 	if (m <= 0)

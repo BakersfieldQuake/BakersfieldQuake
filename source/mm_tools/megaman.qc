@@ -1097,12 +1097,114 @@ void() MegaMan_Blocked =
 	dprint ("Mega Man bumped ", ftos (self.mm_bounces), "/", ftos (MM_MAX_BOUNCES), " yaw ", ftos (self.angles_y), "\n");
 };
 
+#ifdef COMBATPLUS
+void() MegaMan_BlueShellBoom =
+{
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.classname = "mmdead";
+	self.scale = 1;
+
+	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+	WriteByte (MSG_BROADCAST, TE_TAREXPLOSION);
+	WriteCoord (MSG_BROADCAST, self.origin_x);
+	WriteCoord (MSG_BROADCAST, self.origin_y);
+	WriteCoord (MSG_BROADCAST, self.origin_z);
+
+	mm_inflicting = TRUE;
+	T_RadiusDamage (self, self.owner, 220, world);
+	mm_inflicting = FALSE;
+	MM_RocketBoom (world);
+	MM_Breakup (TRUE);
+	BecomeExplosion ();
+};
+
+void() MegaMan_BlueShellThink =
+{
+	local vector goal, diff;
+	local float d, sw;
+
+	self.nextthink = time + 0.05;
+	if (!self.ud_hunt || self.ud_hunt.classname != "player" || self.ud_hunt.health <= 0)
+		self.ud_hunt = Underdog_Leader (self.owner);
+	if (!self.ud_hunt || self.ud_hunt.health <= 0 || time - self.mm_born > MM_LIFETIME)
+	{
+		self.scale = 1;
+		MegaMan_Dud ();
+		return;
+	}
+
+	self.mm_dist = self.mm_dist + 36;
+	MegaMan_SpinWheels ();
+	particle (self.origin + '0 0 10', '0 0 12', 41, 6);
+
+	if (time >= self.mm_motor)
+	{
+		MM_SoundA (self, CHAN_BODY, "megaman/mm_drive.wav", 0.45, 145, 1);
+		self.mm_motor = time + MM_DRIVE_LEN * 100 / 145;
+	}
+
+	if (self.ud_shell_stage == 1)
+	{
+		goal = self.ud_hunt.origin + '0 0 92';
+		diff = goal - self.origin;
+		d = vlen (diff);
+		sw = sin (time * 18);
+		self.angles_y = vectoyaw (diff);
+		self.angles_x = 16;
+		self.angles_z = sw * 14;
+		if (d > 1)
+			self.velocity = normalize (diff) * 960;
+		if (d < 105 || time >= self.ud_shell_t)
+		{
+			self.ud_shell_stage = 2;
+			self.ud_shell_t = time + 0.42;
+			self.mm_lastorg = self.ud_hunt.origin;
+			self.velocity = '0 0 0';
+			setorigin (self, self.ud_hunt.origin + '0 0 88');
+			MM_Sound (self, CHAN_VOICE, "weapons/megahorn.wav", 1, 135);
+		}
+		return;
+	}
+
+	if (self.ud_shell_stage == 2)
+	{
+		if (self.ud_shell_t - time > 0.17)
+			self.mm_lastorg = self.ud_hunt.origin;
+		self.velocity = '0 0 0';
+		setorigin (self, self.mm_lastorg + '0 0 88');
+		self.angles_y = MM_NormYaw (self.angles_y + 72);
+		self.angles_x = 35;
+		self.angles_z = 0;
+		if (time >= self.ud_shell_t)
+		{
+			self.ud_shell_stage = 3;
+			self.ud_shell_t = time + 0.30;
+			self.angles_x = 85;
+			self.velocity = '0 0 -1550';
+			MM_Sound (self, CHAN_VOICE, MegaMan_BoomClip (), 1, 115);
+		}
+		return;
+	}
+
+	if (self.origin_z <= self.mm_lastorg_z + 26 || vlen (self.origin - self.ud_hunt.origin) < 48 || time >= self.ud_shell_t)
+		MegaMan_BlueShellBoom ();
+};
+#endif
+
 void() MegaMan_Think =
 {
 	local float ok, d, look, desired, pitch;
 	local vector oldorg, moved;
 	local entity targ;
 
+#ifdef COMBATPLUS
+	if (self.ud_shell_stage > 0)
+	{
+		MegaMan_BlueShellThink ();
+		return;
+	}
+#endif
 	self.nextthink = time + 0.05;
 
 	if (pointcontents (self.origin) == CONTENT_SKY)
@@ -1294,10 +1396,21 @@ void() MegaMan_Touch =
 	}
 };
 
-// shot down on the way: he pops harmlessly (no damage), with a random clip
+// shot down on the way: deferred to next tick so T_RadiusDamage never clobbers a caller's findradius .chain!
+void() MegaMan_ShotPop =
+{
+	mm_inflicting = TRUE;
+	T_RadiusDamage (self, self.owner, 40, world);
+	mm_inflicting = FALSE;
+	MegaMan_Dud ();
+};
+
 void() MegaMan_Shot =
 {
-	MegaMan_Dud ();
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.think = MegaMan_ShotPop;
+	self.nextthink = time;
 };
 
 // Mega Man leaves the hand
@@ -1315,7 +1428,11 @@ void() MegaMan_Launch =
 	mm = find (world, classname, "megaman");
 	while (mm)
 	{
-		if (mm.owner == self)
+		if (mm.owner == self
+#ifdef COMBATPLUS
+			&& mm.ud_shell_stage <= 0
+#endif
+		)
 		{
 			live = live + 1;
 			if (!old || mm.mm_born < old.mm_born)
@@ -1563,6 +1680,10 @@ void() MegaMan_ViewFrame =
 		self.mm_vm_var = 0;
 		return;
 	}
+#ifdef COMBATPLUS
+	if (self.meleeing == 1 || self.throwing == 1)
+		return;
+#endif
 
 	// Optional 4-Weapon Arsenal live switcher via cvar "mm_variant" (0=classic v_megaman, 1=cannon, 2=slingshot, 3=bow, 4=handthrow)
 	want_mdl = MM_PickVModel ();

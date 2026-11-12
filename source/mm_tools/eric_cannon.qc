@@ -271,7 +271,7 @@ void(entity p, entity base) EC_Mount =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.jb_vehicle != world || p.fd_head != world)
+	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world)
 		return;
 	if (base.ec_state != EC_STATE_IDLE || base.ec_pilot != world)
 		return;
@@ -1248,7 +1248,7 @@ void() EricCannon_NearPrompt =
 {
 	local entity c;
 
-	if (!ec_has_cannons || self.ishuman != 1 || self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.jb_vehicle != world || self.classname != "player")
+	if (!ec_has_cannons || self.ishuman != 1 || self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.classname != "player")
 		return;
 	if (time < self.ec_prompt_scan_t)
 		return;
@@ -1274,7 +1274,7 @@ float() EricCannon_TryEnterKey =
 	local entity c, jb, van;
 	local float dc;
 
-	if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.jb_vehicle != world)
+	if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world)
 		return FALSE;
 	c = EricCannon_NearIdle (self);
 	if (c == world)

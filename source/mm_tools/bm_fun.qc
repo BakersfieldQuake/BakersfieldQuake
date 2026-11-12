@@ -101,14 +101,17 @@ void(entity e, string clip) BM_Fun_Say =
 void(entity targ, entity attacker) BM_Fun_Killed =
 {
 	local float n, tier, bigshot;
+	local string splash;
 
 	if (!deathmatch || !autocvar_bm_fun || targ.classname != "player")
 		return;
+	splash = "";
 
 	// the victim's streak is over
 	if (attacker.classname == "player" && attacker != targ && targ.bm_streak >= 3)
 	{
 		bprint ("^3", attacker.netname, " ended ", targ.netname, "'s ", ftos (targ.bm_streak), "-kill spree\n");
+		splash = strcat ("^3BUZZKILL! Ended ", targ.netname, "'s spree!");
 		BM_Fun_Say (attacker, BM_Fun_Pick (BMF_ENDED, BMF_L_ENDED));
 	}
 	targ.bm_streak = 0;
@@ -130,6 +133,7 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	{
 		bm_fun_first = TRUE;
 		bprint ("^3", attacker.netname, " drew FIRST BLOOD\n");
+		splash = "^1FIRST BLOOD!";
 		BM_Fun_Say (attacker, BM_Fun_Pick (BMF_FIRSTBLOOD, BMF_L_FIRSTBLOOD));
 	}
 
@@ -141,11 +145,20 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	attacker.bm_multi_t = time;
 	n = attacker.bm_multi_n;
 	if (n == 2)
+	{
 		bprint ("^3", attacker.netname, ": DOUBLE KILL\n");
+		splash = "^xfb2DOUBLE KILL!";
+	}
 	else if (n == 3)
+	{
 		bprint ("^3", attacker.netname, ": TRIPLE KILL\n");
+		splash = "^xf91TRIPLE KILL!";
+	}
 	else if (n >= 4)
+	{
 		bprint ("^3", attacker.netname, ": MULTI KILL x", ftos (n), "\n");
+		splash = strcat ("^1MULTI KILL x", ftos (n), "!");
+	}
 	if (n >= 4)
 		BM_Fun_Say (attacker, BM_Fun_Pick (BMF_MULTI, BMF_L_MULTI4));
 	else if (n >= 2)
@@ -164,11 +177,29 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	{
 		attacker.bm_streak_tier = tier;
 		if (tier == 3)
+		{
 			bprint ("^3", attacker.netname, " is GODLIKE (", ftos (attacker.bm_streak), " kills)\n");
+			if (splash != "")
+				splash = strcat (splash, "\n^1GODLIKE! (", ftos (attacker.bm_streak), " KILLS)");
+			else
+				splash = strcat ("^1GODLIKE! (", ftos (attacker.bm_streak), " KILLS)");
+		}
 		else if (tier == 2)
+		{
 			bprint ("^3", attacker.netname, " is on a RAMPAGE (", ftos (attacker.bm_streak), " kills)\n");
+			if (splash != "")
+				splash = strcat (splash, "\n^xf80RAMPAGE! (", ftos (attacker.bm_streak), " KILLS)");
+			else
+				splash = strcat ("^xf80RAMPAGE! (", ftos (attacker.bm_streak), " KILLS)");
+		}
 		else
+		{
 			bprint ("^3", attacker.netname, " is on a KILLING SPREE\n");
+			if (splash != "")
+				splash = strcat (splash, "\n^3KILLING SPREE! (3)");
+			else
+				splash = "^3KILLING SPREE! (3)";
+		}
 		if (tier == 1)
 			BM_Fun_Say (attacker, BMF_SPREE);
 		else
@@ -180,8 +211,15 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	{
 		attacker.bm_killer = world;
 		bprint ("^3", attacker.netname, " got REVENGE on ", targ.netname, "\n");
+		if (splash != "")
+			splash = strcat (splash, "\n^2REVENGE on ", targ.netname, "!");
+		else
+			splash = strcat ("^2REVENGE on ", targ.netname, "!");
 		BM_Fun_Say (attacker, BM_Fun_Pick (BMF_REVENGE, BMF_L_REVENGE));
 	}
+
+	if (splash != "" && attacker.ishuman == 1 && (!autocvar_bm_bounty || targ.ud_heat < 4))
+		centerprint (attacker, splash);
 
 	// the room cheers for last place (checked before this frag is added, so "last" means last)
 	if (Underdog_IsLast (attacker) && random () < autocvar_bm_fun_cheer)

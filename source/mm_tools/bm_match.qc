@@ -19,7 +19,10 @@ void() BM_Precache =
 	precache_sound ("weapons/lock4.wav");
 	precache_sound ("weapons/pkup.wav");
 	precache_sound ("misc/talk.wav");
+	precache_sound ("items/damage.wav");
+	precache_sound ("jetpack/swoosh.wav");
 	precache_model ("progs/aura.md3");
+	precache_model ("progs/quaddama.mdl");
 	// a map with sky pads raised sv_maxvelocity (SkyPad_RaiseMaxVel); the next map gets the value from before that back
 	registercvar ("bm_maxvel_saved", "0");
 	if (cvar ("bm_maxvel_saved") > 0)
@@ -117,6 +120,11 @@ void() BM_PlayerSpawned =
 	if (self.ishuman == 1)
 	{
 		stuffcmd (self, "alias vote \"cmd vote $*\"\nv_glslgamma 1\nv_glslgamma_2d 1\n");	// map votes + apply GLSL gamma to 2D Quake HUD in windowed mode
+		if (!self.skypad_vel_sent)
+		{
+			self.skypad_vel_sent = TRUE;
+			stuffcmd (self, "sv_maxvelocity 6500\n");
+		}
 	}
 	else
 		BM_BotSpawnLoadout ();
@@ -184,12 +192,32 @@ void() BM_AuraFrame =
 // every frame, top of W_WeaponFrame, after BM_Frame
 void() BM_LifeFrame =
 {
+	local float tmask;
+	local vector gdir;
+
 	if (self.bm_prot_t)
 	{
 		if (time < self.bm_prot_t - autocvar_bm_spawnprot + autocvar_bm_spawnpause)
 			self.button0 = 0;		// just spawned: a brief pause before the trigger works
 		if (time >= self.bm_prot_t || (self.button0 && time > self.bm_prot_t - autocvar_bm_spawnprot + 0.3))
 			self.bm_prot_t = 0;
+	}
+	if (world.model == "maps/morrorock.bsp" && self.movetype == MOVETYPE_WALK && self.health > 0
+		&& (self.waterlevel >= 2 || self.origin_z < -10) && time >= self.mr_geyser_t)
+	{
+		self.mr_geyser_t = time + 2.5;
+		self.skypad_safe_t = time + 7;
+		gdir = '-2441 4331 0' - self.origin;
+		gdir_z = 0;
+		if (vlen (gdir) > 1)
+			gdir = normalize (gdir);
+		else
+			gdir = '0 1 0';
+		self.flags = self.flags - (self.flags & FL_ONGROUND);
+		self.velocity = gdir * 980 + '0 0 860';
+		sound (self, CHAN_AUTO, "jetpack/swoosh.wav", 1, ATTN_NORM);
+		if (self.ishuman == 1)
+			centerprint (self, "^5PACIFIC GEYSER BOOST!");
 	}
 	BM_AuraFrame ();
 	Underdog_FxFrame ();
@@ -209,7 +237,7 @@ void() BM_LifeFrame =
 	{
 		self.bm_st_leader = ud_leader.netname;
 		self.bm_st_lheat = floor (ud_leader.ud_heat);
-		self.bm_st_lshow = (ud_leader.ud_tier >= 3 && ud_leader != self && ud_leader.health > 0);
+		self.bm_st_lshow = (ud_leader.ud_tier >= 3 && ud_leader != self && ud_leader.health > 0 && Underdog_PulseOn ());
 		self.bm_st_lx = ud_leader.origin_x;
 		self.bm_st_ly = ud_leader.origin_y;
 		self.bm_st_lz = ud_leader.origin_z;
@@ -223,26 +251,53 @@ void() BM_LifeFrame =
 
 	self.bm_st_botmask = bm_botmask_cache;
 	self.bm_st_botcnt = bot_count;
+
+	tmask = 0;
+	if (self.fg_ammo1 >= 1 && self.bm_rl_slot != BM_FG1)		tmask = tmask | 1;
+	if (self.fg_ammo2 >= 1 && self.bm_rl_slot != BM_FG2)		tmask = tmask | 2;
+	if (self.fg_ammo3 >= 1 && self.bm_rl_slot != BM_FG3)		tmask = tmask | 4;
+	if (self.fg_ammo4 >= 1 && self.bm_rl_slot != BM_FG4)		tmask = tmask | 8;
+	if (self.fg_ammo5 >= 1 && self.bm_rl_slot != BM_FG5)		tmask = tmask | 16;
+	if (self.fg_ammo6 >= 1 && self.bm_rl_slot != BM_FG6)		tmask = tmask | 32;
+	if (time >= self.jb_cooldown_t)								tmask = tmask | 64;
+	if (self.ud_blueshell)										tmask = tmask | 128;
+	if (self.veh_van != world || self.veh_ride != world)		tmask = tmask | 256;
+	self.bm_st_toymask = tmask;
+	self.bm_st_toycd = max (0, ceil (self.jb_cooldown_t - time));
 };
 
-// SelectSpawnPoint (client.qc) asks first. bklan4 is about 28000 x 20000 units with 52 spawns scattered over it, and
-// the stock round robin hands out the next free spawn in map order, so a handful of players start in different
-// corners and never meet. This picks the free spawn closest to a living rival that is not nearer than bm_spawnnear
-// units and not in sight of them (a little random, so it is not always the same one). Nobody else alive: a random
-// free spawn. world = use the stock choice.
+// SelectSpawnPoint (client.qc) asks first. Keeps 4-8 friends clustered around the active combat centroid
+// in the 1,200-3,600u sweet spot while avoiding line-of-sight out to 4,200u and never exiling anyone to empty corners.
 entity() BM_PickSpawn =
 {
 	local entity spot, p, best;
-	local float dmin, d, score, bestscore, seen;
+	local float dmin, d, dcen, score, bestscore, seen, n;
+	local vector cen;
 
 	if (!deathmatch || autocvar_bm_spawnnear <= 0)
 		return world;
+
+	cen = '0 0 0';
+	n = 0;
+	p = bm_player_head;
+	while (p)
+	{
+		if (p != self && p.health > 0)
+		{
+			cen = cen + p.origin;
+			n = n + 1;
+		}
+		p = p.bm_player_next;
+	}
+	if (n > 0)
+		cen = cen * (1 / n);
+
 	best = world;
 	bestscore = 1000000;
 	spot = find (world, classname, "info_player_deathmatch");
 	while (spot)
 	{
-		p = findradius (spot.origin, 32);
+		p = findradius (spot.origin, 36);
 		while (p && p.classname != "player")
 			p = p.chain;
 		if (!p)
@@ -257,21 +312,31 @@ entity() BM_PickSpawn =
 					d = vlen (p.origin - spot.origin);
 					if (d < dmin)
 						dmin = d;
-					if (d < 2500 && !seen)
+					if (d < 4200 && !seen)
 					{
-						traceline (spot.origin + '0 0 24', p.origin + '0 0 24', TRUE, spot);
+						traceline (spot.origin + '0 0 28', p.origin + '0 0 28', TRUE, spot);
 						if (trace_fraction == 1)
 							seen = 1;
 					}
 				}
 				p = p.bm_player_next;
 			}
-			if (dmin == 99999)
+			if (n == 0 || dmin == 99999)
 				score = random () * 1000;
-			else if (dmin < autocvar_bm_spawnnear)
-				score = 20000 + (autocvar_bm_spawnnear - dmin);
 			else
-				score = dmin + seen * 4000 + random () * 1500;
+			{
+				dcen = vlen (spot.origin - cen);
+				if (dmin < autocvar_bm_spawnnear)
+					score = 4500 + seen * 5000 + (autocvar_bm_spawnnear - dmin) * 6 + random () * 400;
+				else
+				{
+					score = fabs (dcen - 2100) * 0.65 + seen * 5500 + random () * 950;
+					if (dmin > 3400)
+						score = score + (dmin - 3400) * 1.4;
+					if (dcen > 3800)
+						score = score + (dcen - 3800) * 1.8;
+				}
+			}
 			if (score < bestscore)
 			{
 				bestscore = score;
@@ -360,6 +425,8 @@ void() BM_Stats =
 	clientstat (71, 2, bm_st_slot);		// held weapon slot (16 = M4A1, csqc/bm_hud.qc)
 	clientstat (76, 2, bm_st_botmask);	// bitmask of live bot slots 0..15 (csqc/bm_hud.qc)
 	clientstat (77, 2, bm_st_botcnt);	// active bot count (csqc/bm_hud.qc)
+	clientstat (78, 2, bm_st_toymask);	// bitmask of ready fun-gun superweapons & Winged John (csqc/bm_hud.qc)
+	clientstat (79, 2, bm_st_toycd);	// Winged John cooldown seconds remaining (csqc/bm_hud.qc)
 };
 
 float() BM_CountPlayers =
@@ -517,7 +584,7 @@ void() BM_VoteTick =
 	while (e)
 	{
 		if (e.ishuman == 1 && !e.bm_voted)
-			centerprint (e, strcat ("VOTE: change the map to ", bm_vote_map, "\n\nF5 = YES     F6 = NO\n(or type  vote yes / vote no)\n\nyes ", ftos (bm_v_yes), "   no ", ftos (bm_v_no), strcat ("   ", ftos (ceil (bm_vote_end - time)), "s left")));
+			centerprint (e, strcat ("VOTE: change the map to ", bm_vote_map, "\nSay  vote yes  or  vote no  in chat\nyes ", ftos (bm_v_yes), "   no ", ftos (bm_v_no), strcat ("   ", ftos (ceil (bm_vote_end - time)), "s left")));
 		e = find (e, classname, "player");
 	}
 };
@@ -530,7 +597,7 @@ string() BM_VoteMapList =
 	s = cvar_string ("bm_votemaps");
 	if (s != "")
 		return s;
-	return "bakersfielddowntown downtownsmall downtown little_st_james fox bklan6 bakolansmall morrorock jsb_apartelle ooika soicowboy";
+	return "bakersfielddowntown downtownsmall downtown little_st_james fox bklan6 bakolansmall morrorock soicowboy slo_bike_kitchen";
 };
 
 void(entity e, string m) BM_VoteStart =
@@ -583,15 +650,12 @@ void(entity e, string m) BM_VoteStart =
 	{
 		p.bm_voted = 0;
 		if (p.ishuman == 1)
-		{
-			stuffcmd (p, "bind F5 \"cmd vote yes\"\nbind F6 \"cmd vote no\"\n");
 			sprint (p, "\n");
-		}
 		p = find (p, classname, "player");
 	}
 	e.bm_voted = 1;
 	bprint (e.netname, " called a vote: change the map to ", pick, "\n");
-	bprint ("Vote with F5 (yes) / F6 (no), or type: vote yes / vote no\n");
+	bprint ("Say  vote yes  or  vote no  in chat (or console)\n");
 	BM_VoteCheck ();
 };
 
@@ -864,7 +928,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || time < self.goo_slow || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || time < self.goo_slow || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;

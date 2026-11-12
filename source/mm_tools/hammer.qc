@@ -251,7 +251,7 @@ void(float tier) Hammer_Swing =
 			else
 				Hammer_Snd ("hammer/slice3.wav", 1);
 			self.velocity = self.velocity + v_forward * (multi * HM_DASH_FORWARD);
-			if (tier > 1)
+			if (tier > 1 && self.velocity_z < HM_DASH_UPWARD)
 				self.velocity_z = HM_DASH_UPWARD;
 		}
 		else
@@ -313,8 +313,8 @@ void() Hammer_PlayerFrame =
 		return;
 	}
 
-	// impulse 1 with the hammer out: the spinny (Combat+ would just pick the axe again)
-	if (self.impulse == 1)
+	// R (BM_RELOAD_IMPULSE) with the hammer out: the spinny twirl (leaves key 1 free to toggle Bonk Hammer <-> Chainsaw!)
+	if (self.impulse == BM_RELOAD_IMPULSE)
 	{
 		self.impulse = 0;
 		if (self.hm_state == 0 || (self.hm_state == 2 && time >= self.hm_ready) || self.hm_state == 3)

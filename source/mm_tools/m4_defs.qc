@@ -21,16 +21,17 @@ float	M4_DAMAGE		= 12;		// damage per bullet
 float	M4_SPREAD		= 0.004;	// pinpoint first-shot / tap accuracy standing still
 float	M4_SPREAD_BLOOM	= 0.034;	// additional CS-style full-auto spray cone at max sustained fire
 float	M4_SPREAD_MOVE	= 0.035;	// extra spread at full run speed
+float	M4_SPREAD_AIR	= 0.025;	// extra spread while airborne / jetpacking (matches Thompson & Garand)
 float	M4_CLIMB_MAX	= 0.078;	// ~4.5 deg upward recoil climb at max sustained spray (pull down to compensate)
 float	M4_RANGE		= 4096;
 float	M4_RELOAD_TIME	= 3.08;		// 114 frames at 37 fps: the whole CS reload
-float	M4_DRAW_TIME	= 1.025;	// 41 frames at 40 fps: no firing until the draw is over
+float	M4_DRAW_TIME	= 0.55;		// snappy 0.55s deploy lock (41 frames at 74.5 fps)
 float	M4_RECOIL		= 1.4;		// view kick (degrees) per bullet
 
 float	M4_IDLE_FIRST	= 0;	float	M4_IDLE_COUNT	= 9;	float	M4_IDLE_FPS		= 16;
 float	M4_FIRE_FIRST	= 9;	float	M4_FIRE_COUNT	= 31;	float	M4_FIRE_FPS		= 20;
 float	M4_RELOAD_FIRST	= 40;	float	M4_RELOAD_COUNT	= 114;
-float	M4_DRAW_FIRST	= 154;	float	M4_DRAW_COUNT	= 41;	float	M4_DRAW_FPS		= 40;
+float	M4_DRAW_FIRST	= 154;	float	M4_DRAW_COUNT	= 41;	float	M4_DRAW_FPS		= 74.5;
 
 float	m4_ok;				// progs/v_m4.md3 precached and ready
 

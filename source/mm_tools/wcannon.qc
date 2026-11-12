@@ -673,6 +673,8 @@ void() WC_Think =
 		WC_Crash (world);
 		return;
 	}
+	if (self.takedamage == DAMAGE_NO && time >= self.fg_born + 0.22)
+		self.takedamage = DAMAGE_AIM;
 	c = pointcontents (self.origin + '0 0 8');
 	if (c == CONTENT_SKY)
 	{
@@ -694,7 +696,7 @@ void() WC_Think =
 	if (trace_fraction < 1 && !trace_startsolid && trace_plane_normal_z >= 0.7)
 	{
 		n = trace_plane_normal;
-		if (self.velocity * n < 100)
+		if (self.velocity * n < 40)
 			grounded = TRUE;
 	}
 	if (grounded)
@@ -745,13 +747,13 @@ void() WC_Think =
 				WC_Crash (trace_ent);
 				return;
 			}
-			tracebox (self.origin + '0 0 18', self.mins, self.maxs, self.origin + '0 0 18' + normalize (v0) * 16, FALSE, self);
+			tracebox (self.origin + '0 0 1' * WC_STEPUP, self.mins, self.maxs, self.origin + '0 0 1' * WC_STEPUP + normalize (v0) * 16, FALSE, self);
 			if (trace_fraction < 1 || trace_startsolid)
 			{
 				WC_Crash (world);		// a wall, a ceiling, anything he cannot drive over
 				return;
 			}
-			setorigin (self, self.origin + '0 0 18');
+			setorigin (self, self.origin + '0 0 1' * WC_STEPUP);
 		}
 		rem = rem * (1 - frac);
 		i = i + 1;
@@ -820,18 +822,27 @@ void(float c) WC_Fire =
 	makevectors (self.v_angle);
 	aim = v_forward;
 	org = FG_Muzzle (36);
-	traceline (org, org - '0 0 70', TRUE, self);
-	if (trace_fraction < 1 && !trace_startsolid)
-		org = trace_endpos + '0 0 1';		// he starts on the floor in front of you (his sprite stands on its origin)
+	if (aim_z > 0.14)
+	{
+		// aiming upward at rooftops/jetpackers: launch cleanly into the air instead of snapping down to the floor!
+		tracebox (self.origin + '0 0 12', '-14 -14 0', '14 14 48', org - '0 0 12', TRUE, self);
+		org = trace_endpos;
+	}
 	else
-		org = org - '0 0 24';
+	{
+		traceline (org, org - '0 0 70', TRUE, self);
+		if (trace_fraction < 1 && !trace_startsolid)
+			org = trace_endpos + '0 0 1';		// he starts on the floor in front of you (his sprite stands on its origin)
+		else
+			org = org - '0 0 24';
+	}
 	makevectors ('0 1 0' * self.v_angle_y);
 	p = spawn ();
 	p.classname = "wc_shot";
 	p.owner = self;
 	p.movetype = MOVETYPE_NONE;
 	p.solid = SOLID_BBOX;
-	p.takedamage = DAMAGE_AIM;
+	p.takedamage = DAMAGE_NO;		// 0.22s spawn grace so stray shotgun pellets right at the muzzle don't self-pop!
 	p.health = WC_HEALTH;
 	p.th_die = WC_Die;
 	p.fg_born = time;

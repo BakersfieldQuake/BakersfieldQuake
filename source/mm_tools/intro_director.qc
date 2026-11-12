@@ -599,31 +599,30 @@ float() Intro_ClassicWheelCustomize =
 	d = Intro_SpriteDir8 (self.origin + '0 0 32', self.angles_y);
 	if (self.intro_boom_on > 0)
 	{
-		self.frame = 200 + self.intro_boom_tier * 112 + d * 14 + self.intro_boom_step;
+		k = self.intro_boom_step - 4 * floor (self.intro_boom_step / 4);
+		self.frame = 136 + d * 4 + k;
 		return TRUE;
 	}
 	if (self.wc_anim > 0)
 	{
-		k = floor (time * 20 + self.intro_phase);
-		k = k - 6 * floor (k / 6);
+		k = floor (time * 12 + self.intro_phase);
+		k = k - 4 * floor (k / 4);
 		if (self.wc_anim == 1)
-			self.frame = 648 + d * 6 + k;
-		else if (self.wc_anim == 2)
-			self.frame = 696 + d * 6 + k;
+			self.frame = 136 + d * 4 + k;
 		else
-			self.frame = 744 + d * 6 + k;
+			self.frame = 168 + d * 4 + k;
 		return TRUE;
 	}
 	if (self.intro_fkind > 0)
 	{
-		k = floor (time * 20 + self.intro_phase);
-		k = k - 6 * floor (k / 6);
-		self.frame = 104 + d * 6 + k;
+		k = floor (time * 12 + self.intro_phase);
+		k = k - 4 * floor (k / 4);
+		self.frame = 56 + d * 4 + k;
 		return TRUE;
 	}
-	k = floor (time * 20 + self.intro_phase);
-	k = k - 12 * floor (k / 12);
-	self.frame = 8 + d * 12 + k;
+	k = floor (time * 10 + self.intro_phase);
+	k = k - 6 * floor (k / 6);
+	self.frame = 8 + d * 6 + k;
 	return TRUE;
 };
 
@@ -632,14 +631,14 @@ float() Intro_FloatDanCustomize =
 	local float d, k, cyc;
 
 	d = Intro_SpriteDir8 (self.origin + '0 0 42', self.angles_y);
-	k = floor (time * 16 + self.intro_phase);
-	k = k - 6 * floor (k / 6);
+	k = floor (time * 11 + self.intro_phase);
+	k = k - 4 * floor (k / 4);
 	cyc = floor ((time - self.intro_born) * 0.85);
 	cyc = cyc - 2 * floor (cyc / 2);
 	if (cyc == 0)
-		self.frame = 200 + d * 6 + k;
+		self.frame = 136 + d * 4 + k;
 	else
-		self.frame = 104 + d * 6 + k;
+		self.frame = 72 + d * 4 + k;
 	return TRUE;
 };
 
@@ -713,7 +712,7 @@ entity(float stunt_id, float scream_on, float sc, vector org) Intro_MakeClassicW
 	w.movetype = MOVETYPE_NONE;
 	w.solid = SOLID_NOT;
 	setmodel (w, "progs/wheelman.spr32");
-	w.scale = sc;
+	w.scale = sc * 2.0833;
 	w.effects = EF_FULLBRIGHT;
 	w.colormod = '1.18 1.18 1.18';
 	w.wc_anim = stunt_id;
@@ -736,7 +735,7 @@ entity(float anim_id, float sc, vector org) Intro_MakeWheelDancer =
 	d.movetype = MOVETYPE_NONE;
 	d.solid = SOLID_NOT;
 	setmodel (d, "progs/wheelman_dance.spr32");
-	d.scale = sc;
+	d.scale = sc * 4.5;
 	d.effects = EF_FULLBRIGHT;
 	d.wc_anim = anim_id;
 	d.wc_t0 = time;
@@ -820,7 +819,7 @@ entity(float st, float sc_mul, vector org) Intro_MakeGreenSuit =
 	m.movetype = MOVETYPE_NONE;
 	m.solid = SOLID_NOT;
 	setmodel (m, "progs/greensuit_wheelman.spr32");
-	m.scale = 0.38 * sc_mul;
+	m.scale = 0.5873 * sc_mul;
 	m.effects = EF_FULLBRIGHT;
 	m.npc_dead = 0;
 	m.npc_dstep = 0;
@@ -842,7 +841,7 @@ entity(float st, float sc_mul, vector org) Intro_MakeRobeGuy =
 	m.movetype = MOVETYPE_NONE;
 	m.solid = SOLID_NOT;
 	setmodel (m, "progs/robeguy.spr32");
-	m.scale = 0.31 * sc_mul;
+	m.scale = 1.4467 * sc_mul;
 	m.effects = EF_FULLBRIGHT;
 	m.npc_dead = 0;
 	m.npc_dstep = 0;
@@ -1986,7 +1985,7 @@ void() Intro_SpawnFox360Floaters =
 		{
 			e.classname = "intro_wheelman_360";
 			setmodel (e, "progs/wheelman.spr32");
-			e.scale = 0.54;
+			e.scale = 1.125;
 			e.colormod = '1.28 1.28 1.28';
 			e.wc_anim = 1;
 			e.customizeentityforclient = Intro_ClassicWheelCustomize;
@@ -1996,7 +1995,7 @@ void() Intro_SpawnFox360Floaters =
 		{
 			e.classname = "intro_wheelman_360";
 			setmodel (e, "progs/wheelman.spr32");
-			e.scale = 0.56;
+			e.scale = 1.1667;
 			e.colormod = '1.28 1.28 1.28';
 			e.wc_anim = 3;
 			e.customizeentityforclient = Intro_ClassicWheelCustomize;
@@ -2105,17 +2104,12 @@ void() Intro_Swarm50Think =
 			return;
 		}
 
-		// Wheelman Sprite transforms in-place into 4-tier 360-deg 14-frame Fireball Explosion + flings axle/tires!
-		setmodel (self, "progs/wheelman.spr32");
-		self.customizeentityforclient = Intro_ClassicWheelCustomize;
-		self.scale = 0.88;
-		self.colormod = '1.25 1.25 1.25';
-		self.effects = EF_FULLBRIGHT;
-		self.traileffectnum = 0;
-		self.intro_boom_on = 1;
-		self.intro_boom_tier = idx - 4 * floor (idx / 4);
-		self.intro_boom_step = 0;
-		self.ltime = time;
+		// Wheelman Sprite detonates into WC_Boom-style s_explodbig.spr fireball + flings axle/tires!
+		Intro_SpawnSpriteBoom (self.origin, 1.55);
+		tvel_x = crandom () * 260;
+		tvel_y = crandom () * 260;
+		tvel_z = 210 + random () * 180;
+		Intro_TossProp ("progs/mm_wheel.md3", self.origin, tvel, 1.40, 2.5);
 
 		mod3 = idx - 3 * floor (idx / 3);
 		if (mod3 == 1)
@@ -2151,8 +2145,7 @@ void() Intro_Swarm50Think =
 			intro_milk_until = time + 2.75;
 		}
 
-		self.think = Intro_WheelBoomStepThink;
-		self.nextthink = time + 0.04;
+		remove (self);
 		return;
 	}
 
@@ -2288,7 +2281,7 @@ void() Intro_Spawn50TowerSwarm =
 			if (slot == 1)
 			{
 				setmodel (e, "progs/wheelman.spr32");
-				e.scale = 0.60;
+				e.scale = 1.25;
 				e.wc_anim = 1;
 				e.customizeentityforclient = Intro_ClassicWheelCustomize;
 			}
@@ -2306,7 +2299,7 @@ void() Intro_Spawn50TowerSwarm =
 			else if (slot == 5)
 			{
 				setmodel (e, "progs/wheelman.spr32");
-				e.scale = 0.60;
+				e.scale = 1.25;
 				e.wc_anim = 3;
 				e.customizeentityforclient = Intro_ClassicWheelCustomize;
 			}
@@ -2315,7 +2308,7 @@ void() Intro_Spawn50TowerSwarm =
 				if (ring - 2 * floor (ring / 2) == 0)
 				{
 					setmodel (e, "progs/greensuit_wheelman.spr32");
-					e.scale = 0.50;
+					e.scale = 0.7727;
 					e.npc_dead = 0;
 					e.npc_state = 2;
 					e.customizeentityforclient = GreenSuit_Customize;
@@ -2323,7 +2316,7 @@ void() Intro_Spawn50TowerSwarm =
 				else
 				{
 					setmodel (e, "progs/wheelman_dance.spr32");
-					e.scale = 0.34;
+					e.scale = 1.53;
 					e.wc_anim = ring;
 					e.wc_t0 = time;
 					e.customizeentityforclient = WC_DancerCustomize;
@@ -2332,7 +2325,7 @@ void() Intro_Spawn50TowerSwarm =
 			else
 			{
 				setmodel (e, "progs/wheelman.spr32");
-				e.scale = 0.62;
+				e.scale = 1.2917;
 				e.wc_anim = 0;
 				e.intro_fkind = 1;
 				e.customizeentityforclient = Intro_ClassicWheelCustomize;
@@ -2545,7 +2538,7 @@ void() Intro_SpawnFloatingFinale =
 	dan.movetype = MOVETYPE_NOCLIP;
 	dan.solid = SOLID_NOT;
 	setmodel (dan, "progs/daniel.spr32");
-	dan.scale = 0.24;
+	dan.scale = 1.20;
 	dan.colormod = '1.35 1.35 1.35';
 	dan.effects = EF_FULLBRIGHT;
 	dan.intro_rad = 156;
@@ -2591,7 +2584,7 @@ void() Intro_SpawnFloatingFinale =
 	jpw.movetype = MOVETYPE_NOCLIP;
 	jpw.solid = SOLID_NOT;
 	setmodel (jpw, "progs/wheelman.spr32");
-	jpw.scale = 0.56;
+	jpw.scale = 1.1667;
 	jpw.colormod = '1.32 1.32 1.32';
 	jpw.effects = EF_FULLBRIGHT;
 	jpw.wc_anim = 3;

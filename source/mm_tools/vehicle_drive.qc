@@ -191,31 +191,98 @@ float(entity e, vector org) Veh_FreeSpot =
 	return TRUE;
 };
 
+// ---------------------------------------------------------------- per-vehicle driving characteristics
+
+float(float kind) Veh_TopSpeed =
+{
+	if (kind == VEH_GTCAR)     return 830;
+	if (kind == VEH_COUPE)     return 780;
+	if (kind == VEH_SEDAN)     return 720;
+	if (kind == VEH_TRUCK)     return 670;
+	if (kind == VEH_VAN)       return 660;
+	if (kind == VEH_HDTRUCK)   return 620;
+	if (kind == VEH_SCHOOLBUS) return 600;
+	if (kind == VEH_GOLFCART)  return 610;
+	return VD_TOP;
+};
+
+float(float kind) Veh_BaseAccel =
+{
+	if (kind == VEH_GTCAR)     return 320;
+	if (kind == VEH_GOLFCART)  return 290;
+	if (kind == VEH_COUPE)     return 285;
+	if (kind == VEH_SEDAN)     return 250;
+	if (kind == VEH_TRUCK)     return 225;
+	if (kind == VEH_VAN)       return 215;
+	if (kind == VEH_HDTRUCK)   return 200;
+	if (kind == VEH_SCHOOLBUS) return 185;
+	return VD_ACCEL;
+};
+
+float(float kind) Veh_BaseGrip =
+{
+	if (kind == VEH_GOLFCART)  return 820;
+	if (kind == VEH_COUPE)     return 810;
+	if (kind == VEH_SEDAN)     return 760;
+	if (kind == VEH_GTCAR)     return 740;
+	if (kind == VEH_TRUCK)     return 730;
+	if (kind == VEH_VAN)       return 720;
+	if (kind == VEH_HDTRUCK)   return 690;
+	if (kind == VEH_SCHOOLBUS) return 660;
+	return VD_GRIP;
+};
+
+float(float kind) Veh_Wheelbase =
+{
+	if (kind == VEH_SCHOOLBUS) return 198;
+	if (kind == VEH_HDTRUCK)   return 156;
+	if (kind == VEH_VAN)       return 148;
+	if (kind == VEH_TRUCK)     return 142;
+	if (kind == VEH_SEDAN)     return 116;
+	if (kind == VEH_GTCAR)     return 114;
+	if (kind == VEH_COUPE)     return 108;
+	if (kind == VEH_GOLFCART)  return 72;
+	return VD_WHEELBASE;
+};
+
+float(float kind) Veh_MaxPass =
+{
+	if (kind == VEH_VAN || kind == VEH_SCHOOLBUS)
+		return 5;
+	if (kind == VEH_TRUCK || kind == VEH_HDTRUCK)
+		return 4;
+	if (kind == VEH_SEDAN || kind == VEH_GOLFCART)
+		return 3;
+	return 2;
+};
+
 // ---------------------------------------------------------------- the footprint: 20 hulls swept around the real body
 
-// body-space (x forward, y left) spots round the van's edge where a 20 x 20 hull is swept, placed so the hull's outer
-// edge lies on the body's outline (nose 112.5, tail -114, sides +-43): 4 across the nose, 4 across the tail, 6 down each side
-vector(float i) Veh_ProbeOfs =
+// body-space (x forward, y left) spots round the vehicle's edge where a 20 x 20 hull is swept, scaled to each vehicle's real footprint
+vector(float kind, float i) Veh_ProbeOfs =
 {
-	local float k;
+	local float k, hl, hw, sx;
 
+	hl = max (24, Veh_HalfLen (kind) - 10);
+	hw = max (14, Veh_HalfWid (kind) - 10);
 	if (i < 4)
 	{
 		k = i;
-		return '102 0 0' + '0 1 0' * (-33 + 22 * k);
+		return '1 0 0' * hl + '0 1 0' * ((0 - hw) + (2 * hw / 3.0) * k);
 	}
 	if (i < 8)
 	{
 		k = i - 4;
-		return '-104 0 0' + '0 1 0' * (-33 + 22 * k);
+		return '-1 0 0' * hl + '0 1 0' * ((0 - hw) + (2 * hw / 3.0) * k);
 	}
+	sx = hl * 0.78;
 	if (i < 14)
 	{
 		k = i - 8;
-		return '0 33 0' + '1 0 0' * (-80 + 32 * k);
+		return '0 1 0' * hw + '1 0 0' * ((0 - sx) + (2 * sx / 5.0) * k);
 	}
 	k = i - 14;
-	return '0 -33 0' + '1 0 0' * (-80 + 32 * k);
+	return '0 -1 0' * hw + '1 0 0' * ((0 - sx) + (2 * sx / 5.0) * k);
 };
 
 /*
@@ -226,20 +293,21 @@ a surface that faces up (normal z >= 0.7) is ground for the wheels to follow, no
 */
 float(entity v, vector org0, float yaw0, vector org1, float yaw1) Veh_DriveSweep =
 {
-	local float i, best, c0, s0, c1, s1;
+	local float i, best, c0, s0, c1, s1, hz;
 	local vector o, p0, p1;
 
 	c0 = Veh_Cos (yaw0);
 	s0 = Veh_Sin (yaw0);
 	c1 = Veh_Cos (yaw1);
 	s1 = Veh_Sin (yaw1);
+	hz = max (36, Veh_BodyHeight (v.veh_kind) - 20);
 	best = 1;
 	vd_hitent = world;
 	vd_hitnorm = '0 0 0';
 	i = 0;
 	while (i < 20)
 	{
-		o = Veh_ProbeOfs (i);
+		o = Veh_ProbeOfs (v.veh_kind, i);
 		p0 = org0;
 		p0_x = org0_x + c0 * o_x - s0 * o_y;
 		p0_y = org0_y + s0 * o_x + c0 * o_y;
@@ -248,7 +316,7 @@ float(entity v, vector org0, float yaw0, vector org1, float yaw1) Veh_DriveSweep
 		p1_x = org1_x + c1 * o_x - s1 * o_y;
 		p1_y = org1_y + s1 * o_x + c1 * o_y;
 		p1_z = org1_z + 20;
-		tracebox (p0, '-10 -10 0', '10 10 76', p1, FALSE, v);
+		tracebox (p0, '-10 -10 0', '10 10 0' + '0 0 1' * hz, p1, FALSE, v);
 		if (!trace_startsolid && trace_fraction < best && trace_plane_normal_z < 0.7)
 		{
 			best = trace_fraction;
@@ -269,18 +337,16 @@ float(entity v, vector org0, float yaw0, vector org1, float yaw1) Veh_DriveSweep
 
 // ---------------------------------------------------------------- the road under the wheels
 
-/*
-Trace the four wheel contact points (front pair x = 80, rear pair x = -68, track 77). Sets:
-  vd_found   how many wheels found road
-  vd_gh      the height the van's origin should have (mean of the four; a wheel with no road counts as hanging 24 low)
-  vd_pitch   degrees the nose is up, from the front pair against the rear pair
-  vd_slope_f / _l   sine of the road's slope along / across the van (+ = uphill ahead / to the left)
-*/
 void(entity v, vector org, float yaw) Veh_GroundSample =
 {
-	local float i, wx, wy, c, s, sum, have0, tf, tl, hf, hr, hl, hrt;
+	local float i, wx, wy, wxf, wxr, wyt, wb, c, s, sum, have0, tf, tl, hf, hr, hl, hrt;
 	local float h0, h1, h2, h3, hh, mask;
 	local vector p, q;
+
+	wxf = Veh_HalfLen (v.veh_kind) * 0.72;
+	wxr = 0 - Veh_HalfLen (v.veh_kind) * 0.62;
+	wyt = Veh_HalfWid (v.veh_kind) * 0.85;
+	wb = max (60, wxf - wxr);
 
 	c = Veh_Cos (yaw);
 	s = Veh_Sin (yaw);
@@ -295,13 +361,13 @@ void(entity v, vector org, float yaw) Veh_GroundSample =
 	while (i < 4)
 	{
 		if (i < 2)
-			wx = 80;
+			wx = wxf;
 		else
-			wx = -68;
+			wx = wxr;
 		if (i == 0 || i == 2)
-			wy = 38.5;
+			wy = wyt;
 		else
-			wy = -38.5;
+			wy = 0 - wyt;
 		p = org;
 		p_x = org_x + c * wx - s * wy;
 		p_y = org_y + s * wx + c * wy;
@@ -353,40 +419,51 @@ void(entity v, vector org, float yaw) Veh_GroundSample =
 	hl = (h0 + h2) * 0.5;
 	hrt = (h1 + h3) * 0.5;
 	vd_gh = (h0 + h1 + h2 + h3) * 0.25 + VD_HEIGHT;
-	vd_pitch = Veh_RiseAngle (hf - hr, 148);
-	tf = (hf - hr) / 148;
-	tl = (hl - hrt) / 77;
+	vd_pitch = Veh_RiseAngle (hf - hr, wb);
+	tf = (hf - hr) / wb;
+	tl = (hl - hrt) / max (36, wyt * 2);
 	vd_slope_f = tf / vlen ('1 0 0' + '0 1 0' * tf);		// sine of the slope
 	vd_slope_l = tl / vlen ('1 0 0' + '0 1 0' * tl);
 };
 
 // ---------------------------------------------------------------- solid box while driven / parked
 
-// While driven the van is one box that fits INSIDE its real footprint at any heading (a box sticking out past the
-// body would trap anyone standing beside it). It only has to take bullets: the van moves itself with the sweeps.
+float(float kind) Veh_DrivenTopZ =
+{
+	if (kind == VEH_SCHOOLBUS)
+		return 62;
+	if (kind == VEH_VAN || kind == VEH_TRUCK || kind == VEH_HDTRUCK)
+		return 52;
+	return 46;
+};
+
+// While driven the vehicle is one box that fits INSIDE its real footprint at any heading; bmax_z stays at beltline
+// height so enemies easily hit the body while riding gunners fire cleanly 360 degrees above the roof/windows!
 void(entity v) Veh_DriveBounds =
 {
-	local float c, s, hx, hy, a1, a2, k;
+	local float c, s, hl, hw, hx, hy, a1, a2, k;
 	local vector bmin, bmax;
 
+	hl = Veh_HalfLen (v.veh_kind) * 0.86;
+	hw = Veh_HalfWid (v.veh_kind) * 0.86;
 	c = fabs (Veh_Cos (v.angles_y));
 	s = fabs (Veh_Sin (v.angles_y));
-	hx = c * 108 + s * 42;			// the box round the rotated 216 x 84 body...
-	hy = s * 108 + c * 42;
+	hx = c * hl + s * hw;
+	hy = s * hl + c * hw;
 	a1 = hx * c + hy * s;
 	a2 = hx * s + hy * c;
 	k = 1;
-	if (108 / a1 < k)
-		k = 108 / a1;
-	if (42 / a2 < k)
-		k = 42 / a2;				// ...shrunk until its corners sit inside the body
+	if (hl / a1 < k)
+		k = hl / a1;
+	if (hw / a2 < k)
+		k = hw / a2;
 	bmin = '0 0 0';
 	bmax = '0 0 0';
 	bmin_x = 0 - hx * k;
 	bmin_y = 0 - hy * k;
 	bmax_x = hx * k;
 	bmax_y = hy * k;
-	bmax_z = 89;
+	bmax_z = Veh_DrivenTopZ (v.veh_kind);
 	setsize (v, bmin, bmax);
 };
 
@@ -440,15 +517,15 @@ void(entity v, entity keep) Veh_EjectOthers =
 	}
 };
 
-// the van has stopped being driven: square to the world it gets its walk-in interior back, otherwise it is a plain box
+// the vehicle has stopped being driven: square to the world (within 22 deg) a van gets its walk-in interior back
 void(entity v) Veh_Park =
 {
 	local float snap, d;
 
+	v.veh_coast_until = 0;
+	Veh_AllPassengersBail (v, FALSE);
 	if (v.veh_air)
 	{
-		// parked in mid-air (he got out, died or dropped during a jump): put it down first, else it hung in the sky for
-		// good, too high for anyone to get back in
 		tracebox (v.origin, v.mins, v.maxs, v.origin - '0 0 4096', TRUE, v);
 		if (!trace_startsolid && !trace_allsolid && trace_fraction < 1)
 			setorigin (v, trace_endpos + '0 0 0.5');
@@ -464,7 +541,7 @@ void(entity v) Veh_Park =
 	v.solid = SOLID_BBOX;
 	snap = floor ((v.angles_y + 45) / 90) * 90;
 	d = Veh_AngDelta (v.angles_y, snap);
-	if (fabs (d) <= 7)
+	if (v.veh_kind == VEH_VAN && fabs (d) <= 22)
 	{
 		v.angles_y = Veh_NormYaw (snap);
 		setorigin (v, v.origin);
@@ -472,7 +549,7 @@ void(entity v) Veh_Park =
 	}
 	else
 	{
-		Veh_SetRotatedBounds (v, VEH_VAN, FALSE);
+		Veh_SetRotatedBounds (v, v.veh_kind, FALSE);
 		setorigin (v, v.origin);
 	}
 	Veh_EjectOthers (v, world);
@@ -480,7 +557,7 @@ void(entity v) Veh_Park =
 
 // ---------------------------------------------------------------- hitting things
 
-// the van ran into something that can be hurt (a person, a monster, another vehicle's body)
+// the vehicle ran into something that can be hurt (a person, a monster, another vehicle's body)
 void(entity v, entity hit, float imp) Veh_RamHit =
 {
 	local entity driver;
@@ -489,7 +566,13 @@ void(entity v, entity hit, float imp) Veh_RamHit =
 
 	if (imp < 90 || time < hit.veh_hit_t)
 		return;
+	if (hit.veh_ride == v || (hit.veh_last_van == v && time < hit.veh_bail_safe_t))
+		return;
 	driver = v.veh_driver;
+	if (driver == world)
+		driver = v.veh_igniter;
+	if (driver == world)
+		driver = v;
 	dir = v.velocity;
 	dir_z = 0;
 	dir = normalize (dir);
@@ -575,17 +658,21 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 {
 	local entity cam;
 	local vector fwd, lft, pos, tgt, ang;
-	local float yaw, pitch, d, spd, lead;
+	local float yaw, pitch, d, spd, lead, hl, ht, cdist, cup;
 
 	cam = v.veh_cament;
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
 	spd = vlen (v.velocity);
+	hl = Veh_HalfLen (v.veh_kind);
+	ht = Veh_BodyHeight (v.veh_kind);
 
 	if (p.veh_camera == 0)
 	{
-		// cockpit: the driver's eye (42, 19.8, 63.5), looking a little into the turn
-		pos = v.origin + fwd * VD_EYE_X + lft * VD_EYE_Y + '0 0 1' * VD_EYE_Z;
+		if (v.veh_kind == VEH_VAN)
+			pos = v.origin + fwd * VD_EYE_X + lft * VD_EYE_Y + '0 0 1' * VD_EYE_Z;
+		else
+			pos = v.origin + fwd * (hl * 0.28) + '0 0 1' * (ht + 6);
 		lead = 0 - v.veh_steer * 9 * bound (0, spd / 220, 1);		// steering right (+) looks right (yaw falls)
 		p.veh_cam_look = p.veh_cam_look + (lead - p.veh_cam_look) * min (1, dt * 5);
 		yaw = Veh_NormYaw (v.angles_y + p.veh_cam_look);
@@ -594,17 +681,19 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	}
 	else
 	{
-		// chase: behind and above, swinging round after the van rather than welded to it
+		// chase: behind and above, scaled to vehicle size
+		cdist = max (150, hl * 1.85);
+		cup = max (50, ht * 0.72);
 		d = Veh_AngDelta (v.angles_y, p.veh_cam_yaw);
 		p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 5));
 		yaw = p.veh_cam_yaw;
 		pitch = VD_CAM_PITCH;
-		tgt = v.origin + '0 0 1' * VD_CAM_UP;
+		tgt = v.origin + '0 0 1' * cup;
 		ang = '0 0 0';
 		ang_x = pitch;
 		ang_y = yaw;
 		makevectors (ang);
-		pos = tgt - v_forward * VD_CAM_DIST;
+		pos = tgt - v_forward * cdist;
 		traceline (tgt, pos, 3, v);
 		pos = trace_endpos;
 		if (trace_fraction < 1)
@@ -613,7 +702,6 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	setorigin (cam, pos);
 	cam.angles = '0 0 0';
 	cam.angles_y = yaw;
-	// the view itself is the server's: set absolutely every frame, so how long the round trip takes cannot slow it
 	p.angles = '0 0 0';
 	p.angles_x = pitch;
 	p.angles_y = yaw;
@@ -665,6 +753,238 @@ void(entity v, float slip) Veh_SkidSound =
 float(entity p) Veh_Driving =
 {
 	return p.veh_van != world;
+};
+
+float(entity p) Veh_Riding =
+{
+	return p.veh_ride != world;
+};
+
+void() Veh_SpawnReset =
+{
+	self.veh_van = world;
+	self.veh_ride = world;
+	self.veh_seat = 0;
+	self.veh_bail_safe_t = 0;
+};
+
+// World-space drive-by seat offset for passenger `seat` (1..5): sits around the perimeter/bed/roof above Veh_DrivenTopZ
+// so passengers have 360-degree unobstructed weapon fire with all rockets & Fun Guns!
+vector(entity v, float seat) Veh_PassengerOfs =
+{
+	local vector fwd, lft;
+	local float hl, hw, ztop, lx, ly, lz;
+
+	fwd = Veh_Fwd (v.angles_y);
+	lft = Veh_Lft (v.angles_y);
+	hl = Veh_HalfLen (v.veh_kind);
+	hw = Veh_HalfWid (v.veh_kind);
+	ztop = Veh_DrivenTopZ (v.veh_kind) + 18;
+
+	if (seat <= 1)
+	{
+		// Seat 1: Shotgun / Front-Right window gunner
+		lx = hl * 0.28;
+		ly = 0 - hw * 0.72;
+		lz = ztop;
+	}
+	else if (seat == 2)
+	{
+		// Seat 2: Rear-Left bed / cargo-window gunner
+		lx = 0 - hl * 0.44;
+		ly = hw * 0.72;
+		lz = ztop;
+	}
+	else if (seat == 3)
+	{
+		// Seat 3: Rear-Right bed / cargo-window gunner
+		lx = 0 - hl * 0.44;
+		ly = 0 - hw * 0.72;
+		lz = ztop;
+	}
+	else if (seat == 4)
+	{
+		// Seat 4: Open Tailgate / Rear Barn-Door gunner
+		lx = 0 - hl * 0.80;
+		ly = 0;
+		lz = ztop;
+	}
+	else
+	{
+		// Seat 5: Roof-Deck Center Turret gunner
+		lx = 0 - hl * 0.08;
+		ly = 0;
+		lz = ztop + 8;
+	}
+	return v.origin + fwd * lx + lft * ly + '0 0 1' * lz;
+};
+
+float(entity v) Veh_FindFreeSeat =
+{
+	local float mx, s, taken;
+	local entity e;
+
+	mx = Veh_MaxPass (v.veh_kind);
+	s = 1;
+	while (s <= mx)
+	{
+		taken = FALSE;
+		e = find (world, classname, "player");
+		while (e != world)
+		{
+			if (e.health > 0 && e.veh_ride == v && e.veh_seat == s)
+				taken = TRUE;
+			e = find (e, classname, "player");
+		}
+		if (!taken)
+			return s;
+		s = s + 1;
+	}
+	return 0;
+};
+
+void(entity p, float forced) Veh_LeavePassenger =
+{
+	local entity v;
+	local vector pos, vel, outd;
+
+	v = p.veh_ride;
+	p.veh_ride = world;
+	p.veh_seat = 0;
+	if (p.health > 0)
+	{
+		p.movetype = MOVETYPE_WALK;
+		p.solid = SOLID_SLIDEBOX;
+	}
+	if (v == world)
+		return;
+
+	p.veh_last_van = v;
+	p.veh_bail_safe_t = time + 1.25;
+	pos = p.origin + '0 0 18';
+	if (Veh_ExitSpot (v, p))
+		pos = vd_exit;
+	else if (!Veh_FreeSpot (p, pos))
+		pos = v.origin + '0 0 1' * (Veh_BodyHeight (v.veh_kind) + 28);
+
+	outd = pos - v.origin;
+	outd_z = 0;
+	if (vlen (outd) > 1)
+		outd = normalize (outd);
+	else
+		outd = Veh_Lft (v.angles_y);
+
+	if (forced)
+		vel = v.velocity * 0.55 + outd * 210 + '0 0 210';
+	else
+		vel = v.velocity * 0.45 + outd * 150 + '0 0 165';
+
+	setorigin (p, pos);
+	p.velocity = vel;
+	p.flags = p.flags - (p.flags & FL_ONGROUND);
+};
+
+void(entity v, float exploding) Veh_AllPassengersBail =
+{
+	local entity e;
+
+	e = find (world, classname, "player");
+	while (e != world)
+	{
+		if (e.veh_ride == v)
+			Veh_LeavePassenger (e, exploding);
+		e = find (e, classname, "player");
+	}
+};
+
+void(entity v) Veh_SyncPassengers =
+{
+	local entity e;
+
+	e = bm_player_head;
+	if (e == world)
+		e = find (world, classname, "player");
+	while (e != world)
+	{
+		if (e.veh_ride == v)
+		{
+			if (e.health <= 0 || e.deadflag != 0)
+			{
+				e.veh_ride = world;
+				e.veh_seat = 0;
+			}
+			else
+			{
+				setorigin (e, Veh_PassengerOfs (v, e.veh_seat));
+				e.velocity = '0 0 0';
+				e.flags = e.flags - (e.flags & FL_ONGROUND);
+			}
+		}
+		if (bm_player_head != world)
+			e = e.bm_player_next;
+		else
+			e = find (e, classname, "player");
+	}
+};
+
+float(entity p, entity v) Veh_EnterPassenger =
+{
+	local float s;
+	local entity oldself;
+
+	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world)
+		return FALSE;
+	s = Veh_FindFreeSeat (v);
+	if (s <= 0)
+	{
+		if (p.ishuman == 1)
+			sprint (p, "All passenger seats are full!\n");
+		return FALSE;
+	}
+	if (p.jp_on)
+	{
+		oldself = self;
+		self = p;
+		Jetpack_Off ();
+		self = oldself;
+	}
+	p.veh_ride = v;
+	p.veh_seat = s;
+	p.movetype = MOVETYPE_NONE;
+	p.solid = SOLID_NOT;
+	p.velocity = '0 0 0';
+	p.flags = p.flags - (p.flags & FL_ONGROUND);
+	setorigin (p, Veh_PassengerOfs (v, s));
+	sound (v, CHAN_AUTO, "items/armor1.wav", 0.85, ATTN_NORM);
+	if (p.ishuman == 1)
+		centerprint (p, strcat ("Riding in ", Veh_DisplayName (v.veh_kind), "!\nAim & shoot freely | Press H to bail"));
+	if (v.veh_driver != world && v.veh_driver.ishuman == 1)
+		sprint (v.veh_driver, strcat (p.netname, " hopped aboard your ", Veh_DisplayName (v.veh_kind), "!\n"));
+	return TRUE;
+};
+
+// Called from W_WeaponFrame right after Veh_DriveFrame (does NOT return early: passenger retains full aiming & arsenal!)
+void() Veh_PassengerFrame =
+{
+	local entity v;
+
+	v = self.veh_ride;
+	if (v == world)
+		return;
+	if (bm_wasfreed (v) || v.veh_state == VEH_STATE_WRECK || self.health <= 0 || (v.veh_driver == world && time >= v.veh_coast_until))
+	{
+		Veh_LeavePassenger (self, FALSE);
+		return;
+	}
+	if (self.impulse == 86)
+	{
+		self.impulse = 0;
+		Veh_LeavePassenger (self, FALSE);
+		return;
+	}
+	setorigin (self, Veh_PassengerOfs (v, self.veh_seat));
+	self.velocity = '0 0 0';
+	self.flags = self.flags - (self.flags & FL_ONGROUND);
 };
 
 // give the player back to himself
@@ -748,6 +1068,11 @@ void() Veh_ClientGone =
 {
 	local entity v;
 
+	if (self.veh_ride != world)
+	{
+		self.veh_ride = world;
+		self.veh_seat = 0;
+	}
 	v = self.veh_van;
 	if (v != world && v.veh_driver == self)
 		Veh_Leave (v, v.origin + '0 0 40', '0 0 0', FALSE);
@@ -766,34 +1091,46 @@ void(entity v) Veh_DriveWatch =
 		Veh_Leave (v, p.origin, '0 0 0', v.veh_state == VEH_STATE_WRECK);		// he stays where he fell (or is gone); the van is parked
 };
 
-// where can he get out? The driver's door, the passenger's, the back, the nose
+// where can he get out? The driver's door, the passenger's, the back, the nose, or roof
 float(entity v, entity p) Veh_ExitSpot =
 {
-	local float i, lx, ly;
+	local float i, lx, ly, hl, hw;
 	local vector pos, fwd, lft;
 
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
+	hl = Veh_HalfLen (v.veh_kind);
+	hw = Veh_HalfWid (v.veh_kind);
 	i = 0;
-	while (i < 4)
+	while (i < 5)
 	{
-		lx = 34;
-		ly = 62;
+		lx = hl * 0.25;
+		ly = hw + 22;
 		if (i == 1)
-			ly = -62;
+			ly = 0 - (hw + 22);
 		if (i == 2)
 		{
-			lx = -154;
+			lx = 0 - (hl + 38);
 			ly = 0;
 		}
 		if (i == 3)
 		{
-			lx = 142;
+			lx = hl + 34;
 			ly = 0;
 		}
+		if (i == 4)
+		{
+			pos = v.origin + '0 0 1' * (Veh_BodyHeight (v.veh_kind) + 28);
+			if (Veh_FreeSpot (p, pos))
+			{
+				vd_exit = pos;
+				return TRUE;
+			}
+			return FALSE;
+		}
 		pos = v.origin + fwd * lx + lft * ly;
-		pos_z = v.origin_z + 26;
-		traceline (pos, pos - '0 0 90', 3, v);
+		pos_z = v.origin_z + 28;
+		traceline (pos, pos - '0 0 96', 3, v);
 		if (trace_fraction < 1 && !trace_startsolid)
 		{
 			pos_z = trace_endpos_z + 25;
@@ -808,28 +1145,187 @@ float(entity v, entity p) Veh_ExitSpot =
 	return FALSE;
 };
 
-void(entity p, entity v) Veh_TryExit =
+// Coasting runaway step when a driver performs a high-speed Hollywood Dive-Bail!
+void(entity v, float dt) Veh_CoastStep =
 {
-	local float spd, limit;
-	local vector vel;
+	local vector org0, org1, n, vel;
+	local float yaw0, vn, imp, living, z, d;
 
-	spd = vlen (v.velocity);
-	limit = 140;
-	if (v.veh_state == VEH_STATE_FIRE)
-		limit = 260;					// a burning van is worth jumping out of at a run
-	if (spd > limit)
+	if (v.veh_driver != world || v.veh_state == VEH_STATE_WRECK)
 	{
-		centerprint (p, "Too fast to get out!\nBrake first.\n");
+		v.veh_coast_until = 0;
 		return;
 	}
+	vel = v.velocity;
+	vel_z = 0;
+	if (time >= v.veh_coast_until || vlen (vel) < 35)
+	{
+		Veh_Park (v);
+		return;
+	}
+	yaw0 = v.angles_y;
+	org0 = v.origin;
+	org1 = org0 + vel * dt;
+	if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+	{
+		n = vd_hitnorm;
+		vn = vel * n;
+		if (vn < 0)
+		{
+			imp = 0 - vn;
+			living = FALSE;
+			if (vd_hitent != world && vd_hitent.takedamage)
+			{
+				if ((vd_hitent.flags & FL_CLIENT) || (vd_hitent.flags & FL_MONSTER))
+					living = TRUE;
+				Veh_RamHit (v, vd_hitent, imp);
+			}
+			if (!living && (imp >= 340 || (imp >= 175 && v.veh_state == VEH_STATE_FIRE)))
+			{
+				// Hollywood runaway crash fireball!
+				Veh_Crash (v, imp, vd_hitpos);
+				if (v.veh_state != VEH_STATE_WRECK)
+				{
+					local entity oldself;
+					oldself = self;
+					self = v;
+					Veh_ExplodeNow ();
+					self = oldself;
+				}
+				return;
+			}
+			if (!living)
+			{
+				Veh_Crash (v, imp, vd_hitpos);
+				if (v.veh_state == VEH_STATE_WRECK)
+					return;
+				vel = (vel - n * (vn * 1.1)) * 0.45;
+			}
+			else
+				vel = vel * 0.85;
+			org1 = org0 + vel * dt;
+			if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+			{
+				Veh_Park (v);
+				return;
+			}
+		}
+	}
+	Veh_GroundSample (v, org1, yaw0);
+	z = org1_z;
+	if (v.veh_air)
+	{
+		v.veh_vz = v.veh_vz - VD_GRAVITY * dt;
+		z = z + v.veh_vz * dt;
+		if (vd_found && v.veh_vz <= 0 && z <= vd_gh + 1)
+		{
+			z = vd_gh;
+			v.veh_vz = 0;
+			v.veh_air = FALSE;
+		}
+	}
+	else if (!vd_found)
+		v.veh_air = TRUE;
+	else
+	{
+		d = vd_gh - z;
+		if (d < -12)
+			v.veh_air = TRUE;
+		else
+			z = vd_gh;
+	}
+	org1_z = z;
+	v.velocity = vel * 0.96;
+	if (v.veh_air)
+		v.velocity_z = v.veh_vz;
+	setorigin (v, org1);
+	Veh_DriveBounds (v);
+	Veh_SyncPassengers (v);
+};
+
+void(entity p, entity v) Veh_TryExit =
+{
+	local float spd, yaw;
+	local vector vel, outd;
+	local entity r;
+
+	spd = vlen (v.velocity);
 	if (!Veh_ExitSpot (v, p))
 	{
 		centerprint (p, "No room to open the door.\nPull away from the wall.\n");
 		return;
 	}
+	if (spd > 165)
+	{
+		// Hollywood Dive-Bail! Fling driver clear while the unmanned vehicle coasts forward into walls/enemies!
+		outd = vd_exit - v.origin;
+		outd_z = 0;
+		if (vlen (outd) > 1)
+			outd = normalize (outd);
+		else
+			outd = Veh_Lft (v.angles_y);
+
+		p.veh_last_van = v;
+		p.veh_bail_safe_t = time + 1.5;
+		v.veh_igniter = p;
+		vel = v.velocity * 0.45 + outd * 220 + '0 0 215';
+
+		v.veh_driver = world;
+		v.veh_drive_mode = FALSE;
+		sound (v, VD_MUSIC_CH, "misc/null.wav", 1, ATTN_NORM);
+		if (v.veh_cament != world)
+		{
+			remove (v.veh_cament);
+			v.veh_cament = world;
+		}
+		yaw = p.veh_cam_yaw;
+		if (p.veh_camera == 0)
+			yaw = v.angles_y;
+		Veh_ReleasePlayer (p, vd_exit, vel, yaw);
+		v.veh_coast_until = time + 2.2;
+		v.nextthink = time + 0.04;
+		if (p.ishuman == 1)
+			centerprint (p, strcat ("DIVE BAIL! Ghost-riding the ", Veh_DisplayName (v.veh_kind), "!"));
+		r = find (world, classname, "player");
+		while (r != world)
+		{
+			if (r.veh_ride == v && r.ishuman == 1)
+				centerprint (r, "DRIVER BAILED!! Press H to jump clear!");
+			r = find (r, classname, "player");
+		}
+		return;
+	}
 	vel = v.velocity * 0.7;
 	vel_z = 0;
 	Veh_Leave (v, vd_exit, vel, FALSE);
+};
+
+// Automatically seat friends standing inside a parked walk-in Van's cargo bay when the driver takes off!
+void(entity v, entity drv) Veh_BoardCargoRiders =
+{
+	local entity e, nxt;
+	local vector rel, fwd, lft;
+	local float lx, ly, lz;
+
+	if (v.veh_kind != VEH_VAN)
+		return;
+	fwd = Veh_Fwd (v.angles_y);
+	lft = Veh_Lft (v.angles_y);
+	e = findradius (v.origin, 180);
+	while (e != world)
+	{
+		nxt = e.chain;
+		if (e != drv && e.classname == "player" && e.health > 0 && e.veh_van == world && e.veh_ride == world)
+		{
+			rel = e.origin - v.origin;
+			lx = rel * fwd;
+			ly = rel * lft;
+			lz = rel_z;
+			if (fabs (lx) < 118 && fabs (ly) < 46 && lz > -20 && lz < 105)
+				Veh_EnterPassenger (e, v);
+		}
+		e = nxt;
+	}
 };
 
 void(entity p, entity v) Veh_Enter =
@@ -856,12 +1352,16 @@ void(entity p, entity v) Veh_Enter =
 
 	v.veh_driver = p;
 	v.veh_drive_mode = TRUE;
+	v.veh_coast_until = 0;
 	p.veh_van = v;
 	p.veh_oldmove = p.movetype;
 	p.veh_oldsolid = p.solid;
+	if (v.veh_kind != VEH_VAN)
+		p.veh_camera = 1;		// chase view by default on street cars / buses / golf carts so you see your ride & gunners!
 
-	// the van stops being a walk-in room and becomes one moving solid; anyone left in the back is thrown out
+	// the van stops being a walk-in room and becomes one moving solid; cargo-bay friends snap into passenger seats!
 	Veh_FreeClips (v);
+	Veh_BoardCargoRiders (v, p);
 	v.velocity = '0 0 0';
 	v.veh_steer = 0;
 	v.veh_yawrate = 0;
@@ -873,7 +1373,7 @@ void(entity p, entity v) Veh_Enter =
 	v.veh_eng_t = 0;
 	v.veh_skid_t = 0;
 	v.veh_horn_t = 0;
-	v.veh_start_t = time + 1.0;
+	v.veh_start_t = time + 0.65;
 	v.veh_music_t = 0;
 	v.movetype = MOVETYPE_NONE;
 	v.solid = SOLID_BBOX;
@@ -918,35 +1418,37 @@ void(entity p, entity v) Veh_Enter =
 	}
 };
 
-// the van this player can get into: first the one whose driver's seat he is standing in (the cab: x 30..72 forward of
-// the van's centre, y -22..38, the floor at 19.5), else the nearest free van he is standing right beside (bklan3 review:
-// "I don't know how to get into these vans": the walk-in cab was too hard to find), or world. Tested by position, not
-// by the cockpit trigger's touch: a player standing still is not touched again every frame
+// Nearest drivable or rideable vehicle within reach (all 8 vehicle types supported!)
 entity(entity p) Veh_SeatOf =
 {
 	local entity e, best;
 	local vector rel;
-	local float lx, ly, d, bd;
+	local float lx, ly, hl, hw, d, bd;
 
 	best = world;
 	bd = 99999;
-	e = findradius (p.origin, 260);
+	e = findradius (p.origin, 280);
 	while (e != world)
 	{
-		if (e.veh_kind == VEH_VAN && e.veh_state != VEH_STATE_WRECK)
+		if (e.veh_kind >= 1 && e.veh_kind <= 8 && e.veh_state != VEH_STATE_WRECK)
 		{
 			rel = p.origin - e.origin;
 			lx = rel * Veh_Fwd (e.angles_y);
 			ly = rel * Veh_Lft (e.angles_y);
-			if (lx > 30 && lx < 72 && ly > -22 && ly < 38 && rel_z > 20 && rel_z < 80)
+			if (e.veh_kind == VEH_VAN && e.veh_driver == world && lx > 30 && lx < 72 && ly > -22 && ly < 38 && rel_z > 20 && rel_z < 80)
 				return e;
-			if (e.veh_driver == world && lx > -190 && lx < 190 && ly > -120 && ly < 120 && rel_z > -30 && rel_z < 110)
+			hl = Veh_HalfLen (e.veh_kind) + 82;
+			hw = Veh_HalfWid (e.veh_kind) + 78;
+			if (fabs (lx) < hl && fabs (ly) < hw && rel_z > -36 && rel_z < 118)
 			{
-				d = vlen (rel);
-				if (d < bd)
+				if (e.veh_driver == world || Veh_FindFreeSeat (e) > 0)
 				{
-					bd = d;
-					best = e;
+					d = vlen (rel);
+					if (d < bd)
+					{
+						bd = d;
+						best = e;
+					}
 				}
 			}
 		}
@@ -955,58 +1457,58 @@ entity(entity p) Veh_SeatOf =
 	return best;
 };
 
-// a free van within reach of a player on foot: tell him how to get in, once per van
+// Show contextual prompt beside any drivable or rideable vehicle
 void() Veh_NearPrompt =
 {
 	local entity v;
 
-	if (!veh_has_vans || self.ishuman != 1 || self.health <= 0 || self.veh_van != world || self.classname != "player")
+	if (!veh_has_vans || self.ishuman != 1 || self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.classname != "player")
 		return;
 	if (time < self.veh_prompt_scan_t)
 		return;
 	self.veh_prompt_scan_t = time + 0.1;
 	v = Veh_SeatOf (self);
-	if (v == world || v.veh_driver != world)
+	if (v == world)
 	{
-		if (v == world && time > self.veh_prompt_t)
+		if (time > self.veh_prompt_t)
 			self.veh_prompt_van = world;
 		return;
 	}
-	if (self.veh_hint_shown || time < self.veh_prompt_t)
+	if (self.veh_prompt_van == v && time < self.veh_prompt_t)
 		return;
-	if (self.veh_prompt_van == v)
-	{
-		self.veh_prompt_t = time + 35;
-		return;
-	}
 	self.veh_prompt_van = v;
-	self.veh_prompt_t = time + 35;
-	centerprint (self, "Press H to drive ProMaster");
+	self.veh_prompt_t = time + 12;
+	if (v.veh_driver != world)
+		centerprint (self, strcat ("Press H to ride & shoot in ", Veh_DisplayName (v.veh_kind)));
+	else if (!self.veh_hint_shown)
+		centerprint (self, strcat ("Press H to drive ", Veh_DisplayName (v.veh_kind)));
 };
 
-// H on foot (called from Vehicles_Impulse)
+// H on foot (called from Vehicles_Impulse): drives if free, or hops into a drive-by passenger seat!
 void() Veh_EnterKey =
 {
 	local entity v;
 	local vector pos;
 
-	if (self.health <= 0 || self.veh_van != world)
+	if (self.health <= 0 || self.veh_van != world || self.veh_ride != world)
 		return;
 	v = Veh_SeatOf (self);
 	if (v == world)
 		return;
+	if (self.fd_head != world)
+	{
+		sprint (self, "Recall Rob Dob first (H).\n");
+		return;
+	}
 	if (v.veh_driver != world)
 	{
-		sprint (self, "Someone is already driving this van.\n");
+		Veh_EnterPassenger (self, v);
 		return;
 	}
-	if (self.fd_head != world || self.jp_on)
-	{
-		sprint (self, "Put the jetpack / Rob Dob away first.\n");
-		return;
-	}
-	pos = v.origin + Veh_Fwd (v.angles_y) * 50 + Veh_Lft (v.angles_y) * 8;		// into the driver's seat, from wherever he stood
-	pos_z = v.origin_z + 44;
+	if (self.jp_on)
+		Jetpack_Off ();
+	pos = v.origin + Veh_Fwd (v.angles_y) * (Veh_HalfLen (v.veh_kind) * 0.35) + Veh_Lft (v.angles_y) * 8;
+	pos_z = v.origin_z + 40;
 	setorigin (self, pos);
 	self.velocity = '0 0 0';
 	Veh_Enter (self, v);
@@ -1138,7 +1640,7 @@ float() Veh_DriveFrame =
 		thr = 0;
 		brk = 0;
 	}
-	if (started && time >= v.veh_music_t)
+	if (started && (v.veh_kind == VEH_VAN || v.veh_kind == VEH_SCHOOLBUS) && time >= v.veh_music_t)
 	{
 		v.veh_music_t = time + VD_MUSIC_LEN;
 		sound (v, VD_MUSIC_CH, "vehicles/lanvan.wav", 0.5, ATTN_NORM);
@@ -1187,7 +1689,7 @@ float() Veh_DriveFrame =
 		v.veh_boost = max (0, v.veh_boost - dt * 0.5);
 	else if (thr == 0)
 		v.veh_boost = max (0, v.veh_boost - dt / 25);
-	ctop = VD_TOP * (1 + VD_BOOST_TOP * v.veh_boost);
+	ctop = Veh_TopSpeed (v.veh_kind) * (1 + VD_BOOST_TOP * v.veh_boost);
 
 	// ---- pedals. Forward key: drive, or brake if still rolling backward. Back key: brake, or reverse once stopped
 	acc = 0;
@@ -1209,7 +1711,7 @@ float() Veh_DriveFrame =
 		else
 		{
 			k = bound (0, vf / ctop, 1);
-			acc = thr * VD_ACCEL * (1 + VD_BOOST_ACC * v.veh_boost) * power * (1 - pow (k, 1.8));
+			acc = thr * Veh_BaseAccel (v.veh_kind) * (1 + VD_BOOST_ACC * v.veh_boost) * power * (1 - pow (k, 1.8));
 		}
 	}
 	else if (brk > 0)
@@ -1242,7 +1744,7 @@ float() Veh_DriveFrame =
 	}
 
 	// ---- tyres: they take out sideways speed, up to what they can hold (less while braking hard, or with the rears locked)
-	grip = VD_GRIP;
+	grip = Veh_BaseGrip (v.veh_kind);
 	if (hb)
 		grip = VD_GRIP_HB;
 	grip = grip * (1 - 0.45 * bound (0, brake_a / VD_BRAKE, 1));
@@ -1257,7 +1759,7 @@ float() Veh_DriveFrame =
 	spd = fabs (vf);
 	lock = VD_LOCK - (VD_LOCK - VD_LOCK_HI) * bound (0, spd / ctop, 1);
 	delta = v.veh_steer * lock;
-	yr_geo = 0 - vf * Veh_Tan (delta) / VD_WHEELBASE * 57.2958;
+	yr_geo = 0 - vf * Veh_Tan (delta) / Veh_Wheelbase (v.veh_kind) * 57.2958;
 	yr_cap = grip / max (spd, 30) * 57.2958;
 	yr = bound (0 - yr_cap, yr_geo, yr_cap);
 	if (hb && spd > 140)
@@ -1477,8 +1979,9 @@ float() Veh_DriveFrame =
 		dprint ("\n");
 	}
 
-	// ---- the driver rides in the seat; the view is the camera
-	setorigin (self, v.origin + fwd * 40 + lft * 19.8 + '0 0 44');
+	// ---- the driver rides in the seat; lockstep-sync any party passengers; the view is the camera
+	setorigin (self, v.origin + fwd * (Veh_HalfLen (v.veh_kind) * 0.30) + lft * 14 + '0 0 40');
+	Veh_SyncPassengers (v);
 	Veh_DriveCamera (self, v, dt);
 	return TRUE;
 };

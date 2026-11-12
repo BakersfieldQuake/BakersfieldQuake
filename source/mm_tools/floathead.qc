@@ -53,7 +53,7 @@ float	FD_DASH_ARM		= 0.3;		// seconds after the click when a wall cannot set it 
 float	FD_DASH_BOOM	= 0.25;		// seconds after the click before the second click may set it off (so a double click is not a pop)
 float	FD_HEADON		= 0.7;		// a dash that hits a wall straight on (cos of the angle to the wall's normal) or more sets it off
 float	FD_GRACE		= 1;		// seconds of unbroken scraping along walls before it goes off anyway
-float	FD_WATCH		= 2;		// seconds you stay behind the blast, third person, before you are back in your body
+float	FD_WATCH		= 0.9;		// snappy post-blast watch before returning to your body (was 2s)
 float	FD_SONG_LEN		= 5;		// the calc song is cut into slices this long (sound/floathead/calc/c0..)
 float	FD_SONG_N		= 60;		// how many slices there are
 float	FD_SONG_CHAN	= 5;		// the song's own sound channel: CHAN_AUTO never replaces a sound, so it could not be cut off there
@@ -62,7 +62,7 @@ float	FD_HUM_LEN		= 1.36;		// floathead/idle.wav is this long: it is played agai
 float	FD_HUM_VOL		= 0.4;		// the constant hum while he is the head, under the calc song
 vector	FD_MINS			= '-10 -10 -10';	// the head's own box, small so it fits round corners
 vector	FD_MAXS			= '10 10 10';
-var float	autocvar_fd_flight = 0;		// 0 = fly it as long as you want
+var float	autocvar_fd_flight = 20;	// 20s max flight (0 = fly as long as you want)
 var float	autocvar_fd_dash = 2000;	// speed of the dash
 void(entity h, float big) FD_Shock;	// defined with the electricity code below, the blast needs it first
 float	FD_CLIENTTYPE_REAL = 1;		// clienttype() result for a real player (the Combat+ defs have no name for it)
@@ -132,13 +132,12 @@ float(float v, float lo, float hi) FD_Clamp =
 
 // ---------------------------------------------------------------- the player's side
 
-// while the head is out his body is hidden (alpha, not the Ring of Shadows: that tints the whole screen) and not a target
+// while the head is out, the pilot body stays visible & vulnerable with a faint trance glow so rivals can punish unguarded launches!
 void(entity p) FD_Hide =
 {
-	p.alpha = 0.01;
-	if (!(p.flags & FL_NOTARGET))
+	if (!(p.effects & EF_DIMLIGHT))
 	{
-		p.flags = p.flags | FL_NOTARGET;
+		p.effects = p.effects | EF_DIMLIGHT;
 		p.fd_notarget = TRUE;
 	}
 };
@@ -149,8 +148,8 @@ void(entity p) FD_Unhide =
 	if (p.fd_notarget)
 	{
 		p.fd_notarget = FALSE;
-		if (p.flags & FL_NOTARGET)
-			p.flags = p.flags - FL_NOTARGET;
+		if (p.effects & EF_DIMLIGHT)
+			p.effects = p.effects - EF_DIMLIGHT;
 	}
 };
 
@@ -628,9 +627,8 @@ void() FD_Launch =
 	self.fd_head = h;
 	self.fd_btn = TRUE;
 	self.fd_oldmove = self.movetype;
-	self.fd_oldsolid = self.solid;
+	self.fd_oldsolid = 0;				// keep pilot body SOLID_SLIDEBOX & hittable (h.owner == self already ignores pilot!)
 	self.movetype = MOVETYPE_NONE;
-	self.solid = SOLID_NOT;				// his own body is no wall for the head to fly back into
 	self.velocity = '0 0 0';
 	FD_Hide (self);
 
@@ -659,14 +657,14 @@ void() FD_Launch =
 	if (!self.fd_hint_shown)
 	{
 		self.fd_hint_shown = TRUE;
-		centerprint (self, "Rob Dob: mouse steers | FIRE dash | FIRE again detonate");
+		centerprint (self, "Rob Dob: mouse steers | FIRE dash | FIRE again detonate | H recall");
 	}
 };
 
 // every frame from W_WeaponFrame (self = the player): TRUE while he is flying the head, which stops him doing anything else
 float() FD_Frame =
 {
-	local entity	h, c;
+	local entity	h, c, oldself;
 	local vector	wish;
 	local float		mx, my, mz, k, f;
 
@@ -676,8 +674,10 @@ float() FD_Frame =
 		if (!self.fd_fade)
 			return FALSE;
 		// the head went off: the camera stays where it was, looking at the blast, until the time is up; then he is back in his body
-		if (time >= self.fd_fade || self.health <= 0)
+		if (time >= self.fd_fade || self.health <= 0 || self.impulse == 86)
 		{
+			if (self.impulse == 86)
+				self.impulse = 0;
 			self.fd_fade = 0;
 			FD_Restore (self);
 			return FALSE;
@@ -688,6 +688,16 @@ float() FD_Frame =
 		if (c)
 			c.angles = vectoangles (self.fd_boomat - c.origin);
 		return TRUE;
+	}
+
+	if (self.impulse == 86)
+	{
+		self.impulse = 0;
+		oldself = self;
+		self = h;
+		FD_Pop ();
+		self = oldself;
+		return FALSE;
 	}
 
 	FD_Hide (self);

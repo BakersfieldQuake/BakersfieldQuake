@@ -962,7 +962,8 @@ void() npc_robeguy =
 		self.npc_respawn = 25;		// -1 (a summon) = never comes back
 	if (self.npc_radius <= 0)
 		self.npc_radius = 480;
-	self.flags = FL_MONSTER;
+	// Peaceful ambient RobeGuy: omit FL_MONSTER so joke summons & bots focus on real enemies!
+	self.flags = self.flags - (self.flags & FL_MONSTER);
 	setsize(self, '-18 -18 0', '18 18 58');
 	droptofloor();
 	self.npc_home = self.origin;

@@ -232,7 +232,7 @@ void(vector dir) M4_WallImpact =
 // fire held with the M4 out (from FunGun_Attack)
 void() M4_Press =
 {
-	local float a, spr, dt, climb, sway;
+	local float a, spr, dt, climb, sway, dist, dmg;
 	local vector dir, src;
 
 	if (self.bm_rl_slot == BM_FG7 || time < self.m4_draw_t + M4_DRAW_TIME)
@@ -283,6 +283,8 @@ void() M4_Press =
 	M4_MuzzleAndBrass ();
 
 	spr = M4_SPREAD + (M4_SPREAD_BLOOM * self.m4_bloom * self.m4_bloom) + M4_SPREAD_MOVE * min (1, vlen (self.velocity) / 320);
+	if (!(self.flags & FL_ONGROUND))
+		spr = spr + M4_SPREAD_AIR;
 	climb = M4_CLIMB_MAX * self.m4_bloom;
 	sway = 0;
 	if (self.m4_bloom > 0.5)
@@ -303,7 +305,13 @@ void() M4_Press =
 	if (trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-			TraceAttack (M4_DAMAGE, dir);
+		{
+			dist = trace_fraction * M4_RANGE;
+			dmg = M4_DAMAGE;
+			if (dist > 1400)
+				dmg = max (M4_DAMAGE * 0.55, M4_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
+			TraceAttack (dmg, dir);
+		}
 		else
 			M4_WallImpact (dir);
 	}

@@ -64,6 +64,32 @@ vector(vector org, vector dst, float apex_z) SkyPad_CalcVel =
 	return v;
 };
 
+// Landing anti-camp shockwave when touching down from a cross-map SkyPad launch!
+void() SkyPad_LandWave =
+{
+	local entity e;
+	local vector d;
+
+	pointparticles (particleeffectnum ("TE_TELEPORT"), self.origin - '0 0 18', '0 0 0', 1);
+	e = findradius (self.origin, 175);
+	while (e != world)
+	{
+		if (e != self && e.takedamage && e.health > 0 && e.solid == SOLID_SLIDEBOX)
+		{
+			d = e.origin - self.origin;
+			d_z = 0;
+			if (vlen (d) < 1)
+				d = '1 0 0';
+			else
+				d = normalize (d);
+			e.flags = e.flags - (e.flags & FL_ONGROUND);
+			e.velocity = e.velocity + d * 380 + '0 0 220';
+			T_Damage (e, self, self, 25);
+		}
+		e = e.chain;
+	}
+};
+
 void() SkyPad_Touch =
 {
 	local vector v;
@@ -72,12 +98,17 @@ void() SkyPad_Touch =
 		return;
 	if (other.health <= 0 || other.deadflag != 0)
 		return;
-	if ((other.movetype != MOVETYPE_WALK && (other.ishuman == 1 || other.movetype != MOVETYPE_NONE)) || Veh_Driving (other))
+	if ((other.movetype != MOVETYPE_WALK && (other.ishuman == 1 || other.movetype != MOVETYPE_NONE)) || Veh_Driving (other) || Veh_Riding (other))
 		return;
 	if (time < other.skypad_cool_t)
 		return;
 
 	SkyPad_RaiseMaxVel ();
+	if (other.ishuman == 1 && !other.skypad_vel_sent)
+	{
+		other.skypad_vel_sent = TRUE;
+		stuffcmd (other, "sv_maxvelocity 6500\n");
+	}
 
 	other.skypad_cool_t = time + 0.65;
 	other.skypad_safe_t = time + 10.0;

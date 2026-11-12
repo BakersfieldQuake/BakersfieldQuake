@@ -304,6 +304,30 @@ void() BM_FillAll =
 	}
 	self.bm_ssgburst = 16;
 	self.bm_rl_slot = 0;
+	self.bm_rl_quiet = FALSE;
+};
+
+// regular ammo box / weapon pickup: refill combat guns & M4/Thompson/Garand without instant-resetting joke superweapons (FG1..FG6)
+void() BM_FillCombatOnly =
+{
+	local float s;
+
+	s = 1;
+	while (s <= BM_SLOTS)
+	{
+		if (s <= BM_MM || s >= BM_FG7)
+		{
+			BM_SetMag (self, s, BM_MagSize (s));
+			BM_SetAcc (self, s, 0);
+		}
+		s = s + 1;
+	}
+	self.bm_ssgburst = 16;
+	if (self.bm_rl_slot <= BM_MM || self.bm_rl_slot >= BM_FG7)
+	{
+		self.bm_rl_slot = 0;
+		self.bm_rl_quiet = FALSE;
+	}
 };
 
 // write the magazines into the four ammo fields (held gun's type gets the held gun's magazine)
@@ -342,7 +366,13 @@ void() BM_ReadFields =
 	t = BM_AmmoType (s);
 	if (self.ammo_shells > self.bm_shown_s + 0.01 || self.ammo_nails > self.bm_shown_n + 0.01 || self.ammo_rockets > self.bm_shown_r + 0.01 || self.ammo_cells > self.bm_shown_c + 0.01)
 	{
-		BM_FillAll ();
+		if (self.bm_full_refill)
+		{
+			self.bm_full_refill = FALSE;
+			BM_FillAll ();
+		}
+		else
+			BM_FillCombatOnly ();
 		return;
 	}
 	if (!t)
@@ -388,6 +418,7 @@ void() BM_SwapIn =
 	}
 	BM_ReadFields ();				// bank whatever the old gun spent
 	self.bm_rl_slot = 0;			// switching drops a reload
+	self.bm_rl_quiet = FALSE;
 	self.bm_slot = s;
 	self.bm_lastshot = time;		// no instant idle top-up on the draw
 	BM_WriteFields ();
@@ -402,13 +433,19 @@ void(float s) BM_StartReload =
 	size = BM_MagSize (s);
 	mag = BM_GetMag (self, s);
 	if (mag >= size)
+	{
+		self.bm_rl_quiet = FALSE;
 		return;
+	}
 	self.bm_rl_slot = s;
 	self.bm_rl_start = time;
 	self.bm_rl_end = time + max (0.4, BM_ReloadTime (s) * (size - mag) / size);
 	if (BM_IsFirearmSlot (s))
+	{
+		self.bm_rl_quiet = FALSE;
 		self.bm_rl_end = time + BM_ReloadTime (s);		// M4 / Thompson / Garand always play their full reload animation & sounds
-	else
+	}
+	else if (!self.bm_rl_quiet)
 		sound7 (self, CHAN_ITEM, "weapons/lock4.wav", 0.6, ATTN_NORM, SNDSPD);
 };
 
@@ -425,6 +462,7 @@ void() BM_OutOfAmmo =
 		return;
 	}
 	BM_ReadFields ();
+	self.bm_rl_quiet = FALSE;
 	BM_StartReload (s);
 	player_run ();
 	self.weaponframe = 0;
@@ -440,6 +478,7 @@ float() BM_CheckNoAmmo =
 		return TRUE;		// the Mega Man and fun guns click when empty on their own
 	if (BM_GetMag (self, s) >= BM_PerShot (s))
 		return TRUE;
+	self.bm_rl_quiet = FALSE;
 	BM_StartReload (s);
 	return FALSE;
 };
@@ -447,6 +486,7 @@ float() BM_CheckNoAmmo =
 // PutClientInServer, before W_SetCurrentAmmo: every life starts with full magazines
 void() BM_Spawn =
 {
+	self.bm_full_refill = FALSE;
 	if (!autocvar_bm_reload)
 		return;
 	BM_FillAll ();
@@ -467,7 +507,7 @@ void() BM_ViewModel =
 {
 	local string old;
 
-	if (self.bm_rl_slot && self.health > 0)
+	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0)
 	{
 		if (!self.bm_vm_hidden && self.weaponmodel != "")
 		{
@@ -524,6 +564,7 @@ void() BM_Frame =
 	if (self.impulse == BM_RELOAD_IMPULSE)
 	{
 		self.impulse = 0;
+		self.bm_rl_quiet = FALSE;
 		BM_StartReload (s);
 	}
 
@@ -540,8 +581,9 @@ void() BM_Frame =
 				if (s == BM_SSG)
 					self.bm_ssgburst = 16;
 				self.bm_rl_slot = 0;
-				if (!BM_IsFirearmSlot (s))
+				if (!BM_IsFirearmSlot (s) && !self.bm_rl_quiet)
 					sound7 (self, CHAN_ITEM, "weapons/pkup.wav", 0.35, ATTN_NORM, SNDSPD);
+				self.bm_rl_quiet = FALSE;
 				if (s == BM_MM)
 					self.mm_fire_t = time - 0.5;	// the Mega Man pops back up into the hand
 				if (s == BM_FG2)
@@ -549,8 +591,11 @@ void() BM_Frame =
 				if (s == BM_FG3)
 					self.pk_reload_t = time;		// fresh Pickle Surprise whips up into the hand
 			}
-			else if (self.button0 && mag >= BM_PerShot (s) && time > self.bm_rl_start + 0.15 && !BM_IsFirearmSlot (s))
+			else if (self.button0 && mag >= BM_PerShot (s) && (self.bm_rl_quiet || time > self.bm_rl_start + 0.15) && !BM_IsFirearmSlot (s))
+			{
 				self.bm_rl_slot = 0;				// fire what's left instead
+				self.bm_rl_quiet = FALSE;
+			}
 		}
 		else if (s == BM_FG2 && (self.gj_shaking > 0 || self.gj_throw_at > 0 || (self.gj_threw_t > 0 && time < self.gj_threw_t + GJ_FOLLOW_TIME)))
 		{
@@ -569,9 +614,15 @@ void() BM_Frame =
 			// let the M1 Garand 8th-round en-bloc clip ejection + PING finish before starting reload
 		}
 		else if (mag < BM_PerShot (s))
+		{
+			self.bm_rl_quiet = FALSE;
 			BM_StartReload (s);
+		}
 		else if (!BM_IsFirearmSlot (s) && mag < size && !self.button0 && time > self.bm_lastshot + autocvar_bm_idle_reload)
+		{
+			self.bm_rl_quiet = TRUE;
 			BM_StartReload (s);
+		}
 	}
 
 	// holstered guns trickle back. 10 times a second with the time gathered meanwhile: 17 slots of if-chains for every
@@ -594,8 +645,8 @@ void() BM_Frame =
 			if (mag < size)
 			{
 				rate = size / BM_ReloadTime (i) * autocvar_bm_holster;
-				if (i == BM_FG4)
-					rate = size / BM_ReloadTime (i);		// the disk's half minute runs just the same in a pocket
+				if (i == BM_MM || (i >= BM_FG1 && i <= BM_FG6))
+					rate = size / BM_ReloadTime (i);		// Mega Man & recharging fun-gun cooldowns tick at 1.0x speed in pocket
 				acc = BM_GetAcc (self, i) + rate * dt;
 				if (acc >= 1)
 				{
