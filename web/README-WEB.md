@@ -56,12 +56,24 @@ docker logs -f bako-web
 ## Party night: Windows server instead
 
 1. Run the zip's `Start Server.cmd` as usual.
-2. Add the flood fix to `BakersfieldQuake\server.cfg`:
-   `net_connectfloodblockingtimeout 0` and `net_challengefloodblockingtimeout 0`.
-   Without it, browsers that join within 5 s of each other are refused, because they all come from one address.
-3. Copy a built `site-out\` folder over. The engine has to be built on Linux, for example cccbox.
+2. Check `BakersfieldQuake\server.cfg` has the browser settings (in it since 2026-11-12; see "Server settings the
+   party needs" below).
+3. Copy a built `site-out\` folder over. The engine has to be built on Linux, for example cccbox. It must be built
+   from the same game folder and `server.cfg` the server runs: browsers only get the maps that file names.
 4. Run `py bakoweb.py --root site-out --game 127.0.0.1:26000 --http-port 8080`.
 5. Allow TCP 8080 in the Windows firewall (Private network).
+
+## Server settings the party needs (BakersfieldQuake/server.cfg)
+
+| Setting | Why |
+| --- | --- |
+| `bm_preload 2` | The Wheelman Cannon (300 MB of sprites) and Mystery Box characters load with the map. Loading them on first use froze every player for ~3 s (measured in the browser; native clients stall too). |
+| `monster_health_crosshair 0` and the other 5 crosshair/psycho cvars | Combat+ sends them to every player every frame as reliable data. Same fix as the VPS: a laggy or paused player can't overflow the queue and get dropped. |
+| `net_connectfloodblockingtimeout 0`, `net_challengefloodblockingtimeout 0` | All browsers come from the bridge's address; the 5 s per-address block refuses the second one. |
+
+**Maps.** A vote or rotation map the pack doesn't have kicks browser players. A map missing on the server only
+prints "no map file" and play goes on. `run_party_server.sh` rebuilds the pack from `server.cfg` each start, so edit
+`server.cfg` first, then run it.
 
 ## For players
 
@@ -71,6 +83,8 @@ docker logs -f bako-web
    - Later visits load from the browser's own storage.
 3. Click the game to grab the mouse. **Esc** lets go of it.
 4. Same keys as the Windows game.
+5. If the screen goes black or the game stops, the page says so and shows **Rejoin** (about a minute, nothing
+   to download). If that doesn't bring it back, close the tab and open the address in a new one.
 
 ## Known differences from the Windows game
 
@@ -78,10 +92,13 @@ docker logs -f bako-web
   - neutral gamma and contrast, so the picture is a little darker than on Windows
   - no screen flashes on pickup, damage or quad
 - **Lighter graphics.** No water reflections, relief mapping or realtime shadow maps.
-- **Memory.** A browser tab holds the whole game in memory, about 2 GB on top of the browser itself. 8 GB machines
-  are fine; close other heavy tabs.
-- **Package gaps, also in the Windows zip.** The M4's `models/cs16/*.png` textures and
-  `progs/wheelman_historic.spr32` are not in the package, so the M4 draws plain white.
+- **Memory.** A browser tab holds the whole game in memory, about 2 GB on top of the browser itself, and the
+  engine's own memory peaked at 1.2 GB of its 2 GB limit (bakolansmall after downtown, with `bm_preload 2`). Close
+  other heavy tabs. Under GPU or memory pressure a browser can drop the game's WebGL context; the page then offers
+  Rejoin (seen once in a 4-client test on one PC).
+- **Gun skins** (M4, Thompson, M1 Garand) live in `models/cs16/` and `models/dod/`. `build_pk3.py` packs `models/`
+  since 2026-11-12; before that the skins only existed as loose files on the dev PC.
+- **Package gap, also in the Windows zip:** `progs/wheelman_historic.spr32` (used only by the intro) exists nowhere.
 
 ## Testing and debugging
 

@@ -63,7 +63,9 @@
 	var DEBUG = params.has('debug');
 	var $ = function (id) { return document.getElementById(id); };
 	var nameBox = $('name'), playBtn = $('play'), fill = $('fill'), statusEl = $('status');
-	var gameFiles = null, manifest = null, wantPlay = false, started = false;
+	var gameFiles = null, manifest = null, wantPlay = false, started = false, died = false;
+	// "Rejoin" after a crash reloads the page with this flag: play starts again as soon as the files are read
+	try { if (sessionStorage.getItem('bako_rejoin')) { sessionStorage.removeItem('bako_rejoin'); wantPlay = true; } } catch (e) { }
 
 	function status(text, bad) { statusEl.textContent = text; statusEl.className = bad ? 'bad' : ''; }
 	function mb(n) { return (n / 1048576).toFixed(0) + ' MB'; }
@@ -204,6 +206,34 @@
 		return (s || '').replace(/["\\;\r\n]/g, '').trim().slice(0, 20);
 	}
 
+	// The engine cannot restart inside the page, so a dead game offers a reload. The files come from the browser's
+	// cache, so rejoining takes about a minute. Causes seen: the browser drops the WebGL context when the GPU or
+	// memory is under pressure (the screen goes black and the engine throws every frame), or the engine aborts.
+	function gameDied(why) {
+		if (died) return;
+		died = true;
+		document.body.classList.remove('playing');
+		try { if (document.exitPointerLock) document.exitPointerLock(); } catch (e) { }
+		try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+		status('The game stopped: ' + why + '. Press Rejoin to jump back in (nothing to download again). ' +
+			'If it is not back within a minute, close this tab and open ' + location.host + ' in a new one.', true);
+		playBtn.textContent = 'Rejoin';
+		playBtn.disabled = false;
+		playBtn.onclick = function (e) {
+			e.stopImmediatePropagation();
+			try { sessionStorage.setItem('bako_rejoin', '1'); } catch (err) { }
+			location.reload();
+		};
+	}
+	var errTimes = [];
+	window.addEventListener('error', function () {
+		if (!started) return;
+		var now = Date.now();
+		errTimes.push(now);
+		errTimes = errTimes.filter(function (t) { return now - t < 3000; });
+		if (errTimes.length >= 3) gameDied('the engine hit an error');	// one stray error is harmless, one per frame is not
+	});
+
 	function start() {
 		if (started || !gameFiles) return;
 		started = true;
@@ -229,11 +259,12 @@
 			websocket: { url: (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' },
 			print: dpPrint,
 			printErr: dpPrint,
-			onAbort: function (what) {
-				document.body.classList.remove('playing');
-				status('The game stopped (' + what + '). Reload the page to play again.', true);
-			}
+			onAbort: function (what) { gameDied('the engine stopped (' + what + ')'); }
 		};
+		canvas.addEventListener('webglcontextlost', function (e) {
+			e.preventDefault();
+			gameDied('the browser reset the graphics (low on memory? close other tabs)');
+		}, false);
 		gameFiles = null;
 		var s = document.createElement('script');
 		s.src = manifest.engine;

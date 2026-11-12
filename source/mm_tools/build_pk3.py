@@ -1,4 +1,4 @@
-"""Pack BakersfieldQuake runtime assets (progs/, textures/, sound/, gfx/, scripts/) into
+"""Pack BakersfieldQuake runtime assets (progs/, textures/, sound/, gfx/, scripts/, models/) into
 BakersfieldQuake/bakersfield.pk3 for O(1) VFS lookup and compact LAN distribution.
 
 Usage:
@@ -20,7 +20,7 @@ MOD = os.path.join(ROOT, "BakersfieldQuake")
 STAGED = os.path.join(ROOT, "_bakersfield_dev", "staged_assets")
 PK3_OUT = os.path.join(MOD, "bakersfield.pk3")
 
-ASSET_DIRS = ("progs", "textures", "sound", "gfx", "scripts")
+ASSET_DIRS = ("progs", "textures", "sound", "gfx", "scripts", "models")  # models/: md3 skins (CS M4, DoD Thompson + Garand)
 STORE_EXTS = {".png", ".jpg", ".jpeg", ".ogg", ".pk3", ".zip"}
 SKIP_PATTERNS = (
     "*.bak*",
