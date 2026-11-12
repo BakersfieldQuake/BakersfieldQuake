@@ -1348,7 +1348,6 @@ void(entity p, entity v) Veh_Enter =
 	p.milky_wind = 0;
 	p.pk_throw_at = 0;
 	p.ns_throw_at = 0;
-	p.mb_throw_at = 0;
 
 	v.veh_driver = p;
 	v.veh_drive_mode = TRUE;

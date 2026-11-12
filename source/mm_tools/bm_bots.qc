@@ -217,7 +217,6 @@ vector(float wep) BM_BotWeaponRange =
 		if (g == FG_PONG)		return '420 90 1250';
 		if (g == FG_PICKLE)		return '260 50 850';
 		if (g == FG_NETSEND)	return '380 80 1100';
-		if (g == FG_MBOX)		return '450 110 1300';
 		if (g == FG_WCANNON)	return '550 180 2100';
 		if (g == FG_M4)			return '520 35 2500';
 		if (g == FG_TOMMY)		return '280 15 1300';
@@ -425,7 +424,7 @@ float(float brange) BM_BotWeaponSwitch =
 		return TRUE;
 	if (self.weapon == IT_AXE && self.hm_state == 1)
 		return TRUE;
-	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.mb_throw_at > 0 || self.gj_throw_at > 0)
+	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.gj_throw_at > 0)
 		return TRUE;
 
 	cur = BM_BotCurWeaponID ();
@@ -487,7 +486,6 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 62)	w = 13;		// Jar o' Green Guys
 				else if (id == 63)	w = 13;		// Pickle Surprise
 				else if (id == 64)	w = 10;		// NetSend PC
-				else if (id == 65)	w = 12;		// Mystery Box
 				else if (id == 66)	w = 12;		// Wheelman Cannon
 				else if (id == 4)	w = 12;		// Laptop Gun
 				else if (id == 69)	w = 12;		// M1 Garand
@@ -506,7 +504,6 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 2)	w = 10;		// Goo Gun
 				else if (id == 11)	w = 16;		// Mega Man Gun
 				else if (id == 62)	w = 14;		// Jar o' Green Guys
-				else if (id == 65)	w = 14;		// Mystery Box
 				else if (id == 66)	w = 16;		// Wheelman Cannon
 				else if (id == 64)	w = 10;		// NetSend PC
 				else if (id == 63)	w = 9;		// Pickle Surprise
@@ -576,8 +573,6 @@ void() BM_BotAimAdjust =
 			self.b_angle_x = self.b_angle_x - bound (3, dist * 0.016, 18);
 		else if (g == FG_PONG)
 			self.b_angle_x = self.b_angle_x - bound (2, dist * 0.014, 15);
-		else if (g == FG_MBOX)
-			self.b_angle_x = self.b_angle_x - bound (3, dist * 0.015, 16);
 		else if (g == FG_NETSEND)
 			self.b_angle_x = bound (8, self.b_angle_x + 12, 22);		// toss LOL.BAT onto the street ahead
 		else if (g == FG_WCANNON)

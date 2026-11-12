@@ -353,7 +353,6 @@ void(entity p, entity jb) JB_Enter =
 	p.milky_wind = 0;
 	p.pk_throw_at = 0;
 	p.ns_throw_at = 0;
-	p.mb_throw_at = 0;
 
 	jb.jb_pilot = p;
 	jb.jb_ai = FALSE;

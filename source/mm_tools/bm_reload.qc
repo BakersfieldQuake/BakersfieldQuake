@@ -81,7 +81,6 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_FG2)	t = FG_PONG_REGEN;	// Jar o' Green Guys: one jar
 	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)
 	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
-	else if (s == BM_FG5)	t = FG_MBOX_REGEN;		// Mystery Box: 12 s a box
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
 	else if (s == BM_FG8)	t = TOM_RELOAD_TIME;	// the Thompson: the whole DoD reload animation
 	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation

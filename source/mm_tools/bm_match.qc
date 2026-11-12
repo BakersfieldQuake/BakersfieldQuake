@@ -63,7 +63,6 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "bigbanana" || inflictor.classname == "minibanana"
 				|| inflictor.classname == "mmtire" || inflictor.classname == "mmrubber"
 				|| inflictor.classname == "wc_dancer" || inflictor.classname == "wc_shot"
-				|| inflictor.classname == "mbmonster" || inflictor.classname == "mbox"
 				|| inflictor.classname == "milky" || inflictor.classname == "jwwave"
 				|| inflictor.classname == "veh_blast_inflictor" || inflictor.classname == "lan_blast_inflictor"
 				|| inflictor.classname == "eric_cannon_blast"

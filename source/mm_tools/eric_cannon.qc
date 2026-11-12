@@ -292,7 +292,6 @@ void(entity p, entity base) EC_Mount =
 	p.milky_wind = 0;
 	p.pk_throw_at = 0;
 	p.ns_throw_at = 0;
-	p.mb_throw_at = 0;
 
 	base.ec_pilot = p;
 	base.ec_state = EC_STATE_MOUNTED;

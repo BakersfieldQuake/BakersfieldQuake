@@ -8,7 +8,6 @@ void() FunGun_Precache =
 	Pickle_Precache ();
 	GreenJar_Precache ();
 	NS_Precache ();
-	MB_Precache ();
 	WC_Precache ();
 	M4_Precache ();
 	Tommy_Precache ();
@@ -16,8 +15,6 @@ void() FunGun_Precache =
 	if (autocvar_bm_preload && deathmatch)
 	{
 		WC_PrecacheSprites ();
-		if (autocvar_bm_preload >= 2)
-			MB_PrecachePool ();
 	}
 };
 
@@ -31,8 +28,6 @@ string(float g) FunGun_VModel =
 		return "progs/v_robdob.mdl";
 	if (g == FG_NETSEND)
 		return "progs/v_netsend.md3";
-	if (g == FG_MBOX)
-		return "progs/v_mysterybox.md3";
 	if (g == FG_WCANNON)
 		return "progs/v_wewcannon.md3";
 	if (g == FG_M4)
@@ -73,8 +68,6 @@ string(float g) FunGun_ShortName =
 		return "M1 Garand";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon";
-	if (g == FG_MBOX)
-		return "Mystery Box";
 	if (g == FG_NETSEND)
 		return "NetSend";
 	return "Pickle Surprise";
@@ -94,8 +87,6 @@ string(float g) FunGun_Name =
 		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon - hold fire to charge";
-	if (g == FG_MBOX)
-		return "Mystery Box - throws a random monster";
 	if (g == FG_NETSEND)
 		return "NetSend - throws a popup-spamming PC";
 	return "Pickle Surprise - drop trap";
@@ -110,8 +101,6 @@ string(float g) FunGun_Death1 =
 		return " was swarmed silly by ";
 	if (g == FG_NETSEND)
 		return " got a NET SEND from ";
-	if (g == FG_MBOX)
-		return " got jumped on by ";
 	if (g == FG_WCANNON)
 		return " got rolled over by ";
 	if (g == FG_M4)
@@ -133,8 +122,6 @@ string(float g) FunGun_Death2 =
 		return "'s flying head\n";
 	if (g == FG_NETSEND)
 		return "'s NetSend PC\n";
-	if (g == FG_MBOX)
-		return "'s Mystery Box monsters\n";
 	if (g == FG_WCANNON)
 		return "'s Wheelman\n";
 	if (g == FG_M4)
@@ -333,8 +320,6 @@ void() FunGun_Attack =
 		return;
 	}
 	a = FunGun_Ammo (self, g);
-	if (g == FG_MBOX && a < 1 && cvar ("mb_test"))
-		a = 1;		// mb_test: the Mystery Box never runs dry (zz_mbox2.cfg)
 	if (g == FG_PONG && a < 1 && cvar ("gj_test"))
 		a = 1;		// gj_test: Jar o' Green Guys never runs dry during testing
 	if (a < 1)
@@ -343,8 +328,6 @@ void() FunGun_Attack =
 			centerprint (self, "The jar is still recharging\n");
 		if (g == FG_NETSEND)
 			centerprint (self, "The disk is still reloading\n");
-		if (g == FG_MBOX)
-			centerprint (self, "The box is still recharging\n");
 		if (g == FG_WCANNON)
 			centerprint (self, "The cannon is still reloading\n");
 		sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
@@ -373,17 +356,6 @@ void() FunGun_Attack =
 		FG_Snd (self, CHAN_VOICE, "netsend/wheres_disk.wav", 1, 1);		// "David! Where's the disk?"
 		player_mm1 ();
 		self.attack_finished = time + 1;
-		return;
-	}
-	if (g == FG_MBOX)
-	{
-		FunGun_SetAmmo (self, g, a - 1);
-		FunGun_Lock (g);
-		self.fg_fire_t = time;
-		self.mb_fire_t = time;
-		self.mb_throw_at = time + MB_THROW_DELAY;		// the hand lets go at frame 207 (FunGun_ViewFrame)
-		player_mm1 ();
-		self.attack_finished = time + 28 / MB_ANIM_FPS;
 		return;
 	}
 	FunGun_SetAmmo (self, g, a - 1);
@@ -423,6 +395,8 @@ float(float g) FunGun_Bit =
 
 float(float g) FunGun_Available =
 {
+	if (g == FG_MBOX)
+		return FALSE;		// slot 5 was the Mystery Box, removed 2026-11-13
 	if (g == FG_M4)
 		return m4_ok;
 	if (g == FG_TOMMY)
@@ -466,7 +440,7 @@ void(entity p) FunGun_Give =
 	g = 1;
 	while (g <= FG_COUNT)
 	{
-		if (FunGun_Ammo (p, g) < FunGun_Max (g))
+		if (FunGun_Available (g) && FunGun_Ammo (p, g) < FunGun_Max (g))
 			FunGun_SetAmmo (p, g, FunGun_Max (g));
 		FunGun_SetRegenT (p, g, 0);
 		g = g + 1;
@@ -478,7 +452,6 @@ void(entity p) FunGun_Give =
 	p.ltg_shock = 0;
 	p.disableclientprediction = 0;
 	p.ns_throw_at = 0;		// a throw wound up in the last life must not fire in this one
-	p.mb_throw_at = 0;
 	p.milky_wind = 0;
 	if (p.fg_sel < 1 || p.fg_sel > FG_COUNT)
 		p.fg_sel = 1 + floor (random () * FG_COUNT);
@@ -735,11 +708,6 @@ void() FunGun_ViewFrame =
 		self.ns_throw_at = 0;
 		NS_Throw ();
 	}
-	if (self.mb_throw_at && time >= self.mb_throw_at)		// the Mystery Box leaves the hand (mbox.qc)
-	{
-		self.mb_throw_at = 0;
-		MB_Throw ();
-	}
 	if (self.health <= 0)
 		self.pk_throw_at = 0;
 	if (self.pk_throw_at && time >= self.pk_throw_at)		// the Pickle Surprise rockets out of the open gauntlet (pickle.qc)
@@ -800,16 +768,6 @@ void() FunGun_ViewFrame =
 			f = 53;
 		else if (time - self.ns_rl_t < 0.6)
 			f = 54 + floor ((time - self.ns_rl_t) * 10);
-	}
-	else if (g == FG_MBOX)
-	{
-		// v_mysterybox.md3: 0-191 the idle loop (the crystal ball's visions); 192-219 the throw: grab, glow, throw (the box leaves at
-		// 207), the next box summoned out of sparkles
-		f = floor (time * 10);
-		f = f - 192 * floor (f / 192);
-		nt = time - self.mb_fire_t;
-		if (nt < 28 / MB_ANIM_FPS)
-			f = min (219, 192 + floor (nt * MB_ANIM_FPS));
 	}
 	else if (g == FG_M4)
 	{

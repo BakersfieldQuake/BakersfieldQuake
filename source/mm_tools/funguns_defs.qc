@@ -13,8 +13,7 @@ recharges by itself. Combat+ only (COMBATPLUS).
                                grenade. When someone comes close it goes erect, twice the height of a man, waves
                                about like a roadside inflatable, shouts "pickle surprise" and blows up green,
                                throwing a shower of pickles that each do a little damage (pickle.qc)
-  5 Mystery Box    impulse 65  (key U) fire throws a rainbow box that bursts into confetti and one random monster that runs at the nearest
-                               enemy, jump on it, bounce on it and blow up (mbox.qc)
+  5 (empty)        impulse 65  was the Mystery Box, removed 2026-11-13: FunGun_Available says no, so it cannot be picked
   6 Wheelman Cannon impulse 66 (key G) hold fire to charge, let go (or full charge) and a screaming Wheelman blasts off
                                and crashes in a big explosion with flying wheels, bars and gibs (wcannon.qc)
   7 M4A1           impulse 67  (keys C / 0) stand-alone CS 1.6 automatic rifle (m4.qc)

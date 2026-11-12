@@ -67,7 +67,7 @@ docker logs -f bako-web
 
 | Setting | Why |
 | --- | --- |
-| `bm_preload 2` | The Wheelman Cannon (300 MB of sprites) and Mystery Box characters load with the map. Loading them on first use froze every player for ~3 s (measured in the browser; native clients stall too). |
+| `bm_preload 1` | The Wheelman Cannon's 300 MB of sprites load with the map. Loading them on the first charge froze every player for ~3 s (measured in the browser; native clients stall too). Builds before 2026-11-13 still have the Mystery Box and need `bm_preload 2` for its characters. |
 | `monster_health_crosshair 0` and the other 5 crosshair/psycho cvars | Combat+ sends them to every player every frame as reliable data. Same fix as the VPS: a laggy or paused player can't overflow the queue and get dropped. |
 | `net_connectfloodblockingtimeout 0`, `net_challengefloodblockingtimeout 0` | All browsers come from the bridge's address; the 5 s per-address block refuses the second one. |
 

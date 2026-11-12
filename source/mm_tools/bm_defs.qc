@@ -23,7 +23,7 @@ var float	autocvar_bm_rocketself		= 0.4;		// your own rockets' self-damage x thi
 var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
 var float	autocvar_bm_spawnnear		= 1200;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
 var float	autocvar_bm_fg_lock			= 0;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
-var float	autocvar_bm_preload			= 0;		// 0 = off, 1 = preload Wheelman Cannon sprites (~315 MB), 2 = preload WC + Mystery Box pool (~605 MB)
+var float	autocvar_bm_preload			= 0;		// 0 = off, 1 = preload the Wheelman Cannon sprites (~315 MB) with the map instead of on the first charge
 var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, goo, shock, milk): less snap-back online
 var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
 var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
