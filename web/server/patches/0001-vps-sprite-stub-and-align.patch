@@ -1,0 +1,93 @@
+diff --git a/dpsoftrast.c b/dpsoftrast.c
+index 7f13246b..a5ca1492 100644
+--- a/dpsoftrast.c
++++ b/dpsoftrast.c
+@@ -20,7 +20,7 @@ typedef qboolean bool;
+ #ifdef SSE_POSSIBLE
+ 	#if defined(__APPLE__)
+ 		#include <libkern/OSAtomic.h>
+-		#define ALIGN(var) var __attribute__((__aligned__(16)))
++		#define ALIGN(var) var
+ 		#define ATOMIC(var) var __attribute__((__aligned__(4)))
+ 		#define MEMORY_BARRIER (_mm_sfence())
+ 		#define ATOMIC_COUNTER volatile int32_t 
+@@ -28,7 +28,7 @@ typedef qboolean bool;
+ 		#define ATOMIC_DECREMENT(counter) (OSAtomicDecrement32Barrier(&(counter)))
+ 		#define ATOMIC_ADD(counter, val) ((void)OSAtomicAdd32Barrier((val), &(counter)))
+ 	#elif defined(__GNUC__) && defined(WIN32)
+-		#define ALIGN(var) var __attribute__((__aligned__(16)))
++		#define ALIGN(var) var
+ 		#define ATOMIC(var) var __attribute__((__aligned__(4)))
+ 		#define MEMORY_BARRIER (_mm_sfence())
+ 		//(__sync_synchronize())
+@@ -42,7 +42,7 @@ typedef qboolean bool;
+ 		#define ATOMIC_DECREMENT(counter) (InterlockedDecrement((LONG *) &(counter)))
+ 		#define ATOMIC_ADD(counter, val) ((void)InterlockedExchangeAdd((LONG *) &(counter), (val)))
+ 	#elif defined(__GNUC__)
+-		#define ALIGN(var) var __attribute__((__aligned__(16)))
++		#define ALIGN(var) var
+ 		#define ATOMIC(var) var __attribute__((__aligned__(4)))
+ 		#define MEMORY_BARRIER (_mm_sfence())
+ 		//(__sync_synchronize())
+@@ -51,7 +51,7 @@ typedef qboolean bool;
+ 		#define ATOMIC_DECREMENT(counter) (__sync_add_and_fetch(&(counter), -1))
+ 		#define ATOMIC_ADD(counter, val) ((void)__sync_fetch_and_add(&(counter), (val)))
+ 	#elif defined(_MSC_VER)
+-		#define ALIGN(var) __declspec(align(16)) var
++		#define ALIGN(var) var
+ 		#define ATOMIC(var) __declspec(align(4)) var
+ 		#define MEMORY_BARRIER (_mm_sfence())
+ 		//(MemoryBarrier())
+diff --git a/model_shared.c b/model_shared.c
+index 2be02ff9..0b8ff3d0 100644
+--- a/model_shared.c
++++ b/model_shared.c
+@@ -386,6 +386,48 @@ dp_model_t *Mod_LoadModel(dp_model_t *mod, qboolean crash, qboolean checkdisk)
+ 
+ 	if (mod->name[0] == '*') // submodel
+ 		return mod;
++
++	// A dedicated server never draws. Inflating a spr32 on the main thread
++	// (wheelman_dance is 190MB, one mystery-box throw is another ~400MB) stalls
++	// every client for seconds: they draw gfx/net and look disconnected.
++	// Register a stub. Clients load the real file from the precache name.
++	if (cls.state == ca_dedicated)
++	{
++		const char *ext = FS_FileExtension(mod->name);
++		if (ext && (!strcasecmp(ext, "spr") || !strcasecmp(ext, "spr32")))
++		{
++			if (mod->loaded)
++				return mod;
++			if (FS_FileExists(mod->name))
++			{
++				static int stubcount;
++				if (mod->mempool)
++					Mod_UnloadModel(mod);
++				mod->used = true;
++				mod->crc = 0;
++				mod->loaded = false;
++				mod->mempool = Mem_AllocPool(mod->name, 0, NULL);
++				mod->modeldatatypestring = "SPR1";
++				mod->type = mod_sprite;
++				mod->Draw = R_Model_Null_Draw;
++				mod->numframes = 2048;
++				mod->numskins = 1;
++				mod->synctype = ST_SYNC;
++				mod->radius = 512;
++				VectorSet(mod->normalmins, -512, -512, -24);
++				VectorSet(mod->normalmaxs, 512, 512, 512);
++				VectorCopy(mod->normalmins, mod->yawmins);
++				VectorCopy(mod->normalmaxs, mod->yawmaxs);
++				VectorCopy(mod->normalmins, mod->rotatedmins);
++				VectorCopy(mod->normalmaxs, mod->rotatedmaxs);
++				mod->loaded = true;
++				stubcount++;
++				if (stubcount == 1)
++					Con_Printf("dedicated: sprite bodies are not loaded (no mid-game hitch)\n");
++				return mod;
++			}
++		}
++	}
+ 	
+ 	if (!strcmp(mod->name, "null"))
+ 	{

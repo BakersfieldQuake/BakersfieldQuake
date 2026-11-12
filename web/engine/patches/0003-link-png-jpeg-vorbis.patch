@@ -1,0 +1,123 @@
+diff --git a/image_png.c b/image_png.c
+index 6b226af0..e4cd6dd0 100644
+--- a/image_png.c
++++ b/image_png.c
+@@ -123,6 +123,9 @@ static dllfunction_t png14funcs[] =
+ // Handle for PNG DLL
+ dllhandle_t png_dll = NULL;
+ dllhandle_t png14_dll = NULL;
++#ifdef __EMSCRIPTEN__
++void *Bako_PNG_Symbol(const char *name); // image_png_static.c
++#endif
+ 
+ 
+ /*
+@@ -171,6 +174,20 @@ qbool PNG_OpenLibrary (void)
+ 	if (png_dll)
+ 		return true;
+ 
++#ifdef __EMSCRIPTEN__
++	{
++		const dllfunction_t *f;
++		for (f = pngfuncs; f->name; f++)
++			if (!(*f->funcvariable = Bako_PNG_Symbol(f->name)))
++				return false;
++		for (f = png14funcs; f->name; f++)
++			if (!(*f->funcvariable = Bako_PNG_Symbol(f->name)))
++				return false;
++		png_dll = png14_dll = (dllhandle_t)dllnames; // not a real handle: never freed (see PNG_CloseLibrary)
++		return true;
++	}
++#endif
++
+ 	// Load the DLL
+ 	if(!Sys_LoadDependency (dllnames, &png_dll, pngfuncs))
+ 		return false;
+@@ -193,6 +210,9 @@ Unload the PNG DLL
+ */
+ void PNG_CloseLibrary (void)
+ {
++#ifdef __EMSCRIPTEN__
++	return; // statically linked
++#endif
+ 	Sys_FreeLibrary (&png14_dll);
+ 	Sys_FreeLibrary (&png_dll);
+ }
+diff --git a/image_png_static.c b/image_png_static.c
+new file mode 100644
+index 00000000..5e010844
+--- /dev/null
++++ b/image_png_static.c
+@@ -0,0 +1,27 @@
++/*
++ * BakersfieldQuake browser build: libpng is linked statically (emscripten's libpng port), but this
++ * DarkPlaces only loads libpng with dlopen, which a browser can't do. PNG_OpenLibrary() asks here instead.
++ * A separate file so <png.h> doesn't clash with image_png.c's own declarations.
++ */
++#ifdef __EMSCRIPTEN__
++#include <png.h>
++#include <string.h>
++
++void *Bako_PNG_Symbol(const char *name);
++#define BAKO_PNG(f) if (!strcmp(name, #f)) return (void *)f;
++void *Bako_PNG_Symbol(const char *name)
++{
++	BAKO_PNG(png_set_sig_bytes) BAKO_PNG(png_sig_cmp) BAKO_PNG(png_create_read_struct)
++	BAKO_PNG(png_create_write_struct) BAKO_PNG(png_create_info_struct) BAKO_PNG(png_read_info)
++	BAKO_PNG(png_set_compression_level) BAKO_PNG(png_set_filter) BAKO_PNG(png_set_expand)
++	BAKO_PNG(png_set_palette_to_rgb) BAKO_PNG(png_set_tRNS_to_alpha) BAKO_PNG(png_set_gray_to_rgb)
++	BAKO_PNG(png_set_filler) BAKO_PNG(png_set_IHDR) BAKO_PNG(png_set_packing) BAKO_PNG(png_set_bgr)
++	BAKO_PNG(png_set_interlace_handling) BAKO_PNG(png_read_update_info) BAKO_PNG(png_read_image)
++	BAKO_PNG(png_read_end) BAKO_PNG(png_destroy_read_struct) BAKO_PNG(png_destroy_write_struct)
++	BAKO_PNG(png_set_read_fn) BAKO_PNG(png_set_write_fn) BAKO_PNG(png_get_valid)
++	BAKO_PNG(png_get_rowbytes) BAKO_PNG(png_get_channels) BAKO_PNG(png_get_bit_depth)
++	BAKO_PNG(png_get_IHDR) BAKO_PNG(png_access_version_number) BAKO_PNG(png_write_info)
++	BAKO_PNG(png_write_row) BAKO_PNG(png_write_end) BAKO_PNG(png_set_longjmp_fn)
++	return NULL;
++}
++#endif
+diff --git a/makefile b/makefile
+index 923c8d8e..53c8c329 100644
+--- a/makefile
++++ b/makefile
+@@ -123,7 +123,9 @@ ifeq ($(DP_MAKE_TARGET), wasm)
+ 	              -s USE_LIBJPEG=1 \
+ 	              -s USE_ZLIB=1 \
+ 	              -DNOSUPPORTIPV6 \
+-	              -DUSE_GLES2
++	              -DUSE_GLES2 \
++	              -Wno-error=incompatible-function-pointer-types \
++	              -s USE_OGG=1 -s USE_VORBIS=1 -DLINK_TO_LIBVORBIS
+ 
+ 	SDLCONFIG_CFLAGS=$(SDLCONFIG_UNIXCFLAGS) $(SDLCONFIG_UNIXCFLAGS_X11)
+ 	SDLCONFIG_LIBS=$(SDLCONFIG_UNIXLIBS) $(SDLCONFIG_UNIXLIBS_X11)
+@@ -132,7 +134,7 @@ ifeq ($(DP_MAKE_TARGET), wasm)
+ 
+ 	DP_LINK_SDL?=shared
+ 	DP_LINK_ZLIB?=shared
+-	DP_LINK_JPEG?=dlopen
++	DP_LINK_JPEG?=shared
+ 	DP_LINK_ODE?=
+ 	DP_LINK_CRYPTO?=dlopen
+ 	DP_LINK_CRYPTO_RIJNDAEL?=dlopen
+diff --git a/makefile.inc b/makefile.inc
+index f1180e08..8d91c5c5 100644
+--- a/makefile.inc
++++ b/makefile.inc
+@@ -128,7 +128,7 @@ OBJ_MENU= \
+ # built to give the executable a proper date string
+ OBJ_SV= builddate.c sys_null.o vid_null.o thread_null.o $(OBJ_SND_NULL) $(OBJ_COMMON)
+ OBJ_SDL= builddate.c sys_sdl.o vid_sdl.o thread_sdl.o $(OBJ_MENU) $(OBJ_SND_COMMON) $(OBJ_SND_XMP) snd_sdl.o $(OBJ_VIDEO_CAPTURE) $(OBJ_COMMON)
+-OBJ_WASM= builddate.c sys_wasm.o vid_sdl.o thread_sdl.o $(OBJ_MENU) $(OBJ_SND_COMMON) $(OBJ_SND_XMP) snd_sdl.o $(OBJ_VIDEO_CAPTURE) $(OBJ_COMMON)
++OBJ_WASM= builddate.c sys_wasm.o image_png_static.o vid_sdl.o thread_sdl.o $(OBJ_MENU) $(OBJ_SND_COMMON) $(OBJ_SND_XMP) snd_sdl.o $(OBJ_VIDEO_CAPTURE) $(OBJ_COMMON)
+ 
+ # Compilation
+ # -D_POSIX_C_SOURCE=200809L doesn't enable all of POSIX 2008, wtf?
+@@ -232,6 +232,7 @@ LDFLAGS_LINUXSDL=$(LDFLAGS_UNIXCOMMON) -lrt -ldl -rdynamic $(LDFLAGS_UNIXSDL)
+ ##### WASM specific variables #####
+ 
+ LDFLAGS_WASMJS=$(LDFLAGS_UNIXCOMMON) -s USE_SDL=2 \
++                                   -s USE_OGG=1 -s USE_VORBIS=1 \
+                                    -s USE_LIBPNG=1 \
+                                    -s USE_LIBJPEG=1 \
+                                    -s USE_ZLIB=1 \

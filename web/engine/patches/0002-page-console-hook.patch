@@ -1,0 +1,33 @@
+diff --git a/makefile.inc b/makefile.inc
+index 9cfed413..f1180e08 100644
+--- a/makefile.inc
++++ b/makefile.inc
+@@ -247,7 +247,7 @@ LDFLAGS_WASMJS=$(LDFLAGS_UNIXCOMMON) -s USE_SDL=2 \
+                                    -DUSE_GLES2 \
+                                    -lidbfs.js \
+                                    --pre-js ../../../wasm/pre.js \
+-                                   -s EXPORTED_RUNTIME_METHODS=callMain,addRunDependency,removeRunDependency
++                                   -s EXPORTED_RUNTIME_METHODS=callMain,addRunDependency,removeRunDependency,ccall,FS -s EXPORTED_FUNCTIONS=_main,_bako_cmd
+ 
+ LDFLAGS_WASM=$(LDFLAGS_UNIXCOMMON) -s USE_SDL=2 \
+                                    -s USE_LIBPNG=1 \
+diff --git a/sys_wasm.c b/sys_wasm.c
+index 167cea5c..ff09e9f4 100644
+--- a/sys_wasm.c
++++ b/sys_wasm.c
+@@ -35,6 +35,15 @@ static EM_BOOL em_on_resize(int etype, const EmscriptenUiEvent *event, void *UDa
+ // General routines
+ // =======================================================================
+ 
++// BakersfieldQuake: lets the play page (and debugging) run console commands:
++//   Module.ccall("bako_cmd", null, ["string"], ["status"])
++EMSCRIPTEN_KEEPALIVE void bako_cmd(const char *text);
++EMSCRIPTEN_KEEPALIVE void bako_cmd(const char *text)
++{
++	Cbuf_AddText(cmd_local, text);
++	Cbuf_AddText(cmd_local, "\n");
++}
++
+ #ifdef WASM_USER_ADJUSTABLE
+ EM_JS(char *, js_listfiles, (const char *directory), {
+ 	if(UTF8ToString(directory) == "")

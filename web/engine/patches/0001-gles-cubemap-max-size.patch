@@ -1,0 +1,16 @@
+diff --git a/vid_shared.c b/vid_shared.c
+index 29baba25..cfa83b44 100644
+--- a/vid_shared.c
++++ b/vid_shared.c
+@@ -797,9 +797,8 @@ void GL_Setup(void)
+ 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, (GLint*)&vid.maxtexturesize_2d);
+ 	CHECKGLERROR
+ #ifdef GL_MAX_CUBE_MAP_TEXTURE_SIZE
+-#ifdef USE_GLES2
+-	if (GL_CheckExtension("GL_ARB_texture_cube_map", "-nocubemap", false))
+-#endif
++	// cube maps are core in OpenGL ES 2.0 / WebGL, which never list GL_ARB_texture_cube_map:
++	// without this query the limit stays 0 and the first cubemap aborts the engine (stretch uploads...)
+ 	{
+ 		qglGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, (GLint*)&vid.maxtexturesize_cubemap);
+ 		Con_DPrintf("GL_MAX_CUBE_MAP_TEXTURE_SIZE = %i\n", vid.maxtexturesize_cubemap);

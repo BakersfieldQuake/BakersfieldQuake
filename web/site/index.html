@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bakersfield Quake</title>
+<style>
+	:root {
+		--bg: #120d09; --panel: #1f1710; --line: #4a3622; --text: #e9dcc8; --dim: #a8957c;
+		--accent: #d9822b; --accent-hi: #f3a24b; --bad: #e0574a;
+	}
+	* { box-sizing: border-box; }
+	html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+		font: 16px/1.4 "Trebuchet MS", Verdana, sans-serif; }
+	#canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: #000; outline: none; }
+	#lobby { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+		background: radial-gradient(ellipse at 50% 30%, #2b1d12 0%, var(--bg) 70%); z-index: 2; }
+	.card { width: 100%; max-width: 440px; background: var(--panel); border: 2px solid var(--line);
+		box-shadow: 0 0 0 4px #0008, 0 20px 60px #000c; padding: 28px 24px; }
+	h1 { margin: 0 0 4px; font: 900 34px/1 Impact, "Arial Black", sans-serif; letter-spacing: 2px;
+		color: var(--accent); text-transform: uppercase; text-shadow: 3px 3px 0 #000; }
+	.sub { margin: 0 0 22px; color: var(--dim); font-size: 14px; }
+	label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+	input { width: 100%; font: inherit; font-size: 20px; padding: 10px 12px; background: #0d0906; color: var(--text);
+		border: 2px solid var(--line); outline: none; }
+	input:focus { border-color: var(--accent); }
+	button { margin-top: 18px; width: 100%; font: 900 26px/1 Impact, "Arial Black", sans-serif; letter-spacing: 3px;
+		padding: 16px; color: #1a0f05; background: var(--accent); border: 0; cursor: pointer; text-transform: uppercase; }
+	button:hover:not(:disabled) { background: var(--accent-hi); }
+	button:disabled { background: #5a4630; color: #2a1d10; cursor: wait; }
+	.bar { margin-top: 20px; height: 10px; background: #0d0906; border: 1px solid var(--line); }
+	.bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+	#status { margin-top: 8px; font-size: 13px; color: var(--dim); min-height: 1.4em; }
+	#status.bad { color: var(--bad); }
+	.help { margin-top: 18px; font-size: 13px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 14px; }
+	.help b { color: var(--text); }
+	body.playing #lobby { display: none; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<div id="lobby">
+	<div class="card">
+		<h1>Bakersfield Quake</h1>
+		<p class="sub" id="where">LAN server</p>
+		<label for="name">Your name</label>
+		<input id="name" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Player">
+		<button id="play" disabled>Loading…</button>
+		<div class="bar"><div id="fill"></div></div>
+		<div id="status">Starting…</div>
+		<div class="help">
+			Click the game to grab the mouse. <b>Esc</b> lets go of it.<br>
+			<b>F11</b> or the PLAY button goes full screen. Works in Chrome, Edge, Firefox and Safari.
+		</div>
+	</div>
+</div>
+
+<script>
+(function () {
+	'use strict';
+	var params = new URLSearchParams(location.search);
+	var DEBUG = params.has('debug');
+	var $ = function (id) { return document.getElementById(id); };
+	var nameBox = $('name'), playBtn = $('play'), fill = $('fill'), statusEl = $('status');
+	var gameFiles = null, manifest = null, wantPlay = false, started = false;
+
+	function status(text, bad) { statusEl.textContent = text; statusEl.className = bad ? 'bad' : ''; }
+	function mb(n) { return (n / 1048576).toFixed(0) + ' MB'; }
+	function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+	function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+
+	var server = params.get('server') || location.hostname + ':26000';
+	var offlineMap = params.get('map');
+	$('where').textContent = offlineMap ? 'Offline test: map ' + offlineMap : 'Server ' + location.host;
+	nameBox.value = safeGet('bako_name') || '';
+
+	// ---- WebGL2 check: everything below needs it
+	var gl2 = false;
+	try { gl2 = !!document.createElement('canvas').getContext('webgl2'); } catch (e) { }
+	if (!gl2) {
+		status('This browser has no WebGL2. Update it (Safari 15 or newer), or try Chrome or Edge.', true);
+		playBtn.textContent = 'Not supported';
+		return;
+	}
+
+	// ---- IndexedDB cache: game files stay in the browser so the next visit starts at once
+	var DB = null;
+	function openDb() {
+		return new Promise(function (resolve) {
+			try {
+				var req = indexedDB.open('bakoquake-files', 1);
+				req.onupgradeneeded = function () { req.result.createObjectStore('files'); };
+				req.onsuccess = function () { resolve(req.result); };
+				req.onerror = function () { resolve(null); };
+			} catch (e) { resolve(null); }
+		});
+	}
+	function dbGet(key) {
+		return new Promise(function (resolve) {
+			if (!DB) return resolve(null);
+			try {
+				var r = DB.transaction('files').objectStore('files').get(key);
+				r.onsuccess = function () { resolve(r.result || null); };
+				r.onerror = function () { resolve(null); };
+			} catch (e) { resolve(null); }
+		});
+	}
+	function dbPut(key, blob) {
+		return new Promise(function (resolve) {
+			if (!DB) return resolve();
+			try {
+				var tx = DB.transaction('files', 'readwrite');
+				tx.objectStore('files').put(blob, key);
+				tx.oncomplete = tx.onerror = tx.onabort = function () { resolve(); };
+			} catch (e) { resolve(); }
+		});
+	}
+	function dbPrune(keep) {
+		if (!DB) return;
+		try {
+			var store = DB.transaction('files', 'readwrite').objectStore('files');
+			var r = store.getAllKeys();
+			r.onsuccess = function () { r.result.forEach(function (k) { if (!keep[k]) store.delete(k); }); };
+		} catch (e) { }
+	}
+
+	var done = 0, total = 0;
+	function progress() {
+		fill.style.width = (total ? 100 * done / total : 0).toFixed(1) + '%';
+	}
+
+	async function getFile(f) {
+		var key = f.path + '|' + f.size + '|' + f.mtime;
+		var blob = await dbGet(key);
+		if (blob && blob.size === f.size) {
+			var cached = new Uint8Array(await blob.arrayBuffer());
+			done += f.size; progress();
+			return cached;
+		}
+		var res = await fetch(f.url, { cache: 'no-cache' });
+		if (!res.ok) throw new Error(f.path + ': HTTP ' + res.status);
+		var buf = new Uint8Array(f.size), at = 0;
+		var reader = res.body.getReader();
+		for (;;) {
+			var chunk = await reader.read();
+			if (chunk.done) break;
+			if (at + chunk.value.length > buf.length) throw new Error(f.path + ': bigger than expected, reload the page');
+			buf.set(chunk.value, at); at += chunk.value.length;
+			done += chunk.value.length; progress();
+		}
+		if (at !== f.size) throw new Error(f.path + ': download cut short');
+		await dbPut(key, new Blob([buf]));
+		return buf;
+	}
+
+	async function loadAll() {
+		DB = await openDb();
+		var res = await fetch('manifest.json', { cache: 'no-cache' });
+		if (!res.ok) throw new Error('manifest.json: HTTP ' + res.status);
+		manifest = await res.json();
+		total = manifest.total + 0;
+		var t0 = performance.now();
+		status('Loading game files (' + mb(total) + ')…');
+		var out = {}, queue = manifest.files.slice(), keep = {};
+		manifest.files.forEach(function (f) { keep[f.path + '|' + f.size + '|' + f.mtime] = true; });
+		// biggest first, 4 at a time
+		queue.sort(function (a, b) { return b.size - a.size; });
+		async function worker() {
+			while (queue.length) {
+				var f = queue.shift();
+				out[f.path] = await getFile(f);
+				status('Loading game files: ' + mb(done) + ' of ' + mb(total));
+			}
+		}
+		await Promise.all([worker(), worker(), worker(), worker()]);
+		dbPrune(keep);
+		console.log('bakoquake: files ready in ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s');
+		return out;
+	}
+
+	loadAll().then(function (files) {
+		gameFiles = files;
+		playBtn.disabled = false;
+		playBtn.textContent = 'Play';
+		status('Ready. ' + mb(total) + ' loaded.');
+		if (wantPlay) start();
+	}).catch(function (e) {
+		console.error(e);
+		status('Could not load the game: ' + e.message + '. Reload the page to try again.', true);
+		playBtn.textContent = 'Error';
+	});
+
+	// ---- engine start
+	var logLines = [];
+	function dpPrint(text) {
+		logLines.push(text);
+		if (logLines.length > 600) logLines.splice(0, 100);
+		if (DEBUG) console.log(text);
+	}
+	window.bakoLog = function (n) { return logLines.slice(-(n || 80)).join('\n'); };
+
+	function cleanName(s) {
+		return (s || '').replace(/["\\;\r\n]/g, '').trim().slice(0, 20);
+	}
+
+	function start() {
+		if (started || !gameFiles) return;
+		started = true;
+		var name = cleanName(nameBox.value) || 'Player';
+		safeSet('bako_name', name);
+		document.body.classList.add('playing');
+		var canvas = $('canvas');
+		var w = Math.max(640, window.innerWidth), h = Math.max(400, window.innerHeight);
+
+		var args = ['-game', 'quake15', '-game', 'BakersfieldQuake',
+			'+exec', 'web.cfg',
+			'+vid_width', String(w), '+vid_height', String(h),
+			'+_cl_name', name, '+name', name];
+		if (offlineMap) args.push('+map', offlineMap);
+		else args.push('+connect', server);
+		(params.get('extra') || '').split(' ').filter(Boolean).forEach(function (a) { args.push(a); });
+
+		window.Module = {
+			canvas: canvas,
+			arguments: args,
+			gameFiles: gameFiles,
+			// every emulated UDP socket goes to bakoweb, which passes it on to the game server
+			websocket: { url: (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' },
+			print: dpPrint,
+			printErr: dpPrint,
+			onAbort: function (what) {
+				document.body.classList.remove('playing');
+				status('The game stopped (' + what + '). Reload the page to play again.', true);
+			}
+		};
+		gameFiles = null;
+		var s = document.createElement('script');
+		s.src = manifest.engine;
+		s.onerror = function () { status('Could not load the game engine. Reload the page.', true); };
+		document.body.appendChild(s);
+		canvas.focus();
+	}
+
+	playBtn.addEventListener('click', function () {
+		wantPlay = true;
+		// these need a click: full screen now; the engine grabs the mouse on the first click in the game
+		try { document.documentElement.requestFullscreen().catch(function () { }); } catch (e) { }
+		start();
+	});
+	nameBox.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !playBtn.disabled) playBtn.click(); });
+})();
+</script>
+</body>
+</html>

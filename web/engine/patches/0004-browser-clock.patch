@@ -1,0 +1,16 @@
+diff --git a/sys_shared.c b/sys_shared.c
+index ddf905df..699998f8 100644
+--- a/sys_shared.c
++++ b/sys_shared.c
+@@ -463,8 +463,10 @@ double Sys_DirtyTime(void)
+ #if HAVE_CLOCKGETTIME
+ 	{
+ 		struct timespec ts;
+-#  ifdef CLOCK_MONOTONIC_RAW
++#  if defined(CLOCK_MONOTONIC_RAW) && !defined(__EMSCRIPTEN__)
+ 		// Linux-specific, SDL_GetPerformanceCounter() uses it
++		// (emscripten defines it but clock_gettime() fails with EINVAL, leaving ts as garbage:
++		//  the game clock then never advances and map loading hangs)
+ 		clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+ #  elif defined(CLOCK_MONOTONIC)
+ 		// POSIX
