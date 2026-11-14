@@ -54,7 +54,7 @@ var float	autocvar_bm_ud_red			= 0.75;		// boost for spawning with red armor (ca
 
 var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer (bm_fun.qc): no first blood, sprees, revenge, clips
 var float	autocvar_bm_fun_gap			= 10;		// seconds between two global announcer voice clips
-var float	autocvar_bm_scroll_fun		= 0;		// 0 = mouse-wheel skips joke slots FG1..FG6 (keeps M4/Thompson/Garand); 1 = include all 9
+var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4/Thompson/Garand); 0 = skip FG1..FG6
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
 var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
 var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
