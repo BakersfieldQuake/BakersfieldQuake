@@ -1,7 +1,7 @@
-"""Build self-contained 60-FPS HTML5 interactive Poop Gun Concept Simulator.
+"""Build self-contained 60-FPS HTML5 interactive Poop Gun All-Versions Simulator.
 
-Packs all 4 weapon concept sprite sheets (`work/c1_cannon/`, `work/c2_throwguy/`,
-`work/c3_paintball/`, `work/c4_tuba/`), shared mud/mist FX (`work/fx/`), and WAV
+Packs all 8 weapon concept & forward sprite sheets (`work/c1_cannon/`..`work/c4_tuba/`
+and `work/dookie_mk1/`..`work/dookie_mk4/`), shared mud/mist FX (`work/fx/`), and WAV
 audio clips (`work/audio/`) into `G:\\Quake\\Combat\\BakersfieldQuake\\poop_gun_concepts.html`.
 
 Usage:
@@ -30,8 +30,52 @@ MAX_ATLAS_DIM = 4096
 
 CONCEPTS: List[Dict[str, Any]] = [
     {
-        "id": "dookie_mk1",
+        "id": "c1_cannon",
         "num": 1,
+        "title": "THE DOOKIE BAZOOKA",
+        "subtitle": "Original Concept 1 • Brass Plunger Cannon + 4 Arguing Heads + 14 Flies",
+        "accent": "#d97706",
+        "tagline": "Original brass & copper poop plunger cannon with 4 arguing heads, dual tricolor flags, PSI gauge & 14 orbiting flies.",
+        "proj_style": "cannonball",
+        "muzzle_norm": [0.19, 0.60],
+        "tp_muzzle_norm": [0.46, 0.44],
+    },
+    {
+        "id": "c2_throwguy",
+        "num": 2,
+        "title": "HUMAN BELLY-SLING",
+        "subtitle": "Original Concept 2 • Hoist & Yeet a Squirming Bloke",
+        "accent": "#ea580c",
+        "tagline": "Original bare-handed concept: hoist an entire squirming bloke, squeeze his belly for a fart boost, and YEET him!",
+        "proj_style": "yeet",
+        "muzzle_norm": [0.50, 0.36],
+        "tp_muzzle_norm": [0.46, 0.44],
+    },
+    {
+        "id": "c3_paintball",
+        "num": 3,
+        "title": "POOP PAINTBALL HOPPER",
+        "subtitle": "Original Concept 3 • 7-Head Gravity-Feed Face-Tube Marker",
+        "accent": "#84cc16",
+        "tagline": "Clear acrylic gravity-feed hopper packed with 7 squished rattling faces, tricolor flags, shivering PSI gauge & rapid-spin mud-face paintball orbs.",
+        "proj_style": "paintball",
+        "muzzle_norm": [0.36, 0.45],
+        "tp_muzzle_norm": [0.28, 0.48],
+    },
+    {
+        "id": "c4_tuba",
+        "num": 4,
+        "title": "The Porcelain Poop-Tuba",
+        "subtitle": "Original Concept 4 • Toilet Mortar & Strangelove Torpedo",
+        "accent": "#a855f7",
+        "tagline": "Shoulder-mounted porcelain toilet-tuba mortar launching a Strangelove torpedo!",
+        "proj_style": "torpedo",
+        "muzzle_norm": [0.31, 0.51],
+        "tp_muzzle_norm": [0.46, 0.44],
+    },
+    {
+        "id": "dookie_mk1",
+        "num": 5,
         "title": "MK-I: DOOKIE BAZOOKA",
         "subtitle": "Forward Tactical Plunger • 4-Head Glass Tube",
         "accent": "#f59e0b",
@@ -42,7 +86,7 @@ CONCEPTS: List[Dict[str, Any]] = [
     },
     {
         "id": "dookie_mk2",
-        "num": 2,
+        "num": 6,
         "title": "MK-II: TURBO FLUSHER",
         "subtitle": "Twin Plungers • 4-Head Poop-Soup Aquarium",
         "accent": "#22c55e",
@@ -53,7 +97,7 @@ CONCEPTS: List[Dict[str, Any]] = [
     },
     {
         "id": "dookie_mk3",
-        "num": 3,
+        "num": 7,
         "title": "MK-III: PORCELAIN THRONE",
         "subtitle": "Crowned Toilet Bazooka • 5 Dome Heads + Bowl Stowaway",
         "accent": "#38bdf8",
@@ -64,7 +108,7 @@ CONCEPTS: List[Dict[str, Any]] = [
     },
     {
         "id": "dookie_mk4",
-        "num": 4,
+        "num": 8,
         "title": "MK-IV: OMEGA BFG-9000",
         "subtitle": "Winning Design • 5 Reactor Heads + Slow Tank Flies + Hand-Waving Runner",
         "accent": "#ef4444",
@@ -377,7 +421,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Bakersfield Quake — Poop Gun 4-Concept 60-FPS Simulator</title>
+<title>Bakersfield Quake — Poop Gun All 8 Versions 60-FPS Simulator</title>
 <style>
   :root {
     --bg: #0f0d0b;
@@ -1002,7 +1046,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="brand">
     <span class="brand-badge">Bakersfield Quake</span>
     <div>
-      <h1>Dookie Bazooka — 4 Escalating Forward Designs</h1>
+      <h1>Poop Gun — All 8 Versions (Original 4 Concepts + MK-I to MK-IV)</h1>
       <div class="brand-sub" id="asset-summary">Initializing embedded sprite atlases & WAV audio...</div>
     </div>
   </div>
@@ -1149,7 +1193,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             <button class="btn sm active" data-fovpreset="111">FOV 111 (Your Cfg)</button>
           </div>
           <div class="ctrl-group" style="margin-top:8px;justify-content:space-between;">
-            <button class="btn sm" id="btn-adj-all" title="Apply these position & scale settings to all 4 weapon tabs">📌 Apply to All 4</button>
+            <button class="btn sm" id="btn-adj-all" title="Apply these position & scale settings to all 8 weapon tabs">📌 Apply to All 8</button>
             <button class="btn sm primary" id="btn-adj-copy">📋 Copy Values</button>
           </div>
           <div class="adj-export" id="adj-export"></div>
@@ -1207,7 +1251,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </section>
 
-  <!-- COMPARE ALL 4 SIDE-BY-SIDE VIEW -->
+  <!-- COMPARE ALL 8 SIDE-BY-SIDE VIEW -->
   <section id="compare-view" class="hidden">
     <div class="controls-strip">
       <div class="ctrl-group">
@@ -1227,7 +1271,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         </div>
       </div>
       <div class="ctrl-group">
-        <button class="btn primary" id="btn-fire-all">💥 FIRE ALL 4 AT ONCE!</button>
+        <button class="btn primary" id="btn-fire-all">💥 FIRE ALL 8 AT ONCE!</button>
       </div>
     </div>
     <div class="compare-grid" id="compare-grid"></div>
@@ -3421,7 +3465,7 @@ function drawFallbackEnemy(ctx, sx, floorY, spriteH, concept) {
 // 5. Application Controller (Tabs, Inspector, Compare Grid, Input)
 // ---------------------------------------------------------------------------
 const appState = {
-  activeTab: CONCEPTS[3].id, // MK-IV winner pre-selected (or 'compare')
+  activeTab: (CONCEPTS.find(c => c.id === 'dookie_mk4') || CONCEPTS[0]).id, // MK-IV winner pre-selected (or 'compare')
   speed: 1.0,
   autoFire3p: true,
   vmDragMode: false,
@@ -3471,7 +3515,7 @@ function renderTabs() {
   const cmpBtn = document.createElement('button');
   cmpBtn.className = 'tab-btn' + (appState.activeTab === 'compare' ? ' active' : '');
   cmpBtn.style.setProperty('--tab-accent', '#22c55e');
-  cmpBtn.innerHTML = `⚡ COMPARE ALL 4 SIDE-BY-SIDE`;
+  cmpBtn.innerHTML = `⚡ COMPARE ALL ${CONCEPTS.length} SIDE-BY-SIDE`;
   cmpBtn.onclick = () => selectTab('compare');
   bar.appendChild(cmpBtn);
 }
@@ -3866,7 +3910,7 @@ function bindEvents() {
     const cfg = VmAdjust.get(activeConcept());
     VmAdjust.applyToAll(cfg);
     const orig = e.target.textContent;
-    e.target.textContent = '✓ Applied to All 4!';
+    e.target.textContent = `✓ Applied to All ${CONCEPTS.length}!`;
     setTimeout(() => { e.target.textContent = orig; }, 1200);
   };
   document.getElementById('btn-adj-copy').onclick = (e) => {
@@ -3976,7 +4020,7 @@ function bindEvents() {
       e.preventDefault();
       if (e.repeat) return;
       if (appState.activeTab === 'compare') {
-        for (const c of CONCEPTS) triggerShot(appState.sims[c.id], c.num === 4, false);
+        for (const c of CONCEPTS) triggerShot(appState.sims[c.id], c.id === 'dookie_mk4', false);
       } else {
         beginCharge(sim, true, true);
       }
@@ -4071,7 +4115,7 @@ function bindEvents() {
     for (const c of CONCEPTS) {
       const s = appState.sims[c.id];
       s.mode = appState.compareMode === '3p' ? '3p' : '1p';
-      triggerShot(s, c.num === 4, false);
+      triggerShot(s, c.id === 'dookie_mk4', false);
     }
   };
 }
@@ -4138,7 +4182,7 @@ function loop(ts) {
   const readyCount = CONCEPTS.filter(c => c.ready).length;
   const sfxCount = document.querySelectorAll('#embedded-audio-tags audio').length;
   document.getElementById('asset-summary').textContent =
-    `${readyCount}/4 Concepts Ready • ${AtlasStore.loadedPages}/${AtlasStore.totalPages} WebP Atlases • ${sfxCount} WAV Clips`;
+    `${readyCount}/${CONCEPTS.length} Versions Ready • ${AtlasStore.loadedPages}/${AtlasStore.totalPages} WebP Atlases • ${sfxCount} WAV Clips`;
 
   if (appState.activeTab === 'compare') {
     for (const c of CONCEPTS) {
@@ -4189,7 +4233,7 @@ Ratings.load();
 VmAdjust.load();
 renderAudioVoteGrid();
 bindEvents();
-selectTab(CONCEPTS[3].id);
+selectTab((CONCEPTS.find(c => c.id === 'dookie_mk4') || CONCEPTS[0]).id);
 requestAnimationFrame(loop);
 </script>
 </body>
