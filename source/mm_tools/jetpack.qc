@@ -81,8 +81,8 @@ void() Jetpack_Place =
 
 	armor = self.jp_armor;
 	base = armor.origin;
-	self.scale = 3;		// the model is only 24 units tall at scale 1 (origin near its middle, bottom at -11); armor is 56
-	setsize (self, '-26 -26 -46', '26 26 22');
+	self.scale = 1.5;		// the model is 24 units tall at scale 1 (origin near its middle, bottom at -11); 50% of original scale 3
+	setsize (self, '-20 -20 -24', '20 20 20');
 	i = 0;
 	while (i < 8)
 	{
@@ -91,7 +91,7 @@ void() Jetpack_Place =
 		traceline (base + '0 0 20', org + '0 0 8', TRUE, armor);
 		if (trace_fraction == 1)
 		{
-			tracebox (org, '-26 -26 -46', '26 26 22', org, TRUE, self);
+			tracebox (org, '-20 -20 -24', '20 20 20', org, TRUE, self);
 			if (!trace_startsolid && !trace_allsolid)
 			{
 				setorigin (self, org);
@@ -125,9 +125,9 @@ void() item_jetpack =
 {
 	Jetpack_Precache ();
 	self.classname = "item_jetpack";
-	self.scale = 3;
+	self.scale = 1.5;
 	setmodel (self, "progs/jetpack.md3");
-	setsize (self, '-26 -26 -46', '26 26 22');
+	setsize (self, '-20 -20 -24', '20 20 20');
 	setorigin (self, self.origin + '0 0 24');
 	droptofloor ();
 	self.mdl = self.model;
@@ -529,16 +529,11 @@ void() Jetpack_Fly =
 		return;
 	}
 
-	// the engine sound (a 2 s seamless loop, restarted on the beat) and the fire and smoke
-	if (up != self.jp_sndup)
-	{
-		self.jp_sndup = up;
-		self.jp_snd = 0;		// restart at once when you start or stop climbing: the level and pitch change with it
-	}
+	// the engine hum (a 2 s seamless loop, restarted smoothly every 2 s without jump-tap clicks)
 	if (time >= self.jp_snd)
 	{
 		self.jp_snd = time + 2;		// the loop is 2 s and seamless
-		sound7 (self, CHAN_ITEM, "jetpack/swoosh.wav", 0.35 + 0.15 * up + 0.15 * self.jp_fast, ATTN_NORM, 100 + 18 * up + 30 * self.jp_fast);		// a clear but soft engine bed under the voice; higher when climbing
+		sound7 (self, CHAN_ITEM, "jetpack/swoosh.wav", 0.28 + 0.08 * up + 0.08 * self.jp_fast, ATTN_NORM, 100 + 8 * up + 12 * self.jp_fast);		// warm hum under the voice; subtly higher when climbing
 	}
 	Jetpack_Exhaust (up);
 };

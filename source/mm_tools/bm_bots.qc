@@ -217,6 +217,7 @@ vector(float wep) BM_BotWeaponRange =
 		if (g == FG_PONG)		return '420 90 1250';
 		if (g == FG_PICKLE)		return '260 50 850';
 		if (g == FG_NETSEND)	return '380 80 1100';
+		if (g == FG_DOOKIE)		return '460 110 1750';
 		if (g == FG_WCANNON)	return '550 180 2100';
 		if (g == FG_M4)			return '520 35 2500';
 		if (g == FG_TOMMY)		return '280 15 1300';
@@ -420,7 +421,7 @@ float(float brange) BM_BotWeaponSwitch =
 		return FALSE;
 
 	// Never interrupt active charge/windup/flight states
-	if (self.fd_head != world || self.wc_charging > 0 || self.gj_shaking > 0 || self.ltg_phase == 1)
+	if (self.fd_head != world || self.wc_charging > 0 || self.dk_charging > 0 || self.gj_shaking > 0 || self.ltg_phase == 1)
 		return TRUE;
 	if (self.weapon == IT_AXE && self.hm_state == 1)
 		return TRUE;
@@ -486,6 +487,7 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 62)	w = 13;		// Jar o' Green Guys
 				else if (id == 63)	w = 13;		// Pickle Surprise
 				else if (id == 64)	w = 10;		// NetSend PC
+				else if (id == 65)	w = 13;		// Dookie Bazooka
 				else if (id == 66)	w = 12;		// Wheelman Cannon
 				else if (id == 4)	w = 12;		// Laptop Gun
 				else if (id == 69)	w = 12;		// M1 Garand
@@ -504,6 +506,7 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 2)	w = 10;		// Goo Gun
 				else if (id == 11)	w = 16;		// Mega Man Gun
 				else if (id == 62)	w = 14;		// Jar o' Green Guys
+				else if (id == 65)	w = 14;		// Dookie Bazooka
 				else if (id == 66)	w = 16;		// Wheelman Cannon
 				else if (id == 64)	w = 10;		// NetSend PC
 				else if (id == 63)	w = 9;		// Pickle Surprise
@@ -608,7 +611,7 @@ void() BM_BotShoot =
 		return;
 
 	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar), swap smoothly
-	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.gj_shaking && self.hm_state != 1 && self.ltg_phase != 1)
+	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.dk_charging && !self.gj_shaking && self.hm_state != 1 && self.ltg_phase != 1)
 	{
 		dist = vlen (realorigin (self.enemy) - self.origin);
 		self.bm_bot_wep_t = 0;
@@ -669,6 +672,24 @@ void() BM_BotShoot =
 				{
 					self.button0 = TRUE;
 					self.bm_bot_wc_rel = time + 0.25 + random () * 0.40;
+				}
+			}
+			else if (time < self.bm_bot_wc_rel)
+				self.button0 = TRUE;
+			else
+				self.button0 = FALSE;
+			return;
+		}
+
+		// Dookie Bazooka: hold fire to wind up tabla reactor 0.40..1.05s, then release!
+		if (g == FG_DOOKIE)
+		{
+			if (!self.dk_charging)
+			{
+				if (time >= self.dk_cool)
+				{
+					self.button0 = TRUE;
+					self.bm_bot_wc_rel = time + 0.40 + random () * 0.65;
 				}
 			}
 			else if (time < self.bm_bot_wc_rel)
@@ -1286,7 +1307,7 @@ void() BM_BotPostAI =
 		else
 			self.button0 = TRUE;
 	}
-	if (self.weapon == IT_FUNGUN && self.fg_sel == FG_WCANNON && self.wc_charging > 0)
+	if (self.weapon == IT_FUNGUN && ((self.fg_sel == FG_WCANNON && self.wc_charging > 0) || (self.fg_sel == FG_DOOKIE && self.dk_charging > 0)))
 	{
 		if (!self.enemy || time >= self.bm_bot_wc_rel)
 			self.button0 = FALSE;
@@ -1500,7 +1521,7 @@ void() BM_BotPostAI =
 	}
 
 	// ---------------- 4. CURB / CAR / ALLEY UNSTUCK & IDLE CRUISE ----------------
-	if (time < self.bm_bot_free_t && !self.fd_head && !self.wc_charging && self.ltg_phase != 1)
+	if (time < self.bm_bot_free_t && !self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1)
 	{
 		self.b_angle_y = vectoyaw (self.bm_bot_free_dir);
 		self.keys = (self.keys & 960) | frik_KeysForDir (self.bm_bot_free_dir);
@@ -1512,7 +1533,7 @@ void() BM_BotPostAI =
 		self.bm_bot_stuck_org = self.origin;
 		self.bm_bot_stuck_t = time + 0.95;
 
-		if (!self.fd_head && !self.wc_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
+		if (!self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
 		{
 			// Sub-grade basement failsafe: steer directly to Sandrini's stair foot / Eye St exit instead of wall rays
 			if (self.origin_z < -20 && self.origin_x >= -4080 && self.origin_x <= -3280

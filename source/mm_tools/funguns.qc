@@ -7,6 +7,7 @@ void() FunGun_Precache =
 	precache_sound ("weapons/r_exp3.wav");
 	Pickle_Precache ();
 	GreenJar_Precache ();
+	Dookie_Precache ();
 	NS_Precache ();
 	WC_Precache ();
 	M4_Precache ();
@@ -30,6 +31,8 @@ string(float g) FunGun_VModel =
 		return "progs/v_netsend.md3";
 	if (g == FG_WCANNON)
 		return "progs/v_wewcannon.md3";
+	if (g == FG_DOOKIE)
+		return "progs/v_dookie.md3";
 	if (g == FG_M4)
 		return M4_VModel ();
 	if (g == FG_TOMMY)
@@ -68,6 +71,8 @@ string(float g) FunGun_ShortName =
 		return "M1 Garand";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon";
+	if (g == FG_DOOKIE)
+		return "Dookie Bazooka";
 	if (g == FG_NETSEND)
 		return "NetSend";
 	return "Pickle Surprise";
@@ -87,6 +92,8 @@ string(float g) FunGun_Name =
 		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon - hold fire to charge";
+	if (g == FG_DOOKIE)
+		return "Dookie Bazooka - hold fire to wind up, release to blast!";
 	if (g == FG_NETSEND)
 		return "NetSend - throws a popup-spamming PC";
 	return "Pickle Surprise - drop trap";
@@ -101,6 +108,8 @@ string(float g) FunGun_Death1 =
 		return " was swarmed silly by ";
 	if (g == FG_NETSEND)
 		return " got a NET SEND from ";
+	if (g == FG_DOOKIE)
+		return " got splattered by ";
 	if (g == FG_WCANNON)
 		return " got rolled over by ";
 	if (g == FG_M4)
@@ -122,6 +131,8 @@ string(float g) FunGun_Death2 =
 		return "'s flying head\n";
 	if (g == FG_NETSEND)
 		return "'s NetSend PC\n";
+	if (g == FG_DOOKIE)
+		return "'s Dookie Bazooka\n";
 	if (g == FG_WCANNON)
 		return "'s Wheelman\n";
 	if (g == FG_M4)
@@ -141,8 +152,8 @@ float(float g) FunGun_Max =
 		return FG_PONG_MAX;
 	if (g == FG_NETSEND)
 		return FG_NETSEND_MAX;
-	if (g == FG_MBOX)
-		return FG_MBOX_MAX;
+	if (g == FG_DOOKIE)
+		return FG_DOOKIE_MAX;
 	if (g == FG_WCANNON)
 		return FG_WCANNON_MAX;
 	if (g == FG_M4)
@@ -162,8 +173,8 @@ float(float g) FunGun_RegenTime =
 		return FG_PONG_REGEN;
 	if (g == FG_NETSEND)
 		return FG_NETSEND_REGEN;
-	if (g == FG_MBOX)
-		return FG_MBOX_REGEN;
+	if (g == FG_DOOKIE)
+		return FG_DOOKIE_REGEN;
 	if (g == FG_WCANNON)
 		return FG_WCANNON_REGEN;
 	if (g == FG_M4)
@@ -183,7 +194,7 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo2;
 	if (g == FG_NETSEND)
 		return p.fg_ammo4;
-	if (g == FG_MBOX)
+	if (g == FG_DOOKIE)
 		return p.fg_ammo5;
 	if (g == FG_WCANNON)
 		return p.fg_ammo6;
@@ -204,7 +215,7 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo2 = v;
 	else if (g == FG_NETSEND)
 		p.fg_ammo4 = v;
-	else if (g == FG_MBOX)
+	else if (g == FG_DOOKIE)
 		p.fg_ammo5 = v;
 	else if (g == FG_WCANNON)
 		p.fg_ammo6 = v;
@@ -228,7 +239,7 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen2;
 	if (g == FG_NETSEND)
 		return p.fg_regen4;
-	if (g == FG_MBOX)
+	if (g == FG_DOOKIE)
 		return p.fg_regen5;
 	if (g == FG_WCANNON)
 		return p.fg_regen6;
@@ -249,7 +260,7 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen2 = v;
 	else if (g == FG_NETSEND)
 		p.fg_regen4 = v;
-	else if (g == FG_MBOX)
+	else if (g == FG_DOOKIE)
 		p.fg_regen5 = v;
 	else if (g == FG_WCANNON)
 		p.fg_regen6 = v;
@@ -328,6 +339,8 @@ void() FunGun_Attack =
 			centerprint (self, "The jar is still recharging\n");
 		if (g == FG_NETSEND)
 			centerprint (self, "The disk is still reloading\n");
+		if (g == FG_DOOKIE)
+			centerprint (self, "The reactor is still refilling\n");
 		if (g == FG_WCANNON)
 			centerprint (self, "The cannon is still reloading\n");
 		sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
@@ -337,6 +350,11 @@ void() FunGun_Attack =
 	if (g == FG_PONG)
 	{
 		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)
+		return;
+	}
+	if (g == FG_DOOKIE)
+	{
+		DK_Press ();		// holds fire to wind up tabla reactor; DK_Frame launches on release (dookie.qc)
 		return;
 	}
 	if (g == FG_WCANNON)
@@ -395,8 +413,6 @@ float(float g) FunGun_Bit =
 
 float(float g) FunGun_Available =
 {
-	if (g == FG_MBOX)
-		return FALSE;		// slot 5 was the Mystery Box, removed 2026-11-13
 	if (g == FG_M4)
 		return m4_ok;
 	if (g == FG_TOMMY)
@@ -479,6 +495,7 @@ void(entity p) FunGun_Give =
 	p.pk_reload_t = 0;
 	p.pk_empty = FALSE;
 	GJ_ResetPlayer (p);
+	DK_ResetPlayer (p);
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
 	p.m4_shot_n = 0;
@@ -719,6 +736,7 @@ void() FunGun_ViewFrame =
 	Binoc_Frame ();		// hold the key: look through the binoculars
 	WC_Frame ();		// the Wheelman Cannon charges and launches (wcannon.qc)
 	GJ_Frame ();		// the Jar o' Green Guys cocktail-shakes and launches (greenjar.qc)
+	DK_Frame ();		// the Dookie Bazooka winds up and blasts (dookie.qc)
 	if (!self.button0)
 		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
 	g = 1;
@@ -734,9 +752,9 @@ void() FunGun_ViewFrame =
 	t = time - self.fg_fire_t;
 	f = floor (time * 10);
 	f = f - 16 * floor (f / 16);		// idle
-	if (g == FG_PICKLE || g == FG_PONG)
+	if (g == FG_PICKLE || g == FG_PONG || g == FG_DOOKIE)
 	{
-		f = 0;			// v_pickle.md3 / v_greenjar.md3 are 1-frame cards: their faces come from .skin shaders
+		f = 0;			// v_pickle.md3 / v_greenjar.md3 / v_dookie.md3 are 1-frame cards: their faces come from .skin shaders
 		if (self.weaponmodel != FunGun_VModel (g))		// the hand goes when the last charge is thrown, and comes back with the next
 			self.weaponmodel = FunGun_VModel (g);
 	}
@@ -803,6 +821,7 @@ void() FunGun_ViewFrame =
 // PlayerDie: the frame hooks don't run once you are dead, so anything still playing or set stops here
 void() FunGun_PlayerDie =
 {
+	DK_ResetPlayer (self);
 	if (self.wc_charging)
 	{
 		self.wc_charging = 0;

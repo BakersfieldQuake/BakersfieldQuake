@@ -49,15 +49,16 @@ exec personal_post.cfg
 
 // default keys: ONCE, for a new player (bm_defver is saved as 1 in their config.cfg, so this never runs again and
 // their own binds / unbinds are never touched). To ship new default keys later: new file, bm_up_1 -> exec it, bump the number.
-alias bm_up_0 "exec bm_binds.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_1 "exec bm_up_1.cfg; exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_2 "exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_3 "exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_4 "exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_5 "exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_6 "exec bm_up_6.cfg; exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_7 "exec bm_up_7.cfg; seta bm_defver 8"
-alias bm_up_8 ""
+alias bm_up_0 "exec bm_binds.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_1 "exec bm_up_1.cfg; exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_2 "exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_3 "exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_4 "exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_5 "exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_6 "exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_7 "exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_8 "exec bm_up_8.cfg; seta bm_defver 9"
+alias bm_up_9 ""
 bm_up_$bm_defver
 
 // Build no unused unvised BSP portals, or spam debug prints unless overridden on command line

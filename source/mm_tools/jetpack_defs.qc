@@ -52,12 +52,12 @@ float	JP_LOWGRAV	= 0.000001;	// DarkPlaces reads gravity 0 as "normal", so hover
 .float	jp_st_max;		// player: a full tank in tenths of a second (stat 67)
 
 // the pack on your back (the model's +X is forward: the harness side faces your chest, the tanks face aft; 1 unit of the model = JP_WORN_SCALE)
-float	JP_WORN_SCALE	= 1.4;
-vector	JP_WORN_OFS		= '-20 0 6';
+float	JP_WORN_SCALE	= 0.7;
+vector	JP_WORN_OFS		= '-15 0 6';
 // where the fire comes out, relative to the player's origin (the nozzle exits at model x -3, y +-6.5, z -9)
-float	JP_NOZZLE_X		= -24;
-float	JP_NOZZLE_Y		= 9;
-float	JP_NOZZLE_Z		= -7;
+float	JP_NOZZLE_X		= -17;
+float	JP_NOZZLE_Y		= 4.5;
+float	JP_NOZZLE_Z		= 0;
 
 float	jp_fx_fire, jp_fx_smoke, jp_fx_dust, jp_fx_burst, jp_fx_blaze, jp_fx_glow;		// particleeffectnum of the effectinfo.txt effects
 

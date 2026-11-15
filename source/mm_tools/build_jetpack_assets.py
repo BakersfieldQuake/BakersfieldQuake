@@ -98,11 +98,10 @@ class Mesh:
         return dict(name=name, shader=shader, tris=self.t, st=self.st, frames=[(self.v, nn)])
 
 
-# ---- the engine loop (swoosh.wav): soft filtered noise made circular (filter run over two copies, keep the second). Kept smooth on purpose:
-# the first version (bright hiss, a 90 Hz hum, a 2 Hz wobble, a 0.5 s restart) was "way too annoying"; the next one, played at a tenth of
-# the volume, was too faint ("you should hear a jetpack sound as you float around")
+# ---- the engine loop (swoosh.wav): warm, smooth anti-grav / turbine hum (zero harsh 1.2-3 kHz hiss).
+# All harmonic partials are exact integer cycles in 2.0 s so the loop is 100% phase-locked and click-free.
 RATE = 22050
-N = RATE * 2                               # 2 s, so it restarts rarely (the 0.5 s loop ticked)
+N = RATE * 2                               # 2 s seamless loop
 rnd = random.Random(5)
 noise = [rnd.uniform(-1, 1) for _ in range(N)]
 
@@ -116,24 +115,30 @@ def lowpass_circ(s, cut):
     return out[len(s):]
 
 
-# a jet engine bed: a soft roar (noise below 700 Hz), a little airy hiss (the band 1.2-3 kHz), a low rumble, and a slow 0.5 Hz breath
-roar = lowpass_circ(noise, 700)
-air = [a - b for a, b in zip(lowpass_circ(noise, 3000), lowpass_circ(noise, 1200))]
+# Deeply low-passed (< 340 Hz) soft turbine cushion + warm audible harmonic hum (110 / 165 / 220 / 275 / 330 Hz)
+# Mid-low harmonics ensure it's clearly audible on phone/laptop speakers too, with zero harsh >500 Hz hiss.
+cushion = lowpass_circ(lowpass_circ(noise, 340), 340)
 sig = []
 for i in range(N):
     t = i / RATE
-    rumble = math.sin(2 * math.pi * 56 * t) * 0.5 + math.sin(2 * math.pi * 84 * t + 1) * 0.3     # whole cycles in 2 s, so it loops
-    lfo = 1 + 0.05 * math.sin(2 * math.pi * 0.5 * t)
-    sig.append((roar[i] * 3.0 + air[i] * 2.2 + rumble) * lfo)
+    hum = (
+        0.55 * math.sin(2 * math.pi * 110.0 * t)
+        + 0.70 * math.sin(2 * math.pi * 165.0 * t + 0.3)
+        + 1.00 * math.sin(2 * math.pi * 220.0 * t + 0.7)
+        + 0.45 * math.sin(2 * math.pi * 275.0 * t + 1.1)
+        + 0.25 * math.sin(2 * math.pi * 330.0 * t + 1.5)
+    )
+    lfo = 1.0 + 0.05 * math.sin(2 * math.pi * 0.5 * t)
+    sig.append((hum + cushion[i] * 0.40) * lfo)
 peak = max(abs(x) for x in sig) or 1.0
-a = array.array("h", [int(x / peak * 22000) for x in sig])
+a = array.array("h", [int(x / peak * 24000) for x in sig])
 w = wave.open(os.path.join(SND, "swoosh.wav"), "wb")
 w.setnchannels(1)
 w.setsampwidth(2)
 w.setframerate(RATE)
 w.writeframes(a.tobytes())
 w.close()
-print("wrote sound/jetpack/swoosh.wav")
+print("wrote sound/jetpack/swoosh.wav (warm hum)")
 
 # ---- "I'm floating" (sound/funny/imfloating.wav, the user's pick over the celeb pack's "Hmm, they seem to be floating.").
 # 2026-11-02: "wayyyy quieter and more smooth". The old copy was +21 dB through a hard tanh limiter (harsh, -8 dBFS RMS) played on two

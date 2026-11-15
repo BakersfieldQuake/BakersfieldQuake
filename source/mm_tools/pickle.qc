@@ -562,6 +562,7 @@ void(entity vm, float is_quad) Pickle_ViewFrame =
 	local vector vxy;
 
 	GreenJar_ViewFrame (vm, is_quad);
+	Dookie_ViewFrame (vm, is_quad);
 
 	p = vm.owner;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_PICKLE)

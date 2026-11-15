@@ -13,7 +13,8 @@ recharges by itself. Combat+ only (COMBATPLUS).
                                grenade. When someone comes close it goes erect, twice the height of a man, waves
                                about like a roadside inflatable, shouts "pickle surprise" and blows up green,
                                throwing a shower of pickles that each do a little damage (pickle.qc)
-  5 (empty)        impulse 65  was the Mystery Box, removed 2026-11-13: FunGun_Available says no, so it cannot be picked
+  5 Dookie Bazooka impulse 65  (key U) MK-IV Omega BFG-9000: hold fire to wind up tabla reactor, release to blast
+                               a screaming hand-waving fat guy with orbiting flies & Bhangra music (dookie.qc)
   6 Wheelman Cannon impulse 66 (key G) hold fire to charge, let go (or full charge) and a screaming Wheelman blasts off
                                and crashes in a big explosion with flying wheels, bars and gibs (wcannon.qc)
   7 M4A1           impulse 67  (keys C / 0) stand-alone CS 1.6 automatic rifle (m4.qc)
@@ -36,7 +37,7 @@ float	FG_DOB		= 1;
 float	FG_PONG		= 2;
 float	FG_PICKLE	= 3;
 float	FG_NETSEND	= 4;
-float	FG_MBOX		= 5;
+float	FG_DOOKIE	= 5;
 float	FG_WCANNON	= 6;
 float	FG_M4		= 7;		// CS 1.6 M4A1 (m4.qc)
 float	FG_TOMMY	= 8;		// DoD 1.3 M1A1 Thompson SMG (tommy.qc)
@@ -118,7 +119,7 @@ float	BN_ZOOM_START	= 5;
 float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 20;
 float	FG_PONG_MAX		= 2;	float	FG_PONG_REGEN	= 10;	// two Jars o' Green Guys; 10 s per jar recharge (greenjar.qc)
 float	FG_PICKLE_MAX	= 2;	float	FG_PICKLE_REGEN	= 5;
-float	FG_MBOX_MAX		= 2;	float	FG_MBOX_REGEN	= 12;	// two boxes; 12 s to conjure the next (mbox_defs.qc)
+float	FG_DOOKIE_MAX	= 2;	float	FG_DOOKIE_REGEN	= 10;	// two canisters; 10 s to refill the next (dookie.qc)
 float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 18;	// like a BFG: one Wheelman, 18 s to reload the next (wcannon_defs.qc)
 float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
 float	FG_TOMMY_MAX	= 30;	float	FG_TOMMY_REGEN	= 0.2;	// Thompson 30-round stick mag (tommy_defs.qc)

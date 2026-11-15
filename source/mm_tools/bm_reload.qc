@@ -55,7 +55,7 @@ float(float s) BM_MagSize =
 	if (s == BM_FG2)	return FunGun_Max (FG_PONG);
 	if (s == BM_FG3)	return FunGun_Max (FG_PICKLE);
 	if (s == BM_FG4)	return FunGun_Max (FG_NETSEND);
-	if (s == BM_FG5)	return FunGun_Max (FG_MBOX);
+	if (s == BM_FG5)	return FunGun_Max (FG_DOOKIE);
 	if (s == BM_FG6)	return FunGun_Max (FG_WCANNON);
 	if (s == BM_FG7)	return FunGun_Max (FG_M4);
 	if (s == BM_FG8)	return FunGun_Max (FG_TOMMY);
@@ -81,6 +81,7 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_FG2)	t = FG_PONG_REGEN;	// Jar o' Green Guys: one jar
 	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)
 	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
+	else if (s == BM_FG5)	t = FG_DOOKIE_REGEN;		// Dookie Bazooka: 10 s per canister
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
 	else if (s == BM_FG8)	t = TOM_RELOAD_TIME;	// the Thompson: the whole DoD reload animation
 	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation
@@ -138,7 +139,7 @@ float(entity p) BM_SlotOf =
 			return BM_FG2;
 		if (p.fg_sel == FG_NETSEND)
 			return BM_FG4;
-		if (p.fg_sel == FG_MBOX)
+		if (p.fg_sel == FG_DOOKIE)
 			return BM_FG5;
 		if (p.fg_sel == FG_WCANNON)
 			return BM_FG6;
@@ -589,6 +590,8 @@ void() BM_Frame =
 					self.gj_reload_t = time;		// fresh Jar o' Green Guys whips up from the belt
 				if (s == BM_FG3)
 					self.pk_reload_t = time;		// fresh Pickle Surprise whips up into the hand
+				if (s == BM_FG5)
+					self.dk_reload_t = time;		// fresh Dookie Bazooka canister raises up
 			}
 			else if (self.button0 && mag >= BM_PerShot (s) && (self.bm_rl_quiet || time > self.bm_rl_start + 0.15) && !BM_IsFirearmSlot (s))
 			{
@@ -603,6 +606,10 @@ void() BM_Frame =
 		else if (s == BM_FG3 && (self.pk_throw_at > 0 || (self.pk_threw_t > 0 && time < self.pk_threw_t + PK_FOLLOW_TIME)))
 		{
 			// let the Pickle Surprise throw & open-gauntlet follow-through finish before starting reload
+		}
+		else if (s == BM_FG5 && (self.dk_charging > 0 || (self.dk_fire_t > 0 && time < self.dk_fire_t + DK_FOLLOW_TIME)))
+		{
+			// let the Dookie Bazooka windup & blast recoil finish before starting reload
 		}
 		else if (s == BM_FG6 && self.fg_fire_t > 0 && time < self.fg_fire_t + WC_COOLDOWN)
 		{

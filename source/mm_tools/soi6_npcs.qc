@@ -7,7 +7,7 @@ SOI 6 ENTERTAINERS (maps/soi6.bsp)
 scream; Atlas B: falling death, 2D palette-matched gib burst + 3D gibs).
 
 Scale & Crowd Architecture:
-  - Spawns 12-15 girls per bar across ~65 bars on both sides of Soi 6 (~930+ NPCs, >20x density)
+  - Spawns 9-11 girls per bar across 69 bars on both sides of Soi 6 (~728 NPCs, 25% lighter than original 975)
   - Distributes bar crowds naturally from outer curb apron -> under awning -> inside bar floor
   - Performance-tuned for high density:
       * Caches living player entities once per frame in Soi6_Tick (zero per-NPC find() scans)
@@ -1385,77 +1385,77 @@ void() Soi6_PopulateStreet =
 	soi6_bar_count = 0;
 
 	// --- NORTH SIDE BARS (+1, Y = +130..+300u) â€” 39 bars x 13-15 girls ---
-	Soi6_SpawnBar (8.0,   18.0,  1, 14, "Tanyada");
-	Soi6_SpawnBar (18.0,  24.0,  1, 12, "Soi 6 Mini Bar");
-	Soi6_SpawnBar (24.0,  28.4,  1, 13, "N03 Corner");
-	Soi6_SpawnBar (28.4,  32.8,  1, 14, "Red Point");
-	Soi6_SpawnBar (32.8,  37.2,  1, 13, "Maggie's");
-	Soi6_SpawnBar (37.2,  41.6,  1, 14, "Secret Bar");
-	Soi6_SpawnBar (41.6,  46.0,  1, 13, "Bamboo Bar");
-	Soi6_SpawnBar (46.0,  50.0,  1, 13, "Boofie's");
-	Soi6_SpawnBar (50.0,  54.0,  1, 13, "Soi 6 Salon");
-	Soi6_SpawnBar (54.0,  60.0,  1, 15, "Toy Box");
-	Soi6_SpawnBar (60.0,  66.0,  1, 14, "Sweet Bar");
-	Soi6_SpawnBar (66.0,  71.0,  1, 14, "Repent");
-	Soi6_SpawnBar (71.0,  76.0,  1, 14, "Smoke Bar");
-	Soi6_SpawnBar (76.0,  81.0,  1, 15, "Wicked");
-	Soi6_SpawnBar (81.0,  86.0,  1, 14, "Flirt");
-	Soi6_SpawnBar (86.0,  96.0,  1, 15, "The Pussy Club");
-	Soi6_SpawnBar (96.0,  102.0, 1, 15, "Horny Bar");
-	Soi6_SpawnBar (102.0, 108.0, 1, 14, "Lollipop");
-	Soi6_SpawnBar (108.0, 114.0, 1, 14, "Thai Baht Bar");
-	Soi6_SpawnBar (114.0, 120.0, 1, 14, "Liquid");
-	Soi6_SpawnBar (120.0, 126.0, 1, 14, "Chili Bar");
-	Soi6_SpawnBar (126.0, 132.0, 1, 14, "Kawaii Bar");
-	Soi6_SpawnBar (132.0, 137.0, 1, 14, "Butterfly");
-	Soi6_SpawnBar (137.0, 142.5, 1, 14, "Lust");
-	Soi6_SpawnBar (142.5, 148.0, 1, 15, "Ruby Club");
-	Soi6_SpawnBar (148.0, 164.0, 1, 15, "Hero Bar");
-	Soi6_SpawnBar (164.0, 170.0, 1, 14, "Desire");
-	Soi6_SpawnBar (170.0, 176.0, 1, 15, "Candy Shop");
-	Soi6_SpawnBar (176.0, 180.0, 1, 13, "Sugar Club");
-	Soi6_SpawnBar (180.0, 186.0, 1, 14, "Poison");
-	Soi6_SpawnBar (186.0, 192.0, 1, 15, "Playgirls");
-	Soi6_SpawnBar (192.0, 198.0, 1, 14, "Foxy");
-	Soi6_SpawnBar (198.0, 204.0, 1, 14, "Roxy");
-	Soi6_SpawnBar (204.0, 212.0, 1, 15, "Sexy Bar");
-	Soi6_SpawnBar (212.0, 220.0, 1, 15, "SoHo");
-	Soi6_SpawnBar (248.0, 254.0, 1, 13, "Perry's");
-	Soi6_SpawnBar (254.0, 261.0, 1, 14, "Love Miss");
-	Soi6_SpawnBar (261.0, 268.0, 1, 14, "Mods");
-	Soi6_SpawnBar (268.0, 276.0, 1, 15, "Three Angels");
-	Soi6_SpawnBar (276.0, 290.0, 1, 14, "Night Lounge");
-	Soi6_SpawnBar (290.0, 304.0, 1, 15, "Nikki Bar");
+	Soi6_SpawnBar (8.0,   18.0,  1, 11, "Tanyada");
+	Soi6_SpawnBar (18.0,  24.0,  1, 9,  "Soi 6 Mini Bar");
+	Soi6_SpawnBar (24.0,  28.4,  1, 10, "N03 Corner");
+	Soi6_SpawnBar (28.4,  32.8,  1, 10, "Red Point");
+	Soi6_SpawnBar (32.8,  37.2,  1, 10, "Maggie's");
+	Soi6_SpawnBar (37.2,  41.6,  1, 10, "Secret Bar");
+	Soi6_SpawnBar (41.6,  46.0,  1, 10, "Bamboo Bar");
+	Soi6_SpawnBar (46.0,  50.0,  1, 10, "Boofie's");
+	Soi6_SpawnBar (50.0,  54.0,  1, 10, "Soi 6 Salon");
+	Soi6_SpawnBar (54.0,  60.0,  1, 11, "Toy Box");
+	Soi6_SpawnBar (60.0,  66.0,  1, 10, "Sweet Bar");
+	Soi6_SpawnBar (66.0,  71.0,  1, 10, "Repent");
+	Soi6_SpawnBar (71.0,  76.0,  1, 10, "Smoke Bar");
+	Soi6_SpawnBar (76.0,  81.0,  1, 11, "Wicked");
+	Soi6_SpawnBar (81.0,  86.0,  1, 10, "Flirt");
+	Soi6_SpawnBar (86.0,  96.0,  1, 11, "The Pussy Club");
+	Soi6_SpawnBar (96.0,  102.0, 1, 11, "Horny Bar");
+	Soi6_SpawnBar (102.0, 108.0, 1, 10, "Lollipop");
+	Soi6_SpawnBar (108.0, 114.0, 1, 10, "Thai Baht Bar");
+	Soi6_SpawnBar (114.0, 120.0, 1, 10, "Liquid");
+	Soi6_SpawnBar (120.0, 126.0, 1, 10, "Chili Bar");
+	Soi6_SpawnBar (126.0, 132.0, 1, 10, "Kawaii Bar");
+	Soi6_SpawnBar (132.0, 137.0, 1, 10, "Butterfly");
+	Soi6_SpawnBar (137.0, 142.5, 1, 10, "Lust");
+	Soi6_SpawnBar (142.5, 148.0, 1, 11, "Ruby Club");
+	Soi6_SpawnBar (148.0, 164.0, 1, 11, "Hero Bar");
+	Soi6_SpawnBar (164.0, 170.0, 1, 10, "Desire");
+	Soi6_SpawnBar (170.0, 176.0, 1, 11, "Candy Shop");
+	Soi6_SpawnBar (176.0, 180.0, 1, 10, "Sugar Club");
+	Soi6_SpawnBar (180.0, 186.0, 1, 10, "Poison");
+	Soi6_SpawnBar (186.0, 192.0, 1, 11, "Playgirls");
+	Soi6_SpawnBar (192.0, 198.0, 1, 10, "Foxy");
+	Soi6_SpawnBar (198.0, 204.0, 1, 10, "Roxy");
+	Soi6_SpawnBar (204.0, 212.0, 1, 11, "Sexy Bar");
+	Soi6_SpawnBar (212.0, 220.0, 1, 11, "SoHo");
+	Soi6_SpawnBar (248.0, 254.0, 1, 10, "Perry's");
+	Soi6_SpawnBar (254.0, 261.0, 1, 11, "Love Miss");
+	Soi6_SpawnBar (261.0, 268.0, 1, 11, "Mods");
+	Soi6_SpawnBar (268.0, 276.0, 1, 11, "Three Angels");
+	Soi6_SpawnBar (276.0, 290.0, 1, 11, "Night Lounge");
+	Soi6_SpawnBar (290.0, 304.0, 1, 11, "Nikki Bar");
 
 	// --- SOUTH SIDE BARS (-1, Y = -130..-300u) â€” 29 bars x 13-15 girls ---
-	Soi6_SpawnBar (18.0,  28.0,  -1, 14, "Soi 6 Lounge");
-	Soi6_SpawnBar (28.0,  38.0,  -1, 14, "Coconut Bar");
-	Soi6_SpawnBar (38.0,  46.0,  -1, 13, "Bangkok Club");
-	Soi6_SpawnBar (46.0,  58.0,  -1, 15, "Sandcastle");
-	Soi6_SpawnBar (60.0,  68.0,  -1, 13, "Weed Lounge");
-	Soi6_SpawnBar (68.0,  78.0,  -1, 15, "Panda Bar");
-	Soi6_SpawnBar (78.0,  84.0,  -1, 14, "Helicopter");
-	Soi6_SpawnBar (84.0,  94.0,  -1, 15, "Benders");
-	Soi6_SpawnBar (94.0,  108.0, -1, 15, "Slotz Bar");
-	Soi6_SpawnBar (118.0, 126.0, -1, 14, "Project Life");
-	Soi6_SpawnBar (126.0, 133.8, -1, 14, "Spider Girl");
-	Soi6_SpawnBar (136.0, 140.0, -1, 13, "Bandits");
-	Soi6_SpawnBar (140.0, 156.0, -1, 15, "Queen Victoria");
-	Soi6_SpawnBar (156.0, 160.0, -1, 13, "6/1 Lounge");
-	Soi6_SpawnBar (160.0, 172.0, -1, 15, "VIP Bar");
-	Soi6_SpawnBar (172.0, 182.0, -1, 15, "Exotica");
-	Soi6_SpawnBar (182.0, 190.0, -1, 14, "Smoke & Mirrors");
-	Soi6_SpawnBar (190.0, 204.0, -1, 15, "Amnesia");
-	Soi6_SpawnBar (204.0, 212.0, -1, 14, "Green Bay");
-	Soi6_SpawnBar (212.0, 220.0, -1, 14, "My Friend You");
-	Soi6_SpawnBar (220.0, 238.0, -1, 15, "Hollywood");
-	Soi6_SpawnBar (240.0, 250.0, -1, 14, "Direction Bar");
-	Soi6_SpawnBar (250.0, 260.0, -1, 14, "Lucky Six");
-	Soi6_SpawnBar (260.0, 274.0, -1, 14, "Diamond Bar");
-	Soi6_SpawnBar (274.0, 286.0, -1, 14, "Passion Bar");
-	Soi6_SpawnBar (286.0, 298.0, -1, 14, "Moonlight");
-	Soi6_SpawnBar (298.0, 310.0, -1, 14, "Flirt South");
-	Soi6_SpawnBar (310.0, 322.0, -1, 15, "Fire Bar");
+	Soi6_SpawnBar (18.0,  28.0,  -1, 11, "Soi 6 Lounge");
+	Soi6_SpawnBar (28.0,  38.0,  -1, 11, "Coconut Bar");
+	Soi6_SpawnBar (38.0,  46.0,  -1, 10, "Bangkok Club");
+	Soi6_SpawnBar (46.0,  58.0,  -1, 11, "Sandcastle");
+	Soi6_SpawnBar (60.0,  68.0,  -1, 10, "Weed Lounge");
+	Soi6_SpawnBar (68.0,  78.0,  -1, 11, "Panda Bar");
+	Soi6_SpawnBar (78.0,  84.0,  -1, 10, "Helicopter");
+	Soi6_SpawnBar (84.0,  94.0,  -1, 11, "Benders");
+	Soi6_SpawnBar (94.0,  108.0, -1, 11, "Slotz Bar");
+	Soi6_SpawnBar (118.0, 126.0, -1, 11, "Project Life");
+	Soi6_SpawnBar (126.0, 133.8, -1, 11, "Spider Girl");
+	Soi6_SpawnBar (136.0, 140.0, -1, 10, "Bandits");
+	Soi6_SpawnBar (140.0, 156.0, -1, 11, "Queen Victoria");
+	Soi6_SpawnBar (156.0, 160.0, -1, 10, "6/1 Lounge");
+	Soi6_SpawnBar (160.0, 172.0, -1, 11, "VIP Bar");
+	Soi6_SpawnBar (172.0, 182.0, -1, 11, "Exotica");
+	Soi6_SpawnBar (182.0, 190.0, -1, 11, "Smoke & Mirrors");
+	Soi6_SpawnBar (190.0, 204.0, -1, 11, "Amnesia");
+	Soi6_SpawnBar (204.0, 212.0, -1, 11, "Green Bay");
+	Soi6_SpawnBar (212.0, 220.0, -1, 11, "My Friend You");
+	Soi6_SpawnBar (220.0, 238.0, -1, 11, "Hollywood");
+	Soi6_SpawnBar (240.0, 250.0, -1, 11, "Direction Bar");
+	Soi6_SpawnBar (250.0, 260.0, -1, 11, "Lucky Six");
+	Soi6_SpawnBar (260.0, 274.0, -1, 11, "Diamond Bar");
+	Soi6_SpawnBar (274.0, 286.0, -1, 11, "Passion Bar");
+	Soi6_SpawnBar (286.0, 298.0, -1, 11, "Moonlight");
+	Soi6_SpawnBar (298.0, 310.0, -1, 11, "Flirt South");
+	Soi6_SpawnBar (310.0, 322.0, -1, 11, "Fire Bar");
 
 	self = saved_self;
 	print ("Soi6_PopulateStreet: spawned ", ftos (soi6_total_count), " entertainers across Soi 6 bars.\n");
