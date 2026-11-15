@@ -36,6 +36,17 @@ void() RobeGuy_Think;
 void() RobeGuy_Die;
 void(entity attacker, float take) RobeGuy_Pain;
 
+float NPC_SF_QUIET = 2;
+
+float(entity e) NPC_IsVoiceMuted =
+{
+	if (e.spawnflags & NPC_SF_QUIET)
+		return TRUE;
+	if (world.model == "maps/soicowboy_bkk.bsp")
+		return TRUE;
+	return FALSE;
+};
+
 // ================================================================================================
 // 1. GREEN-SUIT WHEELMAN MONSTER (progs/greensuit_wheelman.spr32 — 248 frames, 8 compass angles)
 //   0   + d*4 + k   8-dir Seated Low-Rider Cruise      (k = 0..3, 32f: 0..31)
@@ -827,8 +838,11 @@ void() RobeGuy_Die =
 	{
 		self.npc_dead = 2;
 		self.effects = EF_DIMLIGHT;
-		sound(self, CHAN_VOICE, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
-		sound(self, CHAN_AUTO, "player/udeath.wav", 0.85, ATTN_NORM);
+		if (!NPC_IsVoiceMuted(self))
+		{
+			sound(self, CHAN_VOICE, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
+			sound(self, CHAN_AUTO, "player/udeath.wav", 0.85, ATTN_NORM);
+		}
 		ThrowGib("progs/gib1.mdl", -70);
 		ThrowGib("progs/gib2.mdl", -80);
 		ThrowGib("progs/gib3.mdl", -90);
@@ -840,7 +854,8 @@ void() RobeGuy_Die =
 	self.npc_dead = 1;
 	self.effects = 0;
 	self.alpha = 1;
-	sound(self, CHAN_VOICE, "robeguy/berserker_yell.wav", 1, ATTN_NORM);
+	if (!NPC_IsVoiceMuted(self))
+		sound(self, CHAN_VOICE, "robeguy/berserker_yell.wav", 1, ATTN_NORM);
 	self.think = RobeGuy_DeathStep;
 	self.nextthink = time + 0.075;
 };
@@ -852,7 +867,7 @@ void(entity attacker, float take) RobeGuy_Pain =
 	self.effects = 0;
 	self.npc_state = 1;		// Barefoot panic sprint!
 	self.npc_phase_end = time + 2.0;
-	if (time > self.npc_next_voice)
+	if (!NPC_IsVoiceMuted(self) && time > self.npc_next_voice)
 	{
 		sound(self, CHAN_VOICE, "robeguy/berserker_yell.wav", 0.9, ATTN_NORM);
 		self.npc_next_voice = time + 1.6;
@@ -879,20 +894,23 @@ void() RobeGuy_Think =
 			{
 				self.npc_state = 2;		// Flamingo Whisperer Idle
 				self.npc_phase_end = time + 1.6;
-				sound(self, CHAN_VOICE, "robeguy/idle_honk_growl.wav", 0.55, 1.8);
+				if (!NPC_IsVoiceMuted(self))
+					sound(self, CHAN_VOICE, "robeguy/idle_honk_growl.wav", 0.55, 1.8);
 			}
 			else if (r < 0.68)
 			{
 				self.npc_state = 3;		// Comedic Heart-Boxers Chest-Hair Laser pose (0 dmg!)
 				self.effects = 128;		// EF_RED warm magenta-red glow
 				self.npc_phase_end = time + 1.05;
-				sound(self, CHAN_VOICE, "robeguy/chest_laser_flash.wav", 0.55, 1.8);
+				if (!NPC_IsVoiceMuted(self))
+					sound(self, CHAN_VOICE, "robeguy/chest_laser_flash.wav", 0.55, 1.8);
 			}
 			else
 			{
 				self.npc_state = 4;		// Dual Lawn-Flamingo & Coffee wave (0 dmg!)
 				self.npc_phase_end = time + 1.1;
-				sound(self, CHAN_VOICE, "robeguy/flamingo_whack.wav", 0.55, 1.8);
+				if (!NPC_IsVoiceMuted(self))
+					sound(self, CHAN_VOICE, "robeguy/flamingo_whack.wav", 0.55, 1.8);
 			}
 			self.npc_next_stunt = time + 5.5 + random() * 3.5;
 		}
@@ -987,5 +1005,6 @@ void() RobeGuy_Summon =
 	self = e;
 	npc_robeguy();
 	self = oself;
-	sound(e, CHAN_VOICE, "robeguy/idle_honk_growl.wav", 1, ATTN_NORM);
+	if (!NPC_IsVoiceMuted(e))
+		sound(e, CHAN_VOICE, "robeguy/idle_honk_growl.wav", 1, ATTN_NORM);
 };

@@ -195,6 +195,7 @@ float(entity e, vector org) Veh_FreeSpot =
 
 float(float kind) Veh_TopSpeed =
 {
+	if (kind == VEH_TUKTUK)    return 855;
 	if (kind == VEH_GTCAR)     return 830;
 	if (kind == VEH_COUPE)     return 780;
 	if (kind == VEH_SEDAN)     return 720;
@@ -208,6 +209,7 @@ float(float kind) Veh_TopSpeed =
 
 float(float kind) Veh_BaseAccel =
 {
+	if (kind == VEH_TUKTUK)    return 365;
 	if (kind == VEH_GTCAR)     return 320;
 	if (kind == VEH_GOLFCART)  return 290;
 	if (kind == VEH_COUPE)     return 285;
@@ -223,6 +225,7 @@ float(float kind) Veh_BaseGrip =
 {
 	if (kind == VEH_GOLFCART)  return 820;
 	if (kind == VEH_COUPE)     return 810;
+	if (kind == VEH_TUKTUK)    return 790;
 	if (kind == VEH_SEDAN)     return 760;
 	if (kind == VEH_GTCAR)     return 740;
 	if (kind == VEH_TRUCK)     return 730;
@@ -241,6 +244,7 @@ float(float kind) Veh_Wheelbase =
 	if (kind == VEH_SEDAN)     return 116;
 	if (kind == VEH_GTCAR)     return 114;
 	if (kind == VEH_COUPE)     return 108;
+	if (kind == VEH_TUKTUK)    return 77;
 	if (kind == VEH_GOLFCART)  return 72;
 	return VD_WHEELBASE;
 };
@@ -251,7 +255,7 @@ float(float kind) Veh_MaxPass =
 		return 5;
 	if (kind == VEH_TRUCK || kind == VEH_HDTRUCK)
 		return 4;
-	if (kind == VEH_SEDAN || kind == VEH_GOLFCART)
+	if (kind == VEH_SEDAN || kind == VEH_GOLFCART || kind == VEH_TUKTUK)
 		return 3;
 	return 2;
 };
@@ -480,7 +484,7 @@ void(entity v, entity keep) Veh_EjectOthers =
 	while (e != world)
 	{
 		nxt = e.chain;
-		if (e != keep && e != v && e.health > 0 && (e.classname == "player" || (e.flags & FL_MONSTER)))
+		if (e != keep && e != v && e.health > 0 && e.veh_ride == world && e.veh_van == world && (e.classname == "player" || (e.flags & FL_MONSTER)))	// seated riders / drivers stay put: the friends just auto-seated from the cargo bay were thrown out and told they fell
 		{
 			rel = e.origin - v.origin;
 			lx = rel * fwd;
@@ -671,6 +675,8 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	{
 		if (v.veh_kind == VEH_VAN)
 			pos = v.origin + fwd * VD_EYE_X + lft * VD_EYE_Y + '0 0 1' * VD_EYE_Z;
+		else if (v.veh_kind == VEH_TUKTUK)
+			pos = v.origin + fwd * 14 + '0 0 52';
 		else
 			pos = v.origin + fwd * (hl * 0.28) + '0 0 1' * (ht + 6);
 		lead = 0 - v.veh_steer * 9 * bound (0, spd / 220, 1);		// steering right (+) looks right (yaw falls)
@@ -721,7 +727,10 @@ void(entity v, float thr) Veh_EngineSound =
 	if (time < v.veh_shift_t)
 		pitch = pitch * 0.86;
 	vol = 0.30 + 0.20 * thr;
-	sound7 (v, VD_SOUND_CH, "vehicles/engine_grain.wav", vol, ATTN_NORM, pitch);
+	if (v.veh_kind == VEH_TUKTUK)
+		sound7 (v, VD_SOUND_CH, "vehicles/engine_grain_tuktuk.wav", vol, ATTN_NORM, pitch * 1.12);
+	else
+		sound7 (v, VD_SOUND_CH, "vehicles/engine_grain.wav", vol, ATTN_NORM, pitch);
 	if (v.veh_eng_t < time - 0.2)
 		v.veh_eng_t = time;
 	v.veh_eng_t = v.veh_eng_t + 16 / pitch;			// half a grain: 0.16 s at pitch 100
@@ -1429,7 +1438,7 @@ entity(entity p) Veh_SeatOf =
 	e = findradius (p.origin, 280);
 	while (e != world)
 	{
-		if (e.veh_kind >= 1 && e.veh_kind <= 8 && e.veh_state != VEH_STATE_WRECK)
+		if (e.veh_kind >= 1 && e.veh_kind <= 9 && e.veh_state != VEH_STATE_WRECK)
 		{
 			rel = p.origin - e.origin;
 			lx = rel * Veh_Fwd (e.angles_y);
@@ -1648,7 +1657,10 @@ float() Veh_DriveFrame =
 	if (self.button0 && time >= v.veh_horn_t && started)
 	{
 		v.veh_horn_t = time + 1;
-		sound (v, CHAN_WEAPON, "vehicles/horn.wav", 1, ATTN_NORM);
+		if (v.veh_kind == VEH_TUKTUK)
+			sound (v, CHAN_WEAPON, "vehicles/horn_tuktuk.wav", 1, ATTN_NORM);
+		else
+			sound (v, CHAN_WEAPON, "vehicles/horn.wav", 1, ATTN_NORM);
 	}
 
 	// the wheel eases toward the key: slow out from centre, quick to come back, quickest to counter-steer

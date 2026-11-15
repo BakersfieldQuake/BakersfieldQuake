@@ -744,7 +744,10 @@ float() FD_Frame =
 		}
 		else if (time > h.fd_arm + 3.5)
 		{
+			oldself = self;		// FD_Pop works on the head (as in the impulse 86 branch above): with self = the bot it set fd_boom on the bot and left the head out
+			self = h;
 			FD_Pop ();
+			self = oldself;
 			return FALSE;
 		}
 	}

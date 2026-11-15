@@ -15,7 +15,7 @@ import md3lib  # noqa: E402
 
 PROGS = os.path.normpath(os.path.join(HERE, "..", "..", "progs"))
 FT = 12.0
-LIFT = 1.55                              # the hooves stand on the boulder
+LIFT = 1.45                              # the hooves plant firmly on the boulder
 rnd = random.Random(5)
 
 
@@ -121,30 +121,31 @@ def horse():
     m.ellipsoid(sh((-1.3, 0, 4.6)), (0.5, 0, 0.86), (1.6, 1.15, 1.15))                  # hindquarters
     m.ellipsoid(sh((0.15, 0, 5.75)), (0.62, 0, 0.78), (2.6, 1.15, 1.2))                 # barrel
     m.ellipsoid(sh((1.5, 0, 6.8)), (0.6, 0, 0.8), (1.3, 1.0, 1.1))                      # chest
-    m.tube([sh(p) for p in ((1.6, 0, 7.0), (2.3, 0, 8.2), (3.1, 0, 9.2))], [0.85, 0.65, 0.5], sides=10)   # neck
-    m.ellipsoid(sh((3.95, 0, 9.5)), (0.85, 0, -0.5), (1.15, 0.38, 0.45))               # head
+    m.tube([sh(p) for p in ((1.5, 0, 6.8), (2.25, 0, 8.2), (3.0, 0, 9.35), (3.35, 0, 9.8))], [0.92, 0.72, 0.55, 0.44], sides=10)   # neck
+    m.ellipsoid(sh((3.42, 0, 9.68)), (0.7, 0, -0.4), (0.56, 0.42, 0.48))                 # jaw/cranium blend
+    m.ellipsoid(sh((3.88, 0, 9.42)), (0.76, 0, -0.65), (1.16, 0.40, 0.46))               # head
     for s in (-1, 1):
-        m.tube([sh((3.1, s * 0.2, 9.9)), sh((3.0, s * 0.22, 10.5))], [0.13, 0.05], sides=5)       # ears
+        m.tube([sh((3.26, s * 0.22, 9.88)), sh((3.12, s * 0.26, 10.58))], [0.13, 0.05], sides=5)       # ears
         # hind legs
-        m.tube([sh(p) for p in ((-1.2, s * 0.8, 4.4), (-1.9, s * 0.75, 3.3), (-2.5, s * 0.65, 1.8), (-1.8, s * 0.62, 0.4))], [0.7, 0.5, 0.28, 0.24])
-        m.ellipsoid(sh((-1.7, s * 0.62, 0.15)), (1, 0, 0), (0.5, 0.28, 0.18), n=8, m=5)
+        m.tube([sh(p) for p in ((-1.2, s * 0.8, 4.4), (-1.9, s * 0.75, 3.3), (-2.5, s * 0.65, 1.8), (-1.8, s * 0.62, 0.25))], [0.7, 0.5, 0.28, 0.24])
+        m.ellipsoid(sh((-1.65, s * 0.62, 0.14)), (1, 0, 0), (0.5, 0.28, 0.20), n=8, m=5)
         # forelegs, folded
-        m.tube([sh(p) for p in ((1.9, s * 0.75, 6.5), (2.8, s * 0.85, 5.6), (3.6, s * 0.8, 6.3), (3.8, s * 0.8, 5.35))], [0.5, 0.34, 0.28, 0.22])
-        m.ellipsoid(sh((3.85, s * 0.8, 5.2)), (1, 0, 0), (0.28, 0.22, 0.3), n=8, m=5)
+        m.tube([sh(p) for p in ((1.9, s * 0.75, 6.5), (2.8, s * 0.85, 5.6), (3.6, s * 0.8, 6.3), (3.82, s * 0.8, 5.25))], [0.5, 0.34, 0.28, 0.22])
+        m.ellipsoid(sh((3.86, s * 0.8, 5.15)), (1, 0, 0), (0.30, 0.24, 0.30), n=8, m=5)
         # rider's legs and boots
-        m.tube([sh(p) for p in ((-0.8, s * 0.5, 6.6), (0.2, s * 1.2, 6.0), (0.5, s * 1.45, 4.9))], [0.38, 0.3, 0.25], sides=7)
-        m.ellipsoid(sh((0.75, s * 1.45, 4.65)), (1, 0, 0), (0.45, 0.2, 0.18), n=8, m=5)
-    m.tube([sh(p) for p in ((-2.3, 0, 4.6), (-3.3, 0, 3.9), (-3.7, 0, 2.6), (-3.6, 0, 1.2))], [0.3, 0.4, 0.35, 0.15])   # tail
-    m.tube([sh(p) for p in ((1.9, 0.0, 9.9), (1.5, 0, 8.6), (1.1, 0, 7.5))], [0.22, 0.24, 0.2], sides=6)               # mane
+        m.tube([sh(p) for p in ((-0.8, s * 0.5, 6.6), (0.2, s * 1.2, 6.0), (0.5, s * 1.45, 4.75))], [0.38, 0.3, 0.24], sides=7)
+        m.ellipsoid(sh((0.72, s * 1.45, 4.65)), (1, 0, 0), (0.45, 0.2, 0.18), n=8, m=5)
+    m.tube([sh(p) for p in ((-2.2, 0, 4.6), (-3.3, 0, 3.9), (-3.7, 0, 2.6), (-3.6, 0, 1.2))], [0.3, 0.4, 0.35, 0.15])   # tail
+    m.tube([sh(p) for p in ((3.16, 0.0, 9.95), (2.6, 0, 9.15), (2.05, 0, 8.2), (1.6, 0, 7.35))], [0.20, 0.24, 0.24, 0.20], sides=6)  # mane hugging neck
     # --- the cowboy
-    m.tube([sh(p) for p in ((-0.8, 0, 6.5), (-0.6, 0, 7.6), (-0.45, 0, 8.45))], [0.6, 0.62, 0.55], sides=8)            # body
-    m.ellipsoid(sh((-0.3, 0, 8.95)), (1, 0, 0), (0.36, 0.36, 0.42), n=8, m=6)                                           # head
-    m.ellipsoid(sh((-0.3, 0, 9.5)), (1, 0, 0), (1.05, 1.05, 0.07), n=14, m=3)                                           # hat brim
-    m.ellipsoid(sh((-0.3, 0, 9.78)), (1, 0, 0), (0.5, 0.5, 0.4), n=10, m=5)                                             # crown
+    m.tube([sh(p) for p in ((-0.8, 0, 6.4), (-0.6, 0, 7.6), (-0.42, 0, 8.55), (-0.36, 0, 8.92))], [0.6, 0.62, 0.54, 0.26], sides=8)  # torso + collar
+    m.ellipsoid(sh((-0.34, 0, 9.08)), (1, 0, 0), (0.38, 0.36, 0.44), n=8, m=6)                                           # head
+    m.ellipsoid(sh((-0.34, 0, 9.42)), (1, 0, 0), (1.02, 1.02, 0.08), n=14, m=3)                                          # hat brim
+    m.ellipsoid(sh((-0.34, 0, 9.68)), (1, 0, 0), (0.50, 0.50, 0.40), n=10, m=5)                                          # crown
     m.tube([sh(p) for p in ((-0.45, 0.55, 8.2), (0.5, 0.8, 7.7), (1.4, 0.55, 7.4))], [0.28, 0.22, 0.18], sides=6)       # reining arm
     m.tube([sh(p) for p in ((-0.45, -0.55, 8.2), (-1.2, -0.9, 9.0), (-1.8, -1.2, 10.0))], [0.28, 0.22, 0.18], sides=6)  # raised arm
     m.tube([sh(p) for p in ((-1.8, -1.2, 10.0), (-2.6, -1.6, 10.4), (-3.4, -1.6, 9.6))], [0.07, 0.06, 0.05], sides=4)   # quirt
-    m.tube([sh(p) for p in ((1.4, 0.55, 7.4), (2.8, 0.3, 8.4), (4.3, 0.05, 8.9))], [0.04, 0.04, 0.04], sides=4)         # reins
+    m.tube([sh(p) for p in ((1.4, 0.55, 7.4), (2.75, 0.32, 8.3), (4.15, 0.0, 9.05))], [0.04, 0.04, 0.04], sides=4)         # reins
     return m
 
 
@@ -158,26 +159,36 @@ def rock():
 
 
 def finish(mesh, scale_uv):
-    st = [((p[0] + p[2] * 0.4) * scale_uv, (p[1] * 0.8 + p[2]) * scale_uv) for p in mesh.v]
+    # Clean box/triplanar-friendly UV without diagonal shear stripes
+    st = [((p[0] + p[1] * 0.5) * scale_uv, (p[2] - p[1] * 0.25) * scale_uv) for p in mesh.v]
     return dict(tris=[tuple(t) for t in mesh.t], st=st, verts=[mul(p, FT) for p in mesh.v], norms=mesh.n)
 
 
 def textures():
-    S = 128
-    br = Image.new("RGB", (S, S), (74, 52, 30))
-    d = ImageDraw.Draw(br)
-    for _ in range(420):                                                                 # dark bronze, a little verdigris in the hollows
-        x, y = rnd.randint(0, S), rnd.randint(0, S)
-        c = rnd.choice([(52, 86, 70), (110, 80, 44), (92, 64, 36), (58, 40, 24), (58, 40, 24), (92, 64, 36)])
-        d.ellipse([x, y, x + rnd.randint(2, 9), y + rnd.randint(4, 16)], fill=c)
-    br = br.filter(ImageFilter.GaussianBlur(1.1))
-    rk = Image.new("RGB", (S, S), (118, 108, 96))
+    import numpy as np
+    S = 256
+    rng = np.random.default_rng(5)
+    # Multi-scale smooth cast bronze patina (no loud spots, no teal/orange camouflage)
+    acc = np.zeros((S, S), dtype=np.float32)
+    for freq, amp in ((6, 0.50), (14, 0.30), (32, 0.20)):
+        g = Image.fromarray((rng.random((freq, freq)) * 255).astype(np.uint8), mode="L").resize((S, S), Image.Resampling.BICUBIC)
+        acc += (np.array(g, dtype=np.float32) / 255.0 - 0.5) * amp
+    grain = (rng.random((S, S), dtype=np.float32) - 0.5) * 0.08
+    t = acc + grain
+    br_arr = np.empty((S, S, 3), dtype=np.float32)
+    br_arr[..., 0] = 74.0 + t * 28.0
+    br_arr[..., 1] = 54.0 + t * 22.0
+    br_arr[..., 2] = 36.0 + t * 16.0
+    br = Image.fromarray(np.clip(br_arr, 24, 140).astype(np.uint8), mode="RGB").filter(ImageFilter.GaussianBlur(0.6))
+
+    rk = Image.new("RGB", (S, S), (124, 114, 100))
     d = ImageDraw.Draw(rk)
-    for _ in range(700):
-        x, y = rnd.randint(0, S), rnd.randint(0, S)
-        c = rnd.randint(-30, 26)
-        d.ellipse([x, y, x + rnd.randint(2, 12), y + rnd.randint(2, 8)], fill=(118 + c, 108 + c, 96 + c))
-    return br, rk.filter(ImageFilter.GaussianBlur(0.6))
+    for _ in range(1800):
+        x, y = rnd.randint(0, S - 1), rnd.randint(0, S - 1)
+        c = rnd.randint(-24, 22)
+        rw, rh = rnd.randint(3, 14), rnd.randint(2, 10)
+        d.ellipse([x, y, x + rw, y + rh], fill=(124 + c, 114 + c, 100 + c))
+    return br, rk.filter(ImageFilter.GaussianBlur(0.7))
 
 
 def preview(parts, path):
@@ -205,7 +216,7 @@ def preview(parts, path):
 
 def main():
     horse_m, rock_m = horse(), rock()
-    parts = [("bronze", finish(horse_m, 0.15)), ("rock", finish(rock_m, 0.15))]
+    parts = [("bronze", finish(horse_m, 0.35)), ("rock", finish(rock_m, 0.20))]
     surfaces = []
     for name, p in parts:
         surfaces.append(dict(name=name, shader="progs/gw_" + ("horse" if name == "bronze" else "rock"), tris=p["tris"], st=p["st"],

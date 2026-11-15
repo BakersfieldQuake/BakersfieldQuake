@@ -24,7 +24,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAMEDIRS = ("id1", "quake15", "BakersfieldQuake")
 # never sent to browsers: server-only or Windows-only files
-SKIP_NAMES = {"server.cfg", "warmup.cfg", "server_vps.cfg", "personal.cfg"}
+SKIP_NAMES = {"server.cfg", "warmup.cfg", "server_vps.cfg", "personal.cfg", "personal_post.cfg"}
 SKIP_EXT = {".exe", ".dll", ".log", ".bak", ".tmp", ".sav"}
 
 

@@ -100,8 +100,71 @@ entity	ia_m7;
 entity	ia_m8;
 entity	ia_m9;
 
+void() Intro_LsjPrecache =
+{
+	precache_model ("progs/greenguy_mini.spr32");
+	precache_model ("progs/pinklady.md3");
+	precache_model ("progs/megaman.md3");
+	precache_model ("progs/fr_mrdiy.spr32");
+	precache_model ("progs/fr_rob.spr32");
+	precache_model ("progs/fr_dennis.spr32");
+	precache_model ("progs/fr_paul.spr32");
+	precache_model ("progs/fr_quakeguy.spr32");
+	precache_model ("progs/fr_finger.spr32");
+	precache_model ("progs/pickle_throw.md3");
+	precache_model ("progs/netsend_disk.md3");
+	precache_model ("progs/laser.md3");
+	precache_model ("progs/goo.md3");
+
+	precache_sound ("milky/song.ogg");
+	precache_sound ("milky/fire.wav");
+	precache_sound ("greenjar/mini_giggle1.wav");
+	precache_sound ("greenjar/mini_giggle2.wav");
+	precache_sound ("greenjar/mini_giggle3.wav");
+	precache_sound ("greenjar/mini_scream1.wav");
+	precache_sound ("greenjar/mini_boing.wav");
+	precache_sound ("megaman/mm_drive.wav");
+	precache_sound ("megaman/mm_fire.wav");
+	precache_sound ("vehicles/lanvan.wav");
+	precache_sound ("vehicles/idle_van.wav");
+	precache_sound ("weapons/megahorn.wav");
+	precache_sound ("weapons/megawhistle.wav");
+	precache_sound ("weapons/goofire.wav");
+	precache_sound ("weapons/goopop.wav");
+	precache_sound ("funny/durr.wav");
+	precache_sound ("funny/fart1.wav");
+	precache_sound ("funny/fart2.wav");
+	precache_sound ("funny/giggles.wav");
+	precache_sound ("funny/giggle2.wav");
+	precache_sound ("funny/goooood.wav");
+	precache_sound ("funny/huh.wav");
+	precache_sound ("funny/imfloating.wav");
+	precache_sound ("funny/soleet1.wav");
+	precache_sound ("friends/johnnnny.wav");
+	precache_sound ("friends/hello.wav");
+	precache_sound ("friends/megamayan.wav");
+	precache_sound ("friends/thats_good.wav");
+	precache_sound ("friends/gowewd.wav");
+	precache_sound ("larry/octogood.wav");
+	precache_sound ("larry/banana_cannon.wav");
+	precache_sound ("larry/cigarettes.wav");
+	precache_sound ("larry/love_to_play_quake.wav");
+	precache_sound ("larry/double_good.wav");
+	precache_sound ("daniel/dad_4am.wav");
+	precache_sound ("daniel/cant_see_webcam.wav");
+	precache_sound ("bryan/noway.wav");
+	precache_sound ("random_npcs/afroguy_funny.wav");
+	precache_sound ("random_npcs/fatguy_funny.wav");
+	precache_sound ("random_npcs/lady_funny.wav");
+	precache_sound ("random_npcs/randguy_funny.wav");
+	precache_sound ("dod/garand_reload_clipding.wav");
+	precache_sound ("dod/thompson_shoot.wav");
+	precache_sound ("hammer/frying_pan.wav");
+};
+
 void() Intro_Precache =
 {
+	Intro_LsjPrecache ();
 	precache_model ("progs/spike.mdl");
 	precache_model ("progs/missile.mdl");
 	precache_model ("progs/grenade.mdl");
@@ -322,13 +385,156 @@ vector(vector from, vector to) Intro_LookAngles =
 };
 
 // Exact lockstep SSQC twin of BM_UpdateIntroCam() (card >= 301, 0.0s .. 48.0s) in csqc/bm_hud.qc
+vector(float s) Intro_LsjVanRaw =
+{
+	local float a;
+
+	if (s < 0) s = 0;
+	if (s > 1) s = 1;
+	if (s <= 0.04110) {
+		a = s / 0.04110;
+		return Intro_LerpVec ('-12681.1 -7559.1 608.3', '-11889.8 -7244.1 608.3', a);
+	} else if (s <= 0.28612) {
+		a = (s - 0.04110) / 0.24502;
+		return Intro_LerpVec ('-11889.8 -7244.1 608.3', '-7677.2 -4409.4 771.7', a);
+	} else if (s <= 0.49639) {
+		a = (s - 0.28612) / 0.21027;
+		return Intro_LerpVec ('-7677.2 -4409.4 771.7', '-4015.7 -2047.2 886.6', a);
+	} else if (s <= 0.58760) {
+		a = (s - 0.49639) / 0.09121;
+		return Intro_LerpVec ('-4015.7 -2047.2 886.6', '-2126.0 -2007.9 898.4', a);
+	} else if (s <= 0.60780) {
+		a = (s - 0.58760) / 0.02020;
+		return Intro_LerpVec ('-2126.0 -2007.9 898.4', '-1909.4 -1649.6 898.4', a);
+	} else if (s <= 0.62569) {
+		a = (s - 0.60780) / 0.01789;
+		return Intro_LerpVec ('-1909.4 -1649.6 898.4', '-1929.1 -1279.5 898.4', a);
+	} else if (s <= 0.74449) {
+		a = (s - 0.62569) / 0.11880;
+		return Intro_LerpVec ('-1929.1 -1279.5 898.4', '-2007.9 1181.1 885.8', a);
+	} else if (s <= 0.76615) {
+		a = (s - 0.74449) / 0.02166;
+		return Intro_LerpVec ('-2007.9 1181.1 885.8', '-1653.5 1456.7 885.8', a);
+	} else if (s <= 0.78707) {
+		a = (s - 0.76615) / 0.02092;
+		return Intro_LerpVec ('-1653.5 1456.7 885.8', '-1633.9 1889.8 885.8', a);
+	} else if (s <= 0.94650) {
+		a = (s - 0.78707) / 0.15943;
+		return Intro_LerpVec ('-1633.9 1889.8 885.8', '1574.8 2677.2 570.9', a);
+	} else {
+		a = (s - 0.94650) / 0.05350;
+		return Intro_LerpVec ('1574.8 2677.2 570.9', '2677.2 2795.3 574.0', a);
+	}
+};
+
+vector(float s) Intro_LsjVanPos =
+{
+	return Intro_LsjVanRaw (s - 0.015) * 0.25 + Intro_LsjVanRaw (s) * 0.50 + Intro_LsjVanRaw (s + 0.015) * 0.25;
+};
+
+vector(float s) Intro_LsjVanFwd =
+{
+	local vector d;
+
+	d = Intro_LsjVanRaw (s + 0.015) - Intro_LsjVanRaw (s - 0.015);
+	d_z = 0;
+	if (vlen (d) < 0.001)
+		return '1 0 0';
+	return normalize (d);
+};
+
 void(float t) Intro_ComputeCamBasis =
 {
-	local float u, u_orb, deg, rad;
-	local vector cpos, look, fwd, rgt, upv;
+	local float u, u_orb, deg, rad, e, s, blend, sway;
+	local vector cpos, look, fwd, rgt, upv, vpos, vfwd, vright, orb_pos;
 
 	if (t < 0)
 		t = 0;
+
+	if (intro_cur_card >= 401)
+	{
+		if (t < 13.5)
+		{
+			u = t / 13.5;
+			if (u < 0) u = 0;
+			if (u > 1) u = 1;
+			if (u <= 0.56)
+			{
+				e = Intro_Smooth (u / 0.56);
+				cpos = Intro_LerpVec ('-12020 -8340 1020', '-12180 -8020 860', e);
+				look = Intro_LerpVec ('-12622 -8850 740', '-12560 -8350 660', e);
+			}
+			else
+			{
+				e = Intro_Smooth ((u - 0.56) / 0.44);
+				cpos = Intro_LerpVec ('-12180 -8020 860', '-11850 -7640 800', e);
+				look = Intro_LerpVec ('-12560 -8350 660', '-12680 -7680 640', e);
+			}
+		}
+		else if (t < 32.5)
+		{
+			u = (t - 13.5) / 19.0;
+			if (u < 0) u = 0;
+			if (u > 1) u = 1;
+			s = 0.20 * u + 0.80 * Intro_Smooth (u);
+			vpos = Intro_LsjVanPos (s);
+			vfwd = Intro_LsjVanFwd (s);
+			vright_x = vfwd_y;
+			vright_y = 0 - vfwd_x;
+			vright_z = 0;
+			sway = ISin (u * 6.2831853);
+			cpos = vpos - vfwd * (365 - 25 * u) + vright * (105 * sway + 55);
+			cpos_z = vpos_z + 145 + 22 * ISin (u * 3.14159265);
+			look = vpos + vfwd * 55;
+			look_z = vpos_z + 56;
+		}
+		else if (t < 46.5)
+		{
+			u = (t - 32.5) / 14.0;
+			if (u < 0) u = 0;
+			if (u > 1) u = 1;
+			if (u <= 0.50)
+			{
+				e = Intro_Smooth (u / 0.50);
+				cpos = Intro_LerpVec ('2278.7 2687.2 708.8', '3110 2450 665', e);
+				look = Intro_LerpVec ('2654.6 2792.9 625.8', '2790 2790 625', e);
+			}
+			else
+			{
+				e = Intro_Smooth ((u - 0.50) / 0.50);
+				cpos = Intro_LerpVec ('3110 2450 665', '3140 3080 690', e);
+				look = '2790 2790 625';
+			}
+		}
+		else
+		{
+			u_orb = (t - 46.5) / 13.5;
+			if (u_orb < 0) u_orb = 0;
+			if (u_orb > 1) u_orb = 1;
+			deg = 12 + 360 * (0.15 * u_orb + 0.85 * Intro_Smooth (u_orb));
+			rad = deg * 0.0174532925;
+			orb_pos_x = -3740 + ICos (rad) * 9400;
+			orb_pos_y = 1378 + ISin (rad) * 8800;
+			orb_pos_z = 2150 + 180 * ISin (rad);
+			if (u_orb < 0.18)
+				blend = Intro_Smooth (u_orb / 0.18);
+			else
+				blend = 1;
+			cpos = Intro_LerpVec ('3140 3080 690', orb_pos, blend);
+			look = Intro_LerpVec ('2790 2790 625', '-3740 1378 560', blend);
+		}
+		fwd = normalize (look - cpos);
+		rgt = normalize (fwd_y * '1 0 0' - fwd_x * '0 1 0');
+		upv_x = rgt_y * fwd_z - rgt_z * fwd_y;
+		upv_y = rgt_z * fwd_x - rgt_x * fwd_z;
+		upv_z = rgt_x * fwd_y - rgt_y * fwd_x;
+		intro_b_pos = cpos;
+		intro_b_fwd = fwd;
+		intro_b_rgt = rgt;
+		intro_b_up = upv;
+		intro_cam_look = look;
+		return;
+	}
 
 	if (t < 2.2)
 	{
@@ -3477,6 +3683,793 @@ void() Intro_Tick =
 	Intro_SyncPlayer (p);
 };
 
+// ============================================================================
+// LITTLE SAINT JAMES ISLAND PLAYFUL 4-ACT INTRO DIRECTOR (Cards 401..404)
+// ============================================================================
+
+float(vector p) Intro_LsjGroundZ =
+{
+	traceline (p + '0 0 380', p - '0 0 880', TRUE, world);
+	if (trace_fraction < 1.0)
+		return trace_endpos_z;
+	return p_z;
+};
+
+void() Intro_LsjBoltThink =
+{
+	local vector p;
+
+	if (time >= self.ltime)
+	{
+		remove (self);
+		return;
+	}
+	self.velocity_z = self.velocity_z - 420 * 0.03;
+	p = self.origin + self.velocity * 0.03;
+	setorigin (self, p);
+	self.angles = self.angles + '240 360 180' * 0.03;
+	self.nextthink = time + 0.03;
+};
+
+void(vector org, vector dir, float kind) Intro_LsjSpawnBolt =
+{
+	local entity b;
+
+	b = spawn ();
+	b.classname = "intro_lsj_bolt";
+	b.intro_tag = 1;
+	b.movetype = MOVETYPE_NONE;
+	b.solid = SOLID_NOT;
+	if (kind == 0) {
+		setmodel (b, "progs/laser.md3");
+		b.scale = 1.25;
+		b.effects = EF_FULLBRIGHT | EF_DIMLIGHT;
+	} else if (kind == 1) {
+		setmodel (b, "progs/pickle_throw.md3");
+		b.scale = 1.35;
+		b.effects = EF_FULLBRIGHT;
+	} else if (kind == 2) {
+		setmodel (b, "progs/netsend_disk.md3");
+		b.scale = 1.35;
+		b.effects = EF_FULLBRIGHT | EF_DIMLIGHT;
+	} else {
+		setmodel (b, "progs/pinklady.md3");
+		b.scale = 1.65;
+		b.effects = EF_FULLBRIGHT;
+	}
+	setsize (b, '0 0 0', '0 0 0');
+	b.angles = vectoangles (dir);
+	setorigin (b, org);
+	b.velocity = normalize (dir) * (540 + random () * 240);
+	b.velocity_z = b.velocity_z + 180 + random () * 140;
+	b.ltime = time + 1.15;
+	b.think = Intro_LsjBoltThink;
+	b.nextthink = time + 0.03;
+};
+
+void() Intro_LsjGreenMiniThink =
+{
+	local float t, ang, rel, dir, f, hop;
+	local vector p, p_next, vel;
+
+	if (time >= self.ltime || intro_stopped)
+	{
+		remove (self);
+		return;
+	}
+	t = time - intro_t0;
+
+	if (self.intro_fkind == 1)
+	{
+		// Dozen green wheel guys zipping on Temple terrace / labyrinth forecourt!
+		ang = self.intro_phase + time * self.intro_spd;
+		p_x = self.intro_cx + ICos (ang) * self.intro_rad + ISin (ang * 2.0 + self.intro_lat) * (self.intro_rad * 0.20);
+		p_y = self.intro_cy + ISin (ang) * self.intro_rad * 0.72 + ICos (ang * 2.0) * (self.intro_rad * 0.14);
+		p_z = self.intro_gz;
+		traceline (p + '0 0 70', p - '0 0 260', TRUE, world);
+		if (trace_fraction < 1.0)
+			p_z = trace_endpos_z + 2;
+		else
+			p_z = p_z + 2;
+
+		ang = self.intro_phase + (time + 0.05) * self.intro_spd;
+		p_next_x = self.intro_cx + ICos (ang) * self.intro_rad + ISin (ang * 2.0 + self.intro_lat) * (self.intro_rad * 0.20);
+		p_next_y = self.intro_cy + ISin (ang) * self.intro_rad * 0.72 + ICos (ang * 2.0) * (self.intro_rad * 0.14);
+		p_next_z = p_z;
+	}
+	else if (self.intro_fkind == 2)
+	{
+		// Escort green wheel guys racing along behind/beside the White Van!
+		local float u, s;
+		local vector vpos, vfwd, vrgt;
+		u = (t - 13.5) / 19.0;
+		if (u < 0) u = 0;
+		if (u > 1) u = 1;
+		s = 0.20 * u + 0.80 * Intro_Smooth (u);
+		vpos = Intro_LsjVanPos (s);
+		vfwd = Intro_LsjVanFwd (s);
+		vrgt_x = vfwd_y; vrgt_y = 0 - vfwd_x; vrgt_z = 0;
+
+		p = vpos - vfwd * (120 + self.intro_slot * 36) + vrgt * (self.intro_lat + ISin (time * 2.0 + self.intro_phase) * 42);
+		p_z = Intro_LsjGroundZ (p) + 2;
+		p_next = p + vfwd * 60;
+	}
+	else
+	{
+		// Sports Lawn celebratory green wheel guys circling the jumping cast!
+		ang = self.intro_phase + time * self.intro_spd;
+		p_x = self.intro_cx + ICos (ang) * self.intro_rad;
+		p_y = self.intro_cy + ISin (ang) * (self.intro_rad * 0.85);
+		p_z = Intro_LsjGroundZ (p) + 2;
+		ang = self.intro_phase + (time + 0.05) * self.intro_spd;
+		p_next_x = self.intro_cx + ICos (ang) * self.intro_rad;
+		p_next_y = self.intro_cy + ISin (ang) * (self.intro_rad * 0.85);
+		p_next_z = p_z;
+	}
+
+	hop = fabs (ISin (time * 4.5 + self.intro_phase));
+	if (hop > 0.82)
+		p_z = p_z + (hop - 0.82) * 120;
+	setorigin (self, p);
+
+	vel = p_next - p;
+	vel_z = 0;
+	if (vlen (vel) > 0.5)
+		self.angles_y = vectoyaw (vel);
+
+	// 8-direction seated Mega-Man wheel animation frames 0..47
+	rel = self.angles_y - vectoyaw (intro_cam_pos - p) + 180 + 22.5;
+	rel = anglemod (rel);
+	dir = floor (rel / 45);
+	if (dir < 0 || dir >= 8)
+		dir = 0;
+	f = floor (time * 9 + self.intro_phase);
+	self.frame = dir * 6 + f - 6 * floor (f / 6);
+	self.nextthink = time + 0.03;
+};
+
+entity(float fkind, vector center, float gz, float rad, float spd, float ph, float lat, float slot, float dur) Intro_LsjSpawnGreenMini =
+{
+	local entity m;
+
+	m = spawn ();
+	m.classname = "intro_lsj_greenmini";
+	m.intro_tag = 1;
+	m.movetype = MOVETYPE_NONE;
+	m.solid = SOLID_NOT;
+	setmodel (m, "progs/greenguy_mini.spr32");
+	m.scale = 1.25;
+	m.effects = EF_FULLBRIGHT;
+	setsize (m, '0 0 0', '0 0 0');
+	m.intro_fkind = fkind;
+	m.intro_cx = center_x;
+	m.intro_cy = center_y;
+	m.intro_gz = gz;
+	m.intro_rad = rad;
+	m.intro_spd = spd;
+	m.intro_phase = ph;
+	m.intro_lat = lat;
+	m.intro_slot = slot;
+	m.ltime = time + dur;
+	setorigin (m, center + '0 0 2');
+	m.think = Intro_LsjGreenMiniThink;
+	m.nextthink = time + 0.02;
+	return m;
+};
+
+void() Intro_LsjMilkyThink =
+{
+	local float t, u, s, ang, b, gzf, sk;
+	local vector p, vpos, vfwd, vrgt, tpos;
+
+	if (time >= self.ltime || intro_stopped)
+	{
+		remove (self);
+		return;
+	}
+	t = time - intro_t0;
+
+	if (self.intro_fkind == 1)
+	{
+		// Act 1: Milky Jess grenades floating big & easy around the Blue-Striped Temple & Labyrinth!
+		ang = self.intro_phase + time * self.intro_spd;
+		p_x = self.intro_cx + ICos (ang) * self.intro_rad + ISin (time * 0.9 + self.intro_slot) * 35;
+		p_y = self.intro_cy + ISin (ang * 0.92) * self.intro_lat + ICos (time * 0.8 + self.intro_phase) * 35;
+		p_z = self.intro_gz;
+		gzf = Intro_LsjGroundZ (p);
+		if (gzf < 625)
+			gzf = 625;
+		p_z = gzf + 95 + fabs (ISin (time * self.intro_jrate + self.intro_phase)) * self.intro_jhigh;
+		setorigin (self, p);
+	}
+	else
+	{
+		// Acts 1.5..4: Large Milky Jess grenades float/chase behind the White Van across Epstein Island!
+		if (t < 13.5)
+		{
+			u = (t - 7.8) / 5.7;
+			if (u < 0) u = 0;
+			if (u > 1) u = 1;
+			b = Intro_Smooth (u);
+			ang = self.intro_phase + time * 0.75;
+			tpos_x = -12622 + ICos (ang) * 260;
+			tpos_y = -8550 + ISin (ang) * 260;
+			tpos_z = 860 + ISin (time * 1.6 + self.intro_slot) * 55;
+			vpos = '-12681.1 -7559.1 608.3' - '150 60 0' - ('1 0 0' * (self.intro_slot * 34));
+			vpos_z = Intro_LsjGroundZ (vpos) + 100 + fabs (ISin (time * 2.1 + self.intro_slot)) * 55;
+			p = Intro_LerpVec (tpos, vpos, b);
+		}
+		else if (t < 32.5)
+		{
+			u = (t - 13.5) / 19.0;
+			if (u < 0) u = 0;
+			if (u > 1) u = 1;
+			s = 0.20 * u + 0.80 * Intro_Smooth (u);
+			vpos = Intro_LsjVanPos (s);
+			vfwd = Intro_LsjVanFwd (s);
+			vrgt_x = vfwd_y; vrgt_y = 0 - vfwd_x; vrgt_z = 0;
+
+			p = vpos - vfwd * (105 + self.intro_slot * 16)
+			    + vrgt * (ISin (time * 1.7 + self.intro_phase) * (36 + self.intro_slot * 6) + self.intro_lat * 0.65);
+			p_z = Intro_LsjGroundZ (p) + 96 + fabs (ISin (time * 2.3 + self.intro_phase)) * 55;
+		}
+		else
+		{
+			// Acts 3..4: Gently orbiting overhead around the parked open-door White Van!
+			ang = self.intro_phase + time * 0.65;
+			p_x = 2680 + ICos (ang) * (165 + self.intro_slot * 26);
+			p_y = 2795 + ISin (ang) * (165 + self.intro_slot * 26);
+			p_z = 574 + 125 + fabs (ISin (time * 2.1 + self.intro_phase)) * 75;
+		}
+		setorigin (self, p);
+	}
+
+	// pinklady.md3 is a billboard quad + 16 radial skins (see milky.qc::Milky_Customize)
+	self.frame = 0;
+	self.angles_x = 0;
+	self.angles_y = vectoyaw (intro_cam_pos - p) + 180;
+	self.angles_z = 0;
+	sk = floor (time * 5 + self.intro_slot * 2);
+	self.skin = sk - 16 * floor (sk / 16);
+
+	// Occasional gentle pastel sparkle puff (never blinding!)
+	if (time >= self.wait)
+	{
+		self.wait = time + 0.65 + random () * 0.55;
+		particle (p, '0 0 28', 235, 10);
+	}
+	self.nextthink = time + 0.03;
+};
+
+entity(float fkind, vector center, float gz, float rad, float lat, float spd, float ph, float jrate, float jhigh, float slot, float dur) Intro_LsjSpawnMilky =
+{
+	local entity m;
+
+	m = spawn ();
+	m.classname = "intro_lsj_milky";
+	m.intro_tag = 1;
+	m.movetype = MOVETYPE_NONE;
+	m.solid = SOLID_NOT;
+	setmodel (m, "progs/pinklady.md3");
+	if (fkind == 1)
+		m.scale = 5.40;
+	else
+		m.scale = 4.20;
+	m.effects = EF_FULLBRIGHT;
+	setsize (m, '0 0 0', '0 0 0');
+	m.intro_fkind = fkind;
+	m.intro_cx = center_x;
+	m.intro_cy = center_y;
+	m.intro_gz = gz;
+	m.intro_rad = rad;
+	m.intro_lat = lat;
+	m.intro_spd = spd;
+	m.intro_phase = ph;
+	m.intro_jrate = jrate;
+	m.intro_jhigh = jhigh;
+	m.intro_slot = slot;
+	m.ltime = time + dur;
+	m.wait = time + 0.25 + slot * 0.12;
+	setorigin (m, center + '0 0 110');
+	m.think = Intro_LsjMilkyThink;
+	m.nextthink = time + 0.02;
+	return m;
+};
+
+void() Intro_LsjVanThink =
+{
+	local float t, u, s, z0, zf, zb, dh, pitch;
+	local vector pos, fwd;
+
+	if (intro_stopped)
+		return;
+	t = time - intro_t0;
+
+	if (t < 13.5)
+	{
+		// Pull up gently onto the Temple North Road loop starting around t=7.5s
+		u = (t - 7.5) / 5.4;
+		if (u < 0) u = 0;
+		if (u > 1) u = 1;
+		pos = Intro_LerpVec ('-13350 -7480 608', '-12681.1 -7559.1 608.3', Intro_Smooth (u));
+		fwd = normalize ('-11889.8 -7244.1 608.3' - '-12681.1 -7559.1 608.3');
+		pos_z = Intro_LsjGroundZ (pos) + 1.5;
+		self.angles_y = vectoyaw (fwd);
+		self.angles_x = 0;
+		self.angles_z = ISin (time * 6) * 1.0;
+		setorigin (self, pos);
+	}
+	else if (t < 32.5)
+	{
+		u = (t - 13.5) / 19.0;
+		if (u < 0) u = 0;
+		if (u > 1) u = 1;
+		s = 0.20 * u + 0.80 * Intro_Smooth (u);
+		pos = Intro_LsjVanPos (s);
+		fwd = Intro_LsjVanFwd (s);
+		z0 = Intro_LsjGroundZ (pos);
+		zf = Intro_LsjGroundZ (pos + fwd * 110);
+		zb = Intro_LsjGroundZ (pos - fwd * 110);
+		local vector sv, sa;
+		sv = fwd * 220;
+		sv_z = zf - zb;
+		sa = vectoangles (sv);
+		pitch = sa_x;
+		if (pitch > 180)
+			pitch = pitch - 360;
+		pos_z = z0 + 1.5 + fabs (ISin (time * 16)) * 2.2;
+		setorigin (self, pos);
+		self.angles_y = vectoyaw (fwd);
+		self.angles_x = 0 - pitch;
+		self.angles_z = ISin (time * 5.2) * 2.4;
+	}
+	else
+	{
+		fwd = Intro_LsjVanFwd (1.0);
+		pos = Intro_LsjVanPos (1.0);
+		pos_z = Intro_LsjGroundZ (pos) + 1.5 + fabs (ISin (time * 6.5)) * 1.6;
+		setorigin (self, pos);
+		self.angles_y = vectoyaw (fwd);
+		self.angles_x = 0;
+		self.angles_z = ISin (time * 6.0) * 1.5;
+	}
+	self.nextthink = time + 0.03;
+};
+
+void() Intro_LsjCastThink =
+{
+	local float u, b, hop, ang, f;
+	local vector p, sdir, lookp;
+
+	if (time >= self.ltime || intro_stopped)
+	{
+		remove (self);
+		return;
+	}
+
+	u = (time - self.intro_born) / self.intro_spd;
+	if (u < 0) u = 0;
+	if (u > 1) u = 1;
+	b = Intro_Smooth (u);
+	p = Intro_LerpVec (self.intro_p0, self.intro_p1, b);
+
+	if (u < 1)
+	{
+		// Bounding arc tumbling right out the back of the White Van!
+		p_z = Intro_LsjGroundZ (p) + self.intro_gz + ISin (u * 3.14159265) * 68;
+		self.angles_y = vectoyaw (self.intro_p1 - self.intro_p0);
+	}
+	else
+	{
+		// Hop & strafe playfully across the Sports Field!
+		ang = time * (1.0 + self.intro_lat * 0.25) + self.intro_phase;
+		p_x = p_x + ICos (ang) * 20;
+		p_y = p_y + ISin (ang) * 20;
+		hop = fabs (ISin (time * (self.intro_jrate * 0.65) + self.intro_phase)) * self.intro_jhigh;
+		p_z = Intro_LsjGroundZ (p) + self.intro_gz + hop;
+		self.angles_y = self.angles_y + self.intro_cx * 0.02;
+	}
+	setorigin (self, p);
+
+	// Animate 3D NPCs & models smoothly
+	if (self.cn_kind >= 19)
+	{
+		f = floor (time * 14 + self.intro_phase);
+		self.frame = 20 + (f - 10 * floor (f / 10));
+	}
+	else if (self.mb_fn > 0)
+	{
+		f = floor (time * self.mb_fps + self.intro_phase);
+		self.frame = self.mb_f0 + f - self.mb_fn * floor (f / self.mb_fn);
+	}
+
+	// Playful shooting bursts skyward & outward!
+	if (u >= 1 && time >= self.wait)
+	{
+		self.wait = time + 0.95 + random () * 0.95;
+		self.effects = self.effects | EF_MUZZLEFLASH;
+		lookp = self.origin + '0 0 36';
+		sdir_x = ICos (self.angles_y * 0.01745329);
+		sdir_y = ISin (self.angles_y * 0.01745329);
+		sdir_z = 0.42 + random () * 0.45;
+		Intro_LsjSpawnBolt (lookp, sdir, self.intro_slot);
+	}
+	else
+	{
+		self.effects = self.effects - (self.effects & EF_MUZZLEFLASH);
+	}
+
+	self.nextthink = time + 0.03;
+};
+
+void(entity e, vector p_start, vector p_land, float z_off, float run_dur, float jrate, float jhigh, float spin_spd, float bkind, float total_dur) Intro_LsjLaunchCast =
+{
+	if (!e)
+		return;
+	e.intro_p0 = p_start;
+	e.intro_p1 = p_land;
+	e.intro_gz = z_off;
+	e.intro_born = time;
+	e.intro_spd = run_dur;
+	e.intro_jrate = jrate;
+	e.intro_jhigh = jhigh;
+	e.intro_cx = spin_spd;
+	e.intro_lat = random ();
+	e.intro_phase = random () * 6.283;
+	e.intro_slot = bkind;
+	e.wait = time + run_dur + 0.15 + random () * 0.85;
+	e.ltime = time + total_dur;
+	e.think = Intro_LsjCastThink;
+	e.nextthink = time + 0.03;
+};
+
+entity(string mdl, float sc, vector p_start) Intro_LsjMakeSprite =
+{
+	local entity m;
+
+	m = spawn ();
+	m.classname = "intro_lsj_cast";
+	m.intro_tag = 1;
+	m.movetype = MOVETYPE_NONE;
+	m.solid = SOLID_NOT;
+	setmodel (m, mdl);
+	m.scale = sc;
+	m.effects = EF_FULLBRIGHT;
+	setsize (m, '0 0 0', '0 0 0');
+	setorigin (m, p_start);
+	return m;
+};
+
+void() Intro_LsjSpawnAllCast =
+{
+	local vector door;
+	local float dur;
+	local entity e;
+
+	door = '2588 2786 584';
+	dur = 28.0;
+
+	// Classic Wheelman + Green-Suit Wheelman + Dancer + Larry Robeguy
+	e = Intro_MakeClassicWheel (0, 0, 0.72, door);
+	Intro_LsjLaunchCast (e, door, '2780 2640 574', 2, 0.85, 8.2, 46, 85, 0, dur);
+
+	e = Intro_MakeGreenSuit (2, 1.24, door);
+	Intro_LsjLaunchCast (e, door, '2710 2945 574', 2, 0.90, 7.6, 52, -75, 4, dur);
+
+	e = Intro_MakeWheelDancer (3, 0.24, door);
+	Intro_LsjLaunchCast (e, door, '2875 2780 574', 2, 0.95, 9.0, 48, 120, 2, dur);
+
+	e = Intro_MakeRobeGuy (1, 0.72, door);
+	Intro_LsjLaunchCast (e, door, '2660 2580 574', 2, 1.00, 7.2, 44, 65, 1, dur);
+
+	// Daniel, 4AM Dad, Bryan, David, JessKart
+	e = Intro_MakeCrowd (1, 2, 1.12, door);
+	Intro_LsjLaunchCast (e, door, '2920 2660 574', 2, 1.05, 8.8, 54, -90, 0, dur);
+
+	e = Intro_MakeCrowd (2, 2, 1.05, door);
+	Intro_LsjLaunchCast (e, door, '2820 2990 574', 2, 1.10, 6.8, 42, 55, 3, dur);
+
+	e = Intro_MakeCrowd (3, 2, 1.24, door);
+	Intro_LsjLaunchCast (e, door, '3020 2860 574', 2, 1.15, 8.4, 56, 95, 1, dur);
+
+	e = Intro_MakeCrowd (4, 2, 1.24, door);
+	Intro_LsjLaunchCast (e, door, '2740 2500 574', 2, 1.15, 7.8, 48, -65, 2, dur);
+
+	e = Intro_MakeCrowd (10, 2, 1.24, door);
+	Intro_LsjLaunchCast (e, door, '2980 2540 574', 2, 1.20, 8.0, 40, 140, 4, dur);
+
+	// 3D NPCs (Afro Guy, Fat Guy, Rand Guy, Rand Lady) -> +28 center offset
+	e = Intro_MakeCrowd (20, 2, 1.26, door);
+	Intro_LsjLaunchCast (e, door, '2860 2890 574', 28, 0.95, 7.4, 46, 70, 0, dur);
+
+	e = Intro_MakeCrowd (22, 2, 1.28, door);
+	Intro_LsjLaunchCast (e, door, '3090 2720 574', 28, 1.10, 6.4, 38, -50, 1, dur);
+
+	e = Intro_MakeCrowd (19, 2, 1.22, door);
+	Intro_LsjLaunchCast (e, door, '2630 3010 574', 28, 1.20, 8.1, 50, 80, 2, dur);
+
+	e = Intro_MakeCrowd (21, 2, 1.20, door);
+	Intro_LsjLaunchCast (e, door, '2940 3030 574', 28, 1.25, 8.5, 48, -95, 4, dur);
+
+	// LAN Friends + Pregnant Runners + QuakeGuy + Finger
+	e = Intro_MakeCrowd (8, 2, 1.20, door);
+	Intro_LsjLaunchCast (e, door, '2520 2640 574', 2, 0.90, 9.2, 58, 110, 0, dur);
+
+	e = Intro_MakeCrowd (9, 2, 1.20, door);
+	Intro_LsjLaunchCast (e, door, '2540 2920 574', 2, 0.95, 8.6, 52, -105, 3, dur);
+
+	e = Intro_MakeCrowd (5, 2, 1.20, door);
+	Intro_LsjLaunchCast (e, door, '3110 2920 574', 2, 1.25, 7.8, 44, 60, 2, dur);
+
+	e = Intro_MakeCrowd (6, 2, 1.20, door);
+	Intro_LsjLaunchCast (e, door, '2890 2450 574', 2, 1.30, 8.2, 46, -75, 4, dur);
+
+	// Additional LAN Friends & 3D Mega Man / Riders
+	e = Intro_MakeActor (14, 1.24, door); // Friend Rob
+	Intro_LsjLaunchCast (e, door, '2460 2780 574', 2, 0.85, 8.0, 50, 75, 1, dur);
+
+	e = Intro_MakeActor (18, 1.24, door); // Friend Dennis
+	Intro_LsjLaunchCast (e, door, '3060 2610 574', 2, 1.15, 7.5, 44, -85, 0, dur);
+
+	e = Intro_MakeActor (19, 1.24, door); // Friend Paul
+	Intro_LsjLaunchCast (e, door, '2770 3080 574', 2, 1.25, 8.7, 48, 90, 2, dur);
+
+	e = Intro_MakeActor (21, 1.24, door); // Mr DIY
+	Intro_LsjLaunchCast (e, door, '2630 2460 574', 2, 1.20, 7.3, 42, -60, 3, dur);
+
+	e = Intro_MakeActor (1, 1.35, door); // Mega Man 3D
+	Intro_LsjLaunchCast (e, door, '2960 2770 574', 26, 1.05, 8.4, 54, 130, 0, dur);
+
+	e = Intro_MakeActor (2, 1.22, door); // Suit Rider
+	Intro_LsjLaunchCast (e, door, '2580 2540 574', 24, 1.10, 7.9, 44, -110, 2, dur);
+
+	e = Intro_MakeActor (3, 1.22, door); // Squat Rider
+	Intro_LsjLaunchCast (e, door, '2690 3060 574', 24, 1.20, 8.6, 48, 100, 4, dur);
+
+	// 4 Little Green Mega-Man Wheel Guys bursting out of the van too!
+	Intro_LsjSpawnGreenMini (3, '2810 2780 574', 574, 240, 1.15, 0.0, 0, 0, dur);
+	Intro_LsjSpawnGreenMini (3, '2810 2780 574', 574, 310, -1.00, 1.6, 0, 1, dur);
+	Intro_LsjSpawnGreenMini (3, '2810 2780 574', 574, 275, 1.25, 3.2, 0, 2, dur);
+	Intro_LsjSpawnGreenMini (3, '2810 2780 574', 574, 345, -1.10, 4.8, 0, 3, dur);
+
+	// 2 DM Fighters jumping & blazing away!
+	Intro_SpawnDMFighter (1, '2860 2700 574', 574, 95, 110, 0, "progs/p_m4.md3", 1.25, dur);
+	Intro_SpawnDMFighter (2, '2910 2880 574', 574, 95, -115, 180, "progs/p_tommy.md3", 1.25, dur);
+};
+
+void() Intro_LsjTick =
+{
+	local entity p;
+	local float t, i, ang;
+	local vector ctr;
+
+	self.nextthink = time + 0.02;
+
+	p = Intro_GetPlayer ();
+	if (!p)
+		return;
+
+	if (intro_t0 == 0)
+	{
+		if (time < 0.25)
+			return;
+		intro_t0 = time;
+		intro_t0_ms = floor (intro_t0 * 1000 + 0.5);
+		Intro_CleanStage ();
+		Intro_EnsureCam (p);
+		cvar_set ("sv_gravity", "800");
+		cvar_set ("sv_maxvelocity", "6500");
+	}
+
+	t = time - intro_t0;
+	if (t < 0)
+		t = 0;
+	if (t < 2.0)
+		Intro_PurgePlayerAttachments (p);
+
+	if (t < 13.5)
+		intro_cur_card = 401;
+	else if (t < 32.5)
+		intro_cur_card = 402;
+	else if (t < 46.5)
+		intro_cur_card = 403;
+	else
+		intro_cur_card = 404;
+
+	// ----------------------------------------------------------------
+	// ACT I (0.0s .. 13.5s): BLUE-STRIPED TEMPLE, BIG CALM MILKYS & 12 GREEN WHEEL GUYS
+	// ----------------------------------------------------------------
+	if (intro_ev < 1)
+	{
+		intro_ev = 1;
+		Intro_ClearSpot ();
+		Intro_EvalCam (401, t);
+
+		sound (intro_bgm_ent, 1, "milky/song.ogg", 0.36, ATTN_NONE);
+
+		// 12 BIG Milky Jess grenades (progs/pinklady.md3) floating lazily around Temple & Labyrinth
+		i = 0;
+		while (i < 12)
+		{
+			ang = i * 0.523598;
+			if (i < 6)
+				ctr = '-12580 -8680 650';
+			else
+				ctr = '-12580 -8220 615';
+			Intro_LsjSpawnMilky (1, ctr, ctr_z, 125 + i * 10, 120 + i * 10,
+				(0.55 + (i - 3 * floor (i / 3)) * 0.14) * (1 - 2 * (i - 2 * floor (i / 2))),
+				ang, 1.85 + (i - 3 * floor (i / 3)) * 0.28, 70 + (i - 4 * floor (i / 4)) * 18, i, 15.2);
+			i = i + 1;
+		}
+
+		// A dozen (12) Little Green Mega-Man Wheel Guys driving around Temple terrace & Labyrinth!
+		// 4 visible on the NE/North Temple terrace & stairs (kept clear of Temple roof)
+		Intro_LsjSpawnGreenMini (1, '-12325 -8850 650', 650, 62, 1.05, 0.2, 0.4, 0, 15.2);
+		Intro_LsjSpawnGreenMini (1, '-12450 -8630 650', 650, 68, -0.95, 1.8, 1.1, 1, 15.2);
+		Intro_LsjSpawnGreenMini (1, '-12770 -8630 650', 650, 72, 1.10, 3.3, 0.8, 2, 15.2);
+		Intro_LsjSpawnGreenMini (1, '-12610 -8590 650', 650, 75, -1.08, 4.9, 1.7, 3, 15.2);
+		// 8 driving crisscross across the Red-White Labyrinth Forecourt & Temple Loop!
+		i = 0;
+		while (i < 8)
+		{
+			ang = i * 0.785398;
+			Intro_LsjSpawnGreenMini (1, '-12650 -8120 610', 610, 220 + i * 28,
+				(0.88 + (i - 2 * floor (i / 2)) * 0.22) * (1 - 2 * (i - 2 * floor (i / 2))),
+				ang, i * 0.9, i + 4, 15.2);
+			i = i + 1;
+		}
+
+		Intro_Cue ("greenjar/mini_giggle1.wav", 0.78);
+	}
+
+	if (t >= 2.20 && intro_ev < 2)
+	{
+		intro_ev = 2;
+		Intro_Cue ("greenjar/mini_boing.wav", 0.72);
+		sound (intro_cam, 5, "megaman/mm_drive.wav", 0.50, ATTN_NONE);
+	}
+	if (t >= 4.60 && intro_ev < 3)
+	{
+		intro_ev = 3;
+		Intro_Cue ("greenjar/mini_giggle2.wav", 0.78);
+	}
+
+	// 7.50s: Spawn the White Van rolling into the Temple Loop + 8 van-chasing Milky grenades!
+	if (t >= 7.50 && intro_ev < 4)
+	{
+		intro_ev = 4;
+		ia_van = spawn ();
+		ia_van.classname = "intro_lsj_van";
+		ia_van.intro_tag = 1;
+		ia_van.movetype = MOVETYPE_NONE;
+		ia_van.solid = SOLID_NOT;
+		setmodel (ia_van, "progs/veh_van.md3");
+		ia_van.effects = EF_FULLBRIGHT;
+		ia_van.colormod = '1 1 1';
+		setsize (ia_van, '0 0 0', '0 0 0');
+		ia_van.think = Intro_LsjVanThink;
+		ia_van.nextthink = time + 0.02;
+
+		sound (intro_cam, 6, "weapons/megahorn.wav", 0.80, ATTN_NONE);
+
+		i = 0;
+		while (i < 8)
+		{
+			Intro_LsjSpawnMilky (2, '-12680 -7560 610', 610, 180, (i - 3.5) * 24,
+				0.95 + i * 0.08, i * 0.78, 2.2, 65, i, 53.5);
+			i = i + 1;
+		}
+	}
+	if (t >= 9.80 && intro_ev < 5)
+	{
+		intro_ev = 5;
+		Intro_Cue ("greenjar/mini_scream1.wav", 0.72);
+		sound (intro_cam, 4, "funny/giggles.wav", 0.74, ATTN_NONE);
+	}
+	if (t >= 12.20 && intro_ev < 6)
+	{
+		intro_ev = 6;
+		sound (intro_cam, 6, "weapons/megahorn.wav", 0.85, ATTN_NONE);
+		sound (intro_cam, 5, "vehicles/lanvan.wav", 0.65, ATTN_NONE);
+	}
+
+	// ----------------------------------------------------------------
+	// ACT II (13.5s .. 32.5s): WHITE VAN CRUISES ISLAND CHASED BY MILKYS
+	// ----------------------------------------------------------------
+	if (t >= 13.55 && intro_ev < 10)
+	{
+		intro_ev = 10;
+		Intro_LsjSpawnGreenMini (2, '-12681 -7559 610', 610, 0, 0, 0.0, -75, 0, 6.8);
+		Intro_LsjSpawnGreenMini (2, '-12681 -7559 610', 610, 0, 0, 2.1, 75, 1, 6.8);
+		Intro_LsjSpawnGreenMini (2, '-12681 -7559 610', 610, 0, 0, 4.2, 0, 2, 6.8);
+	}
+	if (t >= 15.60 && intro_ev < 11) { intro_ev = 11; Intro_Cue ("greenjar/mini_boing.wav", 0.68); }
+	if (t >= 18.20 && intro_ev < 12) { intro_ev = 12; Intro_Cue ("funny/imfloating.wav", 0.82); }
+	if (t >= 20.80 && intro_ev < 13)
+	{
+		intro_ev = 13;
+		sound (intro_cam, 5, "vehicles/lanvan.wav", 0.55, ATTN_NONE);
+		Intro_Cue ("greenjar/mini_giggle3.wav", 0.78);
+	}
+	if (t >= 23.60 && intro_ev < 14) { intro_ev = 14; Intro_Cue ("weapons/megawhistle.wav", 0.78); }
+	if (t >= 26.50 && intro_ev < 15) { intro_ev = 15; Intro_Cue ("larry/octogood.wav", 0.86); }
+	if (t >= 29.30 && intro_ev < 16) { intro_ev = 16; Intro_Cue ("greenjar/mini_boing.wav", 0.72); }
+	if (t >= 31.60 && intro_ev < 17)
+	{
+		intro_ev = 17;
+		sound (intro_cam, 6, "weapons/megahorn.wav", 0.82, ATTN_NONE);
+	}
+
+	// ----------------------------------------------------------------
+	// ACT III (32.5s .. 46.5s): EVERYONE COMES OUT, SHOOTS, JUMPS + FUNNY SOUNDS!
+	// ----------------------------------------------------------------
+	if (t >= 32.55 && intro_ev < 20)
+	{
+		intro_ev = 20;
+		Intro_LsjSpawnAllCast ();
+		Intro_Cue ("friends/hello.wav", 0.90);
+	}
+	if (t >= 33.60 && intro_ev < 21) { intro_ev = 21; Intro_Cue ("friends/johnnnny.wav", 0.92); }
+	if (t >= 34.65 && intro_ev < 22) { intro_ev = 22; Intro_Cue ("funny/fart1.wav", 0.95); }
+	if (t >= 35.70 && intro_ev < 23)
+	{
+		intro_ev = 23;
+		Intro_Cue ("greenjar/mini_boing.wav", 0.80);
+		sound (intro_cam, 5, "greenjar/mini_giggle1.wav", 0.75, ATTN_NONE);
+	}
+	if (t >= 36.75 && intro_ev < 24) { intro_ev = 24; Intro_Cue ("daniel/dad_4am.wav", 0.95); }
+	if (t >= 37.80 && intro_ev < 25) { intro_ev = 25; Intro_Cue ("funny/durr.wav", 0.95); }
+	if (t >= 38.85 && intro_ev < 26) { intro_ev = 26; Intro_Cue ("random_npcs/afroguy_funny.wav", 0.92); }
+	if (t >= 39.90 && intro_ev < 27)
+	{
+		intro_ev = 27;
+		Intro_Cue ("hammer/frying_pan.wav", 0.85);
+		sound (intro_cam, 5, "funny/giggles.wav", 0.85, ATTN_NONE);
+	}
+	if (t >= 40.95 && intro_ev < 28) { intro_ev = 28; Intro_Cue ("larry/banana_cannon.wav", 0.95); }
+	if (t >= 42.00 && intro_ev < 29)
+	{
+		intro_ev = 29;
+		Intro_Cue ("bryan/noway.wav", 0.95);
+		sound (intro_cam, 5, "dod/garand_reload_clipding.wav", 0.85, ATTN_NONE);
+	}
+	if (t >= 43.10 && intro_ev < 30) { intro_ev = 30; Intro_Cue ("funny/fart2.wav", 0.95); }
+	if (t >= 44.20 && intro_ev < 31) { intro_ev = 31; Intro_Cue ("friends/megamayan.wav", 0.92); }
+	if (t >= 45.30 && intro_ev < 32) { intro_ev = 32; Intro_Cue ("random_npcs/fatguy_funny.wav", 0.92); }
+
+	// ----------------------------------------------------------------
+	// ACT IV (46.5s .. 60.0s): 360 AERIAL ORBIT AROUND EPSTEIN ISLAND
+	// ----------------------------------------------------------------
+	if (t >= 47.20 && intro_ev < 40) { intro_ev = 40; Intro_Cue ("larry/cigarettes.wav", 0.88); }
+	if (t >= 49.80 && intro_ev < 41) { intro_ev = 41; Intro_Cue ("funny/goooood.wav", 0.90); }
+	if (t >= 52.50 && intro_ev < 42) { intro_ev = 42; Intro_Cue ("larry/love_to_play_quake.wav", 0.86); }
+	if (t >= 55.20 && intro_ev < 43) { intro_ev = 43; Intro_Cue ("greenjar/mini_giggle3.wav", 0.82); }
+	if (t >= 57.60 && intro_ev < 44) { intro_ev = 44; Intro_Cue ("friends/thats_good.wav", 0.92); }
+
+	if (t >= 59.95 && !intro_stopped)
+	{
+		intro_stopped = TRUE;
+		if (intro_bgm_ent)
+			sound (intro_bgm_ent, 1, "misc/null.wav", 1, ATTN_NONE);
+		if (intro_cam)
+		{
+			sound (intro_cam, 4, "misc/null.wav", 1, ATTN_NONE);
+			sound (intro_cam, 5, "misc/null.wav", 1, ATTN_NONE);
+			sound (intro_cam, 6, "misc/null.wav", 1, ATTN_NONE);
+		}
+		localcmd ("stop\n");
+	}
+	if (t >= 60.45 && !intro_quitted)
+	{
+		intro_quitted = TRUE;
+		if (cvar ("intro_autoquit") > 0)
+			localcmd ("quit\n");
+	}
+
+	Intro_EvalCam (intro_cur_card, t);
+	Intro_SyncPlayer (p);
+};
+
 void() Intro_StartDirector =
 {
 	intro_t0 = 0;
@@ -3488,12 +4481,12 @@ void() Intro_StartDirector =
 	intro_cam_fixed = FALSE;
 	intro_milk_until = 0;
 	intro_swarm_t0 = 0;
-	intro_cur_card = 301;
-	intro_cam_pos = '-8590 2115 128';
-	intro_cam_ang = Intro_LookAngles ('-8590 2115 128', '-9340 2485 310');
+	intro_cur_card = 401;
+	intro_cam_pos = '-12020 -8340 1020';
+	intro_cam_ang = Intro_LookAngles ('-12020 -8340 1020', '-12622 -8850 740');
 
 	intro_dir_ent = spawn ();
 	intro_dir_ent.classname = "intro_director";
-	intro_dir_ent.think = Intro_Tick;
+	intro_dir_ent.think = Intro_LsjTick;
 	intro_dir_ent.nextthink = time + 0.02;
 };

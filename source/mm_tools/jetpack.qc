@@ -375,7 +375,7 @@ void() Jetpack_Fly =
 
 	// flying Winged John, driving the van or steering a Rob Dob head: SPACE is theirs (John's climb key), and John clears
 	// FL_ONGROUND every frame, so it lit the pack (fuel, flames, voice) from inside the bird
-	if (self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || self.fd_head != world)
+	if (self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.ec_cannon_ent != world || self.ec_watch_until > time)	// + the Eric Deason Cannon: it clears FL_ONGROUND every frame too, so the pack lit inside it and burned the tank
 	{
 		if (self.jp_on)
 			Jetpack_Off ();

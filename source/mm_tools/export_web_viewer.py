@@ -106,8 +106,11 @@ for fi, f in enumerate(faces):
         e = surfedges[firstedge + k]
         pts.append(verts[edges[e][0]] if e >= 0 else verts[edges[-e][1]])
     st = [(p[0] * vec[0] + p[1] * vec[1] + p[2] * vec[2] + vec[3], p[0] * vec[4] + p[1] * vec[5] + p[2] * vec[6] + vec[7]) for p in pts]
-    mins = [math.floor(round(min(s[a] for s in st), 3) / 16) for a in (0, 1)]
-    maxs = [math.ceil(round(max(s[a] for s in st), 3) / 16) for a in (0, 1)]
+    # Scale UV snap tolerance with |st| so float32 dot-product jitter past 12,000 u does not inflate (w, h) past ericw lightmap extents
+    st_min = [min(s[a] for s in st) for a in (0, 1)]
+    st_max = [max(s[a] for s in st) for a in (0, 1)]
+    mins = [math.floor((st_min[a] + max(5e-4, abs(st_min[a]) * 2.5e-7)) / 16) for a in (0, 1)]
+    maxs = [max(mins[a], math.ceil((st_max[a] - max(5e-4, abs(st_max[a]) * 2.5e-7)) / 16)) for a in (0, 1)]
     w, h = maxs[0] - mins[0] + 1, maxs[1] - mins[1] + 1
     blocks.append((h, w, fi, mins))
 blocks.sort(reverse=True)

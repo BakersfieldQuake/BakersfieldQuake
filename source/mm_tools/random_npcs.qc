@@ -82,6 +82,9 @@ void(entity e, float slot) RandomNPC_PlayVoice =
 	local float k;
 	local string snd;
 
+	if (NPC_IsVoiceMuted(e))
+		return;
+
 	k = e.rnpc_kind;
 	snd = "random_npcs/randguy_idle.wav";
 	if (k == RNPC_RANDGUY)

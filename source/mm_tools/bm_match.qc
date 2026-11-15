@@ -40,6 +40,7 @@ void() BM_Precache =
 	RandomNPCs_Precache ();
 	if (world.model == "maps/fox.bsp")
 		Crowd_Precache ();
+	Soi6_Precache ();
 	JohnBird_Precache ();
 	EricCannon_Precache ();
 	SkyPad_Precache ();
@@ -119,7 +120,7 @@ void() BM_PlayerSpawned =
 	if (self.ishuman == 1)
 	{
 		stuffcmd (self, "alias vote \"cmd vote $*\"\nv_glslgamma 1\nv_glslgamma_2d 1\n");	// map votes + apply GLSL gamma to 2D Quake HUD in windowed mode
-		if (!self.skypad_vel_sent)
+		if (skypad_present && !self.skypad_vel_sent)		// only on maps with sky pads, once per connect (it went out on every spawn of every map: on a listen server that left the host's own sv_maxvelocity at 6500 for good)
 		{
 			self.skypad_vel_sent = TRUE;
 			stuffcmd (self, "sv_maxvelocity 6500\n");
@@ -782,6 +783,7 @@ void() BM_StartFrame =
 
 	Underdog_Update ();
 	Crowd_Tick ();
+	Soi6_Tick ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
@@ -802,7 +804,10 @@ void() BM_StartFrame =
 	if (n < 1 && !autocvar_bm_botfill_empty)
 		return;		// nobody here yet: don't fill an empty server
 	if (n < want)
-		BotConnect (0, 0, autocvar_skill);
+	{
+		if (ClientNextAvailable () != -1)		// no free slot: BotConnect would bprint "server is full" to everybody every 2 s
+			BotConnect (0, 0, autocvar_skill);
+	}
 	else if (n > want && bot_count > 0)
 		KickABot ();
 };
@@ -919,6 +924,36 @@ void() BM_TestImpulses =
 			Crowd_Poke (25);
 		else
 			Crowd_Poke (500);
+		self.impulse = 0;
+	}
+	else if (self.impulse == 61)
+	{
+		Soi6_Line ();
+		self.impulse = 0;
+	}
+	else if (self.impulse == 62)
+	{
+		Soi6_Poke (25);
+		self.impulse = 0;
+	}
+	else if (self.impulse == 63)
+	{
+		Soi6_Poke (80);
+		self.impulse = 0;
+	}
+	else if (self.impulse == 64)
+	{
+		Soi6_Poke (500);
+		self.impulse = 0;
+	}
+	else if (self.impulse == 65)
+	{
+		Soi6_GotoStreet ();
+		self.impulse = 0;
+	}
+	else if (self.impulse == 66)
+	{
+		Soi6_GotoBarSide ();
 		self.impulse = 0;
 	}
 };

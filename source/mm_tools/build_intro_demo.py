@@ -158,12 +158,19 @@ def compile_isolated_progs() -> str:
         if os.path.isfile(src_path) and (name.endswith(".qc") or name == "progs.src"):
             shutil.copy2(src_path, os.path.join(BUILD_DIR, name))
 
+    shutil.copy2(os.path.join(TOOLS, "mbox_defs.qc"), os.path.join(BUILD_DIR, "mbox_defs.qc"))
+    shutil.copy2(os.path.join(TOOLS, "mbox.qc"), os.path.join(BUILD_DIR, "mbox.qc"))
     shutil.copy2(os.path.join(TOOLS, "intro_director.qc"), os.path.join(BUILD_DIR, "intro_director.qc"))
 
     patch_once(
         os.path.join(BUILD_DIR, "progs.src"),
+        "\nfunguns_defs.qc\n",
+        "\nfunguns_defs.qc\nmbox_defs.qc\n",
+    )
+    patch_once(
+        os.path.join(BUILD_DIR, "progs.src"),
         "\nworld.qc\n",
-        "\nintro_director.qc\nworld.qc\n",
+        "\nmbox.qc\nintro_director.qc\nworld.qc\n",
     )
     patch_once(
         os.path.join(BUILD_DIR, "world.qc"),
@@ -241,58 +248,106 @@ def _look_angles(cpos, look):
     return (pitch, yaw, 0.0)
 
 
+def _linlerp(a, b, u: float):
+    u = max(0.0, min(1.0, u))
+    return (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u)
+
+
+_LSJ_WPS = (
+    (0.00000, (-12681.1, -7559.1, 608.3)),
+    (0.04110, (-11889.8, -7244.1, 608.3)),
+    (0.28612, (-7677.2, -4409.4, 771.7)),
+    (0.49639, (-4015.7, -2047.2, 886.6)),
+    (0.58760, (-2126.0, -2007.9, 898.4)),
+    (0.60780, (-1909.4, -1649.6, 898.4)),
+    (0.62569, (-1929.1, -1279.5, 898.4)),
+    (0.74449, (-2007.9, 1181.1, 885.8)),
+    (0.76615, (-1653.5, 1456.7, 885.8)),
+    (0.78707, (-1633.9, 1889.8, 885.8)),
+    (0.94650, (1574.8, 2677.2, 570.9)),
+    (1.00000, (2677.2, 2795.3, 574.0)),
+)
+
+
+def _lsj_van_raw(s: float):
+    s = max(0.0, min(1.0, s))
+    for i in range(len(_LSJ_WPS) - 1):
+        f0, p0 = _LSJ_WPS[i]
+        f1, p1 = _LSJ_WPS[i + 1]
+        if s <= f1 or i == len(_LSJ_WPS) - 2:
+            a = (s - f0) / max(1e-6, f1 - f0)
+            return _linlerp(p0, p1, a)
+    return _LSJ_WPS[-1][1]
+
+
+def _lsj_van_pos(s: float):
+    a = _lsj_van_raw(s - 0.015)
+    b = _lsj_van_raw(s)
+    c = _lsj_van_raw(s + 0.015)
+    return (0.25 * a[0] + 0.50 * b[0] + 0.25 * c[0],
+            0.25 * a[1] + 0.50 * b[1] + 0.25 * c[1],
+            0.25 * a[2] + 0.50 * b[2] + 0.25 * c[2])
+
+
+def _lsj_van_fwd(s: float):
+    p0 = _lsj_van_raw(s - 0.015)
+    p1 = _lsj_van_raw(s + 0.015)
+    dx = p1[0] - p0[0]
+    dy = p1[1] - p0[1]
+    ln = math.hypot(dx, dy)
+    if ln < 0.001:
+        return (1.0, 0.0, 0.0)
+    return (dx / ln, dy / ln, 0.0)
+
+
 def eval_cam_angles(t: float):
-    if t < 2.2:
-        u = t / 2.2
-        cpos = _vlerp((-8590, 2115, 128), (-8695, 2182, 64), u)
-        look = _vlerp((-9340, 2485, 310), (-9030, 2435, 88), u)
-    elif t < 5.5:
-        u = (t - 2.2) / 3.3
-        cpos = _vlerp((-8695, 2182, 64), (-8752, 2224, 55), u)
-        look = _vlerp((-9030, 2435, 88), (-8990, 2382, 62), u)
-    elif t < 11.0:
-        u = (t - 5.5) / 5.5
-        cpos = _vlerp((-8720, 2205, 50), (-8758, 2235, 56), u)
-        look = _vlerp((-8890, 2320, 48), (-8875, 2310, 56), u)
-    elif t < 17.0:
-        u = (t - 11.0) / 6.0
-        cpos = _vlerp((-8645, 2152, 68), (-8595, 2118, 88), u)
-        look = _vlerp((-8925, 2345, 58), (-8910, 2335, 72), u)
-    elif t < 24.0:
-        u = (t - 17.0) / 7.0
-        cpos = _vlerp((-8565, 2095, 76), (-8465, 2025, 162), u)
-        look = _vlerp((-9060, 2375, 96), (-9240, 2420, 205), u)
-    elif t < 27.4:
-        u = (t - 24.0) / 3.4
-        cpos = _vlerp((-8635, 2145, 78), (-8725, 2210, 92), u)
-        look = _vlerp((-8975, 2375, 96), (-9045, 2415, 112), u)
-    elif t < 31.0:
-        u = max(0.0, min(1.0, (t - 27.4) / 3.6))
-        u_orb = 0.72 * u + 0.28 * _smooth(u)
-        deg = -48.0 + 360.0 * u_orb
-        rad = deg * 0.01745329
+    if t < 0.0:
+        t = 0.0
+    if t < 13.5:
+        u = max(0.0, min(1.0, t / 13.5))
+        if u <= 0.56:
+            e = _smooth(u / 0.56)
+            cpos = _linlerp((-12020, -8340, 1020), (-12180, -8020, 860), e)
+            look = _linlerp((-12622, -8850, 740), (-12560, -8350, 660), e)
+        else:
+            e = _smooth((u - 0.56) / 0.44)
+            cpos = _linlerp((-12180, -8020, 860), (-11850, -7640, 800), e)
+            look = _linlerp((-12560, -8350, 660), (-12680, -7680, 640), e)
+    elif t < 32.5:
+        u = max(0.0, min(1.0, (t - 13.5) / 19.0))
+        s = 0.20 * u + 0.80 * _smooth(u)
+        vpos = _lsj_van_pos(s)
+        vfwd = _lsj_van_fwd(s)
+        vright = (vfwd[1], -vfwd[0], 0.0)
+        sway = math.sin(u * 6.2831853)
         cpos = (
-            -9990.0 + math.cos(rad) * 1420.0,
-            3440.0 + math.sin(rad) * 2010.0,
-            450.0 + 150.0 * math.sin(u * 3.1415927),
+            vpos[0] - vfwd[0] * (365.0 - 25.0 * u) + vright[0] * (105.0 * sway + 55.0),
+            vpos[1] - vfwd[1] * (365.0 - 25.0 * u) + vright[1] * (105.0 * sway + 55.0),
+            vpos[2] + 145.0 + 22.0 * math.sin(u * 3.14159265),
         )
-        look = (
-            -9990.0 + math.cos(rad) * 140.0,
-            3440.0 + math.sin(rad) * 200.0,
-            415.0,
-        )
-    elif t < 36.2:
-        u = (t - 31.0) / 5.2
-        cpos = _vlerp((-8860, 2050, 815), (-8920, 2290, 860), u)
-        look = _vlerp((-9565, 2525, 875), (-9565, 2525, 890), u)
-    elif t < 40.5:
-        u = (t - 36.2) / 4.3
-        cpos = _vlerp((-8920, 2290, 860), (-8820, 2090, 835), u)
-        look = _vlerp((-9565, 2525, 890), (-9565, 2525, 885), u)
+        look = (vpos[0] + vfwd[0] * 55.0, vpos[1] + vfwd[1] * 55.0, vpos[2] + 56.0)
+    elif t < 46.5:
+        u = max(0.0, min(1.0, (t - 32.5) / 14.0))
+        if u <= 0.50:
+            e = _smooth(u / 0.50)
+            cpos = _linlerp((2278.7, 2687.2, 708.8), (3110, 2450, 665), e)
+            look = _linlerp((2654.6, 2792.9, 625.8), (2790, 2790, 625), e)
+        else:
+            e = _smooth((u - 0.50) / 0.50)
+            cpos = _linlerp((3110, 2450, 665), (3140, 3080, 690), e)
+            look = (2790, 2790, 625)
     else:
-        u = (t - 40.5) / 7.5
-        cpos = _vlerp((-8985, 2285, 285), (-9050, 2348, 302), u)
-        look = _vlerp((-9485, 2545, 375), (-9505, 2565, 410), u)
+        u_orb = max(0.0, min(1.0, (t - 46.5) / 13.5))
+        deg = 12.0 + 360.0 * (0.15 * u_orb + 0.85 * _smooth(u_orb))
+        rad = deg * 0.0174532925
+        orb_pos = (
+            -3740.0 + math.cos(rad) * 9400.0,
+            1378.0 + math.sin(rad) * 8800.0,
+            2150.0 + 180.0 * math.sin(rad),
+        )
+        blend = _smooth(u_orb / 0.18) if u_orb < 0.18 else 1.0
+        cpos = _linlerp((3140, 3080, 690), orb_pos, blend)
+        look = _linlerp((2790, 2790, 625), (-3740, 1378, 560), blend)
     return _look_angles(cpos, look)
 
 
@@ -377,7 +432,7 @@ def record_demo(compiled_dat: str) -> None:
         "showfps 0\n"
         "cl_showfps 0\n"
         "stopdemo\n"
-        "record intro downtown\n"
+        "record intro little_st_james\n"
     )
 
     cmd = [
@@ -398,7 +453,7 @@ def record_demo(compiled_dat: str) -> None:
         "+stopdemo",
         "+defer", "0.5", "exec zz_intro_rec.cfg",
     ]
-    print("Recording smooth 100Hz 8-Act Movie Showcase intro.dem on downtown (~48.0s) in isolated userdir...")
+    print("Recording Little Saint James 4-Act intro.dem (~60.0s) in isolated userdir...")
     proc = subprocess.Popen(cmd, cwd=ROOT)
     try:
         proc.wait(timeout=240)
@@ -444,23 +499,17 @@ def verify_playback() -> None:
         "cl_showfps 0\n"
         "scr_screenshot_jpeg 0\n"
         "scr_screenshot_png 1\n"
-        'defer 1.1 "screenshot zz_movie_01_act1_fox_marquee_crane.png"\n'
-        'defer 4.4 "screenshot zz_movie_02_act1_white_van_drift_arrival.png"\n'
-        'defer 6.3 "screenshot zz_movie_03_act2_wheelman_barndoors_burnout.png"\n'
-        'defer 9.8 "screenshot zz_movie_04_act2_wheelman_pipejet_wewcannon.png"\n'
-        'defer 12.2 "screenshot zz_movie_05_act3_clowncar_tableflip_laptophead.png"\n'
-        'defer 15.6 "screenshot zz_movie_06_act3_pickle_surprise_bonk_clang.png"\n'
-        'defer 18.4 "screenshot zz_movie_07_act4_supercar_bus_bikes_garand.png"\n'
-        'defer 22.0 "screenshot zz_movie_08_act4_megaman_mbox_johnwave_trashcans.png"\n'
-        'defer 25.5 "screenshot zz_movie_09_act5_hst_milkys_puddle_spinouts.png"\n'
-        'defer 29.2 "screenshot zz_movie_10_act5_fox_360_aerial_orbit.png"\n'
-        'defer 32.4 "screenshot zz_movie_11_act6_tower_50_tornado_reveal.png"\n'
-        'defer 35.2 "screenshot zz_movie_12_act6_tower_50_tornado_peak.png"\n'
-        'defer 37.3 "screenshot zz_movie_13_act7_all50_explode_fireballs_tires.png"\n'
-        'defer 39.0 "screenshot zz_movie_14_act7_spire_megablast_lens_milk.png"\n'
-        'defer 41.8 "screenshot zz_movie_15_act8_burning_fox_wreckedvan_drips.png"\n'
-        'defer 45.6 "screenshot zz_movie_16_act8_floating_dan_wheelman_rob_cccs.png"\n'
-        'defer 48.4 "quit"\n'
+        'defer 2.4 "screenshot zz_lsj_01_act1_temple_milkys_greenmen.png"\n'
+        'defer 11.2 "screenshot zz_lsj_02_act1_temple_van_arrival.png"\n'
+        'defer 16.5 "screenshot zz_lsj_03_act2_van_chase_ridge.png"\n'
+        'defer 24.0 "screenshot zz_lsj_04_act2_van_chase_sundial.png"\n'
+        'defer 30.8 "screenshot zz_lsj_05_act2_van_chase_sportsfield.png"\n'
+        'defer 34.8 "screenshot zz_lsj_06_act3_pileout_doors.png"\n'
+        'defer 41.2 "screenshot zz_lsj_07_act3_all_cast_jumping_shooting.png"\n'
+        'defer 49.0 "screenshot zz_lsj_08_act4_orbit_north.png"\n'
+        'defer 53.5 "screenshot zz_lsj_09_act4_orbit_west_temple.png"\n'
+        'defer 58.0 "screenshot zz_lsj_10_act4_orbit_south.png"\n'
+        'defer 60.5 "quit"\n'
     )
     cmd = [
         DARKPLACES,
@@ -479,7 +528,7 @@ def verify_playback() -> None:
         "+log_file", "zz_intro_play.log",
         "+defer", "0.3", "exec zz_verify_shots.cfg",
     ]
-    print("Verifying bare startup (`startdemos intro`) on downtown in isolated userdir + capturing 16 HD screenshots...")
+    print("Verifying bare startup (`startdemos intro`) on little_st_james in isolated userdir + capturing 10 HD screenshots...")
     proc = subprocess.Popen(cmd, cwd=ROOT)
     try:
         proc.wait(timeout=240)
@@ -490,7 +539,7 @@ def verify_playback() -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
 
-    shots = sorted(glob.glob(os.path.join(ud_bk, "zz_movie_*")) + glob.glob(os.path.join(ud_bk, "screenshots", "zz_movie_*")))
+    shots = sorted(glob.glob(os.path.join(ud_bk, "zz_lsj_*")) + glob.glob(os.path.join(ud_bk, "screenshots", "zz_lsj_*")))
     print(f"Captured {len(shots)} screenshots:")
     for s in shots:
         print(" ", s)

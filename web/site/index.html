@@ -6,52 +6,463 @@
 <title>Bakersfield Quake</title>
 <style>
 	:root {
-		--bg: #120d09; --panel: #1f1710; --line: #4a3622; --text: #e9dcc8; --dim: #a8957c;
-		--accent: #d9822b; --accent-hi: #f3a24b; --bad: #e0574a;
+		--bg: #120b07;
+		--panel: #1c140e;
+		--panel-deep: #0c0805;
+		--line: #4f3924;
+		--bevel-hi: #9e7443;
+		--bevel-lo: #24160a;
+		--text: #efe1cb;
+		--dim: #b49d80;
+		--accent: #e0862b;
+		--accent-hi: #ffae4d;
+		--gold: #ffd45a;
+		--good: #7bd868;
+		--bad: #e85d4f;
+		--mono: ui-monospace, "Cascadia Mono", "Consolas", "Courier New", monospace;
 	}
 	* { box-sizing: border-box; }
-	html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-		font: 16px/1.4 "Trebuchet MS", Verdana, sans-serif; }
-	#canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: #000; outline: none; }
-	#lobby { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
-		background: radial-gradient(ellipse at 50% 30%, #2b1d12 0%, var(--bg) 70%); z-index: 2; }
-	.card { width: 100%; max-width: 440px; background: var(--panel); border: 2px solid var(--line);
-		box-shadow: 0 0 0 4px #0008, 0 20px 60px #000c; padding: 28px 24px; }
-	h1 { margin: 0 0 4px; font: 900 34px/1 Impact, "Arial Black", sans-serif; letter-spacing: 2px;
-		color: var(--accent); text-transform: uppercase; text-shadow: 3px 3px 0 #000; }
-	.sub { margin: 0 0 22px; color: var(--dim); font-size: 14px; }
-	label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
-	input { width: 100%; font: inherit; font-size: 20px; padding: 10px 12px; background: #0d0906; color: var(--text);
-		border: 2px solid var(--line); outline: none; }
-	input:focus { border-color: var(--accent); }
-	button { margin-top: 18px; width: 100%; font: 900 26px/1 Impact, "Arial Black", sans-serif; letter-spacing: 3px;
-		padding: 16px; color: #1a0f05; background: var(--accent); border: 0; cursor: pointer; text-transform: uppercase; }
-	button:hover:not(:disabled) { background: var(--accent-hi); }
-	button:disabled { background: #5a4630; color: #2a1d10; cursor: wait; }
-	.bar { margin-top: 20px; height: 10px; background: #0d0906; border: 1px solid var(--line); }
-	.bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
-	#status { margin-top: 8px; font-size: 13px; color: var(--dim); min-height: 1.4em; }
-	#status.bad { color: var(--bad); }
-	.help { margin-top: 18px; font-size: 13px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 14px; }
+	html, body {
+		margin: 0; height: 100%; background: var(--bg); color: var(--text);
+		font: 15px/1.4 "Trebuchet MS", Verdana, sans-serif;
+	}
+	#canvas {
+		position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
+		background: #000; outline: none;
+	}
+	#lobby {
+		position: fixed; inset: 0; z-index: 2; overflow-y: auto;
+		display: flex; padding: 14px;
+		background:
+			radial-gradient(ellipse at 50% 35%, rgba(92, 46, 14, 0.34) 0%, rgba(12, 7, 4, 0.88) 72%),
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='48' viewBox='0 0 96 48'%3E%3Crect width='96' height='48' fill='%23120b07'/%3E%3Cpath d='M0 0h46v22H0zM48 0h46v22H48zM-24 24h46v22h-46zM24 24h46v22H24zM72 24h46v22H72z' fill='%2319100a' stroke='%230b0603' stroke-width='2'/%3E%3C/svg%3E");
+	}
+	#lobby::after {
+		content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 3;
+		background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
+	}
+	#bg-embers {
+		position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
+	}
+
+	.card {
+		position: relative; z-index: 1; margin: auto;
+		width: 100%; max-width: 576px;
+		background: linear-gradient(180deg, #231810 0%, #17100a 100%);
+		border: 3px solid; border-color: var(--bevel-hi) var(--bevel-lo) var(--bevel-lo) var(--bevel-hi);
+		box-shadow: 0 0 0 2px #000, 0 24px 70px rgba(0, 0, 0, 0.92), inset 0 0 28px rgba(0, 0, 0, 0.55);
+		padding: 16px 18px 14px;
+	}
+
+	/* ---- Hero banner with torches & Bakersfield Sign ---- */
+	.hero {
+		display: grid; grid-template-columns: 38px 1fr 38px; align-items: center; gap: 10px;
+		padding: 8px 10px;
+		background: linear-gradient(180deg, #2b1b0f 0%, #140c06 100%);
+		border: 2px solid; border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo);
+	}
+	.torch {
+		width: 36px; height: 64px; justify-self: center;
+		image-rendering: pixelated; image-rendering: crisp-edges;
+	}
+	.hero-mid { text-align: center; min-width: 0; }
+	.sign-arch { display: block; width: 152px; height: 26px; margin: 0 auto 2px; }
+	h1 {
+		margin: 0;
+		font: 900 clamp(25px, 5.2vw, 35px)/1 Impact, "Arial Black", sans-serif;
+		letter-spacing: 2px; text-transform: uppercase;
+		background: linear-gradient(180deg, #fff2bf 0%, #f5b449 48%, #c96818 100%);
+		-webkit-background-clip: text; background-clip: text; color: transparent;
+		filter: drop-shadow(2px 2px 0 #000) drop-shadow(0 0 10px rgba(224, 134, 43, 0.35));
+	}
+	.sub-row {
+		margin-top: 4px; display: flex; align-items: center; justify-content: center;
+		flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--dim);
+	}
+	.srv-pill {
+		font: 700 10px/1 var(--mono); letter-spacing: 0.8px; text-transform: uppercase;
+		padding: 3px 6px; border: 1px solid #6b4c2b; background: #120b06; color: var(--gold);
+	}
+
+	/* ---- Quake-style scrolling ticker ---- */
+	.ticker {
+		margin-top: 10px; overflow: hidden;
+		background: #090603; border: 1px solid var(--line);
+		padding: 4px 0;
+	}
+	.ticker-track {
+		display: flex; width: max-content;
+		font: 700 11px/1.1 var(--mono); letter-spacing: 0.7px; color: var(--accent-hi);
+		text-shadow: 0 0 6px rgba(255, 138, 26, 0.35);
+		animation: marq 38s linear infinite;
+	}
+	.ticker-track span { padding-right: 3em; white-space: nowrap; }
+	@keyframes marq { to { transform: translateX(-50%); } }
+
+	/* ---- Name + Play row ---- */
+	.join-row {
+		margin-top: 12px; display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; align-items: end;
+	}
+	.field label {
+		display: block; font: 700 11px/1 var(--mono); color: var(--dim);
+		margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;
+	}
+	.name-wrap {
+		display: flex; align-items: center;
+		background: var(--panel-deep);
+		border: 2px solid; border-color: var(--bevel-lo) var(--line) var(--line) var(--bevel-lo);
+		padding: 0 10px;
+	}
+	.name-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(224, 134, 43, 0.35); }
+	.prompt-mark { font: 700 18px/1 var(--mono); color: var(--accent); margin-right: 7px; user-select: none; }
+	input#name {
+		width: 100%; border: 0; background: transparent; color: var(--text);
+		font: 700 18px/1.2 "Trebuchet MS", Verdana, sans-serif; padding: 9px 0; outline: none;
+	}
+	button#play {
+		position: relative; overflow: hidden; height: 44px; width: 100%;
+		font: 900 22px/1 Impact, "Arial Black", sans-serif; letter-spacing: 2.5px;
+		text-transform: uppercase; cursor: pointer;
+		border: 2px solid; border-color: #ffd388 #6e3a0c #6e3a0c #ffd388;
+		background: linear-gradient(180deg, #f09b38 0%, #c86716 100%);
+		color: #1a0d04; text-shadow: 0 1px 0 rgba(255, 232, 185, 0.4);
+		transition: transform .08s, filter .15s;
+	}
+	button#play:hover:not(:disabled) { filter: brightness(1.1); }
+	button#play:active:not(:disabled) { transform: translateY(1px); }
+	button#play.ready-pulse {
+		box-shadow: 0 0 16px rgba(240, 155, 56, 0.45);
+		animation: readyGlow 1.8s ease-in-out infinite alternate;
+	}
+	@keyframes readyGlow {
+		from { box-shadow: 0 0 10px rgba(240, 155, 56, 0.3); }
+		to { box-shadow: 0 0 22px rgba(255, 200, 90, 0.65); }
+	}
+	button#play:disabled {
+		cursor: wait;
+		border-color: #5c452d #25190e #25190e #5c452d;
+		background: #35271a; color: #c7b194; text-shadow: 1px 1px 0 #000;
+	}
+	button#play .btn-prog {
+		position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+		background: linear-gradient(90deg, rgba(224, 134, 43, 0.28), rgba(243, 162, 75, 0.42));
+		pointer-events: none; transition: width .2s;
+	}
+	button#play .btn-label { position: relative; z-index: 1; }
+
+	/* ---- Speed MB/s Meter & Download Telemetry ---- */
+	.telemetry {
+		margin-top: 12px; padding: 11px 12px 10px;
+		background: var(--panel-deep);
+		border: 2px solid; border-color: var(--bevel-lo) var(--bevel-hi) var(--bevel-hi) var(--bevel-lo);
+	}
+	.tele-grid {
+		display: grid; grid-template-columns: 1.05fr 1fr; gap: 12px; align-items: center;
+	}
+	.meter-box { display: flex; align-items: center; gap: 10px; }
+	.gauge-svg { width: 108px; height: 64px; flex: 0 0 auto; overflow: visible; }
+	.gauge-bg { fill: none; stroke: #281c12; stroke-width: 9; stroke-linecap: round; }
+	.gauge-arc {
+		fill: none; stroke: url(#gaugeGrad); stroke-width: 9; stroke-linecap: round;
+		transition: stroke-dashoffset .18s ease-out;
+	}
+	.gauge-ticks text {
+		fill: #7d674d; font: 700 8px/1 var(--mono); text-anchor: middle;
+	}
+	.gauge-needle {
+		transform-origin: 54px 56px;
+		transition: transform .18s ease-out;
+	}
+	.speed-readout { min-width: 0; }
+	.speed-val-row { display: flex; align-items: baseline; gap: 5px; }
+	#speed-num {
+		font: 900 26px/1 var(--mono); color: var(--gold);
+		font-variant-numeric: tabular-nums;
+		text-shadow: 0 0 10px rgba(255, 212, 90, 0.25);
+	}
+	.speed-unit { font: 700 12px/1 var(--mono); color: var(--accent); letter-spacing: 0.5px; }
+	.speed-sub {
+		margin-top: 4px; font: 11px/1.35 var(--mono); color: var(--dim);
+		font-variant-numeric: tabular-nums;
+	}
+	.speed-sub b { color: var(--text); font-weight: 700; }
+
+	.spark-box { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+	.spark-head {
+		display: flex; justify-content: space-between; align-items: center; gap: 6px;
+		font: 700 11px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums;
+	}
+	.src-badge {
+		padding: 2px 6px; font: 700 10px/1 var(--mono); letter-spacing: 0.8px;
+		border: 1px solid #593e22; background: #1f160e; color: var(--accent-hi);
+	}
+	.src-badge.cache { color: #7be0ff; border-color: #2f697d; background: #0d1d24; }
+	.src-badge.ready { color: var(--good); border-color: #3e6f33; background: #11210e; }
+	.src-badge.bad { color: var(--bad); border-color: #7d322c; background: #26100e; }
+	#sparkline {
+		width: 100%; height: 42px; display: block;
+		background: #070402; border: 1px solid #352516;
+	}
+
+	.bar-row {
+		margin-top: 9px; display: flex; align-items: center; gap: 9px;
+	}
+	.bar {
+		position: relative; flex: 1; height: 14px; background: #060402;
+		border: 1px solid var(--line); overflow: hidden;
+	}
+	.bar > #fill {
+		height: 100%; width: 0%;
+		background: repeating-linear-gradient(
+			-55deg,
+			#e0862b 0px, #e0862b 10px,
+			#f5a94c 10px, #f5a94c 20px
+		);
+		background-size: 28px 100%;
+		transition: width .18s;
+	}
+	.bar.active > #fill { animation: barMove .9s linear infinite; }
+	@keyframes barMove { from { background-position: 0 0; } to { background-position: 28px 0; } }
+	.bar-pct {
+		flex: 0 0 46px; text-align: right;
+		font: 700 12px/1 var(--mono); color: var(--gold); font-variant-numeric: tabular-nums;
+	}
+
+	#status {
+		margin-top: 7px; font: 12px/1.35 var(--mono); color: var(--dim);
+		min-height: 1.35em; word-break: break-word;
+	}
+	#status.bad { color: var(--bad); font-weight: 700; }
+
+	/* ---- Interactive Waiting Bay (Warmup / Intel / Files) ---- */
+	.bay {
+		margin-top: 11px;
+		background: var(--panel-deep);
+		border: 2px solid; border-color: var(--bevel-lo) var(--line) var(--line) var(--bevel-lo);
+	}
+	.bay-tabs {
+		display: flex; align-items: center; justify-content: space-between;
+		background: #17100a; border-bottom: 1px solid var(--line); padding: 0 6px;
+	}
+	.tab-btns { display: flex; gap: 2px; }
+	.tab-btn {
+		background: transparent; border: 0; border-bottom: 2px solid transparent;
+		color: var(--dim); padding: 6px 9px; cursor: pointer;
+		font: 700 11px/1 var(--mono); letter-spacing: 0.7px; text-transform: uppercase;
+	}
+	.tab-btn:hover { color: var(--text); }
+	.tab-btn.active { color: var(--gold); border-bottom-color: var(--accent); background: #1f160e; }
+	.bay-meta {
+		display: flex; align-items: center; gap: 8px;
+		font: 700 10px/1 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums;
+	}
+	.sfx-btn {
+		background: #241910; border: 1px solid var(--line); color: var(--dim);
+		padding: 2px 6px; cursor: pointer; font: 700 10px/1 var(--mono);
+	}
+	.sfx-btn.on { color: var(--gold); border-color: var(--accent); }
+
+	.bay-pane { display: none; padding: 8px; }
+	.bay-pane.active { display: block; }
+
+	#warmup-canvas {
+		width: 100%; height: 74px; display: block; cursor: crosshair;
+		background: radial-gradient(circle at 50% 50%, #1a110a 0%, #090603 100%);
+		border: 1px solid #352516;
+	}
+	.intel-box {
+		min-height: 74px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+		padding: 4px 6px;
+	}
+	.intel-tag {
+		display: inline-block; font: 700 10px/1 var(--mono); color: var(--accent-hi);
+		text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;
+	}
+	.intel-text { font-size: 13px; line-height: 1.38; color: var(--text); margin: 0; }
+	.intel-foot {
+		display: flex; justify-content: space-between; align-items: center;
+		font: 11px/1 var(--mono); color: var(--dim);
+	}
+	.mini-btn {
+		background: #261b11; border: 1px solid var(--line); color: var(--text);
+		padding: 3px 8px; cursor: pointer; font: 700 10px/1 var(--mono); text-transform: uppercase;
+	}
+	.mini-btn:hover { border-color: var(--accent); color: var(--gold); }
+
+	.file-list {
+		height: 74px; overflow-y: auto; font: 11px/1.45 var(--mono);
+		padding-right: 4px;
+	}
+	.file-row {
+		display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center;
+		padding: 2px 4px; border-bottom: 1px dotted #291c11;
+	}
+	.file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+	.file-sz { color: var(--dim); font-variant-numeric: tabular-nums; }
+	.file-st { font-weight: 700; font-size: 10px; padding: 1px 5px; border: 1px solid #3c2b1a; color: var(--dim); }
+	.file-st.done { color: var(--good); border-color: #365f2c; }
+	.file-st.cache { color: #7be0ff; border-color: #2f697d; }
+	.file-st.now { color: var(--gold); border-color: var(--accent); }
+
+	.help {
+		margin-top: 10px; font-size: 12px; color: var(--dim);
+		border-top: 1px solid var(--line); padding-top: 9px; line-height: 1.5;
+	}
 	.help b { color: var(--text); }
+	kbd {
+		display: inline-block; padding: 1px 5px; font: 700 11px/1.2 var(--mono);
+		color: var(--gold); background: #120b06; border: 1px solid #5c4228;
+		box-shadow: inset 0 -1px 0 #000;
+	}
+
 	body.playing #lobby { display: none; }
+
+	@media (max-width: 520px) {
+		.card { padding: 12px; }
+		.hero { grid-template-columns: 28px 1fr 28px; gap: 6px; }
+		.torch { width: 28px; height: 50px; }
+		.join-row, .tele-grid { grid-template-columns: 1fr; }
+		.bay-meta .hide-sm { display: none; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.ticker-track, .bar.active > #fill, button#play.ready-pulse { animation: none; }
+	}
 </style>
 </head>
 <body>
 <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
 
 <div id="lobby">
+	<canvas id="bg-embers" aria-hidden="true"></canvas>
 	<div class="card">
-		<h1>Bakersfield Quake</h1>
-		<p class="sub" id="where">LAN server</p>
-		<label for="name">Your name</label>
-		<input id="name" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Player">
-		<button id="play" disabled>Loading…</button>
-		<div class="bar"><div id="fill"></div></div>
-		<div id="status">Starting…</div>
+		<div class="hero">
+			<canvas class="torch" data-torch width="24" height="44" aria-hidden="true"></canvas>
+			<div class="hero-mid">
+				<svg class="sign-arch" viewBox="0 0 240 42" aria-hidden="true">
+					<path d="M14 36 Q120 4 226 36" fill="none" stroke="#8a5a22" stroke-width="6" stroke-linecap="round"/>
+					<path d="M14 36 Q120 4 226 36" fill="none" stroke="#ffd45a" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+					<g id="arch-bulbs"></g>
+				</svg>
+				<h1>Bakersfield Quake</h1>
+				<div class="sub-row">
+					<span id="where">LAN server</span>
+					<span class="srv-pill" id="mode-pill">WEBGL2 CLIENT</span>
+				</div>
+			</div>
+			<canvas class="torch" data-torch width="24" height="44" aria-hidden="true"></canvas>
+		</div>
+
+		<div class="ticker" aria-hidden="true">
+			<div class="ticker-track">
+				<span>*** WELCOME TO BAKERSFIELD QUAKE *** JETPACKS AT EVERY YELLOW ARMOR *** DO NOT PICK UP THE PICKLE *** HOLD FIRE ON WEW CANNON TO BEND THE BARREL *** PRESS F11 FOR FULLSCREEN ***</span>
+				<span>*** WELCOME TO BAKERSFIELD QUAKE *** JETPACKS AT EVERY YELLOW ARMOR *** DO NOT PICK UP THE PICKLE *** HOLD FIRE ON WEW CANNON TO BEND THE BARREL *** PRESS F11 FOR FULLSCREEN ***</span>
+			</div>
+		</div>
+
+		<div class="join-row">
+			<div class="field">
+				<label for="name">Callsign</label>
+				<div class="name-wrap">
+					<span class="prompt-mark">]</span>
+					<input id="name" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Player">
+				</div>
+			</div>
+			<button id="play" disabled><span class="btn-prog" id="btn-prog"></span><span class="btn-label" id="btn-label">Loading…</span></button>
+		</div>
+
+		<div class="telemetry">
+			<div class="tele-grid">
+				<div class="meter-box">
+					<svg class="gauge-svg" viewBox="0 0 108 64" aria-label="Download speed meter">
+						<defs>
+							<linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+								<stop offset="0%" stop-color="#c96818"/>
+								<stop offset="60%" stop-color="#f5a94c"/>
+								<stop offset="100%" stop-color="#ffe074"/>
+							</linearGradient>
+						</defs>
+						<path class="gauge-bg" d="M 12 56 A 42 42 0 0 1 96 56"/>
+						<path id="gauge-arc" class="gauge-arc" d="M 12 56 A 42 42 0 0 1 96 56" stroke-dasharray="131.95" stroke-dashoffset="131.95"/>
+						<g class="gauge-ticks">
+							<text x="10" y="63">0</text>
+							<text x="54" y="10" id="gauge-mid">25</text>
+							<text x="97" y="63" id="gauge-max">50</text>
+						</g>
+						<g id="gauge-needle" class="gauge-needle" transform="rotate(-90 54 56)">
+							<line x1="54" y1="56" x2="54" y2="20" stroke="#ffd45a" stroke-width="2.2" stroke-linecap="round"/>
+							<circle cx="54" cy="56" r="4.5" fill="#e0862b" stroke="#000" stroke-width="1.2"/>
+						</g>
+					</svg>
+					<div class="speed-readout">
+						<div class="speed-val-row">
+							<span id="speed-num">0.0</span>
+							<span class="speed-unit">MB/s</span>
+						</div>
+						<div class="speed-sub">
+							PEAK <b id="speed-peak">0.0</b> · ETA <b id="eta-val">--</b>
+						</div>
+					</div>
+				</div>
+
+				<div class="spark-box">
+					<div class="spark-head">
+						<span class="src-badge" id="src-badge">INIT</span>
+						<span id="bytes-counter">0 / 0 MB</span>
+					</div>
+					<canvas id="sparkline" width="220" height="42" aria-hidden="true"></canvas>
+				</div>
+			</div>
+
+			<div class="bar-row">
+				<div class="bar active" id="bar"><div id="fill"></div></div>
+				<div class="bar-pct" id="pct">0.0%</div>
+			</div>
+			<div id="status">Starting…</div>
+		</div>
+
+		<div class="bay">
+			<div class="bay-tabs">
+				<div class="tab-btns" role="tablist">
+					<button type="button" class="tab-btn active" data-tab="warmup" role="tab">Warmup</button>
+					<button type="button" class="tab-btn" data-tab="intel" role="tab">Field Intel</button>
+					<button type="button" class="tab-btn" data-tab="files" role="tab">Files</button>
+				</div>
+				<div class="bay-meta">
+					<span id="warmup-score">HITS 0 · STREAK 0</span>
+					<button type="button" class="sfx-btn on" id="sfx-toggle" title="Toggle warmup hit sounds">SFX ON</button>
+				</div>
+			</div>
+
+			<div class="bay-pane active" id="pane-warmup">
+				<canvas id="warmup-canvas" width="520" height="74" title="Click targets while the game loads"></canvas>
+			</div>
+
+			<div class="bay-pane" id="pane-intel">
+				<div class="intel-box">
+					<div>
+						<div class="intel-tag" id="intel-tag">ARSENAL</div>
+						<p class="intel-text" id="intel-text"></p>
+					</div>
+					<div class="intel-foot">
+						<span id="intel-idx">1 / 8</span>
+						<div>
+							<button type="button" class="mini-btn" id="intel-prev">Prev</button>
+							<button type="button" class="mini-btn" id="intel-next">Next</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="bay-pane" id="pane-files">
+				<div class="file-list" id="file-list">
+					<div class="file-row"><span class="file-name">Waiting for manifest.json…</span><span class="file-sz">--</span><span class="file-st">INIT</span></div>
+				</div>
+			</div>
+		</div>
+
 		<div class="help">
-			Click the game to grab the mouse. <b>Esc</b> lets go of it.<br>
-			<b>F11</b> or the PLAY button goes full screen. Works in Chrome, Edge, Firefox and Safari.
+			Click the game to grab the mouse. <kbd>Esc</kbd> lets go of it.
+			<kbd>F11</kbd> or <b>PLAY</b> goes full screen. Chrome, Edge, Firefox &amp; Safari.
 		</div>
 	</div>
 </div>
@@ -61,28 +472,349 @@
 	'use strict';
 	var params = new URLSearchParams(location.search);
 	var DEBUG = params.has('debug');
+	var CALM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	var MB = 1048576;
 	var $ = function (id) { return document.getElementById(id); };
-	var nameBox = $('name'), playBtn = $('play'), fill = $('fill'), statusEl = $('status');
+
+	var nameBox = $('name'), playBtn = $('play'), btnProg = $('btn-prog'), btnLabel = $('btn-label');
+	var canvas = $('canvas');
+	var fill = $('fill'), barEl = $('bar'), pctEl = $('pct'), statusEl = $('status');
+	var speedNumEl = $('speed-num'), speedPeakEl = $('speed-peak'), etaEl = $('eta-val');
+	var srcBadgeEl = $('src-badge'), bytesCounterEl = $('bytes-counter');
+	var gaugeArc = $('gauge-arc'), gaugeNeedle = $('gauge-needle'), gaugeMid = $('gauge-mid'), gaugeMaxEl = $('gauge-max');
+	var sparkCanvas = $('sparkline'), sparkCtx = sparkCanvas.getContext('2d');
+	var fileListEl = $('file-list');
+
 	var gameFiles = null, manifest = null, wantPlay = false, started = false, died = false;
+	var lobbyAlive = true;
+
+	// Safari / Chrome autoplay policy: track WebAudio contexts created asynchronously by Emscripten and resume on user gesture
+	var audioCtxs = [];
+	var OrigAudioCtx = window.AudioContext || window.webkitAudioContext;
+	if (OrigAudioCtx) {
+		var WrappedAudioCtx = function () {
+			var ctx = arguments.length ? new OrigAudioCtx(arguments[0]) : new OrigAudioCtx();
+			audioCtxs.push(ctx);
+			return ctx;
+		};
+		WrappedAudioCtx.prototype = OrigAudioCtx.prototype;
+		try { Object.setPrototypeOf(WrappedAudioCtx, OrigAudioCtx); } catch (e) { }
+		window.AudioContext = WrappedAudioCtx;
+		if (window.webkitAudioContext) window.webkitAudioContext = WrappedAudioCtx;
+	}
+	function unlockAudio() {
+		for (var i = 0; i < audioCtxs.length; i++) {
+			try { if (audioCtxs[i] && audioCtxs[i].state === 'suspended') audioCtxs[i].resume().catch(function () { }); } catch (e) { }
+		}
+	}
+
 	// "Rejoin" after a crash reloads the page with this flag: play starts again as soon as the files are read
 	try { if (sessionStorage.getItem('bako_rejoin')) { sessionStorage.removeItem('bako_rejoin'); wantPlay = true; } } catch (e) { }
 
+	function setBtnText(txt) { btnLabel.textContent = txt; }
 	function status(text, bad) { statusEl.textContent = text; statusEl.className = bad ? 'bad' : ''; }
-	function mb(n) { return (n / 1048576).toFixed(0) + ' MB'; }
+	function mb(n) { return (n / MB).toFixed(0) + ' MB'; }
+	function fmtEta(sec) {
+		if (!isFinite(sec) || sec <= 0 || sec > 36000) return '--';
+		sec = Math.ceil(sec);
+		if (sec < 60) return sec + 's';
+		var m = Math.floor(sec / 60), s = sec % 60;
+		return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+	}
 	function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 	function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
 
 	var server = params.get('server') || location.hostname + ':26000';
 	var offlineMap = params.get('map');
 	$('where').textContent = offlineMap ? 'Offline test: map ' + offlineMap : 'Server ' + location.host;
+	$('mode-pill').textContent = offlineMap ? 'OFFLINE TEST' : (DEBUG ? 'DEBUG MODE' : 'LAN PARTY');
 	nameBox.value = safeGet('bako_name') || '';
+
+	// ---- Lobby Atmosphere: Arch Bulbs, DOOM Torches, Floating Embers
+	(function initArchBulbs() {
+		var g = $('arch-bulbs');
+		if (!g) return;
+		var bulbs = [];
+		for (var i = 0; i <= 14; i++) {
+			var t = i / 14;
+			var x = (1 - t) * (1 - t) * 14 + 2 * (1 - t) * t * 120 + t * t * 226;
+			var y = (1 - t) * (1 - t) * 36 + 2 * (1 - t) * t * 4 + t * t * 36;
+			var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+			c.setAttribute('cx', x.toFixed(1));
+			c.setAttribute('cy', y.toFixed(1));
+			c.setAttribute('r', '2.3');
+			g.appendChild(c);
+			bulbs.push(c);
+		}
+		var phase = 0;
+		function tickBulbs() {
+			if (!lobbyAlive) return;
+			for (var i = 0; i < bulbs.length; i++) {
+				var on = (i + phase) % 3 === 0;
+				bulbs[i].setAttribute('fill', on ? '#fff3b0' : '#6e4f16');
+			}
+			phase++;
+		}
+		tickBulbs();
+		if (!CALM) setInterval(tickBulbs, 420);
+	})();
+
+	(function initTorches() {
+		var PAL = [];
+		var stops = [[0, 0, 0, 0], [0.2, 100, 12, 0], [0.45, 220, 58, 6], [0.68, 255, 142, 14], [0.85, 255, 218, 75], [1, 255, 255, 225]];
+		for (var i = 0; i < 36; i++) {
+			var t = i / 35, k = 1;
+			while (k < stops.length - 1 && stops[k][0] < t) k++;
+			var a = stops[k - 1], b = stops[k], u = (t - a[0]) / (b[0] - a[0] || 1);
+			PAL.push([Math.round(a[1] + (b[1] - a[1]) * u), Math.round(a[2] + (b[2] - a[2]) * u), Math.round(a[3] + (b[3] - a[3]) * u)]);
+		}
+		var canvases = document.querySelectorAll('[data-torch]');
+		var torchStates = [];
+		for (var c = 0; c < canvases.length; c++) {
+			var cv = canvases[c];
+			var ctx = cv.getContext('2d');
+			torchStates.push({ w: cv.width, h: cv.height, ctx: ctx, img: ctx.createImageData(cv.width, cv.height), heat: new Uint8Array(cv.width * cv.height) });
+		}
+		function stepTorch(st) {
+			var w = st.w, h = st.h, heat = st.heat, px = st.img.data, MAX = PAL.length - 1;
+			for (var x = 0; x < w; x++) {
+				heat[(h - 1) * w + x] = Math.abs(x - w / 2) < w * 0.25 ? MAX - ((Math.random() * 5) | 0) : 0;
+			}
+			for (var y = 0; y < h - 1; y++) {
+				for (var x2 = 0; x2 < w; x2++) {
+					var r = (Math.random() * 3) | 0;
+					var src = (y + 1) * w + Math.min(w - 1, Math.max(0, x2 - r + 1));
+					var decay = (Math.random() * 3) | 0;
+					heat[y * w + x2] = Math.max(0, heat[src] - (decay & 1) - (Math.random() < 0.25 ? 1 : 0));
+				}
+			}
+			for (var i = 0; i < w * h; i++) {
+				var col = PAL[heat[i]], o = i * 4;
+				px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = heat[i] < 2 ? 0 : 255;
+			}
+			// bronze torch bowl
+			var bowl = [[14, 2], [12, 3], [10, 4], [8, 5]];
+			for (var j = 0; j < bowl.length; j++) {
+				var yy = h - bowl.length + j, half = bowl[j][0] / 2, shade = j === 0 ? 1 : 0.62;
+				for (var xx = Math.floor(w / 2 - half); xx < w / 2 + half; xx++) {
+					var o2 = (yy * w + xx) * 4;
+					px[o2] = 210 * shade; px[o2 + 1] = 135 * shade; px[o2 + 2] = 44 * shade; px[o2 + 3] = 255;
+				}
+			}
+			st.ctx.putImageData(st.img, 0, 0);
+		}
+		for (var w = 0; w < 24; w++) torchStates.forEach(stepTorch);
+		if (!CALM) setInterval(function () { if (lobbyAlive) torchStates.forEach(stepTorch); }, 75);
+	})();
+
+	(function initEmbers() {
+		if (CALM) return;
+		var cv = $('bg-embers'), ctx = cv.getContext('2d');
+		var sparks = [];
+		function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
+		resize();
+		window.addEventListener('resize', resize);
+		for (var i = 0; i < 26; i++) {
+			sparks.push({
+				x: Math.random() * cv.width, y: Math.random() * cv.height,
+				vy: 0.35 + Math.random() * 0.75, vx: (Math.random() - 0.5) * 0.35,
+				sz: 1.5 + Math.random() * 2, a: 0.2 + Math.random() * 0.5
+			});
+		}
+		var lastT = 0;
+		function frame(ts) {
+			if (lobbyAlive && ts - lastT > 32) {
+				lastT = ts;
+				ctx.clearRect(0, 0, cv.width, cv.height);
+				for (var i = 0; i < sparks.length; i++) {
+					var s = sparks[i];
+					s.y -= s.vy; s.x += s.vx + Math.sin(ts * 0.001 + i) * 0.15;
+					if (s.y < -10) { s.y = cv.height + 10; s.x = Math.random() * cv.width; }
+					ctx.fillStyle = 'rgba(255, 168, 64, ' + s.a.toFixed(2) + ')';
+					ctx.fillRect(s.x | 0, s.y | 0, s.sz, s.sz);
+				}
+			}
+			requestAnimationFrame(frame);
+		}
+		requestAnimationFrame(frame);
+	})();
+
+	// ---- Interactive Waiting Bay (Tabs, Field Intel, Warmup Range)
+	(function initBay() {
+		var tabBtns = document.querySelectorAll('.tab-btn');
+		var panes = { warmup: $('pane-warmup'), intel: $('pane-intel'), files: $('pane-files') };
+		for (var i = 0; i < tabBtns.length; i++) {
+			tabBtns[i].addEventListener('click', function () {
+				var target = this.getAttribute('data-tab');
+				for (var j = 0; j < tabBtns.length; j++) tabBtns[j].classList.toggle('active', tabBtns[j] === this);
+				Object.keys(panes).forEach(function (k) { panes[k].classList.toggle('active', k === target); });
+			});
+		}
+
+		// Field Intel rotation
+		var tips = [
+			['WEW CANNON (KEY G)', 'Hold fire to bend the barrel 58 degrees and launch Survivor Wheelman across the arena.'],
+			['PINK LADY (KEY 5)', 'Fires a homing Pink Lady sprite that chases rivals and whites out their screen in milk.'],
+			['PICKLE SURPRISE (KEY X)', 'Drops a screaming pickle trap. Rule #1 of Bakersfield Quake: do not pick up the pickle.'],
+			['MEGA MAN (KEY 9)', 'Boat-motor headcrab launcher. Try grabbing a Jetpack at any Yellow Armor for aerial duels.'],
+			['MAPS IN ROTATION', 'Fight through soi6, soicowboy_bkk, and bakersfielddowntown. Votes change the next round.'],
+			['BROWSER CACHE', 'Game files save into IndexedDB in your browser — future visits skip downloading and boot fast.'],
+			['CONTROLS & MOUSE', 'Click inside the arena to lock your mouse. Press Esc anytime to release it, or F11 for fullscreen.'],
+			['LOW ON MEMORY?', 'Each browser tab holds ~2 GB for the full mod. Closing other heavy tabs keeps WebGL2 rock solid.']
+		];
+		var tipIdx = 0;
+		function renderTip() {
+			$('intel-tag').textContent = tips[tipIdx][0];
+			$('intel-text').textContent = tips[tipIdx][1];
+			$('intel-idx').textContent = (tipIdx + 1) + ' / ' + tips.length;
+		}
+		renderTip();
+		$('intel-prev').addEventListener('click', function () { tipIdx = (tipIdx - 1 + tips.length) % tips.length; renderTip(); });
+		$('intel-next').addEventListener('click', function () { tipIdx = (tipIdx + 1) % tips.length; renderTip(); });
+		setInterval(function () { if (lobbyAlive) { tipIdx = (tipIdx + 1) % tips.length; renderTip(); } }, 7500);
+
+		// Warmup Mini-Target Range
+		var cv = $('warmup-canvas'), ctx = cv.getContext('2d');
+		var sfxOn = true, sfxBtn = $('sfx-toggle'), scoreEl = $('warmup-score');
+		var hits = 0, streak = 0, shots = 0;
+		var sfxCtx = null;
+		sfxBtn.addEventListener('click', function () {
+			sfxOn = !sfxOn;
+			sfxBtn.textContent = sfxOn ? 'SFX ON' : 'SFX OFF';
+			sfxBtn.classList.toggle('on', sfxOn);
+		});
+		function playHitSound(good) {
+			if (!sfxOn || !OrigAudioCtx) return;
+			try {
+				if (!sfxCtx) sfxCtx = new OrigAudioCtx();
+				if (sfxCtx.state === 'suspended') sfxCtx.resume();
+				var osc = sfxCtx.createOscillator(), g = sfxCtx.createGain();
+				osc.type = good ? 'square' : 'sawtooth';
+				osc.frequency.setValueAtTime(good ? 520 : 140, sfxCtx.currentTime);
+				osc.frequency.exponentialRampToValueAtTime(good ? 980 : 75, sfxCtx.currentTime + 0.08);
+				g.gain.setValueAtTime(0.06, sfxCtx.currentTime);
+				g.gain.exponentialRampToValueAtTime(0.001, sfxCtx.currentTime + 0.09);
+				osc.connect(g); g.connect(sfxCtx.destination);
+				osc.start(); osc.stop(sfxCtx.currentTime + 0.09);
+			} catch (e) { }
+		}
+
+		var targets = [], particles = [], mouse = { x: -99, y: -99, inside: false };
+		var KINDS = [
+			{ label: 'RUNE', col: '#ffd45a', ring: '#e0862b', r: 12 },
+			{ label: 'PICKLE', col: '#84e356', ring: '#3a7d22', r: 11 },
+			{ label: 'QUAD', col: '#7be0ff', ring: '#2b7ba8', r: 10 }
+		];
+		function spawnTarget() {
+			var k = KINDS[(Math.random() * KINDS.length) | 0];
+			var fromLeft = Math.random() < 0.5;
+			targets.push({
+				x: fromLeft ? -16 : cv.width + 16,
+				y: 16 + Math.random() * (cv.height - 32),
+				vx: (fromLeft ? 1 : -1) * (1.2 + Math.random() * 1.9),
+				vy: (Math.random() - 0.5) * 0.7,
+				r: k.r, col: k.col, ring: k.ring, label: k.label, bob: Math.random() * 6.28
+			});
+		}
+		for (var s = 0; s < 3; s++) {
+			spawnTarget();
+			targets[s].x = 60 + s * 170;
+		}
+		function updateScore() {
+			var acc = shots ? Math.round((hits / shots) * 100) + '%' : '--';
+			scoreEl.textContent = 'HITS ' + hits + ' · STREAK ' + streak + ' · ' + acc;
+		}
+		cv.addEventListener('mousemove', function (e) {
+			var rect = cv.getBoundingClientRect();
+			mouse.x = (e.clientX - rect.left) * (cv.width / rect.width);
+			mouse.y = (e.clientY - rect.top) * (cv.height / rect.height);
+			mouse.inside = true;
+		});
+		cv.addEventListener('mouseleave', function () { mouse.inside = false; });
+		cv.addEventListener('mousedown', function (e) {
+			var rect = cv.getBoundingClientRect();
+			var cx = (e.clientX - rect.left) * (cv.width / rect.width);
+			var cy = (e.clientY - rect.top) * (cv.height / rect.height);
+			shots++;
+			var hitIdx = -1;
+			for (var i = targets.length - 1; i >= 0; i--) {
+				var t = targets[i], dx = cx - t.x, dy = cy - t.y;
+				if (dx * dx + dy * dy <= (t.r + 5) * (t.r + 5)) { hitIdx = i; break; }
+			}
+			if (hitIdx >= 0) {
+				var tHit = targets.splice(hitIdx, 1)[0];
+				hits++; streak++;
+				playHitSound(true);
+				for (var p = 0; p < 12; p++) {
+					var ang = Math.random() * Math.PI * 2, spd = 1 + Math.random() * 3;
+					particles.push({ x: tHit.x, y: tHit.y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, life: 1, col: tHit.col });
+				}
+				spawnTarget();
+			} else {
+				streak = 0;
+				playHitSound(false);
+				particles.push({ x: cx, y: cy, vx: 0, vy: 0, life: 0.7, col: '#e85d4f' });
+			}
+			updateScore();
+		});
+
+		var lastWarm = 0;
+		function drawWarmup(ts) {
+			if (lobbyAlive && panes.warmup.classList.contains('active') && ts - lastWarm > 24) {
+				lastWarm = ts;
+				ctx.clearRect(0, 0, cv.width, cv.height);
+				// faint tactical grid
+				ctx.strokeStyle = 'rgba(130, 88, 45, 0.14)';
+				ctx.lineWidth = 1;
+				for (var gx = 40; gx < cv.width; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, cv.height); ctx.stroke(); }
+				ctx.beginPath(); ctx.moveTo(0, cv.height / 2); ctx.lineTo(cv.width, cv.height / 2); ctx.stroke();
+
+				while (targets.length < 3) spawnTarget();
+				for (var i = targets.length - 1; i >= 0; i--) {
+					var t = targets[i];
+					t.x += t.vx; t.y += t.vy + Math.sin(ts * 0.005 + t.bob) * 0.25;
+					if (t.y < t.r + 3 || t.y > cv.height - t.r - 3) t.vy *= -1;
+					if (t.x < -28 || t.x > cv.width + 28) { targets.splice(i, 1); continue; }
+
+					ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+					ctx.fillStyle = t.ring; ctx.fill();
+					ctx.beginPath(); ctx.arc(t.x, t.y, t.r - 4, 0, Math.PI * 2);
+					ctx.fillStyle = t.col; ctx.fill();
+					ctx.fillStyle = '#120b07'; ctx.beginPath(); ctx.arc(t.x, t.y, 2.5, 0, Math.PI * 2); ctx.fill();
+				}
+				for (var j = particles.length - 1; j >= 0; j--) {
+					var pt = particles[j];
+					pt.x += pt.vx; pt.y += pt.vy; pt.life -= 0.07;
+					if (pt.life <= 0) { particles.splice(j, 1); continue; }
+					ctx.globalAlpha = pt.life;
+					ctx.fillStyle = pt.col;
+					ctx.fillRect(pt.x - 1.5, pt.y - 1.5, 3, 3);
+					ctx.globalAlpha = 1;
+				}
+				if (mouse.inside) {
+					ctx.strokeStyle = 'rgba(255, 212, 90, 0.7)';
+					ctx.beginPath();
+					ctx.moveTo(mouse.x - 8, mouse.y); ctx.lineTo(mouse.x - 3, mouse.y);
+					ctx.moveTo(mouse.x + 3, mouse.y); ctx.lineTo(mouse.x + 8, mouse.y);
+					ctx.moveTo(mouse.x, mouse.y - 8); ctx.lineTo(mouse.x, mouse.y - 3);
+					ctx.moveTo(mouse.x, mouse.y + 3); ctx.lineTo(mouse.x, mouse.y + 8);
+					ctx.stroke();
+				}
+			}
+			requestAnimationFrame(drawWarmup);
+		}
+		requestAnimationFrame(drawWarmup);
+	})();
 
 	// ---- WebGL2 check: everything below needs it
 	var gl2 = false;
 	try { gl2 = !!document.createElement('canvas').getContext('webgl2'); } catch (e) { }
 	if (!gl2) {
 		status('This browser has no WebGL2. Update it (Safari 15 or newer), or try Chrome or Edge.', true);
-		playBtn.textContent = 'Not supported';
+		setBtnText('Not supported');
+		srcBadgeEl.textContent = 'NO WEBGL2';
+		srcBadgeEl.className = 'src-badge bad';
+		barEl.classList.remove('active');
 		return;
 	}
 
@@ -101,21 +833,42 @@
 	function dbGet(key) {
 		return new Promise(function (resolve) {
 			if (!DB) return resolve(null);
+			var settled = false;
+			var timer = setTimeout(function () { if (!settled) { settled = true; resolve(null); } }, 4000);
+			function finish(v) { if (!settled) { settled = true; clearTimeout(timer); resolve(v); } }
 			try {
 				var r = DB.transaction('files').objectStore('files').get(key);
-				r.onsuccess = function () { resolve(r.result || null); };
-				r.onerror = function () { resolve(null); };
-			} catch (e) { resolve(null); }
+				r.onsuccess = function () { finish(r.result || null); };
+				r.onerror = function () { finish(null); };
+			} catch (e) { finish(null); }
 		});
 	}
-	function dbPut(key, blob) {
+	var dbFull = false;
+	function dbPut(key, val) {
 		return new Promise(function (resolve) {
-			if (!DB) return resolve();
+			if (!DB || dbFull) return resolve();
+			var settled = false;
+			var tx = null;
+			var timer = setTimeout(function () {
+				if (!settled) {
+					settled = true;
+					try { if (tx) tx.abort(); } catch (e) {}
+					DB = null;
+					resolve();
+				}
+			}, 5000);
+			function finish() { if (!settled) { settled = true; clearTimeout(timer); resolve(); } }
 			try {
-				var tx = DB.transaction('files', 'readwrite');
-				tx.objectStore('files').put(blob, key);
-				tx.oncomplete = tx.onerror = tx.onabort = function () { resolve(); };
-			} catch (e) { resolve(); }
+				tx = DB.transaction('files', 'readwrite');
+				tx.objectStore('files').put(val, key);
+				tx.oncomplete = finish;
+				tx.onerror = tx.onabort = function () {
+					if (tx.error && tx.error.name === 'QuotaExceededError' && val && val.byteLength < 20 * 1048576) {
+						dbFull = true;
+					}
+					finish();
+				};
+			} catch (e) { finish(); }
 		});
 	}
 	function dbPrune(keep) {
@@ -127,32 +880,232 @@
 		} catch (e) { }
 	}
 
-	var done = 0, total = 0;
+	// ---- Speed MB/s Meter & Progress Telemetry
+	var done = 0, total = 0, lastStatusAt = 0;
+	var netSamples = [], cacheSamples = [], sparkHistory = [];
+	var netBytesTotal = 0, netActiveMs = 0, lastNetTick = 0;
+	var activeMode = 'init', modeStartedAt = 0, currentFileName = '', currentIdx = 0, totalFiles = 0;
+	var smoothMBs = 0, peakMBs = 0, gaugeScale = 50;
+	var SPEED_WINDOW_MS = 2200;
+	var ARC_LEN = 131.95;
+
+	function pickGaugeScale(v) {
+		var steps = [10, 25, 50, 100, 200, 500];
+		for (var i = 0; i < steps.length; i++) {
+			if (v <= steps[i] * 0.92) return steps[i];
+		}
+		return Math.ceil(v / 100) * 100;
+	}
+
+	function drawSparkline() {
+		var w = sparkCanvas.width, h = sparkCanvas.height;
+		sparkCtx.clearRect(0, 0, w, h);
+		// baseline grid
+		sparkCtx.strokeStyle = '#261a10';
+		sparkCtx.lineWidth = 1;
+		sparkCtx.beginPath();
+		sparkCtx.moveTo(0, Math.round(h * 0.5) + 0.5);
+		sparkCtx.lineTo(w, Math.round(h * 0.5) + 0.5);
+		sparkCtx.stroke();
+
+		if (sparkHistory.length < 2) return;
+		var maxVal = Math.max(5, gaugeScale * 0.85);
+		for (var k = 0; k < sparkHistory.length; k++) {
+			if (sparkHistory[k] > maxVal) maxVal = sparkHistory[k];
+		}
+		var stepX = w / 39;
+		var startX = w - (sparkHistory.length - 1) * stepX;
+
+		sparkCtx.beginPath();
+		sparkCtx.moveTo(startX, h);
+		for (var i = 0; i < sparkHistory.length; i++) {
+			var x = startX + i * stepX;
+			var y = h - 3 - Math.min(1, sparkHistory[i] / maxVal) * (h - 7);
+			sparkCtx.lineTo(x, y);
+		}
+		sparkCtx.lineTo(startX + (sparkHistory.length - 1) * stepX, h);
+		sparkCtx.closePath();
+		var grad = sparkCtx.createLinearGradient(0, 0, 0, h);
+		grad.addColorStop(0, activeMode === 'cache' ? 'rgba(123, 224, 255, 0.35)' : 'rgba(245, 169, 76, 0.42)');
+		grad.addColorStop(1, 'rgba(224, 134, 43, 0.03)');
+		sparkCtx.fillStyle = grad;
+		sparkCtx.fill();
+
+		sparkCtx.beginPath();
+		for (var j = 0; j < sparkHistory.length; j++) {
+			var x2 = startX + j * stepX;
+			var y2 = h - 3 - Math.min(1, sparkHistory[j] / maxVal) * (h - 7);
+			if (j === 0) sparkCtx.moveTo(x2, y2);
+			else sparkCtx.lineTo(x2, y2);
+		}
+		sparkCtx.strokeStyle = activeMode === 'cache' ? '#7be0ff' : '#ffd45a';
+		sparkCtx.lineWidth = 1.6;
+		sparkCtx.stroke();
+	}
+
+	function renderGauge(mbs) {
+		gaugeScale = Math.max(gaugeScale, pickGaugeScale(Math.max(peakMBs, mbs)));
+		gaugeMid.textContent = String(Math.round(gaugeScale / 2));
+		gaugeMaxEl.textContent = String(gaugeScale);
+
+		var ratio = Math.max(0, Math.min(1, mbs / gaugeScale));
+		gaugeArc.style.strokeDashoffset = (ARC_LEN * (1 - ratio)).toFixed(2);
+		var deg = -90 + ratio * 180;
+		gaugeNeedle.setAttribute('transform', 'rotate(' + deg.toFixed(1) + ' 54 56)');
+
+		speedNumEl.textContent = mbs >= 100 ? mbs.toFixed(0) : mbs.toFixed(1);
+		speedPeakEl.textContent = (peakMBs >= 100 ? peakMBs.toFixed(0) : peakMBs.toFixed(1));
+	}
+
+	function sampleWindowSpeed(arr, now) {
+		var cutoff = now - SPEED_WINDOW_MS;
+		while (arr.length && arr[0].t < cutoff) arr.shift();
+		if (!arr.length) return 0;
+		var sum = 0;
+		for (var i = 0; i < arr.length; i++) sum += arr[i].bytes;
+		var spanMs = Math.max(250, Math.min(SPEED_WINDOW_MS, now - Math.min(modeStartedAt || arr[0].t, arr[0].t)));
+		return (sum / (spanMs / 1000)) / MB;
+	}
+
+	function tickSpeed() {
+		if (!total || done >= total) return;
+		var now = performance.now();
+		var raw = 0;
+		if (activeMode === 'net') {
+			raw = sampleWindowSpeed(netSamples, now);
+		} else if (activeMode === 'cache') {
+			raw = sampleWindowSpeed(cacheSamples, now);
+		}
+		smoothMBs = raw === 0 && smoothMBs < 0.05 ? 0 : (smoothMBs * 0.58 + raw * 0.42);
+		if (smoothMBs > peakMBs) peakMBs = smoothMBs;
+
+		sparkHistory.push(smoothMBs);
+		if (sparkHistory.length > 40) sparkHistory.shift();
+
+		renderGauge(smoothMBs);
+		drawSparkline();
+
+		var rem = Math.max(0, total - done);
+		var estSpeed = smoothMBs > 0.05 ? smoothMBs : (netActiveMs > 500 ? (netBytesTotal / (netActiveMs / 1000)) / MB : 0);
+		etaEl.textContent = estSpeed > 0.05 ? fmtEta((rem / MB) / estSpeed) : '--';
+	}
+
+	var speedTimer = null;
+	var fileRowMap = {};
+
+	function buildFileQueueUI(queue) {
+		fileListEl.innerHTML = '';
+		fileRowMap = {};
+		queue.forEach(function (f) {
+			var row = document.createElement('div');
+			row.className = 'file-row';
+			var nameEl = document.createElement('span');
+			nameEl.className = 'file-name';
+			nameEl.textContent = f.path;
+			nameEl.title = f.path;
+			var szEl = document.createElement('span');
+			szEl.className = 'file-sz';
+			szEl.textContent = f.size >= MB ? (f.size / MB).toFixed(1) + ' MB' : Math.max(1, Math.round(f.size / 1024)) + ' KB';
+			var stEl = document.createElement('span');
+			stEl.className = 'file-st';
+			stEl.textContent = 'WAIT';
+			row.appendChild(nameEl);
+			row.appendChild(szEl);
+			row.appendChild(stEl);
+			fileListEl.appendChild(row);
+			fileRowMap[f.path] = stEl;
+		});
+	}
+
+	function setFileRowState(path, label, cls) {
+		var el = fileRowMap[path];
+		if (!el) return;
+		el.textContent = label;
+		el.className = 'file-st' + (cls ? ' ' + cls : '');
+	}
+
+	function setMode(mode) {
+		if (activeMode === mode) return;
+		activeMode = mode;
+		modeStartedAt = performance.now();
+		if (mode === 'net') {
+			srcBadgeEl.textContent = 'DOWNLOAD';
+			srcBadgeEl.className = 'src-badge';
+		} else if (mode === 'cache') {
+			srcBadgeEl.textContent = 'CACHE';
+			srcBadgeEl.className = 'src-badge cache';
+		} else if (mode === 'ready') {
+			srcBadgeEl.textContent = 'READY';
+			srcBadgeEl.className = 'src-badge ready';
+		}
+	}
+
 	function progress() {
-		fill.style.width = (total ? 100 * done / total : 0).toFixed(1) + '%';
+		var pct = total ? (100 * done / total) : 0;
+		var pctStr = pct.toFixed(1) + '%';
+		fill.style.width = pctStr;
+		btnProg.style.width = pctStr;
+		pctEl.textContent = pctStr;
+		bytesCounterEl.textContent = mb(done) + ' / ' + mb(total);
+		if (!started && playBtn.disabled && total && done < total) {
+			setBtnText('Loading ' + Math.floor(pct) + '%');
+		}
+		var now = performance.now();
+		if (total && (now - lastStatusAt > 140 || done >= total)) {
+			lastStatusAt = now;
+			var verb = activeMode === 'cache' ? 'Reading cache' : 'Downloading';
+			var fileInfo = currentFileName ? (' [' + currentIdx + '/' + totalFiles + '] ' + currentFileName) : '';
+			status(verb + fileInfo + ' — ' + mb(done) + ' of ' + mb(total));
+		}
 	}
 
 	async function getFile(f) {
 		var key = f.path + '|' + f.size + '|' + f.mtime;
-		var blob = await dbGet(key);
-		if (blob && blob.size === f.size) {
-			var cached = new Uint8Array(await blob.arrayBuffer());
-			done += f.size; progress();
-			return cached;
+		var tDb = performance.now();
+		setFileRowState(f.path, 'CHECK', 'now');
+		var cachedVal = await dbGet(key);
+		if (cachedVal) {
+			var ab = null;
+			if (cachedVal instanceof ArrayBuffer && cachedVal.byteLength === f.size) {
+				ab = cachedVal;
+			} else if (typeof Blob !== 'undefined' && cachedVal instanceof Blob && cachedVal.size === f.size) {
+				ab = await cachedVal.arrayBuffer();
+			}
+			if (ab) {
+				setMode('cache');
+				var readEnd = performance.now();
+				cacheSamples.push({ t: readEnd, bytes: f.size });
+				done += f.size;
+				setFileRowState(f.path, 'CACHED', 'cache');
+				progress();
+				tickSpeed();
+				return new Uint8Array(ab);
+			}
 		}
+
+		setMode('net');
+		setFileRowState(f.path, 'NET', 'now');
 		var res = await fetch(f.url, { cache: 'no-cache' });
 		if (!res.ok) throw new Error(f.path + ': HTTP ' + res.status);
 		var buf = new Uint8Array(f.size), at = 0;
 		var reader = res.body.getReader();
+		lastNetTick = performance.now();
 		for (;;) {
 			var chunk = await reader.read();
 			if (chunk.done) break;
 			if (at + chunk.value.length > buf.length) throw new Error(f.path + ': bigger than expected, reload the page');
 			buf.set(chunk.value, at); at += chunk.value.length;
-			done += chunk.value.length; progress();
+			var now = performance.now();
+			netSamples.push({ t: now, bytes: chunk.value.length });
+			netBytesTotal += chunk.value.length;
+			netActiveMs += Math.min(2000, Math.max(0, now - lastNetTick));
+			lastNetTick = now;
+			done += chunk.value.length;
+			progress();
 		}
 		if (at !== f.size) throw new Error(f.path + ': download cut short');
-		await dbPut(key, new Blob([buf]));
+		setFileRowState(f.path, 'DONE', 'done');
+		await dbPut(key, buf.buffer);
 		return buf;
 	}
 
@@ -164,33 +1117,56 @@
 		total = manifest.total + 0;
 		var t0 = performance.now();
 		status('Loading game files (' + mb(total) + ')…');
+		bytesCounterEl.textContent = '0 / ' + mb(total);
 		var out = {}, queue = manifest.files.slice(), keep = {};
 		manifest.files.forEach(function (f) { keep[f.path + '|' + f.size + '|' + f.mtime] = true; });
-		// biggest first, 4 at a time
+		// biggest first, sequential stream avoids WebKit parallel IDB/socket stalls
 		queue.sort(function (a, b) { return b.size - a.size; });
-		async function worker() {
-			while (queue.length) {
-				var f = queue.shift();
-				out[f.path] = await getFile(f);
-				status('Loading game files: ' + mb(done) + ' of ' + mb(total));
-			}
+		totalFiles = queue.length;
+		buildFileQueueUI(queue);
+		speedTimer = setInterval(tickSpeed, 200);
+
+		while (queue.length) {
+			var f = queue.shift();
+			currentIdx++;
+			currentFileName = f.path;
+			out[f.path] = await getFile(f);
+			progress();
 		}
-		await Promise.all([worker(), worker(), worker(), worker()]);
+		if (speedTimer) { clearInterval(speedTimer); speedTimer = null; }
 		dbPrune(keep);
-		console.log('bakoquake: files ready in ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s');
-		return out;
+		var elapsedSec = Math.max(0.1, (performance.now() - t0) / 1000);
+		var avgMBs = netBytesTotal > 0 && netActiveMs > 100
+			? (netBytesTotal / (netActiveMs / 1000)) / MB
+			: (total / elapsedSec) / MB;
+		console.log('bakoquake: files ready in ' + elapsedSec.toFixed(1) + ' s (avg ' + avgMBs.toFixed(1) + ' MB/s)');
+		return { files: out, avgMBs: avgMBs, fromCache: netBytesTotal === 0 };
 	}
 
-	loadAll().then(function (files) {
-		gameFiles = files;
+	loadAll().then(function (res) {
+		gameFiles = res.files;
+		setMode('ready');
+		barEl.classList.remove('active');
+		btnProg.style.width = '100%';
+		fill.style.width = '100%';
+		pctEl.textContent = '100%';
+		etaEl.textContent = '0s';
+		renderGauge(res.avgMBs);
+		drawSparkline();
 		playBtn.disabled = false;
-		playBtn.textContent = 'Play';
-		status('Ready. ' + mb(total) + ' loaded.');
+		playBtn.classList.add('ready-pulse');
+		setBtnText('Play');
+		status('Ready. ' + mb(total) + (res.fromCache ? ' loaded from cache' : ' downloaded') + ' (avg ' + res.avgMBs.toFixed(1) + ' MB/s).');
 		if (wantPlay) start();
 	}).catch(function (e) {
 		console.error(e);
+		if (speedTimer) { clearInterval(speedTimer); speedTimer = null; }
+		barEl.classList.remove('active');
+		srcBadgeEl.textContent = 'ERROR';
+		srcBadgeEl.className = 'src-badge bad';
+		renderGauge(0);
 		status('Could not load the game: ' + e.message + '. Reload the page to try again.', true);
-		playBtn.textContent = 'Error';
+		setBtnText('Error');
 	});
 
 	// ---- engine start
@@ -212,12 +1188,13 @@
 	function gameDied(why) {
 		if (died) return;
 		died = true;
+		lobbyAlive = true;
 		document.body.classList.remove('playing');
 		try { if (document.exitPointerLock) document.exitPointerLock(); } catch (e) { }
 		try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
 		status('The game stopped: ' + why + '. Press Rejoin to jump back in (nothing to download again). ' +
 			'If it is not back within a minute, close this tab and open ' + location.host + ' in a new one.', true);
-		playBtn.textContent = 'Rejoin';
+		setBtnText('Rejoin');
 		playBtn.disabled = false;
 		playBtn.onclick = function (e) {
 			e.stopImmediatePropagation();
@@ -237,10 +1214,10 @@
 	function start() {
 		if (started || !gameFiles) return;
 		started = true;
+		lobbyAlive = false;
 		var name = cleanName(nameBox.value) || 'Player';
 		safeSet('bako_name', name);
 		document.body.classList.add('playing');
-		var canvas = $('canvas');
 		var w = Math.max(640, window.innerWidth), h = Math.max(400, window.innerHeight);
 
 		var args = ['-game', 'quake15', '-game', 'BakersfieldQuake',
@@ -273,10 +1250,24 @@
 		canvas.focus();
 	}
 
+	function enterFullscreenSafe() {
+		try {
+			var el = document.documentElement;
+			var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+			if (fn) {
+				var p = fn.call(el);
+				if (p && typeof p.catch === 'function') p.catch(function () { });
+			}
+		} catch (e) { }
+	}
+	canvas.addEventListener('mousedown', function () { unlockAudio(); });
+	window.addEventListener('keydown', function () { if (started) unlockAudio(); }, { capture: true });
+
 	playBtn.addEventListener('click', function () {
 		wantPlay = true;
+		unlockAudio();
 		// these need a click: full screen now; the engine grabs the mouse on the first click in the game
-		try { document.documentElement.requestFullscreen().catch(function () { }); } catch (e) { }
+		enterFullscreenSafe();
 		start();
 	});
 	nameBox.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !playBtn.disabled) playBtn.click(); });

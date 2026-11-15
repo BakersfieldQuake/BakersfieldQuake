@@ -38,8 +38,14 @@ exec autoexec.cfg
 seta bm_defver 0
 exec config.cfg
 
-// always start with the mouse on: test runs can save vid_mouse 0 into config.cfg. A +vid_mouse 0 on the command line still wins (stuffcmds below).
+// always start with mouse look on: test runs can save vid_mouse 0 / freelook 0 / -mlook into config.cfg.
+// Command-line overrides (+vid_mouse 0, +freelook 0, -window...) still win (stuffcmds / engine -window below).
 vid_mouse 1
+freelook 1
++mlook
+
+// optional local-only post-config guard (never shipped in LAN zip / web pack), mirroring personal.cfg
+exec personal_post.cfg
 
 // default keys: ONCE, for a new player (bm_defver is saved as 1 in their config.cfg, so this never runs again and
 // their own binds / unbinds are never touched). To ship new default keys later: new file, bm_up_1 -> exec it, bump the number.

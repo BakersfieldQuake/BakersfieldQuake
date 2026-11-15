@@ -1,17 +1,22 @@
 #!/bin/sh
-# Build the standalone 1:1 modular map "goldenwest" (Golden West Casino, 1001 S Union Ave, Bakersfield) -> maps/goldenwest.bsp + .lit
+# Build the standalone 1:1 modular map "goldenwest" (Golden West Casino, 1001 S Union Ave, Bakersfield)
+# -> source/mm_tools/goldenwest/out/goldenwest.map -> maps/goldenwest.bsp + .lit + .spots.json
 set -e
 cd "$(dirname "$0")"
-PY=/c/Users/qxdc/AppData/Local/Microsoft/WindowsApps/python3.13.exe
-E=/d/vibe/quake1opensource/tools/ericw
-$PY build_goldenwest_textures.py
-$PY make_gw_horse.py
-$PY make_gw_buddha.py
-$PY make_goldenwest.py out/maps/goldenwest.map
-cd out/maps
-$E/qbsp.exe -bsp2 -threads 4 goldenwest.map > goldenwest-qbsp.log 2>&1
-tr '\r' '\n' < goldenwest-qbsp.log | grep -i -E "leak|missing" && exit 1
-$E/vis.exe -threads 4 goldenwest.bsp > goldenwest-vis.log 2>&1
-$E/light.exe -extra4 -threads 4 goldenwest.bsp > goldenwest-light.log 2>&1
-cp goldenwest.bsp goldenwest.lit ../../../../maps/
-echo "installed goldenwest.bsp and goldenwest.lit"
+
+if command -v py >/dev/null 2>&1; then
+    PY="py -3.13"
+elif command -v python3 >/dev/null 2>&1; then
+    PY="python3"
+elif command -v python >/dev/null 2>&1; then
+    PY="python"
+else
+    PY="/c/Users/qxdc/AppData/Local/Microsoft/WindowsApps/python3.13.exe"
+fi
+
+echo "[build_goldenwest] Using Python: $PY"
+$PY goldenwest/build_textures.py
+$PY goldenwest/build_sky.py
+$PY goldenwest/make_gw.py goldenwest/out/goldenwest.map
+$PY goldenwest/compile_gw.py --map goldenwest/out/goldenwest.map "$@"
+echo "[build_goldenwest] Built & installed goldenwest.bsp, goldenwest.lit, and goldenwest.spots.json"

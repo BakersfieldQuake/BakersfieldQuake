@@ -1,14 +1,10 @@
 r"""Builds the 100% Self-Contained Interactive HTML Showcase & Mod Encyclopedia for
-Bakersfield Quake's 8-Act Movie-Like Cinematic Showcase (`intro.dem` on `maps/downtown.bsp`):
-  - Act 01 (0.0s–5.5s): Historic Fox Theater Marquee Crane-Down -> The White "6-Man LAN Van" J-Turn Drift!
-  - Act 02 (5.5s–11.0s): Rear Barn Doors Blow Off -> Wheelman Stunt Trilogy (Fire-Wheels, Pipe-Jet, Wew Cannon)!
-  - Act 03 (11.0s–17.0s): Clown-Car LAN Cast Pileout, 4AM Table Flip, Laptop Head, NetSend PC, Pickle Surprise & Bonk Clang!
-  - Act 04 (17.0s–24.0s): Rush Hour Stampede — "IT'S SALMON!" Supercar, Bus, Bikes, Garand *PING!*, Mega Man, Mystery Box, JohnWave & Rocket Cans!
-  - Act 05 (24.0s–31.0s): Milky Song Drop, H-St Milk-Puddle Spinouts & Whiplash 360° Aerial Fox Theater Orbit!
-  - Act 06 (31.0s–36.2s): 50-Entity Fox Clock Tower Tornado (Milkys, Wheelmans, Pickles, Mystery Boxes, Mega Men & Rob Dobs)!
-  - Act 07 (36.2s–40.5s): ALL 50 EXPLODE UP CLOSE — Dairy Geysers, 4-Tier Wheelman Sprite Fireballs & Lens Milk Drips!
-  - Act 08 (40.5s–48.0s): Blazing Fox Theater, Wrecked White Van on the Marquee, Floating DAN, Jetpack Wheelman, ROB & 24 Yellow CCCs!
-Plus complete interactive Mod Analysis Encyclopedia (18 Custom Weapons, Characters & .SPR32 Sprites, Vehicles & LAN Props).
+Bakersfield Quake's 4-Act Little Saint James (Epstein Island) Cinematic Intro (`intro.dem` on `maps/little_st_james.bsp`):
+  - Act 01 (0.0s–13.5s): Blue-Striped Temple & Labyrinth — 12 Big Milky Jess Grenades + 12 Little Green Mega-Man Wheel Guys + White Van Arrival!
+  - Act 02 (13.5s–32.5s): Island Ridge Highway & Sundial — The White Van Cruises Across Epstein Island Pursued by Big Milky Jess Grenades!
+  - Act 03 (32.5s–46.5s): Green Sports Lawn — Open-Door White Van Pileout, 24+ Cast Jumping & Shooting + Funny Sounds Medley!
+  - Act 04 (46.5s–60.0s): 360° Aerial Orbit All Around Epstein Island!
+Plus complete interactive Mod Analysis Encyclopedia & Offline Soundboard.
 
 Outputs:
   - G:\Quake\Combat\BakersfieldQuake\bakersfield_intro_demo.html
@@ -30,6 +26,7 @@ FFMPEG = r"C:\Users\qxdc\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe"
 PK3_LIST = [
     os.path.join(MOD_ROOT, "bakersfield.pk3"),
     os.path.join(MOD_ROOT, "zz_bakovan.pk3"),
+    os.path.join(MOD_ROOT, "zz_greenjar.pk3"),
     os.path.join(MOD_ROOT, "zz_tone1.pk3"),
     os.path.abspath(os.path.join(MOD_ROOT, "..", "quake15", "q15.pk3")),
 ]
@@ -39,141 +36,87 @@ OUT_ZIP = os.path.join(OUT_DIR, "bakersfield_intro_demo_pack.zip")
 
 
 SHOTS_META = [
-    ("zz_movie_01_act1_fox_marquee_crane.png", 1, 1.1, "Act 01A • Historic Fox Theater Marquee Crane-Down (20th & H St Opening Shot)"),
-    ("zz_movie_02_act1_white_van_drift_arrival.png", 1, 4.4, "Act 01B • THE WHITE VAN ARRIVES — Tire-Smoking J-Turn Drift Under the FOX Neon!"),
-    ("zz_movie_03_act2_wheelman_barndoors_burnout.png", 2, 6.3, "Act 02A • Rear Barn Doors Blow Clean Off — Wheelman Explodes Out in a Fire-Wheels Burnout!"),
-    ("zz_movie_04_act2_wheelman_pipejet_wewcannon.png", 2, 9.8, "Act 02B • Wheelman Stunt Trilogy — Pipe-Jet Afterburner, 3D Roller & Wew Cannon Blast!"),
-    ("zz_movie_05_act3_clowncar_tableflip_laptophead.png", 3, 12.2, "Act 03A • Clown-Car LAN Cast Pileout — 4AM Table Flip, Flying Monitors & Chomping Laptop Head!"),
-    ("zz_movie_06_act3_pickle_surprise_bonk_clang.png", 3, 15.6, "Act 03B • \"PICKLE SURPRISE!!\" Diva + Goo Foam + Bonk Frying-Pan Ragdoll Launch!"),
-    ("zz_movie_07_act4_supercar_bus_bikes_garand.png", 4, 18.4, "Act 04A • Rush Hour Stampede — \"IT'S SALMON!\" Supercar, School Bus, 3 Bikes & M1 Garand *PING!*"),
-    ("zz_movie_08_act4_megaman_mbox_johnwave_trashcans.png", 4, 22.0, "Act 04B • Mega Man Dome, Mystery Box Confetti, JohnWave Tidal Ring & 3 Rocket Trash Cans!"),
-    ("zz_movie_09_act5_hst_milkys_puddle_spinouts.png", 5, 25.5, "Act 05A • Milky Song Drop! Giant H-St Milky Invasion & Slippery Milk-Puddle Spinouts!"),
-    ("zz_movie_10_act5_fox_360_aerial_orbit.png", 5, 29.2, "Act 05B • Whiplash 360° Aerial Fox Theater Orbit with 3 Close-Up Milkys & 3 Stunt Wheelman Sprites!"),
-    ("zz_movie_11_act6_tower_50_tornado_reveal.png", 6, 32.4, "Act 06A • \"NO WAY!!\" — 50-Entity Tornado Swirling Around the 74-Ft Fox Clock Tower!"),
-    ("zz_movie_12_act6_tower_50_tornado_peak.png", 6, 35.2, "Act 06B • Supersonic 50-Entity Belfry Vortex Peak (Milkys, Wheelmans, Pickles, Boxes & Rob Dobs)!"),
-    ("zz_movie_13_act7_all50_explode_fireballs_tires.png", 7, 37.3, "Act 07A • ALL 50 EXPLODE UP CLOSE — Dairy Geysers, 4-Tier Wheelman Fireballs & Bouncing Tires!"),
-    ("zz_movie_14_act7_spire_megablast_lens_milk.png", 7, 39.0, "Act 07B • Spire-Top Mega Detonation — Thick White Milk Drips Splashed Right Across the Camera Lens!"),
-    ("zz_movie_15_act8_burning_fox_wreckedvan_drips.png", 8, 41.8, "Act 08A • FOX THEATER ON FIRE + Smoking Wrecked White Van Parked Right on Top of the Marquee!"),
-    ("zz_movie_16_act8_floating_dan_wheelman_rob_cccs.png", 8, 45.6, "Act 08B • Grand Finale — Floating DAN, Jetpack Wheelman, ROB & 24 Yellow CCCs (\"I'm Floating!\" / \"Ah, I Can't See!\")!"),
+    ("zz_lsj_01_act1_temple_milkys_greenmen.png", 1, 2.4, "Act 01A • Blue-Striped Temple & Labyrinth — 12 Big Milky Jess Grenades & 12 Green Wheel Guys!"),
+    ("zz_lsj_02_act1_temple_van_arrival.png", 1, 11.2, "Act 01B • THE WHITE VAN ARRIVES — Pulling Onto the Temple North Road Loop!"),
+    ("zz_lsj_03_act2_van_chase_ridge.png", 2, 16.5, "Act 02A • Island Ridge Highway — White Van Pursued by 8 Big Milky Jess Grenades & Green Escorts!"),
+    ("zz_lsj_04_act2_van_chase_sundial.png", 2, 24.0, "Act 02B • Passing the Giant 20m Sundial & Central Pavilion With Milkys Hot on the Bumper!"),
+    ("zz_lsj_05_act2_van_chase_sportsfield.png", 2, 30.8, "Act 02C • White Van Arrives on the Green Sports Lawn Ready to Unload the Crew!"),
+    ("zz_lsj_06_act3_pileout_doors.png", 3, 34.8, "Act 03A • EVERYBODY OUT!! Open-Door White Van Pileout on the Green Sports Lawn!"),
+    ("zz_lsj_07_act3_all_cast_jumping_shooting.png", 3, 41.2, "Act 03B • All 24+ Legends Shooting, Jumping & Firing Comedy Projectiles to the SFX Medley!"),
+    ("zz_lsj_08_act4_orbit_north.png", 4, 49.0, "Act 04A • 360° Epstein Island Aerial Orbit — Harbor & North Shoreline Overview!"),
+    ("zz_lsj_09_act4_orbit_west_temple.png", 4, 53.5, "Act 04B • 360° Island Orbit — Sweeping Past the Ridges Toward the Temple Promontory!"),
+    ("zz_lsj_10_act4_orbit_south.png", 4, 58.0, "Act 04C • 360° Island Orbit Finale — Sports Complex, Villa & Island Panorama!"),
 ]
 
 
 CARDS_DATA = [
     {
-        "card": 1, "t0": 0.0, "t1": 5.5,
-        "short": "01 • Fox & White Van",
-        "landmark": "20th & H St // Historic Fox Theater Opening",
-        "title": "Hollywood Crane-Down & The White \"6-Man LAN Van\" J-Turn Drift!",
-        "desc": "Starts high on the glowing 1930 Historic Fox Theater marquee and cranes smoothly down to the curb just as the legendary White Van (progs/veh_van.md3) comes screaming down H Street—honking, tire-smoking, clipping a trashcan sky-high, and whipping a full 180° J-turn right in front of the ticket booth!",
-        "weapons": ["Hollywood Marquee Crane", "180° Tire-Smoke J-Turn"],
-        "vehicles": ["White 6-Man LAN Van (veh_van.md3)", "Fox Theater Marquee"],
-        "chars": ["Strolling Citizens Scattering", "Punting Trashcan"],
-        "sfx_path": "sound/vehicles/lanvan.wav",
-        "sfx_label": "🚐 \"6-Man LAN Van!\" Drift Arrival",
+        "card": 1, "t0": 0.0, "t1": 13.5,
+        "short": "01 • Temple & Milkys",
+        "landmark": "Little Saint James // Blue-Striped Temple & Labyrinth",
+        "title": "Blue-Striped Temple, 12 Big Milky Jess Grenades & 12 Green Wheel Guys!",
+        "desc": "Opens right over the iconic blue-and-white striped Temple and red-and-white Labyrinth on Little Saint James! Twelve giant billboarded Milky Jess grenades (progs/pinklady.md3) float lazily all around the Temple while a dozen Little Green Mega-Man Wheel Guys (progs/greenguy_mini.spr32) cruise across the terrace, stairs, and labyrinth—before the White Van pulls in around 7.5s!",
+        "weapons": ["12 Big Milky Jess Grenades (pinklady.md3)"],
+        "vehicles": ["12 Green Mega-Man Wheel Guys", "White Van Arrival (veh_van.md3)"],
+        "chars": ["GreenJar Mini Wheel Crew", "Milky Billboard Trio"],
+        "sfx_path": "sound/milky/song.ogg",
+        "sfx_label": "🥛🎵 Milky Milky Song + Temple Opening!",
         "shots": [0, 1],
     },
     {
-        "card": 2, "t0": 5.5, "t1": 11.0,
-        "short": "02 • Wheelman Burst!",
-        "landmark": "Curbside Stunt Stage // Enter Wheelman",
-        "title": "Barn Doors Blow Off & Wheelman's Ridiculous Stunt Trilogy!",
-        "desc": "The walk-in van rocks violently on its suspension until BOTH rear barn doors (veh_van_door.md3) blast clean off past the camera! Out rockets WHEELMAN—ripping a flaming Fire-Wheels burnout, B-Boy headspin, Pipe-Jet afterburner flyby, Green-Suit hype dance, 3D Wheelman Roller & Thinker pose, and firing the Eric Deason Wew Cannon!",
-        "weapons": ["Eric Deason Wew Cannon (g_wewcannon.md3)", "Pipe-Jet Afterburner"],
-        "vehicles": ["Walk-In Van + Flying Barn Doors"],
-        "chars": ["Wheelman .SPR32 (4 Sheets)", "3D Wheelman Roller & Thinker"],
-        "sfx_path": "sound/wcannon/wc_scream.wav",
-        "sfx_label": "🛞🔥 Wheelman Scream & Burnout!",
-        "shots": [2, 3],
+        "card": 2, "t0": 13.5, "t1": 32.5,
+        "short": "02 • Van Island Chase",
+        "landmark": "Island Ridge Highway & 20m Sundial // Pursued by Milkys",
+        "title": "The White Van Drives Around Epstein Island Chased by Big Milky Grenades!",
+        "desc": "With rear barn doors thrown wide open, the White Van cruises steadily down the obstacle-free Epstein Island ridge highway—climbing past the Temple Loop, sweeping straight across the giant 20-meter Sundial plaza, hugging the Central Pavilion, and descending onto the Green Sports Lawn—while 8 large Milky Jess grenades and 3 escort Green Wheel Guys chase right behind its bumper!",
+        "weapons": ["8 Pursuing Big Milky Grenades", "Van Horn & Tire Squeal"],
+        "vehicles": ["White 6-Man LAN Van (veh_van.md3)", "3 Escort Green Wheel Guys"],
+        "chars": ["Chasing Milkys", "Green Escort Trio"],
+        "sfx_path": "sound/vehicles/lanvan.wav",
+        "sfx_label": "🚐💨 \"6-Man LAN Van!\" Island Chase",
+        "shots": [2, 3, 4],
     },
     {
-        "card": 3, "t0": 11.0, "t1": 17.0,
-        "short": "03 • Clown-Car Chaos",
-        "landmark": "Fox Sidewalk // 14-Legend Clown-Car Pileout",
-        "title": "Clown-Car Cast Pileout, 4AM Table Flip, Pickle Surprise & Bonk Clang!",
-        "desc": "Impossible clown-car gag: 12 Bakersfield legends & LAN friends pour out of that single White Van! Daniel's Dad screams \"IT'S 4 AM!!\" and flips the LAN table (sending CRT monitors & chairs flying), a Laptop Gun head chomps across the asphalt zapping blue arcs, NetSend PC bluescreens, Pickle Surprise spins up, Goo blobs swell, and the Bonk Frying-Pan launches a fighter skyward!",
-        "weapons": ["4AM Table Flip", "Laptop Gun Head", "NetSend BSOD PC", "Pickle Surprise", "Goo Gun", "Bonk Frying Pan"],
-        "vehicles": ["Bouncing White Van Clown-Car", "JessKart"],
-        "chars": ["Daniel + 4AM Dad", "Larry Wew", "Slot-Jackpot David", "Bryan & LAN Friends"],
-        "sfx_path": "sound/pickle/surprise.wav",
-        "sfx_label": "🥒💃 \"PICKLE SURPRISE!!\"",
-        "shots": [4, 5],
+        "card": 3, "t0": 32.5, "t1": 46.5,
+        "short": "03 • Pileout & Funny SFX",
+        "landmark": "Green Sports Lawn // All Characters Shooting & Jumping",
+        "title": "Everybody Piles Out — Shooting, Jumping & Comedy Sound Medley!",
+        "desc": "The White Van parks on the open Green Sports Lawn and the entire 24-character Bakersfield roster pours out the rear doors! Wheelman, Green-Suit Wheelman, Dancing Wheelman, Larry, Daniel, 4AM Dad, Bryan, David, JessKart, Mega Man, Rob, Dennis, Paul, MrDIY, QuakeGuy, Finger, Pregnant Runners, 3D NPCs & green wheel guys all jump and fire bouncing lasers, pickles, floppy disks & Milkys while funny voice lines & clangs play cleanly!",
+        "weapons": ["Pickles, Floppy Disks & Lasers", "Overhead Swirling Milkys", "14-Clip Comedy Sound Medley"],
+        "vehicles": ["Parked Open-Door White Van", "JessKart + Green Wheel Guys"],
+        "chars": ["All 24+ Bakersfield Characters!"],
+        "sfx_path": "sound/funny/giggles.wav",
+        "sfx_label": "😂🔫 Cast Pileout & Funny Sounds!",
+        "shots": [5, 6],
     },
     {
-        "card": 4, "t0": 17.0, "t1": 24.0,
-        "short": "04 • Full Stampede!",
-        "landmark": "20th & H Intersection // Total Rush Hour Mayhem",
-        "title": "\"IT'S SALMON!\" Supercar, School Bus, Bikes, Garand *PING!*, Mega Man & JohnWave!",
-        "desc": "Every vehicle, weapon, and summon hits the intersection at once: the Not-Pink Supercar (\"IT'S SALMON!\") powerslides opposite the yellow School Bus & Orange Forklift; 3 bicycles spin wheelies; M4A1, Tommy Gun & M1 Garand (*PING!*) crossfire with a Sentry Turret; Mega Man's plasma dome, Mystery Box confetti, JohnWave tidal ring, Rob Dobs, John-Birds, Sky Podracer & 3 Rocket Trashcans erupt!",
-        "weapons": ["M4A1 + Tommy + Garand *PING!*", "Mega Man Dome", "Mystery Box", "JohnWave Ring", "Sentry Turret"],
-        "vehicles": ["Not-Pink Supercar", "School Bus", "Forklift", "3 Bicycles", "Sky Podracer", "3 Rocket Cans"],
-        "chars": ["Jetpack Trooper", "2 Rob Dob Riders", "3 John-Birds", "Floating Calc Heads"],
-        "sfx_path": "sound/bklan/notpink.wav",
-        "sfx_label": "🏎️💖 \"IT'S SALMON, NOT PINK!!\"",
-        "shots": [6, 7],
-    },
-    {
-        "card": 5, "t0": 24.0, "t1": 31.0,
-        "short": "05 • Milkys & 360° Fox",
-        "landmark": "H Street -> 360° Fox Aerial Orbit // Milky Song Drop!",
-        "title": "Milky Song Drop, Milk-Puddle Spinouts & Whiplash 360° Fox Theater Orbit!",
-        "desc": "The signature Milky Milky song (milky/song.ogg) drops and plays non-stop to the end! Ten giant 16-angle video-skin Milky Grenades bounce down H Street splashing white milk puddles that send the White Van & LAN cast spinning wildly—before the camera launches skyward into a 3.6s full 360° orbit of the Fox Theater with 3 Milkys & 3 Wheelman sprites locked right in front of the lens!",
-        "weapons": ["Milky Milky Grenades (pinklady.md3)", "Slippery Milk Puddles (milksplat.md3)", "3.6s 360° Aerial Orbit"],
-        "vehicles": ["Spinning-Out White Van", "360° Historic Fox Theater"],
-        "chars": ["Skidding LAN Cast", "3 Lens-Locked Milkys + 3 Stunt Wheelmans"],
-        "sfx_path": "sound/milky/song.ogg",
-        "sfx_label": "🥛🎵 Milky Milky Song Drop!",
-        "shots": [8, 9],
-    },
-    {
-        "card": 6, "t0": 31.0, "t1": 36.2,
-        "short": "06 • 50-Entity Tornado!",
-        "landmark": "Fox Clock Tower // 50-Entity Supersonic Cyclone",
-        "title": "\"NO WAY!!\" — 50 Milkys, Wheelmans, Pickles, Mystery Boxes & Rob Dobs Spin the Tower!",
-        "desc": "Camera snaps right up to the 74-foot Fox Clock Tower belfry as Bryan yells \"NO WAY!!\"—50 entities across 5 stacked rings (20 Milkys, 21 Wheelman stunt sprites, plus cameo Pickles, Mystery Boxes, Mega Men & Rob Dob horse riders) accelerate into a hilarious supersonic tornado around the spire!",
-        "weapons": ["5 Stacked Belfry Rings (5×10 = 50)", "Accelerating Cyclone Vortex"],
-        "vehicles": ["74-Ft Fox Clock Tower Spire"],
-        "chars": ["20 Milkys + 21 Wheelmans + 9 Cameo Icons"],
-        "sfx_path": "sound/bryan/noway.wav",
-        "sfx_label": "😱🌪️ Bryan: \"NO WAY!!\" (50-Tornado)",
-        "shots": [10, 11],
-    },
-    {
-        "card": 7, "t0": 36.2, "t1": 40.5,
-        "short": "07 • ALL 50 EXPLODE!!",
-        "landmark": "Fox Belfry Spire // Up-Close 50-Entity Chain Detonation",
-        "title": "ALL 50 EXPLODE IN YOUR FACE: Dairy Geysers, 4-Tier Wheelman Fireballs & Lens Milk!",
-        "desc": "Every single one of the 50 spinning entities detonates from bottom ring to spire top in a 2.5-second chain reaction: roaring white milky_boom dairy geysers, 4-tier 360° Wheelman sprite fireballs, bouncing 3D tires & axles, culminating in a spire-top mega-blast that splashes thick white milk drips directly down the camera lens!",
-        "weapons": ["25+ Dairy Geysers", "4-Tier Wheelman Sprite Fireballs", "Direct Camera-Lens Milk Drips!"],
-        "vehicles": ["Flying 3D Tires & Axles (mm_wheel.md3 / wc_bar.md3)"],
-        "chars": ["All 50 Detonating Up Close!"],
-        "sfx_path": "sound/wcannon/wc_boom.wav",
-        "sfx_label": "💥🥛 50-Entity Tower Mega-Blast!",
-        "shots": [12, 13],
-    },
-    {
-        "card": 8, "t0": 40.5, "t1": 48.0,
-        "short": "08 • Burning Fox Finale!",
-        "landmark": "Blazing Fox Marquee // Wrecked Van + Floating Legends!",
-        "title": "FOX ON FIRE + Wrecked White Van on Marquee + Floating DAN, Wheelman, ROB & 24 CCCs!",
-        "desc": "Grand comedic punchline: 28 roaring flame & smoke columns engulf the Fox Theater, and parked smoking right on top of the Fox Marquee roof is the WRECKED WHITE VAN (veh_van_wreck.md3) honking pitifully! Meanwhile DAN, Jetpack Wheelman & ROB float weightlessly across the lens surrounded by 24 spinning yellow letter Cs as \"I'm floating!\" and \"Ah, I can't see!\" play us out!",
-        "weapons": ["28 Fox Fire Columns", "24 Spinning Yellow CCCs (ccc.md3)", "\"I'm Floating!\" + \"Ah, I Can't See!\""],
-        "vehicles": ["Wrecked White Van on the Marquee! (veh_van_wreck.md3)"],
-        "chars": ["Floating DAN", "Floating Jetpack Wheelman", "Floating ROB"],
-        "sfx_path": "sound/ccc/shoot.wav",
-        "sfx_label": "😵🟡 \"Ah, I Can't See!\" Finale",
-        "shots": [14, 15],
+        "card": 4, "t0": 46.5, "t1": 60.0,
+        "short": "04 • 360° Island Orbit",
+        "landmark": "Epstein Island Sky // Full 360° Panoramic Tour Finale",
+        "title": "360° Aerial Orbit All Around Little Saint James Island!",
+        "desc": "The camera lifts smoothly skyward into a sweeping 360-degree aerial orbit all the way around Epstein Island—taking in the Dock & Harbor, Main Villa compound, Sports Lawn crew still jumping & shooting below, Sundial ridge, and Blue-Striped Temple promontory—before fading cleanly out at 60.0s.",
+        "weapons": ["Panoramic Aerial Orbit Cam"],
+        "vehicles": ["Full Island 360° Flyaround"],
+        "chars": ["Sports Lawn Crew Seen From Above"],
+        "sfx_path": "sound/larry/love_to_play_quake.wav",
+        "sfx_label": "🏝️🚁 \"Love to Play Quake!\" Finale",
+        "shots": [7, 8, 9],
     },
 ]
 
 EXTRA_SOUNDBOARD = [
-    ("😤🪑 \"IT'S 4 AM!!\" (Daniel's Dad Table Flip)", "sound/daniel/dad_4am.wav", "Act 03"),
-    ("🍳💥 Bonk Frying-Pan Metallic CLANG!", "sound/hammer/frying_pan.wav", "Act 03"),
-    ("💻⚡ Laptop Gun Chomp & Shock (\"Canis!\")", "sound/ltgun/canis.wav", "Act 03"),
-    ("💾🖥️ NetSend BSOD (\"Where's the Disk?!\")", "sound/netsend/wheres_disk.wav", "Act 03"),
-    ("🔫🔔 M1 Garand En-Bloc Clip *PING!*", "sound/dod/garand_reload_clipding.wav", "Act 04"),
-    ("🤖🔵 Mega Buster Plasma Blast!", "sound/megaman/mm_fire.wav", "Act 04"),
-    ("🛞✨ \"I'm Floating!\" (Zero-G Finale)", "sound/jetpack/floating.wav", "Act 08"),
-    ("🟡😂 \"CCC! C-C-C-C!\" (Daniel Yellow-C Burst)", "sound/daniel/ccc_burst.wav", "Act 08"),
+    ("🟢😂 Green Mini Giggle #1", "sound/greenjar/mini_giggle1.wav", "Act 01"),
+    ("🟢🦘 Green Mini Boing!", "sound/greenjar/mini_boing.wav", "Act 01"),
+    ("🎺🚐 Mega Van Horn!", "sound/vehicles/lanvan.wav", "Act 02"),
+    ("😤🪑 \"IT'S 4 AM!!\" (Daniel's Dad)", "sound/daniel/dad_4am.wav", "Act 03"),
+    ("😱 \"NO WAY!!\" (Bryan)", "sound/bryan/noway.wav", "Act 03"),
+    ("🍌💥 \"Banana Cannon!\" (Larry)", "sound/larry/banana_cannon.wav", "Act 03"),
+    ("🍔😂 FatGuy \"All You Can Eat\"", "sound/random_npcs/fatguy_funny.wav", "Act 03"),
+    ("🗣️😂 \"JOHNNNNY!!\"", "sound/friends/johnnnny.wav", "Act 03"),
+    ("💨😂 Classic Fart Gag", "sound/funny/fart1.wav", "Act 03"),
+    ("🍳💥 Bonk Frying-Pan CLANG!", "sound/hammer/frying_pan.wav", "Act 03"),
+    ("🔫🔔 M1 Garand *PING!*", "sound/dod/garand_reload_clipding.wav", "Act 03"),
+    ("🛞✨ \"I'm Floating!\"", "sound/funny/imfloating.wav", "Act 04"),
 ]
 
 WEAPONS_DB = [
@@ -304,7 +247,7 @@ def main() -> None:
     zip_bytes = build_drop_in_zip()
     print(f"  -> {OUT_ZIP} ({zip_bytes / (1024*1024):.2f} MB)")
 
-    print("Encoding 16 HD 1280x720 screenshots as embedded base64...")
+    print(f"Encoding {len(SHOTS_META)} HD 1280x720 screenshots as embedded base64...")
     shots_payload = []
     for idx, (fname, card_no, ts, cap) in enumerate(SHOTS_META):
         uri = encode_shot_b64(fname)
@@ -355,7 +298,7 @@ def main() -> None:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bakersfield Quake: The Movie — 8-Act Cinematic Intro Showcase &amp; Mod Encyclopedia</title>
+<title>Bakersfield Quake — Little Saint James (Epstein Island) 4-Act Intro Showcase</title>
 <style>
   :root {{
     --bg:#080b13; --panel:#111726; --panel2:#182036; --panel3:#212c47;
@@ -579,20 +522,20 @@ def main() -> None:
   <header>
     <div class="brand">
       <div class="badges">
-        <span class="badge gold">48.0s 8-Act Movie Showcase</span>
-        <span class="badge cyan">Act I–II: Fox Theater + White Van + Wheelman!</span>
-        <span class="badge pink">Act III–V: Clown-Car Cast + Stampede + 360° Fox!</span>
-        <span class="badge lime">Act VI–VIII: 50-Tornado Explosion + Burning Fox Finale!</span>
+        <span class="badge gold">60.0s 4-Act Island Intro</span>
+        <span class="badge cyan">Act I: Blue-Striped Temple + 12 Big Milkys + 12 Green Guys</span>
+        <span class="badge pink">Act II: White Van Island Cruise Pursued by Big Milkys</span>
+        <span class="badge lime">Act III–IV: Cast Pileout + Funny SFX + 360° Island Orbit!</span>
       </div>
-      <h1><span>BAKERSFIELD QUAKE: THE MOVIE</span> — Cinematic Mod Showcase &amp; Arsenal Encyclopedia</h1>
+      <h1><span>BAKERSFIELD QUAKE</span> — Little Saint James (Epstein Island) Intro Showcase</h1>
       <p class="sub">
-        Re-created startup intro (<code>startdemos intro</code> on <code>maps/downtown.bsp</code>): opens with a Hollywood crane-down on the <b>Historic Fox Theater</b> as <b>the White Van</b> drifts in and <b>Wheelman</b> blows the rear barn doors clean off—then escalates crazier and crazier through a <b>14-legend clown-car pileout</b>, <b>full intersection vehicle/weapon stampede</b>, <b>Milky puddle spinouts &amp; 360° aerial Fox orbit</b>, <b>50-entity Clock Tower tornado detonation</b>, and the <b>blazing Fox Theater + wrecked White Van on the marquee + floating DAN, Wheelman, ROB &amp; 24 yellow CCCs!</b>
+        New startup intro (<code>startdemos intro</code> on <code>maps/little_st_james.bsp</code>): opens at the <b>Blue-Striped Temple</b> with big <b>Milky Jess grenades</b> floating all around and a dozen <b>little green Mega-Man wheel guys</b> driving everywhere—then the <b>White Van</b> cruises steadily across Epstein Island pursued by large Milky grenades, unloads the entire cast <b>shooting, jumping &amp; triggering funny sounds</b> on the Sports Lawn, and closes with a sweeping <b>360° aerial orbit of the island!</b>
       </p>
     </div>
     <div class="actions">
-      <a class="btn primary" id="dlPackBtn" href="https://bakersfield.larrywew.fun/intro-demo/bakersfield_intro_demo_pack.zip" download>⬇ Drop-In Quake Pack (.zip • {zip_mb:.1f} MB)</a>
-      <a class="btn" id="dlMp4Btn" href="https://bakersfield.larrywew.fun/intro-demo/intro_demo_downtown.mp4" target="_blank" rel="noopener">🎬 Full 720p MP4 + Audio</a>
-      <a class="btn" id="dlDemBtn" href="https://bakersfield.larrywew.fun/intro-demo/intro.dem" download>📼 Raw intro.dem ({dem_mb:.2f} MB)</a>
+      <a class="btn primary" id="dlPackBtn" href="./source/mm_tools/out/bakersfield_intro_demo_pack.zip" download>⬇ Drop-In Quake Pack (.zip • {zip_mb:.1f} MB)</a>
+      <a class="btn" id="dlMp4Btn" href="./source/mm_tools/out/intro_demo_lsj.mp4" target="_blank" rel="noopener">🎬 Full 720p MP4 + Audio</a>
+      <a class="btn" id="dlDemBtn" href="./intro.dem" download>📼 Raw intro.dem ({dem_mb:.2f} MB)</a>
       <button class="btn" type="button" id="copyCmdBtn">📋 Copy <code>playdemo intro</code></button>
     </div>
   </header>
@@ -600,10 +543,10 @@ def main() -> None:
   <section class="stage-card">
     <div class="mode-tabs">
       <div class="tab-pair">
-        <button class="btn active" type="button" id="tabVideoBtn">🎬 Full 720p HD Movie (48.0s • All 8 Escalating Acts + Audio)</button>
-        <button class="btn" type="button" id="tabStoryBtn">🖼 100% Self-Contained Offline 16-Shot HD Storyboard &amp; Sound</button>
+        <button class="btn active" type="button" id="tabVideoBtn">🎬 Full 720p HD Video (60.0s • All 4 Acts + Real Audio)</button>
+        <button class="btn" type="button" id="tabStoryBtn">🖼 100% Self-Contained Offline 10-Shot HD Storyboard &amp; Sound</button>
       </div>
-      <div class="now-playing" id="nowPlayingBanner">Act 01 (0:00–0:05) • Fox Theater Crane-Down &amp; The White Van Drift!</div>
+      <div class="now-playing" id="nowPlayingBanner">Act 01 (0:00–0:13) • Blue-Striped Temple, Big Milky Grenades &amp; 12 Green Wheel Guys!</div>
     </div>
 
     <div class="viewport-wrap" id="videoWrap">
@@ -611,7 +554,7 @@ def main() -> None:
     </div>
 
     <div class="viewport-wrap hidden" id="storyWrap">
-      <img id="storyImg" alt="Bakersfield Quake Movie Showcase Frame">
+      <img id="storyImg" alt="Bakersfield Quake Intro Frame">
       <div class="story-overlay">
         <div>
           <div class="story-cap-title" id="storyTitle"></div>
@@ -632,16 +575,16 @@ def main() -> None:
 
   <section class="soundboard">
     <div class="sec-hdr">
-      <h2>🔊 Interactive Bakersfield Quake Soundboard (16 Offline Base64 MP3 Clips)</h2>
-      <span>Click any button to hear the White Van, Wheelman, 4AM Table Flip, Pickle Surprise, Salmon Supercar, Garand *PING!*, Milky Song &amp; Finale Voices</span>
+      <h2>🔊 Interactive Comedy Soundboard (16 Offline Base64 MP3 Clips from the Intro)</h2>
+      <span>Click any button to hear Milky Song, White Van Horn, Green Mini Giggles, 4AM Dad, Bryan "NO WAY!", FatGuy, Farts, Frying Pan &amp; Garand *PING!*</span>
     </div>
     <div class="sfx-grid" id="sfxGrid"></div>
   </section>
 
   <section style="display:flex;flex-direction:column;gap:10px;">
     <div class="sec-hdr">
-      <h2>🎬 All 8 Escalating Movie Acts: From Quiet Fox Marquee to Total Dairy &amp; Tire Apocalypse</h2>
-      <span>Switch between Angle 1 &amp; Angle 2 on every Act card, jump the video player, or inspect in 1280×720 HD</span>
+      <h2>🎬 All 4 Acts: Blue-Striped Temple &rarr; Van Milky Chase &rarr; Cast Pileout &rarr; 360° Island Orbit</h2>
+      <span>Switch shots on each Act card, jump the video player, or inspect in 1280×720 HD</span>
     </div>
     <div class="cards-grid" id="cardsGrid"></div>
   </section>
@@ -685,18 +628,19 @@ const cardsGrid = document.getElementById('cardsGrid');
 const encGrid = document.getElementById('encGrid');
 
 const REMOTE_BASE = 'https://bakersfield.larrywew.fun/intro-demo/';
-const isIntroSubdir = location.pathname.includes('/intro-demo/');
-const assetBase = isIntroSubdir ? './' : REMOTE_BASE;
+const isLocalFile = location.protocol === 'file:';
+const isIntroSubdir = !isLocalFile && location.pathname.includes('/intro-demo/');
+const assetBase = isLocalFile ? './source/mm_tools/out/' : (isIntroSubdir ? './' : REMOTE_BASE);
 
 document.getElementById('dlPackBtn').href = assetBase + 'bakersfield_intro_demo_pack.zip';
-document.getElementById('dlMp4Btn').href = assetBase + 'intro_demo_downtown.mp4';
-document.getElementById('dlDemBtn').href = assetBase + 'intro.dem';
+document.getElementById('dlMp4Btn').href = assetBase + 'intro_demo_lsj.mp4';
+document.getElementById('dlDemBtn').href = isLocalFile ? './intro.dem' : assetBase + 'intro.dem';
 
-video.poster = DATA.shots[2].src;
-video.src = assetBase + 'intro_demo_downtown.mp4';
+video.poster = DATA.shots[0].src;
+video.src = assetBase + 'intro_demo_lsj.mp4';
 video.addEventListener('error', () => {{
-  if (video.src !== REMOTE_BASE + 'intro_demo_downtown.mp4') {{
-    video.src = REMOTE_BASE + 'intro_demo_downtown.mp4';
+  if (video.src !== REMOTE_BASE + 'intro_demo_lsj.mp4') {{
+    video.src = REMOTE_BASE + 'intro_demo_lsj.mp4';
   }} else {{
     setMode('story');
   }}
@@ -803,7 +747,7 @@ document.getElementById('autoPlayBtn').onclick = () => {{
 DATA.cards.forEach((c, idx) => {{
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'chap-btn' + (idx === 0 ? ' on' : '') + (c.card >= 5 ? ' milky' : '');
+  b.className = 'chap-btn' + (idx === 0 ? ' on' : '') + (c.card <= 2 ? ' milky' : '');
   b.innerHTML = `<span>${{c.short}}</span><span class="chap-time">${{fmtTime(c.t0)}}</span>`;
   b.onclick = () => {{
     highlightChapter(idx);
@@ -848,7 +792,7 @@ DATA.cards.forEach((c, idx) => {{
 
 DATA.cards.forEach((c, idx) => {{
   const el = document.createElement('article');
-  el.className = 'landmark-card' + (c.card >= 6 ? ' milky-highlight' : '');
+  el.className = 'landmark-card' + (c.card === 2 ? ' milky-highlight' : '');
   let activeLocalShot = c.shots[0];
 
   const switchHtml = c.shots.length > 1

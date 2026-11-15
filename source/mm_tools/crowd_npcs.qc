@@ -356,7 +356,7 @@ void() CN_Place =
 
 void(string snd) CN_Say =
 {
-	if (time < self.cn_voice_t)
+	if (NPC_IsVoiceMuted(self) || time < self.cn_voice_t)
 		return;
 	self.cn_voice_t = time + 1.5;
 	sound (self, CHAN_VOICE, snd, 1, ATTN_NORM);
@@ -459,7 +459,8 @@ void() CN_Die =
 		return;
 	}
 
-	sound (self, CHAN_VOICE, CN_FleeSound (self.cn_kind), 1, ATTN_NORM);
+	if (!NPC_IsVoiceMuted(self))
+		sound (self, CHAN_VOICE, CN_FleeSound (self.cn_kind), 1, ATTN_NORM);
 	self.alpha = 1;
 	if (self.cn_kind >= CN_FIRST_MD3)
 		self.frame = 44;
@@ -480,7 +481,7 @@ void(entity attacker, float take) CN_Pain =
 		self.cn_enemy = attacker;		// already mad: whoever hits it now is who it deals with
 		return;
 	}
-	if (time >= self.cn_voice_t)
+	if (!NPC_IsVoiceMuted(self) && time >= self.cn_voice_t)
 	{
 		self.cn_voice_t = time + 1;
 		r = 1 + floor (random () * 3);
@@ -544,7 +545,7 @@ void() CN_Think =
 		dv_z = 0;
 		dist = vlen (dv);
 		want = vectoyaw (dv);
-		if (dist < 46)
+		if (dist < 46 && fabs (e.origin_z - self.origin_z) < 72)		// dv_z is zeroed above: without the height test a member one floor below (or under a jetpack) still landed hits
 		{
 			if (time >= self.cn_next_hit)
 			{
@@ -758,6 +759,7 @@ void(float dmg) Crowd_Poke =
 	local float d, bd;
 
 	bd = 1500;
+	best = world;		// QC locals keep their last value: with nobody in range this hit whoever was poked last time
 	e = find (world, classname, "npc_crowd");
 	while (e)
 	{

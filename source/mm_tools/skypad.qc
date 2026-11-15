@@ -36,8 +36,7 @@ void() SkyPad_Precache =
 	precache_model ("progs/aura.md3");
 	precache_model ("progs/laser.md3");
 	precache_model ("progs/s_dotmed_yell.spr");
-	precache_sound ("jetpack/swoosh.wav");
-	precache_sound ("ambience/windfly.wav");
+	precache_sound ("skypad/launch.wav");
 	precache_sound ("weapons/turrset.wav");
 };
 
@@ -119,8 +118,7 @@ void() SkyPad_Touch =
 	other.velocity = v;
 	other.jump_flag = 0;
 
-	sound (other, CHAN_AUTO, "jetpack/swoosh.wav", 1, ATTN_NORM);
-	sound (self, CHAN_VOICE, "ambience/windfly.wav", 1, ATTN_NORM);
+	sound7 (other, CHAN_AUTO, "skypad/launch.wav", 0.78, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
 	pointparticles (particleeffectnum ("TE_TELEPORT"), self.origin + '0 0 12', '0 0 0', 1);
 
 	if (self.message != "" && other.ishuman == 1)

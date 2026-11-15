@@ -35,6 +35,7 @@ float	VEH_HDTRUCK		= 5;
 float	VEH_SCHOOLBUS	= 6;
 float	VEH_GTCAR		= 7;
 float	VEH_GOLFCART	= 8;
+float	VEH_TUKTUK		= 9;
 
 float	VEH_STATE_IDLE	= 0;
 float	VEH_STATE_FIRE	= 1;
@@ -148,3 +149,4 @@ void() misc_vehicle_hdtruck;
 void() misc_vehicle_schoolbus;
 void() misc_vehicle_gtcar;
 void() misc_vehicle_golfcart;
+void() misc_vehicle_tuktuk;

@@ -220,7 +220,11 @@ void() Pk_Shot =
 		Pk_Fizzle ();
 		return;
 	}
-	Pk_Explode ();
+	// this runs inside the T_RadiusDamage loop of whatever shot it: blowing up here ran a second findradius, which rewrote
+	// .chain under that loop (players skipped or hit twice). Go off a moment later instead, as megaman.qc does.
+	self.takedamage = DAMAGE_NO;
+	self.think = Pk_Explode;
+	self.nextthink = time;
 };
 
 // it hit something: swap from the tumbling throw sprite to the 3D turquoise Pickle Surprise lying flat on the surface

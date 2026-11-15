@@ -80,6 +80,14 @@ void() Vehicles_Precache =
 	precache_model ("progs/veh_gtcar_extra.md3");
 	precache_model ("progs/veh_gtcar_bumper.md3");
 
+	precache_model ("progs/veh_tuktuk.md3");
+	precache_model ("progs/veh_tuktuk_wreck.md3");
+	precache_model ("progs/veh_tuktuk_wheel.md3");
+	precache_model ("progs/veh_tuktuk_hood.md3");
+	precache_model ("progs/veh_tuktuk_door.md3");
+	precache_model ("progs/veh_tuktuk_extra.md3");
+	precache_model ("progs/veh_tuktuk_bumper.md3");
+
 	precache_model ("progs/lsj/lsj_golfcart.md3");
 
 	precache_model ("progs/veh_shrap1.md3");
@@ -105,8 +113,11 @@ void() Vehicles_Precache =
 	// driving the van (vehicle_drive.qc)
 	precache_model ("progs/spike.mdl");
 	precache_sound ("vehicles/engine_grain.wav");
+	precache_sound ("vehicles/engine_grain_tuktuk.wav");
+	precache_sound ("vehicles/idle_tuktuk.wav");
 	precache_sound ("vehicles/tire_squeal.wav");
 	precache_sound ("vehicles/horn.wav");
+	precache_sound ("vehicles/horn_tuktuk.wav");
 	precache_sound ("vehicles/ignition.wav");
 	precache_sound ("vehicles/lanvan.wav");
 	precache_sound ("misc/null.wav");
@@ -145,6 +156,8 @@ string(float kind) Veh_DisplayName =
 		return "V8 Muscle GT";
 	if (kind == VEH_GOLFCART)
 		return "Island Golf Cart";
+	if (kind == VEH_TUKTUK)
+		return "Bangkok Tuk-Tuk";
 	return "Tuner Coupe";
 };
 
@@ -156,6 +169,7 @@ float(float kind) Veh_HalfLen =
 	if (kind == VEH_VAN)       return 110;
 	if (kind == VEH_GTCAR)     return 99;
 	if (kind == VEH_SEDAN)     return 98;
+	if (kind == VEH_TUKTUK)    return 58;
 	if (kind == VEH_GOLFCART)  return 50;
 	return 93;
 };
@@ -166,6 +180,7 @@ float(float kind) Veh_HalfWid =
 	if (kind == VEH_TRUCK)     return 46;
 	if (kind == VEH_HDTRUCK)   return 45;
 	if (kind == VEH_VAN)       return 44;
+	if (kind == VEH_TUKTUK)    return 28;
 	if (kind == VEH_GOLFCART)  return 26;
 	return 39;
 };
@@ -177,6 +192,7 @@ float(float kind) Veh_BodyHeight =
 	if (kind == VEH_TRUCK)     return 84;
 	if (kind == VEH_HDTRUCK)   return 84;
 	if (kind == VEH_GOLFCART)  return 72;
+	if (kind == VEH_TUKTUK)    return 70;
 	if (kind == VEH_SEDAN)     return 55;
 	if (kind == VEH_GTCAR)     return 53;
 	return 50;
@@ -198,6 +214,8 @@ string(float kind) Veh_IntactModel =
 		return "progs/veh_gtcar.md3";
 	if (kind == VEH_GOLFCART)
 		return "progs/lsj/lsj_golfcart.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk.md3";
 	return "progs/veh_coupe.md3";
 };
 
@@ -215,6 +233,8 @@ string(float kind) Veh_WreckModel =
 		return "progs/veh_schoolbus_wreck.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_wreck.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_wreck.md3";
 	return "progs/veh_coupe_wreck.md3";
 };
 
@@ -232,6 +252,8 @@ string(float kind) Veh_WheelModel =
 		return "progs/veh_schoolbus_wheel.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_wheel.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_wheel.md3";
 	return "progs/veh_coupe_wheel.md3";
 };
 
@@ -249,6 +271,8 @@ string(float kind) Veh_HoodModel =
 		return "progs/veh_schoolbus_hood.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_hood.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_hood.md3";
 	return "progs/veh_coupe_hood.md3";
 };
 
@@ -266,6 +290,8 @@ string(float kind) Veh_DoorModel =
 		return "progs/veh_schoolbus_door.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_door.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_door.md3";
 	return "progs/veh_coupe_door.md3";
 };
 
@@ -283,6 +309,8 @@ string(float kind) Veh_ExtraModel =
 		return "progs/veh_schoolbus_extra.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_extra.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_extra.md3";
 	return "progs/veh_coupe_extra.md3";
 };
 
@@ -300,6 +328,8 @@ string(float kind) Veh_BumperModel =
 		return "progs/veh_schoolbus_bumper.md3";
 	if (kind == VEH_GTCAR)
 		return "progs/veh_gtcar_bumper.md3";
+	if (kind == VEH_TUKTUK)
+		return "progs/veh_tuktuk_bumper.md3";
 	return "progs/veh_coupe_bumper.md3";
 };
 
@@ -311,6 +341,8 @@ string(float kind) Veh_IdleSound =
 		return "vehicles/idle_sedan.wav";
 	if (kind == VEH_VAN || kind == VEH_SCHOOLBUS)
 		return "vehicles/idle_van.wav";
+	if (kind == VEH_TUKTUK)
+		return "vehicles/idle_tuktuk.wav";
 	return "vehicles/idle_coupe.wav";
 };
 
@@ -330,6 +362,8 @@ float(float kind) Veh_MaxHP =
 		return 230;
 	if (kind == VEH_GOLFCART)
 		return 200;
+	if (kind == VEH_TUKTUK)
+		return 190;
 	return 210;
 };
 
@@ -350,6 +384,8 @@ vector(float kind) Veh_HoodFireOfs =
 		return '64 0 32';
 	if (kind == VEH_GOLFCART)
 		return '34 0 28';
+	if (kind == VEH_TUKTUK)
+		return '36 0 35';
 	return '62 0 29';
 };
 
@@ -414,6 +450,14 @@ void(entity v, float kind, float is_wreck) Veh_SetRotatedBounds =
 		ht = 72;
 		if (is_wreck)
 			ht = 28;
+	}
+	else if (kind == VEH_TUKTUK)
+	{
+		hl = 58;
+		hw = 28;
+		ht = 70;
+		if (is_wreck)
+			ht = 44;
 	}
 	else
 	{
@@ -878,6 +922,11 @@ entity(float kind, vector org, vector vel, float side_sgn) Veh_SpawnWheel =
 		wr = 13.8;
 		whw = 5.1;
 	}
+	else if (kind == VEH_TUKTUK)
+	{
+		wr = 11.8;
+		whw = 2.9;
+	}
 	else
 	{
 		wr = 12.6;
@@ -885,7 +934,7 @@ entity(float kind, vector org, vector vel, float side_sgn) Veh_SpawnWheel =
 	}
 
 	w = Veh_SpawnDebris (Veh_WheelModel (kind), org, vel, '0 0 0', 11.0);
-	if (kind >= VEH_HDTRUCK && kind <= VEH_GTCAR)
+	if ((kind >= VEH_HDTRUCK && kind <= VEH_GTCAR) || kind == VEH_TUKTUK)
 	{
 		w.bouncefactor = 0.78;
 		w.mm_life = 13.5;
@@ -1106,6 +1155,16 @@ void() Veh_ExplodeNow =
 		bfx = 48; brx = -48; bz = 12;
 		rad_dmg = 160;
 	}
+	else if (kind == VEH_TUKTUK)
+	{
+		fx = 43;  rx = -34;  wy = 24.5; wz = 12;
+		dx = 0;   dy = 25.0; dz = 32;
+		ex = -14; ez = 66;
+		bfx = 48; brx = -52; bz = 13;
+		wild_mul = 1.95;
+		shrap_cnt = 10;
+		rad_dmg = 190;
+	}
 	else
 	{
 		fx = 54;  rx = -52;  wy = 32.8; wz = 15;
@@ -1114,16 +1173,26 @@ void() Veh_ExplodeNow =
 		bfx = 91; brx = -90; bz = 12;
 	}
 
-	// 1. Launch ALL 4 (or 6 dually!) UNIQUE WHEELS with fierce skyward/outward arcs & banked rolling!
-	// Front-Left (+X, +Y)
-	wpos = self.origin + fwd * fx + lft * wy + upv * wz;
-	wvel = (fwd * (145 + random () * 110) + lft * (215 + random () * 120) + upv * (350 + random () * 150)) * wild_mul;
-	Veh_SpawnWheel (kind, wpos, wvel, 1);
+	// 1. Launch ALL 3 (Tuk-Tuk), 4, or 6 (dually!) UNIQUE WHEELS with fierce skyward/outward arcs & banked rolling!
+	if (kind == VEH_TUKTUK)
+	{
+		// Single Front Center Wheel (+X, 0)
+		wpos = self.origin + fwd * fx + upv * wz;
+		wvel = (fwd * (215 + random () * 115) + lft * (crandom () * 125) + upv * (340 + random () * 145)) * wild_mul;
+		Veh_SpawnWheel (kind, wpos, wvel, 1);
+	}
+	else
+	{
+		// Front-Left (+X, +Y)
+		wpos = self.origin + fwd * fx + lft * wy + upv * wz;
+		wvel = (fwd * (145 + random () * 110) + lft * (215 + random () * 120) + upv * (350 + random () * 150)) * wild_mul;
+		Veh_SpawnWheel (kind, wpos, wvel, 1);
 
-	// Front-Right (+X, -Y)
-	wpos = self.origin + fwd * fx - lft * wy + upv * wz;
-	wvel = (fwd * (135 + random () * 115) - lft * (215 + random () * 120) + upv * (340 + random () * 155)) * wild_mul;
-	Veh_SpawnWheel (kind, wpos, wvel, -1);
+		// Front-Right (+X, -Y)
+		wpos = self.origin + fwd * fx - lft * wy + upv * wz;
+		wvel = (fwd * (135 + random () * 115) - lft * (215 + random () * 120) + upv * (340 + random () * 155)) * wild_mul;
+		Veh_SpawnWheel (kind, wpos, wvel, -1);
+	}
 
 	// Rear-Left (-X, +Y)
 	wpos = self.origin + fwd * rx + lft * wy + upv * wz;
@@ -1301,7 +1370,7 @@ void() Veh_Think =
 	if (self.veh_state == VEH_STATE_WRECK)
 	{
 		local float max_wf, is_wild;
-		is_wild = (self.veh_kind >= VEH_HDTRUCK && self.veh_kind <= VEH_GTCAR);
+		is_wild = ((self.veh_kind >= VEH_HDTRUCK && self.veh_kind <= VEH_GTCAR) || self.veh_kind == VEH_TUKTUK);
 		max_wf = 19;
 		if (is_wild)
 			max_wf = 39;
@@ -1456,6 +1525,8 @@ void() Veh_Think =
 			rate = 0.76;
 		else if (self.veh_kind == VEH_GTCAR)
 			rate = 0.96;
+		else if (self.veh_kind == VEH_TUKTUK)
+			rate = 1.15;
 		else
 			rate = 0.92;
 		if (self.veh_driver != world)
@@ -1583,13 +1654,20 @@ void() misc_vehicle_golfcart =
 	Veh_InitEntity (self, VEH_GOLFCART);
 };
 
+void() misc_vehicle_tuktuk =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_vehicle_tuktuk";
+	Veh_InitEntity (self, VEH_TUKTUK);
+};
+
 void() misc_vehicle =
 {
 	local float k;
 
 	Vehicles_Precache ();
 	k = floor (self.cnt);
-	if (k < 1 || k > 8)
+	if (k < 1 || k > 9)
 	{
 		k = floor (fabs (self.origin_x * 0.013 + self.origin_y * 0.017)) + 1;
 		k = k - 4 * floor ((k - 1) / 4);
@@ -1686,7 +1764,7 @@ void() Vehicles_Impulse =
 	}
 	if (!autocvar_sv_cheats)	// 81-85 & 91-94 spawn cars out of thin air: sv_cheats only
 		return;
-	if (!((self.impulse >= 81 && self.impulse <= 85) || (self.impulse >= 91 && self.impulse <= 94)))
+	if (!((self.impulse >= 81 && self.impulse <= 85) || (self.impulse >= 91 && self.impulse <= 95)))
 		return;
 
 	makevectors ('0 1 0' * self.v_angle_y);
@@ -1747,6 +1825,15 @@ void() Vehicles_Impulse =
 		Veh_SpawnDynamic (VEH_SCHOOLBUS, base,             self.v_angle_y + 180);
 		Veh_SpawnDynamic (VEH_GTCAR,     base + rgt * 165, self.v_angle_y + 180);
 		sprint (self, "Spawned all 3 WILD vehicles (Diesel Rig, School Bus, V8 Muscle Car)!\n");
+		self.impulse = 0;
+		return;
+	}
+
+	if (self.impulse == 95)
+	{
+		base = self.origin + fwd * 185 + '0 0 16';
+		Veh_SpawnDynamic (VEH_TUKTUK, base, yaw_car);
+		sprint (self, "Spawned Bangkok Tuk-Tuk!\n");
 		self.impulse = 0;
 	}
 };
