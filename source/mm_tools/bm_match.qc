@@ -325,6 +325,34 @@ void() BM_LifeFrame =
 	if (self.veh_van != world || self.veh_ride != world)		tmask = tmask | 256;
 	self.bm_st_toymask = tmask;
 	self.bm_st_toycd = max (0, ceil (self.jb_cooldown_t - time));
+
+	if (self.fd_head != world)
+	{
+		if (self.fd_head.fd_charging)
+			self.fd_st_mode = 2;
+		else
+			self.fd_st_mode = 1;
+		if (self.fd_head.fd_end > 0)
+			self.fd_st_timer = max (0, ceil ((self.fd_head.fd_end - time) * 10));
+		else
+			self.fd_st_timer = 999;
+		self.fd_st_speed = floor (vlen (self.fd_head.velocity));
+		self.fd_st_arm = (time > self.fd_head.fd_arm);
+	}
+	else if (self.fd_fade > time)
+	{
+		self.fd_st_mode = 3;
+		self.fd_st_timer = 0;
+		self.fd_st_speed = 0;
+		self.fd_st_arm = 0;
+	}
+	else
+	{
+		self.fd_st_mode = 0;
+		self.fd_st_timer = 0;
+		self.fd_st_speed = 0;
+		self.fd_st_arm = 0;
+	}
 };
 
 // SelectSpawnPoint (client.qc) asks first. Keeps 4-8 friends clustered around the active combat centroid
@@ -335,7 +363,11 @@ entity() BM_PickSpawn =
 	local float dmin, d, dcen, score, bestscore, seen, n;
 	local vector cen;
 
-	if (!deathmatch || autocvar_bm_spawnnear <= 0)
+	if (!deathmatch)
+		return world;
+	if (self.ishuman != 1)
+		return BM_BotPickSpawn ();
+	if (autocvar_bm_spawnnear <= 0)
 		return world;
 
 	cen = '0 0 0';
@@ -518,6 +550,11 @@ void() BM_Stats =
 	clientstat (79, 2, bm_st_toycd);	// Winged John cooldown seconds remaining (csqc/bm_hud.qc)
 	clientstat (80, 2, bm_st_playermask);	// bitmask of live visible human slots 0..15 (csqc/bm_hud.qc)
 	clientstat (69, 2, bm_st_menubg);	// 900 during silent menu-background map (csqc/bm_hud.qc)
+	clientstat (81, 2, fd_st_mode);		// Rob Dob X-Ray HUD mode (csqc/robhead_xray.qc)
+	clientstat (82, 2, fd_st_timer);		// Rob Dob flight timer tenths (csqc/robhead_xray.qc)
+	clientstat (83, 2, fd_st_speed);		// Rob Dob speed u/s (csqc/robhead_xray.qc)
+	clientstat (84, 2, fd_st_arm);		// Rob Dob dash armed (csqc/robhead_xray.qc)
+	clientstat (85, 2, fd_st_seq);		// Rob Dob terminal sequence 1..14 (csqc/robhead_xray.qc)
 };
 
 float() BM_CountPlayers =

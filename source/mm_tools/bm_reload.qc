@@ -67,15 +67,15 @@ float(float s) BM_ReloadTime =
 {
 	local float t;
 
-	if (s == BM_SG)			t = 1.5;
-	else if (s == BM_SSG)	t = 2;
+	if (s == BM_SG)			t = 1.2;
+	else if (s == BM_SSG)	t = 1.6;
 	else if (s == BM_NG)	t = 2.5;	// Laptop Gun
 	else if (s == BM_SNG)	t = 5;		// Milky Gun
-	else if (s == BM_GL)	t = 3;
-	else if (s == BM_RL)	t = 3;
-	else if (s == BM_LG)	t = 3;
-	else if (s == BM_LASER)	t = 3;
-	else if (s == BM_MM)	t = 12;		// 6 s a Mega Man (was 8: 4 s)
+	else if (s == BM_GL)	t = 2.2;
+	else if (s == BM_RL)	t = 2.4;
+	else if (s == BM_LG)	t = 2.4;
+	else if (s == BM_LASER)	t = 2.2;
+	else if (s == BM_MM)	t = 9;		// 4.5 s a Mega Man (was 12: 6 s)
 	else if (s == BM_FG1)	t = FG_DOB_REGEN;	// Rob Dob: one head
 	else if (s == BM_FG2)	t = FG_PONG_REGEN;	// Jar o' Green Guys: one jar
 	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)

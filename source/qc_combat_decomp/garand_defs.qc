@@ -26,7 +26,7 @@ DoD sound events: reload clipin at 0.9600s; last-round clipding on 8th shot; rif
 */
 
 float	GAR_REFIRE				= 0.35;		// seconds between semi-auto shots
-float	GAR_DAMAGE				= 48;		// .30-06 punch (3-shots 100HP+100GA DM spawn)
+float	GAR_DAMAGE				= 55;		// .30-06 punch (3-shots 100HP+100GA DM spawn cleanly)
 float	GAR_SPREAD_STAND		= 0.003;	// pinpoint standing rifle accuracy
 float	GAR_SPREAD_MOVE			= 0.025;	// added at full run speed
 float	GAR_SPREAD_AIR			= 0.020;	// added while airborne

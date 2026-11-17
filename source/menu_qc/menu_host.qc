@@ -145,8 +145,9 @@ void(float clicked) BM_Host_Draw =
 	BM_DrawGlassPanel(px, py, pw, ph, 0.88, COL_BORDER, 0.78, 2.5);
 
 	// Header
-	BM_DrawText(px + 14, py + 11, "HOST LAN GAME", 12, COL_ACCENT, 0.98);
-	BM_DrawTextClipped(px + 184, py + 14, pw - 260, "Select a Bakersfield map & rules", 8, COL_MUTED, 0.92, FALSE);
+	BM_DrawText(px + 14, py + 11, "BAKERSFIELD QUAKE", 12, COL_ACCENT, 0.98);
+	BM_DrawText(px + 228, py + 14, "HOST LAN GAME", 9, COL_TEXT, 0.92);
+	BM_DrawTextClipped(px + 356, py + 14, pw - 432, "Select a Bakersfield map & rules", 8, COL_MUTED, 0.92, FALSE);
 
 	hov = BM_DrawButton(px + pw - 66, py + 9, 54, 18, "BACK", FALSE, FALSE);
 	if (clicked && hov)

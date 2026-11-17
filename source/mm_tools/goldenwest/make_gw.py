@@ -179,6 +179,7 @@ def build_world_kv(wad_path: Optional[str], mb: Optional[MapBuilder] = None) -> 
         "_minlight": "26",
         "_bounce": "1",
         "_anglescale": "0.5",
+        "fog": "0.338 0.67 0.74 0.79 1 4200 8100 504 360",
     })
     return kv
 

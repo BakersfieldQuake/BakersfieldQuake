@@ -30,8 +30,8 @@ float	ltg_canis_t;
 float	LTG_SOUND_ATTN	= 1;		// "out of the projectile, not me": the clip comes from the head and fades with distance (ATTN_NONE played it in your own ears)
 float	LTG_TURN_LOCK	= 7.0;		// homing turn rate onto a locked enemy (strong curve without laser babysitting)
 float	LTG_LIFE		= 7;
-float	LTG_DAMAGE		= 35;		// direct hit damage per head (full 5-head salvo = 175 direct + shock)
-float	LTG_SPLASH_DMG	= 28;		// radius splash damage on wall/floor/target impact
+float	LTG_DAMAGE		= 42;		// direct hit damage per head (full 5-head salvo = 210 direct + shock)
+float	LTG_SPLASH_DMG	= 32;		// radius splash damage on wall/floor/target impact
 float	LTG_RADIUS		= 110;		// anyone this close to the blast is shocked too
 float	LTG_SHOCK_TIME	= 1.8;		// lag shock duration (was 1.5s)
 float	LTG_SHOCK_SPEED	= 175;		// ground slow while still allowing jumps & rocket-jumps (was 185)

@@ -1571,7 +1571,12 @@ void(entity v, float kind) Veh_InitEntity =
 	v.veh_state = VEH_STATE_IDLE;
 	v.scale = 1;
 	v.skin = 0;
-	if (!v.veh_has_cm)
+	if (kind == VEH_TUKTUK)
+	{
+		v.veh_orig_colormod = '0 0 0';
+		v.veh_has_cm = TRUE;
+	}
+	else if (!v.veh_has_cm)
 	{
 		v.veh_orig_colormod = v.colormod;
 		v.veh_has_cm = TRUE;

@@ -18,7 +18,7 @@ generic fun gun one (client.qc, through fg_inflicting).
 */
 
 float	NS_RANGE		= 900;		// it only sends to someone this close, and in its view
-float	NS_DAMAGE		= 5;		// per NET SEND
+float	NS_DAMAGE		= 8;		// per NET SEND
 float	NS_SHOT_GAP		= 4;		// seconds between two NET SENDs
 float	NS_MAX_PCS		= 3;		// PCs one player can have standing at once (oldest pops on #4)
 float	NS_LIFE			= 45;		// battery lifetime (seconds) before a deployed PC powers down & pops
@@ -31,7 +31,7 @@ float	NS_AIM			= 12;		// it fires once it faces its target within this many degr
 float	NS_SCAN_ARC		= 60;		// with nobody in sight it sweeps this many degrees each side of where it faced when it landed
 float	NS_SCAN_RATE	= 1.2;		// radians a second of that sweep
 float	NS_LASER_GAP	= 0.15;		// seconds between two green lasers (review 2026-10-31: "act just like the sentry gun from TF")
-float	NS_LASER_DMG	= 3;		// per laser
+float	NS_LASER_DMG	= 5;		// per laser
 float	NS_LASER_SPEED	= 1100;
 
 .float	ns_state;		// PC: 2 materializing, 3 booting, 4 sending, for good (the disk in the air has none)

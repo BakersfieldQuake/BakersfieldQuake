@@ -139,10 +139,7 @@ void() generate_particlechain =
 			part.part_active = 0;
 			part.classname = "particle";
 			part.classtype = CT_PARTICLE;
-			if ((engine == ENG_DPEXT))
-			{
-				part.effects = (part.effects + EF_NOSHADOW);
-			}
+			part.effects = EF_NOSHADOW;
 			part.cnt = (self.count + pcount);
 			pcount = pcount + 1;
 			if ((part_prev.classtype != CT_PARTICLE))
@@ -179,6 +176,10 @@ void() generate_particlechain =
 
 void() setup_particlechain =
 {
+	if ((part_max > 256))
+	{
+		part_max = 256;
+	}
 	setup_particleprecache();
 	if ((part_control.classtype != CT_PARTICLECONT))
 	{

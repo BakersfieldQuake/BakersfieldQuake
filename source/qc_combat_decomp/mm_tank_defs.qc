@@ -41,9 +41,9 @@ float	MMT_COAST			= 170;
 float	MMT_TURN_RATE		= 68;
 float	MMT_TURN_ACCEL		= 220;
 float	MMT_RELOAD_TIME		= 6.0;
-float	MMT_BAR_SPEED		= 1150;
-float	MMT_BAR_DMG			= 150;
-float	MMT_BAR_DIRECT		= 55;
+float	MMT_BAR_SPEED		= 1350;
+float	MMT_BAR_DMG			= 210;
+float	MMT_BAR_DIRECT		= 280;
 float	MMT_HALF_RAD		= 104;
 float	MMT_BODY_H			= 132;
 
@@ -108,6 +108,9 @@ float	mmt_fx_sparks;
 .float	mmt_lean;				// wheel debris bank lean angle
 .float	mmt_side;				// wheel debris lean side (+1 / -1)
 .float	mmt_hit_t;				// per-target ram damage cooldown
+.vector	mmt_air_vel;			// carried horizontal air velocity from jump/launch pads
+.float	mmt_has_air_vel;		// TRUE while jump/launch pad air velocity is active
+.float	mmt_pad_cool;			// next timestamp a jump/launch pad can boost this tank
 
 .vector	mmt_spawn_org;			// original map origin
 .vector	mmt_spawn_ang;			// original map angles
@@ -153,3 +156,7 @@ void(float mask) MMTank_SetBoomMask;
 string(float mask) MMT_BoomMaskSummary;
 string(float cur_pack) MMT_PickBoomSound;
 void() misc_mm_tank;
+
+// Forward declarations for SkyPad helpers (skypad.qc compiles after mm_tank.qc)
+void() SkyPad_RaiseMaxVel;
+vector(vector org, vector dst, float apex_z) SkyPad_CalcVel;

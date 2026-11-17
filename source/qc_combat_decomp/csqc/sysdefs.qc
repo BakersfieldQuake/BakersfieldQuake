@@ -169,6 +169,7 @@ float movevar_wateraccelerate;
 float movevar_friction;
 float movevar_waterfriction;
 float movevar_entgravity;
+float drawfont;
 void end_sys_globals;
 .float modelindex;
 .vector absmin;

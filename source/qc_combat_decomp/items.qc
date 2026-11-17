@@ -1535,72 +1535,22 @@ void() weapon_touch =
 
 void() weapon_nailgun =
 {
-	if ((self.dmg == 1))
-	{
-		remove(self);		// chainsaw removed
-		return;
-	}
-	else
-	{
-		precache_model("progs/ltg_g.md3");	// laptop gun
-		setmodel(self, "progs/ltg_g.md3");
-		self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-		self.weapon = IT_NAILGUN;
-		self.netname = "Laptop";
-		self.touch = weapon_touch;
-		setsize(self, '-16 -16 0', '16 16 56');
-		StartItem();
-	}
+	remove(self);		// guns removed from maps: players start with small weapons
 };
 
 void() weapon_supernailgun =
 {
-	if ((self.dmg == 1))
-	{
-		precache_model("progs/g_prox.mdl");
-		setmodel(self, "progs/g_prox.mdl");
-		self.weapon = 3;
-		self.classname = "weapon_proximity_gun";
-		self.netname = "Proximity Gun";
-		self.touch = weapon_touch;
-		setsize(self, '-16 -16 0', '16 16 56');
-		StartItem();
-	}
-	else
-	{
-		precache_model("progs/g_nail2.mdl");
-		setmodel(self, "progs/g_nail2.mdl");
-		self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-		self.weapon = IT_SUPER_NAILGUN;
-		self.netname = "Milky Gun";
-		self.touch = weapon_touch;
-		setsize(self, '-16 -16 0', '16 16 56');
-		StartItem();
-	}
+	remove(self);
 };
 
 void() weapon_grenadelauncher =
 {
-	precache_model("progs/g_rock.mdl");
-	setmodel(self, "progs/g_rock.mdl");
-	self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-	self.weapon = 3;
-	self.netname = "Grenade Launcher";
-	self.touch = weapon_touch;
-	setsize(self, '-16 -16 0', '16 16 56');
-	StartItem();
+	remove(self);
 };
 
 void() weapon_rocketlauncher =
 {
-	precache_model("progs/g_rock2.mdl");
-	setmodel(self, "progs/g_rock2.mdl");
-	self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-	self.weapon = 3;
-	self.netname = "Rocket Launcher";
-	self.touch = weapon_touch;
-	setsize(self, '-16 -16 0', '16 16 56');
-	StartItem();
+	remove(self);
 };
 
 void() g_mage1_effect =
@@ -1616,37 +1566,7 @@ void() g_mage1_effect =
 
 void() weapon_lightning =
 {
-	if ((self.dmg == 1))
-	{
-		precache_model("progs/g_laserg.mdl");
-		setmodel(self, "progs/g_laserg.mdl");
-		self.weapon = 3;
-		self.classname = "weapon_laser_gun";
-		self.netname = "LaserGun";
-		self.touch = weapon_touch;
-		setsize(self, '-16 -16 6', '16 16 56');
-	}
-	else
-	{
-		if (autocvar_mage_weapon)
-		{
-			precache_model("progs/g_mage1.mdl");
-			setmodel(self, "progs/g_mage1.mdl");
-			precache_sound("weapons/g_mage1.wav");
-			self.netname = "Arc of Death";
-		}
-		else
-		{
-			precache_model("progs/g_light.mdl");
-			setmodel(self, "progs/g_light.mdl");
-			self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-			self.netname = "Thunderbolt";
-		}
-		self.weapon = 3;
-		self.touch = weapon_touch;
-		setsize(self, '-16 -16 0', '16 16 56');
-	}
-	StartItem();
+	remove(self);
 };
 
 void() weapon_chainsaw =
@@ -1656,21 +1576,7 @@ void() weapon_chainsaw =
 
 void() weapon_laser_gun =
 {
-	precache_model("progs/g_laserg.mdl");
-	setmodel(self, "progs/g_laserg.mdl");
-	self.weapon = 3;
-	self.netname = "CCC Gun";
-	self.items = IT_LASER_CANNON;
-	self.touch = weapon_touch;
-	if ((self.health == 1))
-	{
-		setsize(self, '-16 -16 10', '16 16 56');
-	}
-	else
-	{
-		setsize(self, '-16 -16 0', '16 16 56');
-	}
-	StartItem();
+	remove(self);
 };
 
 void() prox_touch =
@@ -1699,17 +1605,7 @@ void() prox_touch =
 
 void() weapon_proximity_gun =
 {
-	setmodel(self, "progs/g_prox.mdl");
-	self.weapon = 3;
-	self.classname = "weapon_proximity_gun";
-	self.glow_color = 75;
-	self.glow_size = 104;
-	self.scale = 1.3;
-	self.netname = "Proximity Gun";
-	self.touch = prox_touch;
-	setsize(self, '-16 -16 -6', '16 16 20');
-	StartItem();
-	dprint("ERROR: change to weapon_supernailgun with 'dmg' '1'\n");
+	remove(self);
 };
 
 void() ammo_touch_delay =
@@ -2430,22 +2326,7 @@ void() item_sfshotgun =
 
 void() weapon_supershotgun =
 {
-	precache_model("progs/g_shot.mdl");
-	precache_model("progs/QC/g_shot.mdl");
-	if ((autocvar_qc_ssg == 0))
-	{
-		setmodel(self, "progs/g_shot.mdl");
-	}
-	else
-	{
-		setmodel(self, "progs/QC/g_shot.mdl");
-	}
-	self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
-	self.weapon = IT_SUPER_SHOTGUN;
-	self.netname = "Double-barrelled Shotgun";
-	self.touch = weapon_touch;
-	setsize(self, '-16 -16 0', '16 16 56');
-	StartItem();
+	remove(self);		// guns removed from maps: players start with small weapons
 };
 
 void() item_artifact_invulnerability2 =

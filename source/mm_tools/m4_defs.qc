@@ -17,7 +17,7 @@ CS sound events: reload clip out at frame 25, clip in at 53, bolt at 88 (of 114)
 */
 
 float	M4_REFIRE		= 0.09;		// seconds between bullets (CS 1.6 M4A1 is ~666 RPM)
-float	M4_DAMAGE		= 12;		// damage per bullet
+float	M4_DAMAGE		= 18;		// damage per bullet (8 shots kills 100HP+100GA DM spawn)
 float	M4_SPREAD		= 0.004;	// pinpoint first-shot / tap accuracy standing still
 float	M4_SPREAD_BLOOM	= 0.034;	// additional CS-style full-auto spray cone at max sustained fire
 float	M4_SPREAD_MOVE	= 0.035;	// extra spread at full run speed

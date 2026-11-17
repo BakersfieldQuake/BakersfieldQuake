@@ -19,7 +19,6 @@ import tempfile
 import wave
 
 import numpy as np
-from scipy import ndimage as ndi
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +34,8 @@ TYPE_VIDEO = r"G:\Downloads\grok-video-fa7aa7e3-1343-4960-8449-4a32543014d2 (1).
 CANIS_VIDEO = r"D:\Local\Video\canisdur.wmv"
 CANIS_START = 0.85      # the clip opens with about 0.9 s of hiss before the first sound: the game's flying sound starts here
 HEAD_DIR = os.path.join(MOD, "earhead_sprite")
+if not os.path.isdir(HEAD_DIR):
+    HEAD_DIR = os.path.join(os.path.dirname(MOD), "_bakersfield_dev", "earhead_sprite")
 
 # shared with ltgun_defs.qc
 ANIM_FPS = 42        # the typing film plays at 42 frames a second ...
@@ -43,8 +44,8 @@ VARIANTS = 16         # copies of the film, each starting ANIM_N / VARIANTS fram
 
 IDLE_FROM, IDLE_LEN, IDLE_FPS = 4.6, 5.4, 8        # the first 4.5 s of the hold video have motion-ghost frames; use 4.6 s..10 s
 TEX_W = 512          # held-laptop texture width
-HELD_DIM = 0.55      # the game runs r_hdr_scenebrightness 2.5: textures show at 2.5x, so they are baked darker
-HEAD_DIM = 0.26
+HELD_DIM = 0.72      # tuned for Zircon r_hdr_scenebrightness 1.45 + r_minlight 3
+HEAD_DIM = 0.78      # restored from 0.26 (which was crushed for old sb=2.5 and made Eric heads near-black)
 HEAD_W = 384
 HEAD_H = 34.0        # the head card is this many units tall in the world
 VIEW_W = 28.0        # the held card is this wide; its left edge sits at VIEW_LEFT (screen is about +/-27.8 wide, +/-15.6 high)
@@ -68,6 +69,7 @@ def smooth(a, b, x):
 
 def keyout(im):
     """magenta backdrop -> alpha. 'Magentaness' is min(R, B) - G: high on the backdrop, negative on skin, steel and the blue screen"""
+    from scipy import ndimage as ndi
     a = np.asarray(im).astype(np.float32)
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
     m = np.minimum(r, b) - g

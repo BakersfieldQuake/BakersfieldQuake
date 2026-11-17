@@ -24,7 +24,11 @@ void(float eftype) sparkler =
 	}
 	if ((coop || deathmatch))
 	{
-		new.effects = EF_LOWPRECISION;
+		new.effects = EF_LOWPRECISION | EF_NOSHADOW;
+	}
+	else
+	{
+		new.effects = EF_NOSHADOW;
 	}
 	setmodel(new, "progs/misc_spark.mdl");
 	setsize(new, VEC_ORIGIN, VEC_ORIGIN);
@@ -35,7 +39,7 @@ void(float eftype) sparkler =
 		new.velocity_x = ((random() * 360) + -180);
 		new.velocity_y = ((random() * 360) + -180);
 		new.velocity_z = ((random() * 300) + 200);
-		new.nextthink = (time + ((random() * 3) + 2));
+		new.nextthink = (time + ((random() * 0.45) + 0.55));
 	}
 	else
 	{
@@ -44,11 +48,11 @@ void(float eftype) sparkler =
 			new.velocity_x = ((random() * 360) + -180);
 			new.velocity_y = ((random() * 360) + -180);
 			new.velocity_z = ((random() * 20) + 200);
-			new.nextthink = (time + ((random() * 2) + 1));
+			new.nextthink = (time + ((random() * 0.4) + 0.45));
 		}
 		else
 		{
-			new.nextthink = (time + ((random() * 2.5) + 0.5));
+			new.nextthink = (time + ((random() * 0.4) + 0.4));
 		}
 	}
 	if ((eftype == 1))
@@ -76,14 +80,8 @@ void(float eftype) sparklers =
 {
 	if ((autocvar_effects_sparkballs == 1))
 	{
-		if ((random() > 0.5))
+		if ((random() > 0.45))
 		{
-			sparkler(eftype);
-			sparkler(eftype);
-		}
-		if ((random() > 0.7))
-		{
-			sparkler(eftype);
 			sparkler(eftype);
 		}
 	}
@@ -101,7 +99,7 @@ void() muzzle_think =
 		self.scale = (self.scale + 0.2);
 	}
 	self.think = muzzle_think;
-	self.nextthink = (time + 0.005);
+	self.nextthink = (time + 0.015);
 	if ((self.ltime > 5.65))
 	{
 		remove(self);
@@ -128,7 +126,7 @@ void() muzzle_small_think =
 	}
 	else
 	{
-		self.nextthink = (time + 0.005);
+		self.nextthink = (time + 0.015);
 		if ((((self.model == "progs/sng_muzz.spr") || (self.model == "progs/sng_muzz_b.spr")) || (self.model == "progs/shot_muzz_b.spr")))
 		{
 			self.scale = (self.scale + 0.04);
@@ -153,7 +151,7 @@ void() SpawnMuzzleFlash =
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	if ((self.waterlevel >= 3))
 	{
 		setmodel(newmis, "progs/s_smoke_muzz.spr");
@@ -196,7 +194,7 @@ void() SpawnSSGFlash =
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	newmis.alpha = 1;
 	if (!self.cnt)
 	{
@@ -244,7 +242,7 @@ void(vector offset) SpawnNailgunFlash =
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	setmodel(newmis, "progs/muzzleflash2.spr");
 	setsize(newmis, VEC_ORIGIN, VEC_ORIGIN);
 	setorigin(newmis, ('104 -24 -43' + offset));
@@ -277,7 +275,7 @@ void(vector offset, vector color) SpawnSNGFlash =
 		self.cnt = 0;
 	}
 	newmis.colormod = color;
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	if (!self.cnt)
 	{
 		setmodel(newmis, "progs/sng_muzz_b.spr");
@@ -313,7 +311,7 @@ void() SpawnHLFlash =
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	setmodel(newmis, "progs/muzzleflash1.spr");
 	newmis.scale = 0.6;
 	newmis.alpha = 0.3;
@@ -339,6 +337,7 @@ void(vector offset, vector color) SpawnRockFlash =
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
+	newmis.effects = EF_NOSHADOW;
 	newmis.movetype = MOVETYPE_NOCLIP;
 	newmis.colormod = color;
 	newmis.alpha = 1;
@@ -405,6 +404,7 @@ void(float spscale, vector offset, float smokedir, vector color, float spritealp
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
+	newmis.effects = EF_NOSHADOW;
 	setmodel(newmis, "progs/s_smoke_muzz.spr");
 	newmis.scale = spscale;
 	newmis.scale = (newmis.scale + ((random() * 0.2) + -0.1));
@@ -455,7 +455,7 @@ void(float spscale, vector offset, vector color, float spritealpha) SpawnSpark_F
 	newmis.viewmodelforclient = self;
 	newmis.owner = self;
 	newmis.classname = "flash";
-	newmis.effects = (newmis.effects + EF_ADDITIVE);
+	newmis.effects = (newmis.effects + EF_ADDITIVE + EF_NOSHADOW);
 	setmodel(newmis, "progs/s_spark_muzz.spr");
 	if (!spritealpha)
 	{

@@ -81,6 +81,7 @@ void() MegaMan_ViewFrame;
 .float	mm_next_inspect;// player: next random idle CoD weapon inspect timestamp
 .float	mm_glint_ding;	// player: TRUE once the frame-82 chrome star-glint ting played
 .entity	mm_vwep;		// player: the little Mega Man other people see in your hand
+.float	mm_dry_held;	// player: fire stayed held after an empty click (suppress repeat)
 
 float	MM_DRIVE_STEP	= 19.25;	// units per 0.05s tick (385 u/s — faster than 320 u/s players!)
 float	MM_WHEEL_FRAME	= 4.7;		// units rolled per frame (wheel radius 12, 16 frames)

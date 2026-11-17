@@ -306,7 +306,7 @@ void(vector org, vector vec, float light) HIP_LaunchLaser =
 	newmis.effects = EF_FULLBRIGHT;
 	newmis.traileffectnum = particleeffectnum("ccc_trail");
 	newmis.speed = 1500;
-	newmis.dmg = 18;
+	newmis.dmg = 24;
 	newmis.velocity = (vec * newmis.speed);
 	newmis.old_velocity = newmis.velocity;
 	newmis.angles = vectoangles(newmis.velocity);
@@ -391,7 +391,7 @@ void(float stat) HIP_FireLaser =
 			if ((random() < 0.1))
 			{
 				HIP_LaunchLaser(org, dir, 1);
-				newmis.dmg = 25;
+				newmis.dmg = 34;
 			}
 			else
 			{
@@ -1694,6 +1694,7 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 	local vector direction;
 	local vector src;
 	local float crit;
+	local float pdmg;
 	local entity shot;
 	local vector shotvector;
 	local vector align;
@@ -1709,6 +1710,11 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 	{
 		crit = 1;
 	}
+	pdmg = autocvar_player_shotgun_pellets;
+	if (((self.classname == "player") && (pdmg < 6)))
+	{
+		pdmg = 6;
+	}
 	ClearMultiDamage();
 	while ((shotcount > 0))
 	{
@@ -1716,7 +1722,7 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		traceline(src, (src + (direction * 2048)), FALSE, self);
 		if ((trace_fraction != 1))
 		{
-			TraceAttack((autocvar_player_shotgun_pellets + crit), direction);
+			TraceAttack((pdmg + crit), direction);
 		}
 		shotcount = shotcount - 1;
 		if ((trace_ent.classname == "monster_reiver"))
@@ -2006,7 +2012,7 @@ void() W_FireShotgun =
 	self.ammo_shells = (self.ammo_shells - 1);
 	self.currentammo = (self.ammo_shells - 1);
 	dir = aim(self, 100000);
-	FireBullets(8, dir, '0.04 0.04 0');
+	FireBullets(10, dir, '0.032 0.032 0');
 };
 
 void() W_FireSuperShotgun =
@@ -2075,7 +2081,7 @@ void() W_FireSuperShotgun =
 	self.ammo_shells = (self.ammo_shells - 2);
 	self.currentammo = (self.ammo_shells - 2);
 	dir = aim(self, 100000);
-	FireBullets(14, dir, '0.11 0.08 0');
+	FireBullets(16, dir, '0.085 0.065 0');
 };
 
 void() s_explode1 = [ 0, s_explode2 ]
@@ -2334,7 +2340,7 @@ void() T_MissileTouch =
 			}
 		}
 	}
-	damg = 100 + (random() * 20);
+	damg = 135 + (random() * 20);
 	if ((autocvar_explosiondebris == 0))
 	{
 		if (other.health)
@@ -2430,7 +2436,7 @@ void() T_MissileTouch =
 	}
 	else
 	{
-		T_RadiusDamage(self, self.owner, autocvar_player_rocket_radius, other);
+		T_RadiusDamage(self, self.owner, (autocvar_player_rocket_radius + 15), other);
 	}
 	Spruce_CheckRocketSplash(self, self.owner, damg, other);
 	if ((((pointcontents(self.origin) == CONTENT_WATER) || (pointcontents(self.origin) == CONTENT_SLIME)) || (pointcontents(self.origin) == CONTENT_LAVA)))
@@ -2933,7 +2939,7 @@ void() W_FireLightning =
 void() GrenadeExplode =
 {
 
-	T_RadiusDamage(self, self.owner, (autocvar_player_grenades + 5), world);
+	T_RadiusDamage(self, self.owner, (autocvar_player_grenades + 25), world);
 	if (((((random() * 100) < 20) && (other.classname != "monster_shambler")) && (other.classname != "monster_hell_knight2")))
 	{
 		spawn_fire();
@@ -3409,6 +3415,7 @@ void(vector org, vector dir) launch_enemy_spike =
 void() bullet_enemy_touch =
 {
 	local float crit;
+	local float pdmg;
 	local float surfacenum;
 	local string tex;
 
@@ -3444,7 +3451,12 @@ void() bullet_enemy_touch =
 		}
 		if ((self.classname == "playershot"))
 		{
-			T_Damage(other, self, self.owner, (autocvar_player_shotgun_pellets + crit));
+			pdmg = autocvar_player_shotgun_pellets;
+			if (((self.owner.classname == "player") && (pdmg < 6)))
+			{
+				pdmg = 6;
+			}
+			T_Damage(other, self, self.owner, (pdmg + crit));
 		}
 		else
 		{
@@ -5446,7 +5458,7 @@ void() W_Attack =
 			}
 			else
 			{
-				self.attack_finished = (time + 0.54);
+				self.attack_finished = (time + 0.48);
 			}
 			if ((autocvar_effects_explosion_shake != 0))
 			{
@@ -6528,6 +6540,11 @@ void() checkzombie =
 
 void() W_WeaponFrame =
 {
+	if (!self.button0)
+	{
+		self.mm_dry_held = FALSE;
+		self.fg_dry_held = FALSE;
+	}
 	BM_Frame();
 	BM_LifeFrame();
 	BM_TestImpulses();

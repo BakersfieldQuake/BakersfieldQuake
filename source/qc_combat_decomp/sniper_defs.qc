@@ -20,7 +20,7 @@ Models: progs/v_srifle.mdl (TF's own view model), g_srifle.mdl (pickup), p_srifl
 ================
 */
 
-float	SN_HEAT_START	= 50;
+float	SN_HEAT_START	= 65;
 float	SN_HEAT_MAX		= 400;
 float	SN_HEAT_RATE	= 216;		// a second: TF's +3 a frame at 72 frames a second, so ~1.6 s to full
 float	SN_FOV_RATE_IN	= 360;		// fov a second: TF's -5 a frame

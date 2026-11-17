@@ -26,8 +26,6 @@ float KEY_CONSOLE = 1;
 float KEY_MENU = 2;
 float KEY_MENU_GRABBED = 3;
 
-// Zircon mouse targets: 1 sets relative/warped mouse mode (pulls back to 0,0);
-// 2 sets free cursor mode (VID_SetMouse relative=0, absolute window coords in getmousepos).
 float MT_WARPED = 1;
 float MT_FREE = 2;
 
@@ -182,7 +180,7 @@ float(string key) getserverlistindexforkey = #622;
 void(string key) addwantedserverlistkey = #623;
 string(string fmt, ...) sprintf = #627;
 
-// Serverlist field indices (resolved dynamically in BM_InitServerListKeys)
+// Serverlist field indices
 var float SLIST_CNAME = 0;
 var float SLIST_PING = 1;
 var float SLIST_GAME = 2;
@@ -224,20 +222,25 @@ float g_my;
 float g_mouse_moved;
 float g_last_mx;
 float g_last_my;
+float g_mouse1_down;
+float g_active_slider;
 float g_focus_input;
 float g_click_consumed;
 string g_levelshot_known;
 string g_name_buf;
 string g_ip_buf;
 string g_host_buf;
-float g_bg_slide_idx;
-float g_bg_slide_prev;
-float g_bg_slide_t;
-float g_bg_slide_count;
-float g_bg_buf;
 float g_opt_tab;
 float g_opt_scroll;
 float g_bind_listen_idx;
+string g_opt_status;
+float g_opt_status_t;
+float g_cast_left;
+float g_cast_right;
+float g_cast_swap_start;
+float g_cast_next_swap;
+
+float CAST_COUNT = 10;
 
 // Required entrypoint forward declarations
 void() m_init;

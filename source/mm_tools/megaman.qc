@@ -263,7 +263,6 @@ void() MM_DebrisTouch =
 	self.mm_bouncetime = time;
 	self.mm_bounces = self.mm_bounces + 1;
 	MM_Sparks (self.origin, 3);
-	self.effects = 8;		// a flicker of light with the sparks
 	if (random () < 0.5)
 		MM_SoundA (self, CHAN_AUTO, "weapons/tink1.wav", 0.8, 85 + random () * 50, 1.35);
 	else
@@ -299,11 +298,7 @@ void() MM_DebrisThink =
 		if (p < 0.12)
 			p = 0.12;
 		if (random () < p)
-		{
 			MM_Sparks (self.origin, 1 + floor (random () * 2));
-			if (random () < 0.35)
-				self.effects = 8;
-		}
 	}
 };
 
@@ -670,7 +665,6 @@ void(float rocket) MM_Breakup =		// rocket: he is going off like a rocket, so no
 	f.angles_y = self.angles_y;
 	f.frame = 0;
 	f.alpha = 1;
-	f.effects = 8;
 	setmodel (f, "progs/mm_explode.md3");
 	setsize (f, VEC_ORIGIN, VEC_ORIGIN);
 	setorigin (f, org - '0 0 10');
@@ -734,14 +728,6 @@ void(float rocket) MM_Breakup =		// rocket: he is going off like a rocket, so no
 	if (rocket)
 		return;
 
-	// a quick flash of blue light, nothing like a rocket
-	f = spawn ();
-	f.classname = "mmflash";
-	f.effects = 64 + 8;		// EF_BLUE + EF_DIMLIGHT
-	setorigin (f, org);
-	f.think = SUB_Remove;
-	f.nextthink = time + 0.12;
-
 	MM_SoundA (self, CHAN_WEAPON, "weapons/ric3.wav", 1, 80, 0.8);
 	MM_SoundA (self, CHAN_ITEM, "weapons/tink1.wav", 1, 60, 0.8);
 };
@@ -785,7 +771,7 @@ void(entity hit) MegaMan_Explode =
 	// hit != world: it already took the direct damage, skip it in the splash
 	mm_inflicting = TRUE;
 #ifdef COMBATPLUS
-	T_RadiusDamage (self, self.owner, 70, hit);
+	T_RadiusDamage (self, self.owner, 105, hit);
 	mm_inflicting = FALSE;
 	MM_RocketBoom (hit);
 #else
@@ -1389,7 +1375,7 @@ void() MegaMan_Touch =
 	// (walkmove failing) or just stop it while it is in the air
 	if (MM_IsEnemy (other))
 	{
-		damg = 60 + random()*15;
+		damg = 95 + random()*20;
 		if (other.classname == "monster_shambler")
 			damg = damg * 0.5;
 		mm_inflicting = TRUE;
@@ -1483,7 +1469,7 @@ void() MegaMan_Launch =
 	mm.angles = '0 0 0';
 	mm.angles_y = self.v_angle_y;
 
-	mm.effects = 64 + 8 + 512;		// EF_BLUE + EF_DIMLIGHT + EF_FULLBRIGHT: he glows blue
+	mm.effects = 0;				// normal scene lighting (no intense blue glow)
 	mm.takedamage = DAMAGE_YES;		// you can shoot him down
 	mm.health = MM_HEALTH;
 	mm.th_die = MegaMan_Shot;
@@ -1509,11 +1495,16 @@ void() MegaMan_Attack =
 	self.mm_next_inspect = time + 7 + random () * 6;
 	if (self.mm_ammo < 1)
 	{
-		// still recharging
-		MM_Sound (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, 100);
+		// still recharging: click once per trigger press, never repeat while held
+		if (!self.mm_dry_held)
+		{
+			self.mm_dry_held = TRUE;
+			MM_Sound (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, 100);
+		}
 		self.attack_finished = time + 0.3;
 		return;
 	}
+	self.mm_dry_held = FALSE;
 	player_mm1 ();
 	self.mm_fire_t = time;
 	self.mm_launch_t = time + 0.15;

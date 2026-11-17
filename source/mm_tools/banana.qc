@@ -159,10 +159,15 @@ void() Banana_Attack =
 {
 	if (self.bn_ammo < 1)
 	{
-		sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+		if (!self.fg_dry_held)
+		{
+			self.fg_dry_held = TRUE;
+			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+		}
 		self.attack_finished = time + 0.3;
 		return;
 	}
+	self.fg_dry_held = FALSE;
 	player_mm1 ();		// the rocket firing pose
 	self.bn_fire_t = time;
 	self.bn_launch_t = time + 0.1;

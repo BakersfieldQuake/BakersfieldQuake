@@ -81,6 +81,7 @@ float	PK_RAISE_TIME	= 0.22;		// aggressive belt-snatch fresh Pickle raise & chee
 .float	fg_lock_msg;	// player: next time the "locked" click and message may play
 .float	fd_hint_shown;	// player: Rob Dob flight hint shown once
 .float	fg_seen_mask;	// player: bitmask of fun guns whose intro hint was shown
+.float	fg_dry_held;	// player: fire stayed held after an empty/locked click (suppress repeat)
 void(float g) FunGun_Lock;
 void() FunGun_PlayerDie;
 void() BM_PredictFrame;

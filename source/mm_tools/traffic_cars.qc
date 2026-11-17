@@ -42,6 +42,7 @@ float	tc_precached;
 .vector	tc_dir;			// unit travel direction from pos1 -> pos2
 .float	tc_len;			// lane length vlen(pos2 - pos1)
 .float	tc_end_dot;		// pos2 * tc_dir
+.float	tc_boom_t;		// cooldown preventing duplicate blast triggers
 
 void() Traffic_Precache =
 {
@@ -53,6 +54,8 @@ void() Traffic_Precache =
 	precache_model ("progs/veh_gtcar.md3");
 	precache_model ("progs/veh_truck.md3");
 	precache_model ("progs/veh_tuktuk.md3");
+	precache_sound ("vehicles/car_boom1.wav");
+	precache_sound ("weapons/r_exp3.wav");
 };
 
 string(float kind) Traffic_ModelForKind =
@@ -231,6 +234,40 @@ void() Traffic_Wrap =
 	setorigin (self, self.pos1);
 };
 
+// Detonate a moving street car when struck by heavy tank fire and respawn at lane start
+void(entity car, entity atk) Traffic_BlastExplode =
+{
+	local vector boom_org;
+	local float fx;
+	local entity inf, oldself;
+
+	if (car == world || time < car.tc_boom_t)
+		return;
+	car.tc_boom_t = time + 1.0;
+
+	boom_org = car.origin + '0 0 28';
+	fx = particleeffectnum ("veh_explode");
+	if (fx > 0)
+		pointparticles (fx, boom_org, '0 0 0', 1);
+	else
+		pointparticles (particleeffectnum ("TE_EXPLOSION"), boom_org, '0 0 0', 1);
+
+	inf = spawn ();
+	inf.classname = "traffic_car_blast";
+	setorigin (inf, boom_org);
+	sound7 (inf, CHAN_WEAPON, "vehicles/car_boom1.wav", 1.0, 0.25, 96 + random () * 8);
+	sound7 (inf, CHAN_AUTO, "weapons/r_exp3.wav", 0.90, 0.35, 100);
+	if (atk == world)
+		atk = car;
+	T_RadiusDamage (inf, atk, 140, car);
+	remove (inf);
+
+	oldself = self;
+	self = car;
+	Traffic_Wrap ();
+	self = oldself;
+};
+
 void() Traffic_Think =
 {
 	local float dot, rem, dt;
@@ -308,7 +345,9 @@ void() misc_traffic_car =
 	self.angles = '0 0 0';
 	self.angles_y = vectoyaw (self.tc_dir);
 
-	if (self.colormod == VEC_ORIGIN)
+	if (kind == TC_TUKTUK)
+		self.colormod = '1 1 1';	// keep painted Thai Tuk Tuk livery instead of solid pink/neon tint
+	else if (self.colormod == VEC_ORIGIN)
 		self.colormod = Traffic_AutoColor (hash + kind);
 	else
 		self.colormod = Traffic_ClampColor (self.colormod);

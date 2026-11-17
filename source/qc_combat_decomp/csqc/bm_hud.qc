@@ -354,13 +354,87 @@ string(float slot, float entno) BM_PlayerNameBySlot =
 	return pname;
 };
 
-// 3D-projected floating [BOT] <Name> overhead tags above visible living enemy bots
-void(float w, float h) BM_DrawBotTags =
+float	bm_tag_font;
+
+// Draw a crisp, non-brown close/medium-range LOS nameplate for a bot or player
+void(float w, float h, vector eye, float entno, float slot, float is_bot, float lshow, vector lpos) BM_DrawNameTag =
 {
-	local float mask, i, bit, entno, act, dist, a;
-	local vector eye, org, sp;
+	local float act, dist, a, sz, wd, tx, ty, old_font, use_sz;
+	local vector org, sp, sv, col, brd;
 	local string pname;
 
+	act = getentity (entno, 0);
+	if (!act)
+		return;
+
+	org = getentityvec (entno, E_ORIGIN);
+	if (!is_bot && lshow && vlen (org - lpos) < 28)
+		return;
+
+	dist = vlen (org - eye);
+	if (dist <= 28 || dist >= 560)
+		return;
+
+	traceline (eye, org + '0 0 22', TRUE, world);
+	if (trace_startsolid || trace_allsolid || trace_fraction < 0.995)
+		return;
+
+	sp = cs_project (org + '0 0 44');
+	if (sp_z <= 0 || sp_x <= 16 || sp_x >= w - 16 || sp_y <= 16 || sp_y >= h - 32)
+		return;
+
+	pname = BM_PlayerNameBySlot (slot, entno);
+	if (pname == "")
+	{
+		if (is_bot)
+			pname = "[BOT]";
+		else
+			return;
+	}
+	pname = strdecolorize (pname);
+	if (pname == "")
+		return;
+
+	a = 0.95;
+	if (dist > 340)
+		a = 0.95 * (1 - (dist - 340) / 220);
+	if (a <= 0.04)
+		return;
+
+	old_font = drawfont;
+	if (bm_tag_font > 0)
+	{
+		drawfont = bm_tag_font;
+		sz = 8.5;
+	}
+	else
+	{
+		sz = 7;
+	}
+	use_sz = sz;
+	sv = use_sz * '1 1 0';
+	wd = stringwidth (pname, FALSE, sv);
+	tx = sp_x - wd * 0.5;
+	ty = sp_y - 13;
+
+	col = is_bot ? '0.78 0.95 1.0' : '0.96 0.99 1.0';
+	brd = is_bot ? '0.32 0.62 0.80' : '0.50 0.72 0.88';
+
+	drawfill ((tx - 4) * '1 0 0' + (ty - 2) * '0 1 0', (wd + 8) * '1 0 0' + (use_sz + 4) * '0 1 0', '0.03 0.05 0.08', 0.74 * a, 0);
+	drawfill ((tx - 4) * '1 0 0' + (ty - 2) * '0 1 0', (wd + 8) * '1 0 0' + '0 1 0', brd, 0.75 * a, 0);
+	drawstring ((tx + 0.7) * '1 0 0' + (ty + 0.7) * '0 1 0', pname, sv, '0 0 0', 0.85 * a, 0);
+	drawstring (tx * '1 0 0' + ty * '0 1 0', pname, sv, col, a, 0);
+	drawfont = old_font;
+};
+
+// 3D-projected floating [BOT] <Name> overhead tags above nearby visible living enemy bots
+void(float w, float h) BM_DrawBotTags =
+{
+	local float mask, i, bit, entno;
+	local vector eye;
+
+	if (showscores)
+		return;
 	mask = getstati (BMST_BOTMASK);
 	if (mask <= 0)
 		return;
@@ -374,36 +448,7 @@ void(float w, float h) BM_DrawBotTags =
 	{
 		entno = i + 1;
 		if ((mask & bit) && entno != player_localentnum)
-		{
-			act = getentity (entno, 0);
-			if (act)
-			{
-				org = getentityvec (entno, E_ORIGIN);
-				dist = vlen (org - eye);
-				if (dist > 28 && dist < 3400)
-				{
-					traceline (eye, org + '0 0 22', TRUE, world);
-					if (trace_fraction >= 0.96)
-					{
-						sp = cs_project (org + '0 0 44');
-						if (sp_z > 0 && sp_x > 16 && sp_x < w - 16 && sp_y > 16 && sp_y < h - 32)
-						{
-							pname = BM_PlayerNameBySlot (i, entno);
-							if (pname == "")
-								pname = "[BOT]";
-
-							a = 0.92;
-							if (dist > 1800)
-								a = 0.92 * (1 - (dist - 1800) / 1600);
-							if (a < 0.25)
-								a = 0.25;
-							BM_Centered (sp_x, sp_y - 11, strcat ("^xfa3", pname), 5, '1 1 1', a);
-							BM_Centered (sp_x, sp_y - 4, "^1v", 5, '1 1 1', a * 0.85);
-						}
-					}
-				}
-			}
-		}
+			BM_DrawNameTag (w, h, eye, entno, i, TRUE, FALSE, '0 0 0');
 		bit = bit * 2;
 		i = i + 1;
 	}
@@ -412,9 +457,8 @@ void(float w, float h) BM_DrawBotTags =
 // Close-up 3D-projected overhead nameplates for nearby visible human players in multiplayer
 void(float w, float h) BM_DrawPlayerTags =
 {
-	local float mask, i, bit, entno, act, dist, a, lshow, sz, wd, tx, ty;
-	local vector eye, org, sp, lpos, sv;
-	local string pname, label;
+	local float mask, i, bit, entno, lshow;
+	local vector eye, lpos;
 
 	if (!deathmatch && !coop)
 		return;
@@ -427,6 +471,7 @@ void(float w, float h) BM_DrawPlayerTags =
 		return;
 
 	lshow = getstati (BMST_LSHOW);
+	lpos = '0 0 0';
 	if (lshow)
 	{
 		lpos_x = getstati (BMST_LX);
@@ -435,52 +480,13 @@ void(float w, float h) BM_DrawPlayerTags =
 	}
 
 	eye = getpropertyvec (VF_ORIGIN);
-	sz = 6;
-	sv = sz * '1 1 0';
 	i = 0;
 	bit = 1;
 	while (i < 16)
 	{
 		entno = i + 1;
 		if ((mask & bit) && entno != player_localentnum)
-		{
-			act = getentity (entno, 0);
-			if (act)
-			{
-				org = getentityvec (entno, E_ORIGIN);
-				if (!(lshow && vlen (org - lpos) < 28))
-				{
-					dist = vlen (org - eye);
-					if (dist > 28 && dist < 600)
-					{
-						traceline (eye, org + '0 0 22', TRUE, world);
-						if (trace_fraction >= 0.96)
-						{
-							sp = cs_project (org + '0 0 44');
-							if (sp_z > 0 && sp_x > 16 && sp_x < w - 16 && sp_y > 16 && sp_y < h - 32)
-							{
-								pname = BM_PlayerNameBySlot (i, entno);
-								if (pname != "")
-								{
-									a = 0.94;
-									if (dist > 350)
-										a = 0.94 * (1 - (dist - 350) / 250);
-									if (a > 0.02)
-									{
-										label = strcat ("^xeff", pname);
-										wd = stringwidth (label, TRUE, sv);
-										tx = sp_x - wd * 0.5;
-										ty = sp_y - 12;
-										drawfill ((tx - 3) * '1 0 0' + (ty - 1.5) * '0 1 0', (wd + 6) * '1 0 0' + (sz + 3) * '0 1 0', '0.03 0.04 0.06', 0.58 * a, 0);
-										drawcolorcodedstring (tx * '1 0 0' + ty * '0 1 0', label, sv, a, 0);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+			BM_DrawNameTag (w, h, eye, entno, i, FALSE, lshow, lpos);
 		bit = bit * 2;
 		i = i + 1;
 	}
@@ -715,6 +721,9 @@ void() BM_IntroPrecache =
 	registercvar ("bm_player_tags", "1");
 	registercvar ("bm_hud_toys", "1");
 	registercvar ("bm_menu_bg", "0");
+	bm_tag_font = findfont ("Roboto");
+	if (bm_tag_font < 0)
+		bm_tag_font = 0;
 	precache_model ("progs/v_robdob.mdl");
 	precache_model ("progs/v_pickle.md3");
 	precache_model ("progs/v_wewcannon.md3");

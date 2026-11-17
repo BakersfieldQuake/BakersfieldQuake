@@ -58,6 +58,7 @@ void(entity caller) BM_BotConnected =
 	self.bm_bot_hunt_t = time + 0.8 + random () * 1.8;
 	self.bm_bot_roof_t = 0;
 	self.bm_bot_aim_t = 0;
+	self.bm_bot_mm_cd = time + 6.0 + random () * 10.0;
 
 	bprint ("^2+ Added ", self.netname, " (", ftos (bot_count), " bots active)\n");
 	msg = strcat ("^2+ ", self.netname, "^7  (", ftos (bot_count), " bots active)\n^3F1^7: add bot   ^3F2^7: kick bot");
@@ -320,8 +321,11 @@ float(float id) BM_BotCanUseWeapon =
 	}
 	if (id == 11)
 	{
-		if (autocvar_bm_reload) return (BM_GetMag (self, BM_MM) >= 1);
-		return (self.mm_ammo >= 1);
+		if (time < self.bm_bot_mm_cd)
+			return FALSE;
+		if (autocvar_bm_reload)
+			return (BM_GetMag (self, BM_MM) >= MM_MAX_AMMO);
+		return (self.mm_ammo >= MM_MAX_AMMO);
 	}
 	if (id >= 61 && id <= 69)
 	{
@@ -471,52 +475,52 @@ float(float brange) BM_BotWeaponSwitch =
 			else if (brange < 420)
 			{
 				// Close-to-mid street brawls
-				if (id == 3)		w = 18;		// Super Shotgun
-				else if (id == 67)	w = 18;		// M4A1
-				else if (id == 7)	w = 20;		// Rocket Launcher
-				else if (id == 5)	w = 16;		// Milky Gun
-				else if (id == 2)	w = 14;		// Shotgun
-				else if (id == 8)	w = 16;		// Lightning Gun
-				else if (id == 9)	w = 15;		// CCC Laser
-				else if (id == 6)	w = 14;		// Grenade Launcher
-				else if (id == 11)	w = 14;		// Mega Man Gun
-				else if (id == 62)	w = 13;		// Jar o' Green Guys
-				else if (id == 63)	w = 13;		// Pickle Surprise
-				else if (id == 64)	w = 10;		// NetSend PC
+				if (id == 3)		w = 19;		// Super Shotgun
+				else if (id == 67)	w = 20;		// M4A1
+				else if (id == 7)	w = 22;		// Rocket Launcher
+				else if (id == 5)	w = 17;		// Milky Gun
+				else if (id == 2)	w = 15;		// Shotgun
+				else if (id == 8)	w = 17;		// Lightning Gun
+				else if (id == 9)	w = 16;		// CCC Laser
+				else if (id == 6)	w = 7;		// Grenade Launcher
+				else if (id == 11)	w = 2;		// Mega Man Gun (rare)
+				else if (id == 62)	w = 4;		// Jar o' Green Guys (reduced)
+				else if (id == 63)	w = 5;		// Pickle Surprise
+				else if (id == 64)	w = 9;		// NetSend PC
 				else if (id == 65)	w = 13;		// Dookie Bazooka
 				else if (id == 66)	w = 12;		// Wheelman Cannon
 				else if (id == 4)	w = 12;		// Laptop Gun
-				else if (id == 69)	w = 12;		// M1 Garand
+				else if (id == 69)	w = 14;		// M1 Garand
 			}
 			else if (brange < 1050)
 			{
 				// Mid-range boulevard / rooftop-to-street firefights
-				if (id == 7)		w = 22;		// Rocket Launcher
-				else if (id == 67)	w = 20;		// M4A1
-				else if (id == 69)	w = 18;		// M1 Garand
-				else if (id == 9)	w = 16;		// CCC Laser
+				if (id == 7)		w = 24;		// Rocket Launcher
+				else if (id == 67)	w = 22;		// M4A1
+				else if (id == 69)	w = 20;		// M1 Garand
+				else if (id == 9)	w = 17;		// CCC Laser
 				else if (id == 4)	w = 16;		// Laptop Gun
-				else if (id == 5)	w = 13;		// Milky Gun
-				else if (id == 6)	w = 13;		// Grenade Launcher
-				else if (id == 2)	w = 10;		// Shotgun
-				else if (id == 11)	w = 16;		// Mega Man Gun
-				else if (id == 62)	w = 14;		// Jar o' Green Guys
+				else if (id == 5)	w = 14;		// Milky Gun
+				else if (id == 6)	w = 6;		// Grenade Launcher
+				else if (id == 2)	w = 11;		// Shotgun
+				else if (id == 11)	w = 2;		// Mega Man Gun (rare)
+				else if (id == 62)	w = 4;		// Jar o' Green Guys (reduced)
 				else if (id == 65)	w = 14;		// Dookie Bazooka
 				else if (id == 66)	w = 16;		// Wheelman Cannon
-				else if (id == 64)	w = 10;		// NetSend PC
-				else if (id == 63)	w = 9;		// Pickle Surprise
+				else if (id == 64)	w = 9;		// NetSend PC
+				else if (id == 63)	w = 4;		// Pickle Surprise
 				else if (id == 61)	w = 14;		// Rob Dob flying head
 			}
 			else
 			{
 				// Long-range cross-intersection & skyscraper duels
-				if (id == 69)		w = 26;		// M1 Garand
-				else if (id == 67)	w = 24;		// M4A1
+				if (id == 69)		w = 28;		// M1 Garand
+				else if (id == 67)	w = 26;		// M4A1
 				else if (id == 4)	w = 20;		// Laptop Gun (laser-guided homing)
-				else if (id == 7)	w = 18;		// Rocket Launcher
+				else if (id == 7)	w = 20;		// Rocket Launcher
 				else if (id == 9)	w = 16;		// CCC Laser
 				else if (id == 66)	w = 16;		// Wheelman Cannon
-				else if (id == 11)	w = 15;		// Mega Man Gun
+				else if (id == 11)	w = 1;		// Mega Man Gun (rare)
 				else if (id == 61)	w = 14;		// Rob Dob flying head
 			}
 		}
@@ -766,6 +770,25 @@ void() BM_BotShoot =
 		}
 	}
 
+	// 2b. Mega Man Gun: fire at most one grenade per selection, then enforce cooldown & switch to regular weapons
+	if (self.weapon == IT_MEGAMAN)
+	{
+		if (time < self.bm_bot_mm_cd || self.mm_pending)
+		{
+			self.button0 = FALSE;
+			return;
+		}
+		if (time >= self.attack_finished && self.mm_ammo >= 1)
+		{
+			self.button0 = TRUE;
+			self.bm_bot_mm_cd = time + 18.0 + random () * 14.0;
+			self.bm_bot_wep_t = 0;
+			return;
+		}
+		self.button0 = FALSE;
+		return;
+	}
+
 	// 3. Easy-mode natural burst pacing on rapid/sustained guns so bots feel lively, not robotic
 	if (autocvar_bm_bot_easy && self.ltg_phase != 1)
 	{
@@ -829,6 +852,13 @@ void() BM_BotSpawnLoadout =
 	if (autocvar_bm_reload)
 		BM_FillAll ();
 
+	if (time + 8.0 > self.bm_bot_mm_cd)
+		self.bm_bot_mm_cd = time + 8.0 + random () * 10.0;
+	self.bm_bot_free_t = 0;
+	self.bm_bot_free_dir = '0 0 0';
+	self.bm_bot_stuck_org = self.origin;
+	self.bm_bot_stuck_t = time + 0.9;
+	self.bm_bot_hunt_t = time + 1.2 + random () * 2.5;
 	self.bm_bot_wep_t = 0;
 	BM_BotWeaponSwitch (450);
 };
@@ -1077,16 +1107,16 @@ void() BM_BuildDowntownWaypoints =
 	// 3b. Explicit indoor stair, lobby, balcony & suite exit chains (seeded before class merges)
 	BM_AddDowntownIndoorWaypoints ();
 
-	// 4. Weapons, jetpacks, armor, powerups, and all street + rooftop DM spawns
+	// 4. Jetpacks, armor, ammo/health street pickups, and all street + rooftop DM spawns (guns removed from maps)
 	BM_AddClassWaypoints ("item_jetpack", 180);
 	BM_AddClassWaypoints ("item_armorInv", 180);
 	BM_AddClassWaypoints ("item_armor2", 220);
-	BM_AddClassWaypoints ("weapon_rocketlauncher", 220);
-	BM_AddClassWaypoints ("weapon_lightning", 220);
-	BM_AddClassWaypoints ("weapon_grenadelauncher", 240);
-	BM_AddClassWaypoints ("weapon_supernailgun", 240);
-	BM_AddClassWaypoints ("weapon_nailgun", 240);
-	BM_AddClassWaypoints ("weapon_supershotgun", 240);
+	BM_AddClassWaypoints ("item_armor1", 220);
+	BM_AddClassWaypoints ("item_rockets", 260);
+	BM_AddClassWaypoints ("item_shells", 260);
+	BM_AddClassWaypoints ("item_spikes", 260);
+	BM_AddClassWaypoints ("item_cells", 260);
+	BM_AddClassWaypoints ("item_health", 280);
 	BM_AddClassWaypoints ("info_player_deathmatch", 280);
 
 	// 5. Ground jump pads (5 low trigger_push pads): link upward to nearest elevated waypoint
@@ -1183,12 +1213,12 @@ void() BM_BuildDowntownWaypoints =
 						{
 							if (d_x > 0 && dist < d1)
 							{
-								traceline (a.origin + '0 0 16', b.origin + '0 0 16', TRUE, a);
+								traceline (a.origin + '0 0 36', b.origin + '0 0 36', TRUE, a);
 								if (trace_fraction == 1) { d1 = dist; best1 = b; }
 							}
 							else if (d_x <= 0 && dist < d2)
 							{
-								traceline (a.origin + '0 0 16', b.origin + '0 0 16', TRUE, a);
+								traceline (a.origin + '0 0 36', b.origin + '0 0 36', TRUE, a);
 								if (trace_fraction == 1) { d2 = dist; best2 = b; }
 							}
 						}
@@ -1196,12 +1226,12 @@ void() BM_BuildDowntownWaypoints =
 						{
 							if (d_y > 0 && dist < d3)
 							{
-								traceline (a.origin + '0 0 16', b.origin + '0 0 16', TRUE, a);
+								traceline (a.origin + '0 0 36', b.origin + '0 0 36', TRUE, a);
 								if (trace_fraction == 1) { d3 = dist; best3 = b; }
 							}
 							else if (d_y <= 0 && dist < d4)
 							{
-								traceline (a.origin + '0 0 16', b.origin + '0 0 16', TRUE, a);
+								traceline (a.origin + '0 0 36', b.origin + '0 0 36', TRUE, a);
 								if (trace_fraction == 1) { d4 = dist; best4 = b; }
 							}
 						}
@@ -1243,6 +1273,7 @@ float() BM_BotDowntown =
 void() BM_MapLoad =
 {
 	bm_dt_way_done = FALSE;
+	bm_route_lock_t = 0;
 	if (BM_IsDowntownMap ())
 		bm_dt_way_t = time + 0.75;		// right after Jetpack_Place (0.5s) spawns the 11 jetpacks
 	else
@@ -1259,6 +1290,27 @@ void() BM_BotStartFrame =
 		if (max_clients > 1)
 			BM_BuildDowntownWaypoints ();
 	}
+
+	// Watchdog: FrikBot can leave route_table locked if bot_look_for_crap(TRUE) finds nothing or a bot dies mid-route
+	if (route_table != world)
+	{
+		if (bm_wasfreed (route_table) || route_table.classname != "player" || route_table.health <= 0)
+		{
+			route_table = world;
+			busy_waypoints = 0;
+			bm_route_lock_t = 0;
+		}
+		else if (!bm_route_lock_t)
+			bm_route_lock_t = time + 0.75;
+		else if (time >= bm_route_lock_t)
+		{
+			route_table = world;
+			busy_waypoints = 0;
+			bm_route_lock_t = 0;
+		}
+	}
+	else
+		bm_route_lock_t = 0;
 
 	// Public server housekeeping (2 ticks per second): bots give up a slot when humans have filled the server,
 	// and the whole crew leaves once nobody human has been connected for bm_bot_idle seconds (no 14 bots fighting on an empty VPS)
@@ -1297,22 +1349,95 @@ void() BM_BotStartFrame =
 	}
 };
 
-// ---------------------------------------------------------------- item priority, jetpacks, rooftops & hunting
+// ---------------------------------------------------------------- item priority, spawning, patrol & hunting
 
 float(entity thing) BM_BotItemPriority =
 {
 	if (thing.classname == "item_jetpack")
 	{
-		if (thing.solid == SOLID_TRIGGER && thing.model != string_null && self.jp_fuel < autocvar_jp_fuel * 0.65)
+		// Only prioritize nearby jetpacks so bots across the map don't all march to Padre Hotel's jetpack
+		if (thing.solid == SOLID_TRIGGER && thing.model != string_null && self.jp_fuel < autocvar_jp_fuel * 0.65
+			&& vlen (thing.origin - self.origin) < 1400)
 			return 68;
 	}
 	return 0;
 };
 
+// Spread bot spawns across all DM districts instead of clustering around Padre Hotel / combat centroid
+entity() BM_BotPickSpawn =
+{
+	local entity spot, p, best;
+	local float dmin, d, near_cnt, seen, score, bestscore, n;
+
+	if (!deathmatch)
+		return world;
+
+	n = 0;
+	p = player_head;
+	while (p)
+	{
+		if (p != self && p.health > 0)
+			n = n + 1;
+		p = p._next;
+	}
+
+	best = world;
+	bestscore = 1000000;
+	spot = find (world, classname, "info_player_deathmatch");
+	while (spot)
+	{
+		p = findradius (spot.origin, 48);
+		while (p && p.classname != "player")
+			p = p.chain;
+		if (!p)
+		{
+			if (n == 0)
+				score = random () * 1000;
+			else
+			{
+				dmin = 99999;
+				near_cnt = 0;
+				seen = 0;
+				p = player_head;
+				while (p)
+				{
+					if (p != self && p.health > 0)
+					{
+						d = vlen (p.origin - spot.origin);
+						if (d < dmin)
+							dmin = d;
+						if (d < 1700)
+							near_cnt = near_cnt + 1;
+						if (d < 3400 && !seen)
+						{
+							traceline (spot.origin + '0 0 28', p.origin + '0 0 28', TRUE, spot);
+							if (trace_fraction == 1)
+								seen = 1;
+						}
+					}
+					p = p._next;
+				}
+				score = near_cnt * 2400 + seen * 3600 + random () * 1500;
+				if (dmin < 1000)
+					score = score + (1000 - dmin) * 5.0;
+				if (dmin > 6000)
+					score = score + (dmin - 6000) * 0.25;
+			}
+			if (score < bestscore)
+			{
+				bestscore = score;
+				best = spot;
+			}
+		}
+		spot = find (spot, classname, "info_player_deathmatch");
+	}
+	return best;
+};
+
 entity() BM_BotPickHuntTarget =
 {
-	local entity p, best;
-	local float d, score, bestscore;
+	local entity p, b, best;
+	local float d, crowd, score, bestscore;
 
 	best = world;
 	bestscore = 999999;
@@ -1323,10 +1448,22 @@ entity() BM_BotPickHuntTarget =
 		{
 			if (!(teamplay && p.team == self.team))
 			{
+				// Count other bots already swarming this player so bots don't all pile into one street fight
+				crowd = 0;
+				b = player_head;
+				while (b)
+				{
+					if (b != self && b != p && b.ishuman != 1 && b.health > 0)
+					{
+						if (b.enemy == p || b.target1 == p || vlen (b.origin - p.origin) < 950)
+							crowd = crowd + 1;
+					}
+					b = b._next;
+				}
 				d = vlen (p.origin - self.origin);
-				score = d + random () * 900;
-				if (p.ishuman == 1)
-					score = score * 0.55;		// gravitate toward human players so downtown feels alive!
+				score = d + crowd * 1800 + random () * 2800;
+				if (p.ishuman == 1 && d < 4200)
+					score = score * 0.85;
 				if (score < bestscore)
 				{
 					bestscore = score;
@@ -1339,12 +1476,107 @@ entity() BM_BotPickHuntTarget =
 	return best;
 };
 
+entity() BM_BotPickPatrolWay =
+{
+	local entity w, p, best;
+	local float d, crowd, score, bestscore;
+
+	if (way_head == world)
+		return world;
+
+	best = world;
+	bestscore = 999999;
+	w = way_head;
+	while (w)
+	{
+		if (w != self.current_way && w != self.last_way)
+		{
+			d = vlen (w.origin - self.origin);
+			if (d >= 600 && d <= 8500)
+			{
+				crowd = 0;
+				p = player_head;
+				while (p)
+				{
+					if (p != self && p.health > 0 && vlen (p.origin - w.origin) < 1500)
+						crowd = crowd + 1;
+					p = p._next;
+				}
+				score = crowd * 2600 + random () * 3200;
+				if (d < 1200)
+					score = score + (1200 - d) * 1.2;
+				if (score < bestscore)
+				{
+					bestscore = score;
+					best = w;
+				}
+			}
+		}
+		w = w._next;
+	}
+	return best;
+};
+
+// Shared 12-ray open-direction picker for both unstuck recovery and continuous non-idle patrolling
+vector(float avoid_last, float curve_bias, entity steer_toward) BM_BotPickOpenDir =
+{
+	local vector open_dir, want_dir, probe;
+	local float best_frac, yaw, s, fl, fr, turn_side, want_yaw, cont;
+
+	turn_side = num_for_edict (self);
+	if (turn_side - 2 * floor (turn_side / 2) == 1)
+		turn_side = 1;
+	else
+		turn_side = -1;
+	want_yaw = self.v_angle_y + turn_side * 28;
+	makevectors ('0 1 0' * want_yaw);
+	want_dir = v_forward;
+
+	best_frac = -9;
+	open_dir = want_dir;
+	yaw = 0;
+	while (yaw < 360)
+	{
+		makevectors ('0 1 0' * yaw);
+		traceline (self.origin + '0 0 18', self.origin + '0 0 18' + v_forward * 320, TRUE, self);
+		s = trace_fraction;
+		traceline (self.origin + '0 0 18' + v_right * 20, self.origin + '0 0 18' + v_right * 20 + v_forward * 320, TRUE, self);
+		fl = trace_fraction;
+		traceline (self.origin + '0 0 18' - v_right * 20, self.origin + '0 0 18' - v_right * 20 + v_forward * 320, TRUE, self);
+		fr = trace_fraction;
+		if (fl < s) s = fl;
+		if (fr < s) s = fr;
+
+		// Avoid walking blindly into lava or slime
+		probe = self.origin + v_forward * min (160, 300 * s);
+		traceline (probe + '0 0 16', probe - '0 0 96', TRUE, self);
+		cont = pointcontents (trace_endpos + '0 0 4');
+		if (cont == CONTENT_LAVA || cont == CONTENT_SLIME)
+			s = s - 1.5;
+
+		if (avoid_last && vlen (self.bm_bot_free_dir) > 0.5 && (v_forward * self.bm_bot_free_dir) > 0.65)
+			s = s - 0.55;
+		if (steer_toward != world && s > 0.45)
+			s = s + 0.18 * (v_forward * normalize (steer_toward.origin - self.origin));
+		if (curve_bias)
+			s = s + 0.25 * (v_forward * want_dir) + random () * 0.12;
+
+		if (s > best_frac)
+		{
+			best_frac = s;
+			open_dir = v_forward;
+		}
+		yaw = yaw + 30;
+	}
+	return open_dir;
+};
+
 // Runs every AI frame at the end of BotAI (frikbot.bot_ai.qc)
 void() BM_BotPostAI =
 {
 	local entity goal, prey;
 	local vector d, open_dir;
-	local float dz, xydist, best_frac, yaw, s, fl, fr;
+	local float dz, xydist, s, fl;
 
 	if (self.health <= 0)
 		return;
@@ -1547,46 +1779,70 @@ void() BM_BotPostAI =
 		bot_jump ();
 	}
 
-	// ---------------- 3. DOWNTOWN RIVAL HUNTING & SUB-GRADE EXIT ----------------
+	// ---------------- 3. DOWNTOWN RIVAL HUNTING, PATROL & SUB-GRADE EXIT ----------------
+	// Never let FrikBot's AI_WAIT or chat pause freeze a bot in place
+	if (route_table != self && (self.b_aiflags & AI_WAIT))
+		self.b_aiflags = self.b_aiflags - (self.b_aiflags & AI_WAIT);
+	if (self.b_skill < 2 && self.b_chattime > time)
+		self.b_chattime = time;
+
 	// Suppress perpendicular wall-dodge inside Sandrini's narrow basement stairwell so bots walk straight up the steps
 	if (BM_BotDowntown () && self.origin_x >= -4040 && self.origin_x <= -3660 && self.origin_y >= 240 && self.origin_y <= 360 && self.origin_z < 40)
 		self.b_aiflags = self.b_aiflags - (self.b_aiflags & AI_OBSTRUCTED);
 
-	// On a huge 28,000-unit city map, idle bots actively converge on living players for nonstop action
-	// (immediately when sub-grade with no active goal so basement spawns climb out to Eye St right away)
+	// Alternate between patrolling spread-out waypoints and hunting non-crowded rivals so bots roam the whole map
 	if (!self.enemy && (time >= self.bm_bot_hunt_t || (self.origin_z < -36 && self.target1 == world)))
 	{
-		self.bm_bot_hunt_t = time + 3.5 + random () * 2.5;
-		if (self.target1 == world || (self.target1.classname != "item_jetpack" && random () < 0.45))
+		self.bm_bot_hunt_t = time + 4.5 + random () * 3.5;
+		if (self.target1 == world || (self.target1.classname != "item_jetpack" && random () < 0.55))
 		{
-			prey = BM_BotPickHuntTarget ();
-			if (prey != world)
+			prey = world;
+			if (self.origin_z >= -36 && random () < 0.45 && way_head != world)
+				prey = BM_BotPickPatrolWay ();
+			if (prey == world)
+				prey = BM_BotPickHuntTarget ();
+			if (prey == world && way_head != world)
+				prey = BM_BotPickPatrolWay ();
+			if (prey != world && !target_onstack (prey))
 			{
-				if (!target_onstack (prey))
-				{
-					target_add (prey);
-					bot_get_path (prey, TRUE);
-				}
+				target_add (prey);
+				bot_get_path (prey, TRUE);
 			}
 		}
 	}
 
-	// ---------------- 4. CURB / CAR / ALLEY UNSTUCK & IDLE CRUISE ----------------
-	if (time < self.bm_bot_free_t && !self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1)
+	// ---------------- 4. NEVER-IDLE CONTINUOUS ROAM & CURB / CAR / ALLEY UNSTUCK ----------------
+	if (!self.enemy && !self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1)
 	{
-		self.b_angle_y = vectoyaw (self.bm_bot_free_dir);
-		self.keys = (self.keys & 960) | frik_KeysForDir (self.bm_bot_free_dir);
+		if (time < self.bm_bot_free_t || self.target1 == world || !(self.keys & 63))
+		{
+			if (time >= self.bm_bot_free_t || vlen (self.bm_bot_free_dir) < 0.5)
+			{
+				self.bm_bot_free_dir = BM_BotPickOpenDir (FALSE, TRUE, world);
+				self.bm_bot_free_t = time + 0.95 + random () * 0.85;
+			}
+			else
+			{
+				traceline (self.origin + '0 0 18', self.origin + '0 0 18' + self.bm_bot_free_dir * 84, TRUE, self);
+				if (trace_fraction < 0.85)
+				{
+					self.bm_bot_free_dir = BM_BotPickOpenDir (TRUE, TRUE, world);
+					self.bm_bot_free_t = time + 0.90 + random () * 0.70;
+				}
+			}
+			self.b_angle_y = vectoyaw (self.bm_bot_free_dir);
+			self.v_angle_y = self.b_angle_y;
+			self.keys = (self.keys & 960) | frik_KeysForDir (self.bm_bot_free_dir);
+		}
 	}
 	if (time >= self.bm_bot_stuck_t)
 	{
 		d = self.origin - self.bm_bot_stuck_org;
 		d_z = 0;
 		self.bm_bot_stuck_org = self.origin;
-		self.bm_bot_stuck_t = time + 0.95;
+		self.bm_bot_stuck_t = time + 0.85;
 
-		// not while the bot stands still on purpose: computing its route table (keys 0 until done: clearing target1
-		// threw the route away, so it never left) or waiting at an AI_WAIT (ambush / sniper / lift) waypoint
-		if (route_table != self && !(self.b_aiflags & AI_WAIT)
+		if (route_table != self
 			&& !self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
 		{
 			// Sub-grade basement failsafe: steer directly to Sandrini's stair foot / Eye St exit instead of wall rays
@@ -1602,33 +1858,8 @@ void() BM_BotPostAI =
 			}
 			else
 			{
-				// Find widest 3-ray hull-clear street direction (penalizing last stuck direction) and cruise free for 1.3s
 				prey = BM_BotPickHuntTarget ();
-				best_frac = -9;
-				open_dir = '1 0 0';
-				yaw = 0;
-				while (yaw < 360)
-				{
-					makevectors ('0 1 0' * yaw);
-					traceline (self.origin + '0 0 18', self.origin + '0 0 18' + v_forward * 320, TRUE, self);
-					s = trace_fraction;
-					traceline (self.origin + '0 0 18' + v_right * 20, self.origin + '0 0 18' + v_right * 20 + v_forward * 320, TRUE, self);
-					fl = trace_fraction;
-					traceline (self.origin + '0 0 18' - v_right * 20, self.origin + '0 0 18' - v_right * 20 + v_forward * 320, TRUE, self);
-					fr = trace_fraction;
-					if (fl < s) s = fl;
-					if (fr < s) s = fr;
-					if (vlen (self.bm_bot_free_dir) > 0.5 && (v_forward * self.bm_bot_free_dir) > 0.65)
-						s = s - 0.45;
-					if (prey != world && s > 0.45)
-						s = s + 0.20 * (v_forward * normalize (prey.origin - self.origin));
-					if (s > best_frac)
-					{
-						best_frac = s;
-						open_dir = v_forward;
-					}
-					yaw = yaw + 30;
-				}
+				open_dir = BM_BotPickOpenDir (TRUE, FALSE, prey);
 			}
 			self.target1 = world;
 			self.target2 = world;
@@ -1639,8 +1870,11 @@ void() BM_BotPostAI =
 			self.bm_bot_hunt_t = time + 1.5;
 			self.bm_bot_free_dir = open_dir;
 			self.bm_bot_free_t = time + 1.30;
-			self.b_angle_y = vectoyaw (open_dir);
-			self.v_angle_y = self.b_angle_y;
+			if (!self.enemy)
+			{
+				self.b_angle_y = vectoyaw (open_dir);
+				self.v_angle_y = self.b_angle_y;
+			}
 			self.keys = frik_KeysForDir (open_dir);
 			if (self.flags & FL_ONGROUND)
 			{

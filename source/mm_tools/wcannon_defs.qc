@@ -23,14 +23,14 @@ float	WC_MIN_CHARGE	= 0.12;		// let go before this and the shot is a fizzle (no 
 float	WC_SPEED_MIN	= 600;		// units a second at the lowest charge (a rocket is 1000; was 1300 before the 2026-11-01 review)
 float	WC_SPEED_MAX	= 1200;		// at full charge (was 2700)
 float	WC_LIFE			= 6;		// a Wheelman that has not crashed by then blows up where he is
-float	WC_HEALTH		= 40;		// he can be shot (he is a driving projectile, not a rocket): shot down, he blows up where he is
+float	WC_HEALTH		= 80;		// he can be shot (he is a driving projectile, not a rocket): shot down, he blows up where he is
 float	WC_STEPUP		= 32;		// he drives over curbs and downtown steps this high
 float	WC_COOLDOWN		= 1.1;		// seconds after a shot for frames 26..47 (blast, recoil & breech lock) before reload/next charge
-float	WC_DMG_DIRECT	= 40;		// extra damage to whatever he hits head-on
-float	WC_DMG_BASE		= 85;		// radius damage of the smallest explosion (was 70: review 2026-11-01, "a lot of splash damage", you go flying)
-float	WC_DMG_STEP		= 18;		// more per tier (tier 3 = 139)
-float	WC_RADIUS_BASE	= 130;
-float	WC_RADIUS_STEP	= 30;
+float	WC_DMG_DIRECT	= 75;		// extra damage to whatever he hits head-on
+float	WC_DMG_BASE		= 145;		// radius damage of the smallest explosion (strong punch even on quick taps)
+float	WC_DMG_STEP		= 35;		// more per tier (tier 3 = 250 splash, 325 direct)
+float	WC_RADIUS_BASE	= 185;
+float	WC_RADIUS_STEP	= 35;
 float	WC_DOWN			= 0.7;		// aim this steeply down (the sine of the pitch) near the floor and he crashes at once under you: a rocket jump
 float	WC_DANCE_LIFE	= 2.5;		// seconds Larry tears around playing crazy animations & shouting lines after exploding (progs/wheelman_dance.spr32)
 float	WC_DANCE_SPEED	= 540;		// how fast he sprints around after crashing (a player runs at 320)

@@ -62,6 +62,12 @@ void() CSQC_Init =
 	precache_sound("weapons/nailcase3.wav");
 	precache_sound("weapons/rockcase1.wav");
 	precache_sound("weapons/rockcase.wav");
+	precache_sound("robhead/key1.wav");
+	precache_sound("robhead/key2.wav");
+	precache_sound("robhead/key3.wav");
+	precache_sound("robhead/key4.wav");
+	precache_sound("robhead/key_enter.wav");
+	precache_sound("robhead/key_beep.wav");
 	loadCFG();
 	if (((((((cvar("slowmo_powerup") == 1) || (cvar("slowmo_powerup") == 2)) || (cvar("slowmo_powerup") == 3)) || (cvar("slowmo_powerup") == 4)) || (cvar("slowmo_powerup") == 5)) || (cvar("slowmo_powerup") == 6)))
 	{
@@ -137,11 +143,12 @@ void() CSQC_Shutdown =
 
 void(float w, float h) CSQC_UpdateView =
 {
-	local float bm_intro, hud_style, cw, ch;
+	local float bm_intro, hud_style, cw, ch, fd_mode;
 
 	initConvars();
 	clearscene();
 	bm_intro = getstati(69);
+	fd_mode = getstati(BMST_FD_MODE);
 	hud_style = cvar("bm_hud_style");
 	if (bm_intro)
 	{
@@ -151,11 +158,19 @@ void(float w, float h) CSQC_UpdateView =
 	setproperty(VF_DRAWWORLD, TRUE);
 	if (!inMenu && !bm_intro)
 	{
-		setproperty(VF_DRAWCROSSHAIR, TRUE);
-		if (hud_style >= 1 && hud_style <= 4)
+		if (fd_mode > 0)
+		{
+			setproperty(VF_DRAWCROSSHAIR, FALSE);
 			setproperty(VF_DRAWENGINESBAR, FALSE);
+		}
 		else
-			setproperty(VF_DRAWENGINESBAR, TRUE);
+		{
+			setproperty(VF_DRAWCROSSHAIR, TRUE);
+			if (hud_style >= 1 && hud_style <= 4)
+				setproperty(VF_DRAWENGINESBAR, FALSE);
+			else
+				setproperty(VF_DRAWENGINESBAR, TRUE);
+		}
 	}
 	else
 	{
@@ -163,6 +178,8 @@ void(float w, float h) CSQC_UpdateView =
 		setproperty(VF_DRAWENGINESBAR, FALSE);
 	}
 	addentities(MASK_ENGINE);
+	if (fd_mode == 1 || fd_mode == 2)
+		RH_AddXRayEntities();
 	renderscene();
 	if (bm_intro)
 	{
@@ -174,7 +191,11 @@ void(float w, float h) CSQC_UpdateView =
 	else if (((((!intermission && !finale) && (showHUD > 0)) && !inMenu) || (UIDraw == 1)))
 	{
 		fade_camera();
-		if (hud_style >= 1 && hud_style <= 4)
+		if (fd_mode > 0)
+		{
+			RH_DrawXRayHUD(w, h);
+		}
+		else if (hud_style >= 1 && hud_style <= 4)
 		{
 			cw = vid_conwidth;
 			ch = vid_conheight;
@@ -249,6 +270,10 @@ void(float isnew) CSQC_Ent_Update =
 					Casing_Spawner(isnew);
 				}
 			}
+			else if ((self.enttype == ENT_RD_TARGET))
+			{
+				RH_XRay_EntUpdate(isnew);
+			}
 			else
 			{
 				print(/*11460i*/"ERR: Unhandled CSQC entity\n");
@@ -259,6 +284,11 @@ void(float isnew) CSQC_Ent_Update =
 
 void() CSQC_Ent_Remove =
 {
+	if ((self.enttype == ENT_RD_TARGET))
+	{
+		RH_XRay_EntRemove();
+		return;
+	}
 	if ((self.classname != "sprite"))
 	{
 		remove(self);
@@ -422,18 +452,22 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 				{
 					if ((cvar("lowspec") == 0))
 					{
-						localcmd("exec q15_config_coop.cfg\n");
-						cvar_set("cl_decals_max", "2500");
-						cvar_set("cl_decals_time", "240");
+						cvar_set("cl_decals_max", "128");
+						cvar_set("cl_decals_time", "12");
+						cvar_set("cl_decals_fadetime", "4");
+						cvar_set("cl_stainmaps", "0");
+						cvar_set("cl_decals_models", "0");
 						cvar_set("lowspec", "1");
 					}
 					else
 					{
 						if ((cvar("lowspec") == 1))
 						{
-							localcmd("exec q15_config.cfg\n");
-							cvar_set("cl_decals_max", "4500");
-							cvar_set("cl_decals_time", "4170");
+							cvar_set("cl_decals_max", "256");
+							cvar_set("cl_decals_time", "16");
+							cvar_set("cl_decals_fadetime", "4");
+							cvar_set("cl_stainmaps", "0");
+							cvar_set("cl_decals_models", "0");
 							cvar_set("lowspec", "0");
 						}
 					}
@@ -445,19 +479,19 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 				{
 					if ((flEventType == INPUT_KEYDOWN))
 					{
-						if ((cvar("cl_decals_max") > 4400))
+						if ((cvar("cl_decals_max") >= 512))
 						{
-							cvar_set("cl_decals_max", "1500");
+							cvar_set("cl_decals_max", "128");
 						}
 						else
 						{
-							if ((cvar("cl_decals_max") == 1500))
+							if ((cvar("cl_decals_max") <= 128))
 							{
-								cvar_set("cl_decals_max", "2800");
+								cvar_set("cl_decals_max", "256");
 							}
 							else
 							{
-								cvar_set("cl_decals_max", "4500");
+								cvar_set("cl_decals_max", "512");
 							}
 						}
 					}
@@ -468,19 +502,20 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 					{
 						if ((flEventType == INPUT_KEYDOWN))
 						{
-							if ((cvar("cl_decals_time") > 4100))
+							cvar_set("cl_decals_fadetime", "4");
+							if ((cvar("cl_decals_time") >= 30))
 							{
-								cvar_set("cl_decals_time", "200");
+								cvar_set("cl_decals_time", "10");
 							}
 							else
 							{
-								if ((cvar("cl_decals_time") <= 200))
+								if ((cvar("cl_decals_time") <= 10))
 								{
-									cvar_set("cl_decals_time", "900");
+									cvar_set("cl_decals_time", "16");
 								}
 								else
 								{
-									cvar_set("cl_decals_time", "4500");
+									cvar_set("cl_decals_time", "30");
 								}
 							}
 						}

@@ -34,6 +34,7 @@ MOD_MAPS_DIR = os.path.join(MOD_DIR, "maps")
 
 DEFAULT_ERICW_CANDIDATES: Tuple[str, ...] = (
     os.environ.get("ERICW_DIR", ""),
+    r"G:\Quake\Combat\tools\ericw",
     r"G:\Quake\TRUEDM3\tools\ericw",
     r"D:\vibe\quake1opensource\tools\ericw",
     "/d/vibe/quake1opensource/tools/ericw",
@@ -172,6 +173,7 @@ def compile_map(
     wad_override: Optional[str] = None,
     stats_out_path: Optional[str] = None,
     subdivide: int = 512,
+    visdist: int = 8400,
 ) -> Dict[str, object]:
     """Run qbsp -> vis -> light on goldenwest.map and deploy compiled outputs."""
     map_abs = os.path.abspath(map_path)
@@ -250,7 +252,10 @@ def compile_map(
                 f"qbsp reported {len(missing_textures)} missing texture(s): {', '.join(missing_textures[:15])}"
             )
 
-        vis_cmd = [vis_exe, "-threads", str(nthreads), bsp_path]
+        vis_cmd = [vis_exe, "-threads", str(nthreads)]
+        if visdist and int(visdist) > 0:
+            vis_cmd.extend(["-visdist", str(int(visdist))])
+        vis_cmd.append(bsp_path)
         rc, _v_out, dt = _run_tool(vis_cmd, work_dir, "vis")
         timings["vis"] = round(dt, 2)
         if rc != 0:
@@ -266,6 +271,14 @@ def compile_map(
         timings["light"] = round(dt, 2)
         if rc != 0:
             raise RuntimeError(f"light failed with exit code {rc}")
+
+        if MM_TOOLS_DIR not in sys.path:
+            sys.path.insert(0, MM_TOOLS_DIR)
+        import fog_vis_tools as fvt  # noqa: E402
+        if visdist and int(visdist) > 0:
+            fvt.prune_pvs(bsp_path, visdist=int(visdist), keep_sky=True, backup=False)
+        else:
+            fvt.keep_sky_pvs(bsp_path, backup=False)
 
     bsp_info = inspect_bsp(bsp_path)
     if bsp_info["forbidden_textures"]:
@@ -340,6 +353,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--sky", action="store_true", help="Run build_sky.py before compiling")
     parser.add_argument("--fast", action="store_true", help="Use light -extra instead of -extra4 -bounce 1 (always runs full portal VIS)")
     parser.add_argument("--subdivide", type=int, default=512, help="qbsp face subdivision threshold (default: 512; 0 uses qbsp default 240)")
+    parser.add_argument("--visdist", type=int, default=8400, help="vis -visdist / PVS prune distance in units (default: 8400; 0 disables)")
     parser.add_argument("--threads", type=int, default=0, help="Worker thread count (0 = auto)")
     parser.add_argument("--no-copy", action="store_true", help="Do not copy outputs to maps/ and out/maps/")
     parser.add_argument("--onlyents", action="store_true", help="Re-embed entities and relight only")
@@ -368,6 +382,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         wad_override=args.wadpath,
         stats_out_path=args.stats_out,
         subdivide=args.subdivide,
+        visdist=args.visdist,
     )
     print(
         f"[compile_gw] DONE in {stats['total_sec']}s: "

@@ -270,11 +270,11 @@ void(vector org, float tier) WC_Debris =
 {
 	local float n, i, gcount;
 
-	n = 3 + tier;		// wheels (tone-down 2026-11-02, was 5 + tier * 2)
+	n = 1 + (tier >= 2);		// fewer visible wheels in the explosion (was 3 + tier)
 	i = 0;
 	while (i < n)
 	{
-		WC_Chunk ("progs/mm_wheel.md3", org + '0 0 20', WC_Fling (260 + tier * 40), 1.3, 5 + random () * 2);
+		WC_Chunk ("progs/mm_wheel.md3", org + '0 0 20', WC_Fling (260 + tier * 40), 0.85, 2.5 + random () * 1.5);
 		i = i + 1;
 	}
 	n = 1 + (tier >= 2);		// bars

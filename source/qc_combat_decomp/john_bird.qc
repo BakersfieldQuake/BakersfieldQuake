@@ -1025,11 +1025,10 @@ void(entity jb, float is_temp) JB_InitEntity =
 	JB_Park (jb);
 };
 
-// Map entity: misc_vehicle_johnbird
+// Map entity: misc_vehicle_johnbird — removed from maps because every player receives Winged John automatically (P / impulse 98)
 void() misc_vehicle_johnbird =
 {
-	setorigin (self, self.origin + '0 0 8');
-	JB_InitEntity (self, FALSE);
+	remove (self);
 };
 
 entity(entity p) JohnBird_NearPerched =

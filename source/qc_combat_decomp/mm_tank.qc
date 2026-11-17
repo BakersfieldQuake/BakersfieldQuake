@@ -324,6 +324,8 @@ void() MMTank_Precache =
 	precache_sound ("megaman/tire3.wav");
 	precache_sound ("items/itembk2.wav");
 	precache_sound ("misc/null.wav");
+	precache_sound ("ambience/windfly.wav");
+	precache_sound ("skypad/launch.wav");
 
 	mmt_fx_bar_trail = particleeffectnum ("mm_tank_bar_trail");
 	mmt_fx_bar_boom = particleeffectnum ("mm_tank_bar_boom");
@@ -822,20 +824,24 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 
 	explo = Gyro_Force_Create ("explosion", inflictor.origin);
 	Gyro_Force_ApplyFalloff_AreaQuadratic (explo, ('4 4 4' * blast_rad));
-	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 6.5), FALSE);
+	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 11.0), FALSE);
 	Gyro_Force_AddProperty_Instant (explo);
 	Gyro_Force_AddProperty_AirOnly (explo);
 
 	explo = Gyro_Force_Create ("explosion", inflictor.origin);
 	Gyro_Force_ApplyFalloff_AreaLinear (explo, ('2 2 2' * blast_rad));
-	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 3.5), FALSE);
+	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 5.5), FALSE);
 	Gyro_Force_AddProperty_Instant (explo);
 	Gyro_Force_AddProperty_WaterOnly (explo);
 
 	head = findradius (inflictor.origin, blast_rad);
 	while (head)
 	{
-		if (head != ignore && head.takedamage)
+		if (head != ignore && mmt_inflicting == 1 && head.classname == "misc_traffic_car")
+		{
+			Traffic_BlastExplode (head, attacker);
+		}
+		else if (head != ignore && head.takedamage)
 		{
 			org = head.origin + ((head.mins + head.maxs) * 0.5);
 			dist = vlen (inflictor.origin - org);
@@ -844,20 +850,28 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 			{
 				points = peak_dmg * falloff;
 				if (head == attacker)
-					points = points * 0.4;
+					points = points * 0.15;
 				else if (head == reduced_self_tank)
-					points = points * 0.15;		// don't blow up your own tank from close shots
+					points = points * 0.12;		// don't blow up your own tank from close ground shots
+				else if (mmt_inflicting == 1 && (head.veh_kind > 0 || head.classname == "veh_van_clip"))
+				{
+					points = points * 3.0;
+					if (falloff > 0.25 && points < 300)
+						points = 300;
+				}
 				if (points > 0 && CanDamage (head, inflictor))
 				{
 					if (head.movetype != MOVETYPE_NONE && head.movetype != MOVETYPE_PUSH)
 					{
 						push_dir = org - inflictor.origin;
-						push_dir_z = push_dir_z + 44;
+						if (push_dir_z < 0)
+							push_dir_z = 0;
+						push_dir_z = push_dir_z + 110;
 						if (vlen (push_dir) < 1)
 							push_dir = '0 0 1';
 						else
 							push_dir = normalize (push_dir);
-						head.velocity = head.velocity + push_dir * (190 + 360 * falloff);
+						head.velocity = head.velocity + push_dir * (460 + 840 * falloff);
 						head.flags = head.flags - (head.flags & FL_ONGROUND);
 					}
 					if (head.classname == "monster_shambler" || head.classname == "monster_hell_knight2")
@@ -1168,7 +1182,7 @@ void(vector org, float ring_sc, float spr_sc) MMT_SpawnBlastVisuals =
 void(vector boom_org, entity bar_ent, entity hit) MMT_BarDetonate =
 {
 	local entity atk, tank, inf;
-	local float i, ang, hspd, pack;
+	local float i, ang, hspd, pack, ddmg;
 	local vector v;
 
 	tank = bar_ent.mmt_tank;
@@ -1178,11 +1192,22 @@ void(vector boom_org, entity bar_ent, entity hit) MMT_BarDetonate =
 	if (atk == world)
 		atk = bar_ent;
 
-	if (hit != world && hit.takedamage)
+	if (hit != world && hit != tank && hit != atk)
 	{
-		mmt_inflicting = 1;
-		T_Damage (hit, bar_ent, atk, MMT_BAR_DIRECT);
-		mmt_inflicting = 0;
+		if (hit.classname == "misc_traffic_car")
+			Traffic_BlastExplode (hit, atk);
+		else if (hit.takedamage)
+		{
+			ddmg = MMT_BAR_DIRECT;
+			if (hit.veh_kind > 0 || hit.classname == "veh_van_clip")
+			{
+				if (ddmg < 600)
+					ddmg = 600;
+			}
+			mmt_inflicting = 1;
+			T_Damage (hit, bar_ent, atk, ddmg);
+			mmt_inflicting = 0;
+		}
 	}
 
 	if (mmt_fx_bar_boom > 0)
@@ -1198,7 +1223,7 @@ void(vector boom_org, entity bar_ent, entity hit) MMT_BarDetonate =
 	sound (inf, CHAN_VOICE, "weapons/r_exp3.wav", 0.85, 0.35);
 
 	mmt_inflicting = 1;
-	MMT_RadiusBlast (inf, atk, MMT_BAR_DMG, 260, hit, tank);
+	MMT_RadiusBlast (inf, atk, MMT_BAR_DMG, 320, hit, tank);
 	mmt_inflicting = 0;
 	remove (inf);
 
@@ -1285,29 +1310,117 @@ void() MMT_BarThink =
 	self.nextthink = time + 0.04;
 };
 
+// Trace the 3rd-person chase camera ray past the tank itself so aiming directly at the ground works cleanly;
+// stores computed cam_des into vd_hitpos as well.
+vector(entity p, entity tank) MMT_GetCrosshairTarget =
+{
+	local float dist_back, lift_up, step;
+	local vector look_ang, pivot, cam_des, p0, aim_end;
+
+	look_ang = '0 0 0';
+	look_ang_x = p.v_angle_x;
+	look_ang_y = p.v_angle_y;
+	makevectors (look_ang);
+
+	pivot = tank.origin + '0 0 98';
+	if (p.mmt_cam_mode)
+	{
+		dist_back = 385;
+		lift_up = 58;
+	}
+	else
+	{
+		dist_back = 285;
+		lift_up = 32;
+	}
+	cam_des = pivot - v_forward * dist_back + v_right * 24 + '0 0 1' * lift_up;
+	traceline (pivot, cam_des, TRUE, tank);
+	if (trace_fraction < 1)
+		cam_des = trace_endpos + trace_plane_normal * 8;
+
+	vd_hitpos = cam_des;
+	p0 = cam_des;
+	aim_end = cam_des + v_forward * 4096;
+	step = 0;
+	while (step < 3)
+	{
+		traceline (p0, aim_end, FALSE, tank);
+		if (trace_fraction >= 1)
+			break;
+		if (trace_ent == tank || trace_ent == p || (trace_ent != world && trace_ent.mmt_base == tank))
+		{
+			p0 = trace_endpos + v_forward * 12;
+			step = step + 1;
+		}
+		else
+		{
+			if (vlen (trace_endpos - cam_des) >= 32)
+				return trace_endpos;
+			break;
+		}
+	}
+	return cam_des + v_forward * 1600;
+};
+
 void(entity tank, entity driver) MMT_FireBar =
 {
-	local vector aim_ang, fwd, muz;
-	local entity bar;
-	local float pack;
+	local vector aim_ang, aim_pt, fwd, muz_pivot, muz, dir, shot_ang;
+	local entity bar, hit_ent;
+	local float pack, instant_boom;
 
-	aim_ang = '0 0 0';
-	aim_ang_x = 0 - tank.mmt_turret_pitch;
-	aim_ang_y = tank.mmt_turret_yaw;
-	makevectors (aim_ang);
-	fwd = v_forward;
+	muz_pivot = tank.origin + '0 0 63';
+	if (driver != world && driver.classname == "player")
+	{
+		aim_pt = MMT_GetCrosshairTarget (driver, tank);
+		fwd = aim_pt - muz_pivot;
+		if (vlen (fwd) < 1)
+			fwd = '1 0 0';
+		else
+			fwd = normalize (fwd);
+		shot_ang = vectoangles (fwd);
+		if (shot_ang_x > 180)
+			shot_ang_x = shot_ang_x - 360;
+		tank.mmt_turret_yaw = shot_ang_y;
+		tank.mmt_turret_pitch = bound (-82, shot_ang_x, 65);
+	}
+	else
+	{
+		aim_ang = '0 0 0';
+		aim_ang_x = 0 - tank.mmt_turret_pitch;
+		aim_ang_y = tank.mmt_turret_yaw;
+		makevectors (aim_ang);
+		fwd = v_forward;
+		aim_pt = muz_pivot + fwd * 1600;
+	}
 
-	muz = tank.origin + '0 0 63' + fwd * 88;
+	instant_boom = FALSE;
+	hit_ent = world;
+	traceline (muz_pivot, muz_pivot + fwd * 88, FALSE, tank);
+	if (trace_fraction < 1 && trace_ent != driver && (trace_ent == world || trace_ent.mmt_base != tank))
+	{
+		muz = trace_endpos - fwd * 8;
+		if (trace_fraction * 88 < 28 || pointcontents (muz) == CONTENT_SOLID)
+		{
+			instant_boom = TRUE;
+			muz = trace_endpos + trace_plane_normal * 6;
+			hit_ent = trace_ent;
+		}
+	}
+	else
+		muz = muz_pivot + fwd * 88;
+
+	dir = fwd;
+	if (!instant_boom && (aim_pt - muz) * fwd > 24)
+		dir = normalize (aim_pt - muz);
 
 	bar = spawn ();
 	bar.classname = "mm_tank_bar";
 	bar.owner = tank;
 	bar.mmt_tank = tank;
 	bar.mmt_driver = driver;
-	bar.movetype = MOVETYPE_TOSS;
-	bar.gravity = 0.28;
+	bar.movetype = MOVETYPE_FLYMISSILE;
 	bar.solid = SOLID_BBOX;
-	bar.velocity = fwd * MMT_BAR_SPEED + '0 0 75';
+	bar.velocity = dir * MMT_BAR_SPEED;
 	bar.angles = vectoangles (bar.velocity);
 	if (bar.angles_x > 180)
 		bar.angles_x = bar.angles_x - 360;
@@ -1317,7 +1430,7 @@ void(entity tank, entity driver) MMT_FireBar =
 	bar.think = MMT_BarThink;
 	bar.nextthink = time + 0.04;
 	setmodel (bar, "progs/mm_tank_bar.md3");
-	setsize (bar, '-20 -12 -12', '20 12 12');
+	setsize (bar, '-12 -12 -12', '12 12 12');
 	setorigin (bar, muz);
 
 	tank.mmt_recoil_end = time + 0.60;
@@ -1331,6 +1444,9 @@ void(entity tank, entity driver) MMT_FireBar =
 	pack = MMT_ClampPack (autocvar_mm_tank_soundpack);
 	sound (tank, CHAN_WEAPON, MMT_Snd (pack, 2), 1.0, 0.25);
 	sound (tank, CHAN_AUTO, "weapons/r_exp3.wav", 0.72, 0.40);
+
+	if (instant_boom)
+		MMT_BarDetonate (muz, bar, hit_ent);
 };
 
 // ---------------------------------------------------------------- Driving Physics & Collision
@@ -1348,9 +1464,9 @@ float(entity tank, vector org0, vector org1) MMT_DriveSweep =
 		ofs = '0 0 0';
 		ofs_x = MMT_Cos (ang) * 82;
 		ofs_y = MMT_Sin (ang) * 82;
-		p0 = org0 + ofs + '0 0 22';
-		p1 = org1 + ofs + '0 0 22';
-		tracebox (p0, '-12 -12 0', '12 12 110', p1, FALSE, tank);
+		p0 = org0 + ofs + '0 0 26';
+		p1 = org1 + ofs + '0 0 26';
+		tracebox (p0, '-12 -12 0', '12 12 106', p1, FALSE, tank);
 		if (!trace_startsolid && trace_fraction < best && trace_plane_normal_z < 0.7)
 		{
 			if (trace_ent == world || (trace_ent != tank.mmt_driver && trace_ent.mmt_base != tank))
@@ -1423,7 +1539,7 @@ void(entity tank, vector org, float yaw) MMT_GroundSample =
 	hf = (h0 + h1) * 0.5;
 	hr = (h2 + h3) * 0.5;
 	vd_gh = (h0 + h1 + h2 + h3) * 0.25 + 0.5;
-	vd_pitch = MMT_RiseAngle (hf - hr, 104);
+	vd_pitch = bound (-32, MMT_RiseAngle (hf - hr, 104), 32);
 };
 
 void(entity tank, entity hit, float spd) MMT_RamHit =
@@ -1432,7 +1548,7 @@ void(entity tank, entity hit, float spd) MMT_RamHit =
 	local float dmg;
 	local vector dir;
 
-	if (spd < 55 || time < hit.mmt_hit_t)
+	if (spd < 35 || time < hit.mmt_hit_t)
 		return;
 	if (hit == tank.mmt_driver)
 		return;
@@ -1448,17 +1564,46 @@ void(entity tank, entity hit, float spd) MMT_RamHit =
 	}
 	else
 		dir = normalize (dir);
-	dmg = 30 + spd * 0.36;
-	hit.mmt_hit_t = time + 0.45;
+	if (hit.veh_kind > 0 || hit.classname == "veh_van_clip")
+		dmg = 220 + spd * 1.4;
+	else
+		dmg = 160 + spd * 0.90;
+	hit.mmt_hit_t = time + 0.30;
 	if ((hit.flags & FL_CLIENT) || (hit.flags & FL_MONSTER))
 	{
-		hit.velocity = hit.velocity + dir * (160 + spd * 0.9) + '0 0 185';
+		hit.velocity = hit.velocity + dir * (280 + spd * 1.4) + '0 0 240';
 		hit.flags = hit.flags - (hit.flags & FL_ONGROUND);
 		sound7 (hit, CHAN_BODY, "megaman/tire1.wav", 1.0, 0.7, 82 + random () * 14);
 	}
 	mmt_inflicting = 3;
 	T_Damage (hit, tank, atk, dmg);
 	mmt_inflicting = 0;
+};
+
+void(entity tank) MMT_CheckRunOver =
+{
+	local entity e;
+	local float spd;
+	local vector bmin, bmax;
+
+	spd = fabs (tank.mmt_fwd_spd);
+	if (spd < 35 && fabs (tank.mmt_yawrate) < 20)
+		return;
+	if (spd < 60)
+		spd = 60;
+
+	bmin = tank.origin + '-108 -108 -4';
+	bmax = tank.origin + '108 108 132';
+	e = findradius (tank.origin + '0 0 48', 140);
+	while (e != world)
+	{
+		if (e != tank && e != tank.mmt_driver && e.takedamage && ((e.flags & FL_CLIENT) || (e.flags & FL_MONSTER)))
+		{
+			if (bmin_x <= e.absmax_x && bmax_x >= e.absmin_x && bmin_y <= e.absmax_y && bmax_y >= e.absmin_y && bmin_z <= e.absmax_z && bmax_z >= e.absmin_z)
+				MMT_RamHit (tank, e, spd);
+		}
+		e = e.chain;
+	}
 };
 
 // ---------------------------------------------------------------- Enter / Exit / Camera
@@ -1579,31 +1724,13 @@ void(entity p, entity tank) MMT_Enter =
 void(entity p, entity tank) MMT_UpdateCameraAndAim =
 {
 	local entity cam;
-	local vector pivot, cam_des, aim_end, dir, want_ang, look_ang;
-	local float dist_back, lift_up, dt, d, want_p;
+	local vector cam_des, aim_end, dir, want_ang;
+	local float dt, d, want_p;
 
 	dt = bound (0.001, frametime, 0.05);
 	cam = tank.mmt_cam;
-	look_ang = '0 0 0';
-	look_ang_x = p.v_angle_x;
-	look_ang_y = p.v_angle_y;
-	makevectors (look_ang);
-
-	pivot = tank.origin + '0 0 98';
-	if (p.mmt_cam_mode)
-	{
-		dist_back = 385;
-		lift_up = 58;
-	}
-	else
-	{
-		dist_back = 285;
-		lift_up = 32;
-	}
-	cam_des = pivot - v_forward * dist_back + v_right * 24 + '0 0 1' * lift_up;
-	traceline (pivot, cam_des, TRUE, tank);
-	if (trace_fraction < 1)
-		cam_des = trace_endpos + trace_plane_normal * 8;
+	aim_end = MMT_GetCrosshairTarget (p, tank);
+	cam_des = vd_hitpos;
 
 	if (cam != world)
 	{
@@ -1614,23 +1741,191 @@ void(entity p, entity tank) MMT_UpdateCameraAndAim =
 		cam.angles_z = 0;
 	}
 
-	// Converge turret yaw+pitch cleanly onto player's 3rd-person crosshair ray
-	aim_end = cam_des + v_forward * 4096;
-	traceline (cam_des, aim_end, FALSE, tank);
-	if (trace_fraction < 1 && vlen (trace_endpos - cam_des) >= 360 && trace_ent != tank && trace_ent != p && trace_ent.mmt_base != tank)
-		aim_end = trace_endpos;
-	else
-		aim_end = cam_des + v_forward * 1200;
-
 	dir = normalize (aim_end - (tank.origin + '0 0 63'));
 	want_ang = vectoangles (dir);
 	if (want_ang_x > 180)
 		want_ang_x = want_ang_x - 360;
-	want_p = bound (-14, want_ang_x, 45);
+	want_p = bound (-82, want_ang_x, 65);
 
 	d = MMT_AngDelta (want_ang_y, tank.mmt_turret_yaw);
-	tank.mmt_turret_yaw = MMT_NormYaw (tank.mmt_turret_yaw + bound (-195 * dt, d, 195 * dt));
-	tank.mmt_turret_pitch = MMT_Approach (tank.mmt_turret_pitch, want_p, 140 * dt);
+	tank.mmt_turret_yaw = MMT_NormYaw (tank.mmt_turret_yaw + bound (-320 * dt, d, 320 * dt));
+	tank.mmt_turret_pitch = MMT_Approach (tank.mmt_turret_pitch, want_p, 260 * dt);
+};
+
+// ---------------------------------------------------------------- Anti-Rollover, Jump/Launch Pads & Air Physics
+
+// Keep tank pitch upright/bounded and zero out roll so the hull can never tip over or flip upside-down
+void(entity tank, float dt, float grounded, float target_pitch) MMT_StabilizeAngles =
+{
+	local float px, rate;
+
+	px = tank.angles_x;
+	while (px > 180)
+		px = px - 360;
+	while (px < -180)
+		px = px + 360;
+	if (grounded)
+	{
+		target_pitch = bound (-32, target_pitch, 32);
+		rate = min (1, dt * 8);
+	}
+	else
+	{
+		target_pitch = 0;
+		rate = min (1, dt * 4);
+	}
+	px = px + (target_pitch - px) * rate;
+	tank.angles_x = bound (-32, px, 32);
+	tank.angles_z = 0;
+};
+
+float(vector bmin, vector bmax, entity pad) MMT_OverlapPad =
+{
+	if (bmin_x > pad.absmax_x || bmax_x < pad.absmin_x)
+		return FALSE;
+	if (bmin_y > pad.absmax_y || bmax_y < pad.absmin_y)
+		return FALSE;
+	if (bmin_z > pad.absmax_z || bmax_z < pad.absmin_z)
+		return FALSE;
+	return TRUE;
+};
+
+// Tank uses MOVETYPE_NONE + setorigin, so engine SOLID_TRIGGER touch never fires for it;
+// detect trigger_push jump pads and info_skypad launch pads directly by hull overlap.
+void(entity tank, entity driver) MMT_CheckPads =
+{
+	local entity e;
+	local vector bmin, bmax, v;
+	local float spd, maxv;
+
+	if (time < tank.mmt_pad_cool)
+		return;
+
+	bmin = tank.origin + '-104 -104 -4';
+	bmax = tank.origin + '104 104 132';
+
+	e = find (world, classname, "info_skypad");
+	while (e != world)
+	{
+		if (MMT_OverlapPad (bmin, bmax, e))
+		{
+			SkyPad_RaiseMaxVel ();
+			if (driver != world && driver.ishuman == 1 && !driver.skypad_vel_sent)
+			{
+				driver.skypad_vel_sent = TRUE;
+				stuffcmd (driver, "sv_maxvelocity 6500\n");
+			}
+			v = SkyPad_CalcVel (tank.origin + '0 0 2', e.pos1, e.height);
+			tank.mmt_pad_cool = time + 0.65;
+			tank.mmt_air = TRUE;
+			tank.mmt_vz = v_z;
+			tank.mmt_air_vel = v;
+			tank.mmt_air_vel_z = 0;
+			tank.mmt_has_air_vel = TRUE;
+			setorigin (tank, tank.origin + '0 0 4');
+			sound7 (tank, CHAN_AUTO, "skypad/launch.wav", 0.85, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
+			pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 12', '0 0 0', 1);
+			if (e.message != "" && driver != world && driver.ishuman == 1)
+				sprint (driver, strcat ("Sky Pad -> ", e.message, "\n"));
+			return;
+		}
+		e = find (e, classname, "info_skypad");
+	}
+
+	e = find (world, classname, "trigger_push");
+	while (e != world)
+	{
+		if (MMT_OverlapPad (bmin, bmax, e))
+		{
+			spd = e.speed;
+			if (!spd)
+				spd = 1000;
+			v = spd * e.movedir * 10;
+			maxv = cvar ("sv_maxvelocity");
+			if (maxv <= 0)
+				maxv = 2000;
+			v_x = bound (0 - maxv, v_x, maxv);
+			v_y = bound (0 - maxv, v_y, maxv);
+			v_z = bound (0 - maxv, v_z, maxv);
+
+			tank.mmt_pad_cool = time + 0.35;
+			tank.mmt_air_vel = v;
+			tank.mmt_air_vel_z = 0;
+			tank.mmt_has_air_vel = TRUE;
+			if (v_z > 0)
+			{
+				tank.mmt_air = TRUE;
+				tank.mmt_vz = v_z;
+				setorigin (tank, tank.origin + '0 0 4');
+			}
+			if (!(e.spawnflags & NO_SOUND))
+				sound7 (tank, CHAN_AUTO, "ambience/windfly.wav", 0.72, ATTN_NORM, SNDSPD * (0.95 + random () * 0.12));
+			if (e.spawnflags & PUSH_ONCE)
+				remove (e);
+			return;
+		}
+		e = find (e, classname, "trigger_push");
+	}
+};
+
+vector(entity tank, vector org1, float yaw1, float dt, float is_driven) MMT_StepVerticalAndGround =
+{
+	local float grav, dz, z, d;
+
+	grav = cvar ("sv_gravity");
+	if (grav <= 10)
+		grav = 800;
+
+	z = org1_z;
+	if (tank.mmt_air)
+	{
+		tank.mmt_vz = tank.mmt_vz - grav * dt;
+		dz = tank.mmt_vz * dt;
+		if (dz > 0)
+		{
+			tracebox (org1, '-84 -84 0', '84 84 132', org1 + '0 0 1' * dz, TRUE, tank);
+			if (trace_fraction < 1 || trace_startsolid)
+			{
+				z = trace_endpos_z;
+				tank.mmt_vz = 0;
+			}
+			else
+				z = z + dz;
+		}
+		else
+			z = z + dz;
+		org1_z = z;
+		MMT_GroundSample (tank, org1, yaw1);
+		if (vd_found && tank.mmt_vz <= 0 && z <= vd_gh + 2)
+		{
+			z = vd_gh;
+			tank.mmt_vz = 0;
+			tank.mmt_air = FALSE;
+			tank.mmt_has_air_vel = FALSE;
+			tank.mmt_air_vel = '0 0 0';
+			if (is_driven)
+				sound7 (tank, CHAN_AUTO, "megaman/tire2.wav", 0.9, 0.6, 72);
+		}
+	}
+	else
+	{
+		MMT_GroundSample (tank, org1, yaw1);
+		if (!vd_found)
+			tank.mmt_air = TRUE;
+		else
+		{
+			d = vd_gh - z;
+			if (d < -18)
+				tank.mmt_air = TRUE;
+			else if (d > 0)
+				z = z + d * min (1, dt * 18);
+			else
+				z = vd_gh;
+		}
+	}
+	org1_z = z;
+	MMT_StabilizeAngles (tank, dt, (vd_found && !tank.mmt_air), vd_pitch);
+	return org1;
 };
 
 // ---------------------------------------------------------------- Per-Frame Player Control (`MMTank_DriveFrame`)
@@ -1638,7 +1933,7 @@ void(entity p, entity tank) MMT_UpdateCameraAndAim =
 float() MMTank_DriveFrame =
 {
 	local entity tank;
-	local float dt, thr, steer_in, target_spd, acc, yawrate_t, yaw0, yaw1, d, z, spd;
+	local float dt, thr, steer_in, target_spd, acc, yawrate_t, yaw0, yaw1, spd;
 	local float pack, f, moving, brake_on, power;
 	local vector fwd, org0, org1, org2, vel, n;
 
@@ -1725,9 +2020,19 @@ float() MMTank_DriveFrame =
 		acc = MMT_ACCEL;
 	tank.mmt_fwd_spd = MMT_Approach (tank.mmt_fwd_spd, target_spd, acc * dt);
 
+	MMT_CheckPads (tank, self);
+	if (!tank.mmt_air && tank.mmt_has_air_vel && time >= tank.mmt_pad_cool)
+	{
+		tank.mmt_has_air_vel = FALSE;
+		tank.mmt_air_vel = '0 0 0';
+	}
+
 	makevectors ('0 1 0' * yaw1);
 	fwd = v_forward;
-	vel = fwd * tank.mmt_fwd_spd;
+	if (tank.mmt_has_air_vel)
+		vel = tank.mmt_air_vel;
+	else
+		vel = fwd * tank.mmt_fwd_spd;
 
 	// Sweep tank footprint; slide along walls & ram targets
 	org0 = tank.origin;
@@ -1738,7 +2043,7 @@ float() MMTank_DriveFrame =
 	{
 		n = vd_hitnorm;
 		if (vd_hitent != world && vd_hitent.takedamage)
-			MMT_RamHit (tank, vd_hitent, fabs (tank.mmt_fwd_spd));
+			MMT_RamHit (tank, vd_hitent, max (fabs (tank.mmt_fwd_spd), vlen (vel)));
 		if (tank.mmt_state == MMT_STATE_WRECK)
 			return TRUE;
 		if (vel * n < 0)
@@ -1747,51 +2052,29 @@ float() MMTank_DriveFrame =
 		org2_x = org0_x + vel_x * dt;
 		org2_y = org0_y + vel_y * dt;
 		if (MMT_DriveSweep (tank, org0, org2))
+		{
 			org1 = org2;
+			if (tank.mmt_has_air_vel)
+				tank.mmt_air_vel = vel;
+		}
 		else
 		{
 			org1 = org0;
 			tank.mmt_fwd_spd = tank.mmt_fwd_spd * 0.25;
+			if (tank.mmt_has_air_vel)
+				tank.mmt_air_vel = '0 0 0';
 		}
 	}
 
-	// Ground height & slope following
-	MMT_GroundSample (tank, org1, yaw1);
-	z = org1_z;
-	if (tank.mmt_air)
-	{
-		tank.mmt_vz = tank.mmt_vz - 800 * dt;
-		z = z + tank.mmt_vz * dt;
-		if (vd_found && tank.mmt_vz <= 0 && z <= vd_gh + 2)
-		{
-			z = vd_gh;
-			tank.mmt_vz = 0;
-			tank.mmt_air = FALSE;
-			sound7 (tank, CHAN_AUTO, "megaman/tire2.wav", 0.9, 0.6, 72);
-		}
-	}
-	else if (!vd_found)
-		tank.mmt_air = TRUE;
-	else
-	{
-		d = vd_gh - z;
-		if (d < -18)
-			tank.mmt_air = TRUE;
-		else if (d > 0)
-			z = z + d * min (1, dt * 18);
-		else
-			z = vd_gh;
-	}
-	org1_z = z;
-	if (vd_found)
-		tank.angles_x = tank.angles_x + (vd_pitch - tank.angles_x) * min (1, dt * 8);
+	// Ground height, jump/launch pad arcs & anti-rollover stabilization
+	org1 = MMT_StepVerticalAndGround (tank, org1, yaw1, dt, TRUE);
 	tank.angles_y = yaw1;
-	tank.angles_z = 0;
 	tank.velocity = vel;
 	if (tank.mmt_air)
 		tank.velocity_z = tank.mmt_vz;
 	setorigin (tank, org1);
 	setsize (tank, '-104 -104 0', '104 104 132');
+	MMT_CheckRunOver (tank);
 
 	// Hull animation frames (0..15 idle, 16..31 wheel spin, 32..39 recoil, 40..47 flinch)
 	spd = fabs (tank.mmt_fwd_spd);
@@ -1942,22 +2225,7 @@ void(entity tank, float forced) MMT_CatastrophicExplode =
 
 	MMT_ShakePlayers (org, 1300, 14.0);
 
-	// Launch 4 spare wheels + flying tank bar + shrapnel
-	i = 0;
-	while (i < 4)
-	{
-		ang = i * 90 + random () * 40;
-		hspd = 230 + random () * 190;
-		v = '0 0 0';
-		v_x = MMT_Cos (ang) * hspd;
-		v_y = MMT_Sin (ang) * hspd;
-		v_z = 320 + random () * 220;
-		if (i & 1)
-			MMT_SpawnWheelDebris (org, v, 1, 9.0 + random () * 2.0);
-		else
-			MMT_SpawnWheelDebris (org, v, -1, 9.0 + random () * 2.0);
-		i = i + 1;
-	}
+	// Flying tank bar + shrapnel (no tank wheels in explosion)
 	MMT_SpawnShrap ("progs/mm_tank_bar.md3", org + '0 0 24', '0 0 480' + ('1 0 0' * crandom () + '0 1 0' * crandom ()) * 240, 8.5);
 	i = 0;
 	while (i < 8)
@@ -2041,6 +2309,11 @@ void(entity tank, float is_temp) MMT_InitTank =
 	tank.mmt_yawrate = 0;
 	tank.mmt_vz = 0;
 	tank.mmt_air = FALSE;
+	tank.mmt_air_vel = '0 0 0';
+	tank.mmt_has_air_vel = FALSE;
+	tank.mmt_pad_cool = 0;
+	tank.angles_x = 0;
+	tank.angles_z = 0;
 	tank.mmt_turret_yaw = tank.angles_y;
 	tank.mmt_turret_pitch = 6;
 	tank.mmt_flinch_end = 0;
@@ -2139,7 +2412,7 @@ void(entity tank) MMT_FreeChildren =
 void() MMT_Think =
 {
 	local float f, pack;
-	local vector fpos;
+	local vector fpos, org0, org1, vel;
 
 	if (self.mmt_cook_t < 0)
 	{
@@ -2226,9 +2499,29 @@ void() MMT_Think =
 		}
 	}
 
-	// Idle animation & attachments when unoccupied
+	// Idle animation, airborne settle, & attachments when unoccupied
 	if (self.mmt_driver == world)
 	{
+		if (self.mmt_air)
+		{
+			org0 = self.origin;
+			vel = '0 0 0';
+			if (self.mmt_has_air_vel)
+				vel = self.mmt_air_vel;
+			org1 = org0;
+			org1_x = org0_x + vel_x * 0.08;
+			org1_y = org0_y + vel_y * 0.08;
+			if (!MMT_DriveSweep (self, org0, org1))
+			{
+				org1 = org0;
+				self.mmt_air_vel = '0 0 0';
+			}
+			org1 = MMT_StepVerticalAndGround (self, org1, self.angles_y, 0.08, FALSE);
+			setorigin (self, org1);
+			setsize (self, '-104 -104 0', '104 104 132');
+		}
+		else
+			MMT_StabilizeAngles (self, 0.08, TRUE, 0);
 		if (time < self.mmt_flinch_end)
 		{
 			f = floor ((0.36 - (self.mmt_flinch_end - time)) * 22.0);

@@ -7,7 +7,7 @@
 ROB DOB  (the floating head, Combat+)
 
 Inspired by Peeker, the Strogg & Peeker ability in Quake Champions: a drone leaves your body and you fly it round the map
-from behind.  Here the drone is a big floating photo head (progs/floathead.mdl), and it is an electricity bomb.
+from behind.  Here the drone is a live-action red-fedora Rob head sprite (progs/robhead_proj.spr32), and it is an electricity bomb.
 
   Fire the Rob Dob (fun gun 1, impulse 61 or 17)
       your body stays where it is (hidden, and nobody targets it) and the head launches out of you.  You see the head
@@ -31,19 +31,17 @@ Your body can be hurt the whole time and cannot move or shoot.
   fd_flight N     seconds of flight, 0 = no limit (autocvar_fd_flight)
   fd_dash N       speed of the dash (autocvar_fd_dash, default 2000)
 
-Model:  python3 -E -P BakersfieldQuake\source\mm_tools\build_floathead.py          (floathead.mdl, v_robdob.mdl)
-Sounds: python3 -E -P BakersfieldQuake\source\mm_tools\make_floathead_sounds.py BakersfieldQuake\source\mm_tools\out\sound\floathead_tts BakersfieldQuake\sound\floathead
+Model:  python3 -E -P BakersfieldQuake\source\mm_tools\rob_head_weapon\bake_robhead_all.py  (robhead_proj.spr32, robhead_impact.spr32)
+Sounds: python3 -E -P BakersfieldQuake\source\mm_tools\rob_head_sound_vote\apply_robhead_sounds.py
 Trails: BakersfieldQuake\source\mm_tools\fh_effectinfo.txt (appended to effectinfo.txt)
 
 ==============================================================================
 */
 
-$frame idle1 idle2 idle3 idle4 idle5 idle6 idle7 idle8
-$frame open1 open2 open3 open4
-$frame rush1 rush2 rush3 rush4
-$frame pain1 pain2 pain3 pain4
-
 float	FD_IMPULSE		= 17;
+float	FD_PROJ_SCALE	= 0.40;		// 108x119 progs/robhead_proj.spr32 -> ~47u in world (matches old floathead.mdl)
+float	FD_MINI_SCALE	= 0.16;		// bouncing mini-heads on pop
+float	FD_IMP_SCALE	= 0.75;		// 153x153 progs/robhead_impact.spr32 fedora-pop burst
 float	FD_SPEED		= 320;		// cruising speed: as fast as a player can run (sv_maxspeed), no faster
 float	FD_ACCEL		= 5;		// how fast it turns to a new course (a fraction of the gap per second)
 float	FD_ARM			= 0.7;		// seconds after launch before the head may dash (so it cannot be wasted instantly)
@@ -60,9 +58,9 @@ float	FD_WATCH		= 0.9;		// snappy post-blast watch before returning to your body
 float	FD_SONG_LEN		= 5;		// the calc song is cut into slices this long (sound/floathead/calc/c0..)
 float	FD_SONG_N		= 60;		// how many slices there are
 float	FD_SONG_CHAN	= 5;		// the song's own sound channel: CHAN_AUTO never replaces a sound, so it could not be cut off there
-float	FD_SONG_VOL		= 0.2;		// quiet: it is the head's own little computer, not the music of the match
-float	FD_HUM_LEN		= 1.36;		// floathead/idle.wav is this long: it is played again each time it ends, all the way through
-float	FD_HUM_VOL		= 0.4;		// the constant hum while he is the head, under the calc song
+float	FD_SONG_VOL		= 0.65;		// Pocket Calculator plays clearly as the main flight music
+float	FD_HUM_LEN		= 1.20;		// robhead/idle.wav is this long: it is played again each time it ends, all the way through
+float	FD_HUM_VOL		= 0.18;		// subtle FPV hover hum underneath Pocket Calculator
 vector	FD_MINS			= '-10 -10 -10';	// the head's own box, small so it fits round corners
 vector	FD_MAXS			= '10 10 10';
 var float	autocvar_fd_flight = 20;	// 20s max flight (0 = fly as long as you want)
@@ -93,6 +91,25 @@ float	FD_CLIENTTYPE_REAL = 1;		// clienttype() result for a real player (the Com
 vector	fd_normal;			// the plane the last FD_Move ran into (set whenever it returns FALSE)
 .float	fd_big;				// shock: the big electric blast rather than a crackle
 
+float	FD_ENT_XRAY_TARGET = 7;	// CSQC SendEntity type (matches ENT_RD_TARGET in csqc)
+float	FD_XRAY_MAX		= 24;		// max simultaneous X-ray targets tracked per drone
+.entity	fd_xray_mgr;		// head: 20Hz X-ray scanner thinker
+.entity	fd_xray_head;		// head: linked list of active fd_xray_node trackers
+.entity	fd_xray_next;		// node: next tracker in head's list
+.entity	fd_xray_targ;		// node: tracked enemy/ally entity
+.vector	fd_xray_pos;		// node: last synced target origin
+.float	fd_xray_hp;			// node: last synced health
+.float	fd_xray_flags;		// node: bit 1 = FL_MONSTER, bit 2 = ally
+.string	fd_xray_mdl;		// node: target model path
+.float	fd_xray_frame;		// node: target animation frame
+.float	fd_xray_skin;		// node: target skin
+.float	fd_xray_yaw;		// node: target yaw
+.float	fd_xray_scale;		// node: target scale
+.float	fd_xray_cnt;		// head: count of active tracker nodes
+
+void(entity h) FD_XRayStop;
+void(entity pilot, entity h) FD_XRayStart;
+
 // TRUE while p is flying the head or watching its blast (custom_effects.qc hides the held gun then)
 float(entity p) FD_Flying =
 {
@@ -103,18 +120,24 @@ void() FloatHead_Precache =
 {
 	local float i;
 
-	precache_model ("progs/floathead.mdl");
-	precache_model ("progs/v_robdob.mdl");
+	precache_model ("progs/robhead_proj.spr32");
+	precache_model ("progs/robhead_impact.spr32");
 	precache_model ("progs/s_bubble.spr");
-	precache_sound ("floathead/sight1.wav");
-	precache_sound ("floathead/sight2.wav");
-	precache_sound ("floathead/charge.wav");
-	precache_sound ("floathead/pain.wav");
-	precache_sound ("floathead/idle.wav");
-	precache_sound ("floathead/pop.wav");
-	precache_sound ("floathead/boing.wav");
+	precache_sound ("robhead/sight1.wav");
+	precache_sound ("robhead/sight2.wav");
+	precache_sound ("robhead/charge.wav");
+	precache_sound ("robhead/pain.wav");
+	precache_sound ("robhead/idle.wav");
+	precache_sound ("robhead/pop.wav");
+	precache_sound ("robhead/boing.wav");
 	precache_sound ("weapons/lhit.wav");
-	precache_sound ("hackmon/hm_launch.wav");
+	precache_sound ("robhead/launch.wav");
+	precache_sound ("robhead/key1.wav");
+	precache_sound ("robhead/key2.wav");
+	precache_sound ("robhead/key3.wav");
+	precache_sound ("robhead/key4.wav");
+	precache_sound ("robhead/key_enter.wav");
+	precache_sound ("robhead/key_beep.wav");
 	precache_sound ("funny/heh.wav");
 	i = 0;
 	while (i < FD_SONG_N)
@@ -198,6 +221,7 @@ void(entity p) FD_Reset =
 {
 	if (p.fd_head)
 	{
+		FD_XRayStop (p.fd_head);
 		remove (p.fd_head);
 		FD_End (p);
 	}
@@ -271,12 +295,104 @@ float(entity h, vector vel, float dt) FD_Move =
 	return !hit;
 };
 
+// Viewer-relative 64-frame sprite orientation for progs/robhead_proj.spr32:
+//   0..15  horizontal 16-angle yaw turnaround
+//   16..31 tumbling spin (unused for main drone; used by bouncing mini-heads)
+//   32..47 above45 (30-60 deg overhead, 16 yaw angles)
+//   48..63 above90 (>60 deg top-down, 16 yaw angles)
+float() FD_Customize =
+{
+	local vector	vieworg, delta;
+	local float		dz, hdist, base, rel, d;
+
+	if (other.fd_cam)
+		vieworg = other.fd_cam.origin;
+	else
+		vieworg = other.origin + other.view_ofs;
+
+	delta = vieworg - self.origin;
+	dz = delta_z;
+	delta_z = 0;
+	hdist = vlen (delta);
+
+	if (dz > hdist * 1.73)
+	{
+		base = 48;
+		if (hdist < 16)
+			rel = (other.v_angle_y + 180) - self.angles_y;
+		else
+			rel = vectoyaw (delta) - self.angles_y;
+	}
+	else if (dz > hdist * 0.58)
+	{
+		base = 32;
+		rel = vectoyaw (delta) - self.angles_y;
+	}
+	else
+	{
+		base = 0;
+		rel = vectoyaw (delta) - self.angles_y;
+	}
+
+	rel = rel - 360 * floor (rel / 360);
+	d = floor (rel / 22.5 + 0.5);
+	if (d >= 16)
+		d = 0;
+	self.frame = base + d;
+	return TRUE;
+};
+
+void() FD_ImpactThink =
+{
+	self.frame = self.frame + 1;
+	if (self.frame >= 16)
+	{
+		remove (self);
+		return;
+	}
+	self.nextthink = time + 0.05;
+};
+
+void(vector org) FD_ImpactFX =
+{
+	local entity	fx;
+
+	fx = spawn ();
+	fx.classname = "fh_impact";
+	fx.movetype = MOVETYPE_NONE;
+	fx.solid = SOLID_NOT;
+	fx.effects = EF_FULLBRIGHT;
+	setmodel (fx, "progs/robhead_impact.spr32");
+	setsize (fx, '0 0 0', '0 0 0');
+	setorigin (fx, org);
+	fx.scale = FD_IMP_SCALE;
+	fx.frame = 0;
+	fx.think = FD_ImpactThink;
+	fx.nextthink = time + 0.05;
+};
+
 void() FD_Minis_touch =
 {
 	if (other != world || self.cnt >= 2 || vlen (self.velocity) < 80)
 		return;
 	self.cnt = self.cnt + 1;
-	sound (self, CHAN_BODY, "floathead/boing.wav", 0.7, ATTN_NORM);
+	sound (self, CHAN_BODY, "robhead/boing.wav", 0.7, ATTN_NORM);
+};
+
+void() FD_Minis_think =
+{
+	local float	f;
+
+	if (time >= self.fd_end)
+	{
+		remove (self);
+		return;
+	}
+	f = self.frame - 16 + 1;
+	if (f >= 16)
+		f = 0;
+	self.frame = 16 + f;
+	self.nextthink = time + 0.05;
 };
 
 // six little screaming heads tumble out and bounce about
@@ -292,23 +408,20 @@ void() FD_Minis =
 		e.classname = "fh_mini";
 		e.movetype = MOVETYPE_BOUNCE;
 		e.solid = SOLID_TRIGGER;
-		setmodel (e, "progs/floathead.mdl");
+		setmodel (e, "progs/robhead_proj.spr32");
 		setsize (e, '0 0 0', '0 0 0');
 		setorigin (e, self.origin);
-		e.scale = 0.4;
-		e.skin = 1;
+		e.scale = FD_MINI_SCALE;
 		e.effects = EF_FULLBRIGHT;
-		e.frame = $rush1 + i - 4 * floor (i / 4);
+		e.frame = 16 + (i * 3 - 16 * floor ((i * 3) / 16));
 		e.velocity_x = crandom () * 300;
 		e.velocity_y = crandom () * 300;
 		e.velocity_z = 200 + random () * 250;
-		e.avelocity_x = crandom () * 500;
-		e.avelocity_y = crandom () * 700;
-		e.avelocity_z = crandom () * 500;
 		e.angles_y = random () * 360;
 		e.touch = FD_Minis_touch;
-		e.think = SUB_Remove;
-		e.nextthink = time + 2.5 + random ();
+		e.fd_end = time + 2.5 + random ();
+		e.think = FD_Minis_think;
+		e.nextthink = time + 0.05;
 		i = i + 1;
 	}
 };
@@ -327,14 +440,17 @@ void() FD_Detonate =
 	p.fd_fade = time + FD_WATCH;
 	p.fd_boomat = self.origin;
 	self.classname = "fh_dead";
+	FD_XRayStop (self);
 	sound (self, FD_SONG_CHAN, "misc/null.wav", 1, ATTN_NORM);		// cut the calc song off on the channel it plays on
 	sound (self, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);		// and the hum
 	self.touch = SUB_Null;
 	self.takedamage = DAMAGE_NO;
 	FD_Shock (self, TRUE);				// an electricity bomb: big lightning arcs round the blast...
+	FD_ImpactFX (self.origin);			// ...fedora-pop & comic stars burst
 	sound (self, CHAN_WEAPON, "weapons/lhit.wav", 1, ATTN_NORM);
 	sound (self, CHAN_VOICE, "funny/heh.wav", 1, ATTN_NORM);		// ...and a "heh" on top of the bang
 	self.effects = 0;
+	self.customizeentityforclient = SUB_Null;
 	setmodel (self, "");
 	fg_inflicting = FG_DOB;				// "got a big wet kiss from X's flying head"
 	T_MissileTouch ();					// a regular explosion: the stock rocket's blast, damage, sprite and sound
@@ -390,12 +506,14 @@ void() FD_Pop =
 	if (self.fd_boom)
 		return;
 	self.fd_boom = TRUE;
+	FD_XRayStop (self);
 	FD_End (self.owner);
 	sound (self, FD_SONG_CHAN, "misc/null.wav", 1, ATTN_NORM);		// cut the calc song off
 	sound (self, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);		// the hum stops
-	sound (self, CHAN_VOICE, "floathead/pop.wav", 1, ATTN_NORM);
-	sound (self, CHAN_WEAPON, "floathead/pain.wav", 1, ATTN_NORM);
+	sound (self, CHAN_VOICE, "robhead/pop.wav", 1, ATTN_NORM);
+	sound (self, CHAN_WEAPON, "robhead/pain.wav", 1, ATTN_NORM);
 	SpawnBlood (self.origin, '0 0 120', 40);
+	FD_ImpactFX (self.origin);
 	FD_Minis ();
 	remove (self);
 };
@@ -415,7 +533,7 @@ void(entity attacker, float damage) FD_Pain =
 	if (self.pain_finished > time)
 		return;
 	self.pain_finished = time + 0.6;
-	sound (self, CHAN_VOICE, "floathead/pain.wav", 1, ATTN_NORM);
+	sound (self, CHAN_VOICE, "robhead/pain.wav", 1, ATTN_NORM);
 };
 
 // every 0.1 s while it floats: wobble, hum, and the safety nets
@@ -435,26 +553,10 @@ void() FD_HeadThink =
 		FD_Pop ();
 		return;
 	}
-	if (!self.fd_charging)
-	{
-		if (self.pain_finished - time > 0.2)
-		{
-			self.skin = 1;
-			self.frame = $pain1 + FD_Clamp (floor ((0.6 - (self.pain_finished - time)) * 10), 0, 3);
-		}
-		else
-		{
-			self.skin = 0;
-			self.cnt = self.cnt + 1;
-			if (self.cnt > 7)
-				self.cnt = 0;
-			self.frame = $idle1 + self.cnt;
-		}
-	}
 	if (time >= self.fd_hum)
 		{
 			// the hum: idle.wav, played again each time it ends, for as long as he is the head
-			sound (self, CHAN_ITEM, "floathead/idle.wav", FD_HUM_VOL, ATTN_NORM);
+			sound (self, CHAN_ITEM, "robhead/idle.wav", FD_HUM_VOL, ATTN_NORM);
 			self.fd_hum = self.fd_hum + FD_HUM_LEN;
 			if (self.fd_hum < time)
 				self.fd_hum = time + FD_HUM_LEN;		// it fell far behind (a hitch): start again from now
@@ -581,8 +683,188 @@ void(entity p) FD_Dash =
 	h.fd_dashed = time;
 	h.fd_scrape = 0;
 	h.fd_rushend = time + FD_DASH_TIME;
-	h.skin = 1;						// mouth open
-	sound (h, CHAN_VOICE, "floathead/charge.wav", 1, ATTN_NORM);
+	sound (h, CHAN_VOICE, "robhead/charge.wav", 1, ATTN_NORM);
+};
+
+// ---------------------------------------------------------------- X-Ray drone scanner (3D silhouettes + CSQC target stream)
+
+float(entity to, float sendflags) FD_XRaySend =
+{
+	if (to != self.owner || to.fd_head == world)
+		return FALSE;
+	WriteByte (MSG_ENTITY, FD_ENT_XRAY_TARGET);
+	WriteByte (MSG_ENTITY, sendflags);
+	if (sendflags & 1)
+	{
+		WriteCoord (MSG_ENTITY, self.fd_xray_pos_x);
+		WriteCoord (MSG_ENTITY, self.fd_xray_pos_y);
+		WriteCoord (MSG_ENTITY, self.fd_xray_pos_z);
+		WriteCoord (MSG_ENTITY, self.fd_xray_hp);
+		WriteCoord (MSG_ENTITY, self.fd_xray_flags);
+		WriteCoord (MSG_ENTITY, self.fd_xray_frame);
+		WriteCoord (MSG_ENTITY, self.fd_xray_skin);
+		WriteCoord (MSG_ENTITY, self.fd_xray_yaw);
+		WriteCoord (MSG_ENTITY, self.fd_xray_scale);
+		WriteString (MSG_ENTITY, self.fd_xray_mdl);
+		WriteString (MSG_ENTITY, self.netname);
+	}
+	return TRUE;
+};
+
+void(entity h) FD_XRayStop =
+{
+	local entity	n, nxt;
+
+	if (!h)
+		return;
+	n = h.fd_xray_head;
+	while (n)
+	{
+		nxt = n.fd_xray_next;
+		remove (n);
+		n = nxt;
+	}
+	h.fd_xray_head = world;
+	h.fd_xray_cnt = 0;
+	if (h.fd_xray_mgr)
+	{
+		remove (h.fd_xray_mgr);
+		h.fd_xray_mgr = world;
+	}
+};
+
+void(entity h, entity pilot, entity targ) FD_XRayTrack =
+{
+	local entity	n;
+	local float		ally, fl;
+
+	if (!targ || targ == pilot || targ == h || targ.health <= 0 || !targ.takedamage)
+		return;
+	if (targ.classname != "player" && !(targ.flags & FL_MONSTER))
+		return;
+
+	ally = (teamplay && targ.classname == "player" && targ.team == pilot.team);
+	fl = 0;
+	if (targ.flags & FL_MONSTER)
+		fl = fl | 1;
+	if (ally)
+		fl = fl | 2;
+
+	n = h.fd_xray_head;
+	while (n)
+	{
+		if (n.fd_xray_targ == targ)
+			break;
+		n = n.fd_xray_next;
+	}
+	if (!n)
+	{
+		if (h.fd_xray_cnt >= FD_XRAY_MAX)
+			return;
+		n = spawn ();
+		n.classname = "fd_xray_node";
+		n.owner = pilot;
+		n.fd_xray_targ = targ;
+		setmodel (n, "progs/s_bubble.spr");
+		setsize (n, '0 0 0', '0 0 0');
+		n.alpha = 0.0001;
+		n.SendEntity = FD_XRaySend;
+		n.fd_xray_next = h.fd_xray_head;
+		h.fd_xray_head = n;
+		h.fd_xray_cnt = h.fd_xray_cnt + 1;
+	}
+
+	n.cnt = 1;
+	setorigin (n, h.origin);		// stay inside the drone camera's PVS leaf
+	n.fd_xray_pos = targ.origin;
+	n.fd_xray_hp = max (0, floor (targ.health));
+	n.fd_xray_flags = fl;
+	n.fd_xray_mdl = targ.model;
+	n.fd_xray_frame = targ.frame;
+	n.fd_xray_skin = targ.skin;
+	n.fd_xray_yaw = targ.angles_y;
+	n.fd_xray_scale = targ.scale;
+	if (targ.netname != "")
+		n.netname = targ.netname;
+	else if (targ.classname != "")
+		n.netname = targ.classname;
+	else
+		n.netname = "HOSTILE";
+	n.SendFlags = n.SendFlags | 1;
+};
+
+void() FD_XRayThink =
+{
+	local entity	h, p, e, n, prev, nxt;
+
+	h = self.enemy;
+	p = self.owner;
+	if (!h || h.fd_boom || p.fd_head != h || p.health <= 0)
+	{
+		if (h)
+			FD_XRayStop (h);
+		else
+			remove (self);
+		return;
+	}
+
+	n = h.fd_xray_head;
+	while (n)
+	{
+		n.cnt = 0;
+		n = n.fd_xray_next;
+	}
+
+	e = bm_player_head;
+	while (e)
+	{
+		FD_XRayTrack (h, p, e);
+		e = e.bm_player_next;
+	}
+
+	e = findradius (h.origin, 8192);
+	while (e)
+	{
+		if ((e.flags & FL_MONSTER) && e.classname != "player")
+			FD_XRayTrack (h, p, e);
+		e = e.chain;
+	}
+
+	prev = world;
+	n = h.fd_xray_head;
+	while (n)
+	{
+		nxt = n.fd_xray_next;
+		if (!n.cnt)
+		{
+			if (prev)
+				prev.fd_xray_next = nxt;
+			else
+				h.fd_xray_head = nxt;
+			remove (n);
+			h.fd_xray_cnt = h.fd_xray_cnt - 1;
+		}
+		else
+			prev = n;
+		n = nxt;
+	}
+
+	self.nextthink = time + 0.05;
+};
+
+void(entity pilot, entity h) FD_XRayStart =
+{
+	local entity	m;
+
+	if (pilot.ishuman != 1)
+		return;
+	m = spawn ();
+	m.classname = "fd_xray_mgr";
+	m.owner = pilot;
+	m.enemy = h;
+	m.think = FD_XRayThink;
+	m.nextthink = time + 0.01;
+	h.fd_xray_mgr = m;
 };
 
 // ---------------------------------------------------------------- the launch (called from FunGun_Attack, self = the player)
@@ -600,14 +882,15 @@ void() FD_Launch =
 	h.movetype = MOVETYPE_NONE;			// FD_Move flies it, not the engine
 	h.solid = SOLID_BBOX;
 	h.effects = EF_FULLBRIGHT;			// lit by itself: no glow and no dim light, so the view stays clear
-	setmodel (h, "progs/floathead.mdl");
+	setmodel (h, "progs/robhead_proj.spr32");
 	setsize (h, FD_MINS, FD_MAXS);
 	tracebox (eye, FD_MINS, FD_MAXS, eye + v_forward * 56, TRUE, self);
 	setorigin (h, trace_endpos - v_forward * 4);
 	h.angles = vectoangles (v_forward);
 	h.velocity = v_forward * FD_SPEED;
-	h.skin = 0;
-	h.frame = $idle1;
+	h.scale = FD_PROJ_SCALE;
+	h.frame = 0;
+	h.customizeentityforclient = FD_Customize;
 	h.health = 60;
 	h.max_health = 60;
 	h.takedamage = DAMAGE_AIM;
@@ -625,10 +908,21 @@ void() FD_Launch =
 	h.traileffectnum = particleeffectnum ("fd_trail");
 	h.think = FD_HeadThink;
 	h.nextthink = time + 0.1;
-	sound (h, CHAN_VOICE, "hackmon/hm_launch.wav", 0.6, ATTN_NORM);	// a little computer booting up, not a voice
+	sound (h, CHAN_VOICE, "robhead/launch.wav", 0.85, ATTN_NORM);	// a little computer booting up, not a voice
 
 	self.fd_head = h;
 	self.fd_btn = TRUE;
+	local float rseq;
+	rseq = 1 + floor (random () * 14);
+	if (rseq > 14)
+		rseq = 14;
+	if (rseq == self.fd_st_seq)
+	{
+		rseq = rseq + 1;
+		if (rseq > 14)
+			rseq = 1;
+	}
+	self.fd_st_seq = rseq;
 	self.fd_oldmove = self.movetype;
 	self.fd_oldsolid = 0;				// keep pilot body SOLID_SLIDEBOX & hittable (h.owner == self already ignores pilot!)
 	self.movetype = MOVETYPE_NONE;
@@ -657,6 +951,7 @@ void() FD_Launch =
 	WriteByte (MSG_ONE, 5);			// svc_setview
 	WriteEntity (MSG_ONE, c);
 	FD_Camera (self);
+	FD_XRayStart (self, h);
 	if (!self.fd_hint_shown)
 	{
 		self.fd_hint_shown = TRUE;
@@ -669,7 +964,7 @@ float() FD_Frame =
 {
 	local entity	h, c, oldself;
 	local vector	wish;
-	local float		mx, my, mz, k, f;
+	local float		mx, my, mz, k;
 
 	h = self.fd_head;
 	if (!h)
@@ -764,15 +1059,6 @@ float() FD_Frame =
 	}
 	else if (h.fd_charging)
 	{
-		// dashing: jaw drops & fedora pops into the slipstream (open1-4), then chomps wildly while hat floats overhead (rush1-4)
-		if (time - h.fd_dashed < 0.16)
-			h.frame = $open1 + FD_Clamp (floor ((time - h.fd_dashed) * 25), 0, 3);
-		else
-		{
-			f = floor (time * 20);
-			f = f - 4 * floor (f / 4);
-			h.frame = $rush1 + f;
-		}
 		if (self.button0 && !self.fd_btn && time > h.fd_dashed + FD_DASH_BOOM)
 		{
 			self.fd_btn = TRUE;
@@ -782,7 +1068,6 @@ float() FD_Frame =
 		{
 			h.fd_charging = FALSE;
 			h.velocity = h.movedir * FD_SPEED;
-			h.skin = 0;
 			h.fd_arm = time + FD_DASH_REST;
 		}
 		else

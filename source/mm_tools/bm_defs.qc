@@ -131,6 +131,11 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_st_botcnt;		// active bot count (stat 77, csqc/bm_hud.qc)
 .float	bm_st_toymask;		// bitmask of ready fun-gun superweapons & Winged John (stat 78, csqc/bm_hud.qc)
 .float	bm_st_toycd;		// Winged John cooldown seconds remaining (stat 79, csqc/bm_hud.qc)
+.float	fd_st_mode;			// Rob Dob X-Ray HUD: 0=off, 1=cruise, 2=dash, 3=post-blast fade (stat 81)
+.float	fd_st_timer;		// Rob Dob flight seconds*10 remaining, 999=unlimited (stat 82)
+.float	fd_st_speed;		// Rob Dob drone velocity u/s (stat 83)
+.float	fd_st_arm;			// Rob Dob dash armed flag (stat 84)
+.float	fd_st_seq;			// Rob Dob hacking terminal sequence 1..14 (stat 85)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
@@ -318,9 +323,11 @@ void() info_skypad;
 .float	bm_bot_roof_t;
 .vector	bm_bot_aim_err;
 .float	bm_bot_aim_t;
+.float	bm_bot_mm_cd;
 float	bm_manual_bots;
 float	bm_dt_way_t;
 float	bm_dt_way_done;
+float	bm_route_lock_t;
 float	bm_autobot_check_t;
 float	bm_bot_add_t;
 float	bm_bot_slot_t;
@@ -338,6 +345,7 @@ void() BM_BotAimAdjust;
 void() BM_BotPostAI;
 void() BM_BotSpawnLoadout;
 void() BM_BotStartFrame;
+entity() BM_BotPickSpawn;
 
 // wasfreed (#353) with a real type: the Combat+ defs declare it as __variant, which cannot be tested with ! or if ()
 float(entity e) bm_wasfreed = #353;

@@ -1,4 +1,4 @@
-// BakersfieldQuake MenuQC - Main Menu
+// BakersfieldQuake MenuQC - Classic Default Quake Main Menu + Join/Host Game
 
 float g_main_sel;
 
@@ -59,91 +59,189 @@ void(float act) BM_Main_Execute =
 {
 	BM_PlaySound("sound/misc/menu2.wav");
 	if (act == MAIN_ACT_RESUME)
-	{
 		m_toggle(0);
-	}
 	else if (act == MAIN_ACT_JOIN)
-	{
 		BM_Browser_Open();
-	}
 	else if (act == MAIN_ACT_HOST)
-	{
 		BM_Host_Open();
-	}
 	else if (act == MAIN_ACT_OPTIONS)
-	{
 		BM_Options_Open();
-	}
 	else if (act == MAIN_ACT_DISCONNECT)
-	{
 		localcmd("disconnect\n");
-	}
 	else if (act == MAIN_ACT_QUIT)
-	{
 		localcmd("quit\n");
+};
+
+string(float idx) BM_CastPic =
+{
+	if (idx == 0) return "gfx/menu_cast/greenguy.png";
+	if (idx == 1) return "gfx/menu_cast/wheelman.png";
+	if (idx == 2) return "gfx/menu_cast/bryan.png";
+	if (idx == 3) return "gfx/menu_cast/david.png";
+	if (idx == 4) return "gfx/menu_cast/daniel.png";
+	if (idx == 5) return "gfx/menu_cast/beerguy.png";
+	if (idx == 6) return "gfx/menu_cast/reeseice.png";
+	if (idx == 7) return "gfx/menu_cast/rogerver.png";
+	if (idx == 8) return "gfx/menu_cast/robeguy.png";
+	return "gfx/menu_cast/jesskart.png";
+};
+
+string(float idx) BM_CastName =
+{
+	if (idx == 0) return "GREEN MAN";
+	if (idx == 1) return "WHEELMAN";
+	if (idx == 2) return "BRYAN";
+	if (idx == 3) return "DAVID";
+	if (idx == 4) return "DANIEL";
+	if (idx == 5) return "BEER GUY";
+	if (idx == 6) return "REESE ICE";
+	if (idx == 7) return "ROGER VER";
+	if (idx == 8) return "ROBE GUY";
+	return "JESS KART";
+};
+
+float(float avoid_a, float avoid_b) BM_PickRandomCast =
+{
+	local float pick, guard;
+
+	pick = modulo(floor(random() * CAST_COUNT), CAST_COUNT);
+	guard = 0;
+	while ((pick == avoid_a || pick == avoid_b) && guard < 16)
+	{
+		pick = modulo(pick + 1 + floor(random() * (CAST_COUNT - 1)), CAST_COUNT);
+		guard = guard + 1;
 	}
+	return pick;
+};
+
+void(float idx, float cx, float top_y, float sz, float dir_col, float anim_row) BM_DrawCastSlot =
+{
+	local float dx, dy;
+	local string pic, cname;
+
+	dx = floor(cx - sz * 0.5);
+	dy = floor(top_y);
+	pic = BM_CastPic(idx);
+	cname = BM_CastName(idx);
+
+	BM_Fill(dx + floor(sz * 0.14), dy + sz - 10, floor(sz * 0.72), 8, '0.02 0.01 0.01', 0.42);
+
+	drawsetcliparea(dx, dy, sz, sz);
+	drawpic((dx - dir_col * sz) * '1 0 0' + (dy - anim_row * sz) * '0 1 0', pic, (sz * 8) * '1 0 0' + (sz * 6) * '0 1 0', '1 1 1', 1.0, 0);
+	drawresetcliparea();
+
+	BM_DrawTextCentered(cx, dy + sz + 4, cname, 8, COL_ACCENT, 0.92);
+};
+
+void(float px, float menu_right, float top_y) BM_Main_DrawCast =
+{
+	local float t, phase, dir_col, anim_row, sz, lx_c, rx_c, sy;
+
+	t = gettime();
+	if (g_cast_next_swap <= 0)
+	{
+		g_cast_left = 0;
+		g_cast_right = BM_PickRandomCast(0, -1);
+		g_cast_swap_start = t;
+		g_cast_next_swap = t + 10.0;
+	}
+	else if (t >= g_cast_next_swap)
+	{
+		g_cast_left = BM_PickRandomCast(g_cast_left, -1);
+		g_cast_right = BM_PickRandomCast(g_cast_left, g_cast_right);
+		g_cast_swap_start = t;
+		g_cast_next_swap = t + 10.0;
+	}
+
+	phase = bound(0, (t - g_cast_swap_start) / 10.0, 0.9999);
+	dir_col = modulo(floor(phase * 8), 8);
+	anim_row = modulo(floor(t * 7.5), 6);
+
+	sz = min(128, max(64, min(px - 18, (g_vw - menu_right) - 18)));
+	if (sz < 64)
+		return;
+
+	lx_c = floor(px * 0.5);
+	rx_c = floor((menu_right + g_vw) * 0.5);
+	sy = top_y + 38;
+
+	BM_DrawCastSlot(g_cast_left, lx_c, sy, sz, dir_col, anim_row);
+	BM_DrawCastSlot(g_cast_right, rx_c, sy, sz, dir_col, anim_row);
 };
 
 void(float clicked) BM_Main_Draw =
 {
-	local float rx, ry, rw, rh, ix, iw, y, bh, gap;
-	local float in_match, bg_on, count, i, act, hov;
-	local string label, bgmap, status_txt, thumb;
-	local vector status_col;
-	local float cw, ch, cx, cy, half_w;
+	local float cx, top_y, px, mx, my, mw, mh, gap;
+	local float in_match, count, i, act, hov, sel;
+	local string label, cur_cname;
 
 	in_match = BM_IsInLiveMatch();
-	bg_on = (stof(cvar_string("menu_background")) != 0);
+	count = BM_Main_RowCount(in_match);
 
-	rx = 18;
-	ry = 16;
-	rw = bound(216, floor(g_vw * 0.34), 248);
-	rh = g_vh - 32;
+	cx = floor(g_vw * 0.5);
+	top_y = max(24, floor((g_vh - 220) * 0.5));
 
-	BM_DrawGlassPanel(rx, ry, rw, rh, 0.86, COL_BORDER, 0.75, 2.5);
+	// Bakersfield Quake top header + classic Quake side plaque
+	BM_DrawTextCentered(cx, top_y - 6, "BAKERSFIELD QUAKE", 18, COL_ACCENT, 0.99);
+	BM_Fill(cx - 132, top_y + 16, 264, 2, COL_ACCENT_HOT, 0.88);
+	BM_Fill(cx - 88, top_y + 18, 176, 1, COL_ACCENT, 0.55);
 
-	ix = rx + 12;
-	iw = rw - 24;
-	y = ry + 14;
+	px = cx - 144;
+	drawpic(px * '1 0 0' + (top_y + 26) * '0 1 0', "gfx/qplaque.lmp", '32 144 0', '1 1 1', 1.0, 0);
 
-	// Hero title
-	BM_DrawText(ix, y, "BAKOQUAKE", 16, COL_ACCENT, 0.98);
-	y = y + 19;
-	BM_DrawTextClipped(ix, y, iw, "BAKERSFIELD LAN // COMBAT+", 8, COL_MUTED, 0.90, FALSE);
-	y = y + 13;
+	mx = cx - 84;
+	mw = 200;
+	my = top_y + 40;
+	mh = 22;
+	gap = 4;
 
-	// Status pill
-	BM_Fill(ix, y, iw, 17, '0.03 0.04 0.07', 0.88);
-	BM_Outline(ix, y, iw, 17, COL_BORDER, 0.48, 1);
-	bgmap = BM_CurrentBackdropMap();
-	if (in_match)
+	BM_Main_DrawCast(px, mx + mw, top_y);
+
+	if (g_main_sel >= count) g_main_sel = count - 1;
+	if (g_main_sel < 0) g_main_sel = 0;
+
+	for (i = 0; i < count; i = i + 1)
 	{
-		local string cmap;
-		cmap = BM_CleanMapName(cvar_string("mapname"));
-		if (cmap == "") cmap = "match";
-		status_col = COL_GOOD;
-		status_txt = strcat("IN MATCH: ", strtoupper(cmap));
-	}
-	else
-	{
-		status_col = COL_ACCENT;
-		status_txt = "READY FOR LAN";
-	}
-	BM_Fill(ix + 6, y + 6, 5, 5, status_col, 0.95);
-	BM_DrawTextClipped(ix + 15, y + 4.5, iw - 20, status_txt, 8, COL_TEXT, 0.92, FALSE);
-	y = y + 23;
+		act = BM_Main_RowAction(i, in_match);
+		if (act == MAIN_ACT_RESUME) label = "RESUME GAME";
+		else if (act == MAIN_ACT_JOIN) label = "JOIN GAME";
+		else if (act == MAIN_ACT_HOST) label = "HOST GAME";
+		else if (act == MAIN_ACT_OPTIONS) label = "OPTIONS";
+		else if (act == MAIN_ACT_DISCONNECT) label = "DISCONNECT";
+		else label = "QUIT";
 
-	// Inline Player Name badge
-	BM_DrawText(ix, y, "PLAYER NAME", 8, COL_MUTED, 0.92);
-	y = y + 10;
+		hov = BM_MouseIn(mx, my, mw, mh);
+		if (hov && g_mouse_moved)
+			g_main_sel = i;
+		sel = (g_main_sel == i && g_focus_input == INPUT_NONE);
+
+		if (sel || hov)
+		{
+			BM_Fill(mx, my, mw, mh, '0.58 0.08 0.04', 0.78);
+			BM_DrawMenuDot(mx - 22, my + 3);
+		}
+		BM_DrawText(mx + 8, my + 5, label, 12, (sel || hov) ? '1 1 1' : COL_ACCENT, 0.98);
+
+		if (clicked && hov)
+		{
+			g_click_consumed = TRUE;
+			g_focus_input = INPUT_NONE;
+			BM_Main_Execute(act);
+			return;
+		}
+		my = my + mh + gap;
+	}
+
+	// Clean inline Player Name row below main items
+	my = my + 12;
+	BM_DrawText(mx + 8, my + 5, "NAME", 8, COL_MUTED, 0.94);
 	if (g_focus_input != INPUT_PLAYERNAME)
 	{
-		local string cur_cname;
 		cur_cname = cvar_string("_cl_name");
 		if (cur_cname != g_name_buf)
 			g_name_buf = BM_ZoneSet(g_name_buf, cur_cname);
 	}
-	hov = BM_DrawInputBox(ix, y, iw, 19, g_name_buf, "Enter name...", (g_focus_input == INPUT_PLAYERNAME));
+	hov = BM_DrawInputBox(mx + 50, my, mw - 50, 18, g_name_buf, "Enter name...", (g_focus_input == INPUT_PLAYERNAME));
 	if (clicked && hov)
 	{
 		g_focus_input = INPUT_PLAYERNAME;
@@ -154,87 +252,6 @@ void(float clicked) BM_Main_Draw =
 	{
 		g_focus_input = INPUT_NONE;
 		BM_CommitPlayerName(g_name_buf);
-	}
-	y = y + 25;
-
-	// Divider
-	BM_Fill(ix, y, iw, 1, COL_BORDER, 0.45);
-	y = y + 8;
-
-	// Primary navigation buttons
-	count = BM_Main_RowCount(in_match);
-	if (g_main_sel >= count)
-		g_main_sel = count - 1;
-	if (g_main_sel < 0)
-		g_main_sel = 0;
-
-	bh = 21;
-	gap = 4;
-	for (i = 0; i < count; i = i + 1)
-	{
-		act = BM_Main_RowAction(i, in_match);
-		if (act == MAIN_ACT_RESUME) label = "RESUME GAME";
-		else if (act == MAIN_ACT_JOIN) label = "JOIN GAME";
-		else if (act == MAIN_ACT_HOST) label = "HOST LAN GAME";
-		else if (act == MAIN_ACT_OPTIONS) label = "OPTIONS";
-		else if (act == MAIN_ACT_DISCONNECT) label = "DISCONNECT";
-		else label = "QUIT";
-
-		hov = BM_DrawButton(ix, y, iw, bh, label, (g_main_sel == i && g_focus_input == INPUT_NONE), (act == MAIN_ACT_JOIN && !in_match) || (act == MAIN_ACT_RESUME));
-		if (hov && g_mouse_moved)
-			g_main_sel = i;
-		if (clicked && hov)
-		{
-			g_click_consumed = TRUE;
-			g_focus_input = INPUT_NONE;
-			BM_Main_Execute(act);
-			return;
-		}
-		y = y + bh + gap;
-	}
-
-	// Bottom quick backdrop controls
-	y = ry + rh - 54;
-	BM_Fill(ix, y - 7, iw, 1, COL_BORDER, 0.40);
-	BM_DrawText(ix, y, "MENU BACKDROP", 8, COL_MUTED, 0.90);
-	y = y + 11;
-
-	half_w = floor((iw - 5) * 0.5);
-	hov = BM_DrawButton(ix, y, half_w, 18, bg_on ? "BG: ON" : "BG: OFF", FALSE, FALSE);
-	if (clicked && hov)
-	{
-		g_click_consumed = TRUE;
-		BM_PlaySound("sound/misc/menu1.wav");
-		cvar_set("menu_background", bg_on ? "0" : "1");
-	}
-
-	hov = BM_DrawButton(ix + half_w + 5, y, iw - half_w - 5, 18, "NEXT SCENE", FALSE, FALSE);
-	if (clicked && hov)
-	{
-		g_click_consumed = TRUE;
-		BM_PlaySound("sound/misc/menu2.wav");
-		cvar_set("menu_background", "1");
-		BM_NextBackdrop();
-	}
-
-	BM_DrawTextClipped(ix, ry + rh - 14, iw, "JOIN GAME scans local LAN", 8, COL_MUTED, 0.80, FALSE);
-
-	// Bottom-right floating scene badge when viewing levelshots backdrop
-	if (!in_match && bg_on && g_vw >= 520)
-	{
-		cw = 224;
-		ch = 60;
-		cx = g_vw - cw - 18;
-		cy = g_vh - ch - 18;
-		BM_DrawGlassPanel(cx, cy, cw, ch, 0.78, COL_BORDER, 0.65, 0);
-
-		thumb = BM_LevelshotPic(bgmap);
-		drawpic((cx + 6) * '1 0 0' + (cy + 7) * '0 1 0', thumb, '72 46 0', '1 1 1', 0.95, 0);
-		BM_Outline(cx + 6, cy + 7, 72, 46, COL_BORDER, 0.65, 1);
-
-		BM_DrawTextClipped(cx + 84, cy + 9, cw - 90, "FEATURED MAP", 8, COL_ACCENT, 0.95, FALSE);
-		BM_DrawTextClipped(cx + 84, cy + 23, cw - 90, strtoupper(bgmap), 8, COL_TEXT, 0.96, FALSE);
-		BM_DrawTextClipped(cx + 84, cy + 38, cw - 90, "Bakersfield Maps", 8, COL_MUTED, 0.88, FALSE);
 	}
 };
 

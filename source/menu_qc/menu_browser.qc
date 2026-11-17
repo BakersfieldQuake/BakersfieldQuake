@@ -292,7 +292,8 @@ void(float clicked) BM_Browser_Draw =
 	BM_DrawGlassPanel(px, py, pw, ph, 0.88, COL_BORDER, 0.78, 2.5);
 
 	// Header
-	BM_DrawText(px + 14, py + 11, "JOIN GAME", 12, COL_ACCENT, 0.98);
+	BM_DrawText(px + 14, py + 11, "BAKERSFIELD QUAKE", 12, COL_ACCENT, 0.98);
+	BM_DrawText(px + 228, py + 14, "JOIN GAME", 9, COL_TEXT, 0.92);
 	total_all = getserverliststat(SLSTAT_TOTALCOUNT);
 	srv_q = getserverliststat(SLSTAT_SERVERQUERY);
 	srv_rep = getserverliststat(SLSTAT_SERVERREPLY);
@@ -300,7 +301,7 @@ void(float clicked) BM_Browser_Draw =
 		stat_txt = strcat("Scanning... ", ftos(g_br_count), " shown (", ftos(total_all), " total)");
 	else
 		stat_txt = strcat(ftos(g_br_count), " shown (", ftos(total_all), " found)");
-	BM_DrawTextClipped(px + 136, py + 14, pw - 286, stat_txt, 8, COL_MUTED, 0.92, FALSE);
+	BM_DrawTextClipped(px + 324, py + 14, pw - 474, stat_txt, 8, COL_MUTED, 0.92, FALSE);
 
 	hov = BM_DrawButton(px + pw - 142, py + 9, 70, 18, "REFRESH", FALSE, FALSE);
 	if (clicked && hov)

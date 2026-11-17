@@ -1020,41 +1020,35 @@ void() gameplayMenu =
 		}
 	}
 	Sbar_DrawString('-60 252 0', "Max Active Decals:", 1, '8 8 0', '1 0.6 0.3');
-	if ((cvar("cl_decals_max") > 4400))
+	if ((cvar("cl_decals_max") >= 512))
 	{
 		Sbar_DrawString('120 252 0', "Max", 1, '8 8 0', '0 1 0');
 	}
 	else
 	{
-		if ((cvar("cl_decals_max") >= 2800))
+		if ((cvar("cl_decals_max") >= 256))
 		{
 			Sbar_DrawString('120 252 0', "Medium", 1, '8 8 0', '1 0.8 0');
 		}
 		else
 		{
-			if ((cvar("cl_decals_max") < 2800))
-			{
-				Sbar_DrawString('120 252 0', "Min", 1, '8 8 0', '1 0 0');
-			}
+			Sbar_DrawString('120 252 0', "Min", 1, '8 8 0', '1 0 0');
 		}
 	}
 	Sbar_DrawString('-60 242 0', "Decal Time:", 1, '8 8 0', '1 0.6 0.3');
-	if ((cvar("cl_decals_time") > 4100))
+	if ((cvar("cl_decals_time") >= 30))
 	{
 		Sbar_DrawString('120 242 0', "Max", 1, '8 8 0', '0 1 0');
 	}
 	else
 	{
-		if ((cvar("cl_decals_time") >= 700))
+		if ((cvar("cl_decals_time") >= 16))
 		{
 			Sbar_DrawString('120 242 0', "Medium", 1, '8 8 0', '1 0.8 0');
 		}
 		else
 		{
-			if ((cvar("cl_decals_time") < 300))
-			{
-				Sbar_DrawString('120 242 0', "Min", 1, '8 8 0', '1 0 0');
-			}
+			Sbar_DrawString('120 242 0', "Min", 1, '8 8 0', '1 0 0');
 		}
 	}
 	Sbar_DrawString('-70 222 0', "Server Options", 1, '8 8 0', '0.7 1 0.1');

@@ -305,6 +305,17 @@ void() FunGun_Attack =
 	g = self.fg_sel;
 	if (g == FG_M4)
 	{
+		if (self.bm_rl_slot != BM_FG7 && FunGun_Ammo (self, FG_M4) < 1)
+		{
+			if (self.fg_dry_held)
+			{
+				self.attack_finished = time + 0.3;
+				return;
+			}
+			self.fg_dry_held = TRUE;
+		}
+		else
+			self.fg_dry_held = FALSE;
 		M4_Press ();		// stand-alone automatic rifle: exempt from bm_fg_lock (m4.qc)
 		return;
 	}
@@ -315,13 +326,14 @@ void() FunGun_Attack =
 	}
 	if (time < self.fg_lock_t && g != self.fg_lock_gun)
 	{
-		if (time >= self.fg_lock_msg)
+		if (!self.fg_dry_held && time >= self.fg_lock_msg)
 		{
 			self.fg_lock_msg = time + 3;
 			dprint (strcat ("fungun: locked ", ftos (g), " at ", ftos (time), "\n"));
 			centerprint (self, strcat ("Fun guns locked: ", ftos (ceil (self.fg_lock_t - time)), " s\n"));
 			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
 		}
+		self.fg_dry_held = TRUE;
 		self.attack_finished = time + 0.3;
 		return;
 	}
@@ -330,20 +342,25 @@ void() FunGun_Attack =
 		a = 1;		// gj_test: Jar o' Green Guys never runs dry during testing
 	if (a < 1)
 	{
-		if (g == FG_PONG)
-			centerprint (self, "The jar is still recharging\n");
-		if (g == FG_NETSEND)
-			centerprint (self, "The disk is still reloading\n");
-		if (g == FG_DOOKIE)
-			centerprint (self, "The reactor is still refilling\n");
-		if (g == FG_WCANNON)
-			centerprint (self, "The cannon is still reloading\n");
-		if (g == FG_DOB)
-			centerprint (self, "The Rob Drone is still recharging\n");
-		sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+		if (!self.fg_dry_held)
+		{
+			self.fg_dry_held = TRUE;
+			if (g == FG_PONG)
+				centerprint (self, "The jar is still recharging\n");
+			if (g == FG_NETSEND)
+				centerprint (self, "The disk is still reloading\n");
+			if (g == FG_DOOKIE)
+				centerprint (self, "The reactor is still refilling\n");
+			if (g == FG_WCANNON)
+				centerprint (self, "The cannon is still reloading\n");
+			if (g == FG_DOB)
+				centerprint (self, "The Rob Drone is still recharging\n");
+			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
+		}
 		self.attack_finished = time + 0.3;
 		return;
 	}
+	self.fg_dry_held = FALSE;
 	if (g == FG_PONG)
 	{
 		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)
