@@ -368,6 +368,14 @@ def generate_tuktuk_textures() -> tuple[Image.Image, Image.Image, Image.Image, I
     dbg.rectangle([ex0, ey0, ex1, ey1], fill=(255, 125, 20, 255))
     burn_glow = burn_glow.filter(ImageFilter.GaussianBlur(radius=1.5))
 
+    # Calibrate intact diffuse & glow to match HDR-toned vehicles (sedan/gtcar max ~155)
+    t_arr = np.array(tex, dtype=np.float32)
+    t_arr[..., :3] = np.clip(np.round(t_arr[..., :3] * 0.58), 0, 255)
+    tex = Image.fromarray(t_arr.astype(np.uint8), "RGBA")
+    g_arr = np.array(glow, dtype=np.float32)
+    g_arr[..., :3] = np.clip(np.round(g_arr[..., :3] * 0.50), 0, 255)
+    glow = Image.fromarray(g_arr.astype(np.uint8), "RGBA")
+
     return tex, glow, burn, burn_glow
 
 

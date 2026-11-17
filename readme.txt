@@ -1,6 +1,7 @@
 BakersfieldQuake - Combat+ (quake15) with the Mega Man gun.
-Layered on top of quake15: launch with  darkplaces.exe -game quake15 -game BakersfieldQuake +mlook
-(or run "Combat+ Mega Man.bat" one folder up). quake15 itself is untouched.
+Engine: Zircon Engine (engine\zircon_beta_gcc.exe; we are no longer using DarkPlaces).
+Layered on top of quake15: launch with  Play BakersfieldQuake.exe  or  engine\zircon_beta_gcc.exe -basedir . -userdir . -game quake15 -game BakersfieldQuake +mlook
+(from G:\Quake\Combat; quake15 itself is untouched).
 
 THE MEGA MAN GUN - its own weapon; every player has it. All the normal weapons are stock again.
   Select: key 9 (bind "9" "impulse 14", set in qxdc.cfg). Also in weapon cycling after the CCC gun (the old laser cannon).
@@ -167,12 +168,12 @@ Rebuild everything:  python -I BakersfieldQuake\source\mm_tools\build_combat.py 
 TEST BOX MAP (testbox) - a wide open empty box (3072 x 3072, 768 high) for trying guns. Deathmatch only, 8 spawns on a ring in the
   middle, a row of health / armor / ammo boxes along the south wall. Every bot on this map is a target dummy: it walks in a small
   circle (half one way, half the other) and never shoots, never looks at you. The match is kept at 4 players (you + 3 bots).
-  Play it:  darkplaces.exe -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map testbox
+  Play it:  engine\zircon_beta_gcc.exe -basedir . -userdir . -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map testbox
   Code: BM_DummyMap / BM_DummyBot in source\mm_tools\bm_match.qc (BotAI in frikbot.bot_ai.qc asks first). Map: source\mm_tools\make_testbox.py.
 B-LAN WAREHOUSE MAP (bklan) - "Larry's warehouse": the 2001 B-LAN party in unit 130A of the multi-unit warehouse at 118 E 21st St,
   Bakersfield, and its block: the LAN hall (from the 2001 tape bklan.wmv), the back rooms, shop units 120A / 130C / the auto shop
   (insides guessed), both side lots, LMC Paint Supply, E 21st St and what is across it (from a Feb 2026 Street View gallery).
-  Play it:  darkplaces.exe -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map bklan
+  Play it:  engine\zircon_beta_gcc.exe -basedir . -userdir . -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map bklan
   Files: maps/bklan.bsp + .lit, textures/bk_*.png and {*.png, gfx/env/bklan_*.png (skybox), progs/bklan/*.md3 + t_*.png (props).
   Build: source\mm_tools\build_bklan.sh (textures, map, ericw qbsp/vis/light); view_bklan.sh takes screenshots from given spots;
   props: simready_export.py (Blender) + simready_props.py. The making-of page: making_of_larrys_warehouse.html (build_making_of.py).
@@ -188,6 +189,6 @@ B-LAN WAREHOUSE MAP (bklan) - "Larry's warehouse": the 2001 B-LAN party in unit 
   built by make_bklan_v2.py. The map is BSP2 now (77k faces); vis takes about an hour.
 ORCOM CONNECT LAN PARTY (orcom) - the Dec 2002 OrCom Connect LAN hall from "Orcom 2.mpg": a church / lodge banquet hall,
   76 x 52 ft, kitchen pass-through, OrCom / BAWLS banner, "Computer Renaissance" banner, rows of CRTs, burgundy chairs.
-  Play it:  darkplaces.exe -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map orcom
+  Play it:  engine\zircon_beta_gcc.exe -basedir . -userdir . -game quake15 -game BakersfieldQuake +deathmatch 1 +maxplayers 4 +map orcom
   Build: python -I source\mm_tools\make_orcom.py out\maps\orcom.map, then qbsp/vis/light. Browser: /orcom/ on the VPS
   (sh source\mm_tools\deploy_orcom_viewer.sh). Screenshots: view_orcom.sh.

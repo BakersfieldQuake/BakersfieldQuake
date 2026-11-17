@@ -5,7 +5,7 @@ THE FUN GUNS (Bakersfield Memes)
 Three joke weapons and the NetSend gun. Every player spawns with all of them; each has its own ammo that
 recharges by itself. Combat+ only (COMBATPLUS).
 
-  1 Rob Dob        impulse 61  (or 17)  your head flies out of you, you steer it, then it screams into someone and blows up
+  1 Rob Dob        impulse 61  (or 17)  DJI Drone Remote (progs/v_robhead_drone.md3): press button and steer your flying head, then blow it up
                                like a rocket (floathead.qc). One head per FG_DOB_REGEN seconds. Replaced the Whack-a-Mole hammer.
   2 Jar o' Green Guys impulse 62 (key I) clear glass jar filled with swirling neon-green mist and a spazzing Green-Suit Guy;
                                shatters into green smoke and 12 wheel-driving green men that circle enemies 3x before attacking (greenjar.qc)
@@ -18,7 +18,7 @@ recharges by itself. Combat+ only (COMBATPLUS).
   6 Wheelman Cannon impulse 66 (key G) hold fire to charge, let go (or full charge) and a screaming Wheelman blasts off
                                and crashes in a big explosion with flying wheels, bars and gibs (wcannon.qc)
   7 M4A1           impulse 67  (keys C / 0) stand-alone CS 1.6 automatic rifle (m4.qc)
-  8 Thompson       impulse 68  (keys Z / -) stand-alone DoD 1.3 .45 ACP submachine gun (tommy.qc)
+  8 (removed)      slot 8 was Thompson, removed 2026-11-16
   9 M1 Garand      impulse 69  (keys M / =) stand-alone DoD 1.3 .30-06 semi-auto rifle (garand.qc)
   4 NetSend        impulse 64  (key B or N) fire throws LOL.BAT: it sticks to the floor and grows a beige PC that sends NET SEND
                                pop-ups at everyone else for good; up to 20 PCs per player (netsend.qc)
@@ -30,18 +30,18 @@ in hand ever has (the banana gun uses key 1 the same way).
 */
 
 float	IT_FUNGUN		= 262144;
-float	FG_IMPULSE		= 61;		// impulse 61..69 select fun gun 1..9
+float	FG_IMPULSE		= 61;		// impulse 61..69 select fun guns 1..9
 float	FG_COUNT		= 9;
 
-float	FG_DOB		= 1;
-float	FG_PONG		= 2;
-float	FG_PICKLE	= 3;
-float	FG_NETSEND	= 4;
-float	FG_DOOKIE	= 5;
-float	FG_WCANNON	= 6;
-float	FG_M4		= 7;		// CS 1.6 M4A1 (m4.qc)
-float	FG_TOMMY	= 8;		// DoD 1.3 M1A1 Thompson SMG (tommy.qc)
-float	FG_GARAND	= 9;		// DoD 1.3 M1 Garand rifle (garand.qc)
+float	FG_DOB			= 1;
+float	FG_PONG			= 2;
+float	FG_PICKLE		= 3;
+float	FG_NETSEND		= 4;
+float	FG_DOOKIE		= 5;
+float	FG_WCANNON		= 6;
+float	FG_M4			= 7;		// CS 1.6 M4A1 (m4.qc)
+float	FG_TOMMY		= 8;		// DoD 1.3 M1A1 Thompson SMG (tommy.qc)
+float	FG_GARAND		= 9;		// DoD 1.3 M1 Garand rifle (garand.qc)
 
 float	fg_inflicting;		// which fun gun is dealing damage right now (0 = none), for the obituary
 
@@ -54,6 +54,7 @@ void() Binoc_Frame;
 float(entity p) Binoc_On;
 string(float g) FunGun_VModel;
 float(float g) FunGun_Available;
+float(float g) FunGun_Impulse;
 float(entity p, float g) FunGun_Ammo;
 float() FunGun_First;
 float() FunGun_CycleNext;
@@ -124,4 +125,4 @@ float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 18;	// like a BFG: one Wheelm
 float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
 float	FG_TOMMY_MAX	= 30;	float	FG_TOMMY_REGEN	= 0.2;	// Thompson 30-round stick mag (tommy_defs.qc)
 float	FG_GARAND_MAX	= 8;	float	FG_GARAND_REGEN	= 0.35;	// M1 Garand 8-round en-bloc clip (garand_defs.qc)
-float	FG_NETSEND_MAX	= 1;	float	FG_NETSEND_REGEN	= 2;	// one disk; 2 s to write the next LOL.BAT: the only limit is 20 PCs up (netsend_defs.qc)
+float	FG_NETSEND_MAX		= 1;	float	FG_NETSEND_REGEN		= 2;	// one disk; 2 s to write the next LOL.BAT: the only limit is 20 PCs up (netsend_defs.qc)

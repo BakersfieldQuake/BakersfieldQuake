@@ -71,6 +71,10 @@ void() BK_Blocked =
 		d = '1 0 0';
 	other.velocity = d * 500 + '0 0 300';
 	other.flags = other.flags - (other.flags & FL_ONGROUND);
+	// blocked fires every push frame: someone pinned against a wall was shredded (Traffic_Blocked rate-limits the same way)
+	if (time < other.veh_hit_t)
+		return;
+	other.veh_hit_t = time + 0.65;
 	T_Damage (other, self, self, 15);
 };
 
@@ -225,6 +229,14 @@ void() bk_cruiser =
 
 void() BK_TrashBack =
 {
+	// do not drop the solid can onto someone standing on its spot: try again in a second
+	tracebox (self.bk_home, '-20 -20 0', '20 20 50', self.bk_home, FALSE, self);
+	if (trace_ent != world)
+	{
+		self.think = BK_TrashBack;
+		self.nextthink = time + 1;
+		return;
+	}
 	setmodel (self, "progs/bklan/trashcan.md3");		// a green slatted park drum, 4 ft tall (build_trashcan.py)
 	self.scale = 1;
 	self.movetype = MOVETYPE_NONE;

@@ -150,7 +150,7 @@ void() M4_MuzzleAndBrass =
 		fl.think = SUB_Remove;
 		fl.nextthink = time + 0.045;
 
-		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 24 + v_right * 10 - v_up * 5, self.velocity * 20, 1);
+		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 24 + v_right * 10 - v_up * 5, self.velocity * 20, 1, 0);
 	}
 
 	if (autocvar_shellcasing)
@@ -210,12 +210,12 @@ void(vector dir) M4_WallImpact =
 	if (m4_fx_hole >= 0)
 		pointparticles (m4_fx_hole, trace_endpos, VEC_ORIGIN, 1);
 	else
-		sendParticle ("TE_GUNSHOT", trace_endpos - dir * 1, VEC_ORIGIN, 1);
+		sendParticle ("TE_GUNSHOT", trace_endpos - dir * 1, VEC_ORIGIN, 1, 0);
 
 	if (m4_fx_spark >= 0)
 		pointparticles (m4_fx_spark, trace_endpos + trace_plane_normal * 1.5, trace_plane_normal * 95, 1);
 	else
-		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1);
+		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1, 0);
 
 	if (random () < 0.28)
 	{

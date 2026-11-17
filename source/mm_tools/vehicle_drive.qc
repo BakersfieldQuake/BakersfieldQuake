@@ -32,20 +32,20 @@ The view is driven by the server, so the mouse is ignored while driving.
 
 // ---------------------------------------------------------------- tuning
 
-float	VD_TOP			= 640;		// forward top speed, units/second
-float	VD_BOOST_TOP	= 0.45;		// holding the throttle builds speed: up to this much extra top speed (640 -> 928) ...
-float	VD_BOOST_ACC	= 0.6;		// ... and this much extra acceleration, after VD_BOOST_TIME seconds flat out
-float	VD_BOOST_TIME	= 14;
-float	VD_REV			= 190;		// reverse top speed
-float	VD_ACCEL		= 205;		// acceleration from a standstill (falls off toward top speed)
-float	VD_REV_ACCEL	= 150;
-float	VD_BRAKE		= 640;		// footbrake deceleration
-float	VD_COAST		= 55;		// rolling resistance with both pedals up (plus engine braking, below)
-float	VD_GRIP			= 720;		// sideways acceleration the tyres hold
-float	VD_GRIP_HB		= 170;		// ... with the handbrake on
+float	VD_TOP			= 720;		// forward top speed, units/second (per-vehicle override in Veh_TopSpeed)
+float	VD_BOOST_TOP	= 0.38;		// holding the throttle builds turbo boost: up to +38% top speed (van 900 -> 1242) ...
+float	VD_BOOST_ACC	= 0.75;		// ... and +75% extra acceleration, spooling over VD_BOOST_TIME seconds
+float	VD_BOOST_TIME	= 3.2;
+float	VD_REV			= 360;		// reverse top speed
+float	VD_ACCEL		= 310;		// acceleration from a standstill (falls off toward top speed)
+float	VD_REV_ACCEL	= 380;
+float	VD_BRAKE		= 960;		// footbrake deceleration
+float	VD_COAST		= 65;		// rolling resistance with both pedals up (plus engine braking, below)
+float	VD_GRIP			= 840;		// sideways acceleration the tyres hold
+float	VD_GRIP_HB		= 270;		// ... with the handbrake on (controllable powerslide)
 float	VD_WHEELBASE	= 148;
-float	VD_LOCK			= 34;		// degrees of front wheel lock at a standstill
-float	VD_LOCK_HI		= 9;		// ... at top speed
+float	VD_LOCK			= 40;		// degrees of front wheel lock at a standstill
+float	VD_LOCK_HI		= 14;		// ... at top speed
 float	VD_GRAVITY		= 800;
 float	VD_HEIGHT		= 0.5;		// the van's origin sits this far above the road
 
@@ -53,9 +53,9 @@ float	VD_EYE_X		= 42;		// the driver's eye, van-local (the model's cockpit ancho
 float	VD_EYE_Y		= 19.8;
 float	VD_EYE_Z		= 63.5;
 
-float	VD_CAM_DIST		= 205;
-float	VD_CAM_PITCH	= 12;
-float	VD_CAM_UP		= 62;
+float	VD_CAM_DIST		= 253;
+float	VD_CAM_PITCH	= 15;
+float	VD_CAM_UP		= 118;
 
 float	VD_MUSIC_CH		= 3;		// CHAN_ITEM: the "6 man LAN van" singalong (hacking.wmv), looped while he drives
 float	VD_MUSIC_LEN	= 11.0;		// the clip's length
@@ -195,12 +195,12 @@ float(entity e, vector org) Veh_FreeSpot =
 
 float(float kind) Veh_TopSpeed =
 {
+	if (kind == VEH_VAN)       return 900;
 	if (kind == VEH_TUKTUK)    return 855;
 	if (kind == VEH_GTCAR)     return 830;
 	if (kind == VEH_COUPE)     return 780;
 	if (kind == VEH_SEDAN)     return 720;
 	if (kind == VEH_TRUCK)     return 670;
-	if (kind == VEH_VAN)       return 660;
 	if (kind == VEH_HDTRUCK)   return 620;
 	if (kind == VEH_SCHOOLBUS) return 600;
 	if (kind == VEH_GOLFCART)  return 610;
@@ -209,13 +209,13 @@ float(float kind) Veh_TopSpeed =
 
 float(float kind) Veh_BaseAccel =
 {
+	if (kind == VEH_VAN)       return 480;
 	if (kind == VEH_TUKTUK)    return 365;
 	if (kind == VEH_GTCAR)     return 320;
 	if (kind == VEH_GOLFCART)  return 290;
 	if (kind == VEH_COUPE)     return 285;
 	if (kind == VEH_SEDAN)     return 250;
 	if (kind == VEH_TRUCK)     return 225;
-	if (kind == VEH_VAN)       return 215;
 	if (kind == VEH_HDTRUCK)   return 200;
 	if (kind == VEH_SCHOOLBUS) return 185;
 	return VD_ACCEL;
@@ -223,13 +223,13 @@ float(float kind) Veh_BaseAccel =
 
 float(float kind) Veh_BaseGrip =
 {
+	if (kind == VEH_VAN)       return 1180;
 	if (kind == VEH_GOLFCART)  return 820;
 	if (kind == VEH_COUPE)     return 810;
 	if (kind == VEH_TUKTUK)    return 790;
 	if (kind == VEH_SEDAN)     return 760;
 	if (kind == VEH_GTCAR)     return 740;
 	if (kind == VEH_TRUCK)     return 730;
-	if (kind == VEH_VAN)       return 720;
 	if (kind == VEH_HDTRUCK)   return 690;
 	if (kind == VEH_SCHOOLBUS) return 660;
 	return VD_GRIP;
@@ -476,11 +476,14 @@ void(entity v, entity keep) Veh_EjectOthers =
 {
 	local entity e, nxt;
 	local vector rel, fwd, lft, spot;
-	local float lx, ly, lz, i;
+	local float lx, ly, lz, i, hl, hw, inbox, found;
 
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
-	e = findradius (v.origin, 220);
+	// sized per kind (these were van numbers: a bus is ~165 long), and the radius reaches a bus's corners
+	hl = Veh_HalfLen (v.veh_kind);
+	hw = Veh_HalfWid (v.veh_kind);
+	e = findradius (v.origin, hl + hw + 60);
 	while (e != world)
 	{
 		nxt = e.chain;
@@ -490,21 +493,38 @@ void(entity v, entity keep) Veh_EjectOthers =
 			lx = rel * fwd;
 			ly = rel * lft;
 			lz = rel_z;
-			if (fabs (lx) < 126 && fabs (ly) < 52 && lz > -40 && lz < 110)
+			// an angled parked vehicle's solid is its rotated AABB, which reaches past the footprint: overlap with that too
+			inbox = FALSE;
+			if (v.solid != SOLID_NOT && e.origin_x + e.mins_x < v.origin_x + v.maxs_x && e.origin_x + e.maxs_x > v.origin_x + v.mins_x && e.origin_y + e.mins_y < v.origin_y + v.maxs_y && e.origin_y + e.maxs_y > v.origin_y + v.mins_y)
+				inbox = TRUE;
+			if ((inbox || (fabs (lx) < hl + 16 && fabs (ly) < hw + 8)) && lz > -40 && lz < 110)
 			{
+				spot = v.origin;
 				i = 0;
-				while (i < 4)
+				while (i < 5)
 				{
 					if (i == 0)
-						spot = v.origin - fwd * 160 + lft * (crandom () * 24);
+						spot = v.origin - fwd * (hl + 50) + lft * (crandom () * 24);
 					else if (i == 1)
-						spot = v.origin + lft * 76 + fwd * (crandom () * 50);
+						spot = v.origin + lft * (hw + 32) + fwd * (crandom () * 50);
 					else if (i == 2)
-						spot = v.origin - lft * 76 + fwd * (crandom () * 50);
-					else
-						spot = v.origin + fwd * 146;
+						spot = v.origin - lft * (hw + 32) + fwd * (crandom () * 50);
+					else if (i == 3)
+						spot = v.origin + fwd * (hl + 36);
 					spot_z = v.origin_z + 26;
-					if (Veh_FreeSpot (e, spot))
+					found = FALSE;
+					if (i == 4)
+					{
+						// all four sides blocked (angled box, walls): any door spot or the roof
+						if (Veh_ExitSpot (v, e))
+						{
+							spot = vd_exit;
+							found = TRUE;
+						}
+					}
+					else if (Veh_FreeSpot (e, spot))
+						found = TRUE;
+					if (found)
 					{
 						setorigin (e, spot);
 						e.velocity = '0 0 140' - fwd * 90;
@@ -538,6 +558,9 @@ void(entity v) Veh_Park =
 	v.veh_steer = 0;
 	v.veh_yawrate = 0;
 	v.veh_rpm = 0;
+	v.veh_boost = 0;
+	v.veh_land_dip = 0;
+	v.veh_drift_t = 0;
 	v.veh_air = FALSE;
 	v.angles_x = 0;
 	v.angles_z = 0;
@@ -565,10 +588,10 @@ void(entity v) Veh_Park =
 void(entity v, entity hit, float imp) Veh_RamHit =
 {
 	local entity driver;
-	local float dmg;
+	local float dmg, is_veh, is_live;
 	local vector dir;
 
-	if (imp < 90 || time < hit.veh_hit_t)
+	if (imp < 75 || time < hit.veh_hit_t)
 		return;
 	if (hit.veh_ride == v || (hit.veh_last_van == v && time < hit.veh_bail_safe_t))
 		return;
@@ -579,9 +602,16 @@ void(entity v, entity hit, float imp) Veh_RamHit =
 		driver = v;
 	dir = v.velocity;
 	dir_z = 0;
-	dir = normalize (dir);
-	dmg = (imp - 60) * 0.3;			// ~175 at top speed: kills most things on foot
-	hit.veh_hit_t = time + 0.45;
+	if (vlen (dir) > 0.1)
+		dir = normalize (dir);
+	else
+		dir = Veh_Fwd (v.angles_y);
+	is_live = ((hit.flags & FL_CLIENT) || (hit.flags & FL_MONSTER));
+	is_veh = (hit.veh_kind > 0 || hit.classname == "veh_van_clip");
+	dmg = (imp - 45) * 0.45;		// ~250+ at cruise, ~500+ boosted: flattens monsters & enemies cleanly
+	if (v.veh_kind == VEH_VAN && is_veh)
+		dmg = dmg * 1.35;
+	hit.veh_hit_t = time + 0.35;
 	if (autocvar_veh_debug)
 	{
 		dprint ("VEH ram ");
@@ -592,17 +622,42 @@ void(entity v, entity hit, float imp) Veh_RamHit =
 		dprint (ftos (floor (dmg)));
 		dprint ("\n");
 	}
-	if ((hit.flags & FL_CLIENT) || (hit.flags & FL_MONSTER))
+	if (is_live)
 	{
-		hit.velocity = hit.velocity + dir * (imp * 0.85) + '0 0 170';
+		hit.velocity = hit.velocity + dir * (imp * 1.15) + '0 0 220';
 		hit.flags = hit.flags - (hit.flags & FL_ONGROUND);
-		sound7 (hit, CHAN_BODY, "vehicles/tire_thud1.wav", 1, ATTN_NORM, 70 + random () * 12);
+		sound7 (hit, CHAN_BODY, "vehicles/tire_thud1.wav", 1, ATTN_NORM, 70 + random () * 15);
+		if (veh_fx_sparks > 0 && imp > 220)
+			pointparticles (veh_fx_sparks, hit.origin + '0 0 24', '0 0 0', 1);
 	}
+	else if (is_veh && veh_fx_sparks > 0)
+		pointparticles (veh_fx_sparks, vd_hitpos, '0 0 0', 1);
 	veh_runover = TRUE;
 	T_Damage (hit, v, driver, dmg);
 	veh_runover = FALSE;
+	if ((hit.flags & FL_MONSTER) && hit.health <= 0)
+		hit.solid = SOLID_NOT;		// let the van plow cleanly over flattened monster corpses
+	if (is_live && imp > 200)
+		v.veh_boost = min (1, v.veh_boost + 0.25);		// ramming momentum keeps turbo spooled!
 	if ((hit.flags & FL_CLIENT) && dmg > 20)
-		T_Damage (v, world, world, dmg * 0.2);		// ramming people is not free: about 8 kills wrecks the van (280 hp)
+	{
+		if (v.veh_kind == VEH_VAN)
+		{
+			if (v.veh_boost <= 0.5)
+				T_Damage (v, world, world, min (6, dmg * 0.03));
+		}
+		else
+			T_Damage (v, world, world, dmg * 0.2);
+	}
+};
+
+// T_Damage (combat.qc) hands a driver's damage to his van; the crash jolt is meant for him, so he is unhooked for the hit
+void(entity v, entity p, float dmg) Veh_JoltDriver =
+{
+	p.veh_van = world;
+	T_Damage (p, world, world, dmg);
+	if (p.veh_van == world)
+		p.veh_van = v;		// if the jolt killed him, Veh_DriveFrame / Veh_DriveWatch let him go as usual
 };
 
 // the van hit something that does not move: sparks, a clang, damage to the van, and a jolt for the driver
@@ -613,7 +668,7 @@ void(entity v, float imp, vector at) Veh_Crash =
 
 	if (time < v.veh_crash_t)
 		return;
-	v.veh_crash_t = time + 0.3;
+	v.veh_crash_t = time + 0.28;
 	if (autocvar_veh_debug)
 	{
 		dprint ("VEH crash imp=");
@@ -628,9 +683,18 @@ void(entity v, float imp, vector at) Veh_Crash =
 	else
 		sound7 (v, CHAN_BODY, "vehicles/clang2.wav", bound (0.5, imp / 500, 1), ATTN_NORM, 78 + random () * 16);
 	driver = v.veh_driver;
-	if (imp > 420 && driver != world)
-		T_Damage (driver, world, world, (imp - 420) * 0.12);		// head-on at top speed costs the driver ~26
-	dmg = (imp - 210) * 0.16;										// ... and the van ~69 of its 280
+	if (v.veh_kind == VEH_VAN)
+	{
+		if (imp > 650 && driver != world)
+			Veh_JoltDriver (v, driver, (imp - 650) * 0.07);
+		dmg = (imp - 300) * 0.10;
+	}
+	else
+	{
+		if (imp > 420 && driver != world)
+			Veh_JoltDriver (v, driver, (imp - 420) * 0.12);
+		dmg = (imp - 210) * 0.16;
+	}
 	if (dmg > 0)
 		T_Damage (v, world, world, dmg);
 };
@@ -663,6 +727,7 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	local entity cam;
 	local vector fwd, lft, pos, tgt, ang;
 	local float yaw, pitch, d, spd, lead, hl, ht, cdist, cup;
+	local float want_dist, spd_frac, vf_cam, look_fwd, tgt_yaw, vel_d, want_pitch;
 
 	cam = v.veh_cament;
 	fwd = Veh_Fwd (v.angles_y);
@@ -684,29 +749,67 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 		yaw = Veh_NormYaw (v.angles_y + p.veh_cam_look);
 		pitch = 0 - v.angles_x;
 		p.veh_cam_yaw = v.angles_y;
+		p.veh_cam_pitch = pitch;
 	}
 	else
 	{
-		// chase: behind and above, scaled to vehicle size
-		cdist = max (150, hl * 1.85);
-		cup = max (50, ht * 0.72);
-		d = Veh_AngDelta (v.angles_y, p.veh_cam_yaw);
-		p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 5));
+		// 3rd-person chase: elevated cleanly above the tall L2H2 roof with speed pullback, look-ahead, and drift yaw lag
+		cdist = max (180, hl * 2.30);
+		if (v.veh_kind == VEH_VAN)
+			cup = VD_CAM_UP;
+		else
+			cup = max (62, ht + 22);
+		spd_frac = bound (0, spd / 1100, 1);
+		want_dist = cdist + 56 * spd_frac + 28 * v.veh_boost;
+		if (p.veh_cam_dist < 100)
+			p.veh_cam_dist = want_dist;
+		p.veh_cam_dist = p.veh_cam_dist + (want_dist - p.veh_cam_dist) * min (1, dt * 4.5);
+
+		vf_cam = v.velocity * fwd;
+		look_fwd = 18 + 24 * bound (0, vf_cam / 900, 1);
+		tgt_yaw = v.angles_y;
+		if (spd > 180 && vf_cam > 80)
+		{
+			vel_d = Veh_AngDelta (vectoyaw (v.velocity), v.angles_y);
+			tgt_yaw = Veh_NormYaw (v.angles_y + bound (-26, vel_d * 0.35, 26));
+		}
+		d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
+		p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 5.2));
 		yaw = p.veh_cam_yaw;
-		pitch = VD_CAM_PITCH;
-		tgt = v.origin + '0 0 1' * cup;
+
+		want_pitch = VD_CAM_PITCH - v.angles_x * 0.35;
+		p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 6);
+		pitch = p.veh_cam_pitch;
+
+		tgt = v.origin + fwd * look_fwd + '0 0 1' * cup;
+		traceline (v.origin + '0 0 36', tgt, 3, v);
+		if (trace_fraction < 1)
+			tgt = trace_endpos + trace_plane_normal * 6;
+
 		ang = '0 0 0';
 		ang_x = pitch;
 		ang_y = yaw;
 		makevectors (ang);
-		pos = tgt - v_forward * cdist;
+		pos = tgt - v_forward * p.veh_cam_dist;
 		traceline (tgt, pos, 3, v);
 		pos = trace_endpos;
 		if (trace_fraction < 1)
-			pos = pos + trace_plane_normal * 8;
+		{
+			pos = pos + trace_plane_normal * 10;
+			if (v.veh_kind == VEH_VAN && pos_z < v.origin_z + 115)
+			{
+				traceline (pos, pos + '0 0 24', 3, v);
+				if (trace_fraction >= 1)
+					pos_z = v.origin_z + 115;
+			}
+		}
+		traceline (pos, pos + '0 0 12', 3, v);
+		if (trace_fraction < 1)
+			pos_z = trace_endpos_z - 12;
 	}
 	setorigin (cam, pos);
 	cam.angles = '0 0 0';
+	cam.angles_x = pitch;
 	cam.angles_y = yaw;
 	p.angles = '0 0 0';
 	p.angles_x = pitch;
@@ -738,20 +841,29 @@ void(entity v, float thr) Veh_EngineSound =
 
 void(entity v, float slip) Veh_SkidSound =
 {
-	local vector rear;
-	local float vol;
+	local vector rear_l, rear_r, fwd, lft;
+	local float vol, fx, rx, wy;
 
-	if (time < v.veh_skid_t)
-		return;
-	vol = bound (0.3, (slip - 60) / 260, 1);
-	sound7 (v, VD_SOUND_CH, "vehicles/tire_squeal.wav", vol * 0.8, ATTN_NORM, 92 + slip * 0.03);
-	v.veh_skid_t = time + 0.3;
+	if (time >= v.veh_skid_t)
+	{
+		vol = bound (0.3, (slip - 60) / 260, 1);
+		sound7 (v, VD_SOUND_CH, "vehicles/tire_squeal.wav", vol * 0.8, ATTN_NORM, 92 + slip * 0.03);
+		v.veh_skid_t = time + 0.3;
+	}
 	if (time >= v.veh_smoke_t2)
 	{
-		v.veh_smoke_t2 = time + 0.1;
-		rear = v.origin - Veh_Fwd (v.angles_y) * 68 + Veh_Lft (v.angles_y) * (crandom () * 38);
-		rear_z = v.origin_z + 4;
-		pointparticles (veh_fx_smoke, rear, '0 0 0', 1);
+		v.veh_smoke_t2 = time + 0.06;
+		fx = veh_fx_drift;
+		if (fx <= 0)
+			fx = veh_fx_smoke;
+		fwd = Veh_Fwd (v.angles_y);
+		lft = Veh_Lft (v.angles_y);
+		rx = Veh_HalfLen (v.veh_kind) * 0.62;
+		wy = Veh_HalfWid (v.veh_kind) * 0.84;
+		rear_l = v.origin - fwd * rx + lft * wy + '0 0 6';
+		rear_r = v.origin - fwd * rx - lft * wy + '0 0 6';
+		pointparticles (fx, rear_l, '0 0 0', 1);
+		pointparticles (fx, rear_r, '0 0 0', 1);
 	}
 };
 
@@ -874,7 +986,13 @@ void(entity p, float forced) Veh_LeavePassenger =
 	if (Veh_ExitSpot (v, p))
 		pos = vd_exit;
 	else if (!Veh_FreeSpot (p, pos))
-		pos = v.origin + '0 0 1' * (Veh_BodyHeight (v.veh_kind) + 28);
+	{
+		// Veh_ExitSpot already found the roof blocked: the seat itself (outside the body box) before that last resort
+		if (Veh_FreeSpot (p, p.origin))
+			pos = p.origin;
+		else
+			pos = v.origin + '0 0 1' * (Veh_BodyHeight (v.veh_kind) + 28);
+	}
 
 	outd = pos - v.origin;
 	outd_z = 0;
@@ -1364,8 +1482,7 @@ void(entity p, entity v) Veh_Enter =
 	p.veh_van = v;
 	p.veh_oldmove = p.movetype;
 	p.veh_oldsolid = p.solid;
-	if (v.veh_kind != VEH_VAN)
-		p.veh_camera = 1;		// chase view by default on street cars / buses / golf carts so you see your ride & gunners!
+	p.veh_camera = 1;		// 3rd-person chase view by default on all vehicles (K / impulse 87 toggles cockpit)
 
 	// the van stops being a walk-in room and becomes one moving solid; cargo-bay friends snap into passenger seats!
 	Veh_FreeClips (v);
@@ -1381,8 +1498,11 @@ void(entity p, entity v) Veh_Enter =
 	v.veh_eng_t = 0;
 	v.veh_skid_t = 0;
 	v.veh_horn_t = 0;
-	v.veh_start_t = time + 0.65;
+	v.veh_start_t = time + 0.18;
 	v.veh_music_t = 0;
+	v.veh_fx_boost_t = 0;
+	v.veh_land_dip = 0;
+	v.veh_drift_t = 0;
 	v.movetype = MOVETYPE_NONE;
 	v.solid = SOLID_BBOX;
 	v.takedamage = DAMAGE_AIM;
@@ -1411,6 +1531,8 @@ void(entity p, entity v) Veh_Enter =
 	setorigin (cam, v.origin + '0 0 63');
 	v.veh_cament = cam;
 	p.veh_cam_yaw = v.angles_y;
+	p.veh_cam_pitch = VD_CAM_PITCH;
+	p.veh_cam_dist = max (180, Veh_HalfLen (v.veh_kind) * 2.30);
 	p.veh_cam_look = 0;
 	p.clientcamera = cam;
 	msg_entity = p;
@@ -1422,7 +1544,7 @@ void(entity p, entity v) Veh_Enter =
 	if (!p.veh_hint_shown)
 	{
 		p.veh_hint_shown = TRUE;
-		centerprint (p, "WASD drive | SPACE brake | FIRE horn | K cam | H exit");
+		centerprint (p, "WASD drive | SPACE drift/brake | FIRE horn | K cam | H exit");
 	}
 };
 
@@ -1438,7 +1560,8 @@ entity(entity p) Veh_SeatOf =
 	e = findradius (p.origin, 280);
 	while (e != world)
 	{
-		if (e.veh_kind >= 1 && e.veh_kind <= 9 && e.veh_state != VEH_STATE_WRECK)
+		// the Spruce school bus drives itself on .ltime waypoints and removes itself at the route end: not enterable
+		if (e.veh_kind >= 1 && e.veh_kind <= 9 && e.veh_state != VEH_STATE_WRECK && e.classname != "spruce_schoolbus")
 		{
 			rel = p.origin - e.origin;
 			lx = rel * Veh_Fwd (e.angles_y);
@@ -1601,13 +1724,14 @@ float() Veh_DriveFrame =
 	local entity v;
 	local float dt, thr, brk, steer_in, hb, vf, vl, spd, acc, brake_a, grip, lock, delta, yr, yr_geo, yr_cap;
 	local float yaw0, yaw1, imp, vn, power, k, rate, slip, rpm_t, top, lo, gear, z, d;
-	local float started, living, ctop;
-	local vector vel, org0, org1, org2, fwd, lft, n;
+	local float started, living, ctop, launch, pitch_tgt, roll_tgt, brk_fac;
+	local vector vel, org0, org1, org2, fwd, lft, n, ex_pos;
 
 	v = self.veh_van;
 	if (v == world)
 		return FALSE;
-	if (v.veh_driver != self || v.veh_state == VEH_STATE_WRECK || self.health <= 0)
+	// bm_wasfreed: the van was removed under him (its edict may already be reused)
+	if (bm_wasfreed (v) || v.veh_driver != self || v.veh_state == VEH_STATE_WRECK || self.health <= 0)
 	{
 		// the van let go of him without telling him (the watch in the van's think normally catches this first)
 		Veh_ReleasePlayer (self, self.origin, '0 0 0', self.angles_y);
@@ -1663,12 +1787,12 @@ float() Veh_DriveFrame =
 			sound (v, CHAN_WEAPON, "vehicles/horn.wav", 1, ATTN_NORM);
 	}
 
-	// the wheel eases toward the key: slow out from centre, quick to come back, quickest to counter-steer
-	rate = 4.2;
+	// the wheel eases toward the key: snappy turn-in, quick self-centering, fastest counter-steer
+	rate = 6.8;
 	if (steer_in == 0)
-		rate = 6.5;
+		rate = 10.5;
 	else if (steer_in * v.veh_steer < 0)
-		rate = 8.5;
+		rate = 14.0;
 	v.veh_steer = Veh_Approach (v.veh_steer, steer_in, rate * dt);
 
 	// ---- the van's own frame
@@ -1680,6 +1804,7 @@ float() Veh_DriveFrame =
 	vf = vel * fwd;
 	vl = vel * lft;
 	spd = fabs (vf);
+	slip = fabs (vl);
 	Veh_GroundSample (v, v.origin, yaw0);
 
 	power = 1;
@@ -1692,14 +1817,36 @@ float() Veh_DriveFrame =
 		vl = vl * (1 - 1.6 * dt);
 	}
 
-	// ---- the longer he keeps it floored the faster it will go: the boost builds while the throttle is open and the van is
-	// really rolling forward, fades once he lifts, and the brake / handbrake / a crash take it away
-	if (thr > 0 && brk == 0 && !hb && !v.veh_air && vf > 120)
+	// ---- turbo spool & drift-exit mini-turbo: holding W builds speed fast; powersliding holds boost & kicks on exit
+	if (thr > 0 && brk == 0 && !hb && !v.veh_air && vf > 60)
 		v.veh_boost = min (1, v.veh_boost + dt / VD_BOOST_TIME);
+	else if (hb && thr > 0 && !v.veh_air)
+	{
+		if (slip > 70 || spd > 180)
+			v.veh_drift_t = min (2.0, v.veh_drift_t + dt);
+	}
 	else if (brk > 0 || hb)
-		v.veh_boost = max (0, v.veh_boost - dt * 0.5);
+		v.veh_boost = max (0, v.veh_boost - dt * 0.6);
 	else if (thr == 0)
-		v.veh_boost = max (0, v.veh_boost - dt / 25);
+		v.veh_boost = max (0, v.veh_boost - dt / 18);
+
+	if (!hb && v.veh_drift_t > 0)
+	{
+		if (!v.veh_air && v.veh_drift_t > 0.25 && vf > 120)
+		{
+			v.veh_boost = min (1, v.veh_boost + 0.35 * v.veh_drift_t);
+			vf = vf + min (140, slip * 0.25);
+			if (veh_fx_boost > 0)
+			{
+				ex_pos = v.origin - fwd * (Veh_HalfLen (v.veh_kind) - 2) + lft * (Veh_HalfWid (v.veh_kind) * 0.62) + '0 0 10';
+				pointparticles (veh_fx_boost, ex_pos, fwd * -120, 1);
+			}
+		}
+		v.veh_drift_t = 0;
+	}
+	else if (v.veh_air)
+		v.veh_drift_t = 0;
+
 	ctop = Veh_TopSpeed (v.veh_kind) * (1 + VD_BOOST_TOP * v.veh_boost);
 
 	// ---- pedals. Forward key: drive, or brake if still rolling backward. Back key: brake, or reverse once stopped
@@ -1722,7 +1869,8 @@ float() Veh_DriveFrame =
 		else
 		{
 			k = bound (0, vf / ctop, 1);
-			acc = thr * Veh_BaseAccel (v.veh_kind) * (1 + VD_BOOST_ACC * v.veh_boost) * power * (1 - pow (k, 1.8));
+			launch = 1 + 0.45 * (1 - min (1, spd / 260));
+			acc = thr * Veh_BaseAccel (v.veh_kind) * launch * (1 + VD_BOOST_ACC * v.veh_boost) * power * (1 - pow (k, 2.3));
 		}
 	}
 	else if (brk > 0)
@@ -1738,7 +1886,12 @@ float() Veh_DriveFrame =
 	else if (!v.veh_air)
 		brake_a = VD_COAST + spd * 0.09;		// both pedals up: rolling resistance + engine braking
 	if (hb && !v.veh_air)
-		brake_a = brake_a + 260;
+	{
+		if (thr > 0)
+			brake_a = brake_a + 110;			// throttle + SPACE = powerslide (keeps momentum!)
+		else
+			brake_a = brake_a + 360;			// SPACE alone = handbrake stop
+	}
 
 	if (!v.veh_air)
 	{
@@ -1758,7 +1911,7 @@ float() Veh_DriveFrame =
 	grip = Veh_BaseGrip (v.veh_kind);
 	if (hb)
 		grip = VD_GRIP_HB;
-	grip = grip * (1 - 0.45 * bound (0, brake_a / VD_BRAKE, 1));
+	grip = grip * (1 - 0.40 * bound (0, brake_a / VD_BRAKE, 1));
 	slip = fabs (vl);
 	if (!v.veh_air)
 	{
@@ -1773,11 +1926,15 @@ float() Veh_DriveFrame =
 	yr_geo = 0 - vf * Veh_Tan (delta) / Veh_Wheelbase (v.veh_kind) * 57.2958;
 	yr_cap = grip / max (spd, 30) * 57.2958;
 	yr = bound (0 - yr_cap, yr_geo, yr_cap);
-	if (hb && spd > 140)
-		yr = yr_geo * 1.5;				// locked rears: the tail comes round, and the grip limit no longer stops it
+	if (hb && spd > 130)
+	{
+		yr = bound (-165, yr_geo * 1.55, 165);	// controllable oversteer powerslide without spinning out
+		if (fabs (vl) > spd * 0.72 && yr * vl < 0)
+			yr = yr * 0.45;
+	}
 	if (v.veh_air)
-		yr = v.veh_yawrate * 0.995;		// in the air nothing steers
-	v.veh_yawrate = v.veh_yawrate + (yr - v.veh_yawrate) * min (1, dt * 7);
+		yr = v.veh_yawrate * 0.992;		// in the air nothing steers
+	v.veh_yawrate = v.veh_yawrate + (yr - v.veh_yawrate) * min (1, dt * 8);
 	yaw1 = Veh_NormYaw (yaw0 + v.veh_yawrate * dt);
 
 	vel = fwd * vf + lft * vl;
@@ -1808,7 +1965,6 @@ float() Veh_DriveFrame =
 		if (vn < 0)
 		{
 			imp = 0 - vn;
-			v.veh_boost = v.veh_boost * (1 - bound (0, imp / 400, 1));		// a crash loses the build-up
 			living = FALSE;
 			if (vd_hitent != world && vd_hitent.takedamage)
 			{
@@ -1816,17 +1972,24 @@ float() Veh_DriveFrame =
 					living = TRUE;
 				Veh_RamHit (v, vd_hitent, imp);
 			}
-			if (!living && imp > 160)
+			if (!living && imp > 180)
 				Veh_Crash (v, imp, vd_hitpos);
 			if (self.veh_van != v)
 				return TRUE;			// the crash blew the van up
 			if (living)
-				vel = vel * 0.9;
-			else if (imp > 120)
+				vel = vel * 0.94;
+			else if (imp >= 200)
+			{
+				v.veh_boost = v.veh_boost * (1 - bound (0, (imp - 160) / 450, 1));
 				vel = vel - n * (vn * 1.15);		// off the wall with a little bounce
+				vel = vel * (1 - 0.5 * dt);
+			}
 			else
-				vel = vel - n * vn;
-			vel = vel * (1 - 0.7 * dt);				// scraping
+			{
+				v.veh_boost = v.veh_boost * (1 - bound (0, (imp - 120) / 400, 0.45));
+				vel = vel - n * vn;					// glancing curb/wall scrape slides cleanly
+				vel = vel * (1 - 0.2 * dt);
+			}
 		}
 		org2 = org0;
 		org2_x = org0_x + vel_x * dt;
@@ -1836,13 +1999,13 @@ float() Veh_DriveFrame =
 		else if (yaw1 != yaw0 && Veh_DriveSweep (v, org0, yaw0, org0, yaw1))
 		{
 			org1 = org0;
-			vel = vel * 0.5;
+			vel = vel * 0.7;
 		}
 		else
 		{
 			org1 = org0;
 			yaw1 = yaw0;
-			vel = vel * 0.5;
+			vel = vel * 0.65;
 			v.veh_yawrate = 0;
 		}
 	}
@@ -1860,10 +2023,15 @@ float() Veh_DriveFrame =
 			z = vd_gh;
 			v.veh_vz = 0;
 			v.veh_air = FALSE;
-			if (imp > 300)
-				Veh_Crash (v, imp * 0.8, org1);			// came down hard
-			else if (imp > 120)
-				sound7 (v, CHAN_BODY, "vehicles/tire_thud2.wav", 0.9, ATTN_NORM, 80 + random () * 10);
+			if (imp > 580)
+				Veh_Crash (v, imp * 0.65, org1);		// only massive drops hurt
+			else if (imp > 110)
+			{
+				sound7 (v, CHAN_BODY, "vehicles/tire_thud2.wav", 0.95, ATTN_NORM, 78 + random () * 14);
+				v.veh_land_dip = 0 - min (7, imp * 0.016);
+				if (veh_fx_smoke > 0)
+					pointparticles (veh_fx_smoke, org1 + '0 0 6', '0 0 0', 1);
+			}
 			if (self.veh_van != v)
 				return TRUE;
 		}
@@ -1887,8 +2055,23 @@ float() Veh_DriveFrame =
 		}
 	}
 	org1_z = z;
-	if (vd_found)
-		v.angles_x = v.angles_x + (vd_pitch - v.angles_x) * min (1, dt * 10);
+	v.veh_land_dip = Veh_Approach (v.veh_land_dip, 0, dt * 18);
+	if (v.veh_air)
+	{
+		pitch_tgt = bound (-22, v.veh_vz * 0.03, 22);
+		v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 4);
+		v.angles_z = v.angles_z + (0 - v.angles_z) * min (1, dt * 3);
+	}
+	else if (vd_found)
+	{
+		brk_fac = 0;
+		if (vf > 20)
+			brk_fac = bound (0, brake_a / VD_BRAKE, 1);
+		pitch_tgt = vd_pitch + 3.5 * thr * (1 + 0.6 * v.veh_boost) * (1 - bound (0, vf / ctop, 1) * 0.4) - 4.5 * brk_fac + v.veh_land_dip;
+		v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 10);
+		roll_tgt = bound (-8, v.veh_yawrate * bound (0, spd / 500, 1) * 0.065 + vd_slope_l * 35, 8);
+		v.angles_z = v.angles_z + (roll_tgt - v.angles_z) * min (1, dt * 9);
+	}
 
 	v.angles_y = yaw1;
 	v.velocity = vel;
@@ -1900,31 +2083,31 @@ float() Veh_DriveFrame =
 	// ---- engine revs: 5 gears picked by road speed; the revs fall at each upshift. Standing still the throttle revs it
 	spd = fabs (vf);
 	gear = 4;
-	top = max (660, ctop * 1.03);
-	lo = 560;
-	if (spd < 150)
+	top = max (860, ctop * 1.03);
+	lo = 840;
+	if (spd < 180)
 	{
 		gear = 0;
-		top = 150;
+		top = 180;
 		lo = 0;
 	}
-	else if (spd < 290)
+	else if (spd < 380)
 	{
 		gear = 1;
-		top = 290;
-		lo = 150;
+		top = 380;
+		lo = 180;
 	}
-	else if (spd < 430)
+	else if (spd < 600)
 	{
 		gear = 2;
-		top = 430;
-		lo = 290;
+		top = 600;
+		lo = 380;
 	}
-	else if (spd < 560)
+	else if (spd < 840)
 	{
 		gear = 3;
-		top = 560;
-		lo = 430;
+		top = 840;
+		lo = 600;
 	}
 	if (gear + 1 > v.veh_gear)
 		v.veh_shift_t = time + 0.22;				// upshift: the revs dip
@@ -1945,14 +2128,22 @@ float() Veh_DriveFrame =
 	if (started)
 		Veh_EngineSound (v, thr);
 
-	// ---- tyre noise: sideways sliding, a hard stop from speed, or the handbrake at speed
+	// ---- turbo exhaust flames / sparks during hard launch & boost
+	if (started && thr > 0 && !v.veh_air && veh_fx_boost > 0 && (v.veh_boost > 0.35 || (vf < 240 && thr > 0.8)) && time >= v.veh_fx_boost_t)
+	{
+		v.veh_fx_boost_t = time + 0.04;
+		ex_pos = v.origin - fwd * (Veh_HalfLen (v.veh_kind) - 2) + lft * (Veh_HalfWid (v.veh_kind) * 0.62) + '0 0 10';
+		pointparticles (veh_fx_boost, ex_pos, fwd * -90, 1);
+	}
+
+	// ---- tyre noise & drift smoke: sideways sliding, a hard stop from speed, or the handbrake at speed
 	if (!v.veh_air)
 	{
-		if (brake_a > 450 && spd > 260)
+		if (brake_a > 500 && spd > 280)
 			slip = max (slip, 150);
 		if (hb && spd > 120)
 			slip = max (slip, 190);
-		if (slip > 90)
+		if (slip > 85)
 			Veh_SkidSound (v, slip);
 	}
 

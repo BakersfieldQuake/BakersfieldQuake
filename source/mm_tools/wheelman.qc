@@ -3,14 +3,15 @@ Wheelman. Impulse 18 summons one in front of you. It rolls at the nearest player
 progs/wheelman.spr32 (build_wheelman_sprite.py + wheelman_fx.py + wheelman_boom360.py + wheelman_stunts.py).
 
 Compact 360° + Above/Below + 2x 360° Stunts Layout
-(200 frames, 144x102 tight-cropped, origin (-72, 92), w.scale = 1.3333):
+(224 frames, 144x102 tight-cropped, type 2 SPR_VP_PARALLEL, w.scale = 1.3333):
   0..7                         8-direction eye-level idle (d = 0..7)
   8 + d*6 + k                  8-direction eye-level driving/rolling (d = 0..7, k = 0..5)
   56 + d*4 + k                 8-direction eye-level screaming (d = 0..7, k = 0..3)
-  88 + d*3 + k                 8-direction ABOVE HIM overhead rolling (d = 0..7, k = 0..2)
-  112 + d*3 + k                8-direction BELOW HIM underneath rolling (d = 0..7, k = 0..2)
+  88 + d*3 + k                 8-direction ABOVE90 overhead rolling (d = 0..7, k = 0..2, centered origin)
+  112 + d*3 + k                8-direction BELOW90 underneath rolling (d = 0..7, k = 0..2)
   136 + d*4 + k                Stunt 1: Fire-Wheels Hyper-Burnout (d = 0..7, k = 0..3)
   168 + d*4 + k                Stunt 2: Super-Long Metal Bar & Steamroller Wheels (d = 0..7, k = 0..3)
+  200 + d*3 + k                8-direction ABOVE45 high-angle rolling (d = 0..7, k = 0..2, centered origin)
 */
 
 float	wm_boom_seq;
@@ -66,8 +67,8 @@ float() Wheelman_Customize =
 	delta_z = 0;
 	hdist = vlen(delta);
 
-	// Steep overhead view (player above Wheelman looking down)
-	if (dz > hdist * 0.62)
+	// Overhead views (player above Wheelman looking down: >60 deg above90, 30-60 deg above45)
+	if (dz > hdist * 1.73)
 	{
 		if (self.wm_run)
 		{
@@ -77,6 +78,18 @@ float() Wheelman_Customize =
 		else
 			k = 0;
 		self.frame = 88 + d * 3 + k;
+		return TRUE;
+	}
+	if (dz > hdist * 0.58)
+	{
+		if (self.wm_run)
+		{
+			k = floor(time * 15);
+			k = k - 3 * floor(k / 3);
+		}
+		else
+			k = 0;
+		self.frame = 200 + d * 3 + k;
 		return TRUE;
 	}
 

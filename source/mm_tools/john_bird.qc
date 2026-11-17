@@ -15,6 +15,8 @@ void() JB_IdleThink;
 void(entity attacker, float take) JB_Pain;
 void() JB_Die;
 
+.entity	jb_blast_pilot;		// JB_Die -> JB_DieBlast: the pilot just thrown out, who takes the blast
+
 void() JohnBird_Precache =
 {
 	if (jb_precached)
@@ -295,6 +297,9 @@ void(entity jb, vector exit_pos, vector exit_vel, float exploding) JB_Leave =
 			jb.takedamage = DAMAGE_NO;
 			jb.movetype = MOVETYPE_NONE;
 			jb.model = string_null;
+			// health 0: JohnBird_NearPerched must not hand out this bird in the 0.2 s before it is freed
+			jb.jb_dying = TRUE;
+			jb.health = 0;
 			jb.think = SUB_Remove;
 			jb.nextthink = time + 0.2;
 		}
@@ -328,6 +333,13 @@ vector(entity jb, entity p) JB_FindExitPos =
 	cand = jb.origin - v_right * 56 + '0 0 26';
 	if (JB_SpotClear (p, cand))
 		return cand;
+	// the nose, then on top of the bird's box, before the old unchecked spot
+	cand = jb.origin + v_forward * 60 + '0 0 26';
+	if (JB_SpotClear (p, cand))
+		return cand;
+	cand = jb.origin + '0 0 84';
+	if (JB_SpotClear (p, cand))
+		return cand;
 	return jb.origin + '0 0 24';
 };
 
@@ -356,6 +368,8 @@ void(entity p, entity jb) JB_Enter =
 
 	jb.jb_pilot = p;
 	jb.jb_ai = FALSE;
+	jb.think = JB_IdleThink;		// the pilot watchdog; never a pending SUB_Remove left on the bird
+	jb.nextthink = time + 0.1;
 	p.jb_vehicle = jb;
 	p.jb_oldmove = p.movetype;
 	p.jb_oldsolid = p.solid;
@@ -590,7 +604,7 @@ float() JohnBird_Frame =
 	jb = self.jb_vehicle;
 	if (jb == world)
 		return FALSE;
-	if (jb.jb_pilot != self || jb.health <= 0 || self.health <= 0)
+	if (bm_wasfreed (jb) || jb.jb_pilot != self || jb.health <= 0 || self.health <= 0)
 	{
 		JB_ReleasePlayer (self, self.origin, '0 0 0', self.v_angle_y);
 		return FALSE;
@@ -723,7 +737,15 @@ float() JohnBird_Frame =
 
 void() JB_Respawn =
 {
+	// do not drop the solid perch box onto a player / monster standing on the spot: wait until it is clear
+	tracebox (self.jb_spawn_org, '-30 -38 -6', '30 38 56', self.jb_spawn_org, FALSE, self);
+	if (trace_ent != world)
+	{
+		self.nextthink = time + 1.0;
+		return;
+	}
 	self.jb_dying = FALSE;
+	self.enemy = world;		// JB_Die's killer from the last life
 	self.health = JB_MAX_HP;
 	self.max_health = JB_MAX_HP;
 	self.skin = 0;
@@ -860,10 +882,12 @@ void(entity attacker, float take) JB_Pain =
 		sprint (self.jb_pilot, msg);
 };
 
+void() JB_DieBlast;
+
 void() JB_Die =
 {
 	local entity pilot, killer;
-	local vector boom_org, eject_vel;
+	local vector eject_vel;
 
 	// a flying John is MOVETYPE_NONE, so Killed does not clear takedamage: without this his own blast below finds him
 	// again, kills him again and recurses until the QC stack overflows (server error). A perched (TOSS) John arrives
@@ -873,13 +897,16 @@ void() JB_Die =
 	self.jb_dying = TRUE;
 	self.takedamage = DAMAGE_NO;
 	self.solid = SOLID_NOT;
+	self.touch = SUB_Null;
 
-	killer = self.enemy;
+	// the hit that killed him: .enemy is only set by Killed for a perched John and would be a stale shooter otherwise
+	killer = damage_attacker;
 	if (killer == world)
-		killer = damage_attacker;
+		killer = self.enemy;
+	self.enemy = killer;
 
-	boom_org = self.origin + '0 0 32';
 	pilot = self.jb_pilot;
+	self.jb_blast_pilot = pilot;
 
 	// Eject pilot cleanly BEFORE blast so camera & solid state are restored
 	if (pilot != world)
@@ -896,6 +923,24 @@ void() JB_Die =
 		eject_vel = self.velocity * 0.45 + '0 0 240';
 		JB_Leave (self, JB_FindExitPos (self, pilot), eject_vel, TRUE);
 	}
+
+	// not right here: a rocket's T_RadiusDamage may be what killed him, and the blast's own findradius would rewrite the
+	// .chain list that loop is still walking. It goes off on his next think (Veh_Explode does the same)
+	self.movetype = MOVETYPE_NONE;
+	self.velocity = '0 0 0';
+	self.think = JB_DieBlast;
+	self.nextthink = time;
+};
+
+void() JB_DieBlast =
+{
+	local entity pilot, killer;
+	local vector boom_org;
+
+	killer = self.enemy;
+	pilot = self.jb_blast_pilot;
+	self.jb_blast_pilot = world;
+	boom_org = self.origin + '0 0 32';
 
 	// Spectacular 5th-rocket shootdown fireball + 28 fluttering 3D feathers + John death cry!
 	sound (self, CHAN_VOICE, "john_bird/shootdown.wav", 1, 0.45);
@@ -915,7 +960,7 @@ void() JB_Die =
 
 	// Blast damage to ejected pilot & nearby enemies (credited to shooter!)
 	jb_inflicting = 1;
-	if (pilot != world && pilot.health > 0)
+	if (pilot != world && pilot.classname == "player" && pilot.health > 0)
 	{
 		if (killer != world && killer != pilot)
 			T_Damage (pilot, self, killer, 165);
@@ -962,6 +1007,7 @@ void(entity jb, float is_temp) JB_InitEntity =
 	jb.jb_temp = is_temp;
 	jb.jb_pilot = world;
 	jb.jb_cam = world;
+	jb.enemy = world;
 	jb.jb_voice_last1 = -1;
 	jb.jb_voice_last2 = -1;
 	jb.health = JB_MAX_HP;

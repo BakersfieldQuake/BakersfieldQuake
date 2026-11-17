@@ -10,16 +10,16 @@ THE ERIC DEASON CANNON — Implementation (Combat+)
   4. Click `MOUSE1` -> triggers hilarious ~0.86s `wew_cannon`-style rubber skyward bend,
      peristaltic belly bulge, flared muzzle trumpet, starburst + twin supersonic Mach
      shockwave rings AND plays `eric_cannon/canislupusfantasy2.wav` at modest volume!
-  5. Launcher tube + strapped Eric Deason head + giant ears blast ~2600u high into the
-     sky while the bolted 4-leg tripod + yoke stay anchored on the street (reloading a
-     fresh cannon after 10s).
-  6. 3rd-person free-orbit chase camera on mouse ("aim in around") while the cannon
-     slowly banks & turns toward where you aim + WASD trim (`W` steeper dive,
-     `S` cup giant ears wide to float slower, `A/D` bank) with wing-flapping giant ears!
-  7. On impact: massive rocket explosion + 340 radius damage + 32 bouncing/clattering
-     3D computer parts (whole CRT monitors, beige ATX PC towers, keyboards, mice,
-     motherboards, CD-ROMs, floppies, fans, panels, copper yokes, CRT glass & gibs)
-     + 2.2s elevated 3rd-person crater watch-cam before kamikaze death/respawn!
+  5. Launcher tube + strapped Eric head + missile-fin ears blast ~2300u high on a
+     heavy ballistic ICBM arc while the bolted 4-leg tripod + yoke stay on the street
+     (reloading a fresh cannon after 10s).
+  6. 3rd-person free-orbit chase camera on mouse while steering heading, plus WASD
+     trim (`W` power-dive, `S` pull up gently to extend range, `A/D` bank/strafe) with
+     continuous heavy `eric_nuke_trail` rocket contrail from climb through terminal dive!
+  7. On impact: multi-stage nuclear detonation (`eric_nuke_flash`, `eric_nuke_shock`,
+     `progs/ring_shockwave.mdl`, `eric_nuke_mushroom`, `s_explodbig.spr`, `nuke_boom.wav`)
+     + 750u / 450 peak dmg tactical blast + map-wide shake + boosted 32+ computer-parts
+     fountain + 3.5s wide elevated watch-cam before kamikaze death/respawn!
 ==============================================================================
 */
 
@@ -83,6 +83,8 @@ void() EricCannon_Precache =
 	precache_model ("progs/eric_cannon.md3");
 	precache_model ("progs/spike.mdl");
 	precache_model ("progs/s_explod.spr");
+	precache_model ("progs/s_explodbig.spr");
+	precache_model ("progs/ring_shockwave.mdl");
 	precache_model ("progs/gib1.mdl");
 	precache_model ("progs/gib2.mdl");
 	precache_model ("progs/gib3.mdl");
@@ -95,10 +97,7 @@ void() EricCannon_Precache =
 	precache_sound ("eric_cannon/mount.wav");
 	precache_sound ("eric_cannon/windup.wav");
 	precache_sound ("eric_cannon/fire_boom.wav");
-	precache_sound ("eric_cannon/ear_flap1.wav");
-	precache_sound ("eric_cannon/ear_flap2.wav");
-	precache_sound ("eric_cannon/ear_flap3.wav");
-	precache_sound ("eric_cannon/ear_flap4.wav");
+	precache_sound ("eric_cannon/nuke_boom.wav");
 	precache_sound ("eric_cannon/sky_wind.wav");
 	precache_sound ("eric_cannon/doppler_scream.wav");
 	precache_sound ("eric_cannon/dive_whistle.wav");
@@ -112,6 +111,10 @@ void() EricCannon_Precache =
 	ec_fx_smoke = particleeffectnum ("TE_GUNSHOT");
 	ec_fx_rocket = particleeffectnum ("rocket_explosion");
 	ec_fx_rocket_classic = particleeffectnum ("rocket_explo_classic");
+	ec_fx_nuke_trail = particleeffectnum ("eric_nuke_trail");
+	ec_fx_nuke_flash = particleeffectnum ("eric_nuke_flash");
+	ec_fx_nuke_shock = particleeffectnum ("eric_nuke_shock");
+	ec_fx_nuke_mushroom = particleeffectnum ("eric_nuke_mushroom");
 };
 
 // TRUE while player is manning, launching, sky-flying, or watching the impact crater (hides viewmodel gun in custom_effects.qc)
@@ -172,6 +175,9 @@ void(entity p) EC_RestoreViewAndBody =
 		p.solid = p.ec_oldsolid;
 		if (p.solid == SOLID_NOT || p.solid == 0)
 			p.solid = SOLID_SLIDEBOX;
+		p.takedamage = p.ec_oldtakedmg;
+		if (p.takedamage == DAMAGE_NO || p.takedamage == 0)
+			p.takedamage = DAMAGE_AIM;
 		oldself = self;
 		self = p;
 		W_SetCurrentAmmo ();
@@ -301,9 +307,14 @@ void(entity p, entity base) EC_Mount =
 	p.ec_btn = TRUE;				// require fresh click so a held button does not auto-fire
 	p.ec_oldmove = p.movetype;
 	p.ec_oldsolid = p.solid;
+	p.ec_oldtakedmg = p.takedamage;
+	p.ec_return_base = base;
+	p.ec_return_pos = EC_FindExitPos (base, p);
+	p.ec_return_yaw = base.ec_yaw;
 
 	p.movetype = MOVETYPE_NONE;
 	p.solid = SOLID_NOT;
+	p.takedamage = DAMAGE_NO;
 	p.velocity = '0 0 0';
 	EC_HidePlayer (p);
 	setorigin (p, base.origin + '0 0 46');
@@ -376,6 +387,43 @@ void(entity p, vector pivot, vector desired_pos, vector look_angles, float force
 	cam.angles = look_angles;
 };
 
+// Wide elevated post-impact watch camera (~550u back, ~320u up), stepping higher if downtown buildings block sightline
+void(entity p, vector boom_at) EC_PlaceWatchCam =
+{
+	local vector look_pt, cand, best_des, look_ang;
+	local float best_frac;
+
+	if (p.ec_cam == world)
+		return;
+	look_pt = boom_at + '0 0 80';
+	makevectors ('0 1 0' * p.v_angle_y);
+
+	best_des = boom_at - v_forward * 550 + '0 0 320';
+	traceline (look_pt, best_des, TRUE, p);
+	best_frac = trace_fraction;
+
+	if (best_frac < 0.65)
+	{
+		cand = boom_at - v_forward * 440 + '0 0 460';
+		traceline (look_pt, cand, TRUE, p);
+		if (trace_fraction > best_frac)
+		{
+			best_frac = trace_fraction;
+			best_des = cand;
+		}
+	}
+	if (best_frac < 0.65)
+	{
+		cand = boom_at - v_forward * 310 + '0 0 580';
+		traceline (look_pt, cand, TRUE, p);
+		if (trace_fraction > best_frac)
+			best_des = cand;
+	}
+
+	look_ang = EC_LookViewAngles (best_des, look_pt);
+	EC_PlaceCam (p, look_pt, best_des, look_ang, TRUE);
+};
+
 // ---------------------------------------------------------------- Computer-Parts & CRT/PC Explosion Fountain
 
 void() EC_PartRemove =
@@ -407,7 +455,7 @@ void(string mdl, vector org, vector vel, float snd_kind, float skin_idx, float l
 {
 	local entity d, e, oldest;
 
-	if (ec_debris_count >= 42)
+	if (ec_debris_count >= 56)
 	{
 		oldest = world;
 		e = find (world, classname, "ec_debris");
@@ -486,55 +534,226 @@ void(vector boom_org) EC_SpawnComputerExplosion =
 	org = boom_org + '0 0 18';
 
 	// 1. 4 Whole Tumbling CRT Monitors (cracked phosphor screens + beige cases!)
-	EC_ThrowComputerPart ("progs/bklan/lan_mon1.md3", org + '8 0 6',  EC_RandBurstVel (190, 380, 290, 520), 2, 6, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_mon2.md3", org + '-8 6 8', EC_RandBurstVel (190, 380, 290, 520), 2, 0, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_mon3.md3", org + '0 -8 8', EC_RandBurstVel (190, 380, 290, 520), 2, 6, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_mon4.md3", org + '6 6 10', EC_RandBurstVel (190, 380, 290, 520), 2, 0, 7.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_mon1.md3", org + '8 0 6',  EC_RandBurstVel (250, 520, 420, 720), 2, 6, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_mon2.md3", org + '-8 6 8', EC_RandBurstVel (250, 520, 420, 720), 2, 0, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_mon3.md3", org + '0 -8 8', EC_RandBurstVel (250, 520, 420, 720), 2, 6, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_mon4.md3", org + '6 6 10', EC_RandBurstVel (250, 520, 420, 720), 2, 0, 8.5);
 
 	// 2. 4 Whole Tumbling Beige ATX PC Towers!
-	EC_ThrowComputerPart ("progs/bklan/lan_pc1.md3", org + '-6 -6 6', EC_RandBurstVel (170, 350, 270, 490), 2, 0, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_pc2.md3", org + '6 -6 10', EC_RandBurstVel (170, 350, 270, 490), 2, 0, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_pc3.md3", org + '-8 4 12', EC_RandBurstVel (170, 350, 270, 490), 2, 0, 7.5);
-	EC_ThrowComputerPart ("progs/bklan/lan_pc4.md3", org + '4 8 12',  EC_RandBurstVel (170, 350, 270, 490), 2, 0, 7.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_pc1.md3", org + '-6 -6 6', EC_RandBurstVel (230, 480, 400, 690), 2, 0, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_pc2.md3", org + '6 -6 10', EC_RandBurstVel (230, 480, 400, 690), 2, 0, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_pc3.md3", org + '-8 4 12', EC_RandBurstVel (230, 480, 400, 690), 2, 0, 8.5);
+	EC_ThrowComputerPart ("progs/bklan/lan_pc4.md3", org + '4 8 12',  EC_RandBurstVel (230, 480, 400, 690), 2, 0, 8.5);
 
 	// 3. Keyboards, Mice, Motherboards, CD-ROMs, Floppies, Fans, Case Panels, Copper Yokes & CRT Glass!
 	i = 0;
+	while (i < 5)
+	{
+		EC_ThrowComputerPart ("progs/hd_kbd.md3",   org, EC_RandBurstVel (280, 620, 380, 740), 0, 0, 8.0);
+		EC_ThrowComputerPart ("progs/hd_board.md3", org, EC_RandBurstVel (290, 640, 390, 760), 0, 0, 8.0);
+		i = i + 1;
+	}
+	i = 0;
 	while (i < 4)
 	{
-		EC_ThrowComputerPart ("progs/hd_kbd.md3",   org, EC_RandBurstVel (220, 470, 250, 560), 0, 0, 7.0);
-		EC_ThrowComputerPart ("progs/hd_board.md3", org, EC_RandBurstVel (230, 490, 260, 580), 0, 0, 7.0);
+		EC_ThrowComputerPart ("progs/hd_mouse.md3",          org, EC_RandBurstVel (310, 670, 360, 710), 0, 0, 7.5);
+		EC_ThrowComputerPart ("progs/hd_cd.md3",             org, EC_RandBurstVel (340, 720, 410, 780), 1, 0, 7.5);
+		EC_ThrowComputerPart ("progs/hd_floppy.md3",         org, EC_RandBurstVel (320, 690, 380, 730), 0, 0, 7.5);
+		EC_ThrowComputerPart ("progs/bklan/lan_deb_glass.md3", org, EC_RandBurstVel (330, 700, 370, 740), 1, 0, 7.0);
 		i = i + 1;
 	}
 	i = 0;
 	while (i < 3)
 	{
-		EC_ThrowComputerPart ("progs/hd_mouse.md3",          org, EC_RandBurstVel (250, 520, 240, 540), 0, 0, 6.5);
-		EC_ThrowComputerPart ("progs/hd_cd.md3",             org, EC_RandBurstVel (280, 590, 280, 620), 1, 0, 6.5);
-		EC_ThrowComputerPart ("progs/hd_floppy.md3",         org, EC_RandBurstVel (260, 550, 260, 580), 0, 0, 6.5);
-		EC_ThrowComputerPart ("progs/bklan/lan_deb_glass.md3", org, EC_RandBurstVel (270, 560, 250, 570), 1, 0, 6.0);
-		i = i + 1;
-	}
-	i = 0;
-	while (i < 2)
-	{
-		EC_ThrowComputerPart ("progs/bklan/lan_deb_panel.md3", org, EC_RandBurstVel (210, 430, 260, 530), 2, 0, 7.0);
-		EC_ThrowComputerPart ("progs/bklan/lan_deb_fan.md3",   org, EC_RandBurstVel (260, 540, 280, 590), 0, 0, 6.5);
-		EC_ThrowComputerPart ("progs/bklan/lan_deb_yoke.md3",  org, EC_RandBurstVel (230, 470, 260, 550), 2, 0, 6.8);
+		EC_ThrowComputerPart ("progs/bklan/lan_deb_panel.md3", org, EC_RandBurstVel (260, 560, 390, 710), 2, 0, 8.0);
+		EC_ThrowComputerPart ("progs/bklan/lan_deb_fan.md3",   org, EC_RandBurstVel (320, 680, 410, 760), 0, 0, 7.5);
+		EC_ThrowComputerPart ("progs/bklan/lan_deb_yoke.md3",  org, EC_RandBurstVel (280, 610, 390, 720), 2, 0, 7.8);
 		i = i + 1;
 	}
 
 	// 4. Kamikaze Rider Gibs flying out with the computer hardware!
-	EC_ThrowKamikazeGib ("progs/h_player.mdl", org + '0 0 12', EC_RandBurstVel (180, 360, 320, 540));
-	EC_ThrowKamikazeGib ("progs/gib1.mdl",     org + '0 0 8',  EC_RandBurstVel (220, 460, 280, 520));
-	EC_ThrowKamikazeGib ("progs/gib2.mdl",     org + '0 0 8',  EC_RandBurstVel (220, 460, 280, 520));
-	EC_ThrowKamikazeGib ("progs/gib3.mdl",     org + '0 0 8',  EC_RandBurstVel (220, 460, 280, 520));
+	EC_ThrowKamikazeGib ("progs/h_player.mdl", org + '0 0 12', EC_RandBurstVel (240, 490, 440, 720));
+	EC_ThrowKamikazeGib ("progs/gib1.mdl",     org + '0 0 8',  EC_RandBurstVel (280, 600, 390, 690));
+	EC_ThrowKamikazeGib ("progs/gib2.mdl",     org + '0 0 8',  EC_RandBurstVel (280, 600, 390, 690));
+	EC_ThrowKamikazeGib ("progs/gib3.mdl",     org + '0 0 8',  EC_RandBurstVel (280, 600, 390, 690));
 };
 
-// Spawn classic Quake rocket explosion sprite + rocket_explosion particles + sounds
+void(vector org, vector vel, float sc, float alph) EC_SpawnExplodBig =
+{
+	local entity e;
+
+	e = spawn ();
+	e.classname = "eric_nuke_fireball";
+	e.movetype = MOVETYPE_NOCLIP;
+	e.solid = SOLID_NOT;
+	e.velocity = vel;
+	e.scale = sc;
+	e.alpha = alph;
+	e.frame = 0;
+	setmodel (e, "progs/s_explodbig.spr");
+	setsize (e, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (e, org);
+	e.think = exploderun;
+	e.nextthink = time + 0.055;
+};
+
+void() EC_ShockRingThink =
+{
+	self.ec_nuke_stage = self.ec_nuke_stage + 1;
+	if (self.ec_nuke_stage >= 12)
+	{
+		remove (self);
+		return;
+	}
+	self.frame = bound (0, floor (self.ec_nuke_stage * 0.58), 6);
+	self.scale = 4.5 + self.ec_nuke_stage * 1.95;
+	self.alpha = bound (0.05, 0.96 - self.ec_nuke_stage * 0.08, 1.0);
+	self.nextthink = time + 0.065;
+};
+
+void(vector boom_org, float scale_mul, float do_flash) EC_NukeShakePlayers =
+{
+	local entity plyr;
+	local float dist, sh;
+
+	if (autocvar_effects_explosion_shake == 0)
+		return;
+
+	plyr = find (world, classname, "player");
+	while (plyr != world)
+	{
+		dist = vlen (boom_org - plyr.origin);
+		sh = bound (1.4, 18.0 * (1.0 - dist / 3200.0), 18.0) * scale_mul;
+		plyr.punchangle_x = plyr.punchangle_x + crandom () * sh;
+		plyr.punchangle_y = plyr.punchangle_y + crandom () * (sh * 0.7);
+		plyr.punchangle_z = plyr.punchangle_z + crandom () * (sh * 0.9);
+		if (do_flash && dist < 1900 && plyr.ishuman == 1)
+			stuffcmd (plyr, "bf\n");
+		plyr = find (plyr, classname, "player");
+	}
+};
+
+void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity ignore) EC_NukeBlastDamage =
+{
+	local entity head, explo;
+	local vector org, push_dir;
+	local float dist, falloff, points;
+
+	explo = Gyro_Force_Create ("explosion", inflictor.origin);
+	Gyro_Force_ApplyFalloff_AreaQuadratic (explo, ('4 4 4' * blast_rad));
+	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 8.0), FALSE);
+	Gyro_Force_AddProperty_Instant (explo);
+	Gyro_Force_AddProperty_AirOnly (explo);
+
+	explo = Gyro_Force_Create ("explosion", inflictor.origin);
+	Gyro_Force_ApplyFalloff_AreaLinear (explo, ('2 2 2' * blast_rad));
+	Gyro_Force_ApplyAffector_Point (explo, '0 0 -24', '1 1 1', (peak_dmg * 4.0), FALSE);
+	Gyro_Force_AddProperty_Instant (explo);
+	Gyro_Force_AddProperty_WaterOnly (explo);
+
+	head = findradius (inflictor.origin, blast_rad);
+	while (head)
+	{
+		if (head != ignore && head.takedamage)
+		{
+			org = head.origin + ((head.mins + head.maxs) * 0.5);
+			dist = vlen (inflictor.origin - org);
+			falloff = 1.0 - (dist / blast_rad);
+			if (falloff > 0)
+			{
+				points = peak_dmg * falloff;
+				if (head == attacker)
+					points = points * 0.5;
+				if (points > 0 && CanDamage (head, inflictor))
+				{
+					if (head.movetype != MOVETYPE_NONE && head.movetype != MOVETYPE_PUSH)
+					{
+						push_dir = org - inflictor.origin;
+						push_dir_z = push_dir_z + 56;
+						if (vlen (push_dir) < 1)
+							push_dir = '0 0 1';
+						else
+							push_dir = normalize (push_dir);
+						head.velocity = head.velocity + push_dir * (220 + 460 * falloff);
+						head.flags = head.flags - (head.flags & FL_ONGROUND);
+					}
+					if (head.classname == "monster_shambler" || head.classname == "monster_hell_knight2")
+						T_Damage (head, inflictor, attacker, (points * 0.65));
+					else
+						T_Damage (head, inflictor, attacker, points);
+				}
+			}
+		}
+		head = head.chain;
+	}
+};
+
+void() EC_NukeThink =
+{
+	local float el, stem_z, cap_z, off_ang, off_r;
+	local vector base_org, stem_pos, cap_pos, ring_off;
+
+	el = time - self.ec_nuke_t0;
+	base_org = self.origin;
+
+	if (el > 0.45 && (self.effects & EF_BRIGHTLIGHT))
+		self.effects = self.effects - EF_BRIGHTLIGHT;
+
+	if (el > 2.95)
+	{
+		remove (self);
+		return;
+	}
+
+	self.ec_nuke_stage = self.ec_nuke_stage + 1;
+	stem_z = bound (32, 48 + el * 205, self.ec_nuke_ceil);
+	cap_z = bound (48, stem_z + 40, self.ec_nuke_ceil);
+	stem_pos = base_org + '0 0 1' * (stem_z * 0.52);
+	cap_pos = base_org + '0 0 1' * cap_z;
+
+	// Rising mushroom plume & wide billowing cap (t = 0.15s .. 2.55s)
+	if (el <= 2.55 && ec_fx_nuke_mushroom > 0)
+	{
+		pointparticles (ec_fx_nuke_mushroom, cap_pos, '0 0 120', 1);
+		if (el < 1.35)
+			pointparticles (ec_fx_nuke_mushroom, stem_pos, '0 0 90', 1);
+		else
+		{
+			off_ang = random () * 360;
+			off_r = 58 + random () * 48;
+			ring_off = '0 0 0';
+			ring_off_x = EC_Cos (off_ang) * off_r;
+			ring_off_y = EC_Sin (off_ang) * off_r;
+			pointparticles (ec_fx_nuke_mushroom, cap_pos + ring_off, '0 0 60', 1);
+		}
+	}
+
+	// Staggered secondary rising s_explodbig.spr fireballs up the stem and cap
+	if (el <= 2.15)
+	{
+		off_ang = random () * 360;
+		off_r = 22 + el * 26;
+		ring_off = '0 0 0';
+		ring_off_x = EC_Cos (off_ang) * off_r;
+		ring_off_y = EC_Sin (off_ang) * off_r;
+		EC_SpawnExplodBig (cap_pos + ring_off, '0 0 175' + ring_off * 0.45, bound (1.35, 2.55 - el * 0.55, 2.6), 0.85);
+		if (el < 1.1)
+			EC_SpawnExplodBig (stem_pos - ring_off * 0.5, '0 0 140', 1.85, 0.80);
+	}
+
+	// Rolling shockwave ground tremor shake over the first ~0.9s
+	if (el < 0.95)
+		EC_NukeShakePlayers (base_org, bound (0.12, 0.55 - el * 0.48, 0.55), FALSE);
+
+	self.nextthink = time + 0.20;
+};
+
+// Multi-stage nuclear detonation: blinding flash, expanding shockwave, rising mushroom cloud, 750u tactical blast & boosted PC fountain
 void(vector boom_org, entity pilot, entity base) EC_Detonate =
 {
-	local entity exp_ent, inf_ent, oldself;
-	local vector cam_des, back_dir, look_ang;
+	local entity nuke, ring, inf_ent;
+	local vector ground_z;
+	local float i, ang;
 
 	// Stop looping wind/dive channels on tube
 	if (base.ec_tube != world)
@@ -546,57 +765,89 @@ void(vector boom_org, entity pilot, entity base) EC_Detonate =
 		base.ec_tube.velocity = '0 0 0';
 	}
 
-	// 1. Stock Quake Rocket Explosion (`TE_EXPLOSION` + `rocket_explosion` particles + `BecomeExplosion` + `r_exp3.wav`)
+	ground_z = boom_org + '0 0 16';
+
+	// 1. t = 0.0s: Blinding nuclear flash + TE_EXPLOSION + expanding ground shockwave ring + map-wide boom!
 	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
 	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
 	WriteCoord (MSG_BROADCAST, boom_org_x);
 	WriteCoord (MSG_BROADCAST, boom_org_y);
-	WriteCoord (MSG_BROADCAST, boom_org_z + 12);
+	WriteCoord (MSG_BROADCAST, boom_org_z + 16);
 
-	if (autocvar_effects_classic_explosion == 1)
+	if (ec_fx_nuke_flash > 0)
+		pointparticles (ec_fx_nuke_flash, boom_org + '0 0 28', VEC_ORIGIN, 1);
+	if (ec_fx_nuke_shock > 0)
+		pointparticles (ec_fx_nuke_shock, boom_org + '0 0 14', VEC_ORIGIN, 1);
+	if (ec_fx_nuke_mushroom > 0)
+		pointparticles (ec_fx_nuke_mushroom, boom_org + '0 0 36', '0 0 160', 1);
+
+	// Expanding ground shockwave ring (progs/ring_shockwave.mdl)
+	ring = spawn ();
+	ring.classname = "eric_nuke_ring";
+	ring.movetype = MOVETYPE_NONE;
+	ring.solid = SOLID_NOT;
+	ring.scale = 4.5;
+	ring.alpha = 0.96;
+	ring.frame = 0;
+	ring.ec_nuke_stage = 0;
+	setmodel (ring, "progs/ring_shockwave.mdl");
+	setsize (ring, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (ring, boom_org + '0 0 14');
+	ring.think = EC_ShockRingThink;
+	ring.nextthink = time + 0.055;
+
+	// Initial big s_explodbig.spr fireball cluster at ground zero
+	EC_SpawnExplodBig (ground_z + '0 0 18', '0 0 110', 3.2, 0.95);
+	i = 0;
+	while (i < 4)
 	{
-		if (ec_fx_rocket_classic > 0)
-			pointparticles (ec_fx_rocket_classic, boom_org + '0 0 12', VEC_ORIGIN, 1);
+		ang = i * 90 + random () * 35;
+		EC_SpawnExplodBig (
+			ground_z + '0 0 10' + ('1 0 0' * EC_Cos (ang) + '0 1 0' * EC_Sin (ang)) * 38,
+			('1 0 0' * EC_Cos (ang) + '0 1 0' * EC_Sin (ang)) * 95 + '0 0 135',
+			2.3, 0.90);
+		i = i + 1;
 	}
-	else
-	{
-		if (ec_fx_rocket > 0)
-			pointparticles (ec_fx_rocket, boom_org + '0 0 12', VEC_ORIGIN, 1);
-	}
-	// Phosphor & spark burst
-	particle (boom_org + '0 0 22', '0 0 65', 244, 64);
-	particle (boom_org + '0 0 18', '0 0 45', 104, 64);
 
-	exp_ent = spawn ();
-	exp_ent.classname = "eric_cannon_exp";
-	exp_ent.movetype = MOVETYPE_NONE;
-	exp_ent.solid = SOLID_NOT;
-	setorigin (exp_ent, boom_org + '0 0 16');
-	sound (exp_ent, CHAN_WEAPON, "weapons/r_exp3.wav", 1.0, 0.35);
-	sound (exp_ent, CHAN_AUTO,   "weapons/explodedist.wav", 0.75, 0.25);
-	sound (exp_ent, CHAN_VOICE,  "lan/crt_implode.wav", 1.0, 0.45);
-	sound (exp_ent, CHAN_ITEM,   "lan/pc_boom.wav", 1.0, 0.45);
-	oldself = self;
-	self = exp_ent;
-	BecomeExplosion ();
-	self = oldself;
+	// Nuke controller entity: EF_BRIGHTLIGHT flash, map-wide layered audio & 3.0s multi-stage mushroom cloud
+	nuke = spawn ();
+	nuke.classname = "eric_cannon_nuke";
+	nuke.movetype = MOVETYPE_NONE;
+	nuke.solid = SOLID_NOT;
+	nuke.alpha = 0.01;
+	nuke.scale = 0.01;
+	nuke.effects = EF_BRIGHTLIGHT;
+	nuke.ec_nuke_t0 = time;
+	nuke.ec_nuke_stage = 0;
+	traceline (ground_z, ground_z + '0 0 600', TRUE, nuke);
+	nuke.ec_nuke_ceil = bound (120, trace_endpos_z - ground_z_z - 36, 560);
+	setmodel (nuke, "progs/spike.mdl");
+	setsize (nuke, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (nuke, ground_z);
+	sound (nuke, CHAN_WEAPON, "eric_cannon/nuke_boom.wav", 1.0, 0.15);
+	sound (nuke, CHAN_AUTO,   "weapons/explodedist.wav", 0.85, 0.18);
+	sound (nuke, CHAN_VOICE,  "lan/crt_implode.wav", 1.0, 0.35);
+	sound (nuke, CHAN_ITEM,   "lan/pc_boom.wav", 1.0, 0.35);
+	nuke.think = EC_NukeThink;
+	nuke.nextthink = time + 0.15;
 
-	// 2. Massive Computer-Parts + CRT Monitor + Beige ATX PC Fountain!
+	// 2. Boosted Computer-Parts + CRT Monitor + Beige ATX PC Fountain!
 	EC_SpawnComputerExplosion (boom_org);
 
-	// 3. Nuke-tier 340 Radius Damage to nearby enemies, monsters, LAN props & vehicles (credited to pilot!)
+	// 3. Tactical Big Bomb Blast: 750u radius, 450 peak damage + shockwave knockback + map-wide shake!
 	inf_ent = spawn ();
 	inf_ent.classname = "eric_cannon_blast";
-	setorigin (inf_ent, boom_org + '0 0 20');
+	setorigin (inf_ent, boom_org + '0 0 24');
 	ec_inflicting = 2;
 	if (pilot != world && pilot.classname == "player")
-		T_RadiusDamage (inf_ent, pilot, 340, pilot);
+		EC_NukeBlastDamage (inf_ent, pilot, 450, 750, pilot);
 	else
-		T_RadiusDamage (inf_ent, inf_ent, 340, world);
+		EC_NukeBlastDamage (inf_ent, inf_ent, 450, 750, world);
 	ec_inflicting = 0;
 	remove (inf_ent);
+	EC_NukeShakePlayers (ground_z, 1.0, TRUE);
 
-	// 4. Transition street tripod to 10s reload & transition pilot to 2.2s elevated 3rd-person crater watch-cam!
+	// 4. Transition street tripod to 10s reload & transition pilot to 3.5s wide elevated watch-cam!
 	base.ec_pilot = world;
 	base.ec_state = EC_STATE_RELOAD;
 	base.think = EC_BaseThink;
@@ -605,19 +856,14 @@ void(vector boom_org, entity pilot, entity base) EC_Detonate =
 	if (pilot != world && pilot.classname == "player")
 	{
 		pilot.ec_cannon_ent = world;
-		pilot.ec_boomat = boom_org + '0 0 16';
+		pilot.ec_return_base = base;
+		pilot.ec_return_pos = EC_FindExitPos (base, pilot);
+		pilot.ec_return_yaw = base.ec_yaw;
+		pilot.ec_boomat = ground_z;
 		pilot.ec_watch_until = time + EC_WATCH_TIME;
 		setorigin (pilot, boom_org + '0 0 28');
 		pilot.velocity = '0 0 0';
-
-		if (pilot.ec_cam != world)
-		{
-			makevectors ('0 1 0' * pilot.v_angle_y);
-			back_dir = '0 0 0' - v_forward;
-			cam_des = boom_org + back_dir * 195 + '0 0 112';
-			look_ang = EC_LookViewAngles (cam_des, boom_org + '0 0 18');
-			EC_PlaceCam (pilot, boom_org + '0 0 18', cam_des, look_ang, TRUE);
-		}
+		EC_PlaceWatchCam (pilot, pilot.ec_boomat);
 	}
 };
 
@@ -717,9 +963,9 @@ float(entity tube, entity pilot, float dt, float flight_age) EC_StepFlight =
 	if (nrm_z > 0.35 && (tube.velocity_z <= 80 || flight_age > 0.90))
 		return TRUE;
 
-	// Head-on wall/building impact after 0.75s -> BOOM! Glancing wall graze slides along building facade!
+	// Head-on wall/building impact after 0.60s -> BOOM! Glancing wall graze slides along building facade!
 	headon = 0 - (normalize (tube.velocity) * nrm);
-	if (flight_age > 0.75 && headon > 0.52)
+	if (flight_age > 0.60 && headon > 0.52)
 		return TRUE;
 
 	// Glancing graze: slide velocity along wall plane
@@ -730,25 +976,11 @@ float(entity tube, entity pilot, float dt, float flight_age) EC_StepFlight =
 
 // ---------------------------------------------------------------- Per-Frame Player Control (`EricCannon_Frame`)
 
-void(entity tube, float vol) EC_PlayEarFlap =
-{
-	local float r;
-	r = random () * 4;
-	if (r < 1)
-		sound (tube, CHAN_AUTO, "eric_cannon/ear_flap1.wav", vol, ATTN_NORM);
-	else if (r < 2)
-		sound (tube, CHAN_AUTO, "eric_cannon/ear_flap2.wav", vol, ATTN_NORM);
-	else if (r < 3)
-		sound (tube, CHAN_AUTO, "eric_cannon/ear_flap3.wav", vol, ATTN_NORM);
-	else
-		sound (tube, CHAN_AUTO, "eric_cannon/ear_flap4.wav", vol, ATTN_NORM);
-};
-
 float() EricCannon_Frame =
 {
-	local entity base, yoke, tube, inf;
-	local float dt, el, idx, fwd_in, str_in, yaw_err, max_turn, turn_step, roll_t, hspd_t, sink_t, cur_h, k;
-	local vector pivot, cam_des, look_ang, fwd_v, rgt_v, vel_xy, dir_ang;
+	local entity base, yoke, tube;
+	local float dt, el, idx, fwd_in, str_in, yaw_err, max_turn, turn_step, roll_t, hspd_t, cur_h, grav, term_vz;
+	local vector pivot, cam_des, look_ang, fwd_v, rgt_v, vel_xy, dir_ang, fwd_3d, cur_nozzle, ret_pos;
 
 	// 1. Post-impact 3rd-person crater watch-cam (`ec_watch_until`)
 	if (self.ec_cannon_ent == world)
@@ -761,33 +993,29 @@ float() EricCannon_Frame =
 			EC_HidePlayer (self);
 			self.velocity = '0 0 0';
 			self.impulse = 0;
-			if (self.ec_cam != world)
-			{
-				// Elevated 3rd-person view pointed right at the smoking crater & bouncing CRT monitors!
-				makevectors ('0 1 0' * self.v_angle_y);
-				cam_des = self.ec_boomat - v_forward * 195 + '0 0 112';
-				look_ang = EC_LookViewAngles (cam_des, self.ec_boomat);
-				EC_PlaceCam (self, self.ec_boomat, cam_des, look_ang, TRUE);
-			}
+			EC_PlaceWatchCam (self, self.ec_boomat);
 			return TRUE;
 		}
 
-		// Watch-cam finished -> restore camera & execute kamikaze blast death on rider!
+		// Watch-cam finished -> restore camera & return rider safely to the street pedestal alive!
 		self.ec_watch_until = 0;
 		EC_RestoreViewAndBody (self);
-		setorigin (self, self.ec_boomat + '0 0 12');
-		if (self.health > 0 && !(self.flags & FL_GODMODE))
+		ret_pos = self.ec_return_pos;
+		if (!EC_SpotClear (self, ret_pos))
 		{
-			self.bm_prot_t = 0;
-			self.invincible_finished = 0;
-			inf = spawn ();
-			inf.classname = "eric_cannon_blast";
-			setorigin (inf, self.origin);
-			ec_inflicting = 1;
-			T_Damage (self, inf, self, 50000);
-			ec_inflicting = 0;
-			remove (inf);
+			if (self.ec_return_base != world && !bm_wasfreed (self.ec_return_base) && self.ec_return_base.classname == "misc_eric_cannon")
+				ret_pos = EC_FindExitPos (self.ec_return_base, self);
+			if (!EC_SpotClear (self, ret_pos))
+				ret_pos = self.ec_return_pos + '0 0 32';
 		}
+		setorigin (self, ret_pos);
+		self.velocity = '0 0 0';
+		self.angles = '0 1 0' * self.ec_return_yaw;
+		self.v_angle = self.angles;
+		self.fixangle = TRUE;
+		sound (self, 5, "misc/null.wav", 1, ATTN_NORM);
+		sound (self, CHAN_ITEM, "eric_cannon/mount.wav", 0.7, ATTN_NORM);
+		centerprint (self, "");
 		return FALSE;
 	}
 
@@ -903,7 +1131,7 @@ float() EricCannon_Frame =
 		}
 		else
 		{
-			// LIFTOFF! Launcher tube + strapped Eric head + giant ears blast sky-high while tripod & yoke stay on street!
+			// LIFTOFF! Launcher tube + strapped Eric head + missile-fin ears blast sky-high on a heavy ICBM arc!
 			base.ec_state = EC_STATE_FLYING;
 			base.ec_phase_t = time;
 			base.ec_screamed = FALSE;
@@ -912,24 +1140,27 @@ float() EricCannon_Frame =
 				tube.ec_fly_yaw = base.ec_yaw;
 				tube.ec_prev_yaw = base.ec_yaw;
 				tube.ec_wind_snd_t = time + 0.25;
-				tube.ec_flap_snd_t = time + 0.35;
 				tube.ec_dive_snd_t = 0;
 				tube.ec_smoke_t = time;
 				tube.ec_anim_clock = 0;
 				tube.frame = 30;			// liftoff1
 
 				makevectors ('0 1 0' * base.ec_yaw);
-				tube.velocity = v_forward * (650 + EC_Cos (base.ec_pitch) * 120);
-				tube.velocity_z = 1210 + EC_Sin (bound (15, base.ec_pitch, 62)) * 180;
+				tube.velocity = v_forward * (520 + EC_Cos (base.ec_pitch) * 260);
+				tube.velocity_z = 1380 + EC_Sin (bound (22, base.ec_pitch, 66)) * 320;
 				setorigin (tube, base.origin + '0 0 74');
+				tube.angles_x = bound (22, base.ec_pitch, 66);
+				tube.angles_y = base.ec_yaw;
+				tube.angles_z = 0;
+				tube.ec_prev_nozzle = tube.origin - v_forward * 44 - '0 0 28';
 			}
-			// Snap chase camera cleanly behind the ascending cannon once at liftoff; free mouse orbit from next frame on!
+			// Snap chase camera cleanly behind the ascending ICBM once at liftoff; free mouse orbit from next frame on!
 			self.angles = '0 0 0';
 			self.angles_x = 8;
 			self.angles_y = base.ec_yaw;
 			self.v_angle = self.angles;
 			self.fixangle = TRUE;
-			centerprint (self, "SKY-HIGH! Mouse: Look & Aim | WASD: Steer / Dive (W) / Ear-Float (S)");
+			centerprint (self, "ICBM LAUNCH! Mouse: Steer | W: Power Dive | S: Extend Range | A/D: Bank");
 			return TRUE;
 		}
 
@@ -943,7 +1174,7 @@ float() EricCannon_Frame =
 	}
 
 	// =========================================================================
-	// STATE 3: SKY-HIGH 3RD-PERSON GUIDED FLIGHT & EAR-GLIDING DESCENT
+	// STATE 3: HEAVY BALLISTIC ICBM ARC & TERMINAL NOSE-DOWN DIVE
 	// =========================================================================
 	if (base.ec_state == EC_STATE_FLYING && tube != world)
 	{
@@ -952,58 +1183,83 @@ float() EricCannon_Frame =
 		fwd_in = bound (-1, self.movement_x / 160, 1);
 		str_in = bound (-1, self.movement_y / 160, 1);
 
-		// Slow guided yaw steering toward player's mouse look (`~62 deg/s`) + A/D trim (`~38 deg/s`)
+		// Guided yaw steering toward player's mouse look (`~82 deg/s`) + A/D bank/strafe trim (`~42 deg/s`)
 		yaw_err = EC_AngDelta (self.v_angle_y, tube.ec_fly_yaw);
-		max_turn = 62.0 * dt;
-		turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 3.2, 1), max_turn) + (0 - str_in) * 38.0 * dt;
+		max_turn = 82.0 * dt;
+		turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 3.8, 1), max_turn) + (0 - str_in) * 42.0 * dt;
 		tube.ec_fly_yaw = EC_NormAng (tube.ec_fly_yaw + turn_step);
 
 		makevectors ('0 1 0' * tube.ec_fly_yaw);
 		fwd_v = v_forward;
 		rgt_v = v_right;
 
-		// Horizontal speed control: enough range (~8500u) to fly all the way between Fox Theater & Padre Hotel!
-		if (fwd_in > 0.2)
-			hspd_t = 930;
-		else if (fwd_in < -0.2)
-			hspd_t = 320;
-		else
-			hspd_t = 760;
-
-		vel_xy = tube.velocity;
-		vel_xy_z = 0;
-		cur_h = vlen (vel_xy);
-		cur_h = cur_h + (hspd_t - cur_h) * bound (0, dt * 2.8, 1);
-		vel_xy = fwd_v * cur_h + rgt_v * (str_in * 145);
-		tube.velocity_x = vel_xy_x;
-		tube.velocity_y = vel_xy_y;
-
-		// Vertical sky-arc physics:
-		//   - First 3.1s climb (`velocity_z > 0`): low rocket-assisted gravity (`365 u/s^2`) -> soars ~2450-2650u sky-high!
-		//   - Apex & descent: controlled slow descent (`-285 u/s` neutral wing-glide, `-155 u/s` S-key ear-flare, `-880 u/s` W-key dive!)
-		if (tube.velocity_z > 0 && el < 3.4)
+		// Horizontal & vertical ballistic ICBM arc:
+		//   - Climb / rocket burn (`velocity_z > 0 && el < 2.65`): fast steep climb, smoothly arcing over apex
+		//   - Terminal dive (`velocity_z <= 0 || el >= 2.65`): gravity accelerates nose-down (`-1320 u/s` neutral,
+		//     `-1650 u/s` power-dive on W, `-740 u/s` extended-range glide on S — still descending, never floating!)
+		if (tube.velocity_z > 0 && el < 2.65)
 		{
-			tube.velocity_z = tube.velocity_z - 365 * dt;
-			if (fwd_in > 0.35 && el > 1.0)
-				tube.velocity_z = tube.velocity_z - 520 * dt;		// W lets pilot nose over early if desired!
+			if (fwd_in > 0.2)
+				hspd_t = 760;
+			else if (fwd_in < -0.2)
+				hspd_t = 940;
+			else
+				hspd_t = 820;
+
+			if (el < 0.85)
+				grav = 240;
+			else if (fwd_in < -0.2)
+				grav = 580;
+			else
+				grav = 760;
+
+			tube.velocity_z = tube.velocity_z - grav * dt;
+			if (fwd_in > 0.35 && el > 0.55)
+				tube.velocity_z = tube.velocity_z - 720 * dt;		// W noses over early into steep dive
 		}
 		else
 		{
-			if (!base.ec_screamed && el > 1.2)
+			if (!base.ec_screamed && el > 1.0)
 			{
 				base.ec_screamed = TRUE;
 				sound (tube, CHAN_VOICE, "eric_cannon/doppler_scream.wav", 0.68, 0.45);
 			}
-			if (fwd_in > 0.2 || self.v_angle_x > 46)
-				sink_t = -880;
+			if (fwd_in > 0.2 || self.v_angle_x > 52)
+			{
+				grav = 1650;
+				term_vz = -1650;
+				hspd_t = 740;
+			}
 			else if (fwd_in < -0.2)
-				sink_t = -155;
+			{
+				grav = 560;
+				term_vz = -740;
+				hspd_t = 1120;
+			}
 			else
-				sink_t = -285;
+			{
+				grav = 980;
+				term_vz = -1320;
+				hspd_t = 840;
+			}
 
-			k = bound (0, dt * 2.6, 1);
-			tube.velocity_z = tube.velocity_z + (sink_t - tube.velocity_z) * k;
+			if (tube.velocity_z > term_vz)
+			{
+				tube.velocity_z = tube.velocity_z - grav * dt;
+				if (tube.velocity_z < term_vz)
+					tube.velocity_z = term_vz;
+			}
+			else
+				tube.velocity_z = tube.velocity_z + (term_vz - tube.velocity_z) * bound (0, dt * 2.4, 1);
 		}
+
+		vel_xy = tube.velocity;
+		vel_xy_z = 0;
+		cur_h = vlen (vel_xy);
+		cur_h = cur_h + (hspd_t - cur_h) * bound (0, dt * 3.0, 1);
+		vel_xy = fwd_v * cur_h + rgt_v * (str_in * 180);
+		tube.velocity_x = vel_xy_x;
+		tube.velocity_y = vel_xy_y;
 
 		// Step airborne collision & check impact
 		if (EC_StepFlight (tube, self, dt, el) || el > 24.0)
@@ -1012,19 +1268,19 @@ float() EricCannon_Frame =
 			return TRUE;
 		}
 
-		// Smooth 3D pitch, yaw & banked roll
-		roll_t = bound (-34, (0 - (turn_step / dt) * 0.36) + str_in * 18, 34);
+		// Smooth 3D pitch (with vectoangles [0,360) wrap fix so descent tilts nose-down!), yaw & banked roll
+		roll_t = bound (-38, (0 - (turn_step / dt) * 0.38) + str_in * 20, 38);
 		dir_ang = vectoangles (tube.velocity);
-		tube.angles_x = tube.angles_x + (bound (-78, dir_ang_x, 76) - tube.angles_x) * bound (0, dt * 8.0, 1);
+		if (dir_ang_x > 180)
+			dir_ang_x = dir_ang_x - 360;
+		tube.angles_x = tube.angles_x + (bound (-82, dir_ang_x, 76) - tube.angles_x) * bound (0, dt * 10.0, 1);
 		tube.angles_y = tube.ec_fly_yaw;
 		tube.angles_z = tube.angles_z + (roll_t - tube.angles_z) * bound (0, dt * 7.5, 1);
 
-		// Animation & Flight Audio selection:
+		// Swept-back missile-fin ear animations & flight audio:
 		//   - `liftoff1..3` (30..32) for first 0.22s
-		//   - `boost1..12`  (33..44) while climbing (`velocity_z > 140`)
-		//   - `dive1..8`    (61..68) when diving (`W` or `velocity_z < -480`)
-		//   - `flare1..8`   (69..76) when cupping giant ears wide (`S`)
-		//   - `glide1..16`  (45..60) rhythmic wing-flapping giant ears during sky glide!
+		//   - `boost1..12`  (33..44) during climb/burn (`velocity_z > 80`)
+		//   - `dive1..8`    (61..68) during apex & terminal dive
 		if (el < 0.22)
 		{
 			idx = floor ((el / 0.22) * 3);
@@ -1032,54 +1288,32 @@ float() EricCannon_Frame =
 				idx = 2;
 			tube.frame = 30 + idx;
 		}
-		else if (tube.velocity_z > 140)
+		else if (tube.velocity_z > 80)
 		{
 			tube.ec_anim_clock = tube.ec_anim_clock + dt * 18.0;
 			idx = floor (tube.ec_anim_clock);
 			idx = idx - 12 * floor (idx / 12);
 			tube.frame = 33 + idx;
-			if (ec_fx_smoke > 0 && time >= tube.ec_smoke_t)
-			{
-				tube.ec_smoke_t = time + 0.06;
-				pointparticles (ec_fx_smoke, tube.origin - fwd_v * 68, '0 0 -40', 1);
-			}
 		}
-		else if (fwd_in > 0.2 || tube.velocity_z < -480)
+		else
 		{
-			tube.ec_anim_clock = tube.ec_anim_clock + dt * 16.0;
+			tube.ec_anim_clock = tube.ec_anim_clock + dt * 18.0;
 			idx = floor (tube.ec_anim_clock);
 			idx = idx - 8 * floor (idx / 8);
 			tube.frame = 61 + idx;
-			if (time >= tube.ec_dive_snd_t)
+			if (tube.velocity_z < -260 && time >= tube.ec_dive_snd_t)
 			{
 				tube.ec_dive_snd_t = time + 2.4;
 				sound (tube, CHAN_BODY, "eric_cannon/dive_whistle.wav", 0.62, ATTN_NORM);
 			}
 		}
-		else if (fwd_in < -0.2)
-		{
-			tube.ec_anim_clock = tube.ec_anim_clock + dt * 12.0;
-			idx = floor (tube.ec_anim_clock);
-			idx = idx - 8 * floor (idx / 8);
-			tube.frame = 69 + idx;
-			if (time >= tube.ec_flap_snd_t)
-			{
-				tube.ec_flap_snd_t = time + 0.42;
-				EC_PlayEarFlap (tube, 0.72);
-			}
-		}
-		else
-		{
-			tube.ec_anim_clock = tube.ec_anim_clock + dt * 14.5;
-			idx = floor (tube.ec_anim_clock);
-			idx = idx - 16 * floor (idx / 16);
-			tube.frame = 45 + idx;
-			if (time >= tube.ec_flap_snd_t)
-			{
-				tube.ec_flap_snd_t = time + 0.34;
-				EC_PlayEarFlap (tube, 0.80);
-			}
-		}
+
+		// Continuous heavy ICBM rocket contrail from rear nozzle throughout the ENTIRE flight (climb & dive)
+		fwd_3d = fwd_v * EC_Cos (tube.angles_x) + '0 0 1' * EC_Sin (tube.angles_x);
+		cur_nozzle = tube.origin - fwd_3d * 56;
+		if (ec_fx_nuke_trail > 0)
+			trailparticles (tube, ec_fx_nuke_trail, tube.ec_prev_nozzle, cur_nozzle);
+		tube.ec_prev_nozzle = cur_nozzle;
 
 		if (time >= tube.ec_wind_snd_t)
 		{
@@ -1093,7 +1327,7 @@ float() EricCannon_Frame =
 		// Free-orbit 3rd-person chase camera controlled by mouse (`v_angle`)
 		makevectors (self.v_angle);
 		pivot = tube.origin + '0 0 14';
-		cam_des = pivot - v_forward * 168 + '0 0 38';
+		cam_des = pivot - v_forward * 176 + '0 0 38';
 		EC_PlaceCam (self, pivot, cam_des, self.v_angle, FALSE);
 		return TRUE;
 	}

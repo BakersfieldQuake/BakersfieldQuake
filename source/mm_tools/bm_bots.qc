@@ -8,10 +8,10 @@ DOWNTOWN BOTS & FULL-ARSENAL DEATHMATCH AI (BakersfieldQuake)
 - Instant F1 (add enemy bot, impulse 101) & F2 (kick bot, impulse 102) without sv_cheats,
   auto-upgrading singleplayer / small-slot local games to 16-player Deathmatch if needed.
 - Clear [BOT] <Name> identity across scoreboard, obituaries, chat, and CSQC 3D overhead tags.
-- Full knowledge of all 20 BakersfieldQuake weapons (Bonk Hammer, Chainsaw, Goo Gun, Super Shotgun,
+- Full knowledge of BakersfieldQuake weapons (Bonk Hammer, Shotgun, Super Shotgun,
   Laptop Gun, Milky Gun, Grenade Launcher, Rocket Launcher, Lightning Gun, CCC Laser Cannon,
-  Mega Man Gun, Rob Dob flying head, Jar o' Green Guys, Pickle Surprise, NetSend PC, Mystery Box,
-  Wheelman Cannon, M4A1, Thompson SMG, M1 Garand), including charging, cocktail-shaking,
+  Mega Man Gun, Rob Dob flying head, Jar o' Green Guys, Pickle Surprise, NetSend PC, Dookie Bazooka,
+  Wheelman Cannon, M4A1, M1 Garand), including charging, cocktail-shaking,
   semi-auto trigger resets, ballistic arcs, and magazine reloads.
 - Aggressive yet forgiving ("pretty easy") combat pacing: smooth human aim spread, brief target
   reaction delay, burst firing, and scaled bot->player damage (bm_bot_dmg).
@@ -20,6 +20,9 @@ DOWNTOWN BOTS & FULL-ARSENAL DEATHMATCH AI (BakersfieldQuake)
   rooftop jump-offs, active jetpack flight, and rival hunting across the city grid.
 ================
 */
+
+// downtown-only bot moves use fixed downtown coordinates: map check cached once per map (0 = not yet, 1 = no, 2 = yes)
+float	bm_dt_map_cache;
 
 // ---------------------------------------------------------------- helpers & notifications
 
@@ -140,7 +143,8 @@ float() BM_BotImpulses =
 		return TRUE;
 	}
 
-	bm_manual_bots = TRUE;
+	// bm_manual_bots (turns off auto bot fill for the map) is set only once a bot is really added or kicked:
+	// a refused press must not switch off fill and the reserve kick for the rest of the map
 
 	if (self.impulse == 100 || self.impulse == 101)
 	{
@@ -162,6 +166,7 @@ float() BM_BotImpulses =
 				return TRUE;
 			}
 			bm_bot_add_t = time + autocvar_bm_bot_cooldown;
+			bm_manual_bots = TRUE;
 			BotConnect ((self.impulse == 101), 0, cvar ("skill"));
 			return TRUE;
 		}
@@ -184,6 +189,7 @@ float() BM_BotImpulses =
 			centerprint (self, strcat ("^3Server full^7 (", ftos (bot_count), " bots) - press ^3F2^7 to kick"));
 			return TRUE;
 		}
+		bm_manual_bots = TRUE;
 		BotConnect ((self.impulse == 101), 0, cvar ("skill"));
 		return TRUE;
 	}
@@ -196,6 +202,7 @@ float() BM_BotImpulses =
 			centerprint (self, "No bots active - press ^3F1^7 to add a bot");
 			return TRUE;
 		}
+		bm_manual_bots = TRUE;
 		KickABot ();
 		return TRUE;
 	}
@@ -220,14 +227,12 @@ vector(float wep) BM_BotWeaponRange =
 		if (g == FG_DOOKIE)		return '460 110 1750';
 		if (g == FG_WCANNON)	return '550 180 2100';
 		if (g == FG_M4)			return '520 35 2500';
-		if (g == FG_TOMMY)		return '280 15 1300';
 		if (g == FG_GARAND)		return '680 70 2800';
 		return '320 40 1000';
 	}
 	if (wep == IT_MEGAMAN)			return '520 90 2400';
 	if (wep == IT_AXE)				return '55 0 150';
-	if (wep == IT_CHAINSAW)			return '50 0 140';
-	if (wep == IT_SHOTGUN)			return '280 40 950';	// Goo Gun
+	if (wep == IT_SHOTGUN)			return '240 0 900';		// Shotgun
 	if (wep == IT_SUPER_SHOTGUN)	return '160 0 650';
 	if (wep == IT_NAILGUN)			return '560 90 2200';	// Laptop Gun
 	if (wep == IT_SUPER_NAILGUN)	return '350 60 1200';	// Milky Gun
@@ -240,7 +245,7 @@ vector(float wep) BM_BotWeaponRange =
 
 // Check if bot currently owns and has ready rounds for weapon candidate `id`
 // Candidate IDs:
-//   1 = Bonk Hammer (IT_AXE), 2 = Goo Gun (IT_SHOTGUN), 3 = SSG, 4 = Laptop Gun,
+//   1 = Bonk Hammer (IT_AXE), 2 = Shotgun (IT_SHOTGUN), 3 = SSG, 4 = Laptop Gun,
 //   5 = Milky Gun, 6 = GL, 7 = RL, 8 = LG, 9 = CCC Laser, 10 = Chainsaw, 11 = Mega Man,
 //   61 = Rob Dob, 63 = Pickle, 64 = NetSend, 65 = Mystery Box, 66 = Wheelman,
 //   67 = M4A1, 68 = Thompson, 69 = M1 Garand
@@ -263,7 +268,7 @@ float(float id) BM_BotCanUseWeapon =
 	if (id == 1)
 		return ((self.items & IT_AXE) != 0);
 	if (id == 10)
-		return ((self.items & IT_CHAINSAW) != 0);
+		return FALSE;		// Chainsaw removed
 	if (id == 2)
 	{
 		if (!(self.items & IT_SHOTGUN)) return FALSE;
@@ -337,9 +342,8 @@ float(float id) BM_BotCanUseWeapon =
 float() BM_BotCurWeaponID =
 {
 	if (self.weapon == IT_FUNGUN)
-		return 60 + self.fg_sel;
+		return FunGun_Impulse (self.fg_sel);
 	if (self.weapon == IT_MEGAMAN)			return 11;
-	if (self.weapon == IT_CHAINSAW)			return 10;
 	if (self.weapon == IT_LASER_CANNON)		return 9;
 	if (self.weapon == IT_LIGHTNING)		return 8;
 	if (self.weapon == IT_ROCKET_LAUNCHER)	return 7;
@@ -367,11 +371,6 @@ void(float id) BM_BotSelectWeaponID =
 	if (id == 11)
 	{
 		self.impulse = MM_IMPULSE;
-		return;
-	}
-	if (id == 10)
-	{
-		self.impulse = 252;
 		return;
 	}
 	if (id == 9)
@@ -460,11 +459,9 @@ float(float brange) BM_BotWeaponSwitch =
 			if (brange < 135)
 			{
 				// Point-blank melee & close-quarters chaos
-				if (id == 10)		w = 24;		// Chainsaw
-				else if (id == 1)	w = 18;		// Bonk Hammer
+				if (id == 1)		w = 18;		// Bonk Hammer
 				else if (id == 3)	w = 26;		// Super Shotgun
-				else if (id == 68)	w = 22;		// Thompson SMG
-				else if (id == 2)	w = 15;		// Goo Gun
+				else if (id == 2)	w = 15;		// Shotgun
 				else if (id == 8)	w = 18;		// Lightning Gun
 				else if (id == 9)	w = 14;		// CCC Laser
 				else if (id == 5)	w = 15;		// Milky Gun
@@ -475,11 +472,10 @@ float(float brange) BM_BotWeaponSwitch =
 			{
 				// Close-to-mid street brawls
 				if (id == 3)		w = 18;		// Super Shotgun
-				else if (id == 68)	w = 20;		// Thompson SMG
 				else if (id == 67)	w = 18;		// M4A1
 				else if (id == 7)	w = 20;		// Rocket Launcher
 				else if (id == 5)	w = 16;		// Milky Gun
-				else if (id == 2)	w = 14;		// Goo Gun
+				else if (id == 2)	w = 14;		// Shotgun
 				else if (id == 8)	w = 16;		// Lightning Gun
 				else if (id == 9)	w = 15;		// CCC Laser
 				else if (id == 6)	w = 14;		// Grenade Launcher
@@ -498,19 +494,18 @@ float(float brange) BM_BotWeaponSwitch =
 				if (id == 7)		w = 22;		// Rocket Launcher
 				else if (id == 67)	w = 20;		// M4A1
 				else if (id == 69)	w = 18;		// M1 Garand
-				else if (id == 68)	w = 14;		// Thompson SMG
 				else if (id == 9)	w = 16;		// CCC Laser
 				else if (id == 4)	w = 16;		// Laptop Gun
 				else if (id == 5)	w = 13;		// Milky Gun
 				else if (id == 6)	w = 13;		// Grenade Launcher
-				else if (id == 2)	w = 10;		// Goo Gun
+				else if (id == 2)	w = 10;		// Shotgun
 				else if (id == 11)	w = 16;		// Mega Man Gun
 				else if (id == 62)	w = 14;		// Jar o' Green Guys
 				else if (id == 65)	w = 14;		// Dookie Bazooka
 				else if (id == 66)	w = 16;		// Wheelman Cannon
 				else if (id == 64)	w = 10;		// NetSend PC
 				else if (id == 63)	w = 9;		// Pickle Surprise
-				else if (id == 61)	w = 11;		// Rob Dob flying head
+				else if (id == 61)	w = 14;		// Rob Dob flying head
 			}
 			else
 			{
@@ -523,7 +518,6 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 66)	w = 16;		// Wheelman Cannon
 				else if (id == 11)	w = 15;		// Mega Man Gun
 				else if (id == 61)	w = 14;		// Rob Dob flying head
-				else if (id == 68)	w = 8;		// Thompson SMG
 			}
 		}
 
@@ -553,7 +547,7 @@ float(float brange) BM_BotWeaponSwitch =
 };
 
 // Aim tuning (called at the end of bot_angle_set when self.enemy != world):
-// 1. Ballistic pitch arcs for Grenade Launcher, Goo Gun, Pickle Surprise, Mystery Box, and floor pitch for NetSend.
+// 1. Ballistic pitch arcs for Grenade Launcher, Pickle Surprise, Jar o' Green Guys, Rob Fastball, Wheelman Cannon, and floor pitch for NetSend.
 // 2. Smooth, human-like aim error when bm_bot_easy is on so 5-10 aggressive bots feel fun and fair.
 void() BM_BotAimAdjust =
 {
@@ -567,8 +561,6 @@ void() BM_BotAimAdjust =
 	// Weapon-specific ballistic pitch adjustments (negative b_angle_x = pitch UP, positive = pitch DOWN)
 	if (self.weapon == IT_GRENADE_LAUNCHER)
 		self.b_angle_x = self.b_angle_x - bound (4, dist * 0.022, 24);
-	else if (self.weapon == IT_SHOTGUN)
-		self.b_angle_x = self.b_angle_x - bound (2, dist * 0.015, 16);
 	else if (self.weapon == IT_FUNGUN)
 	{
 		g = self.fg_sel;
@@ -610,8 +602,8 @@ void() BM_BotShoot =
 	if (!self.enemy || self.enemy.health <= 0)
 		return;
 
-	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar), swap smoothly
-	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.dk_charging && !self.gj_shaking && self.hm_state != 1 && self.ltg_phase != 1)
+	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar / Rob Head), swap smoothly
+	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.dk_charging && !self.gj_shaking && !self.rh_charging && self.hm_state != 1 && self.ltg_phase != 1)
 	{
 		dist = vlen (realorigin (self.enemy) - self.origin);
 		self.bm_bot_wep_t = 0;
@@ -653,6 +645,29 @@ void() BM_BotShoot =
 		return;
 	}
 
+	// 1b. Laptop Gun (IT_NAILGUN): hold fire to queue DDoS packets, release to flood!
+	if (self.weapon == IT_NAILGUN)
+	{
+		if (self.ltg_phase == 0)
+		{
+			if (time >= self.attack_finished)
+			{
+				self.button0 = TRUE;
+				self.bm_bot_wc_rel = time + 0.15 + random () * 0.65;
+			}
+		}
+		else if (self.ltg_phase == 1)
+		{
+			if (time < self.bm_bot_wc_rel && self.ltg_queue < self.ltg_qmax)
+				self.button0 = TRUE;
+			else
+				self.button0 = FALSE;
+		}
+		else
+			self.button0 = FALSE;
+		return;
+	}
+
 	// 2. Fun Guns with special trigger mechanics
 	if (self.weapon == IT_FUNGUN)
 	{
@@ -672,6 +687,29 @@ void() BM_BotShoot =
 				{
 					self.button0 = TRUE;
 					self.bm_bot_wc_rel = time + 0.25 + random () * 0.40;
+				}
+			}
+			else if (time < self.bm_bot_wc_rel)
+				self.button0 = TRUE;
+			else
+				self.button0 = FALSE;
+			return;
+		}
+
+		// Rob Dob (DJI Drone): press button to launch steerable flying head
+		if (g == FG_DOB)
+		{
+			if (self.rh_throw_at > 0)
+			{
+				self.button0 = FALSE;
+				return;
+			}
+			if (self.rh_charging <= 0)
+			{
+				if (time >= self.attack_finished)
+				{
+					self.button0 = TRUE;
+					self.bm_bot_wc_rel = time + 0.10 + random () * 0.15;
 				}
 			}
 			else if (time < self.bm_bot_wc_rel)
@@ -729,7 +767,7 @@ void() BM_BotShoot =
 	}
 
 	// 3. Easy-mode natural burst pacing on rapid/sustained guns so bots feel lively, not robotic
-	if (autocvar_bm_bot_easy && self.weapon != IT_CHAINSAW && self.ltg_phase != 1)
+	if (autocvar_bm_bot_easy && self.ltg_phase != 1)
 	{
 		if (time < self.bm_bot_pause_t)
 		{
@@ -771,16 +809,15 @@ void() BM_BotSpawnLoadout =
 	k = 0;
 	while (k < 3)
 	{
-		r = floor (random () * 9);
-		if (r == 0)			self.items = self.items | IT_SHOTGUN;			// Goo Gun
+		r = floor (random () * 8);
+		if (r == 0)			self.items = self.items | IT_SHOTGUN;			// Shotgun
 		else if (r == 1)	self.items = self.items | IT_SUPER_SHOTGUN;
 		else if (r == 2)	self.items = self.items | IT_NAILGUN;			// Laptop Gun
 		else if (r == 3)	self.items = self.items | IT_SUPER_NAILGUN;		// Milky Gun
 		else if (r == 4)	self.items = self.items | IT_GRENADE_LAUNCHER;
 		else if (r == 5)	self.items = self.items | IT_ROCKET_LAUNCHER;
 		else if (r == 6)	self.items = self.items | IT_LIGHTNING;
-		else if (r == 7)	self.items = self.items | IT_LASER_CANNON;		// CCC Laser Cannon
-		else				self.items = self.items | IT_CHAINSAW;
+		else				self.items = self.items | IT_LASER_CANNON;		// CCC Laser Cannon
 		k = k + 1;
 	}
 
@@ -1190,6 +1227,19 @@ float() BM_IsDowntownMap =
 		|| world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
 };
 
+// BM_IsDowntownMap, cached (BM_BotPostAI runs it per bot per frame)
+float() BM_BotDowntown =
+{
+	if (!bm_dt_map_cache)
+	{
+		if (BM_IsDowntownMap ())
+			bm_dt_map_cache = 2;
+		else
+			bm_dt_map_cache = 1;
+	}
+	return (bm_dt_map_cache == 2);
+};
+
 void() BM_MapLoad =
 {
 	bm_dt_way_done = FALSE;
@@ -1315,11 +1365,11 @@ void() BM_BotPostAI =
 			self.button0 = TRUE;
 	}
 
-	// Out-of-combat tactical magazine top-up for firearms (M4 / Thompson / Garand)
+	// Out-of-combat tactical magazine top-up for firearms (M4 / Garand)
 	if (!self.enemy && autocvar_bm_reload && !self.bm_rl_slot && time > self.bm_lastshot + 2.0)
 	{
 		s = BM_SlotOf (self);
-		if (s == BM_FG7 || s == BM_FG8 || s == BM_FG9)
+		if (BM_IsFirearmSlot (s))
 		{
 			if (BM_GetMag (self, s) < BM_MagSize (s) * 0.35)
 				self.impulse = BM_RELOAD_IMPULSE;
@@ -1412,7 +1462,8 @@ void() BM_BotPostAI =
 
 	// ---------------- 2. ROOFTOP LEAP-OFF AI ----------------
 	// Fall damage is off (bm_falldamage 0): if on a building/rooftop and enemy is down on the street, charge & jump off!
-	if ((self.flags & FL_ONGROUND) && self.origin_z > 130 && !autocvar_bm_falldamage)
+	// (downtown only: z > 130 is a rooftop there, on other maps it can be any upper floor or ledge)
+	if ((self.flags & FL_ONGROUND) && self.origin_z > 130 && !autocvar_bm_falldamage && BM_BotDowntown ())
 	{
 		if (self.enemy != world && self.origin_z - self.enemy.origin_z > 80)
 		{
@@ -1490,7 +1541,7 @@ void() BM_BotPostAI =
 		self.bm_bot_roof_t = 0;
 
 	// Padre upper-suite west courtyard window sill hop (20u sill at x=-9636, y=-4862)
-	if ((self.flags & FL_ONGROUND) && self.origin_x >= -9655 && self.origin_x <= -9560
+	if (BM_BotDowntown () && (self.flags & FL_ONGROUND) && self.origin_x >= -9655 && self.origin_x <= -9560
 		&& self.origin_y >= -4950 && self.origin_y <= -4800 && self.origin_z > 480 && self.origin_z < 880)
 	{
 		bot_jump ();
@@ -1498,7 +1549,7 @@ void() BM_BotPostAI =
 
 	// ---------------- 3. DOWNTOWN RIVAL HUNTING & SUB-GRADE EXIT ----------------
 	// Suppress perpendicular wall-dodge inside Sandrini's narrow basement stairwell so bots walk straight up the steps
-	if (self.origin_x >= -4040 && self.origin_x <= -3660 && self.origin_y >= 240 && self.origin_y <= 360 && self.origin_z < 40)
+	if (BM_BotDowntown () && self.origin_x >= -4040 && self.origin_x <= -3660 && self.origin_y >= 240 && self.origin_y <= 360 && self.origin_z < 40)
 		self.b_aiflags = self.b_aiflags - (self.b_aiflags & AI_OBSTRUCTED);
 
 	// On a huge 28,000-unit city map, idle bots actively converge on living players for nonstop action
@@ -1533,10 +1584,13 @@ void() BM_BotPostAI =
 		self.bm_bot_stuck_org = self.origin;
 		self.bm_bot_stuck_t = time + 0.95;
 
-		if (!self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
+		// not while the bot stands still on purpose: computing its route table (keys 0 until done: clearing target1
+		// threw the route away, so it never left) or waiting at an AI_WAIT (ambush / sniper / lift) waypoint
+		if (route_table != self && !(self.b_aiflags & AI_WAIT)
+			&& !self.fd_head && !self.wc_charging && !self.dk_charging && self.ltg_phase != 1 && ((self.keys & 63) || !self.enemy) && vlen (d) < 28)
 		{
 			// Sub-grade basement failsafe: steer directly to Sandrini's stair foot / Eye St exit instead of wall rays
-			if (self.origin_z < -20 && self.origin_x >= -4080 && self.origin_x <= -3280
+			if (BM_BotDowntown () && self.origin_z < -20 && self.origin_x >= -4080 && self.origin_x <= -3280
 				&& self.origin_y >= 160 && self.origin_y <= 540)
 			{
 				if (self.origin_x > -3695 || self.origin_y < 262 || self.origin_y > 338)

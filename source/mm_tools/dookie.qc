@@ -1,5 +1,7 @@
 // ---------------------------------------------------------------- 5. DOOKIE BAZOOKA MK-IV (fun gun 5, impulse 65, key U)
 
+.float dk_msg;		// next time the charge centerprint may be re-sent (every frame flooded the reliable channel)
+
 void() Dookie_Precache =
 {
 	precache_model ("progs/v_dookie.md3");
@@ -46,20 +48,45 @@ void(entity e) DK_PlayFlightYell =
 };
 
 // 16-angle x 8-frame viewer-relative sprite orientation (matches dookie_rig turn_16 convention)
+// Frames 0..127:   horizontal (16 angles x 8 waving frames)
+// Frames 128..255: above45 (30-60 deg jetpack view, 16 angles x 8 waving frames)
+// Frames 256..383: above90 (>60 deg straight-down hover, 16 angles x 8 waving frames)
 float() DK_ProjCustomize =
 {
-	local float rel, d, k;
+	local float rel, d, k, dz, hdist, base;
 	local vector delta;
 
 	delta = (other.origin + other.view_ofs) - self.origin;
-	rel = vectoyaw (delta) - self.angles_y;
+	dz = delta_z;
+	delta_z = 0;
+	hdist = vlen (delta);
+
+	if (dz > hdist * 1.73)
+	{
+		base = 256;
+		if (hdist < 16)
+			rel = (other.v_angle_y + 180) - self.angles_y;
+		else
+			rel = vectoyaw (delta) - self.angles_y;
+	}
+	else if (dz > hdist * 0.58)
+	{
+		base = 128;
+		rel = vectoyaw (delta) - self.angles_y;
+	}
+	else
+	{
+		base = 0;
+		rel = vectoyaw (delta) - self.angles_y;
+	}
+
 	rel = rel - 360 * floor (rel / 360);
 	d = floor (rel / 22.5 + 0.5);
 	if (d >= 16)
 		d = 0;
 	k = floor ((time - self.fg_born) * 16);
 	k = k - 8 * floor (k / 8);
-	self.frame = d * 8 + k;
+	self.frame = base + d * 8 + k;
 	return TRUE;
 };
 
@@ -343,9 +370,19 @@ void(entity hit, vector norm) DK_Detonate =
 	self.nextthink = time + 1.6;		// keep entity alive long enough for splat + buzz audio to finish
 };
 
-void() DK_ProjDie =
+void() DK_ProjDieThink =
 {
 	DK_Detonate (world, '0 0 1');
+};
+
+void() DK_ProjDie =
+{
+	// this runs inside the T_RadiusDamage loop of whatever shot it: blowing up here ran a second findradius, which rewrote
+	// .chain under that loop (players skipped or hit twice). Go off a moment later instead, as pickle.qc / megaman.qc do.
+	self.takedamage = DAMAGE_NO;
+	self.touch = SUB_Null;
+	self.think = DK_ProjDieThink;
+	self.nextthink = time;
 };
 
 void() DK_ProjTouch =
@@ -394,6 +431,7 @@ void() DK_Press =
 	if (time < self.dk_cool)
 		return;
 	self.dk_charging = time;
+	self.dk_msg = 0;
 	self.attack_finished = time + 0.08;
 	FG_Snd (self, CHAN_WEAPON, "dookie/dk_charge.wav", 1.0, 1.0);
 	dprint ("dookie: windup start\n");
@@ -482,6 +520,9 @@ void() DK_Frame =
 		return;
 	}
 	self.attack_finished = time + 0.08;
+	if (time < self.dk_msg)
+		return;
+	self.dk_msg = time + 0.25;		// throttle: a reliable centerprint every frame floods remote clients
 	pct = floor (c * 100);
 	centerprint (self, strcat ("DOOKIE PRESSURE: ", strcat (ftos (pct), "%\n")));
 };

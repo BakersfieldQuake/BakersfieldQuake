@@ -45,7 +45,7 @@ var float	autocvar_veh_respawn	= 30;	// > 0: seconds after wreck settles before 
 var float	autocvar_veh_debug		= 0;	// 1: log the driven van's speed / heading / steering / revs 4x a second (needs developer 1)
 
 float	veh_inflicting;						// TRUE while an exploding vehicle deals T_RadiusDamage (for ClientObituary & chain stagger)
-float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
+float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, veh_fx_boost, veh_fx_drift;
 
 .float	veh_kind;			// 1..7 on shootable vehicles, 0 on everything else
 .float	veh_state;			// VEH_STATE_IDLE, VEH_STATE_FIRE, VEH_STATE_WRECK
@@ -64,6 +64,8 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
 .entity	veh_igniter;		// player/attacker credited with igniting or blowing up this vehicle
 .vector	veh_spawn_org;		// initial map origin (for optional respawn)
 .vector	veh_spawn_ang;		// initial map angles
+.vector	veh_orig_colormod;	// preserved custom map tint before burn/wreck clears it
+.float	veh_has_cm;
 
 // Per-wheel rolling geometry on blown-off tires
 .float	veh_wheel_r;		// tire outer radius (16.5 / 13.0 / 14.8 / 12.6 / 18.0 / 17.5 / 13.8)
@@ -94,6 +96,9 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
 .float	veh_start_t;		// engine finishes cranking at this time (no drive before)
 .float	veh_crash_t;		// rate limit for crash damage/sounds
 .float	veh_coast_until;	// > 0 while empty vehicle is ghost-riding / coasting after a high-speed dive-bail
+.float	veh_fx_boost_t;		// next turbo exhaust flame/spark emission
+.float	veh_land_dip;		// temporary suspension pitch dip on landing
+.float	veh_drift_t;		// continuous handbrake drift duration (fuels drift-exit mini-turbo)
 // ... on the player:
 .entity	veh_van;			// the vehicle he is driving (world = on foot)
 .entity	veh_ride;			// the vehicle he is riding in as a drive-by passenger (world = not riding)
@@ -102,8 +107,10 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks;
 .float	veh_bail_safe_t;	// brief ram & self-blast immunity after diving clear of veh_last_van
 .float	veh_oldmove;		// movetype / solid to give back when he gets out
 .float	veh_oldsolid;
-.float	veh_camera;			// 0 = cockpit view, 1 = chase view
+.float	veh_camera;			// 0 = cockpit view, 1 = chase view (default)
 .float	veh_cam_yaw;		// smoothed yaw of the chase camera
+.float	veh_cam_pitch;		// smoothed pitch of the chase camera
+.float	veh_cam_dist;		// smoothed distance of the chase camera
 .float	veh_cam_look;		// smoothed steering lead of the cockpit camera
 .float	veh_prompt_scan_t;	// throttle Veh_NearPrompt spatial scan to 10 Hz
 .float	veh_hint_shown;		// controls hint shown once per player

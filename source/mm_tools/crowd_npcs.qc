@@ -275,6 +275,7 @@ float() CN_RandomKind =
 	}
 	hd_ok = (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
 	tries = 0;
+	k = 1;		// the loop always sets it; this only quiets the compiler (F302)
 	while (tries < 4)
 	{
 		if (hd_ok)

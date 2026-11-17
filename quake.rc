@@ -2,12 +2,13 @@
 // Same as Combat+'s, except: BakersfieldQuake's own intro demo, the multiplayer settings (q15_config_coop.cfg) instead of the
 // single-player ones, and they run BEFORE config.cfg so a player's own saved settings always win.
 
-// mod defaults and clean modern binds/settings for a brand new player
-exec default.cfg
-
 // Combat+ multiplayer settings, and the hook aliases
 exec q15_config_coop.cfg
 exec hook.cfg
+
+// mod defaults and clean modern binds/settings for a brand new player. AFTER q15_config_coop.cfg so the mod's own values
+// win over Combat+'s (it set r_coronas 0.4 and enforcer_defender_prox 1 over ours); still before config.cfg.
+exec default.cfg
 
 // client look/feel defaults (also before config.cfg, so the player's own choices win)
 sbar_alpha_bg "0"
@@ -49,16 +50,17 @@ exec personal_post.cfg
 
 // default keys: ONCE, for a new player (bm_defver is saved as 1 in their config.cfg, so this never runs again and
 // their own binds / unbinds are never touched). To ship new default keys later: new file, bm_up_1 -> exec it, bump the number.
-alias bm_up_0 "exec bm_binds.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_1 "exec bm_up_1.cfg; exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_2 "exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_3 "exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_4 "exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_5 "exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_6 "exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_7 "exec bm_up_7.cfg; exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_8 "exec bm_up_8.cfg; seta bm_defver 9"
-alias bm_up_9 ""
+alias bm_up_0 "exec bm_binds.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_1 "exec bm_up_1.cfg; exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_2 "exec bm_up_2.cfg; exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_3 "exec bm_up_3.cfg; exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_4 "exec bm_up_4.cfg; exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_5 "exec bm_up_5.cfg; exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_6 "exec bm_up_6.cfg; exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_7 "exec bm_up_7.cfg; exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_8 "exec bm_up_8.cfg; exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_9 "exec bm_up_9.cfg; seta bm_defver 10"
+alias bm_up_10 ""
 bm_up_$bm_defver
 
 // Build no unused unvised BSP portals, or spam debug prints unless overridden on command line
@@ -73,5 +75,4 @@ sv_gameplayfix_noairborncorpse 1
 sv_gameplayfix_setmodelrealbox 1
 sv_gameplayfix_slidemoveprojectiles 1
 
-// start intro showcase demo if not already running/joining a server
-startdemos intro
+// Startup main menu & slow scenic map background are driven by menu.dat (menu_background / menu_background_map).

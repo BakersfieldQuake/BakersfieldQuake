@@ -185,6 +185,74 @@ def build_synthesized_sfx():
     print(f"  [WAV OK] Synthesized 10 custom SFX in {SND_DIR}")
 
 
+def build_nuke_boom():
+    """Synthesizes `nuke_boom.wav` (4.0s @ 22050 Hz 16-bit mono PCM WAV):
+    deep sub-bass nuclear detonation + crackling shockwave + long rolling thunder rumble."""
+    sr = 22050
+    dur = 4.0
+    n = int(dur * sr)
+    rng = np.random.default_rng(1945)
+    t = np.linspace(0.0, dur, n, endpoint=False, dtype=np.float32)
+
+    # 1. Punchy sub-bass detonation drop (instant impact slam + deep chest-thump sustain)
+    f_sub = 28.0 + 96.0 * np.exp(-t * 9.5) + 42.0 * np.exp(-t * 28.0)
+    ph_sub = 2.0 * np.pi * np.cumsum(f_sub) / sr
+    sub_body = (
+        0.90 * np.sin(ph_sub) * np.exp(-t * 2.15)
+        + 0.45 * np.sin(0.5 * ph_sub + 0.3) * np.exp(-t * 1.45)
+    )
+    sub_punch = np.tanh(sub_body * 1.55) * np.minimum(1.0, t / 0.004)
+
+    # 2. Supersonic shockwave transient + crackling plasma/debris snap
+    nz_crack = rng.standard_normal(n).astype(np.float32)
+    b_hi, a_hi = signal.butter(2, [750.0 / (0.5 * sr), 4600.0 / (0.5 * sr)], btype="band")
+    shock_band = signal.lfilter(b_hi, a_hi, nz_crack).astype(np.float32)
+    # Sparse high-energy micro-crackles across the shock front (0.01s..1.35s)
+    impulses = (rng.random(n) < 0.014).astype(np.float32) * rng.standard_normal(n).astype(np.float32)
+    crackle_filt = signal.lfilter(b_hi, a_hi, impulses).astype(np.float32)
+    crack_env = (
+        1.15 * np.exp(-t * 14.0)
+        + 0.55 * np.exp(-np.maximum(0.0, t - 0.04) * 3.1) * (t >= 0.04)
+    )
+    shock_crackle = (0.55 * shock_band + 1.35 * crackle_filt) * crack_env
+
+    # 3. Long thunderous nuclear rumble with downtown building echo swells
+    nz_rumble = rng.standard_normal(n).astype(np.float32)
+    b_low, a_low = signal.butter(3, 210.0 / (0.5 * sr), btype="low")
+    deep_roar = signal.lfilter(b_low, a_low, nz_rumble).astype(np.float32)
+    deep_roar /= (np.std(deep_roar) + 1e-6)
+
+    nz_mid = rng.standard_normal(n).astype(np.float32)
+    b_mid, a_mid = signal.butter(2, [140.0 / (0.5 * sr), 720.0 / (0.5 * sr)], btype="band")
+    mid_roar = signal.lfilter(b_mid, a_mid, nz_mid).astype(np.float32)
+    mid_roar /= (np.std(mid_roar) + 1e-6)
+
+    # Rolling secondary pressure swells (echoes at ~0.32s, 0.78s, 1.38s, 2.15s)
+    echo_swell = (
+        1.0
+        + 0.42 * np.exp(-(((t - 0.32) / 0.14) ** 2))
+        + 0.34 * np.exp(-(((t - 0.78) / 0.22) ** 2))
+        + 0.25 * np.exp(-(((t - 1.38) / 0.30) ** 2))
+        + 0.16 * np.exp(-(((t - 2.15) / 0.38) ** 2))
+    )
+    rumble_env = np.minimum(1.0, t / 0.025) * np.exp(-t * 0.88) * echo_swell
+    thunder_tail = (0.48 * deep_roar + 0.30 * mid_roar) * rumble_env
+
+    mix = sub_punch + 0.65 * shock_crackle + thunder_tail
+    # Soft-saturate and smooth end fadeout (last 0.40s) to guarantee zero tail click
+    mix = np.tanh(mix * 1.18)
+    fade_out = np.minimum(1.0, (dur - t) / 0.40)
+    mix *= fade_out
+    peak = float(np.max(np.abs(mix))) or 1.0
+    mix = (mix / peak) * 0.92
+
+    out_p = os.path.join(SND_DIR, "nuke_boom.wav")
+    write_mono_wav(out_p, mix.astype(np.float32), sr=sr)
+    print(f"  [WAV OK] nuke_boom.wav ({dur:.2f}s @ {sr}Hz, 16-bit mono PCM -> {out_p})")
+    return out_p
+
+
 if __name__ == "__main__":
     stage_canis_lupus_fantasy()
     build_synthesized_sfx()
+    build_nuke_boom()

@@ -1,6 +1,6 @@
 # BakersfieldQuake
 
-A Quake mod layered on Combat+ (quake15) and the DarkPlaces engine: custom guns (Mega Man gun, NetSend, Mystery Box,
+A Quake mod layered on Combat+ (quake15) and the **Zircon Engine** (we no longer use DarkPlaces): custom guns (Mega Man gun, NetSend, Mystery Box,
 Wheelman Cannon, jetpack and more), Bakersfield maps (`bklan`, `orcom` and others) and a LAN-party deathmatch ruleset.
 
 ## Play it

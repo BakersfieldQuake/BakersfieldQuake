@@ -24,7 +24,7 @@ var float	autocvar_bm_falldamage		= 0;		// 1 = stock fall damage
 var float	autocvar_bm_spawnnear		= 1200;		// spawn near the action: the free spawn closest to a living rival but not nearer than this and out of sight (0 = stock round robin)
 var float	autocvar_bm_fg_lock			= 0;		// seconds after a fun gun fires before a DIFFERENT fun gun can fire (0 = off)
 var float	autocvar_bm_preload			= 0;		// 0 = off, 1 = preload the Wheelman Cannon sprites (~315 MB) with the map instead of on the first charge
-var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, goo, shock, milk): less snap-back online
+var float	autocvar_bm_nopredict		= 1;		// 1 = no client prediction while the server drives your speed (jetpack, shock, milk): less snap-back online
 var float	autocvar_bm_spawnprot		= 3;		// seconds of spawn protection (firing ends it)
 var float	autocvar_bm_spawnpause		= 0.5;		// seconds after a spawn with protection before you can fire
 var float	autocvar_bm_regen_delay		= 5;		// seconds after the last hit before health comes back
@@ -54,11 +54,11 @@ var float	autocvar_bm_ud_red			= 0.75;		// boost for spawning with red armor (ca
 
 var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer (bm_fun.qc): no first blood, sprees, revenge, clips
 var float	autocvar_bm_fun_gap			= 10;		// seconds between two global announcer voice clips
-var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4/Thompson/Garand); 0 = skip FG1..FG6
+var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4/Garand); 0 = skip FG1..FG6
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
 var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
 var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
-var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4 / Thompson / Garand, 2 = RL, 3 = M4, 4 = Thompson, 5 = Garand, 0 = MegaMan
+var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4 / Garand, 2 = RL, 3 = M4, 5 = Garand, 0 = MegaMan
 var float	autocvar_bm_bot_easy		= 1;		// 1 = easy, fun, aggressive bots with human aim spread (0 = full FrikBot aim)
 var float	autocvar_bm_bot_dmg			= 0.65;		// damage multiplier dealt by bots to players (keeps 5-10 aggressive bots fun & forgiving)
 var float	autocvar_bm_bot_tags		= 1;		// 1 = show floating [BOT] nameplates over visible bots
@@ -71,7 +71,7 @@ var float	autocvar_bm_bot_idle		= 45;		// dedicated servers: seconds with no hum
 var float	autocvar_bm_bot_jpfuel		= 2.2;		// starting jetpack fuel (seconds) for bots so they fly around downtown buildings
 
 // ---------------------------------------------------------------- magazines
-// slot numbers (bm_reload.qc), 0 = no magazine (axe, chainsaw, banana)
+// slot numbers (bm_reload.qc), 0 = no magazine (axe, banana)
 float	BM_SG		= 1;
 float	BM_SSG		= 2;
 float	BM_NG		= 3;
@@ -87,7 +87,7 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	// M4 / Thompson / Garand
+float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	// M4 / (unused) / Garand
 float	BM_SLOTS	= 18;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
@@ -127,6 +127,7 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	bm_st_lshow;		// 1 = draw the HUD marker at bm_st_lx/ly/lz
 .string	bm_st_leader;		// the current leader's name ("" = nobody far enough ahead)
 .float	bm_st_botmask;		// bitmask of live visible bot client slots 0..15 (stat 76, csqc/bm_hud.qc)
+.float	bm_st_playermask;	// bitmask of live visible human client slots 0..15 (stat 80, csqc/bm_hud.qc)
 .float	bm_st_botcnt;		// active bot count (stat 77, csqc/bm_hud.qc)
 .float	bm_st_toymask;		// bitmask of ready fun-gun superweapons & Winged John (stat 78, csqc/bm_hud.qc)
 .float	bm_st_toycd;		// Winged John cooldown seconds remaining (stat 79, csqc/bm_hud.qc)
@@ -225,6 +226,7 @@ string	bm_vote_map;		// the map being voted on, strzoned
 entity	bm_player_head;		// active connected "player" entities rebuilt once per frame in BM_StartFrame
 .entity	bm_player_next;
 float	bm_botmask_cache;
+float	bm_playermask_cache;
 var float	autocvar_sv_gravity		= 800;
 var float	autocvar_sv_maxvelocity	= 2000;
 var float	autocvar_ltg_video		= 0;

@@ -26,8 +26,6 @@ void() LtGun_PrecacheVideo =
 
 void() LtGun_Precache =
 {
-	ltg_fx_laser = particleeffectnum ("ltg_laser");
-
 	precache_model ("progs/ltg_v3d.md3");
 	if (cvar ("ltg_video"))
 		LtGun_PrecacheVideo ();
@@ -35,8 +33,6 @@ void() LtGun_Precache =
 	precache_model ("progs/ltg_g.md3");
 	precache_model ("progs/ltg_head.md3");
 	precache_model ("progs/ltg_aura.md3");
-	precache_model ("progs/ltg_laser.md3");
-	precache_model ("progs/sight.spr");
 	precache_sound ("ltgun/canis.wav");
 	precache_sound ("ltgun/type.wav");
 	precache_sound ("ltgun/send.wav");
@@ -75,7 +71,7 @@ string(entity p) LtGun_VModel =
 	if (!bm_cvar_ltg_video)
 		return "progs/ltg_v3d.md3";		// the 3D laptop (build_laptop_gun.py): frames 0-11 idle, 12-33 typing and lightning
 	LtGun_PrecacheVideo ();
-	if (p.ltg_phase == 1)
+	if (p.ltg_phase >= 1)
 		return LtGun_TypeModel (p.ltg_var);
 	return "progs/ltg_view.md3";
 };
@@ -122,12 +118,8 @@ float() LtGun_AuraCustomize =
 
 void() LtGun_Gone =
 {
-	if (self.ltg_dot)
-		remove (self.ltg_dot);
 	if (self.ltg_aura)
 		remove (self.ltg_aura);
-	if (self.ltg_laser)
-		remove (self.ltg_laser);
 	sound (self, CHAN_VOICE, "ltgun/null.wav", 1, ATTN_NORM);		// cuts the clip off
 	remove (self);
 };
@@ -140,7 +132,7 @@ void(entity e, entity by) LtGun_Shock =
 	if ((e == by && !cvar ("ltg_test")) || (teamplay && by && e.team > 0 && e.team == by.team))
 		return;
 	e.ltg_shock = time + LTG_SHOCK_TIME;
-	e.ltg_immune_t = time + LTG_SHOCK_TIME + 2.5;
+	e.ltg_immune_t = time + LTG_SHOCK_TIME + 0.5;
 	e.ltg_by = by;
 	e.ltg_zap_t = time + 0.1;
 	sound (e, CHAN_ITEM, "ltgun/zap.wav", 1, ATTN_NORM);
@@ -172,6 +164,12 @@ void() LtGun_Touch =
 			LtGun_Shock (e, self.owner);
 		e = e.bm_player_next;
 	}
+	ltg_inflicting = TRUE;
+	if (other.takedamage)
+		T_RadiusDamage (self, self.owner, LTG_SPLASH_DMG, other);
+	else
+		T_RadiusDamage (self, self.owner, LTG_SPLASH_DMG, world);
+	ltg_inflicting = FALSE;
 	sound (self, CHAN_AUTO, "ltgun/hit.wav", 1, ATTN_NORM);
 	sendParticle ("ltg_boom", self.origin, '0 0 0', 1, 0);
 	LtGun_Gone ();
@@ -192,7 +190,7 @@ entity() LtGun_Seek =
 	e = bm_player_head;
 	while (e)
 	{
-		if (e != self.owner && e.health > 0)
+		if (e != self.owner && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY) && !(teamplay && self.owner && e.team > 0 && e.team == self.owner.team))
 		{
 			to = e.origin - self.origin;
 			d = vlen (to);
@@ -211,15 +209,15 @@ entity() LtGun_Seek =
 	return best;
 };
 
-// every 0.03 s: home on the enemy it has locked, else steer to where the owner is pointing
+// every 0.03 s: home on a visible enemy ahead, else weave smoothly along launch heading
 void() LtGun_Think =
 {
 	local entity o, e;
-	local vector tgt, want, dir, src, gun;
-	local float k;
+	local vector tgt, want, dir;
+	local float k, sw;
 
 	o = self.owner;
-	if (time > self.ltg_born + LTG_LIFE || o.health <= 0 || o.classname != "player")
+	if (time > self.ltg_born + LTG_LIFE || o.classname != "player")
 	{
 		sendParticle ("ltg_boom", self.origin, '0 0 0', 1, 0);
 		LtGun_Gone ();
@@ -232,7 +230,7 @@ void() LtGun_Think =
 		self.nextthink = time + 0.1;
 		return;
 	}
-	// lock-on: it ignores the laser while it can see an enemy, and follows him until he has been out of sight for LTG_LOSE seconds
+	// lock-on: tracks a visible enemy until he stays out of sight for LTG_LOSE seconds
 	e = self.ltg_lock;
 	if (e && (e.health <= 0 || e.classname != "player" || vlen (e.origin - self.origin) > LTG_SEEK * 2))
 		e = world;
@@ -250,73 +248,33 @@ void() LtGun_Think =
 		e = LtGun_Seek ();
 	if (e && !self.ltg_lock)
 	{
-		// locked on: the red dot and beam go out
 		self.ltg_blind = 0;
 		if (cvar ("ltg_test"))
 			dprint (strcat ("ltg lock on ", e.netname, " at ", ftos (vlen (e.origin - self.origin)), "\n"));
-		if (self.ltg_dot)
-			setmodel (self.ltg_dot, "");
-		if (self.ltg_laser)
-			setmodel (self.ltg_laser, "");
 		sound (self, CHAN_AUTO, "ltgun/zap.wav", 0.6, ATTN_NORM);
-	}
-	else if (!e && self.ltg_lock)
-	{
-		// lost him: the laser steers again
-		if (self.ltg_dot)
-			setmodel (self.ltg_dot, "progs/sight.spr");
-		if (self.ltg_laser)
-			setmodel (self.ltg_laser, "progs/ltg_laser.md3");
 	}
 	self.ltg_lock = e;
 
-	makevectors (o.v_angle);
-	src = o.origin + o.view_ofs;
+	dir = normalize (self.velocity);
 	if (e)
 	{
-		// a little lead, so a straight run does not get away
-		k = vlen (e.origin - self.origin) / LTG_SPEED * 0.5;
+		// lead the target slightly so straight-line sprinting does not outrun the packet
+		k = vlen (e.origin - self.origin) / LTG_SPEED * 0.55;
 		tgt = e.origin + e.velocity * k;
-	}
-	else
-	{
-		traceline (src, src + v_forward * 4096, FALSE, o);
-		tgt = trace_endpos;
-		if (self.ltg_dot)
-			setorigin (self.ltg_dot, trace_endpos - v_forward * 2);
-	}
-	// the laser: a red beam from the laptop to the dot (redrawn every think, it lives a few hundredths of a second)
-	if (self.ltg_laser && !e)
-	{
-		// from just in front of the laptop to the dot: the model is LTG_LASER_LEN long along its x axis, so stretch it to fit
-		gun = src + v_forward * 14 + v_right * 8 - v_up * 9;
-		want = trace_endpos - gun;
-		k = vlen (want) / 300;
-		if (k < 0.07)
-			k = 0.07;
-		if (k > 15)
-			k = 15;
-		setorigin (self.ltg_laser, gun);
-		self.ltg_laser.angles = vectoangles (want);
-		self.ltg_laser.scale = k;
-	}
-	if (!e && time >= self.ltg_dot_t)
-	{
-		self.ltg_dot_t = time + 0.06;
-		sendParticle ("ltg_dot", trace_endpos - v_forward * 3, '0 0 0', 1, 0);
-	}
-
-	dir = normalize (self.velocity);
-	want = tgt - self.origin;
-	if (vlen (want) > 32)
-	{
-		want = normalize (want);
-		k = LTG_TURN * 0.03;
-		if (e)
+		want = tgt - self.origin;
+		if (vlen (want) > 24)
+		{
+			want = normalize (want);
 			k = LTG_TURN_LOCK * 0.03;
-		if (k > 1)
-			k = 1;
-		dir = normalize (dir + (want - dir) * k);
+			if (k > 1)
+				k = 1;
+			dir = normalize (dir + (want - dir) * k);
+		}
+	}
+	else if (self.ltg_weave_amp != 0)
+	{
+		sw = sin ((time - self.ltg_born) * 11 + self.ltg_wob);
+		dir = normalize (dir + self.ltg_weave_r * (sw * self.ltg_weave_amp * 0.0004));
 	}
 	self.velocity = dir * LTG_SPEED;
 	self.angles = vectoangles (dir);
@@ -326,25 +284,32 @@ void() LtGun_Think =
 	self.nextthink = time + 0.03;
 };
 
-// the shot: runs when the typing is done
-void() LtGun_Launch =
+// launch one DDoS head (idx out of total) with symmetric fan spread & weave
+void(float idx, float total) LtGun_Launch =
 {
-	local entity h, a, d;
-	local vector org;
-	local float k;
+	local entity h, a;
+	local vector org, launch_dir;
+	local float k, slot, v_step;
 
 	makevectors (self.v_angle);
 	self.ammo_nails = self.ammo_nails - 1;		// the LAN magazine reads this back (bm_reload.qc)
 	self.currentammo = self.ammo_nails;
 	self.show_hostile = time + 1;
 	player_shot1 ();
-	sound (self, CHAN_WEAPON, "ltgun/send.wav", 1, ATTN_NORM);
+	sound7 (self, CHAN_WEAPON, "ltgun/send.wav", 0.9, ATTN_NORM, 95 + idx * 10);
+
+	slot = idx - (total - 1) * 0.5;
+	v_step = (idx - floor (idx / 2) * 2) - 0.5;
+	if (total <= 1)
+		launch_dir = v_forward;
+	else
+		launch_dir = normalize (v_forward + v_right * (slot * 0.095) + v_up * (v_step * 0.035));
 
 	k = 28;
 	if (cvar ("ltg_test") >= 2)
 		k = 110;		// test aid: the head hangs 110 units away, still, so you can walk round it
-	traceline (self.origin + '0 0 16', self.origin + '0 0 16' + v_forward * k, TRUE, self);
-	org = trace_endpos - v_forward * 2;
+	traceline (self.origin + '0 0 16', self.origin + '0 0 16' + launch_dir * k, TRUE, self);
+	org = trace_endpos - launch_dir * 2;
 
 	h = spawn ();
 	h.owner = self;
@@ -354,12 +319,14 @@ void() LtGun_Launch =
 	setmodel (h, "progs/ltg_head.md3");
 	setsize (h, '-6 -6 -6', '6 6 6');
 	setorigin (h, org);
-	h.velocity = v_forward * LTG_SPEED;
-	h.angles = vectoangles (v_forward);
-	h.ltg_head = vectoyaw (v_forward);
+	h.velocity = launch_dir * LTG_SPEED;
+	h.angles = vectoangles (launch_dir);
+	h.ltg_head = vectoyaw (launch_dir);
 	if (cvar ("ltg_test") >= 2)
 		h.ltg_head = h.ltg_head + 180;
 	h.ltg_wob = random () * 6;
+	h.ltg_weave_r = v_right;
+	h.ltg_weave_amp = slot * 140;
 	h.ltg_born = time;
 	h.touch = LtGun_Touch;
 	h.think = LtGun_Think;
@@ -370,7 +337,7 @@ void() LtGun_Launch =
 	if (cvar ("ltg_test") == 3)
 	{
 		sound (h, CHAN_VOICE, "ltgun/canis.wav", 1, LTG_SOUND_ATTN);
-		return;		// test aid: the head alone, no cables and no laser dot
+		return;		// test aid: the head alone, no cables
 	}
 	if (cvar ("ltg_aura"))		// the cables and wi-fi round the head: off unless ltg_aura 1 (the user asked for them off)
 	{
@@ -385,35 +352,16 @@ void() LtGun_Launch =
 		h.ltg_aura = a;
 	}
 
-	d = spawn ();
-	d.owner = self;
-	d.scale = 3;		// big enough to find on a far wall
-	d.classname = "ltg_dot";
-	d.movetype = MOVETYPE_NONE;
-	d.solid = SOLID_NOT;
-	setmodel (d, "progs/sight.spr");
-	setorigin (d, org);
-	h.ltg_dot = d;
-
-	d = spawn ();
-	d.owner = self;
-	d.classname = "ltg_laser";
-	d.movetype = MOVETYPE_NONE;
-	d.solid = SOLID_NOT;
-	setmodel (d, "progs/ltg_laser.md3");
-	setorigin (d, org);
-	d.scale = 0.07;
-	h.ltg_laser = d;
-
 	if (time >= ltg_canis_t)
 	{
 		ltg_canis_t = time + LTG_CANIS_GAP;
 		sound (h, CHAN_VOICE, "ltgun/canis.wav", LTG_CANIS_VOL, LTG_SOUND_ATTN);
 	}
-	if (self.ltg_hint < 1)
+	if (self.ltg_hint < 1 && idx == 0)
 	{
 		self.ltg_hint = self.ltg_hint + 1;
-		centerprint (self, "Drone locks onto enemies or follows your laser");
+		if (self.ishuman == 1)
+			centerprint (self, "Hold fire to queue a DDoS salvo of homing heads!");
 	}
 };
 
@@ -425,10 +373,12 @@ void() LtGun_PlayerFrame =
 	local vector v;
 	local float z, sp, f;
 
-	if (self.weapon != IT_NAILGUN)
+	if (self.weapon != IT_NAILGUN || self.bm_rl_slot == BM_NG)
 	{
 		self.ltg_phase = 0;
-		self.ltg_sent = FALSE;
+		self.ltg_queue = 0;
+		self.ltg_salvo_idx = 0;
+		self.ltg_salvo_total = 0;
 	}
 	else if (self.meleeing != 1 && self.throwing != 1)
 	{
@@ -438,13 +388,15 @@ void() LtGun_PlayerFrame =
 		{
 			if (self.ltg_phase == 1)
 			{
-				// the 22 typing frames play once over the typing and the glow after the shot
-				f = floor ((time - (self.ltg_t - LTG_TYPE_TIME)) * 22 / (LTG_TYPE_TIME + LTG_REFIRE));
-				if (f > 21)
-					f = 21;
-				if (f < 0)
-					f = 0;
-				self.weaponframe = 12 + f;
+				// rapid typing loop (frames 12..29) while queuing DDoS packets
+				f = floor (time * 24);
+				self.weaponframe = 12 + (f - 18 * floor (f / 18));
+			}
+			else if (self.ltg_phase == 2)
+			{
+				// lightning surge glow (frames 30..33) while unleashing the salvo
+				f = floor (time * 20);
+				self.weaponframe = 30 + (f - 4 * floor (f / 4));
 			}
 			else
 			{
@@ -479,10 +431,9 @@ void() LtGun_PlayerFrame =
 		sendParticle ("ltg_zap", self.origin + '0 0 20', '0 0 0', 1, 0);
 		sound (self, CHAN_ITEM, "ltgun/zap.wav", 0.7, ATTN_NORM);
 		ltg_inflicting = TRUE;
+		// the zapper left: no damage (self-damage made a death here a suicide, and a reused slot must not get the kill)
 		if (self.ltg_by.classname == "player")
 			T_Damage (self, self.ltg_by, self.ltg_by, LTG_ZAP_DMG);
-		else
-			T_Damage (self, self, self, LTG_ZAP_DMG);
 		ltg_inflicting = FALSE;
 	}
 };
@@ -493,36 +444,85 @@ float() LtGun_Frame =
 	if (self.weapon != IT_NAILGUN)
 	{
 		self.ltg_phase = 0;
-		self.ltg_sent = FALSE;
+		self.ltg_queue = 0;
+		self.ltg_salvo_idx = 0;
+		self.ltg_salvo_total = 0;
 		return FALSE;
+	}
+	if (self.health <= 0)
+	{
+		self.ltg_phase = 0;
+		self.ltg_queue = 0;
+		return TRUE;
 	}
 	if (self.ltg_phase == 1)
 	{
-		// typing, then the head goes, then the laptop glows for LTG_REFIRE seconds (the end of the typing film) before the next
-		if (self.health <= 0)
-			self.ltg_phase = 0;
-		else
+		// holding fire queues extra DDoS packets up to ltg_qmax; releasing (or filling max + 1 beat) unleashes the salvo
+		if (self.button0)
 		{
-			if (!self.ltg_sent && time >= self.ltg_t)
+			if (time >= self.ltg_qnext && self.ltg_queue < self.ltg_qmax)
+			{
+				self.ltg_queue = self.ltg_queue + 1;
+				self.ltg_qnext = time + LTG_QUEUE_STEP;
+				sound7 (self, CHAN_WEAPON, "ltgun/type.wav", 0.85, ATTN_NORM, 100 + self.ltg_queue * 14);
+				if (self.ishuman == 1)
+					centerprint (self, strcat ("DDoS FLOOD: ", ftos (self.ltg_queue), " / ", ftos (self.ltg_qmax), " PACKETS\n"));
+			}
+		}
+		if (time >= self.ltg_t && (!self.button0 || (self.ltg_queue >= self.ltg_qmax && time >= self.ltg_qnext)))
+		{
+			self.ltg_phase = 2;
+			self.ltg_salvo_total = self.ltg_queue;
+			self.ltg_salvo_idx = 0;
+			self.ltg_qnext = time;
+			self.ltg_t = time + LTG_REFIRE;
+			if (self.ishuman == 1 && self.ltg_salvo_total >= 2)
+				centerprint (self, strcat ("SENT ", ftos (self.ltg_salvo_total), "-PACKET DDoS FLOOD!\n"));
+		}
+		return TRUE;
+	}
+	if (self.ltg_phase == 2)
+	{
+		// rapid-fire burst stream of all queued heads
+		while (self.ltg_salvo_idx < self.ltg_salvo_total && time >= self.ltg_qnext)
+		{
+			if (self.ammo_nails < 1)
+			{
+				self.ltg_salvo_idx = self.ltg_salvo_total;
+				self.ltg_t = time + LTG_REFIRE;
+			}
+			else
 			{
 				SuperDamageSound ();
-				LtGun_Launch ();
-				self.ltg_sent = TRUE;
+				LtGun_Launch (self.ltg_salvo_idx, self.ltg_salvo_total);
+				self.ltg_salvo_idx = self.ltg_salvo_idx + 1;
+				self.ltg_qnext = self.ltg_qnext + LTG_SALVO_GAP;
+				if (self.ltg_salvo_idx >= self.ltg_salvo_total)
+					self.ltg_t = time + LTG_REFIRE;
 			}
-			if (time >= self.ltg_t + LTG_REFIRE)
-			{
-				self.ltg_phase = 0;
-				self.ltg_sent = FALSE;
-			}
+		}
+		if (self.ltg_salvo_idx >= self.ltg_salvo_total && time >= self.ltg_t)
+		{
+			self.ltg_phase = 0;
+			self.ltg_queue = 0;
+			self.ltg_salvo_idx = 0;
+			self.ltg_salvo_total = 0;
 		}
 		return TRUE;
 	}
 	if (self.button0 && W_CheckNoAmmo ())
 	{
 		self.ltg_phase = 1;
+		self.ltg_queue = 1;
+		self.ltg_qmax = floor (self.ammo_nails);
+		if (self.ltg_qmax > LTG_MAX_QUEUE)
+			self.ltg_qmax = LTG_MAX_QUEUE;
+		if (self.ltg_qmax < 1)
+			self.ltg_qmax = 1;
 		self.ltg_var = LtGun_Variant ();
 		self.ltg_t = time + LTG_TYPE_TIME;
-		sound (self, CHAN_WEAPON, "ltgun/type.wav", 0.8, ATTN_NORM);
+		self.ltg_qnext = time + LTG_TYPE_TIME + LTG_QUEUE_STEP;
+		sound7 (self, CHAN_WEAPON, "ltgun/type.wav", 0.8, ATTN_NORM, 105);
 	}
 	return TRUE;
 };
@@ -531,7 +531,9 @@ float() LtGun_Frame =
 void() LtGun_Spawn =
 {
 	self.ltg_phase = 0;
-	self.ltg_sent = FALSE;
+	self.ltg_queue = 0;
+	self.ltg_salvo_idx = 0;
+	self.ltg_salvo_total = 0;
 	self.ltg_shock = 0;
 	self.ltg_immune_t = 0;
 	if (self.ishuman == 1)

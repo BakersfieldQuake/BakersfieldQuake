@@ -145,7 +145,9 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	setsize (base, '0 0 0', '0 0 0');
 	base.scale = 1.65;
 	base.angles_y = vectoyaw (dir);
-	p_z = flz;
+	base.effects = EF_FULLBRIGHT;
+	base.colormod = '1.25 1.32 1.45';
+	p_z = flz + 0.5;
 	setorigin (base, p);
 
 	// 2. Animated electric energy ring flush on the pavement

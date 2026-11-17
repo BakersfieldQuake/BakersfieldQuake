@@ -130,8 +130,8 @@ def build_viewmodel_overhaul(srgb_vpk: list[np.ndarray], srgb_pk0: np.ndarray) -
         Image.fromarray(ds_srgb, "RGBA").save(
             os.path.join(OUT_DIR, "v_pickle", f"pvm_srgb_{idx:03d}.png"), optimize=True
         )
-        # Tone for DarkPlaces r_hdr_scenebrightness 2.5 + rgbGen lightingDiffuse
-        toned = ptr.tone_for_quake_hdr(ds_srgb, dim=0.56, contrast=1.08)
+        # Tone for DarkPlaces rgbGen lightingDiffuse + HDR 1.25..1.45
+        toned = ptr.tone_for_quake_hdr(ds_srgb, dim=0.87, contrast=1.04)
         tex_name = f"pvm_{idx:03d}"
         Image.fromarray(toned, "RGBA").save(os.path.join(PROGS, f"{tex_name}.png"), optimize=False)
         shader_names.append(f"progs/{tex_name}")
@@ -160,7 +160,7 @@ def build_viewmodel_overhaul(srgb_vpk: list[np.ndarray], srgb_pk0: np.ndarray) -
     sh_lines = ["// written by source/mm_tools/build_pickle_diva_overhaul.py\n"]
     for sh in shader_names:
         sh_lines.append(
-            f"{sh}\n{{\n\tcull none\n\t{{\n\t\tmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
+            f"{sh}\n{{\n\tcull none\n\t{{\n\t\tclampmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
         )
     with open(os.path.join(SCRIPTS, "picklevm.shader"), "w", encoding="utf-8", newline="\n") as f:
         f.write("".join(sh_lines))

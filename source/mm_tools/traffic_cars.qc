@@ -105,14 +105,26 @@ vector(float idx) Traffic_AutoColor =
 	local float c;
 
 	c = idx - 8 * floor (idx / 8);
-	if (c == 0) return '1.00 1.00 1.00';	// original paint
-	if (c == 1) return '1.75 0.45 0.95';	// Bangkok pink taxi
-	if (c == 2) return '1.55 1.40 0.35';	// yellow-gold taxi
-	if (c == 3) return '0.45 1.35 0.65';	// emerald taxi
-	if (c == 4) return '1.45 1.45 1.45';	// pearl white / silver
-	if (c == 5) return '0.55 0.85 1.55';	// cobalt blue
-	if (c == 6) return '1.50 0.50 0.40';	// crimson red
-	return '1.50 0.90 0.35';				// amber orange
+	if (c == 0) return '0.95 0.95 0.95';	// original paint
+	if (c == 1) return '1.08 0.38 0.65';	// Bangkok pink taxi
+	if (c == 2) return '1.08 0.98 0.30';	// yellow-gold taxi
+	if (c == 3) return '0.38 1.02 0.52';	// emerald taxi
+	if (c == 4) return '1.05 1.05 1.05';	// pearl white / silver
+	if (c == 5) return '0.45 0.68 1.08';	// cobalt blue
+	if (c == 6) return '1.08 0.42 0.35';	// crimson red
+	return '1.08 0.68 0.30';				// amber orange
+};
+
+vector(vector col) Traffic_ClampColor =
+{
+	local float mx;
+
+	mx = col_x;
+	if (col_y > mx) mx = col_y;
+	if (col_z > mx) mx = col_z;
+	if (mx > 1.10)
+		col = col * (1.10 / mx);
+	return col;
 };
 
 void() Traffic_Touch =
@@ -298,6 +310,8 @@ void() misc_traffic_car =
 
 	if (self.colormod == VEC_ORIGIN)
 		self.colormod = Traffic_AutoColor (hash + kind);
+	else
+		self.colormod = Traffic_ClampColor (self.colormod);
 
 	self.classname = "misc_traffic_car";
 	self.movetype = MOVETYPE_PUSH;

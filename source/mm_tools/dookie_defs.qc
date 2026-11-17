@@ -6,7 +6,7 @@ Caged toxic reactor packed with 5 calm bobbing heads, Chakra turbine wheel, tric
 orbiting slow flies, and one wildly-waving flying-guy projectile!
   - Hold Fire (`+attack`) to wind up with escalating reactor glow + fast tabla wobble (windup_v6).
   - Release (or hit full charge) to blast with Dhol Slam & Sad Fart Trombone (fire_v5).
-  - Launches ONE readable waving fat guy (`progs/dookie_proj.spr32`, 16 angles x 8 frames)
+  - Launches ONE readable waving fat guy (`progs/dookie_proj.spr32`, 3x16x8 = 384f: horiz + above45 + above90)
     with small orbiting flies, emitting yelling + Bhangra track in 3D flight!
   - Can be shot down mid-air after 0.18s grace, or splatters on impact (`progs/dookie_splat.spr32`)
     with radius mud blast (`mud_splat.wav` + `fly_buzz.wav`) and `fg_inflicting = FG_DOOKIE`.

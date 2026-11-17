@@ -23,7 +23,7 @@ own always-on recharge is switched off while bm_reload is on (megaman.qc / fungu
 // ---------------------------------------------------------------- the table
 float(float s) BM_IsFirearmSlot =
 {
-	return (s == BM_FG7 || s == BM_FG8 || s == BM_FG9);
+	return (s == BM_FG7 || s == BM_FG9);
 };
 
 // magazine size in ammo units
@@ -33,9 +33,9 @@ float(float s) BM_MagSize =
 
 	if (s <= BM_MM)
 	{
-		if (s == BM_SG)			n = 20;		// the Goo Gun (it took the shotgun's slot)
+		if (s == BM_SG)			n = 8;
 		else if (s == BM_SSG)	n = 12;		// 2 shells a shot: 6 shots, 3 QC bursts
-		else if (s == BM_NG)	n = 3;		// the Laptop Gun (took the nailgun slot): was 50 nails, which made it a free spam gun
+		else if (s == BM_NG)	n = 5;		// the Laptop Gun (took the nailgun slot): 5-packet mag for DDoS flood salvos
 		else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
 		else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
 		else if (s == BM_RL)	n = 5;
@@ -58,7 +58,6 @@ float(float s) BM_MagSize =
 	if (s == BM_FG5)	return FunGun_Max (FG_DOOKIE);
 	if (s == BM_FG6)	return FunGun_Max (FG_WCANNON);
 	if (s == BM_FG7)	return FunGun_Max (FG_M4);
-	if (s == BM_FG8)	return FunGun_Max (FG_TOMMY);
 	if (s == BM_FG9)	return FunGun_Max (FG_GARAND);
 	return 0;
 };
@@ -68,9 +67,9 @@ float(float s) BM_ReloadTime =
 {
 	local float t;
 
-	if (s == BM_SG)			t = 2.4;		// Goo Gun
+	if (s == BM_SG)			t = 1.5;
 	else if (s == BM_SSG)	t = 2;
-	else if (s == BM_NG)	t = 3;		// Laptop Gun
+	else if (s == BM_NG)	t = 2.5;	// Laptop Gun
 	else if (s == BM_SNG)	t = 5;		// Milky Gun
 	else if (s == BM_GL)	t = 3;
 	else if (s == BM_RL)	t = 3;
@@ -83,7 +82,6 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
 	else if (s == BM_FG5)	t = FG_DOOKIE_REGEN;		// Dookie Bazooka: 10 s per canister
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
-	else if (s == BM_FG8)	t = TOM_RELOAD_TIME;	// the Thompson: the whole DoD reload animation
 	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation
 	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: BFG-slow, 25 s for the next Wheelman
 	else
@@ -145,8 +143,6 @@ float(entity p) BM_SlotOf =
 			return BM_FG6;
 		if (p.fg_sel == FG_M4)
 			return BM_FG7;
-		if (p.fg_sel == FG_TOMMY)
-			return BM_FG8;
 		if (p.fg_sel == FG_GARAND)
 			return BM_FG9;
 		return BM_FG3;
@@ -307,7 +303,7 @@ void() BM_FillAll =
 	self.bm_rl_quiet = FALSE;
 };
 
-// regular ammo box / weapon pickup: refill combat guns & M4/Thompson/Garand without instant-resetting joke superweapons (FG1..FG6)
+// regular ammo box / weapon pickup: refill combat guns & M4/Garand without instant-resetting joke superweapons (FG1..FG6)
 void() BM_FillCombatOnly =
 {
 	local float s;
@@ -315,7 +311,7 @@ void() BM_FillCombatOnly =
 	s = 1;
 	while (s <= BM_SLOTS)
 	{
-		if (s <= BM_MM || s >= BM_FG7)
+		if (s <= BM_MM || BM_IsFirearmSlot (s))
 		{
 			BM_SetMag (self, s, BM_MagSize (s));
 			BM_SetAcc (self, s, 0);
@@ -323,7 +319,7 @@ void() BM_FillCombatOnly =
 		s = s + 1;
 	}
 	self.bm_ssgburst = 16;
-	if (self.bm_rl_slot <= BM_MM || self.bm_rl_slot >= BM_FG7)
+	if (self.bm_rl_slot <= BM_MM || BM_IsFirearmSlot (self.bm_rl_slot))
 	{
 		self.bm_rl_slot = 0;
 		self.bm_rl_quiet = FALSE;
@@ -443,7 +439,7 @@ void(float s) BM_StartReload =
 	if (BM_IsFirearmSlot (s))
 	{
 		self.bm_rl_quiet = FALSE;
-		self.bm_rl_end = time + BM_ReloadTime (s);		// M4 / Thompson / Garand always play their full reload animation & sounds
+		self.bm_rl_end = time + BM_ReloadTime (s);		// M4 / Garand always play their full reload animation & sounds
 	}
 	else if (!self.bm_rl_quiet)
 		sound7 (self, CHAN_ITEM, "weapons/lock4.wav", 0.6, ATTN_NORM, SNDSPD);
@@ -592,12 +588,18 @@ void() BM_Frame =
 					self.pk_reload_t = time;		// fresh Pickle Surprise whips up into the hand
 				if (s == BM_FG5)
 					self.dk_reload_t = time;		// fresh Dookie Bazooka canister raises up
+				if (s == BM_FG1)
+					self.rh_reload_t = time;		// fresh Rob Head drone remote raises up
 			}
 			else if (self.button0 && mag >= BM_PerShot (s) && (self.bm_rl_quiet || time > self.bm_rl_start + 0.15) && !BM_IsFirearmSlot (s))
 			{
 				self.bm_rl_slot = 0;				// fire what's left instead
 				self.bm_rl_quiet = FALSE;
 			}
+		}
+		else if (s == BM_NG && self.ltg_phase > 0)
+		{
+			// let the Laptop Gun finish queuing/unleashing its DDoS salvo before starting reload
 		}
 		else if (s == BM_FG2 && (self.gj_shaking > 0 || self.gj_throw_at > 0 || (self.gj_threw_t > 0 && time < self.gj_threw_t + GJ_FOLLOW_TIME)))
 		{
@@ -618,6 +620,10 @@ void() BM_Frame =
 		else if (s == BM_FG9 && self.gar_empty_t > 0 && time < self.gar_empty_t + GAR_SHOOT_EMPTY_TIME)
 		{
 			// let the M1 Garand 8th-round en-bloc clip ejection + PING finish before starting reload
+		}
+		else if (s == BM_FG1 && (self.rh_charging > 0 || self.rh_throw_at > 0 || (self.rh_threw_t > 0 && time < self.rh_threw_t + (RH_FOLLOW_TIME / RH_DRONE_ANIM_SPEED))))
+		{
+			// let the Rob Head windup, throw/launch & follow-through finish before starting reload
 		}
 		else if (mag < BM_PerShot (s))
 		{

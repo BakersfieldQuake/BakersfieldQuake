@@ -45,6 +45,9 @@ string() MM_PickVModel =
 void() MegaMan_Precache =
 {
 	precache_model ("progs/megaman.md3");
+	// the default viewmodel always (mm_variant can go back to 0 mid-game: a late precache hitches every client), then the active variant
+	precache_model ("progs/v_megaman.md3");
+	mm_precached_mask = mm_precached_mask | 1;
 	MM_PickVModel ();
 	precache_sound ("grenade/boom_04_mega_fart.wav");
 	precache_sound ("weapons/megamotor.wav");

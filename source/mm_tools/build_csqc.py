@@ -10,11 +10,11 @@ import sys
 
 import os
 D = "G:\\Quake\\Combat\\BakersfieldQuake\\source\\qc_combat_decomp\\csqc\\"
-FTEQCC = (
-    "D:/vibe/quake1opensource/engines/win64/fteqcc64.exe"
-    if os.path.isfile("D:/vibe/quake1opensource/engines/win64/fteqcc64.exe")
-    else "G:/Quake/LOLQuake/tools/fteqcc64.exe"
-)
+FTEQCC = "D:/vibe/quake1opensource/engines/win64/fteqcc64.exe"
+if not os.path.isfile(FTEQCC):
+    FTEQCC = "G:/Quake/LOLQuake/tools/fteqcc64.exe"
+if not os.path.isfile(FTEQCC):
+    FTEQCC = "D:/vibe/fteqw/2025-09-27-github/fteqcc64.exe"
 r = subprocess.run([FTEQCC, "-srcfile", "progs.src"], cwd=D)
 if r.returncode:
     sys.exit("compile failed")

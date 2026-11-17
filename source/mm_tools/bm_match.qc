@@ -14,8 +14,30 @@ MATCH RULES (Bakersfield LAN rules, Combat+ only)
 ================
 */
 
+.float bm_st_menubg;
+float bm_menubg_active;
+
+float() BM_IsMenuBg =
+{
+	if (deathmatch || coop || CTF_ENABLED || max_clients > 1 || cvar ("maxplayers") > 1)
+		return FALSE;
+	return (cvar ("bm_menu_bg") > 0);
+};
+
 void() BM_Precache =
 {
+	local entity bgspot;
+
+	registercvar ("bm_menu_bg", "0");
+	if (cvar ("bm_menu_bg") > 0 && (deathmatch || coop || CTF_ENABLED || max_clients > 1 || cvar ("maxplayers") > 1))
+		cvar_set ("bm_menu_bg", "0");
+	bm_menubg_active = BM_IsMenuBg ();
+	if (bm_menubg_active)
+	{
+		bgspot = spawn ();
+		bgspot.classname = "info_player_start";
+		setorigin (bgspot, '0 0 64');
+	}
 	precache_sound ("weapons/lock4.wav");
 	precache_sound ("weapons/pkup.wav");
 	precache_sound ("misc/talk.wav");
@@ -43,6 +65,7 @@ void() BM_Precache =
 	Soi6_Precache ();
 	JohnBird_Precache ();
 	EricCannon_Precache ();
+	MMTank_Precache ();
 	SkyPad_Precache ();
 };
 
@@ -67,6 +90,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "milky" || inflictor.classname == "jwwave"
 				|| inflictor.classname == "veh_blast_inflictor" || inflictor.classname == "lan_blast_inflictor"
 				|| inflictor.classname == "eric_cannon_blast"
+				|| inflictor.classname == "mm_tank_bar" || inflictor.classname == "mm_tank_blast"
 				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
 				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.veh_kind > 0)
 			{
@@ -104,6 +128,29 @@ float(entity e) NPC_ShouldGib =
 // end of PutClientInServer
 void() BM_PlayerSpawned =
 {
+	local entity dmspot;
+
+	if (BM_IsMenuBg ())
+	{
+		self.bm_prot_t = 0;
+		self.rg_hurt_t = 0;
+		self.bm_st_menubg = 900;
+		self.solid = SOLID_NOT;
+		self.movetype = MOVETYPE_NONE;
+		self.takedamage = DAMAGE_NO;
+		self.modelindex = 0;
+		self.weaponmodel = "";
+		self.weaponframe = 0;
+		self.items = 0;
+		self.flags = self.flags | FL_NOTARGET;
+		dmspot = find (world, classname, "info_player_deathmatch");
+		if (dmspot)
+			setorigin (self, dmspot.origin);
+		if (self.ishuman == 1)
+			stuffcmd (self, "v_glslgamma_2d 1\ncd stop\n");
+		return;
+	}
+	self.bm_st_menubg = 0;
 	if (deathmatch && autocvar_bm_spawnprot > 0)
 		self.bm_prot_t = time + autocvar_bm_spawnprot;
 	else
@@ -119,7 +166,7 @@ void() BM_PlayerSpawned =
 	}
 	if (self.ishuman == 1)
 	{
-		stuffcmd (self, "alias vote \"cmd vote $*\"\nv_glslgamma 1\nv_glslgamma_2d 1\n");	// map votes + apply GLSL gamma to 2D Quake HUD in windowed mode
+		stuffcmd (self, "alias vote \"cmd vote $*\"\nv_glslgamma_2d 1\n");	// map votes + apply GLSL gamma to 2D Quake HUD in windowed mode
 		if (skypad_present && !self.skypad_vel_sent)		// only on maps with sky pads, once per connect (it went out on every spawn of every map: on a listen server that left the host's own sv_maxvelocity at 6500 for good)
 		{
 			self.skypad_vel_sent = TRUE;
@@ -195,6 +242,19 @@ void() BM_LifeFrame =
 	local float tmask;
 	local vector gdir;
 
+	if (BM_IsMenuBg ())
+	{
+		self.bm_st_menubg = 900;
+		self.solid = SOLID_NOT;
+		self.movetype = MOVETYPE_NONE;
+		self.takedamage = DAMAGE_NO;
+		self.modelindex = 0;
+		self.weaponmodel = "";
+		self.weaponframe = 0;
+		self.flags = self.flags | FL_NOTARGET;
+		return;
+	}
+	self.bm_st_menubg = 0;
 	if (self.bm_prot_t)
 	{
 		if (time < self.bm_prot_t - autocvar_bm_spawnprot + autocvar_bm_spawnpause)
@@ -250,6 +310,7 @@ void() BM_LifeFrame =
 	}
 
 	self.bm_st_botmask = bm_botmask_cache;
+	self.bm_st_playermask = bm_playermask_cache;
 	self.bm_st_botcnt = bot_count;
 
 	tmask = 0;
@@ -348,10 +409,24 @@ entity() BM_PickSpawn =
 	return best;
 };
 
+// TRUE when maps/<m>.bsp can be opened (loose or in a pk3)
+float(string m) BM_MapExists =
+{
+	local float fh;
+
+	if (m == "")
+		return FALSE;
+	fh = fopen (strcat ("maps/", m, ".bsp"), 0);
+	if (fh < 0)
+		return FALSE;
+	fclose (fh);
+	return TRUE;
+};
+
 // NextLevel: TRUE = handled (the playlist picked the next map)
 float() BM_NextLevel =
 {
-	local float n, i, found;
+	local float n, i, found, tries;
 	local string s, pick;
 	local entity o;
 
@@ -371,10 +446,24 @@ float() BM_NextLevel =
 			found = i;
 		i = i + 1;
 	}
-	i = found + 1;
-	if (i >= n)
-		i = 0;
-	pick = argv (i);
+	// skip playlist entries that are not shipped (changelevel to a missing map stalls at intermission);
+	// if none of them exists, replay the current map
+	pick = mapname;
+	tries = 0;
+	i = found;
+	while (tries < n)
+	{
+		i = i + 1;
+		if (i >= n)
+			i = 0;
+		if (BM_MapExists (argv (i)))
+		{
+			pick = argv (i);
+			break;
+		}
+		dprint ("bm_maplist: skipping missing map ", argv (i), "\n");
+		tries = tries + 1;
+	}
 	if (bm_nextmap)
 		strunzone (bm_nextmap);
 	bm_nextmap = strzone (pick);
@@ -427,6 +516,8 @@ void() BM_Stats =
 	clientstat (77, 2, bm_st_botcnt);	// active bot count (csqc/bm_hud.qc)
 	clientstat (78, 2, bm_st_toymask);	// bitmask of ready fun-gun superweapons & Winged John (csqc/bm_hud.qc)
 	clientstat (79, 2, bm_st_toycd);	// Winged John cooldown seconds remaining (csqc/bm_hud.qc)
+	clientstat (80, 2, bm_st_playermask);	// bitmask of live visible human slots 0..15 (csqc/bm_hud.qc)
+	clientstat (69, 2, bm_st_menubg);	// 900 during silent menu-background map (csqc/bm_hud.qc)
 };
 
 float() BM_CountPlayers =
@@ -589,7 +680,7 @@ void() BM_VoteTick =
 	}
 };
 
-// the maps a vote may pick, e.g. "fox bklan4" (when bm_votemaps is unset locally, default to installed DM maps)
+// the maps a vote may pick, e.g. "fox bklan6" (when bm_votemaps is unset locally, default to installed DM maps)
 string() BM_VoteMapList =
 {
 	local string s;
@@ -597,7 +688,7 @@ string() BM_VoteMapList =
 	s = cvar_string ("bm_votemaps");
 	if (s != "")
 		return s;
-	return "bakersfielddowntown downtownsmall downtown little_st_james fox bklan6 bakolansmall morrorock soicowboy slo_bike_kitchen";
+	return "soi6 soicowboy_bkk bakersfielddowntown terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6";
 };
 
 void(entity e, string m) BM_VoteStart =
@@ -703,10 +794,10 @@ void(string s) SV_ParseClientCommand =
 	local float n, i, chat;
 	local string t;
 
+	chat = FALSE;
 	n = tokenize (s);
 	if (autocvar_bm_vote && n >= 1)
 	{
-		chat = FALSE;
 		if (argv (0) == "say" || argv (0) == "say_team")
 		{
 			chat = TRUE;
@@ -726,13 +817,57 @@ void(string s) SV_ParseClientCommand =
 				return;
 		}
 	}
+	// the tank switches below set server-wide mm_tank_* cvars: never from chat words, and only with sv_cheats 1
+	if (chat)
+	{
+		clientcommand (self, s);
+		return;
+	}
+	if (n >= 1 && !autocvar_sv_cheats)
+	{
+		t = strtolower (argv (0));
+		if (t == "tank_variant" || t == "mm_tank_variant" || t == "tank_sound" || t == "mm_tank_soundpack" || t == "tank_boom_pool")
+		{
+			sprint (self, "Mega Man Tank switches need sv_cheats 1\n");
+			return;
+		}
+	}
+	if (n >= 1 && (strtolower (argv (0)) == "tank_variant" || strtolower (argv (0)) == "mm_tank_variant"))
+	{
+		if (n >= 2)
+			MMTank_SetVariant (stof (argv (1)));
+		else if (autocvar_mm_tank_variant >= 4)
+			MMTank_SetVariant (1);
+		else
+			MMTank_SetVariant (autocvar_mm_tank_variant + 1);
+		sprint (self, strcat ("Mega Man Tank prototype set to ", ftos (floor (autocvar_mm_tank_variant)), "\n"));
+		return;
+	}
+	if (n >= 1 && (strtolower (argv (0)) == "tank_sound" || strtolower (argv (0)) == "mm_tank_soundpack"))
+	{
+		if (n >= 2)
+			MMTank_SetSoundPack (stof (argv (1)));
+		else if (autocvar_mm_tank_soundpack >= 11)
+			MMTank_SetSoundPack (0);
+		else
+			MMTank_SetSoundPack (autocvar_mm_tank_soundpack + 1);
+		sprint (self, strcat ("Mega Man Tank sound pack set to ", ftos (floor (autocvar_mm_tank_soundpack)), "\n"));
+		return;
+	}
+	if (n >= 1 && strtolower (argv (0)) == "tank_boom_pool")
+	{
+		if (n >= 2)
+			MMTank_SetBoomMask (stof (argv (1)));
+		sprint (self, strcat ("Mega Man Tank boom pool mask=", ftos (floor (autocvar_mm_tank_boom_mask)), " (packs: ", MMT_BoomMaskSummary (autocvar_mm_tank_boom_mask), ")\n"));
+		return;
+	}
 	clientcommand (self, s);
 };
 
 // StartFrame
 void() BM_StartFrame =
 {
-	local float n, want, cno, lim, bmask, bit;
+	local float n, want, cno, lim, bmask, pmask, bit;
 	local entity p, tail;
 
 	// Refresh hot cvars once per server tick from engine-synced autocvars
@@ -748,11 +883,13 @@ void() BM_StartFrame =
 	bm_cvar_rnpc_stay = autocvar_rnpc_stay;
 	bm_cvar_pk_ofs = autocvar_pk_viewoffset;
 	bm_cvar_dev = autocvar_developer;
+	bm_menubg_active = BM_IsMenuBg ();
 
-	// Rebuild active player list and HUD bot bitmask in a single 1..max_clients pass
+	// Rebuild active player list and HUD bot/human bitmasks in a single 1..max_clients pass
 	bm_player_head = world;
 	tail = world;
 	bmask = 0;
+	pmask = 0;
 	bit = 1;
 	cno = 0;
 	lim = max_clients;
@@ -772,18 +909,25 @@ void() BM_StartFrame =
 		}
 		if (cno < 16)
 		{
-			if (p.ishuman != 1 && (active_clients & bit) && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
-				bmask = bmask | bit;
+			if ((active_clients & bit) && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
+			{
+				if (p.ishuman != 1)
+					bmask = bmask | bit;
+				else if (!(p.items & IT_INVISIBILITY) && !(p.effects & EF_NODRAW))
+					pmask = pmask | bit;
+			}
 			bit = bit * 2;
 		}
 		cno = cno + 1;
 		p = nextent (p);
 	}
 	bm_botmask_cache = bmask;
+	bm_playermask_cache = pmask;
 
 	Underdog_Update ();
 	Crowd_Tick ();
 	Soi6_Tick ();
+	MMTank_StartFrame ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
@@ -792,7 +936,7 @@ void() BM_StartFrame =
 		BM_DebugPrint ();
 	}
 
-	if (!deathmatch || intermission_running || bm_manual_bots || time < bm_botfill_t)
+	if (bm_menubg_active || !deathmatch || intermission_running || bm_manual_bots || time < bm_botfill_t)
 		return;
 	bm_botfill_t = time + 2;
 	want = autocvar_bm_botfill;
@@ -800,12 +944,16 @@ void() BM_StartFrame =
 		want = 4;
 	if (want <= 0)
 		return;
+	// leave bm_bot_reserve slots open (LAN too): a joining human otherwise lands in a bot's slot,
+	// and on a public server the reserve rule would kick every bot this adds
+	if (want > max_clients - autocvar_bm_bot_reserve)
+		want = max_clients - autocvar_bm_bot_reserve;
 	n = BM_CountPlayers ();
 	if (n < 1 && !autocvar_bm_botfill_empty)
 		return;		// nobody here yet: don't fill an empty server
 	if (n < want)
 	{
-		if (ClientNextAvailable () != -1)		// no free slot: BotConnect would bprint "server is full" to everybody every 2 s
+		if (ClientNextAvailable () != -1 && bot_count < autocvar_bm_bot_max)		// no free slot: BotConnect would bprint "server is full" to everybody every 2 s
 			BotConnect (0, 0, autocvar_skill);
 	}
 	else if (n > want && bot_count > 0)
@@ -926,32 +1074,34 @@ void() BM_TestImpulses =
 			Crowd_Poke (500);
 		self.impulse = 0;
 	}
-	else if (self.impulse == 61)
+	// Soi 6 test impulses live at 141-146: they were 61-66, the fun-gun select impulses (FG_IMPULSE 61..69), so with
+	// sv_cheats on a bot or player picking the Rob Dob / NetSend / Wheelman Cannon got a lineup, gib test or teleport
+	else if (self.impulse == 141)
 	{
 		Soi6_Line ();
 		self.impulse = 0;
 	}
-	else if (self.impulse == 62)
+	else if (self.impulse == 142)
 	{
 		Soi6_Poke (25);
 		self.impulse = 0;
 	}
-	else if (self.impulse == 63)
+	else if (self.impulse == 143)
 	{
 		Soi6_Poke (80);
 		self.impulse = 0;
 	}
-	else if (self.impulse == 64)
+	else if (self.impulse == 144)
 	{
 		Soi6_Poke (500);
 		self.impulse = 0;
 	}
-	else if (self.impulse == 65)
+	else if (self.impulse == 145)
 	{
 		Soi6_GotoStreet ();
 		self.impulse = 0;
 	}
-	else if (self.impulse == 66)
+	else if (self.impulse == 146)
 	{
 		Soi6_GotoBarSide ();
 		self.impulse = 0;
@@ -962,7 +1112,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || time < self.goo_slow || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -997,6 +1147,48 @@ void(entity p) BM_ClientGone =
 			MegaMan_Dud ();
 		}
 		e = nx;
+	}
+	// Green Men pop harmlessly (gj_attack_end 0: no confetti damage in a reused slot's name)
+	e = find (world, classname, "greenguy_mini");
+	while (e)
+	{
+		nx = find (e, classname, "greenguy_mini");
+		if (e.owner == p && e.gj_state != 5)
+		{
+			e.gj_attack_end = 0;
+			GJ_StartBalloonPop (e, TRUE);
+		}
+		e = nx;
+	}
+	e = find (world, classname, "greenjar_proj");
+	while (e)
+	{
+		nx = find (e, classname, "greenjar_proj");
+		if (e.owner == p)
+			remove (e);
+		e = nx;
+	}
+	e = find (world, classname, "wc_shot");
+	while (e)
+	{
+		nx = find (e, classname, "wc_shot");
+		if (e.owner == p)
+		{
+			self = e;
+			WC_Fizzle ();
+		}
+		e = nx;
+	}
+	// a laptop shock from the leaver stops (the zap damage would otherwise go to whoever reuses the slot)
+	e = find (world, classname, "player");
+	while (e)
+	{
+		if (e.ltg_by == p)
+		{
+			e.ltg_shock = 0;
+			e.ltg_by = world;
+		}
+		e = find (e, classname, "player");
 	}
 	self = me;
 };

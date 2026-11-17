@@ -3,11 +3,12 @@
 Writes (both loose in BakersfieldQuake/ and synced into _bakersfield_dev/staged_assets if active):
   - progs/v_dookie.md3 + v_dookie.md3_0..113.skin + progs/dvm_000..113.png + scripts/dookievm.shader
       60 idle (0..59) + 16 windup/charge (60..75) + 20 fire/recoil (76..95) + 18 reload (96..113)
-  - progs/dookie_proj.spr32   (16 angles x 8 frames = 128 frames, HDR-toned 112x126, centered)
-  - progs/dookie_splat.spr32  (16 radial mud + toxic fume + fly scatter frames, HDR-toned 128x128)
+  - progs/dookie_proj.spr32   (IDSP type 2 SPR_VP_PARALLEL, 384f: 0..127 horiz 16x8, 128..255 above45 16x8, 256..383 above90 16x8)
+  - progs/dookie_splat.spr32  (IDSP type 2 SPR_VP_PARALLEL, 16 radial mud + toxic fume + fly scatter frames, centered)
   - sound/dookie/*.wav        (dk_charge = windup_v6, dk_fire = fire_v5, dk_music = proj_music,
                                dk_yell1..3, dk_scream, dk_splat, dk_flies)
   - source/mm_tools/poop_gun/work/dookie_mk4/audit_game_export.png
+  - source/mm_tools/poop_gun/work/dookie_mk4/audit_overhead_sheet.png
 """
 from __future__ import annotations
 
@@ -16,8 +17,9 @@ import math
 import os
 import random
 import shutil
+import struct
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -38,10 +40,16 @@ from bake_greenjar_all import (
     resize_rgba_premul,
     tone_for_quake_hdr_rgba,
     tone_for_spr32_rgba,
-    write_darkplaces_spr32,
 )
 from poop_core import WORK_DIR, from_premul, to_premul
 from poop_fx import alpha_over, render_fly_swarm, warp_rgba
+from dookie_overhead import (
+    _load_fx,
+    load_keyed_overhead_masters,
+    save_overhead_contact_sheet,
+    synthesize_above45_frames,
+    synthesize_above90_frames,
+)
 
 MK4_DIR = os.path.join(WORK_DIR, "dookie_mk4")
 FX_DIR = os.path.join(WORK_DIR, "fx")
@@ -88,6 +96,76 @@ def _sync_write(rel_targets: List[str], src_bytes: bytes) -> None:
         with open(tmp, "wb") as f:
             f.write(src_bytes)
         os.replace(tmp, dst)
+
+
+def _tight_crop_and_bleed_dookie(
+    rgba: np.ndarray, base_ox: int, base_oy: int, center_origin: bool = False
+) -> Tuple[int, int, int, int, bytes]:
+    from scipy import ndimage
+
+    h, w, _ = rgba.shape
+    ys, xs = np.nonzero(rgba[:, :, 3] > 2)
+    if len(xs) == 0:
+        empty = np.zeros((2, 2, 4), dtype=np.uint8)
+        return -1, 1, 2, 2, empty.tobytes()
+    x0 = max(0, int(xs.min()) - 1)
+    y0 = max(0, int(ys.min()) - 1)
+    x1 = min(w, int(xs.max()) + 2)
+    y1 = min(h, int(ys.max()) + 2)
+    cropped = rgba[y0:y1, x0:x1].copy()
+    pad_l = 1 if x0 == int(xs.min()) else 0
+    pad_t = 1 if y0 == int(ys.min()) else 0
+    pad_r = 1 if x1 == int(xs.max()) + 1 else 0
+    pad_b = 1 if y1 == int(ys.max()) + 1 else 0
+    if pad_l or pad_t or pad_r or pad_b:
+        cropped = np.pad(cropped, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), mode="constant", constant_values=0)
+        x0 -= pad_l
+        y0 -= pad_t
+    fg = cropped[:, :, 3] >= 32
+    if not np.any(fg):
+        fg = cropped[:, :, 3] > 0
+    if np.any(fg):
+        tr = cropped[:, :, 3] == 0
+        if np.any(tr):
+            _, (iy, ix) = ndimage.distance_transform_edt(~fg, return_indices=True)
+            cropped[tr, :3] = cropped[iy[tr], ix[tr], :3]
+    cw, ch = cropped.shape[1], cropped.shape[0]
+    if center_origin:
+        return -(cw // 2), ch // 2, cw, ch, cropped.tobytes()
+    return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
+
+
+def write_dookie_spr32(
+    spr_path: str,
+    toned_frames: Sequence[np.ndarray],
+    ground_y: int,
+    sprite_type: int = 2,
+    center_from_frame: int | None = None,
+) -> float:
+    """Write a DarkPlaces IDSP v32 .spr32 sprite with configurable type and per-frame origin centering."""
+    packed: List[Tuple[int, int, int, int, bytes]] = []
+    for idx, fr in enumerate(toned_frames):
+        fh, fw = fr.shape[:2]
+        use_center = center_from_frame is not None and idx >= center_from_frame
+        packed.append(
+            _tight_crop_and_bleed_dookie(fr, -(fw // 2), ground_y, center_origin=use_center)
+        )
+    max_cw = max(f[2] for f in packed)
+    max_ch = max(f[3] for f in packed)
+    rad = 0.5 * math.hypot(max_cw, max_ch)
+    buf = bytearray(
+        b"IDSP" + struct.pack("<iifiiifi", 32, int(sprite_type), rad, max_cw, max_ch, len(packed), 0.0, 0)
+    )
+    for fox, foy, cw, ch, fb in packed:
+        buf += struct.pack("<iiiii", 0, fox, foy, cw, ch)
+        buf += fb
+    targets = [spr_path]
+    if os.path.isdir(os.path.dirname(STAGED_PROGS_DIR)):
+        stg_p = os.path.join(STAGED_PROGS_DIR, os.path.basename(spr_path))
+        if os.path.normcase(stg_p) != os.path.normcase(spr_path):
+            targets.append(stg_p)
+    _sync_write(targets, bytes(buf))
+    return len(buf) / (1024.0 * 1024.0)
 
 
 def _bleed_vm_edges(rgba: np.ndarray) -> np.ndarray:
@@ -211,7 +289,7 @@ def export_viewmodel() -> Tuple[List[np.ndarray], Tuple[float, float]]:
 
     shader_names: List[str] = []
     for idx, fr in enumerate(all_114):
-        toned = _bleed_vm_edges(tone_for_quake_hdr_rgba(fr, dim=0.56, contrast=1.08))
+        toned = _bleed_vm_edges(tone_for_quake_hdr_rgba(fr, dim=0.87, contrast=1.04))
         tex_name = f"dvm_{idx:03d}"
         out_png = os.path.join(PROGS_DIR, f"{tex_name}.png")
         Image.fromarray(toned, "RGBA").save(out_png, optimize=False)
@@ -231,7 +309,7 @@ def export_viewmodel() -> Tuple[List[np.ndarray], Tuple[float, float]]:
     sh_lines = ["// written by source/mm_tools/poop_gun/export_dookie_game.py\n"]
     for sh in shader_names:
         sh_lines.append(
-            f"{sh}\n{{\n\tcull none\n\t{{\n\t\tmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
+            f"{sh}\n{{\n\tcull none\n\t{{\n\t\tclampmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
         )
     sh_bytes = "".join(sh_lines).encode("utf-8")
     sh_targets = [os.path.join(SCRIPTS_DIR, "dookievm.shader")]
@@ -243,8 +321,9 @@ def export_viewmodel() -> Tuple[List[np.ndarray], Tuple[float, float]]:
 
 
 def export_world_sprites() -> Tuple[List[np.ndarray], List[np.ndarray]]:
-    print("[2/4] Exporting progs/dookie_proj.spr32 (128f) and progs/dookie_splat.spr32 (16f)...")
+    print("[2/4] Exporting progs/dookie_proj.spr32 (384f: horiz + above45 + above90) and progs/dookie_splat.spr32 (16f)...")
     PROJ_W, PROJ_H = 112, 126
+    OVERHEAD_SZ = 120
     proj_srgb: List[np.ndarray] = []
     proj_toned: List[np.ndarray] = []
     for a in range(16):
@@ -254,8 +333,29 @@ def export_world_sprites() -> Tuple[List[np.ndarray], List[np.ndarray]]:
             proj_srgb.append(rs)
             proj_toned.append(tone_for_spr32_rgba(rs))
     assert len(proj_toned) == 128
-    mb_proj = write_darkplaces_spr32(
-        os.path.join(PROGS_DIR, "dookie_proj.spr32"), proj_toned, PROJ_W, PROJ_H, PROJ_H // 2
+
+    master45, master90 = load_keyed_overhead_masters()
+    fx_map = _load_fx()
+    above45_srgb = synthesize_above45_frames(master45, master90, fx_map, out_sz=OVERHEAD_SZ)
+    above90_srgb = synthesize_above90_frames(master90, fx_map, out_sz=OVERHEAD_SZ)
+    assert len(above45_srgb) == 128 and len(above90_srgb) == 128
+
+    overhead_sheet = save_overhead_contact_sheet(
+        above45_srgb, above90_srgb, os.path.join(MK4_DIR, "audit_overhead_sheet.png")
+    )
+    print(f"      Overhead contact sheet -> {overhead_sheet}")
+
+    for fr in above45_srgb + above90_srgb:
+        proj_srgb.append(fr)
+        proj_toned.append(tone_for_spr32_rgba(fr))
+    assert len(proj_toned) == 384
+
+    mb_proj = write_dookie_spr32(
+        os.path.join(PROGS_DIR, "dookie_proj.spr32"),
+        proj_toned,
+        PROJ_H // 2,
+        sprite_type=2,
+        center_from_frame=128,
     )
 
     # 16-frame radial mud splatter + toxic fume + orbiting flies impact burst
@@ -311,8 +411,12 @@ def export_world_sprites() -> Tuple[List[np.ndarray], List[np.ndarray]]:
         splat_srgb.append(canvas)
         splat_toned.append(tone_for_spr32_rgba(canvas))
 
-    mb_splat = write_darkplaces_spr32(
-        os.path.join(PROGS_DIR, "dookie_splat.spr32"), splat_toned, SPLAT_SZ, SPLAT_SZ, SPLAT_SZ // 2
+    mb_splat = write_dookie_spr32(
+        os.path.join(PROGS_DIR, "dookie_splat.spr32"),
+        splat_toned,
+        SPLAT_SZ // 2,
+        sprite_type=2,
+        center_from_frame=0,
     )
     print(f"      .spr32 sizes (MiB): dookie_proj={mb_proj:.2f}, dookie_splat={mb_splat:.2f}")
     return proj_srgb, splat_srgb
@@ -651,6 +755,10 @@ def save_audit_sheet(all_vm: List[np.ndarray], proj_srgb: List[np.ndarray], spla
 
 
 def main() -> None:
+    if "--sprites-only" in sys.argv[1:]:
+        export_world_sprites()
+        print("DONE! World sprites updated.")
+        return
     all_vm, muzzle_yz = export_viewmodel()
     proj_srgb, splat_srgb = export_world_sprites()
     export_wall_splats_and_fx()

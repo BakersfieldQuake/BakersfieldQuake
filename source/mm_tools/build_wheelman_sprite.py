@@ -933,16 +933,24 @@ def _tight_crop_and_bleed_rgba(rgba: np.ndarray, base_ox: int, base_oy: int):
     return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
 
 
-def write_spr32(path, frames, ground_y=SPR_GROUND):
-    """Writes tight-cropped DarkPlaces IDSP v32 sprite, type 0 (SPR_VP_PARALLEL_UPRIGHT), origin at wheel contact."""
+def write_spr32(path, frames, ground_y=SPR_GROUND, sprite_type=2, center_indices=None):
+    """Writes tight-cropped DarkPlaces IDSP v32 sprite, type 2 (SPR_VP_PARALLEL) by default,
+    with centered origins (ox=-w//2, oy=h//2) on overhead frame indices and ground_y elsewhere."""
     w, h = frames[0].size
     base_ox = -(w // 2)
     base_oy = ground_y
-    packed = [_tight_crop_and_bleed_rgba(np.asarray(im.convert("RGBA"), dtype=np.uint8), base_ox, base_oy) for im in frames]
+    center_set = set(center_indices) if center_indices is not None else set()
+    packed = []
+    for idx, im in enumerate(frames):
+        fox, foy, cw, ch, raw = _tight_crop_and_bleed_rgba(np.asarray(im.convert("RGBA"), dtype=np.uint8), base_ox, base_oy)
+        if idx in center_set:
+            fox = -(cw // 2)
+            foy = ch // 2
+        packed.append((fox, foy, cw, ch, raw))
     max_cw = max(f[2] for f in packed)
     max_ch = max(f[3] for f in packed)
     rad = 0.5 * math.hypot(max_cw, max_ch)
-    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, sprite_type, rad, max_cw, max_ch, len(packed), 0.0, 0))
     for fox, foy, cw, ch, raw in packed:
         buf += struct.pack("<iiiii", 0, fox, foy, cw, ch) + raw
     targets = [path]
@@ -956,7 +964,7 @@ def write_spr32(path, frames, ground_y=SPR_GROUND):
         with open(tmp, "wb") as f:
             f.write(buf)
         os.replace(tmp, dst)
-    print(f"wrote {path} ({len(packed)} frames, tight max={max_cw}x{max_ch} from {w}x{h}, base_ox={base_ox}, base_oy={base_oy}, {len(buf)/1048576:.2f} MiB)")
+    print(f"wrote {path} ({len(packed)} frames, type={sprite_type}, tight max={max_cw}x{max_ch} from {w}x{h}, base_ox={base_ox}, base_oy={base_oy}, centered={len(center_set)}, {len(buf)/1048576:.2f} MiB)")
 
 
 def save_gif_helper(frames_list, out_path, bg_rgb=(28, 30, 36), duration_ms=42):
@@ -1226,15 +1234,20 @@ def main():
     stunt_kit = stunts.extract_stunt_sprite_kit(norm_views, vert_norm, parts_360)
     sim_hists = {} if spr32_only else {tier: b360.simulate_3d_explosion_tier(tier) for tier in (1, 2, 3, 4)}
 
-    print("[5/6] Packing compact 200-frame tight-cropped DarkPlaces progs/wheelman.spr32...")
-    # Compact 200-frame contract (matches wcannon.qc & mbox.qc):
+    print("[5/6] Packing 224-frame tight-cropped DarkPlaces progs/wheelman.spr32 (type 2 SPR_VP_PARALLEL)...")
+    # 224-frame contract (matches wcannon.qc, wheelman.qc, mbox.qc, intro_director*.qc):
     #   0..7     (8)  : idle          (d = 0..7)
     #   8..55    (48) : driving       (8 + d*6 + k, k = 0..5)
     #   56..87   (32) : screaming     (56 + d*4 + k, k = 0..3)
-    #   88..111  (24) : above90       (88 + d*3 + k, k = 0..2)
+    #   88..111  (24) : above90       (88 + d*3 + k, k = 0..2, centered origin)
     #   112..135 (24) : below90       (112 + d*3 + k, k = 0..2)
     #   136..167 (32) : fire-wheels   (136 + d*4 + k, k = 0..3)
     #   168..199 (32) : long-bar      (168 + d*4 + k, k = 0..3)
+    #   200..223 (24) : above45       (200 + d*3 + k, k = 0..2, centered origin)
+    above45_8dir = fx.build_above45_8dir_roll(
+        VIEWS_DIR, ref_skin, key_studio_magenta, inpaint_region_with_surrounding_skin, calibrate_skin_to_ref, rot_ell_grid,
+        vert_dict["above45"]["roll"], CANVAS,
+    )
     toned_frames = []
     for d in range(N_DIR):
         toned_frames.append(to_spr32_toned(idle_frames[d]))
@@ -1261,9 +1274,31 @@ def main():
         for k in range(4):
             fr_lb = stunts.render_super_long_bar_frame(d, k / 4.0, stunt_kit, parts_360)
             toned_frames.append(to_spr32_toned(fr_lb))
+    for d in range(N_DIR):
+        for k in range(3):
+            toned_frames.append(to_spr32_toned(above45_8dir[d][k]))
 
-    assert len(toned_frames) == 200, f"Expected 200 SPR32 frames, got {len(toned_frames)}"
-    write_spr32(os.path.join(PROGS_DIR, "wheelman.spr32"), toned_frames, ground_y=SPR_GROUND)
+    assert len(toned_frames) == 224, f"Expected 224 SPR32 frames, got {len(toned_frames)}"
+    overhead_indices = set(range(88, 112)) | set(range(200, 224))
+    write_spr32(os.path.join(PROGS_DIR, "wheelman.spr32"), toned_frames, ground_y=SPR_GROUND, sprite_type=2, center_indices=overhead_indices)
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    # Audit contact sheet for above90 (88..111) + above45 (200..223)
+    cw_a, ch_a = 150, 118
+    audit = Image.new("RGB", (cw_a * 8, ch_a * 6), (26, 29, 36))
+    adr = ImageDraw.Draw(audit)
+    for row_blk, (lbl, base_idx) in enumerate([("above90", 88), ("above45", 200)]):
+        for d in range(N_DIR):
+            for k in range(3):
+                r = row_blk * 3 + k
+                fr = toned_frames[base_idx + d * 3 + k]
+                tile = Image.new("RGBA", (cw_a, ch_a), (30 + 5 * ((r + d) % 2), 33, 40, 255))
+                tile.alpha_composite(fr, ((cw_a - fr.width) // 2, (ch_a - fr.height) // 2))
+                audit.paste(tile.convert("RGB"), (d * cw_a, r * ch_a))
+                adr.text((d * cw_a + 4, r * ch_a + 3), f"{lbl} f{base_idx+d*3+k} d{d}k{k}", fill=(120, 240, 180))
+    audit_path = os.path.join(OUT_DIR, "audit_overhead_sheet.png")
+    audit.save(audit_path)
+    print(f"wrote {audit_path}")
 
     if not spr32_only:
         print("[6/6] Writing showcase sheets, explosion + stunt GIFs, and self-contained wheelman_sprite/index.html...")

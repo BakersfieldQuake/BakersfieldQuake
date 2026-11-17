@@ -989,3 +989,117 @@ def animate_vertical_pitch_frame(norm_im, pitch_key, phase_01, scream=False):
         out_im.alpha_composite(ov)
 
     return out_im
+
+
+def _center_rgba_on_canvas(im_rgba, canvas_wh=(320, 304), max_w=252.0, max_h=216.0):
+    """Centers an RGBA sprite cleanly at (W/2, H/2) within max_w x max_h so 360-deg Z-rotations never clip."""
+    W_c, H_c = canvas_wh
+    arr = np.array(im_rgba)
+    ys, xs = np.nonzero(arr[..., 3] > 24)
+    if len(xs) == 0:
+        return Image.new("RGBA", canvas_wh, (0, 0, 0, 0))
+    x0, x1 = float(xs.min()), float(xs.max())
+    y0, y1 = float(ys.min()), float(ys.max())
+    sw, sh = max(1.0, x1 - x0), max(1.0, y1 - y0)
+    scale = min(max_w / sw, max_h / sh, 1.0 if im_rgba.size == canvas_wh else 10.0)
+    rw, rh = max(2, int(round(im_rgba.width * scale))), max(2, int(round(im_rgba.height * scale)))
+    rsz = im_rgba.resize((rw, rh), Image.LANCZOS) if (rw != im_rgba.width or rh != im_rgba.height) else im_rgba
+    cx_src, cy_src = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+    ox = int(round(W_c * 0.5 - cx_src * scale))
+    oy = int(round(H_c * 0.5 - cy_src * scale))
+    out = Image.new("RGBA", canvas_wh, (0, 0, 0, 0))
+    out.paste(rsz, (ox, oy), rsz)
+    return out
+
+
+def build_above45_8dir_roll(views_dir, ref_skin, key_fn, inpaint_fn, cal_fn, rot_ell_fn, above45_roll_12, canvas_wh=(320, 304)):
+    """Builds 8-dir x 3-frame (+45 deg high-angle overhead rolling) views on 320x304 canvas."""
+    from PIL import ImageOps
+    from scipy import ndimage
+
+    # d=0: existing view_above_45.jpg animated roll frames (k = 0, 4, 8) centered cleanly
+    d0_frames = [_center_rgba_on_canvas(above45_roll_12[k * 4], canvas_wh, max_w=270.0, max_h=224.0) for k in range(3)]
+    d1_frames = [im.rotate(-42.0, resample=Image.BICUBIC, expand=False) for im in d0_frames]
+
+    # d=2: 90 deg Left Profile from +45 deg above (view_above_45_090.jpg)
+    p090_path = os.path.join(views_dir, "view_above_45_090.jpg")
+    orig090 = key_fn(Image.open(p090_path))
+    a90 = np.array(orig090).astype(np.float32)
+    H, W = a90.shape[:2]
+    yg, xg = np.mgrid[0:H, 0:W].astype(np.float32)
+    lum = 0.299 * a90[..., 0] + 0.587 * a90[..., 1] + 0.114 * a90[..., 2]
+    rb = a90[..., 0] - a90[..., 2]
+    r_tire = rot_ell_fn(xg, yg, 635.0, 680.0, 210.0, 175.0, -32.0)
+    sh90 = (a90[..., 3] > 30) & (r_tire > 1.03) & (xg >= 740) & (xg <= 1040) & (yg >= 230) & (yg <= 515) & (rb < 18.0) & (lum < 110.0)
+    sh90 = ndimage.binary_closing(sh90, iterations=3) & (r_tire > 1.03)
+    im090 = inpaint_fn(orig090, sh90, grain_src_box=(610, 180, 740, 280))
+    cur = np.array(im090)
+    cur[r_tire <= 1.02] = np.array(orig090)[r_tire <= 1.02]
+    im090 = cal_fn(Image.fromarray(cur, "RGBA"), ref_skin, strength=0.55)
+    norm090 = _center_rgba_on_canvas(im090, canvas_wh, max_w=244.0, max_h=204.0)
+
+    d2_frames = []
+    Hc, Wc = canvas_wh[1], canvas_wh[0]
+    ygc, xgc = np.mgrid[0:Hc, 0:Wc].astype(np.float32)
+    base90_arr = np.array(norm090)
+    for k in range(3):
+        ph = k / 3.0
+        t = 2.0 * math.pi * ph
+        # Subtle suspension bounce on torso/head while foreground wheel stays locked
+        fg_lock = np.clip((1.12 - rot_ell_fn(xgc, ygc, Wc * 0.52, Hc * 0.65, 58.0, 48.0, -32.0)) / 0.25, 0.0, 1.0)
+        free = 1.0 - fg_lock
+        bob_y = 2.0 * math.sin(t) * free
+        warped = _premul_remap(base90_arr, xgc, (ygc + bob_y).astype(np.float32))
+        rf = warped.astype(np.float32)
+        pa = rf[..., 3] > 80
+        pl = rf[..., :3].mean(axis=2)
+        is_t = pa & (fg_lock > 0.25) & (pl < 82.0)
+        ang_w = np.arctan2(ygc - Hc * 0.65, xgc - Wc * 0.52)
+        wave = np.sin(9.0 * ang_w - t * 2.0) * 12.0 * is_t
+        rf[..., :3] = np.clip(rf[..., :3] + wave[..., None], 0.0, 255.0)
+        d2_frames.append(Image.fromarray(rf.astype(np.uint8), "RGBA"))
+
+    # d=4: 180 deg Back from +45 deg above (view_above_45_180.jpg)
+    p180_path = os.path.join(views_dir, "view_above_45_180.jpg")
+    orig180 = key_fn(Image.open(p180_path))
+    a180 = np.array(orig180).astype(np.float32)
+    H1, W1 = a180.shape[:2]
+    yg1, xg1 = np.mgrid[0:H1, 0:W1].astype(np.float32)
+    lum1 = 0.299 * a180[..., 0] + 0.587 * a180[..., 1] + 0.114 * a180[..., 2]
+    rb1 = a180[..., 0] - a180[..., 2]
+    ys1, xs1 = np.nonzero(a180[..., 3] > 24)
+    bx0, bx1, by0, by1 = float(xs1.min()), float(xs1.max()), float(ys1.min()), float(ys1.max())
+    bwp, bhp = bx1 - bx0, by1 - by0
+    mech180 = (xg1 < bx0 + 0.24 * bwp) | (xg1 > bx0 + 0.76 * bwp) | ((yg1 > by0 + 0.56 * bhp) & (yg1 < by0 + 0.65 * bhp) & (lum1 > 88.0))
+    sh180 = (a180[..., 3] > 30) & (~mech180) & (xg1 >= bx0 + 0.28 * bwp) & (xg1 <= bx0 + 0.72 * bwp) & (yg1 >= by0 + 0.48 * bhp) & (yg1 <= by0 + 0.90 * bhp) & (rb1 < 19.0) & (lum1 < 112.0)
+    sh180 = ndimage.binary_dilation(sh180, iterations=2) & (~mech180) & (a180[..., 3] > 20)
+    im180 = inpaint_fn(orig180, sh180, cleft_x=0.5 * (bx0 + bx1), grain_src_box=(int(bx0 + 0.42 * bwp), int(by0 + 0.30 * bhp), int(bx0 + 0.58 * bwp), int(by0 + 0.42 * bhp)))
+    cur180 = np.array(im180)
+    cur180[mech180] = np.array(orig180)[mech180]
+    im180 = cal_fn(Image.fromarray(cur180, "RGBA"), ref_skin, strength=0.55)
+    norm180 = _center_rgba_on_canvas(im180, canvas_wh, max_w=246.0, max_h=210.0)
+
+    d4_frames = []
+    base180_arr = np.array(norm180)
+    tire_z4 = (xgc < 98.0) | (xgc > Wc - 98.0)
+    for k in range(3):
+        ph = k / 3.0
+        t = 2.0 * math.pi * ph
+        free4 = (~tire_z4).astype(np.float32) * (1.0 - 0.85 * np.exp(-((ygc - 182.0) / 9.0) ** 2))
+        free4 = cv2.GaussianBlur(free4, (9, 9), 2.2)
+        bob4 = 1.8 * math.sin(t) * free4
+        warped = _premul_remap(base180_arr, xgc, (ygc + bob4).astype(np.float32))
+        rf = warped.astype(np.float32)
+        pa = rf[..., 3] > 80
+        pl = rf[..., :3].mean(axis=2)
+        is_t = pa & tire_z4 & (pl < 84.0)
+        wave = np.sin(9.5 * (ygc - Hc * 0.5) / 52.0 - t * 2.0) * 14.0 * is_t
+        rf[..., :3] = np.clip(rf[..., :3] + wave[..., None], 0.0, 255.0)
+        d4_frames.append(Image.fromarray(rf.astype(np.uint8), "RGBA"))
+
+    d3_frames = [im.rotate(+42.0, resample=Image.BICUBIC, expand=False) for im in d4_frames]
+    d5_frames = [ImageOps.mirror(im) for im in d3_frames]
+    d6_frames = [ImageOps.mirror(im) for im in d2_frames]
+    d7_frames = [ImageOps.mirror(im) for im in d1_frames]
+
+    return [d0_frames, d1_frames, d2_frames, d3_frames, d4_frames, d5_frames, d6_frames, d7_frames]

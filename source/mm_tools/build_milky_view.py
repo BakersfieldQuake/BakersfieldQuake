@@ -38,7 +38,7 @@ SHOT_WIND_FRAMES = 36     # skins 192..227 (mvm_f_00..35: windup + palm opening,
 SHOT_FOLLOW_FRAMES = 20   # skins 228..247 (mvm_f_36..55: empty open hand follow-through, 0.30 s)
 
 TEX_W = 384
-DIM = 0.94                # full-sRGB bright held model matching the self-lit Pink Lady projectile
+DIM = 0.60                # balanced viewmodel brightness under rgbGen lightingDiffuse + HDR 1.25..1.45
 VIEW_H = 27.0             # card height in view units; screen is about +/-27.8 wide and +/-15.6 high at x = 14
 VIEW_X = 14.0
 VIEW_RIGHT = -29.0        # right edge (past the screen's right edge: the arm runs off the corner)
@@ -281,7 +281,7 @@ def main():
         for k in ("a", "b", "f"):
             for i in range(len(sets[k])):
                 sh_name = "progs/mvm_%s_%02d" % (k, i)
-                sh.write("%s\n{\n\tcull none\n\tnomipmaps\n\t{\n\t\tmap %s\n\t\tblendfunc blend\n\t\trgbGen identity\n\t}\n}\n" % (sh_name, sh_name))
+                sh.write("%s\n{\n\tcull none\n\tnomipmaps\n\t{\n\t\tclampmap %s\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}\n}\n" % (sh_name, sh_name))
                 with open(os.path.join(PROGS, "v_milky.md3_%d.skin" % skin_idx), "w", newline="\n") as sk:
                     sk.write("card,%s\n" % sh_name)
                 skin_idx += 1

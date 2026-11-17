@@ -130,7 +130,7 @@ void() GJ_BalloonPopStep =
 		FG_Snd (self, CHAN_VOICE, "greenjar/mini_pop.wav", 0.95, 0.95 + random () * 0.14);
 		sendParticle ("pk_puff", self.origin + '0 0 12', '0 0 0', 1, 0);
 		// Post-frenzy balloon burst deals a 12-dmg confetti pop to nearby enemies!
-		if (self.gj_attack_end > 0)
+		if (self.gj_attack_end > 0 && self.owner.classname == "player")		// no damage credited to a player who left
 		{
 			fg_inflicting = FG_PONG;
 			e = findradius (self.origin + '0 0 12', 95);
@@ -244,17 +244,19 @@ void(entity attacker, float take) GJ_MiniPain =
 };
 
 // ================================================================
-// PER-CLIENT 8-ANGLE SPRITE CUSTOMIZER (`progs/greenguy_mini.spr32`, 176 frames)
+// PER-CLIENT 8-ANGLE SPRITE CUSTOMIZER (`progs/greenguy_mini.spr32`, 272 frames)
 //   0   + d*6 + k   8-dir Seated Wheel-Drive     (0..47)
 //   48  + d*6 + k   8-dir Vertical Wall-Drive    (48..95)
 //   96  + d*6 + k   8-dir Post-3-Lap Attack Ram  (96..143)
 //   144 .. 159      16f Punctured Shot-Spin
 //   160 .. 175      16f Balloon Swell & Rainbow Confetti Pop
+//   176 + d*6 + k   8-dir Overhead 45-deg View   (176..223)
+//   224 + d*6 + k   8-dir Overhead 90-deg View   (224..271)
 // ================================================================
 
 float() GJ_MiniCustomize =
 {
-	local float rel, d, k;
+	local float rel, d, k, dz, hdist;
 	local vector delta;
 
 	if (self.gj_state == 4)
@@ -279,8 +281,27 @@ float() GJ_MiniCustomize =
 	k = k - 6 * floor (k / 6);
 
 	if (self.gj_state == 2)
+	{
 		self.frame = 48 + d * 6 + k;		// Vertical building wall-driver!
-	else if (self.gj_state == 6)
+		return TRUE;
+	}
+
+	dz = delta_z;
+	delta_z = 0;
+	hdist = vlen (delta);
+
+	if (dz > hdist * 1.73)
+	{
+		self.frame = 224 + d * 6 + k;		// >60 deg straight-down overhead hover!
+		return TRUE;
+	}
+	if (dz > hdist * 0.58)
+	{
+		self.frame = 176 + d * 6 + k;		// 30-60 deg jetpack swoop overhead!
+		return TRUE;
+	}
+
+	if (self.gj_state == 6)
 		self.frame = 96 + d * 6 + k;		// Post-3-Lap Attack Lunge (Torpedo Charge + Sky-Point Ram)!
 	else
 		self.frame = d * 6 + k;				// Seated Wheel-Driving on spinning pneumatic tires!
@@ -291,6 +312,8 @@ float() GJ_MiniCustomize =
 void(entity m, entity victim) GJ_AttackHit =
 {
 	if (time < m.gj_next_poke || victim.health <= 0)
+		return;
+	if (m.owner.classname != "player")		// owner left: GJ_MiniThink pops it on its next tick
 		return;
 	m.gj_next_poke = time + 0.42 + random () * 0.25;
 
@@ -375,6 +398,13 @@ void() GJ_MiniThink =
 	if (time >= self.gj_die_at)
 	{
 		GJ_StartBalloonPop (self, FALSE);
+		return;
+	}
+	// owner left: stop fighting in an empty (or reused) slot's name; gj_attack_end 0 keeps the pop harmless
+	if (self.owner.classname != "player")
+	{
+		self.gj_attack_end = 0;
+		GJ_StartBalloonPop (self, TRUE);
 		return;
 	}
 

@@ -144,7 +144,7 @@ void() Garand_MuzzleAndBrass =
 		fl.think = SUB_Remove;
 		fl.nextthink = time + 0.05;
 
-		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 26 + v_right * 9 - v_up * 4, self.velocity * 20, 1);
+		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 26 + v_right * 9 - v_up * 4, self.velocity * 20, 1, 0);
 	}
 
 	if (autocvar_shellcasing)
@@ -203,12 +203,12 @@ void(vector dir) Garand_WallImpact =
 	if (gar_fx_hole >= 0)
 		pointparticles (gar_fx_hole, trace_endpos, VEC_ORIGIN, 1);
 	else
-		sendParticle ("TE_GUNSHOT", trace_endpos - dir * 1, VEC_ORIGIN, 1);
+		sendParticle ("TE_GUNSHOT", trace_endpos - dir * 1, VEC_ORIGIN, 1, 0);
 
 	if (gar_fx_spark >= 0)
 		pointparticles (gar_fx_spark, trace_endpos + trace_plane_normal * 1.5, trace_plane_normal * 110, 1);
 	else
-		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1);
+		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1, 0);
 
 	if (random () < 0.35)
 	{

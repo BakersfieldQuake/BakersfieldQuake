@@ -96,6 +96,13 @@ void(entity p) Underdog_Reset =
 	p.ud_kills = 0;
 	p.ud_deaths = 0;
 	p.ud_earned = FALSE;
+	// the computed boost / leader numbers too: a bot reusing the slot spawned with the old boost (and its gold glow)
+	p.ud_boost = 0;
+	p.ud_heat = 0;
+	p.ud_tier = 0;
+	p.ud_lead = 0;
+	p.ud_deficit = 0;
+	p.ud_blueshell = FALSE;
 	// the kill-streak announcer's numbers too (bm_fun.qc), and nobody may take REVENGE on the next one in this slot
 	p.bm_streak = 0;
 	p.bm_streak_tier = 0;
@@ -509,8 +516,8 @@ void() Underdog_GivePent =
 // PutClientInServer: the spawn boosts
 void() Underdog_Spawn =
 {
-	local float b, hp, ar, r, earned, last;
-	local entity best;
+	local float b, hp, ar, r, earned, last, n, sum, top, low, listed;
+	local entity best, e;
 
 	earned = self.ud_earned;
 	self.ud_earned = FALSE;
@@ -523,6 +530,40 @@ void() Underdog_Spawn =
 		return;
 	ud_next_t = 0;
 	Underdog_Update ();		// fresh numbers for this spawn
+	// a player who just connected (a new bot) is not in bm_player_head yet: StartFrame built it before the classname
+	// was set, so Underdog_Update skipped it. Work its numbers out here, counting it in.
+	listed = FALSE;
+	n = 1;
+	sum = self.frags;
+	top = self.frags;
+	low = self.frags;
+	e = bm_player_head;
+	while (e)
+	{
+		if (e == self)
+			listed = TRUE;		// Underdog_Update already did it
+		n = n + 1;
+		sum = sum + e.frags;
+		if (e.frags > top)
+			top = e.frags;
+		if (e.frags < low)
+			low = e.frags;
+		e = e.bm_player_next;
+	}
+	if (!listed)
+	{
+		self.ud_lead = (n >= 2 && self.frags >= top && top > low);
+		self.ud_heat = 0;
+		self.ud_deficit = 0;
+		self.ud_boost = 0;
+		if (n >= 2)
+		{
+			self.ud_heat = self.frags - (sum - self.frags) / (n - 1);
+			self.ud_deficit = top - self.frags;
+			self.ud_boost = Underdog_Boost (self, n, top);
+		}
+		self.ud_tier = Underdog_Tier (self.ud_heat);
+	}
 	b = self.ud_boost;
 	if (b <= 0)
 		return;

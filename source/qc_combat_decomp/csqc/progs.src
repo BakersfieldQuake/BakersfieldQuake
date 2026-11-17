@@ -1,0 +1,20 @@
+./progs.dat
+
+#pragma flag enable lax //remove this line once you've fixed up any decompiler bugs...
+//#pragma copyright "Compiled [2023/09/09]. FTEQCC: Jan 24 2017"
+
+sysdefs.qc
+csqc.csprogsdefs.qc
+csqc.cs_defs.qc
+csqc.servercommands.qc
+csqc.sbardefs.qc
+csqc.menudefs.qc
+csqc.entities.qc
+csqc.maplist.qc
+bm_hud.qc
+hud_common.qc
+hud_style_1.qc
+hud_style_2.qc
+hud_style_3.qc
+hud_style_4.qc
+csqc.main.qc

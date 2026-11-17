@@ -151,22 +151,29 @@ float() WC_ShotCustomize =
 	local vector delta;
 
 	d = WC_View (self.origin + '0 0 24');
+	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 24');
+	dz = delta_z;
+	delta_z = 0;
+	hd = vlen (delta);
+	if (dz > hd * 1.73)
+	{
+		k = floor (time * 15);
+		k = k - 3 * floor (k / 3);
+		self.frame = 88 + d * 3 + k;
+		return TRUE;
+	}
+	if (dz > hd * 0.58)
+	{
+		k = floor (time * 15);
+		k = k - 3 * floor (k / 3);
+		self.frame = 200 + d * 3 + k;
+		return TRUE;
+	}
 	a = self.wc_anim;
 	if (self.wc_air)
 		a = 1;
 	if (a == 0)
 	{
-		delta = (other.origin + other.view_ofs) - (self.origin + '0 0 24');
-		dz = delta_z;
-		delta_z = 0;
-		hd = vlen (delta);
-		if (dz > hd * 0.62)
-		{
-			k = floor (time * 15);
-			k = k - 3 * floor (k / 3);
-			self.frame = 88 + d * 3 + k;
-			return TRUE;
-		}
 		if (dz < 0 - hd * 0.55)
 		{
 			k = floor (time * 15);
@@ -337,7 +344,7 @@ void(vector org, float tier, entity hit) WC_Boom =
 };
 
 // ---------------------------------------------------------------- the post-crash crazed runner
-// progs/wheelman_dance.spr32 (build_hd_npc_sprites.py + build_npc_death_anims.py, 400 frames at 80x80 tight-cropped, scale 0.8645):
+// progs/wheelman_dance.spr32 (build_hd_npc_sprites.py + build_npc_death_anims.py + build_wheelman_dance.py, 496 frames at 80x80 tight-cropped, type 2 SPR_VP_PARALLEL, scale 0.8645):
 //   0..39    (0) run_stuck      0 + d * 5 + k
 //   40..79   (1) run_overhead   40 + d * 5 + k
 //   80..127  (2) dance          80 + d * 6 + k
@@ -347,16 +354,33 @@ void(vector org, float tier, entity hit) WC_Boom =
 //   264..311 (6) throw_rig      264 + d * 6 + k
 //   312..367 (7) turn_robot     312 + d * 7 + step
 //   368..399     8-dir x 4-step death frames (used by crowd_npcs.qc)
+//   400..447     8-dir x 6-step above45 overhead dance (400 + d * 6 + k, centered origin)
+//   448..495     8-dir x 6-step above90 overhead dance (448 + d * 6 + k, centered origin)
 
 float() WC_DancerCustomize =
 {
-	local float d, k, a, step;
+	local float d, k, a, step, dz, hd;
+	local vector delta;
 
 	d = WC_View (self.origin + '0 0 28');
-	a = self.wc_anim;
 	k = floor ((time - self.wc_t0) * 12);
 	if (k < 0)
 		k = 0;
+	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 28');
+	dz = delta_z;
+	delta_z = 0;
+	hd = vlen (delta);
+	if (dz > hd * 1.73)
+	{
+		self.frame = 448 + d * 6 + k - 6 * floor (k / 6);
+		return TRUE;
+	}
+	if (dz > hd * 0.58)
+	{
+		self.frame = 400 + d * 6 + k - 6 * floor (k / 6);
+		return TRUE;
+	}
+	a = self.wc_anim;
 	if (a == 0)
 		self.frame = d * 5 + k - 5 * floor (k / 5);
 	else if (a == 1)
@@ -408,6 +432,7 @@ void() WC_DancerThink =
 	}
 
 	grounded = FALSE;
+	n = '0 0 1';		// only read when grounded; set so it is never uninitialised
 	traceline (self.origin + '0 0 6', self.origin - '0 0 6', TRUE, self);
 	if (trace_fraction < 1 && !trace_startsolid && trace_plane_normal_z >= 0.7)
 	{
@@ -605,11 +630,24 @@ void(vector org, vector in_dir) WC_Dancer =
 	d.nextthink = time + 0.02;
 };
 
+// his owner left: no blast in an empty (or reused) slot's name, he just sparks out
+void() WC_Fizzle =
+{
+	sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);		// the scream stops
+	pointparticles (wc_fx_spark, self.origin + '0 0 24', '0 0 120', 30);
+	remove (self);
+};
+
 void(entity hit) WC_Crash =
 {
 	local vector org, in_dir;
 	local float tier, dmg;
 
+	if (self.owner.classname != "player")
+	{
+		WC_Fizzle ();
+		return;
+	}
 	org = self.origin;
 	in_dir = self.wc_dir;
 	tier = self.wc_tier;
@@ -668,6 +706,11 @@ void() WC_Think =
 		dt = 0;
 	self.wc_t = time;
 	self.nextthink = time + 0.02;
+	if (self.owner.classname != "player")
+	{
+		WC_Fizzle ();		// owner left
+		return;
+	}
 	if (time - self.fg_born > WC_LIFE)
 	{
 		WC_Crash (world);
@@ -692,6 +735,7 @@ void() WC_Think =
 		self.wc_dir = normalize (f);
 	// is there a floor under him that he is not moving away from?
 	grounded = FALSE;
+	n = '0 0 1';		// only read when grounded; set so it is never uninitialised
 	traceline (self.origin + '0 0 6', self.origin - '0 0 6', TRUE, self);
 	if (trace_fraction < 1 && !trace_startsolid && trace_plane_normal_z >= 0.7)
 	{

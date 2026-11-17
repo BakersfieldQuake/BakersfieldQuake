@@ -1,0 +1,12 @@
+./menu.dat
+
+#pragma target dp
+#pragma flag enable assumeint
+
+menu_defs.qc
+menu_ui.qc
+menu_main.qc
+menu_browser.qc
+menu_host.qc
+menu_options.qc
+menu_entry.qc

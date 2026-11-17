@@ -41,6 +41,8 @@ from greensuit_core import (
     N_DIRS,
     SS_CX,
     SS_GROUND,
+    SS_H,
+    SS_W,
     alpha_over,
     bbox_of_rgba,
     detect_tire_regions_and_spin,
@@ -701,7 +703,7 @@ def build_projectile_and_smoke_sprites(rig: JarGauntletRig) -> Tuple[List[np.nda
         # Initial blinding radioactive ignition flash (frames 0..6)
         if f < 7:
             fl_u = 1.0 - f / 7.0
-            dist_c = np.hypot(xx_s - 128.0, yy_s - 142.0)
+            dist_c = np.hypot(xx_s - 128.0, yy_s - 128.0)
             fl_base = np.maximum(0.0, 1.0 - dist_c / (48.0 + 42.0 * (1.0 - fl_u)))
             fl_a = np.clip((fl_base ** 1.7) * fl_u * 0.95, 0.0, 1.0)
             acc_rgb[..., 0] += 210.0 * fl_a
@@ -713,7 +715,7 @@ def build_projectile_and_smoke_sprites(rig: JarGauntletRig) -> Tuple[List[np.nda
         fade_out = np.clip((1.0 - max(0.0, (u - 0.52) / 0.48)) ** 1.35, 0.0, 1.0)
         for ang, spd, lift, r0, r1, hot in puffs:
             px = 128.0 + math.cos(ang) * spd * ease
-            py = 148.0 + math.sin(ang) * spd * 0.65 * ease - lift * (u ** 1.15)
+            py = 136.0 + math.sin(ang) * spd * 0.65 * ease - lift * (u ** 1.15)
             rad = r0 + (r1 - r0) * ease
             d2 = ((xx_s - px) ** 2 + (yy_s - py) ** 2) / max(1.0, rad * rad)
             pa = (np.maximum(0.0, 1.0 - d2) ** 1.6) * 0.52 * fade_out
@@ -741,7 +743,7 @@ def build_projectile_and_smoke_sprites(rig: JarGauntletRig) -> Tuple[List[np.nda
             for ang, spd, sz, spin in shards:
                 t_s = f / 22.0
                 sx = 128.0 + math.cos(ang) * spd * t_s
-                sy = 144.0 + math.sin(ang) * spd * 0.75 * t_s + 52.0 * (t_s ** 2)
+                sy = 128.0 + math.sin(ang) * spd * 0.75 * t_s + 52.0 * (t_s ** 2)
                 if 4 < sx < W - 4 and 4 < sy < W - 4:
                     theta = f * spin
                     pts = [
@@ -1048,10 +1050,143 @@ def build_mini_gremlin_sprites(turns_16: Dict[str, List[np.ndarray]]) -> Dict[st
                         dr.polygon(quad, fill=(col[0], col[1], col[2], alpha_c))
             balloon_pop_frames.append(np.array(pil, dtype=np.uint8))
 
+    overhead = build_mini_overhead_sprites()
     return {
         "scurry": scurry_grid,
         "wall_climb": wall_grid,
         "pogo_jump": pogo_grid,
         "shot_spin": shot_spin_frames,
         "balloon_pop": balloon_pop_frames,
+        "above45": overhead["above45"],
+        "above90": overhead["above90"],
+    }
+
+
+def _normalize_centered_plate(rgba: np.ndarray, max_span: int = 236) -> np.ndarray:
+    """Crops an overhead plate tightly and centers it on a 384x384 (`SS_W x SS_H`) canvas."""
+    x0, y0, x1, y1 = bbox_of_rgba(rgba, alpha_min=20)
+    crop = rgba[y0:y1, x0:x1]
+    ch, cw = crop.shape[:2]
+    scale = max_span / float(max(cw, ch, 1))
+    nw = max(4, int(round(cw * scale)))
+    nh = max(4, int(round(ch * scale)))
+    rs = resize_rgba_premul(crop, nw, nh)
+    canvas = np.zeros((SS_H, SS_W, 4), dtype=np.uint8)
+    px = (SS_W - nw) // 2
+    py = (SS_H - nh) // 2
+    canvas[py:py + nh, px:px + nw] = rs
+    return canvas
+
+
+def build_mini_overhead_sprites() -> Dict[str, List[List[np.ndarray]]]:
+    """Synthesizes 8-direction x 6-frame animated overhead wheel-driving sprites (`192x192`, centered at `(96, 96)`):
+      - `above45`: 30-60 deg jetpack swoop overhead view (`seated_above45.jpg` for front sectors + `seated_above90.jpg` foreshortened for side/rear)
+      - `above90`: >60 deg straight-down bird's-eye view (`seated_above90.jpg` rotated cleanly across all 8 compass directions)
+    """
+    CW = 192
+    CX = 96.0
+    CY = 96.0
+
+    p45_raw = _load_plate_rgba("seated_above45.jpg", harmonize_green=True)
+    p90_raw = _load_plate_rgba("seated_above90.jpg", harmonize_green=True)
+    base45 = _normalize_centered_plate(p45_raw, max_span=236)
+    base90 = _normalize_centered_plate(p90_raw, max_span=234)
+
+    def _animate_canon(base_ss: np.ndarray, seed_off: int) -> List[np.ndarray]:
+        seq: List[np.ndarray] = []
+        for k in range(6):
+            phase = k / 6.0
+            ph = phase * 2.0 * math.pi
+            spun = detect_tire_regions_and_spin(base_ss, 0, spin_angle_rad=ph * 2.0, tread_strength=1.45)
+            bounce_dy = 3.2 * math.sin(ph)
+            rock_deg = 2.6 * math.sin(ph + 0.35)
+            squash = 1.0 - 0.025 * math.cos(2.0 * ph)
+            warped = warp_kinematic_rgba(
+                spun,
+                dx=0.0,
+                dy=bounce_dy,
+                scale_x=1.0 / math.sqrt(squash),
+                scale_y=squash,
+                rot_deg=rock_deg,
+                shear_top_x=0.0,
+                wave_amp_x=1.4,
+                wave_phase=ph,
+            )
+            shadow = make_contact_shadow(232, 184, cx=SS_CX, ground_y=SS_CX + 6, opacity=0.38)
+            ss = alpha_over(shadow, warped)
+            # Exhaust / tire-burnout puffs trailing behind the rolling wheels (upward on d=0 since d=0 faces down)
+            smoke_pts = [(SS_CX - 86.0, SS_CX - 62.0), (SS_CX + 86.0, SS_CX - 62.0)]
+            ss = draw_smoke_puffs(ss, smoke_pts, phase_01=phase, drift_x=0.0, intensity=0.48, seed=seed_off)
+            if k % 2 == 0:
+                ss = draw_sparks_and_dust(
+                    ss,
+                    [(SS_CX - 88.0, SS_CX - 56.0), (SS_CX + 88.0, SS_CX - 56.0)],
+                    phase_01=(phase * 2.0) % 1.0,
+                    vel_bias=(0.0, -0.95),
+                    intensity=0.48,
+                    seed=seed_off + 50 + k,
+                )
+            seq.append(ss)
+        return seq
+
+    anim45_canon = _animate_canon(base45, seed_off=710)
+    anim90_canon = _animate_canon(base90, seed_off=810)
+
+    above45_grid: List[List[np.ndarray]] = [[None] * 6 for _ in range(8)]  # type: ignore
+    above90_grid: List[List[np.ndarray]] = [[None] * 6 for _ in range(8)]  # type: ignore
+
+    for d in range(8):
+        rot_cw = d * 45.0
+        for k in range(6):
+            # above90: pure top-down 360-deg Z-rotation centered at (96, 96)
+            fr90 = rotate_scale_translate_rgba(
+                anim90_canon[k],
+                angle_deg=rot_cw,
+                scale_x=0.56,
+                scale_y=0.56,
+                dx=CX - float(SS_CX),
+                dy=CY - float(SS_CX),
+                pivot=(float(SS_CX), float(SS_CX)),
+                out_hw=(CW, CW),
+            )
+            above90_grid[d][k] = fr90
+
+            # above45: front sectors (d=0, 1, 7) use true 45-deg front plate; side/back sectors (d=2..6)
+            # use top-down plate with 45-deg screen-Y perspective foreshortening so face never flips upside down!
+            if d in (0, 1, 7):
+                src45 = anim45_canon[k]
+                ang45 = 0.0 if d == 0 else (38.0 if d == 1 else -38.0)
+                sx45, sy45 = 0.56, 0.56
+            else:
+                src45 = anim90_canon[k]
+                ang45 = rot_cw
+                sx45, sy45 = 0.56, 0.56
+
+            fr45 = rotate_scale_translate_rgba(
+                src45,
+                angle_deg=ang45,
+                scale_x=sx45,
+                scale_y=sy45,
+                dx=CX - float(SS_CX),
+                dy=CY - float(SS_CX),
+                pivot=(float(SS_CX), float(SS_CX)),
+                out_hw=(CW, CW),
+            )
+            if d not in (0, 1, 7):
+                # Apply gentle vertical foreshortening in screen space to match 45-deg camera elevation
+                fr45 = rotate_scale_translate_rgba(
+                    fr45,
+                    angle_deg=0.0,
+                    scale_x=1.0,
+                    scale_y=0.86,
+                    dx=0.0,
+                    dy=0.0,
+                    pivot=(CX, CY),
+                    out_hw=(CW, CW),
+                )
+            above45_grid[d][k] = fr45
+
+    return {
+        "above45": above45_grid,
+        "above90": above90_grid,
     }

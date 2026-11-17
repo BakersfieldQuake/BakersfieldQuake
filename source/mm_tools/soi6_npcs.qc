@@ -13,16 +13,15 @@ Scale & Crowd Architecture:
       * Caches living player entities once per frame in Soi6_Tick (zero per-NPC find() scans)
       * Adaptive think intervals (calm dancers sleep 0.35-0.65s; active chase/flee ticks @ 0.1s)
       * Distance visibility cull (>2400u along street) in Soi6_Customize
-  - Cheat test impulses (sv_cheats 1):
-      impulse 61 -> Soi6_Line ()        (line up all 8 unique characters in front of you)
-      impulse 62 -> Soi6_Poke (25)      (make aimed entertainer scream & flee)
-      impulse 63 -> Soi6_Poke (80)      (falling death test)
-      impulse 64 -> Soi6_Poke (500)     (2D+3D gib burst test)
-      impulse 65 -> Soi6_GotoStreet ()  (teleport to Soi 6 street)
-      impulse 66 -> Soi6_GotoBarSide () (teleport near Ruby Club / Queen Vic)
-      impulse 67 -> Soi6_SummonAlex ()  (summon Alex Pattaya Guy in front of you)
-      impulse 68 -> Soi6_GotoAlex ()    (teleport to Alex Pattaya Guy on Soi 6)
-      impulse 69 -> Soi6_PokeAlex (600) (deal 600 direct damage to Alex for kill/respawn test)
+  - Cheat test impulses (sv_cheats 1), handled in bm_match.qc BM_TestImpulses. Moved from 61-66 on 2026-11-17:
+    61-69 are the fun-gun select impulses (FG_IMPULSE), so the old numbers hijacked Rob Dob / NetSend / Wheelman picks.
+      impulse 141 -> Soi6_Line ()        (line up all 12 characters in front of you)
+      impulse 142 -> Soi6_Poke (25)      (make aimed entertainer scream & flee)
+      impulse 143 -> Soi6_Poke (80)      (falling death test)
+      impulse 144 -> Soi6_Poke (500)     (2D+3D gib burst test)
+      impulse 145 -> Soi6_GotoStreet ()  (teleport to Soi 6 street)
+      impulse 146 -> Soi6_GotoBarSide () (teleport near Ruby Club / Queen Vic)
+      (Soi6_SummonAlex / Soi6_GotoAlex / Soi6_PokeAlex have no impulse wired up.)
 ================
 */
 
@@ -57,6 +56,8 @@ var float autocvar_bm_soi6_lights = 1;
 .float alex_dir;        // Alex street patrol heading (0 East, 180 West)
 .float alex_quote_id;   // active Alex quote index 1..12
 .float alex_stuck;      // consecutive blocked walk ticks
+.float alex_cp_t;       // player: next allowed Alex HP centerprint (one per hit flooded the reliable channel)
+.float soi6_swarm_t;    // player: next allowed Soi6_TriggerSwarm from hitting Alex (a find over every bar girl)
 
 float soi6_precached;
 float soi6_spawned;
@@ -769,8 +770,8 @@ void() Soi6_Think =
 	if (self.soi6_state == SOI6_DEAD || self.soi6_state == SOI6_GIB)
 	{
 		self.nextthink = time + 0.6;
-		if (self.soi6_state == SOI6_GIB && time > self.soi6_anim_t + 0.45)
-			self.model = "";
+		if (self.soi6_state == SOI6_GIB && time > self.soi6_anim_t + 0.45 && self.modelindex)
+			setmodel (self, "");		// the engine draws by modelindex: clearing .model alone left the last gib frame up
 		if (!self.soi6_lineup && time >= self.soi6_respawn_t)
 			Soi6_Respawn ();
 		return;
@@ -1748,8 +1749,10 @@ void(entity ent, entity target_pl, float is_shot) Alex_Talk =
 			ent.soi6_talk_t = time + 3.4 + random () * 1.4;
 	}
 
-	if (target_pl && (target_pl.flags & FL_CLIENT))
+	if (target_pl && (target_pl.flags & FL_CLIENT) && (!is_shot || time >= target_pl.alex_cp_t))
 	{
+		if (is_shot)
+			target_pl.alex_cp_t = time + 1;		// a nailgun / lightning gun hits ~10 times a second
 		q = Alex_ClipQuote (ent.alex_quote_id);
 		hp = ceil (ent.health);
 		if (hp < 0)
@@ -1930,7 +1933,12 @@ void(entity attacker, float damage) Alex_Pain =
 	self.nextthink = time + 0.1;
 
 	Alex_Talk (self, attacker, TRUE);
-	swarmed = Soi6_TriggerSwarm (self, attacker);
+	swarmed = 0;
+	if (attacker != world && time >= attacker.soi6_swarm_t)		// the swarm lasts 8 s: re-arming it on every hit only cost a find() per hit
+	{
+		attacker.soi6_swarm_t = time + 0.75;
+		swarmed = Soi6_TriggerSwarm (self, attacker);
+	}
 	if (swarmed > 0 && attacker && (attacker.flags & FL_CLIENT) && time >= soi6_chat_cd)
 	{
 		soi6_chat_cd = time + 2.5;
@@ -1995,8 +2003,8 @@ void() Alex_Think =
 	if (self.soi6_state == ALEX_DEAD || self.soi6_state == ALEX_GIB)
 	{
 		self.nextthink = time + 0.5;
-		if (self.soi6_state == ALEX_GIB && time > self.soi6_anim_t + 0.45)
-			self.model = "";
+		if (self.soi6_state == ALEX_GIB && time > self.soi6_anim_t + 0.45 && self.modelindex)
+			setmodel (self, "");		// the engine draws by modelindex: clearing .model alone left the last gib frame up
 		if (time >= self.soi6_respawn_t)
 			Alex_Respawn ();
 		return;

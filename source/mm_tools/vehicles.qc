@@ -127,6 +127,8 @@ void() Vehicles_Precache =
 	veh_fx_explode = particleeffectnum ("veh_explode");
 	veh_fx_wreck = particleeffectnum ("veh_wreck_fire");
 	veh_fx_sparks = particleeffectnum ("veh_sparks");
+	veh_fx_boost = particleeffectnum ("veh_boost");
+	veh_fx_drift = particleeffectnum ("veh_drift");
 };
 
 // ---------------------------------------------------------------- Geometry & Asset Lookup Helpers
@@ -355,7 +357,7 @@ float(float kind) Veh_MaxHP =
 	if (kind == VEH_TRUCK)
 		return 300;
 	if (kind == VEH_VAN)
-		return 280;
+		return 420;
 	if (kind == VEH_GTCAR)
 		return 250;
 	if (kind == VEH_SEDAN)
@@ -517,15 +519,16 @@ void(entity attacker, float take) Veh_ClipPain =
 // by position)
 void() Veh_CockpitTouch =
 {
-	if (other.classname != "player" || other.health <= 0)
+	if (other.classname != "player" || other.ishuman != 1 || other.health <= 0)
 		return;
-	if (self.owner.veh_state == VEH_STATE_WRECK || self.owner.veh_driver != world || other.veh_van != world)
+	if (self.owner.veh_state == VEH_STATE_WRECK || self.owner.veh_driver != world || other.veh_van != world || other.veh_ride != world)
 		return;
 
-	if (!other.veh_hint_shown && time > other.veh_pain_snd_t)
+	if (!other.veh_hint_shown && time > other.veh_prompt_t)
 	{
-		other.veh_pain_snd_t = time + 35;
-		centerprint (other, "Press H to drive ProMaster");
+		other.veh_prompt_van = self.owner;
+		other.veh_prompt_t = time + 4.0;
+		centerprint (other, "Press H to drive 6-Man LAN Van");
 	}
 };
 
@@ -987,6 +990,7 @@ void(entity v) Veh_StartFire =
 	else
 	{
 		v.skin = 1;						// instant swap to scorched/blistered paint + glowing seams!
+		v.colormod = '0 0 0';
 		v.frame = 22;
 	}
 	v.veh_anim = 0;
@@ -1023,7 +1027,11 @@ void(entity attacker, float take) Veh_Pain =
 		{
 			self.veh_flinch_end = time + 0.30;
 			self.veh_anim = 0;
-			self.nextthink = time + 0.02;
+			// MOVETYPE_PUSH (Spruce bus) thinks on its own .ltime clock: a time-based nextthink would stall it for ~map uptime
+			if (self.movetype == MOVETYPE_PUSH)
+				self.nextthink = self.ltime + 0.02;
+			else
+				self.nextthink = time + 0.02;
 		}
 	}
 };
@@ -1043,6 +1051,7 @@ void() Veh_ExplodeNow =
 	self.veh_coast_until = 0;
 	self.takedamage = DAMAGE_NO;
 	self.skin = 0;
+	self.colormod = '0 0 0';
 
 	// Whoever is driving / riding goes out at the seat, with the vehicle's speed, into the blast
 	Veh_AllPassengersBail (self, TRUE);
@@ -1116,6 +1125,9 @@ void() Veh_ExplodeNow =
 		dx = 57.5; dy = 45.0; dz = 45.3;
 		ex = -123; ez = 58;
 		bfx = 100; brx = -99; bz = 24;
+		wild_mul = 1.25;
+		shrap_cnt = 8;
+		rad_dmg = 195;
 	}
 	else if (kind == VEH_HDTRUCK)
 	{
@@ -1556,6 +1568,12 @@ void(entity v, float kind) Veh_InitEntity =
 	v.veh_state = VEH_STATE_IDLE;
 	v.scale = 1;
 	v.skin = 0;
+	if (!v.veh_has_cm)
+	{
+		v.veh_orig_colormod = v.colormod;
+		v.veh_has_cm = TRUE;
+	}
+	v.colormod = v.veh_orig_colormod;
 	if (kind == VEH_GOLFCART)
 		v.frame = 0;
 	else
@@ -1727,16 +1745,18 @@ void() Vehicles_Impulse =
 	Veh_NearPrompt ();
 	JohnBird_Impulse ();
 	EricCannon_Impulse ();
+	MMTank_Impulse ();
 	if (!self.impulse)
 		return;
-	// 86 = get in (when standing beside Eric Deason Cannon, perched Winged John, or van driver's seat), 87 = camera,
+	// 86 = get in (when standing beside Eric Deason Cannon, Mega Man Tank, perched Winged John, or van driver's seat), 87 = camera,
 	// 88 = a running van right here, nose the way you face, 89 = (sv_cheats) into the cab of the nearest van
 	if (self.impulse == 86)
 	{
 		self.impulse = 0;
 		if (!EricCannon_TryEnterKey ())
-			if (!JohnBird_TryEnterKey ())
-				Veh_EnterKey ();
+			if (!MMTank_TryEnterKey ())
+				if (!JohnBird_TryEnterKey ())
+					Veh_EnterKey ();
 		return;
 	}
 	if (self.impulse == 87)

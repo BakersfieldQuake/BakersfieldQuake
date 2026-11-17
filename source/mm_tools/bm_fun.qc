@@ -229,7 +229,7 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	bigshot = FALSE;
 	if (sn_inflicting && attacker.sn_heat >= 300)
 		bigshot = TRUE;
-	if (attacker.weapon == IT_AXE && attacker.hm_tier == 3 && !fg_inflicting && !mm_inflicting && !bn_inflicting && !sg_inflicting && !goo_inflicting && !sn_inflicting)
+	if (attacker.weapon == IT_AXE && attacker.hm_tier == 3 && !fg_inflicting && !mm_inflicting && !bn_inflicting && !sg_inflicting && !sn_inflicting)
 		bigshot = TRUE;
 	if (targ.health < -40)
 		BM_Fun_Say (attacker, BM_Fun_Pick (BMF_GIB, BMF_L_GIB));

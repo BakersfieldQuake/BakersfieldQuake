@@ -358,6 +358,7 @@ void() NS_Think =
 	}
 	self.nextthink = time + 0.05;
 	age = time - self.ns_t;
+	f = self.frame;		// any other state keeps its frame (f was uninitialised there)
 	if (self.ns_state == 2)
 	{
 		f = min (9, floor (age * 10));

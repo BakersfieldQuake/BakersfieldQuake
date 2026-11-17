@@ -25,7 +25,7 @@ float	EC_YOKE_Z			= 24.0;
 float	EC_CANNON_Z			= 56.8;
 float	EC_REST_PITCH		= 15.6;
 float	EC_RELOAD_TIME		= 10.0;
-float	EC_WATCH_TIME		= 2.2;
+float	EC_WATCH_TIME		= 3.5;
 
 float	ec_precached;
 float	ec_has_cannons;
@@ -34,6 +34,10 @@ float	ec_inflicting;			// 1 = kamikaze rider blast, 2 = orbital enemy kill
 float	ec_fx_smoke;
 float	ec_fx_rocket;
 float	ec_fx_rocket_classic;
+float	ec_fx_nuke_trail;
+float	ec_fx_nuke_flash;
+float	ec_fx_nuke_shock;
+float	ec_fx_nuke_mushroom;
 
 // Fields on misc_eric_cannon (base), ec_tube, and player
 .entity	ec_yoke;				// base -> yawing elevation yoke entity
@@ -45,6 +49,7 @@ float	ec_fx_rocket_classic;
 .entity	ec_my_temp;				// player -> personal cheat-spawned cannon (recycled cleanly)
 .entity	ec_summoner;			// base -> player who cheat-spawned this temp cannon
 .entity	ec_prompt_ent;			// player -> last cannon that showed the H prompt
+.entity	ec_return_base;			// player -> pedestal base to return next to after watch-cam
 
 .float	ec_state;				// EC_STATE_*
 .float	ec_temp;				// TRUE if spawned via impulse 128/129
@@ -57,19 +62,26 @@ float	ec_fx_rocket_classic;
 .float	ec_screamed;			// TRUE once apex Doppler scream played
 .float	ec_dive_snd_t;			// next dive whistle sound timestamp
 .float	ec_wind_snd_t;			// next sky wind loop timestamp
-.float	ec_flap_snd_t;			// next giant-ear wingbeat whoosh timestamp
+.float	ec_flap_snd_t;			// (legacy, unused)
 .float	ec_smoke_t;				// next rocket exhaust trail puff timestamp
 .float	ec_anim_clock;			// smooth animation frame accumulator
 .float	ec_btn;					// latch for MOUSE1 edge detection
 .float	ec_oldmove;				// saved player movetype
 .float	ec_oldsolid;			// saved player solid
+.float	ec_oldtakedmg;			// saved player takedamage
 .float	ec_notarget;			// TRUE if we added FL_NOTARGET to player
 .float	ec_watch_until;			// player watches impact crater until this timestamp
 .float	ec_prompt_scan_t;		// throttle proximity scan
 .float	ec_prompt_t;			// cooldown before repeating centerprint on same cannon
 .float	ec_hint_shown;			// TRUE once full control hint shown this match
+.float	ec_nuke_stage;			// multi-stage nuclear detonation step
+.float	ec_nuke_t0;				// detonation start timestamp
+.float	ec_nuke_ceil;			// ceiling clearance above ground zero for rising mushroom cloud
+.float	ec_return_yaw;			// saved pedestal heading to restore after watch-cam
 .vector	ec_boomat;				// impact crater origin for watch-cam
 .vector	ec_hitnorm;				// surface normal from flight trace
+.vector	ec_prev_nozzle;			// previous frame rear nozzle position for continuous contrail
+.vector	ec_return_pos;			// saved safe pedestal exit position after watch-cam
 
 void() EricCannon_Precache;
 float(entity p) EricCannon_Active;

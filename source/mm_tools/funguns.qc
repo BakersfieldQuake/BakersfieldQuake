@@ -8,10 +8,10 @@ void() FunGun_Precache =
 	Pickle_Precache ();
 	GreenJar_Precache ();
 	Dookie_Precache ();
+	RobHead_Precache ();
 	NS_Precache ();
 	WC_Precache ();
 	M4_Precache ();
-	Tommy_Precache ();
 	Garand_Precache ();
 	if (autocvar_bm_preload && deathmatch)
 	{
@@ -25,8 +25,6 @@ string(float g) FunGun_VModel =
 {
 	local entity p;
 
-	if (g == FG_DOB)
-		return "progs/v_robdob.mdl";
 	if (g == FG_NETSEND)
 		return "progs/v_netsend.md3";
 	if (g == FG_WCANNON)
@@ -35,8 +33,6 @@ string(float g) FunGun_VModel =
 		return "progs/v_dookie.md3";
 	if (g == FG_M4)
 		return M4_VModel ();
-	if (g == FG_TOMMY)
-		return Tommy_VModel ();
 	if (g == FG_GARAND)
 		return Garand_VModel ();
 	if (g == FG_PONG)
@@ -47,6 +43,15 @@ string(float g) FunGun_VModel =
 		if (FunGun_Ammo (p, FG_PONG) < 1 && !cvar ("gj_test") && p.gj_shaking <= 0 && p.gj_throw_at <= 0 && (!p.gj_threw_t || time >= p.gj_threw_t + GJ_FOLLOW_TIME))
 			return "";
 		return "progs/v_greenjar.md3";
+	}
+	if (g == FG_DOB)
+	{
+		p = self;
+		if (!(self.flags & FL_CLIENT) && self.owner)
+			p = self.owner;
+		if (FunGun_Ammo (p, FG_DOB) < 1 && !(p.rh_charging > 0 && p.rh_charge_gun == FG_DOB) && !(p.rh_throw_at > 0 && p.rh_throw_gun == FG_DOB) && !(p.rh_threw_t > 0 && p.rh_throw_gun == FG_DOB && time < p.rh_threw_t + (RH_FOLLOW_TIME / RH_DRONE_ANIM_SPEED)))
+			return "";
+		return "progs/v_robhead_drone.md3";
 	}
 	// no pickle to throw: no hand (once any active throw + empty-claw follow-through has dropped off screen)
 	p = self;
@@ -65,8 +70,6 @@ string(float g) FunGun_ShortName =
 		return "Jar o' Green Guys";
 	if (g == FG_M4)
 		return "M4A1";
-	if (g == FG_TOMMY)
-		return "Thompson";
 	if (g == FG_GARAND)
 		return "M1 Garand";
 	if (g == FG_WCANNON)
@@ -86,8 +89,6 @@ string(float g) FunGun_Name =
 		return "Jar o' Green Guys - hold fire to shake, release to swarm!";
 	if (g == FG_M4)
 		return "M4A1 - automatic rifle (R reloads)";
-	if (g == FG_TOMMY)
-		return "Thompson - submachine gun (R reloads)";
 	if (g == FG_GARAND)
 		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_WCANNON)
@@ -114,8 +115,6 @@ string(float g) FunGun_Death1 =
 		return " got rolled over by ";
 	if (g == FG_M4)
 		return " was lit up by ";
-	if (g == FG_TOMMY)
-		return " was gunned down by ";
 	if (g == FG_GARAND)
 		return " was picked off by ";
 	return " walked into ";
@@ -137,8 +136,6 @@ string(float g) FunGun_Death2 =
 		return "'s Wheelman\n";
 	if (g == FG_M4)
 		return "'s M4\n";
-	if (g == FG_TOMMY)
-		return "'s Thompson\n";
 	if (g == FG_GARAND)
 		return "'s M1 Garand\n";
 	return "\n";
@@ -308,11 +305,6 @@ void() FunGun_Attack =
 		M4_Press ();		// stand-alone automatic rifle: exempt from bm_fg_lock (m4.qc)
 		return;
 	}
-	if (g == FG_TOMMY)
-	{
-		Tommy_Press ();		// stand-alone Thompson SMG: exempt from bm_fg_lock (tommy.qc)
-		return;
-	}
 	if (g == FG_GARAND)
 	{
 		Garand_Press ();	// stand-alone M1 Garand rifle: exempt from bm_fg_lock (garand.qc)
@@ -343,6 +335,8 @@ void() FunGun_Attack =
 			centerprint (self, "The reactor is still refilling\n");
 		if (g == FG_WCANNON)
 			centerprint (self, "The cannon is still reloading\n");
+		if (g == FG_DOB)
+			centerprint (self, "The Rob Drone is still recharging\n");
 		sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
 		self.attack_finished = time + 0.3;
 		return;
@@ -350,6 +344,11 @@ void() FunGun_Attack =
 	if (g == FG_PONG)
 	{
 		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)
+		return;
+	}
+	if (g == FG_DOB)
+	{
+		RH_DronePress ();	// DJI remote launches steerable flying Rob head drone (robhead.qc / floathead.qc)
 		return;
 	}
 	if (g == FG_DOOKIE)
@@ -381,20 +380,12 @@ void() FunGun_Attack =
 	self.fg_fire_t = time;
 	self.bm_lastshot = time + 0.7;		// keep bm_idle_reload from putting the gun away mid-throw (bm_reload.qc)
 	player_mm1 ();		// the rocket firing pose
-	if (g == FG_DOB)
-	{
-		FD_Launch ();
-		self.attack_finished = time + 1;
-	}
-	else
-	{
-		self.pk_fire_t = time;
-		self.pk_throw_at = time + PK_THROW_DELAY;		// brutal choke-windup + forward whip; Pk_Launch() fires as the claw snaps open
-		self.punchangle_x = -2.8;				// upward head cock during brutal windup
-		self.punchangle_z = 2.0;
-		FG_Snd (self, CHAN_VOICE, "pickle/throw.wav", 1, 1);
-		self.attack_finished = time + PK_THROW_DELAY + PK_FOLLOW_TIME + PK_RAISE_TIME;
-	}
+	self.pk_fire_t = time;
+	self.pk_throw_at = time + PK_THROW_DELAY;		// brutal choke-windup + forward whip; Pk_Launch() fires as the claw snaps open
+	self.punchangle_x = -2.8;				// upward head cock during brutal windup
+	self.punchangle_z = 2.0;
+	FG_Snd (self, CHAN_VOICE, "pickle/throw.wav", 1, 1);
+	self.attack_finished = time + PK_THROW_DELAY + PK_FOLLOW_TIME + PK_RAISE_TIME;
 };
 
 // impulse FG_IMPULSE + g - 1
@@ -411,12 +402,17 @@ float(float g) FunGun_Bit =
 	return 256;
 };
 
+float(float g) FunGun_Impulse =
+{
+	return FG_IMPULSE + g - 1;
+};
+
 float(float g) FunGun_Available =
 {
+	if (g == FG_TOMMY)
+		return FALSE;		// slot 8 was the Thompson, removed 2026-11-16
 	if (g == FG_M4)
 		return m4_ok;
-	if (g == FG_TOMMY)
-		return tommy_ok;
 	if (g == FG_GARAND)
 		return garand_ok;
 	return (g >= 1 && g <= FG_COUNT);
@@ -462,7 +458,6 @@ void(entity p) FunGun_Give =
 		g = g + 1;
 	}
 	p.fg_lock_t = 0;
-	p.goo_slow = 0;		// no state carries through death: you respawn able to move
 	p.milk_freeze = 0;
 	p.milk_slip = FALSE;
 	p.ltg_shock = 0;
@@ -496,12 +491,10 @@ void(entity p) FunGun_Give =
 	p.pk_empty = FALSE;
 	GJ_ResetPlayer (p);
 	DK_ResetPlayer (p);
+	RH_ResetPlayer (p);
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
 	p.m4_shot_n = 0;
-	p.tom_heat = 0;
-	p.tom_heat_t = 0;
-	p.tom_shootanim = 0;
 	p.gar_ready = 1;
 	p.gar_shootanim = 0;
 	p.gar_empty_t = 0;
@@ -532,7 +525,7 @@ float() FunGun_BotPick =
 		if (self.fg_sel == FG_DOB)
 			self.fg_sel = FG_PICKLE;
 		if (self.weapon != IT_FUNGUN)
-			self.impulse = FG_IMPULSE + self.fg_sel - 1;
+			self.impulse = FunGun_Impulse (self.fg_sel);
 		return TRUE;
 	}
 	return FALSE;
@@ -737,6 +730,7 @@ void() FunGun_ViewFrame =
 	WC_Frame ();		// the Wheelman Cannon charges and launches (wcannon.qc)
 	GJ_Frame ();		// the Jar o' Green Guys cocktail-shakes and launches (greenjar.qc)
 	DK_Frame ();		// the Dookie Bazooka winds up and blasts (dookie.qc)
+	RH_Frame ();		// the Rob Head winds up and throws (robhead.qc)
 	if (!self.button0)
 		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
 	g = 1;
@@ -752,19 +746,11 @@ void() FunGun_ViewFrame =
 	t = time - self.fg_fire_t;
 	f = floor (time * 10);
 	f = f - 16 * floor (f / 16);		// idle
-	if (g == FG_PICKLE || g == FG_PONG || g == FG_DOOKIE)
+	if (g == FG_PICKLE || g == FG_PONG || g == FG_DOOKIE || g == FG_DOB)
 	{
-		f = 0;			// v_pickle.md3 / v_greenjar.md3 / v_dookie.md3 are 1-frame cards: their faces come from .skin shaders
+		f = 0;			// 1-frame card MD3s: their animation frames come from .skin shaders
 		if (self.weaponmodel != FunGun_VModel (g))		// the hand goes when the last charge is thrown, and comes back with the next
 			self.weaponmodel = FunGun_VModel (g);
-	}
-	else if (g == FG_DOB)
-	{
-		// v_robdob.mdl: 0-7 the head bobbing in the hand, 8 gone (it is out flying)
-		f = floor (time * 10);
-		f = f - 8 * floor (f / 8);
-		if (FunGun_Ammo (self, g) < 1)
-			f = 8;
 	}
 	else if (g == FG_NETSEND)
 	{
@@ -790,10 +776,6 @@ void() FunGun_ViewFrame =
 	else if (g == FG_M4)
 	{
 		f = M4_Anim ();		// v_m4.md3: CS idle / fire / reload / draw (m4.qc)
-	}
-	else if (g == FG_TOMMY)
-	{
-		f = Tommy_Anim ();	// v_tommy.md3: DoD idle / shoot / reload / draw (tommy.qc)
 	}
 	else if (g == FG_GARAND)
 	{
@@ -822,6 +804,7 @@ void() FunGun_ViewFrame =
 void() FunGun_PlayerDie =
 {
 	DK_ResetPlayer (self);
+	RH_ResetPlayer (self);
 	if (self.wc_charging)
 	{
 		self.wc_charging = 0;

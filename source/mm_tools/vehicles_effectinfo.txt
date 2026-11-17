@@ -152,14 +152,88 @@ airfriction 1.2
 
 // ---- Sheet-metal / debris impact sparks
 effect veh_sparks
-count 6
+count 10
 type spark
 tex 0 8
 color 0xff9828 0xfff090
-size 1 2
+size 1.2 2.4
 alpha 256 256 420
 originjitter 3 3 2
-velocityoffset 0 0 75
-velocityjitter 190 190 130
+velocityoffset 0 0 80
+velocityjitter 220 220 150
 gravity 1
 airfriction 0.35
+
+// ---- Turbo / high-boost tailpipe exhaust flame, embers & diesel soot (3rd-person drive feedback)
+effect veh_boost
+count 2
+type alphastatic
+tex 0 8
+color 0xff7818 0xffe880
+size 3 6
+sizeincrease -2
+alpha 190 240 900
+originjitter 2 2 2
+velocitymultiplier 0.85
+velocityoffset 0 0 12
+velocityjitter 28 28 20
+airfriction 3.2
+
+effect veh_boost
+count 2
+type spark
+tex 0 8
+color 0xff9020 0xfff090
+size 0.9 1.6
+alpha 240 256 680
+originjitter 2 2 2
+velocitymultiplier 1.1
+velocityoffset 0 0 24
+velocityjitter 55 55 35
+gravity 0.45
+airfriction 1.4
+
+effect veh_boost
+count 1
+type smoke
+tex 0 7
+color 0x262626 0x3e3e3e
+size 5 9
+sizeincrease 9
+alpha 32 56 150
+originjitter 3 3 2
+velocitymultiplier 0.35
+velocityoffset 0 0 38
+velocityjitter 22 22 16
+gravity -0.05
+airfriction 2.0
+
+// ---- Tire drift / handbrake powerslide smoke & rim sparks
+effect veh_drift
+count 2
+type smoke
+tex 0 7
+color 0x303030 0x525252
+size 7 13
+sizeincrease 13
+alpha 48 82 145
+originjitter 5 5 2
+velocitymultiplier 0.25
+velocityoffset 0 0 42
+velocityjitter 26 26 18
+gravity -0.04
+airfriction 1.8
+
+effect veh_drift
+count 1
+type spark
+tex 0 8
+color 0xffa838 0xfff0a0
+size 0.8 1.5
+alpha 220 256 540
+originjitter 3 3 1
+velocitymultiplier 0.5
+velocityoffset 0 0 45
+velocityjitter 65 65 40
+gravity 0.9
+airfriction 0.6

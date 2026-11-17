@@ -24,7 +24,7 @@ import os
 import struct
 import sys
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance
@@ -104,14 +104,29 @@ def _tight_crop_and_bleed(rgba: np.ndarray, base_ox: int, base_oy: int) -> Tuple
     return int(base_ox + x0), int(base_oy - y0), cw, ch, cropped.tobytes()
 
 
-def write_darkplaces_spr32(spr_path: str, toned_frames: List[np.ndarray], w: int, h: int, ground_y: int) -> float:
+def write_darkplaces_spr32(
+    spr_path: str,
+    toned_frames: List[np.ndarray],
+    w: int,
+    h: int,
+    ground_y: int,
+    sprite_type: int = 2,
+    center_from_frame: Optional[int] = None,
+) -> float:
     base_ox = -(w // 2)
-    base_oy = ground_y
-    packed = [_tight_crop_and_bleed(fr, base_ox, base_oy) for fr in toned_frames]
+    center_oy = h // 2
+    packed = [
+        _tight_crop_and_bleed(
+            fr,
+            base_ox,
+            center_oy if (center_from_frame is not None and idx >= center_from_frame) else ground_y,
+        )
+        for idx, fr in enumerate(toned_frames)
+    ]
     max_cw = max(f[2] for f in packed)
     max_ch = max(f[3] for f in packed)
     rad = 0.5 * math.hypot(max_cw, max_ch)
-    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, 0, rad, max_cw, max_ch, len(packed), 0.0, 0))
+    buf = bytearray(b"IDSP" + struct.pack("<iifiiifi", 32, sprite_type, rad, max_cw, max_ch, len(packed), 0.0, 0))
     for fox, foy, cw, ch, fb in packed:
         buf += struct.pack("<iiiii", 0, fox, foy, cw, ch)
         buf += fb
@@ -394,6 +409,62 @@ def save_poster_and_preview_gif(vm: Dict[str, List[np.ndarray]], proj: List[np.n
     gif_frames[0].save(gif_path, save_all=True, append_images=gif_frames[1:], duration=42, loop=0, optimize=False)
 
 
+def save_overhead_contact_sheet(
+    proj_toned: List[np.ndarray],
+    burst_toned: List[np.ndarray],
+    mini_toned: List[np.ndarray],
+    out_p: str,
+) -> None:
+    """Writes a labeled visual audit contact sheet (`work/audit_overhead_tiers.jpg`) showing
+    all 8 compass directions x 6 animation frames for `above45` (176..223) and `above90` (224..271),
+    plus `proj` (0..15) and `burst` (0..15) samples with origin crosshairs.
+    """
+    cell = 112
+    cols = 12
+    # Rows:
+    #  0..3: above45 d=0..3 (cols 0..5) and d=4..7 (cols 6..11)
+    #  4..7: above90 d=0..3 (cols 0..5) and d=4..7 (cols 6..11)
+    #  8   : proj (6 picks) + burst (6 picks)
+    rows = 9
+    W = cols * cell + 24
+    H = rows * cell + 68
+    sheet = Image.new("RGB", (W, H), (20, 24, 28))
+    dr = ImageDraw.Draw(sheet)
+    dr.text((12, 8), "GREENJAR OVERHEAD SPR32 AUDIT: above45 (176..223) + above90 (224..271) + proj/burst (IDSP type=2, centered origins)", fill=(160, 255, 140))
+
+    def paste_cell(arr: np.ndarray, col: int, row: int, lbl: str = "", crosshair: bool = False) -> None:
+        x = 12 + col * cell
+        y = 32 + row * cell
+        bg = Image.new("RGBA", (cell - 4, cell - 4), (34, 40, 46, 255))
+        pil = Image.fromarray(arr, "RGBA").resize((cell - 4, cell - 4), Image.Resampling.LANCZOS)
+        comp = Image.alpha_composite(bg, pil).convert("RGB")
+        sheet.paste(comp, (x + 2, y + 2))
+        if crosshair:
+            cx, cy = x + cell // 2, y + cell // 2
+            dr.line([(cx - 10, cy), (cx + 10, cy)], fill=(255, 80, 80), width=1)
+            dr.line([(cx, cy - 10), (cx, cy + 10)], fill=(255, 80, 80), width=1)
+        dr.rectangle([x + 2, y + 2, x + cell - 3, y + cell - 3], outline=(68, 92, 76))
+        if lbl:
+            dr.text((x + 5, y + 4), lbl, fill=(210, 255, 180))
+
+    for d in range(8):
+        r = d % 4
+        c_off = 0 if d < 4 else 6
+        for k in range(6):
+            idx45 = 176 + d * 6 + k
+            paste_cell(mini_toned[idx45], c_off + k, r, f"45 d{d}k{k}" if k == 0 else f"k{k}", crosshair=(k == 0))
+            idx90 = 224 + d * 6 + k
+            paste_cell(mini_toned[idx90], c_off + k, 4 + r, f"90 d{d}k{k}" if k == 0 else f"k{k}", crosshair=(k == 0))
+
+    for i, pi in enumerate([0, 3, 6, 9, 12, 15]):
+        paste_cell(proj_toned[pi], i, 8, f"proj {pi}", crosshair=True)
+    for i, bi in enumerate([0, 2, 5, 8, 11, 14]):
+        paste_cell(burst_toned[bi], 6 + i, 8, f"burst {bi}", crosshair=True)
+
+    os.makedirs(os.path.dirname(out_p), exist_ok=True)
+    sheet.save(out_p, quality=92)
+
+
 def main() -> None:
     t0 = time.time()
     spr32_only = ("--spr32-only" in sys.argv)
@@ -429,7 +500,7 @@ def main() -> None:
 
         shader_names: List[str] = []
         for idx, fr in enumerate(all_112):
-            toned = tone_for_quake_hdr_rgba(fr, dim=0.56, contrast=1.08)
+            toned = tone_for_quake_hdr_rgba(fr, dim=0.68, contrast=1.04)
             tex_name = f"gjvm_{idx:03d}"
             Image.fromarray(toned, "RGBA").save(os.path.join(PROGS_DIR, f"{tex_name}.png"), optimize=False)
             sh = f"progs/{tex_name}"
@@ -452,7 +523,7 @@ def main() -> None:
         sh_lines = ["// written by source/mm_tools/green_guy_jar/bake_greenjar_all.py\n"]
         for sh in shader_names:
             sh_lines.append(
-                f"{sh}\n{{\n\tcull none\n\t{{\n\t\tmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
+                f"{sh}\n{{\n\tcull none\n\t{{\n\t\tclampmap {sh}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
             )
         with open(os.path.join(SCRIPTS_DIR, "greenjarvm.shader"), "w", encoding="utf-8", newline="\n") as f:
             f.write("".join(sh_lines))
@@ -462,20 +533,38 @@ def main() -> None:
         tone_for_spr32_rgba(resize_rgba_premul(proj[int(round(i * 23 / 15.0))], 96, 96))
         for i in range(16)
     ]
-    mb_proj = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_proj.spr32"), proj_16_toned, 96, 96, 48)
+    mb_proj = write_darkplaces_spr32(
+        os.path.join(PROGS_DIR, "greenjar_proj.spr32"),
+        proj_16_toned,
+        96,
+        96,
+        48,
+        sprite_type=2,
+        center_from_frame=0,
+    )
 
     burst_16_toned = [
         tone_for_spr32_rgba(resize_rgba_premul(burst[int(round(i * 35 / 15.0))], 160, 160))
         for i in range(16)
     ]
-    mb_burst = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenjar_burst.spr32"), burst_16_toned, 160, 160, 104)
+    mb_burst = write_darkplaces_spr32(
+        os.path.join(PROGS_DIR, "greenjar_burst.spr32"),
+        burst_16_toned,
+        160,
+        160,
+        80,
+        sprite_type=2,
+        center_from_frame=0,
+    )
 
-    # Compact 176-frame 8-direction layout (0.60x of 160x160 -> 96x96, ground=84; paired with m.scale = 0.9333 in greenjar.qc):
-    #   0..47    (48): wheel_drive  (8 dirs x 6 frames)
-    #   48..95   (48): wall_climb   (8 dirs x 6 frames)
-    #   96..143  (48): attack_lunge (8 dirs x 6 frames)
-    #   144..159 (16): shot_spin    (16 frames)
-    #   160..175 (16): balloon_pop  (4 swell + 12 confetti pop frames)
+    # 272-frame 8-direction layout (0.60x of 160x160 -> 96x96, ground=84; paired with m.scale = 0.9333 in greenjar.qc):
+    #   0..47    (48): wheel_drive  (8 dirs x 6 frames, ground_y=84)
+    #   48..95   (48): wall_climb   (8 dirs x 6 frames, ground_y=84)
+    #   96..143  (48): attack_lunge (8 dirs x 6 frames, ground_y=84)
+    #   144..159 (16): shot_spin    (16 frames, ground_y=84)
+    #   160..175 (16): balloon_pop  (4 swell + 12 confetti pop frames, ground_y=84)
+    #   176..223 (48): above45      (8 dirs x 6 frames, centered origin)
+    #   224..271 (48): above90      (8 dirs x 6 frames, centered origin)
     MINI_SPR_W = 96
     MINI_SPR_GROUND = 84  # 140 * 96 / 160 = 84 exact pneumatic tire contact line!
     mini_toned: List[np.ndarray] = []
@@ -493,8 +582,25 @@ def main() -> None:
     pop_indices = [0, 2, 4, 5] + [6 + int(round(j * 17 / 11.0)) for j in range(12)]
     for pi in pop_indices:
         mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["balloon_pop"][pi], MINI_SPR_W, MINI_SPR_W)))
-    assert len(mini_toned) == 176
-    mb_mini = write_darkplaces_spr32(os.path.join(PROGS_DIR, "greenguy_mini.spr32"), mini_toned, MINI_SPR_W, MINI_SPR_W, MINI_SPR_GROUND)
+    for d in range(8):
+        for k in range(6):
+            mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["above45"][d][k], MINI_SPR_W, MINI_SPR_W)))
+    for d in range(8):
+        for k in range(6):
+            mini_toned.append(tone_for_spr32_rgba(resize_rgba_premul(mini["above90"][d][k], MINI_SPR_W, MINI_SPR_W)))
+    assert len(mini_toned) == 272
+    mb_mini = write_darkplaces_spr32(
+        os.path.join(PROGS_DIR, "greenguy_mini.spr32"),
+        mini_toned,
+        MINI_SPR_W,
+        MINI_SPR_W,
+        MINI_SPR_GROUND,
+        sprite_type=2,
+        center_from_frame=176,
+    )
+    overhead_audit_p = os.path.join(gs.WORK_DIR, "audit_overhead_tiers.jpg")
+    save_overhead_contact_sheet(proj_16_toned, burst_16_toned, mini_toned, overhead_audit_p)
+    print(f"      Saved overhead contact sheet -> {overhead_audit_p}")
     print(f"      .spr32 sizes (MiB): proj={mb_proj:.2f}, burst={mb_burst:.2f}, mini={mb_mini:.2f}")
 
     if spr32_only:

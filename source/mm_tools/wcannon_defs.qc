@@ -8,9 +8,10 @@ trail of fire, the burning floor and the burn were removed 2026-11-01 because th
 with a normal rocket explosion (plus flying wheels, bars, gibs and sparks), and immediately bursts out running around at crazy speed
 playing all 8 wild 360-degree Wheelman animations (progs/wheelman_dance.spr32).
 
-Frames of progs/wheelman.spr32 (200 frames, 144x102 tight-cropped, see build_wheelman_sprite.py):
-  0..7 idle   8 + d*6 + k driving   56 + d*4 + k screaming   88.. above/below   136 + d*4 + k fire-wheels
-  168 + d*4 + k long bar (d = 0..7: 0 = seen from the front, 4 = seen from behind)
+Frames of progs/wheelman.spr32 (224 frames, 144x102 tight-cropped, type 2 SPR_VP_PARALLEL, see build_wheelman_sprite.py):
+  0..7 idle   8 + d*6 + k driving   56 + d*4 + k screaming   88 + d*3 + k above90 (centered)
+  112 + d*3 + k below90   136 + d*4 + k fire-wheels   168 + d*4 + k long bar   200 + d*3 + k above45 (centered)
+  (d = 0..7: 0 = seen from the front, 4 = seen from behind)
 
 Hooks: funguns.qc (tables, FunGun_Attack, FunGun_ViewFrame), bm_reload.qc (BM_FG6 magazine). Damage is dealt in the shooter's
 name with fg_inflicting = FG_WCANNON, so frags and the obituary just work (wcannon.qc).

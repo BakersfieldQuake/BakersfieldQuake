@@ -26,6 +26,7 @@ float	PK_PS			= 1.7;		// scale of the 3D pickle (13 units long at scale 1): the 
 float	PK_S0			= 1;		// scale of the balloon mesh when it starts to swell (20 units tall at scale 1)
 float	PK_S1			= 5.7;		// scale when erect: a player is 56 tall, so this is a little over twice that
 .float	pk_safe;		// pickle: sitting out another pickle's blast
+.float	pk_dropped;		// pickle: it had stuck, then fell off a moving surface (no charge back if it never re-sticks)
 float	PK_HALF			= 10;		// half the height of the mesh at scale 1
 
 // progs/v_pickle.md3 skin ranges (built by source/mm_tools/build_pickle_diva_overhaul.py)
@@ -235,7 +236,8 @@ void() Pk_Touch =
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		dprint ("pickle: touched sky\n");
-		Pk_Refund (self.owner);
+		if (!self.pk_dropped)		// a pickle that already stuck once was a used charge
+			Pk_Refund (self.owner);
 		remove (self);
 		return;
 	}
@@ -303,6 +305,7 @@ void() Pk_Touch =
 	}
 	self.pk_n = n;
 	self.pk_p0 = self.origin;
+	self.takedamage = DAMAGE_YES;		// shootable again after it fell off a moving surface (the fall turned it off)
 	self.pk_state = 2;
 	self.pk_t = time + PK_ARM;
 	dprint ("pickle: stuck\n");
@@ -367,7 +370,8 @@ void() Pk_Think =
 			self.scale = 1.16;
 		if (time > self.fg_born + PK_FLY || pointcontents (self.origin) == CONTENT_WATER || pointcontents (self.origin) == CONTENT_SLIME || pointcontents (self.origin) == CONTENT_LAVA)
 		{
-			Pk_Refund (self.owner);
+			if (!self.pk_dropped)		// a pickle that already stuck once was a used charge
+				Pk_Refund (self.owner);
 			Pk_Fizzle ();
 		}
 		return;
@@ -394,6 +398,7 @@ void() Pk_Think =
 		if (trace_fraction == 1)
 		{
 			self.pk_state = 1;
+			self.pk_dropped = TRUE;
 			self.movetype = MOVETYPE_TOSS;
 			self.takedamage = DAMAGE_NO;
 			setmodel (self, "progs/pickle_throw.md3");
@@ -563,6 +568,7 @@ void(entity vm, float is_quad) Pickle_ViewFrame =
 
 	GreenJar_ViewFrame (vm, is_quad);
 	Dookie_ViewFrame (vm, is_quad);
+	RobHead_ViewFrame (vm, is_quad);
 
 	p = vm.owner;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_PICKLE)
