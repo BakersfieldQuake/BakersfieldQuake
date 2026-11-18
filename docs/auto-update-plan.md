@@ -177,12 +177,7 @@ The updater writes executables (engine, launchers, itself). Today, anyone who ca
 that person's code runs on every player's next launch, with no human step in between. HTTPS plus sha256 protects
 against corruption and network tampering, but not against a compromised repo or token.
 
-**Recommendation for v1:** sign the manifest with ed25519.
-- Bake the public key into the updater and keep the private key in an Actions secret.
-- Freeze PyNaCl into the binary (about 1 MB).
-- Sign `release.json` and the manifests, including `build`, so the rollback check holds.
-- The plain-`.py` fallback requires PyNaCl and refuses to update without it. It must never silently skip
-  verification.
+**Decision (2026-11-18): no manifest signing.** It's a game among friends. HTTPS plus sha256 is enough.
 
 ## Testing
 
@@ -208,14 +203,13 @@ automatic.
 About 1 to 1.5 days:
 - 0.5 day: updater core and unit tests
 - 0.5 day: CI freeze, manifest and `release.json` steps
-- remainder: VM testing and signing
+- remainder: VM testing
 
 Step 1 of the CI changes (the reproducible pk3) is about 10 minutes and pays off on its own.
 
-## Open questions
+## Resolved questions
 
-- Content rule (decision 0): are you OK with new models and sounds shipping as `zz_*.pk3` overlays instead of
-  being repacked into `bakersfield.pk3`? Whoever builds the content needs to know.
-- Sign manifests in v1? Recommended yes, see Security.
-- The repo is now public, so release zips and the full git history (including the prompt and notes files at the
-  repo root) are visible to anyone. Confirm that's intended.
+- Content rule (decision 0): yes. Content ships as `zz_*.pk3` overlays (`zz_karts.pk3` is the first), and
+  `AGENTS.md` and the base pk3 guard enforce it.
+- Signing manifests: no, see Security.
+- The repo is intentionally public.
