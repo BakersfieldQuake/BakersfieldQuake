@@ -829,17 +829,23 @@ float(entity targ1, entity targ2) wisible =
 	local vector spot1;
 	local vector spot2;
 	local entity ignore;
+	local float hops;
 
 	spot1 = targ1.origin;
 	spot2 = realorigin(targ2);
 	ignore = self;
+	// Each pass restarts the trace from the middle of the brush entity it hit, ignoring only that one. Two brush entities
+	// in line (spruce has them) send it back and forth for ever: "server runaway loop counter hit limit of 10000000 jumps",
+	// which ends the match for everyone. Eight hops are plenty; past that the answer is "not visible".
+	hops = 0;
 	do
 	{
 		traceline(spot1, spot2, TRUE, ignore);
 		spot1 = realorigin(trace_ent);
 		ignore = trace_ent;
+		hops = hops + 1;
 
-	} while (((trace_ent != world) && (trace_fraction != 1)));
+	} while (((trace_ent != world) && (trace_fraction != 1) && (hops < 8)));
 	if ((trace_endpos == spot2))
 	{
 		return (TRUE);
