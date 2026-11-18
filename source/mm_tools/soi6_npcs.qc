@@ -475,6 +475,13 @@ void(entity attacker, float damage) Soi6_Pain =
 	}
 };
 
+// Gib budget. A full shower is 14 gibs, a heart and 5 splats, each alive for 30-40 s, and one rocket into a bar gibs ten
+// NPCs at once. The first SOI6_GIB_FULL showers in any 10 s are full; the rest of that window get three gibs and a splat,
+// as the street crowd does, so a long fight cannot pile up thousands of gib entities.
+float	SOI6_GIB_FULL	= 4;
+float	soi6_gib_win_t;
+float	soi6_gib_win_n;
+
 void() Soi6_SpawnPlayerGibs =
 {
 	local float gib_dm;
@@ -483,6 +490,30 @@ void() Soi6_SpawnPlayerGibs =
 	gib_dm = self.health;
 	if (gib_dm > -95)
 		gib_dm = -95;
+
+	if (time >= soi6_gib_win_t || soi6_gib_win_t > time + 10)	// (the second test: a new map restarts the clock)
+	{
+		soi6_gib_win_t = time + 10;
+		soi6_gib_win_n = 0;
+	}
+	soi6_gib_win_n = soi6_gib_win_n + 1;
+	if (soi6_gib_win_n > SOI6_GIB_FULL)
+	{
+		if (!self.enemy && self.soi6_target)
+			self.enemy = self.soi6_target;
+		saved_org = self.origin;
+		setsize (self, '-16 -16 -16', '16 16 32');
+		setorigin (self, saved_org + '0 0 24');
+		ThrowGib ("progs/gib1.mdl", gib_dm);
+		ThrowGib ("progs/gib2.mdl", gib_dm);
+		ThrowGib ("progs/gib3.mdl", gib_dm);
+		CeilSplat ();
+		play_gibsound ();
+		gibdeath_effects ();
+		setorigin (self, saved_org);
+		setsize (self, '-12 -12 0', '12 12 54');
+		return;
+	}
 
 	if (!self.enemy && self.soi6_target)
 		self.enemy = self.soi6_target;
