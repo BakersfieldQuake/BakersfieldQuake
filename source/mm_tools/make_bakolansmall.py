@@ -4,7 +4,7 @@ Nothing is redrawn: the two source generators are run as they are (make_goldenwe
 their .map output is read back (bks_mapio.py), the wanted pieces are cut out by a window, moved (planes and texture offsets) and merged
 with new geometry made here: the ground, the sky box (very tall), the Union Ave segment with its red-brick median, E 21st St, the plaza
 fill, the gameplay (spawns, items, teleports, jump pads). Final frame = true feet, x east, y north, origin of the casino parcel's map.
-Layout (see BAKOLANSMALL_NOTES.md):  casino (west of Union, south) | plaza | ORCOM hall (west, north)
+Layout (see docs/BAKOLANSMALL_NOTES.md):  casino (west of Union, south) | plaza | ORCOM hall (west, north)
                                        Union Ave        Bakersfield Sign + Crystal Palace (east, middle) | B-LAN warehouse block (east, north)
 usage: python make_bakolansmall.py out/maps/bakolansmall.map          (BKS_REUSE=1: do not run the two generators again)"""
 import json

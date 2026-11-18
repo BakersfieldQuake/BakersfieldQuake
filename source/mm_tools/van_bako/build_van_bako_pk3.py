@@ -18,7 +18,7 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, PngImagePlugin
+from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 FRONT_ART = HERE / "van_front_bako.png"
@@ -28,10 +28,6 @@ HEADLIGHTS_UV = ((160 / 1312, 300 / 1199), (1180 / 1312, 300 / 1199))  # headlig
 GLOW_BLOB = (1075, 150, 1115, 190)             # one stock headlight glow blob, reused for both lights
 CHROME_UV = (1296, 1456, 1520, 1760)           # R_CHROME in promaster_van_tex.py (atlas pixels), the emblem's UVs
 EMBLEM_MODELS = (("progs/veh_van.md3", "interior", 60), ("progs/veh_van_bumper.md3", "bumper_f", 60))
-ZIP_DATE_TIME = (1980, 1, 1, 0, 0, 0)
-ZIP_EXTERNAL_ATTR = 0o644 << 16
-ZIP_COMPRESS_LEVEL = 6
-STORED_EXTS = {".png", ".jpg", ".jpeg", ".ogg"}
 
 
 def remove_emblem(data, surface, expect):
@@ -60,30 +56,6 @@ def remove_emblem(data, surface, expect):
     sys.exit(f"surface {surface} not found")
 
 
-def encode_png(im):
-    """Serializes an RGB image as a deterministic PNG without metadata or timestamps."""
-    clean = im.copy()
-    clean.info.clear()
-    buf = io.BytesIO()
-    clean.save(buf, "PNG", compress_level=ZIP_COMPRESS_LEVEL, optimize=False, pnginfo=PngImagePlugin.PngInfo())
-    return buf.getvalue()
-
-
-def write_reproducible_pk3(out_pk3, entries):
-    """Writes entries in sorted path order with fixed ZipInfo timestamps, mode, and per-entry compression."""
-    with zipfile.ZipFile(out_pk3, "w") as z:
-        for name in sorted(entries):
-            data = entries[name]
-            zi = zipfile.ZipInfo(name, date_time=ZIP_DATE_TIME)
-            zi.create_system = 3
-            zi.external_attr = ZIP_EXTERNAL_ATTR
-            if Path(name).suffix.lower() in STORED_EXTS:
-                z.writestr(zi, data, compress_type=zipfile.ZIP_STORED)
-            else:
-                z.writestr(zi, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=ZIP_COMPRESS_LEVEL)
-            print(f"wrote {name} -> {out_pk3}")
-
-
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -92,9 +64,9 @@ def main():
     with zipfile.ZipFile(src_pk3) as z:
         tex = Image.open(io.BytesIO(z.read("progs/veh_van_tex.png"))).convert("RGB")
         glow = Image.open(io.BytesIO(z.read("progs/veh_van_tex_glow.png"))).convert("RGB")
-        entries = {}
+        models = {}
         for path, surface, expect in EMBLEM_MODELS:
-            entries[path], n = remove_emblem(z.read(path), surface, expect)
+            models[path], n = remove_emblem(z.read(path), surface, expect)
             print(f"{path}: collapsed {n} emblem triangles in {surface}")
 
     front = np.asarray(Image.open(FRONT_ART).convert("RGB").resize((W, H), Image.LANCZOS)).astype(float)
@@ -107,9 +79,20 @@ def main():
     for u, v in HEADLIGHTS_UV:
         glow.paste(blob, (X0 + int(u * W) - blob.width // 2, Y0 + int(v * H) - blob.height // 2))
 
-    entries["progs/veh_van_tex.png"] = encode_png(tex)
-    entries["progs/veh_van_tex_glow.png"] = encode_png(glow)
-    write_reproducible_pk3(out_pk3, entries)
+    files = dict(models)
+    for name, im in (("progs/veh_van_tex.png", tex), ("progs/veh_van_tex_glow.png", glow)):
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        files[name] = buf.getvalue()
+
+    # Reproducible output: the updater ships files by sha256, so an unchanged build must be byte-identical.
+    # Fixed timestamp and attributes, sorted entries (writestr with a bare name would stamp the current time).
+    with zipfile.ZipFile(out_pk3, "w", zipfile.ZIP_STORED) as z:   # PNGs are already compressed
+        for name in sorted(files):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.external_attr = 0o100644 << 16   # regular file, rw-r--r--
+            z.writestr(info, files[name])
+            print(f"wrote {name} -> {out_pk3}")
 
 
 if __name__ == "__main__":
