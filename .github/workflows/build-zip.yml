@@ -4,12 +4,11 @@
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, rebuilds zz_bakovan.pk3 from the zip's own bakersfield.pk3, then publishes three per-OS packages:
 #
-#   BAKOQUAKE.zip                 Windows. Baker's engine/zircon_beta_gcc.exe (already in the base zip).
+#   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (currently darkplaces.exe at root).
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
 #
-# Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces); Baker ships no
-# Linux/mac build. Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
+# Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
 # keeps its exact name and tree so the next run can still take it as the base.
 name: Build BAKOQUAKE.zip
 
@@ -33,11 +32,6 @@ on:
         type: boolean
         required: false
         default: false
-      swap_windows_engine:
-        description: "Replace Baker's Windows engine with the public CI .exe (default: keep Baker's official build)"
-        type: boolean
-        required: false
-        default: false
 
 permissions:
   contents: write
@@ -52,7 +46,6 @@ jobs:
       ENGINE_REPO: rgr4y/zircon-darkplaces
       ENGINE_TAG: ${{ inputs.engine_tag }}
       DRAFT: ${{ inputs.draft }}
-      SWAP_WIN: ${{ inputs.swap_windows_engine }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,7 +69,6 @@ jobs:
           mkdir -p eng
           # GITHUB_TOKEN can read public releases; if this ever fails, a PAT is needed.
           args=(-p 'zircon-*-linux-x86_64.zip' -p 'zircon-*-macos-arm64.zip')
-          [ "$SWAP_WIN" = true ] && args+=(-p 'zircon-*-windows-x86_64.zip')
           gh release download "$etag" -R "$ENGINE_REPO" -D eng "${args[@]}"
           (cd eng && for z in zircon-*.zip; do echo "unzip $z"; unzip -o -q "$z"; done)
           ls -l eng
@@ -103,14 +95,6 @@ jobs:
           python -m pip install --quiet numpy pillow
           python repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
 
-      - name: Optionally swap the Windows engine
-        if: ${{ inputs.swap_windows_engine }}
-        run: |
-          # Keep the launcher-expected name. The public .exe is an MSYS2/MINGW64 build; it relies on the
-          # DLLs in engine/bin64. Off by default so the official engine stays the asset source for later runs.
-          cp eng/zircon_beta_windows_sdl.exe out/BAKOQUAKE/engine/zircon_beta_gcc.exe
-          echo "Swapped engine/zircon_beta_gcc.exe for the public CI build."
-
       - name: Zip the Windows package (master)
         # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
         # This is the asset source for the next run, so its name and tree stay exactly as before.
@@ -128,8 +112,9 @@ jobs:
           make_os_zip() {
             local out_zip="$1" sdl="$2" ded="$3"
             cp BAKOQUAKE.zip "$out_zip"
-            zip -q -d "$out_zip" 'BAKOQUAKE/engine/*' 'BAKOQUAKE/engine/' \
-              'BAKOQUAKE/*.cmd' 'BAKOQUAKE/PLAY BAKERSFIELDQUAKE.exe' || true
+            # -ws: wildcards stop at '/', so only root-level Windows files go (subfolders are untouched).
+            zip -q -d -ws "$out_zip" 'BAKOQUAKE/engine/*' 'BAKOQUAKE/engine/' \
+              'BAKOQUAKE/*.exe' 'BAKOQUAKE/*.dll' 'BAKOQUAKE/*.cmd' 'BAKOQUAKE/*.bat' || true
             rm -rf stage && mkdir -p stage/BAKOQUAKE
             cp "eng/$sdl" stage/BAKOQUAKE/darkplaces-sdl
             cp "eng/$ded" stage/BAKOQUAKE/darkplaces-dedicated
@@ -148,7 +133,7 @@ jobs:
           [ "$DRAFT" = true ] && flags=(--draft) && tag="${tag}-draft"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
-            --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3). Engine binaries: Windows is Baker's official build; Linux/macOS from ${ENGINE_REPO}@${ENGINE}.
+            --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
           First, copy Quake's own pak0.pak and pak1.pak into the id1 folder.
 
