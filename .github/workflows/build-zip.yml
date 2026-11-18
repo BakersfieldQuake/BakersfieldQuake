@@ -1,4 +1,4 @@
-# Builds BAKOQUAKE distributables on demand (Actions tab > "Build BAKOQUAKE.zip" > Run workflow).
+# Builds the BAKOQUAKE release packages on demand (Actions tab > "Build release packages" > Run workflow).
 #
 # The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
@@ -18,7 +18,7 @@
 # launcher looks for the player's own Quake pak0/pak1 (Steam, GOG, usual folders, then Downloads) and copies them into
 # id1/ (tools/find-quake-paks.sh / .ps1). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
 # keeps its exact name and tree so the next run can still take it as the base.
-name: Build BAKOQUAKE.zip
+name: Build release packages
 
 on:
   workflow_dispatch:
@@ -257,7 +257,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
-            --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
           You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 
