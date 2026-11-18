@@ -19,6 +19,9 @@ below is a best case.
 | Server script time on soi6 with 15 bots | Combat+ gib physics ran on every gib every frame | switched off: 57% less script work |
 | Every map loaded the tank, LAN props, Eric cannon, random NPCs, sky pads and all eight vehicle kinds | unconditional precache | they now load only where a map places them: 230 to 370 MB less video memory per map |
 | Server, release and source out of step | VPS had this PC's builds of two packs; the two newest releases carried older `progs.dat` and `csprogs.dat` and lacked four packs | one release built from the current source; VPS identical to it |
+| terminal21 at 46 fps with dips to 10 on a fast PC (same recorded match every time) | the engine's visibility rays test wall faces one by one, thousands per BSP node on these maps | the client code now picks the classic cheap test on the eight maps where it is exact: 311 fps, dips to 121. In the source, not released (section 10) |
+| A third of each frame on bakersfielddowntown spent on model lighting, a tenth on empty controller slots | engine: a BSP walk per model per frame; `XInputGetState` per slot per frame | engine candidate with five changes built and validated: 378 to 752 fps on that demo. Not installed, not released |
+| Weak graphics start with full settings | launchers looked at RAM only | launchers now also read video memory: low-memory textures, and Simple Mode once, under 3 GB. In the source, not released |
 
 **Shipped.** With the owner's go-ahead the work was pushed, released as `build-20261118-74b8bd0` ("Latest") and
 deployed to the VPS, which matches that release on all 106 game files. An existing player's updater downloads 17
@@ -150,9 +153,19 @@ under a subfolder that is not there. Design and evidence: `docs/prompts/engine-f
   Separate user folder: 13.0 s, 12.9 s, 7.9 s.
 - Regression run, identical on patched and shipped: a file in a folder that does not exist is not found; the engine
   then writes it; it is found on the very next lookup. Screenshot written. All nine maps above load with it.
-- Not covered: a download into `dlcache/` used on the next map, demo record and playback, a long match, and
-  fullscreen, sound and input in a human's hands. A second session ("Engine: skip loose-folder file probes") was
-  started from this audit and is working on those.
+- A second session built the same change independently (`docs/engine-fs-dircache-results.md`,
+  `source/darkplaces-fs-dircache.patch`) and ran the rest of the regression list on it: a download into `dlcache/`
+  used on the next launch, demo record and playback, screenshots, a new player's first `config.cfg`, a folder created
+  by another program. All pass, with a negative control that fails.
+- Checked later on the installed build:
+  - Four maps in one session (soi6, bakersfielddowntown, spruce, bklan6): all load, no error lines, clean exit.
+  - A ten-minute match with 15 bots on bakersfielddowntown: clean exit, no error lines, the server held 72 frames a
+    second, peak commit 3.8 GB (the same as the shipped engine).
+  - Desktop fullscreen at 1920x1080 with sound: starts, renders, exits cleanly.
+  - Its start-up log differs from the shipped engine's only in the build stamp, the missing ODE probe and the SDL
+    version (2.32.10 against 2.28.5). Both use the SDL video and sound backends.
+- Still not covered: a human playing a real match on it (mouse, keys, alt-tab, a controller), and Linux and macOS
+  builds.
 - **Installed on this PC only** (soi6 with the test recipe's separate user folder: 7.9 s, was 12.6 s). It is a
   different compiler and build setup from the shipped `zircon_beta_gcc.exe`, so it is not in the release. Linux and macOS binaries come from the engine fork's CI, so merging the patch
   there covers them.
@@ -222,9 +235,14 @@ Changed:
 
 Open, from the review agent's reading of the code (not re-traced here):
 - Soi 6: the per-viewer hook still runs for all 728 NPCs on every frame sent (69,000 calls a second per player; an
-  NPC out of range costs about ten statements). The change above removes the resend, not the calls. Putting NPCs
-  with nobody near to sleep would cut the calls only while few players are on: with 16 spread along the street nearly
-  every NPC has someone in range. The server held its full rate in every run, so this was left as it is.
+  NPC out of range costs about ten statements). The change above removes the resend, not the calls. **Measured, and
+  it costs nothing that shows:** a Windows dedicated server on soi6 at 100 frames a second used 4.3%, 7.4% and 17.7%
+  of one core with 0, 1 and 4 players connected; the same build with the hook taken out used 1.9%, 8.0% and 16.0%.
+  The differences are inside the run-to-run noise. With 4 players the server's main thread was asleep in 98% of the
+  samples. The public server's CPU is about 0.62 times as fast as this PC's, which still leaves it mostly idle. Left
+  as it is.
+- Ten minutes with 15 bots on bakersfielddowntown ran 3,750 million script statements on the server (6 million a
+  second, a few percent of one core) and 20 million on the client. Script code is not what limits the frame rate.
 - bakersfielddowntown has no bot waypoint file, so bots route by search (15% of script work there).
 - `gyro.gyro_physics.qc:426-437` holds four loops that never end. Nothing calls them, and `gyroset 0` keeps it so.
 
@@ -336,6 +354,102 @@ Left for the owner:
 - The Soi 6 network saving is reasoned from the code; it was not measured on the wire.
 - An unrelated service on the VPS (`tailscale-map`) is crash-looping on an invalid API token and writes its PIN and
   token to the system journal on every start. It is not part of the mod and was not touched.
+
+## 10. Frame rate on the big maps (added 2026-11-19)
+
+The owner's direction after the release: optimization first, leave the crash diagnosis. The PC that struggles has
+16 GB of RAM and integrated graphics. This section is what came of that. **None of it is released yet** (section 8
+lists what is).
+
+### How it was measured
+
+- **Function names.** The shipped engine has none, so the profiler could only say "inside the exe". An unstripped
+  rebuild gives `sampler.py` a symbol map (`BQ_SYMS`), and it now reports self time per engine function.
+- **Recorded matches.** A live match with 15 bots is useless for comparing settings: what the bots do moves the
+  frame rate more than most settings. Three settings looked good or bad in live runs and were all noise. So a
+  one-minute 15-bot match is recorded once per map (`loadtime.py --record`) and played back flat out
+  (`timedemo.py`). Playback has no server in it, two runs agree within 2%, and every number below is from it:
+  shipped settings, 1280x720 window, RTX 4070 Ti.
+
+### Finding 1: visibility rays (terminal21: 46 fps, dips to 10)
+
+The engine decides whether a model or a dynamic light is hidden by firing rays at it (`r_cullentities_trace`,
+`r_shadow_culllights_trace`). With `r_cullentities_trace_entityocclusion 1`, the engine default, each ray tests wall
+faces one by one, and these maps keep thousands of coplanar faces on a single BSP node. On terminal21 71% of the main
+thread was inside `Mod_Q1BSP_TraceLineAgainstSurfaces`.
+
+| same demo, shipped engine | terminal21 | morrorock | soi6 | bakersfielddowntown |
+|---|---|---|---|---|
+| shipped settings | 46 fps (worst second 10) | 139 (74) | 712 (255) | 376 (255) |
+| model rays off | 79 (26) | 117 (66) | 709 | 377 |
+| light rays off | 68 (17) | 139 (73) | 704 | 377 |
+| both off | 184 (84) | 118 (66) | 702 | 379 |
+| **world-only rays (`entityocclusion 0`)** | **311 (121)** | **146 (75)** | 708 | 378 |
+
+- Turning the rays off is not the answer: on morrorock they hide enough to be worth 16%.
+- The world-only test is the classic one (a BSP line-of-sight check). It keeps the culling and costs almost nothing.
+- **It cannot be used everywhere.** It is blocked by see-through faces that sit on solid world brushes: on
+  bakersfielddowntown 1,979 faces (fire-escape gratings, window panes), on spruce 174, bklan6 57, fox 45, goldenwest
+  18. A player seen only through one of those would vanish after a second. The other nine maps have none
+  (`source/mm_tools/perf/fence_solid.py` checks a map; shader-made transparency was checked too, none on world
+  geometry).
+- **So the client code picks it per map** (`BM_TraceCullSetup` in `csqc/bm_hud.qc`, called from `CSQC_Init`): the
+  world-only test on terminal21, morrorock, soi6, soicowboy_bkk, lolmap1, little_st_james, ooika_lawrenceville and
+  slo_bike_kitchen; the engine default on every other map. `bm_tracecull_auto 0` switches the automatism off.
+- Checked in game with the new client code: the setting reads 0 on terminal21, morrorock and soi6, and 1 on
+  bakersfielddowntown, spruce and start. A live 15-bot match on terminal21 gave the host 146 fps; the one recorded
+  before the change gave 45 (two different matches, so only an indication).
+- The corona and decal settings, particle quality and dynamic-light shadows made no difference on this demo.
+  Dynamic lights off, which is what the menu's Simple Mode does, gave 71 fps where the per-map setting gives 311.
+
+### Finding 2: lighting lookup per model, and the controller check (engine)
+
+On bakersfielddowntown 35% of the frame was `Mod_BSP_LightPoint`: every frame, for every model, a walk down the BSP
+tree that scans up to 9,500 faces, mostly for furniture and pickups that never move. Another 11% was the engine
+asking Windows about four empty controller slots, every frame. Both need an engine change. A candidate build with
+both, the file-lookup cache from section 2 and a hint for AMD dual-graphics laptops is described in
+`docs/engine-perf-patches-2026-11-18.md`:
+
+| same demo | shipped engine | candidate engine |
+|---|---|---|
+| bakersfielddowntown | 378 fps | **752 fps** |
+| soi6 | 702 fps | **806 fps** |
+| morrorock, with the per-map setting | 146 fps | **162 fps** |
+| terminal21, with the per-map setting | 311 fps | **370 fps** |
+
+The cache was checked against the uncached walk on a million lookups per map: no difference. The final candidate,
+`zircon_beta_perf3.exe`, also carries the two map-change leak fixes from `docs/engine-memory-leaks-2026-11-18.md`. It
+passed the file-lookup regression suite, the download test, the cache self test on four maps, four maps in one
+session, a ten-minute match with 15 bots and a fullscreen start. Nobody has played on it yet. It is not installed:
+`engine\zircon_beta_gcc.exe` on this PC is currently the leak-fix test build of another session (sha256
+`46ddb110...`), and the released engine is beside it as `zircon_beta_gcc.stock.exe`.
+
+### Finding 3: weak graphics
+
+- A map loads 1.4 to 2.2 GB of textures. Play.cmd and Start Server.cmd now read the largest video memory of any
+  graphics adapter (cached in `vram-mb.txt`). Under 3 GB they start with `lowmem.cfg` every time, as they already did
+  under 10 GB of RAM, and the first time also with the new `lowgpu.cfg`: the menu's Simple Mode plus no anti-aliasing
+  and 4x filtering. After that those are ordinary saved settings. `BQ_LOWGPU=1/0` and `BQ_LOWMEM=1/0` override.
+  The owner's 16 GB integrated-graphics PC gets both. Tested with simulated adapters from 64 MB to 12 GB.
+- Not measured on integrated graphics: this PC's game window always runs on the RTX card. On the CPU side Simple Mode
+  is worth 46 to 73 fps on the terminal21 demo.
+- The engine asks NVIDIA laptops for the fast card (`NvOptimusEnablement`) but not AMD ones; the candidate adds that.
+- Linux and macOS launchers keep the RAM rule only.
+
+### What the load still consists of (soi6 on the patched engine, 7.2 s)
+
+PNG decoding 20% (the engine's built-in decoder, `lodepng`), unpacking from the pk3 9%, file reads 11%, remaining
+lookups 3.5%, texture upload 5%. The decoder is the next engine target (see the candidate's notes). Nothing on the
+content side shortens this without a large download: the pixels have to be decoded once per map.
+
+### Checked and found not to matter
+
+- Server script load: ten minutes with 15 bots is 6 million statements a second, a few percent of a core.
+- The public server: 4% of one core, no bots, one map.
+- `sv_gameplayfix_q1bsptracelinereportstexture` is already 0. Set to 1 it takes bakersfielddowntown from 109 to
+  between 9 and 16 fps, which is the same face-by-face trace on the server side. Leave it at 0.
+- Network: prediction (`cl_movement`) is on by default in this engine.
+- The main menu does not load a background map any more; `menu_background*` in `autoexec.cfg` is read by nothing.
 
 ## How to re-measure
 
