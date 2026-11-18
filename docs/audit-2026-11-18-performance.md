@@ -14,7 +14,7 @@ below is a best case.
 |---|---|---|
 | Public server dropped everyone about every 12 minutes | health check and demo recorder shared one address; the server answers one status query per address per second | fixed on the VPS |
 | Hosted game with bots dies: "server runaway loop counter hit limit" | FrikBot's `wisible` visibility check loops for ever between two brush entities | found on spruce, fixed, released, live on the VPS |
-| Game stops mid-load with "Mem_Alloc: out of memory" on small PCs | 3.1 to 4.4 GB of committed memory per map | reproduced with a memory cap. Normal settings now need 0.6 to 0.8 GB less; launchers switch to a 2.2 to 2.5 GB mode under 10 GB of RAM |
+| Game stops mid-load with "Mem_Alloc: out of memory" on small PCs | 3.1 to 4.4 GB of committed memory per map | reproduced with a memory cap. Normal settings now need 0.6 to 0.8 GB less; launchers switch to a 2.2 to 2.5 GB mode under 10 GB of RAM. **Still open:** a map change in that mode peaks at about 3.3 GB and failed under a 3.0 GB limit (correction in section 1) |
 | Map loads of 7 to 11 s (13 to 20 s on the macOS app layout), 7 s of it the same on every map | the engine probes the disk about 40 times per texture per loose folder | engine patch written, built and measured: 6 to 8.6 s. Released for Windows in `build-20261118-0ebe292`; Linux and macOS wait for the engine pull request (section 8) |
 | Server script time on soi6 with 15 bots | Combat+ gib physics ran on every gib every frame | switched off: 57% less script work |
 | Every map loaded the tank, LAN props, Eric cannon, random NPCs, sky pads and all eight vehicle kinds | unconditional precache | they now load only where a map places them: 230 to 370 MB less video memory per map |
@@ -64,7 +64,14 @@ which drops every player. The engine's crash report names the place: `wisible` (
 - Fix: at most eight hops, then "not visible". After it: thirteen maps, two minutes each with 15 bots (results in
   the list at the end of this section).
 
-### Out of memory on small PCs (reproduced, then fixed)
+### Out of memory on small PCs (reproduced; fixed for a map load, still open for a map change)
+
+**Correction, 2026-11-19.** The fix below holds for the first map a game loads. A later test on the released build
+(`build-20261118-0ebe292`, started through `Play.cmd`, low-memory mode, 3,000 MB limit, 15 bots) loaded
+bakersfielddowntown at 2,545 MB and then stopped with the same error on the first map change, to soi6, at 2,992 MB:
+the engine frees the old map only after the new one is loaded. Details and a parked engine fix are in
+`docs/engine-memory-leaks-2026-11-18.md` ("Map-change peak"). Not fixed in any release.
+
 
 `loadtime.py --memcap` runs the engine inside a Windows job object with a commit limit, which is what a PC with little
 free memory looks like to the game.

@@ -95,6 +95,50 @@ the build without these two fixes, not repeated on this one.
 - The dedicated server's memory was not measured. The public server runs a separate Linux DarkPlaces build, not
   Zircon, and changes maps with `changelevel`.
 
+## Map-change peak (found 2026-11-19, fix written, not shipped)
+
+Not a leak, but the same symptom on a small PC. The engine releases the previous map after the next one has been
+loaded: `Mod_PurgeUnused` runs at the end of the client's signon and `R_SkinFrame_Purge` in `R_Modules_NewMap`. A
+map change therefore needs the memory of both maps for a moment.
+
+Found with `source/mm_tools/perf/soak_release.py`: the published file set of `build-20261118-0ebe292` (145 of its
+147 files, every hash checked against the manifest; the updater and the shortcut installer left out), started through
+the release's own `Play.cmd` with `BQ_LOWMEM=1`, a hosted game with 15 bots, a new map every 30 s.
+
+| released engine, low-memory mode | committed memory |
+|---|---|
+| bakersfielddowntown, playing | 2,439 to 2,545 MB |
+| change to soi6, peak | 3,324 to 3,379 MB |
+| the same under a 3,000 MB limit | **Engine Error: Mem_Alloc: out of memory** (`model_brush.c:7666`) during the change |
+
+So low-memory mode gets a small PC through the first load but not necessarily through a map change. How close a real
+8 GB PC is to that limit depends on its page file and what else is running; that was not measured.
+
+The fix: `source/zircon-free-before-load.patch` (on top of the five patches in the shipped engine; local commit
+`4891861`, branch `free-before-load` in `G:\Quake\_bq_fork_engine\src`). New setting `mod_freebeforeload`, default 0
+(behaviour unchanged):
+- 1: before the server loads the next world it unloads the previous world model and purges the textures only that
+  model used. A client of a remote server unloads every model the new map does not list, before loading anything.
+- 2: when hosting, every model is unloaded first.
+
+Measured with the test build `G:\Quake\_bq_fork_engine\zircon_beta_fbl.exe` (sha256 `b0ffc6a2...`), no limit,
+low-memory mode, the setting off and on in the same build:
+
+| map change | off | 1 |
+|---|---|---|
+| bakersfielddowntown to soi6 | 3,379 MB | 2,892 MB |
+| soi6 to spruce | 3,240 MB | 2,537 MB |
+
+An eight-map session with 15 bots on setting 1 ended normally; its highest peak was 2,915 MB.
+
+Not done, so it is not installed and not in a release:
+- the session under the 3,000 MB limit (setting 1 leaves about 85 MB of room there, so setting 2 should be measured
+  too; its one run was closed after 37 s),
+- the regression lists (`regress.py`, `regress_dl.py`) and a remote-server client on the new build,
+- a real play session.
+To ship it: finish those, add `mod_freebeforeload 1` (or 2) to `lowmem.cfg`, then a new base and release as for the
+engine before.
+
 ## How to repeat
 
 `source/mm_tools/perf/loadtime.py <tag> soi6 --hold 520 --basedir <scratch copy> --same-userdir --exe <engine>`
