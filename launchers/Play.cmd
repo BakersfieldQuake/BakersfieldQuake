@@ -1,19 +1,18 @@
 @echo off
 setlocal EnableExtensions
 rem BAKOQUAKE - Play.
-rem Joins the LAN server if one is up. Otherwise it starts the game on its own, and quake.rc then plays the
-rem BAKOQUAKE intro demo (intro.dem). In the intro, F1 joins the online server and F2 the LAN game.
-rem In game, F2 joins the LAN server once it is up (F2 runs lan_server.cfg, which the
-rem background scanner tools\lanscan.ps1 keeps up to date).
+rem Opens into the BakersfieldQuake Main Menu (with a slow scenic background map when menu_background is 1).
+rem Use Join Game in the Main Menu (or press F3 in-game to run lan_server.cfg, which tools\lanscan.ps1 keeps updated).
 rem Extra engine args (e.g. -window) can be passed with:  set COMBAT_ARGS=-window
 
 rem Package root is this folder; in the dev tree (Combat\lan\) it is one folder up.
 set "ROOT=%~dp0"
-if not exist "%ROOT%darkplaces.exe" if exist "%~dp0..\darkplaces.exe" set "ROOT=%~dp0..\"
+if not exist "%ROOT%engine\zircon_beta_gcc.exe" if exist "%~dp0..\engine\zircon_beta_gcc.exe" set "ROOT=%~dp0..\"
 pushd "%ROOT%" || goto :nogame
 set "ROOT=%CD%"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
-if not exist "%ROOT%\darkplaces.exe" goto :nogame
+set "ENGINE=%ROOT%\engine\zircon_beta_gcc.exe"
+if not exist "%ENGINE%" goto :nogame
 
 rem First run: find Quake's pak0/pak1 (Steam, GOG, the usual folders, Downloads) and copy them into id1\.
 if not exist "%ROOT%\id1\pak0.pak" if exist "%ROOT%\tools\find-quake-paks.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\find-quake-paks.ps1" -Root "%ROOT%"
@@ -37,23 +36,16 @@ set /a COLOR=%RANDOM% %% 14 * 17
 set FIRST=+_cl_name "%USERNAME%" +_cl_color %COLOR%
 :haveconfig
 
-rem Quick scan (~1.5 s). This also hides this console window.
-set "SERVER="
-for /f "tokens=1,2" %%a in ('%PS% -File "%SCAN%" -GameDir "%ROOT%\BakersfieldQuake" -Once -TimeoutMs 1500 2^>nul') do if "%%a"=="FOUND" set "SERVER=%%b"
-
-set "JOIN="
-if defined SERVER set "JOIN=+connect %SERVER%"
-
 rem Keys (F1 = online server, F2 = LAN) are defaults in default.cfg, not forced here, so a player's rebinds are saved.
-start "" "%ROOT%\darkplaces.exe" -game quake15 -game BakersfieldQuake %FIRST% %COMBAT_ARGS% %JOIN%
+start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %COMBAT_ARGS%
 
-rem Keep lan_server.cfg fresh until the game exits.
-start "" /min %PS% -File "%SCAN%" -GameDir "%ROOT%\BakersfieldQuake" -WatchExe "%ROOT%\darkplaces.exe"
+rem Keep lan_server.cfg fresh in the background for optional F3 LAN fallback until the game exits.
+if exist "%SCAN%" start "" /min %PS% -File "%SCAN%" -GameDir "%ROOT%\BakersfieldQuake" -WatchExe "%ENGINE%"
 popd
 exit /b 0
 
 :nogame
-echo Could not find darkplaces.exe next to Play.cmd.
+echo Could not find engine\zircon_beta_gcc.exe next to Play.cmd.
 echo Unzip the whole BAKOQUAKE folder and run Play.cmd from inside it.
 pause
 exit /b 1
