@@ -51,6 +51,12 @@ if [ -f "$ROOT/tools/bq_update.py" ] && command -v python3 >/dev/null 2>&1 \
     [ $? = 3 ] && exec "$ROOT/$(basename "${BASH_SOURCE[0]}")" "$@"
 fi
 
+# Menu and desktop shortcuts (tools/install-shortcuts.sh). Only rewritten when this folder moved; never stops the game.
+if [ "$(uname)" = Linux ] && [ -f "$ROOT/tools/install-shortcuts.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$ROOT/tools/install-shortcuts.sh" && bq_install_shortcuts "$ROOT"
+fi
+
 # Saved settings live in this folder (BakersfieldQuake/config.cfg), same as on Windows, not in ~/.darkplaces.
 COMMON=(-basedir "$ROOT" -userdir "$ROOT" -game quake15 -game BakersfieldQuake)
 

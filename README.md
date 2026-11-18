@@ -19,6 +19,11 @@ Downloads are on the **Releases** page of this repo:
 - **Linux:** `BAKOQUAKE-linux-x86_64.zip`. Needs system SDL2 (e.g. `sudo apt install libsdl2-2.0-0`). Unzip it and
   run `./Play.sh`; `./Start-Server.sh` hosts a LAN game.
 
+On Windows and Linux the first launch adds shortcuts: a **BAKOQUAKE** Start Menu folder (game and server) plus a
+Desktop shortcut on Windows, and `bakoquake.desktop`/`bakoquake-server.desktop` in `~/.local/share/applications`
+plus a desktop copy on Linux (the server entry has a *Stop server* action). They point at wherever you unzipped the
+game; if you move the folder, run it once from the new place and the shortcuts follow.
+
 ## Releases
 
 Releases are built by the **Build release packages** workflow (`.github/workflows/build-zip.yml`, run by hand from

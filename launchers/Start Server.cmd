@@ -28,6 +28,15 @@ rem Update: fetch only the files that changed in the newest release (set BQ_NO_U
 rem All on one line: cmd reads a running script from disk, so when files changed (exit 3) the updated launcher restarts.
 if exist "%ROOT%\tools\bq-update.exe" ( "%ROOT%\tools\bq-update.exe" --launch --root "%ROOT%" & if errorlevel 3 if not errorlevel 4 ( popd & "%~f0" %* ) )
 
+rem Start Menu and Desktop shortcuts (tools\install-shortcuts.ps1). The folder they point at is kept in shortcut-root.txt,
+rem so PowerShell only runs on first launch or after the package moved. A failure never stops the launch.
+set "BQMARK=%LOCALAPPDATA%\BAKOQUAKE\shortcut-root.txt"
+set "BQOLD="
+if exist "%BQMARK%" set /p BQOLD=<"%BQMARK%"
+if /i not "%BQOLD%"=="%ROOT%" if exist "%ROOT%\tools\install-shortcuts.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\install-shortcuts.ps1" -Root "%ROOT%" >nul 2>&1 && <nul set /p "=%ROOT%">"%BQMARK%"
+)
+
 set "SCAN=%~dp0tools\lanscan.ps1"
 if not exist "%SCAN%" set "SCAN=%~dp0lanscan.ps1"
 set "PS=powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden"

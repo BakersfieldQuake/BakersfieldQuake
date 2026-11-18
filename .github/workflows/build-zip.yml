@@ -164,10 +164,11 @@ jobs:
           done
 
       - name: Overlay repo tools
-        # Launcher helpers (e.g. find-quake-paks.sh/.ps1) live in repo/tools/ and ship in the package's tools/.
+        # Launcher helpers (e.g. find-quake-paks.sh/.ps1) live in repo/tools/ and ship in the package's tools/,
+        # with the shortcut icons from repo/source/icons/ (used by tools/install-shortcuts.ps1/.sh).
         run: |
           mkdir -p out/BAKOQUAKE/tools
-          for f in repo/tools/*; do
+          for f in repo/tools/* repo/source/icons/*; do
             if ! cmp -s "$f" "out/BAKOQUAKE/tools/$(basename "$f")"; then echo "updated tools/$(basename "$f")"; fi
             cp "$f" out/BAKOQUAKE/tools/
           done
@@ -227,7 +228,8 @@ jobs:
 
           for rel in ("BakersfieldQuake/progs.dat", "BakersfieldQuake/menu.dat", "BakersfieldQuake/csprogs.dat",
                       "engine/zircon_beta_gcc.exe", "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
-                      "tools/bq_update.py", "tools/bq-update.exe"):
+                      "tools/bq_update.py", "tools/bq-update.exe", "tools/install-shortcuts.ps1",
+                      "tools/install-shortcuts.sh", "tools/bakoquake.ico", "tools/bakoquake-256.png"):
               if not os.path.isfile(os.path.join(root, rel)):
                   errors.append(f"missing {rel}")
           for rel in ("id1/pak0.pak", "id1/pak1.pak"):
