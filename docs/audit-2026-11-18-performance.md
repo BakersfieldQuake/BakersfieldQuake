@@ -13,15 +13,20 @@ below is a best case.
 | problem | cause | state |
 |---|---|---|
 | Public server dropped everyone about every 12 minutes | health check and demo recorder shared one address; the server answers one status query per address per second | fixed on the VPS |
-| Hosted game with bots dies: "server runaway loop counter hit limit" | FrikBot's `wisible` visibility check loops for ever between two brush entities | found on spruce, fixed in the game code |
+| Hosted game with bots dies: "server runaway loop counter hit limit" | FrikBot's `wisible` visibility check loops for ever between two brush entities | found on spruce, fixed, released, live on the VPS |
 | Game stops mid-load with "Mem_Alloc: out of memory" on small PCs | 3.1 to 4.4 GB of committed memory per map | reproduced with a memory cap. Normal settings now need 0.6 to 0.8 GB less; launchers switch to a 2.2 to 2.5 GB mode under 10 GB of RAM |
-| Map loads of 7 to 11 s (13 to 20 s on the macOS app layout), 7 s of it the same on every map | the engine probes the disk about 40 times per texture per loose folder | engine patch written, built and measured: 6 to 8.6 s. Not installed |
+| Map loads of 7 to 11 s (13 to 20 s on the macOS app layout), 7 s of it the same on every map | the engine probes the disk about 40 times per texture per loose folder | engine patch written, built and measured: 6 to 8.6 s. Installed on this PC only; not shipped |
 | Server script time on soi6 with 15 bots | Combat+ gib physics ran on every gib every frame | switched off: 57% less script work |
 | Every map loaded the tank, LAN props, Eric cannon, random NPCs, sky pads and all eight vehicle kinds | unconditional precache | they now load only where a map places them: 230 to 370 MB less video memory per map |
-| Server packs differed from the release | VPS had this PC's builds of two packs | VPS now matches the release on all 103 game files |
+| Server, release and source out of step | VPS had this PC's builds of two packs; the two newest releases carried older `progs.dat` and `csprogs.dat` and lacked four packs | one release built from the current source; VPS identical to it |
 
-What is on this PC but not yet with players: the new `progs.dat`, the configs, the launchers and `lowmem.cfg`.
-They reach players and the server with the next release. Nothing was pushed or released.
+**Shipped.** With the owner's go-ahead the work was pushed, released as `build-20261118-74b8bd0` ("Latest") and
+deployed to the VPS, which matches that release on all 106 game files. An existing player's updater downloads 17
+files, 17.9 MB. The patched engine is installed on this PC only, for the owner to try.
+
+While preparing the release it turned out that the two releases before it (`build-20261118-c34bfc0` and
+`build-20261118-7f30a1e`) had been built on a stale draft base and had quietly put older game code back
+(section 6). The new release corrects that.
 
 ## 1. Crashes
 
@@ -148,8 +153,8 @@ under a subfolder that is not there. Design and evidence: `docs/prompts/engine-f
 - Not covered: a download into `dlcache/` used on the next map, demo record and playback, a long match, and
   fullscreen, sound and input in a human's hands. A second session ("Engine: skip loose-folder file probes") was
   started from this audit and is working on those.
-- **Not installed.** It is a different compiler and build setup from the shipped `zircon_beta_gcc.exe`, and it would
-  replace the engine for every player. Linux and macOS binaries come from the engine fork's CI, so merging the patch
+- **Installed on this PC only** (soi6 with the test recipe's separate user folder: 7.9 s, was 12.6 s). It is a
+  different compiler and build setup from the shipped `zircon_beta_gcc.exe`, so it is not in the release. Linux and macOS binaries come from the engine fork's CI, so merging the patch
   there covers them.
 
 ### Other options, measured
@@ -243,24 +248,37 @@ Deleting any of the last four is the owner's call; nothing was deleted.
 
 ## 6. Sync: GitHub, this PC, the server
 
-- GitHub `main` = local `HEAD` = `0141a39` at the time of the check. The committed source compiled to the shipped
-  game code byte for byte (`progs.dat`, `menu.dat`; `csprogs.dat` differs only in the two patched header CRC bytes).
-- Since then a collaborator pushed `c34bfc0` ("Show the release tag in game") and published release
-  `build-20261118-c34bfc0` from it. This audit's commits were rebased onto the collaborator's newest commit in a separate worktree, where
-  they compile to exactly the `progs.dat` that was tested, and pushed. The shared checkout still holds the
-  pre-rebase copies plus another session's uncommitted `.github/workflows/build-zip.yml`; `git pull --rebase` there
-  drops the duplicates once that file is committed.
-- The VPS matches release `build-20261118-0141a39`. The newer `build-20261118-c34bfc0` differs from it only in
-  `quake.rc` and the new `version.cfg`, which draw the release tag on screen for players.
-- **VPS against the latest release `build-20261118-0141a39`: 103 of 103 game files identical** after today's sync.
-  Before it, 99: `zz_karts.pk3` and `zz_bakovan.pk3` were this PC's builds (same contents, different bytes) and two
-  configs had Windows line endings. The release's own files were fetched, checked against the release manifest and
-  swapped in while the server was empty (backup `/opt/quake/backup/20261118-120856-release-sync`).
-- The same four files were replaced on this PC (old ones in `G:\Quake\Combat\_backups\pre_release_sync_2026-11-18`),
-  so `vps/deploy.py`, which compares sizes, does not push the local builds back.
+State at the end (2026-11-18 14:00 UTC):
+
+| | game code | state |
+|---|---|---|
+| GitHub `main` | `74b8bd0` | all of this audit's commits, on top of the collaborator's two |
+| Latest release | `build-20261118-74b8bd0` (build 27) | `progs.dat` is a byte-for-byte compile of `74b8bd0`; `csprogs.dat` and `menu.dat` as compiled from the source; all seven overlay packs |
+| VPS | same | 106 of 106 game files identical to the release; restarted empty, clean log; a test client joined, six bots played a minute on spruce, no errors |
+| This PC | same `progs.dat`, `csprogs.dat`, packs and maps | the shared checkout is still on the pre-rebase copies of the commits (it lacks `version.cfg` and the two lines in `quake.rc` that show the release tag) because another session has uncommitted work in `.github/workflows/build-zip.yml`; `git pull --rebase` after that is committed |
+
+How it got there:
+- At the start GitHub `main` = local `HEAD` = `0141a39`, and the committed source compiled to the shipped game code
+  byte for byte (`progs.dat`, `menu.dat`; `csprogs.dat` differs only in the two patched header CRC bytes).
+- The VPS matched release `build-20261118-0141a39` on 99 of 103 files: `zz_karts.pk3` and `zz_bakovan.pk3` were this
+  PC's builds (same contents, different bytes) and two configs had Windows line endings. Fixed from the release's
+  own files, checked against its manifest.
+- **Release regression found.** `build-20261118-c34bfc0` and `build-20261118-7f30a1e` were run with
+  `base_tag=build-20261118-584fa4a-draft`, a draft from that morning. The release workflow compiles nothing: it
+  takes `progs.dat`, `csprogs.dat` and the packs from the base zip. So those two releases carried an older
+  `progs.dat` (3,438,402 bytes against 3,441,354) and `csprogs.dat`, and dropped `zz_conback.pk3`, `zz_gfuel.pk3`,
+  `zz_johnbird.pk3` and `zz_mmtank.pk3` from the manifest. Players who updated in that window ran older game code than
+  the server, and new installs lacked the John Bird and tank packs.
+- Fix: a new base built on this PC (`base-v1.12`, draft), checked file by file (129 of 142 files identical to the
+  last good release, both big packs and the engine unchanged), a draft run of the workflow whose manifest was checked,
+  a smoke test of exactly that combination, then the real run.
+- **For future releases: leave `base_tag` empty (it then takes the latest release) or pass `base-v1.12`.** Any
+  older draft as base puts old game code back. A check in the workflow that compares the base's `progs.dat` with the
+  latest release's would catch it; not added, because the workflow file has another session's uncommitted edits.
+- The four replaced files were also replaced on this PC (old ones in
+  `G:\Quake\Combat\_backups\pre_release_sync_2026-11-18`), so `vps/deploy.py`, which compares sizes, does not push
+  local builds back.
 - The VPS web server (port 8097) serves every pack the server offers to clients.
-- Ahead of the release on this PC, by design: `progs.dat`, `quake.rc`, `default.cfg`, `server.cfg`, the launchers,
-  `lowmem.cfg`, `lowmem_off.cfg`. The VPS runs its own `server_vps.cfg`, which already has `gyroset 0`.
 
 ## 7. Changes made
 
@@ -277,20 +295,35 @@ Deleting any of the last four is the owner's call; nothing was deleted.
 | `source/qc_combat_decomp/frikbot.bot_misc.qc` | runaway-loop crash fix |
 | `source/mm_tools/soi6_npcs.qc`, `source/qc_combat_decomp/htb_npcs.qc`, `beach_uncle.qc` | NPC facing, gib budget |
 | `progs.dat` | rebuilt with the above (0 errors) |
+| `lan\make_lan_package.ps1` | engine guard (ships only the released engine); `lowmem*.cfg` in the package list |
+| `engine\zircon_beta_gcc.exe` on this PC | patched build; released one kept as `zircon_beta_gcc.stock.exe` |
+| GitHub | eight commits on `main`, draft `base-v1.12`, release `build-20261118-74b8bd0` |
+| VPS game files | updated to that release |
 | `source/mm_tools/perf/` | `loadtime.py`, `breakdown.py`, `sampler.py`, `dedtime.py` |
 | `docs/prompts/engine-fs-probe-cache-handoff.md` | the engine change |
 
 Every VPS restart was done with nobody connected and came up clean; each replaced file has a backup beside it or
 under `/opt/quake/backup`.
 
-## 8. To ship
+## 8. Shipped, and what is left
 
-1. Rebase the five local commits onto `origin/main`, review and push them, then run the release workflow. That carries the new `progs.dat` inputs, configs,
-   launchers and `lowmem.cfg` to players through the updater.
-2. Deploy the server from that release, not from the dev tree.
-3. Decide on the engine: try `G:\Quake\_zircon_build\out\zircon_fsdircache.exe` in place of
-   `engine\zircon_beta_gcc.exe` on this PC first; if a session of real play is fine, ship it and merge the patch into
-   the engine fork for the Linux and macOS builds.
+Done on 2026-11-18 with the owner's go-ahead:
+- Source pushed to GitHub `main` (eight commits, rebased onto the collaborator's work in a separate worktree).
+- Base package v1.12 built with `lan\make_lan_package.ps1 -SkipPk3` and uploaded as draft `base-v1.12`.
+- Release `build-20261118-74b8bd0` published. From the previous "Latest" the updater fetches 17 files, 17.9 MB; from
+  `build-20261118-0141a39` 12 files, 3.5 MB. Neither big pack changed.
+- VPS updated from the release (backup `/opt/quake/backup/20261118-135658-release-74b8bd0`).
+- Patched engine installed on this PC as `engine\zircon_beta_gcc.exe`; the released one is beside it as
+  `zircon_beta_gcc.stock.exe`. `make_lan_package.ps1` now refuses to ship anything but the released engine and
+  packages the stock copy instead, so a package built here stays correct.
+
+Left for the owner:
+1. Play on the patched engine. If fullscreen, sound and input are fine over a real session, ship it (update
+   `$StockEngineSha` in `make_lan_package.ps1`) and merge the patch into the engine fork for Linux and macOS. To go
+   back: copy `zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`.
+2. Tell everyone who cuts releases about `base_tag` (section 6).
+3. The macOS job of the release run was still in progress at the time of writing; the DMG is added by it.
+4. Housekeeping in section 5, and the draft `build-20261118-74b8bd0-draft` (the verification run) can be deleted.
 
 ## 9. Limits
 
