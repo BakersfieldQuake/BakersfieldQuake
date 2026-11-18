@@ -299,7 +299,8 @@ jobs:
           echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "Release tag: $tag"
           # Shown in game, bottom right (quake.rc: showdate + exec version.cfg), so a player can see an update landed.
-          printf '// Written by build-zip.yml: the release this game data comes from.\nset showdate_format "BAKOQUAKE %s"\n' "$tag" \
+          # Kept short (date-sha): it is right-aligned and a longer string runs over the status bar.
+          printf '// Written by build-zip.yml: the release this game data comes from.\nset showdate_format "%s"\n' "${tag#build-}" \
               > out/BAKOQUAKE/BakersfieldQuake/version.cfg
           cat out/BAKOQUAKE/BakersfieldQuake/version.cfg
 
