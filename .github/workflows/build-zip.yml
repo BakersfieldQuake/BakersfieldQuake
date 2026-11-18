@@ -200,7 +200,8 @@ jobs:
           # quake.rc's key/setting migrations: every exec'd bm_up_N.cfg must ship.
           rc = os.path.join(root, "BakersfieldQuake", "quake.rc")
           if os.path.isfile(rc):
-              for n in sorted(set(re.findall(r"exec\s+(bm_up_\w+\.cfg)", open(rc, encoding="latin-1").read()))):
+              code = re.sub(r"//[^\n]*", "", open(rc, encoding="latin-1").read())   # the how-to comment names the next bm_up file
+              for n in sorted(set(re.findall(r"exec\s+(bm_up_\w+\.cfg)", code))):
                   if not os.path.isfile(os.path.join(root, "BakersfieldQuake", n)):
                       errors.append(f"quake.rc execs {n} but it is not in the package")
 
