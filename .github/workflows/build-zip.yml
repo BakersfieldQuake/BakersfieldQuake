@@ -66,6 +66,15 @@ jobs:
           unzip -q BAKOQUAKE.zip -d out
           rm BAKOQUAKE.zip
           test -f out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
+          test -f out/BAKOQUAKE/quake15/q15.pk3
+          base_bakersfield=$(sha256sum out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | awk '{print $1}')
+          base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
+          echo "Base bakersfield.pk3 SHA-256: $base_bakersfield"
+          echo "Base q15.pk3 SHA-256:         $base_q15"
+          {
+            echo "BASE_BAKERSFIELD_SHA256=$base_bakersfield"
+            echo "BASE_Q15_SHA256=$base_q15"
+          } >> "$GITHUB_ENV"
 
       - name: Download engine binaries from public release
         run: |
@@ -122,6 +131,25 @@ jobs:
           zip -q -r -n .pk3:.pak:.png:.jpg:.ogg ../BAKOQUAKE.zip BAKOQUAKE
           cd ..
           ls -l BAKOQUAKE.zip
+
+      - name: Verify base pk3 SHA-256
+        # Hash directly from the shipped BAKOQUAKE.zip so we prove the packaged base pk3s are byte-identical.
+        run: |
+          set -euo pipefail
+          new_bakersfield=$(unzip -p BAKOQUAKE.zip BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | sha256sum | awk '{print $1}')
+          new_q15=$(unzip -p BAKOQUAKE.zip BAKOQUAKE/quake15/q15.pk3 | sha256sum | awk '{print $1}')
+          echo "bakersfield.pk3: base=${BASE_BAKERSFIELD_SHA256} new=${new_bakersfield}"
+          echo "q15.pk3:         base=${BASE_Q15_SHA256} new=${new_q15}"
+          if [ "$new_bakersfield" != "$BASE_BAKERSFIELD_SHA256" ] || [ "$new_q15" != "$BASE_Q15_SHA256" ]; then
+            msg="This release changes a base pk3 and forces every player to re-download ~450 MB."
+            echo "::warning::$msg"
+            {
+              echo "$msg"
+              echo ""
+              printf -- '- `%s`: `%s` -> `%s`\n' 'bakersfield.pk3' "$BASE_BAKERSFIELD_SHA256" "$new_bakersfield"
+              printf -- '- `%s`: `%s` -> `%s`\n' 'q15.pk3' "$BASE_Q15_SHA256" "$new_q15"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Zip the Linux and macOS packages
         # Derive each from the master zip (no second 1 GB tree on disk, no recompressing assets):
