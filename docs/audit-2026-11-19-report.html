@@ -148,7 +148,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     <span>Test PC <b>Ryzen 7 7700X &middot; RTX 4070 Ti &middot; NVMe</b></span>
   </div>
   <nav class="toc" aria-label="Sections">
-    <a href="#summary">Summary</a><a href="#load">Load time</a><a href="#fps">Frame rate</a><a href="#memory">Memory</a><a href="#server">Server</a><a href="#crashes">Crashes</a><a href="#bugs">Bug list</a><a href="#bloat">Bloat</a><a href="#releases">Releases &amp; sync</a><a href="#open">Still open</a><a href="#method">Method</a>
+    <a href="#summary">Summary</a><a href="#load">Load time</a><a href="#fps">Frame rate</a><a href="#memory">Memory</a><a href="#server">Server</a><a href="#crashes">Crashes</a><a href="#changes">What changed</a><a href="#bugs">Bug list</a><a href="#bloat">Bloat</a><a href="#releases">Releases &amp; sync</a><a href="#open">Still open</a><a href="#method">Method</a>
   </nav>
 </header>
 
@@ -312,6 +312,69 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       </tbody>
     </table>
   </div>
+</section>
+
+<section id="changes">
+  <div class="sec-head">
+    <span class="eyebrow">Everything changed</span>
+    <h2>No assets were edited: game code, config, launchers, engine and server</h2>
+  </div>
+  <p>The two base packs (<code>bakersfield.pk3</code>, <code>q15.pk3</code>) are untouched, and no model, texture, sound or map was edited, repacked or added by this audit. The only asset-type change in the releases is <code>zz_gunnomip.pk3</code> (56&nbsp;KB, shaders only), built by a side session and included in the third release. Commit ids are on GitHub main.</p>
+
+  <h3 style="margin-top:22px">Game code (<code>.qc</code>, rebuilt into progs.dat and csprogs.dat)</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Commit</th><th>Change</th><th>Effect</th><th>Visible to players?</th></tr></thead>
+    <tbody>
+      <tr><td><code>9c44e63</code></td><td>Tank, LAN props, Eric cannon, random NPCs and sky pads are no longer precached on every map; they load only where a map places them.</td><td>About 70 fewer models and 170&nbsp;MB less texture memory per map</td><td>No</td></tr>
+      <tr><td><code>82206da</code></td><td>Vehicle bodies, wrecks and parts are precached per kind, not all 8 kinds on every map.</td><td>About 60 fewer models on soi6; part of the 230&ndash;370&nbsp;MB saving</td><td>No</td></tr>
+      <tr><td><code>74b8bd0</code></td><td>FrikBot <code>wisible</code> trace capped at 8 hops.</td><td>Fixes the &ldquo;server runaway loop&rdquo; crash with bots</td><td>No</td></tr>
+      <tr><td><code>6ae1d41</code></td><td>Gib budget on Soi 6: only the first 4 gib showers in any 10 s are full; the rest get 3 gibs and a splat.</td><td>Stops thousands of gib entities piling up in long fights</td><td><span class="pill p-mitig">Yes: fewer gibs in big fights</span></td></tr>
+      <tr><td><code>63769f8</code></td><td>NPC cards face the player&rsquo;s position (3&deg; steps) instead of his view angle.</td><td>Without it every NPC in range was re-sent on every mouse move</td><td><span class="pill p-mitig">Slightly: cards turn in steps</span></td></tr>
+      <tr><td><code>6144dd0</code></td><td>Client picks the cheap visibility-ray setting on 8 maps: terminal21, morrorock, soi6, soicowboy_bkk, lolmap1, little_st_james, ooika_lawrenceville, slo_bike_kitchen.</td><td>terminal21 46 &rarr; 370&nbsp;fps; <code>bm_tracecull_auto 0</code> turns it off</td><td>No</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:22px">Config files</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>File</th><th>Change</th><th>Effect</th><th>Visible to players?</th></tr></thead>
+    <tbody>
+      <tr><td><code>quake.rc</code>, <code>default.cfg</code>, <code>server.cfg</code> (<code>26362ea</code>)</td><td><code>gyroset 0</code>: Combat+ gib physics off. Shadow atlas 4096 instead of 8192.</td><td>Server script work &minus;57%; shadow atlas 64&nbsp;MB instead of 256&nbsp;MB</td><td><span class="pill p-mitig">Yes: gibs stop floating and tumbling (<code>gyroset 2</code> restores)</span></td></tr>
+      <tr><td><code>lowmem.cfg</code>, <code>lowmem_off.cfg</code> (new)</td><td>Model textures at half size, 2048 shadow atlas</td><td>About 2.5&nbsp;GB instead of 3.8&nbsp;GB; used under 10&nbsp;GB RAM</td><td>Softer model textures in that mode only</td></tr>
+      <tr><td><code>lowgpu.cfg</code>, <code>lowgpu_off.cfg</code> (new)</td><td>Simple Mode values for weak graphics</td><td>Applied once, when video memory is under 3&nbsp;GB</td><td>Lower graphics settings on those PCs only</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:22px">Launchers and tools</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Item</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>Play.cmd</code>, <code>Start Server.cmd</code>, <code>Play.sh</code>, <code>Start-Server.sh</code>, <code>source/mac/launcher.sh</code></td><td>Pick low-memory mode under 10&nbsp;GB RAM; read video memory and start Simple Mode once under 3&nbsp;GB; write a game log per session and keep the previous one</td></tr>
+      <tr><td><code>Report a Problem.cmd</code>, <code>tools/bq-report.ps1</code> (new)</td><td>Writes BAKOQUAKE-report.txt to the Desktop: PC, graphics, settings, logs, Windows crash events. Sends nothing anywhere.</td></tr>
+      <tr><td><code>source/mm_tools/perf/</code> (new)</td><td>Profiler, load timer, recorded-match benchmark, fence checker. Developer tools only; not shipped to players.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:22px">Engine</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Change</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Light-point cache patch (<code>source/darkplaces-lightpoint-cache.patch</code>)</td><td>A third of each frame on bakersfielddowntown was model lighting</td></tr>
+      <tr><td>XInput poll patch (<code>darkplaces-xinput-poll.patch</code>)</td><td>Empty controller slots cost 25&nbsp;&micro;s each per frame</td></tr>
+      <tr><td>AMD hybrid-GPU export (<code>darkplaces-amd-hybrid-gpu.patch</code>)</td><td>Asks Windows for the faster GPU on hybrid laptops</td></tr>
+      <tr><td>Directory cache and two memory-leak fixes (from the engine side session)</td><td>Load time and the +70&nbsp;MB per map change</td></tr>
+      <tr><td>Installed engine on this PC</td><td>engine/zircon_beta_gcc.exe is perf3; the old engine is kept as zircon_beta_gcc.stock.exe. Released for Windows in <code>build-20261118-0ebe292</code>; Linux and macOS wait for engine PR #1.</td></tr>
+      <tr><td><code>make_lan_package.ps1</code>, <code>lan/VERSION.txt</code></td><td>Ship perf3; version 1.14</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:22px">Server (VPS)</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Change</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Health-check script now probes from 127.0.0.2 with 3 tries (old script kept as a .bak file)</td><td>41 restarts &rarr; 0</td></tr>
+      <tr><td>Game files updated from the release while the server was empty, with a backup and a re-hash</td><td>VPS matches the release on all 109 game files</td></tr>
+    </tbody>
+  </table></div>
 </section>
 
 <section id="bugs">
