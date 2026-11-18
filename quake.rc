@@ -19,6 +19,7 @@ cl_decals_fadetime "4"
 cl_decals_models "0"
 cl_stainmaps "0"
 showfps "1"
+showdate "1"				// bottom right: the release this game data comes from (version.cfg below). showdate 0 hides it
 effects_classic_explosion "1"
 r_lerplightstyles "1"
 cl_beams_instantaimhack "1"
@@ -44,6 +45,10 @@ exec autoexec.cfg
 //  inverted mouse, loud music, its own keys)
 seta bm_defver 0
 exec config.cfg
+
+// the release tag, shown by showdate (its format is plain text with no % codes). Written by build-zip.yml; AFTER
+// config.cfg because showdate_format is saved there and an old value would win.
+exec version.cfg
 
 // per-client demo recording is server-config only (VPS): a 1 saved by an old Host session must not stick
 sv_autodemo_perclient 0
