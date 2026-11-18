@@ -1,0 +1,70 @@
+diff --git a/gl_backend.c b/gl_backend.c
+index 9710c04..d4a4695 100644
+--- a/gl_backend.c
++++ b/gl_backend.c
+@@ -1915,7 +1915,19 @@ void R_Mesh_UpdateMeshBuffer(r_meshbuffer_t *buffer, const void *data, size_t si
+ #endif
+ 			CHECKGLERROR
+ 			if (subdata)
+-				qglBufferSubData(buffertype, offset, size, data);
++			{
++				// R_BufferData_Store only appends to ranges no pending draw reads,
++				// so skip the implicit sync; glBufferSubData on a buffer referenced
++				// earlier in the frame forces a GPU flush per call on macOS (GL-on-Metal).
++				void *p = qglMapBufferRange(buffertype, offset, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
++				if (p)
++				{
++					memcpy(p, data, size);
++					qglUnmapBuffer(buffertype);
++				}
++				else
++					qglBufferSubData(buffertype, offset, size, data);
++			}
+ 			else
+ 				qglBufferData(buffertype, size, data, buffer->isdynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+ 			CHECKGLERROR
+diff --git a/glquake.h b/glquake.h
+index 8d603ad..3531535 100644
+--- a/glquake.h
++++ b/glquake.h
+@@ -596,6 +596,12 @@ extern GLboolean(GLAPIENTRY *qglIsFramebuffer)(GLuint framebuffer);
+ extern GLboolean(GLAPIENTRY *qglIsQuery)(GLuint qid);
+ extern GLboolean(GLAPIENTRY *qglIsRenderbuffer)(GLuint renderbuffer);
+ extern GLboolean(GLAPIENTRY *qglUnmapBuffer) (GLenum target);
++extern void *(GLAPIENTRY *qglMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
++#ifndef GL_MAP_WRITE_BIT
++#define GL_MAP_WRITE_BIT 0x0002
++#define GL_MAP_INVALIDATE_RANGE_BIT 0x0004
++#define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
++#endif
+ extern GLenum(GLAPIENTRY *qglCheckFramebufferStatus)(GLenum target);
+ extern GLenum(GLAPIENTRY *qglGetError)(void);
+ extern GLint(GLAPIENTRY *qglGetAttribLocation)(GLuint programObj, const GLchar *name);
+@@ -960,6 +966,7 @@ extern void (GLAPIENTRY *qglViewport)(GLint x, GLint y, GLsizei width, GLsizei h
+ #define qglUniformMatrix3fv glUniformMatrix3fv
+ #define qglUniformMatrix4fv glUniformMatrix4fv
+ #define qglUnmapBuffer glUnmapBuffer
++#define qglMapBufferRange glMapBufferRange
+ #define qglUseProgram glUseProgram
+ #define qglValidateProgram glValidateProgram
+ #define qglVertexAttrib1d glVertexAttrib1d
+diff --git a/vid_shared.c b/vid_shared.c
+index 29baba2..540f406 100644
+--- a/vid_shared.c
++++ b/vid_shared.c
+@@ -200,6 +200,7 @@ GLboolean (GLAPIENTRY *qglIsFramebuffer)(GLuint framebuffer);
+ GLboolean (GLAPIENTRY *qglIsQuery)(GLuint qid);
+ GLboolean (GLAPIENTRY *qglIsRenderbuffer)(GLuint renderbuffer);
+ GLboolean (GLAPIENTRY *qglUnmapBuffer) (GLenum target);
++void *(GLAPIENTRY *qglMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+ GLenum (GLAPIENTRY *qglCheckFramebufferStatus)(GLenum target);
+ GLenum (GLAPIENTRY *qglGetError)(void);
+ GLint (GLAPIENTRY *qglGetAttribLocation)(GLuint programObj, const GLchar *name);
+@@ -580,6 +581,7 @@ static glfunction_t openglfuncs[] =
+ 	{"core", "glUniformMatrix3fv", (void **) &qglUniformMatrix3fv},
+ 	{"core", "glUniformMatrix4fv", (void **) &qglUniformMatrix4fv},
+ 	{"core", "glUnmapBuffer", (void **) &qglUnmapBuffer},
++	{"core", "glMapBufferRange", (void **) &qglMapBufferRange},
+ 	{"core", "glUseProgram", (void **) &qglUseProgram},
+ 	{"core", "glValidateProgram", (void **) &qglValidateProgram},
+ 	{"core", "glVertexAttrib1d", (void **) &qglVertexAttrib1d},
