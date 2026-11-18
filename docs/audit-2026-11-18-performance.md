@@ -19,9 +19,9 @@ below is a best case.
 | Server script time on soi6 with 15 bots | Combat+ gib physics ran on every gib every frame | switched off: 57% less script work |
 | Every map loaded the tank, LAN props, Eric cannon, random NPCs, sky pads and all eight vehicle kinds | unconditional precache | they now load only where a map places them: 230 to 370 MB less video memory per map |
 | Server, release and source out of step | VPS had this PC's builds of two packs; the two newest releases carried older `progs.dat` and `csprogs.dat` and lacked four packs | one release built from the current source; VPS identical to it |
-| terminal21 at 46 fps with dips to 10 on a fast PC (same recorded match every time) | the engine's visibility rays test wall faces one by one, thousands per BSP node on these maps | the client code now picks the classic cheap test on the eight maps where it is exact: 311 fps, dips to 121. In the source, not released (section 10) |
-| A third of each frame on bakersfielddowntown spent on model lighting, a tenth on empty controller slots | engine: a BSP walk per model per frame; `XInputGetState` per slot per frame | engine candidate with five changes built and validated: 378 to 752 fps on that demo. Not installed, not released |
-| Weak graphics start with full settings | launchers looked at RAM only | launchers now also read video memory: low-memory textures, and Simple Mode once, under 3 GB. In the source, not released |
+| terminal21 at 46 fps with dips to 10 on a fast PC (same recorded match every time) | the engine's visibility rays test wall faces one by one, thousands per BSP node on these maps | the client code now picks the classic cheap test on the eight maps where it is exact: 311 fps, dips to 121. Released in `build-20261118-52bbdb8` (section 10) |
+| A third of each frame on bakersfielddowntown spent on model lighting, a tenth on empty controller slots | engine: a BSP walk per model per frame; `XInputGetState` per slot per frame | engine candidate with five changes built and validated: 378 to 752 fps on that demo. Installed on this PC for the owner to play on; not released |
+| Weak graphics start with full settings | launchers looked at RAM only | launchers now also read video memory: low-memory textures, and Simple Mode once, under 3 GB. Released in `build-20261118-52bbdb8` |
 
 **Shipped.** With the owner's go-ahead the work was pushed, released as `build-20261118-74b8bd0` ("Latest") and
 deployed to the VPS, which matches that release on all 106 game files. An existing player's updater downloads 17
@@ -335,13 +335,31 @@ Done on 2026-11-18 with the owner's go-ahead:
   `zircon_beta_gcc.stock.exe`. `make_lan_package.ps1` now refuses to ship anything but the released engine and
   packages the stock copy instead, so a package built here stays correct.
 
+Second release, 2026-11-19, with the owner's go-ahead ("settings and map fix"; the engine stays as released):
+- GitHub `main` at `52bbdb8`. Base package v1.13 (`dist\BAKOQUAKE_v1.13.zip`, draft `base-v1.13`): against v1.12 only
+  `csprogs.dat` differs.
+- Release `build-20261118-52bbdb8` (build 29) is "Latest". From the previous release the updater fetches 9 files,
+  0.52 MB: `csprogs.dat`, `lowgpu.cfg`, `lowgpu_off.cfg`, `lowmem.cfg`, `lowmem_off.cfg`, `version.cfg`, `Play.cmd`,
+  `Start Server.cmd`, `VERSION.txt`. Game code, engine and both big packs are unchanged.
+- Checked before publishing: the base zip file by file against the previous manifest, a draft build's manifest, and
+  that exact file set in game (terminal21, soi6, bakersfielddowntown with the released engine; a start with
+  `lowmem.cfg` and `lowgpu.cfg`: 1.4 GB commit, 494 MB of textures on spruce).
+- VPS: the six changed game files taken from the published zip, checked against the manifest, installed while the
+  server was empty (backup `/opt/quake/backup/20261118-221412-release-52bbdb8`), service restarted. All 108 game
+  files match the release. A client with the released engine joined and entered the game on spruce.
+- This PC: the same `csprogs.dat`, and the engine candidate `zircon_beta_perf3.exe` as the installed engine.
+
 Left for the owner:
-1. Play on the patched engine. If fullscreen, sound and input are fine over a real session, ship it (update
-   `$StockEngineSha` in `make_lan_package.ps1`) and merge the patch into the engine fork for Linux and macOS. To go
-   back: copy `zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`.
-2. Tell everyone who cuts releases about `base_tag` (section 6).
-3. The macOS job of the release run was still in progress at the time of writing; the DMG is added by it.
-4. Housekeeping in section 5, and the draft `build-20261118-74b8bd0-draft` (the verification run) can be deleted.
+1. Play on the engine candidate that is now installed here (`docs/engine-perf-patches-2026-11-18.md`). If fullscreen,
+   sound and input are fine over a real session, ship it (put its sha256 into `$StockEngineSha` in
+   `make_lan_package.ps1`, build a base, release) and send the five patches to the engine fork for Linux and macOS.
+   To go back: copy `zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`.
+2. Tell everyone who cuts releases about `base_tag` (section 6): leave it empty or use `base-v1.13`.
+3. The macOS job of the second release run was still in progress at the time of writing; the DMG is added by it
+   (the first release's finished and has its DMG).
+4. Housekeeping in section 5. The drafts `build-20261118-74b8bd0-draft` and `build-20261118-52bbdb8-draft` (the
+   verification runs) can be deleted; keep `base-v1.13`.
+5. A new map: run `source/mm_tools/perf/fence_solid.py` on it and add it to `BM_TraceCullSetup` only if it reports 0.
 
 ## 9. Limits
 
@@ -358,8 +376,8 @@ Left for the owner:
 ## 10. Frame rate on the big maps (added 2026-11-19)
 
 The owner's direction after the release: optimization first, leave the crash diagnosis. The PC that struggles has
-16 GB of RAM and integrated graphics. This section is what came of that. **None of it is released yet** (section 8
-lists what is).
+16 GB of RAM and integrated graphics. This section is what came of that. The per-map setting and the weak-graphics
+launchers are released (section 8); the engine candidate is installed on this PC only.
 
 ### How it was measured
 
@@ -420,9 +438,10 @@ both, the file-lookup cache from section 2 and a hint for AMD dual-graphics lapt
 The cache was checked against the uncached walk on a million lookups per map: no difference. The final candidate,
 `zircon_beta_perf3.exe`, also carries the two map-change leak fixes from `docs/engine-memory-leaks-2026-11-18.md`. It
 passed the file-lookup regression suite, the download test, the cache self test on four maps, four maps in one
-session, a ten-minute match with 15 bots and a fullscreen start. Nobody has played on it yet. It is not installed:
-`engine\zircon_beta_gcc.exe` on this PC is currently the leak-fix test build of another session (sha256
-`46ddb110...`), and the released engine is beside it as `zircon_beta_gcc.stock.exe`.
+session, a ten-minute match with 15 bots and a fullscreen start. Nobody has played on it yet. With the owner's
+go-ahead it is now `engine\zircon_beta_gcc.exe` on this PC (sha256 `9be0edb3...`); the released engine is beside it as
+`zircon_beta_gcc.stock.exe`, the previous test build as `zircon_beta_gcc.leakfix_46ddb110.exe`. Packages built here
+still carry the released engine.
 
 ### Finding 3: weak graphics
 
