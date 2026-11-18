@@ -1,0 +1,102 @@
+{
+  "id": "kart5",
+  "name": "Mega Man Twin-Dish Interceptor",
+  "tagline": "Mega-Blue Sidepods, Giant Rear Dish Tires & Elevated T-Collar Silver Bar",
+  "palette": [
+    "#1052d4",
+    "#00dcff",
+    "#eef2f6",
+    "#22262d"
+  ],
+  "description": "Sleek low-slung Mega-Man-Blue and mirror-chrome interceptor go-kart built on authentic Mega Man contraption hardware: giant 13.5u rear 5-ribbed pneumatic tires and nimble 8.8u front wheels on off-white stamped steel dish rims with zinc hex nuts, yellow cotter pins, and brass Schrader valves; underslung stainless cross-axles; cobalt-blue and cyan-trim side fairing pods with crisp white racing stripes; a prominent +3 deg mirror-chrome bullet-nosed silver torpedo bar clamped in an elevated stainless TIG T-collar gimbal ahead of the nose cowl; quilted blue/white bucket seat; stainless butterfly steering yoke; and twin angled Mega-Buster exhaust cannons.",
+  "highlights": [
+    [
+      "Twin-Dish Stance",
+      "Giant R=13.5u rear & R=8.8u front Mega Man 5-ribbed dish wheels w/ hex/cotter/valve"
+    ],
+    [
+      "Elevated Gimbal Bar",
+      "Mirror-chrome torpedo bar (X=+10..+56, +3 deg) in elevated TIG T-collar on twin struts"
+    ],
+    [
+      "Mega-Buster Twin",
+      "Angled chrome Mega-Buster exhaust cannons w/ cyan/white-hot shock-diamond plumes"
+    ]
+  ],
+  "seat_pos": {
+    "x": -9.0,
+    "y": 0.0,
+    "z": 9.0
+  },
+  "steer_pos": {
+    "x": 13.0,
+    "y": 0.0,
+    "z": 24.0
+  },
+  "exhaust_tips": [
+    {
+      "x": -45.644,
+      "y": 9.256,
+      "z": 17.356,
+      "dx": -0.9907,
+      "dy": 0.0867,
+      "dz": 0.1045
+    },
+    {
+      "x": -45.644,
+      "y": -9.256,
+      "z": 17.356,
+      "dx": -0.9907,
+      "dy": -0.0867,
+      "dz": 0.1045
+    }
+  ],
+  "textures": {
+    "progs/gk5_chrome": "progs/gk5_chrome.png",
+    "progs/gk5_wheel": "progs/gk5_wheel.png",
+    "progs/gk5_body": "progs/gk5_body.png",
+    "progs/gk5_seat": "progs/gk5_seat.png",
+    "progs/gk5_steer": "progs/gk5_steer.png",
+    "progs/gk5_exhaust": "progs/gk5_exhaust.png",
+    "progs/gk5_flame": "progs/gk5_flame.png"
+  },
+  "materials": {
+    "progs/gk5_chrome": {
+      "metallic": 0.92,
+      "roughness": 0.14,
+      "spec": 1.5
+    },
+    "progs/gk5_wheel": {
+      "metallic": 0.25,
+      "roughness": 0.48,
+      "spec": 0.55
+    },
+    "progs/gk5_body": {
+      "metallic": 0.62,
+      "roughness": 0.22,
+      "spec": 1.05
+    },
+    "progs/gk5_seat": {
+      "metallic": 0.1,
+      "roughness": 0.6,
+      "spec": 0.35
+    },
+    "progs/gk5_steer": {
+      "metallic": 0.58,
+      "roughness": 0.24,
+      "spec": 0.95
+    },
+    "progs/gk5_exhaust": {
+      "metallic": 0.88,
+      "roughness": 0.18,
+      "spec": 1.4
+    },
+    "progs/gk5_flame": {
+      "metallic": 0.0,
+      "roughness": 1.0,
+      "spec": 0.0,
+      "unlit": true,
+      "additive": true
+    }
+  }
+}

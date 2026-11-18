@@ -1,0 +1,110 @@
+{
+  "id": "kart6",
+  "name": "Mega Man Heavy Fat-Tire Rammer",
+  "tagline": "Heavy-Caliber Mirror-Chrome Torpedo Bar & Fat 5-Ribbed Mega Man Tires",
+  "palette": [
+    "#e2e8f0",
+    "#334155",
+    "#eab308",
+    "#1c1917"
+  ],
+  "description": "Unmistakable heavy-caliber Mega Man industrial contraption kart built on 4 extra-wide 5-ribbed pneumatic tires (R=11u/12.5u, hw=6.2u) with deep-dish off-white stamped steel rims, zinc hex nuts, yellow cotter pins and brass Schrader valves. Features double-decker stainless tubular cage rails, brushed stainless floorpan, an industrial charcoal/off-white bucket seat, rear chrome/brass Mega-Engine with swept-up megaphones, and a colossal front mirror-chrome bullet-nosed torpedo bar clamped in a TIG-welded stainless T-collar.",
+  "highlights": [
+    [
+      "Rammer Bar",
+      "Colossal R=3.55u mirror-chrome bullet-nosed torpedo bar (X=+7..+58) in TIG T-collar & diagonal struts"
+    ],
+    [
+      "Fat Tires",
+      "4 extra-wide (hw=6.2u) 5-ribbed Mega Man tires on off-white stamped steel rims w/ cotter pins & valves"
+    ],
+    [
+      "Chassis",
+      "Double-decker brushed stainless tubular cage (|Y|>=14.2), diamond floorpan & rear axle gussets"
+    ],
+    [
+      "Powertrain",
+      "Exposed chrome/brass finned Mega-Engine block, velocity stack & dual swept-up chrome megaphones"
+    ],
+    [
+      "Player Fit",
+      "Open overhead cockpit (22u wide torso box 100% clear), seat (-9, 0, 10), wheel (+13, 0, 24.5)"
+    ]
+  ],
+  "seat_pos": {
+    "x": -9.0,
+    "y": 0.0,
+    "z": 10.0
+  },
+  "steer_pos": {
+    "x": 13.0,
+    "y": 0.0,
+    "z": 24.5
+  },
+  "exhaust_tips": [
+    {
+      "x": -45.8,
+      "y": 10.5,
+      "z": 21.8,
+      "dx": -0.946,
+      "dy": 0.074,
+      "dz": 0.315
+    },
+    {
+      "x": -45.8,
+      "y": -10.5,
+      "z": 21.8,
+      "dx": -0.946,
+      "dy": -0.074,
+      "dz": 0.315
+    }
+  ],
+  "textures": {
+    "progs/gk6_chrome": "progs/gk6_chrome.png",
+    "progs/gk6_wheel": "progs/gk6_wheel.png",
+    "progs/gk6_frame": "progs/gk6_frame.png",
+    "progs/gk6_seat": "progs/gk6_seat.png",
+    "progs/gk6_steer": "progs/gk6_steer.png",
+    "progs/gk6_engine": "progs/gk6_engine.png",
+    "progs/gk6_flame": "progs/gk6_flame.png"
+  },
+  "materials": {
+    "progs/gk6_frame": {
+      "metallic": 0.76,
+      "roughness": 0.28,
+      "spec": 0.84
+    },
+    "progs/gk6_chrome": {
+      "metallic": 0.94,
+      "roughness": 0.14,
+      "spec": 0.96
+    },
+    "progs/gk6_seat": {
+      "metallic": 0.06,
+      "roughness": 0.78,
+      "spec": 0.2
+    },
+    "progs/gk6_steer": {
+      "metallic": 0.38,
+      "roughness": 0.44,
+      "spec": 0.48
+    },
+    "progs/gk6_engine": {
+      "metallic": 0.82,
+      "roughness": 0.24,
+      "spec": 0.88
+    },
+    "progs/gk6_wheel": {
+      "metallic": 0.28,
+      "roughness": 0.62,
+      "spec": 0.42
+    },
+    "progs/gk6_flame": {
+      "metallic": 0.0,
+      "roughness": 1.0,
+      "spec": 0.0,
+      "unlit": true,
+      "additive": true
+    }
+  }
+}

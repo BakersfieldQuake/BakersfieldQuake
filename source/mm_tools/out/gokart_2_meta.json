@@ -1,0 +1,102 @@
+{
+  "id": "kart2",
+  "name": "Cyber-Nitro Aero GT",
+  "tagline": "Formula-E Monocoque, Cyan Slats & Twin Turbo-Jet Afterburners",
+  "palette": [
+    "#0d121c",
+    "#00e5ff",
+    "#ff9e00",
+    "#1e293b"
+  ],
+  "description": "Sleek futuristic Formula-E cyber racer featuring a sculpted midnight-carbon wedge-nose monocoque with Quake 'Q' nose decal, low-drag F1 front splitter wing, glowing cyan radiator intake slats, carbon-kevlar racing seat, butterfly telemetry yoke, 5-spoke turbine alloy slicks, split carbon rear wing, and twin angled titanium turbo-jet thrusters.",
+  "highlights": [
+    [
+      "Aero Body",
+      "Midnight-carbon wedge monocoque, F1 splitter, cyan intake slats & split rear wing"
+    ],
+    [
+      "Thrusters",
+      "Twin angled titanium iris-nozzle turbo jets w/ shock-diamond cyan plasma plumes"
+    ],
+    [
+      "Player Fit",
+      "26u open cockpit, seat (-9, 0, 9), yoke (13, 0, 24), clear footwell & open overhead"
+    ]
+  ],
+  "seat_pos": {
+    "x": -9.0,
+    "y": 0.0,
+    "z": 9.0
+  },
+  "steer_pos": {
+    "x": 13.0,
+    "y": 0.0,
+    "z": 24.0
+  },
+  "exhaust_tips": [
+    {
+      "x": -45.5,
+      "y": 9.2,
+      "z": 13.8,
+      "dx": -0.994,
+      "dy": 0.087,
+      "dz": 0.07
+    },
+    {
+      "x": -45.5,
+      "y": -9.2,
+      "z": 13.8,
+      "dx": -0.994,
+      "dy": -0.087,
+      "dz": 0.07
+    }
+  ],
+  "textures": {
+    "progs/gk2_body": "progs/gk2_body.png",
+    "progs/gk2_aero": "progs/gk2_aero.png",
+    "progs/gk2_seat": "progs/gk2_seat.png",
+    "progs/gk2_steer": "progs/gk2_steer.png",
+    "progs/gk2_thruster": "progs/gk2_thruster.png",
+    "progs/gk2_wheel": "progs/gk2_wheel.png",
+    "progs/gk2_flame": "progs/gk2_flame.png"
+  },
+  "materials": {
+    "progs/gk2_body": {
+      "metallic": 0.55,
+      "roughness": 0.24,
+      "spec": 0.95
+    },
+    "progs/gk2_aero": {
+      "metallic": 0.45,
+      "roughness": 0.28,
+      "spec": 0.85
+    },
+    "progs/gk2_seat": {
+      "metallic": 0.12,
+      "roughness": 0.58,
+      "spec": 0.35
+    },
+    "progs/gk2_steer": {
+      "metallic": 0.42,
+      "roughness": 0.32,
+      "spec": 0.75
+    },
+    "progs/gk2_thruster": {
+      "metallic": 0.88,
+      "roughness": 0.18,
+      "spec": 1.35
+    },
+    "progs/gk2_wheel": {
+      "metallic": 0.35,
+      "roughness": 0.42,
+      "spec": 0.65
+    },
+    "progs/gk2_flame": {
+      "metallic": 0.0,
+      "roughness": 1.0,
+      "spec": 0.0,
+      "unlit": true,
+      "additive": true
+    }
+  }
+}

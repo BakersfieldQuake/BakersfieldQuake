@@ -21391,6 +21391,22 @@ velocityoffset 0 0 45
 velocityjitter 65 65 40
 gravity 0.9
 airfriction 0.6
+// ---- Go-Kart thick white/grey peel-out & high-speed skid tire smoke
+effect gk_tire_smoke
+count 3
+type smoke
+tex 0 7
+color 0xc8c8c8 0xf4f4f4
+size 10 18
+sizeincrease 22
+alpha 135 195 155
+originjitter 6 6 2
+velocitymultiplier 0.18
+velocityoffset 0 0 36
+velocityjitter 28 28 18
+gravity -0.04
+airfriction 1.4
+
 // ---- Vehicle drive FX end
 
 // ---- Mega Man Tank: roaring rocket-boosted silver bar trail, mega-bar explosion, reload sparks & catastrophic tank boom

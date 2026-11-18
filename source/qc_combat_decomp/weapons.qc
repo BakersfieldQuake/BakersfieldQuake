@@ -25,6 +25,7 @@ void() W_Precache =
 	Hammer_Precache();	// the Bonk Hammer replaces the axe (hammer.qc)
 	LtGun_Precache();	// the laptop gun replaces the sniper rifle (ltgun.qc)
 	LanProps_Precache();
+	Veh_PrecacheEffects();
 	if (cvar("sv_cheats"))
 		Bikes_Precache();
 	if (cvar("sv_cheats") || cvar("reese_mode"))

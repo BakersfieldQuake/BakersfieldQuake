@@ -39,6 +39,12 @@ float	VEH_SCHOOLBUS	= 6;
 float	VEH_GTCAR		= 7;
 float	VEH_GOLFCART	= 8;
 float	VEH_TUKTUK		= 9;
+float	VEH_GOKART_1	= 10;
+float	VEH_GOKART_2	= 11;
+float	VEH_GOKART_3	= 12;
+float	VEH_GOKART_4	= 13;
+float	VEH_GOKART_5	= 14;
+float	VEH_GOKART_6	= 15;
 
 float	VEH_STATE_IDLE	= 0;
 float	VEH_STATE_FIRE	= 1;
@@ -48,7 +54,7 @@ var float	autocvar_veh_respawn	= 30;	// > 0: seconds after wreck settles before 
 var float	autocvar_veh_debug		= 0;	// 1: log the driven van's speed / heading / steering / revs 4x a second (needs developer 1)
 
 float	veh_inflicting;						// TRUE while an exploding vehicle deals T_RadiusDamage (for ClientObituary & chain stagger)
-float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, veh_fx_boost, veh_fx_drift;
+float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, veh_fx_boost, veh_fx_drift, gk_fx_smoke;
 
 .float	veh_kind;			// 1..7 on shootable vehicles, 0 on everything else
 .float	veh_state;			// VEH_STATE_IDLE, VEH_STATE_FIRE, VEH_STATE_WRECK
@@ -78,6 +84,7 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, ve
 // Walk-in interior & driving foundation
 .entity	veh_clip_head;		// linked list of child collision clip boxes for walk-in van interior
 .entity	veh_driver;			// player currently in the driver's seat
+.entity	veh_driverent;		// attached seated driver model while kart is driven (empty when parked)
 .float	veh_drive_mode;		// TRUE if driver mode is active
 
 // Driving (vehicle_drive.qc). On the van:
@@ -102,6 +109,23 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, ve
 .float	veh_fx_boost_t;		// next turbo exhaust flame/spark emission
 .float	veh_land_dip;		// temporary suspension pitch dip on landing
 .float	veh_drift_t;		// continuous handbrake drift duration (fuels drift-exit mini-turbo)
+// Go-kart Mario Kart mechanics (gokart.qc)
+.float	gk_nitro;			// 0..100 rechargeable Shift nitro meter
+.float	gk_boosting;		// TRUE while Shift (+button4) nitro boost is active
+.float	gk_boost_t;			// timed burst end time (Mini-Turbo / Landing Boost)
+.float	gk_boost_pwr;		// target top speed during timed burst
+.float	gk_hop_prev;		// previous frame button2 state (edge-detect hop)
+.float	gk_drift_dir;		// -1 left, 0 none, +1 right
+.float	gk_drift_charge;	// continuous drift charge seconds
+.float	gk_drift_tier;		// 0=none, 1=Blue, 2=Orange, 3=Purple
+.float	gk_drift_fx_t;		// particle throttle for drift sparks
+.float	gk_boost_snd_t;		// boost sound throttle
+.float	gk_pad_cool;		// jump pad / skypad trigger cooldown
+.float	gk_air_t;			// continuous airborne duration (nitro recharge + landing boost)
+.float	gk_hud_t;			// centerprint nitro/drift meter refresh timer
+.float	gk_speed;			// latest horizontal speed u/s (for idle/drive/super anim selection)
+.float	gk_smoke_t;			// rear tire peel-out / skid smoke particle throttle
+float	gokart_spawn_cycle;	// cycles 1..6 for misc_gokart / impulse 136/138
 // ... on the player:
 .entity	veh_van;			// the vehicle he is driving (world = on foot)
 .entity	veh_ride;			// the vehicle he is riding in as a drive-by passenger (world = not riding)
@@ -128,6 +152,7 @@ float(entity v, entity p) Veh_ExitSpot;
 float	veh_runover;		// TRUE while a van deals ram damage (for ClientObituary)
 
 void() Vehicles_Precache;
+void() Veh_PrecacheEffects;
 void() Vehicles_Impulse;
 string(float kind) Veh_DisplayName;
 float(float kind) Veh_HalfLen;
@@ -160,3 +185,19 @@ void() misc_vehicle_schoolbus;
 void() misc_vehicle_gtcar;
 void() misc_vehicle_golfcart;
 void() misc_vehicle_tuktuk;
+float(float kind) Veh_IsKart;
+void(entity v) GK_InitKart;
+float(entity p, entity v, float dt) GK_DriveFrame;
+void(entity p, entity v, float dt) GK_DriveCamera;
+float(entity v, entity driver) GK_CheckPads;
+void(entity v) GK_ThinkAnim;
+void() GK_SpawnAndEnter;
+void() GK_SpawnAll6;
+void() GK_SpawnNext;
+void() misc_gokart;
+void() misc_gokart_1;
+void() misc_gokart_2;
+void() misc_gokart_3;
+void() misc_gokart_4;
+void() misc_gokart_5;
+void() misc_gokart_6;

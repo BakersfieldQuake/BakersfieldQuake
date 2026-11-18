@@ -1,0 +1,100 @@
+{
+  "id": "kart1",
+  "name": "Bakersfield Tubular Classic",
+  "tagline": "Crimson chromoly rails, brushed-gold 5-bolt hubs & air-cooled Bakersfield fury",
+  "palette": [
+    "#c81e24",
+    "#1d4ed8",
+    "#d4a024",
+    "#1c1917"
+  ],
+  "description": "Classic tubular-frame racing kart forged from swept crimson-red chromoly tubing with curved double-rail side-pods, a royal-blue quilted bucket seat, crisp Quake 'Q' nose cowl, wide slick tires on brushed-gold 5-bolt dish hubs, and an exposed rear air-cooled engine feeding a copper-gold cylindrical muffler.",
+  "highlights": [
+    [
+      "Frame",
+      "Swept crimson chromoly perimeter bumper & curved double-rail side-pods"
+    ],
+    [
+      "Engine",
+      "Exposed finned air-cooled block, gold fuel cap & copper-gold muffler"
+    ],
+    [
+      "Player Fit",
+      "27u clear open cockpit, seat pan at Z=9.5, 3-spoke tilted wheel at Z=24"
+    ]
+  ],
+  "seat_pos": {
+    "x": -9.0,
+    "y": 0.0,
+    "z": 9.5
+  },
+  "steer_pos": {
+    "x": 13.0,
+    "y": 0.0,
+    "z": 24.0
+  },
+  "exhaust_tips": [
+    {
+      "x": -45.5,
+      "y": -6.0,
+      "z": 15.85,
+      "dx": -1.0,
+      "dy": 0.0,
+      "dz": 0.05
+    }
+  ],
+  "textures": {
+    "progs/gk1_frame": "progs/gk1_frame.png",
+    "progs/gk1_seat": "progs/gk1_seat.png",
+    "progs/gk1_steering": "progs/gk1_steering.png",
+    "progs/gk1_engine": "progs/gk1_engine.png",
+    "progs/gk1_exhaust": "progs/gk1_exhaust.png",
+    "progs/gk1_nose": "progs/gk1_nose.png",
+    "progs/gk1_wheel": "progs/gk1_wheel.png",
+    "progs/gk1_flame": "progs/gk1_flame.png"
+  },
+  "materials": {
+    "progs/gk1_frame": {
+      "metallic": 0.75,
+      "roughness": 0.25,
+      "spec": 0.8
+    },
+    "progs/gk1_seat": {
+      "metallic": 0.05,
+      "roughness": 0.72,
+      "spec": 0.22
+    },
+    "progs/gk1_steering": {
+      "metallic": 0.45,
+      "roughness": 0.45,
+      "spec": 0.55
+    },
+    "progs/gk1_engine": {
+      "metallic": 0.85,
+      "roughness": 0.3,
+      "spec": 0.85
+    },
+    "progs/gk1_exhaust": {
+      "metallic": 0.88,
+      "roughness": 0.22,
+      "spec": 0.9
+    },
+    "progs/gk1_nose": {
+      "metallic": 0.4,
+      "roughness": 0.22,
+      "spec": 0.75
+    },
+    "progs/gk1_wheel": {
+      "metallic": 0.35,
+      "roughness": 0.55,
+      "spec": 0.45
+    },
+    "progs/gk1_flame": {
+      "metallic": 0.0,
+      "roughness": 1.0,
+      "spec": 0.0,
+      "emissive": 1.0,
+      "additive": true
+    }
+  }
+}

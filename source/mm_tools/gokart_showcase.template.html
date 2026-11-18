@@ -1,0 +1,2033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · 3D Go-Kart Design Showcase</title>
+<style>
+:root {
+  --bg: #070b12;
+  --bg-card: rgba(14, 20, 33, 0.88);
+  --panel: rgba(12, 17, 29, 0.92);
+  --panel-solid: #0f1626;
+  --line: rgba(255, 255, 255, 0.11);
+  --line-hi: rgba(56, 189, 248, 0.55);
+  --text: #eef3fb;
+  --muted: #94a3b8;
+  --cyan: #38bdf8;
+  --amber: #fbbf24;
+  --orange: #fb923c;
+  --emerald: #34d399;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.48 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+main#page {
+  position: relative;
+  z-index: 1;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 0 20px 64px;
+}
+body.detail-open main#page { visibility: hidden; }
+body.detail-open { overflow: hidden; }
+
+header.hero {
+  padding: 20px 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+}
+.kicker {
+  margin: 0 0 3px;
+  color: var(--cyan);
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+.sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 96ch;
+}
+.hero-stats {
+  color: var(--muted);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 9px 14px;
+  line-height: 1.5;
+}
+.hero-stats b { color: var(--text); }
+
+.toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 15px;
+  margin: 0 0 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.48);
+}
+.bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group-lbl {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms, transform 80ms;
+}
+button:hover { background: rgba(255, 255, 255, 0.13); }
+button:active { transform: translateY(1px); }
+button[aria-pressed="true"], button.active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: var(--cyan);
+  color: #e0f4ff;
+}
+button.fit-btn[aria-pressed="true"] {
+  background: rgba(251, 191, 36, 0.22);
+  border-color: var(--amber);
+  color: #fef3c7;
+}
+button.boom-btn[aria-pressed="true"], button.boom-btn.active {
+  background: rgba(251, 146, 60, 0.25);
+  border-color: var(--orange);
+  color: #ffedd5;
+}
+button.super-btn[aria-pressed="true"], button.super-btn.active {
+  background: rgba(244, 63, 94, 0.24);
+  border-color: #fb7185;
+  color: #ffe4e6;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #38bdf8, #34d399);
+  color: #041b29;
+  border: none;
+  font-weight: 800;
+  padding: 8px 13px;
+}
+.btn-primary:hover { filter: brightness(1.06); background: linear-gradient(135deg, #38bdf8, #34d399); }
+
+.range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.range-wrap input[type="range"] { width: 98px; accent-color: var(--cyan); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1180px) { .grid { grid-template-columns: 1fr; } }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+  transition: border-color 160ms;
+}
+.card:hover { border-color: rgba(56, 189, 248, 0.38); }
+
+.stage {
+  position: relative;
+  height: 360px;
+  background: transparent;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-bottom: 1px solid var(--line);
+}
+.stage.drag { cursor: grabbing; }
+.stage-top {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+.pill {
+  background: rgba(9, 13, 22, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pill.vtag { color: var(--cyan); border-color: rgba(56, 189, 248, 0.48); }
+.pill.vtag.mega { color: #fde68a; border-color: rgba(251, 191, 36, 0.55); }
+.pill.fit-pill { color: #fde68a; border-color: rgba(251, 191, 36, 0.45); display: none; }
+body.fit-on .pill.fit-pill { display: inline-block; }
+
+.stage-btm {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.mini-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+.mini-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 7px;
+  background: rgba(9, 13, 22, 0.84);
+  backdrop-filter: blur(8px);
+}
+.mini-btn.active { background: rgba(56, 189, 248, 0.30); border-color: var(--cyan); }
+.mini-btn.super-btn.active { background: rgba(244, 63, 94, 0.32); border-color: #fb7185; }
+.mini-btn.boom-btn.active { background: rgba(251, 146, 60, 0.32); border-color: var(--orange); }
+
+.card-body {
+  padding: 15px 16px 16px;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card h2 { margin: 0; font-size: 18.5px; font-weight: 800; }
+.tagline { font-size: 12.5px; color: var(--cyan); font-weight: 650; margin-top: -4px; }
+.md3-tag { font-size: 11px; color: var(--muted); }
+.desc { margin: 0; color: #cbd5e1; font-size: 13px; }
+
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.palette-lbl { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+.parts-list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 12.2px;
+  display: grid;
+  gap: 3px;
+}
+.parts-list b { color: #e2e8f0; }
+
+.spec-mini {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: auto;
+}
+.spec-mini b { color: #e2e8f0; }
+
+/* Player Integration & Design Feedback Panel */
+.feedback-panel {
+  margin-top: 22px;
+  background: linear-gradient(180deg, rgba(16, 24, 40, 0.92), rgba(11, 16, 28, 0.94));
+  border: 1px solid rgba(56, 189, 248, 0.30);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+.feedback-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.feedback-head h2 { margin: 0; font-size: 19px; font-weight: 800; }
+.feedback-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr;
+  gap: 18px;
+}
+@media (max-width: 980px) { .feedback-grid { grid-template-columns: 1fr; } }
+.fb-box {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.fb-box h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fb-box ul, .fb-box ol {
+  margin: 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 13px;
+  display: grid;
+  gap: 6px;
+}
+.fb-box b { color: var(--text); }
+
+/* Fullscreen Detail Modal */
+#detail {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  grid-template-columns: 1fr 390px;
+}
+#detail.open { display: grid; }
+@media (max-width: 980px) { #detail { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } }
+#detail-stage { position: relative; cursor: grab; touch-action: none; }
+#detail-stage.drag { cursor: grabbing; }
+.detail-top-hud {
+  position: absolute;
+  top: 14px; left: 14px; right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.detail-top-hud > * { pointer-events: auto; }
+.detail-cam-hud {
+  position: absolute;
+  bottom: 14px; left: 14px; right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.detail-cam-hud > * { pointer-events: auto; }
+.detail-side {
+  background: var(--panel-solid);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-side h2 { margin: 0; font-size: 20px; }
+.spec-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.surf-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.surf-chip {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: #cbd5e1;
+}
+.surf-chip.flame {
+  border-color: rgba(251, 146, 60, 0.55);
+  color: #fed7aa;
+  background: rgba(251, 146, 60, 0.14);
+}
+.hud-bar {
+  background: rgba(9, 13, 22, 0.78);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  border-radius: 11px;
+  padding: 6px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+</style>
+</head>
+<body>
+<div id="loading">Decompressing 6 Go-Kart MD3 Models + WebGL2 Particle Studio…</div>
+<canvas id="gl"></canvas>
+
+<main id="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">BakersfieldQuake · 3D Vehicle Design Studio</p>
+      <h1>Drivable Go-Kart Prototypes — 6-Kart WebGL2 Showcase</h1>
+      <p class="sub">
+        Compare all <b>6</b> procedural 64-frame MD3 Go-Karts (<b>3 Original Designs</b> #1–#3 + <b>3 Mega Man Front-Bar Designs</b> #4–#6) — empty cockpits when parked &amp; optional seated <b>Quake Ranger</b> (<span class="mono">progs/gokart_driver.md3</span>) while driving — with Idle, Fast, Super Flames, <b>Skid / Peel-Out</b> tire smoke, and Explosion FX.
+        <b>Left-drag</b> orbit · <b>Right-drag / Shift+drag</b> pan · <b>Scroll</b> zoom · <b>Double-click</b> fullscreen studio.
+      </p>
+    </div>
+    <div class="hero-stats" id="hero-stats">Loading models…</div>
+  </header>
+
+  <section class="toolbar">
+    <div class="bar-row">
+      <div class="group" id="clip-btns">
+        <span class="group-lbl">Animation Mode:</span>
+      </div>
+      <div class="group">
+        <button id="btn-driver" class="fit-btn" aria-pressed="false">Seated Driver (Ranger)</button>
+        <button id="btn-fit" class="fit-btn" aria-pressed="false">Show Fit Guides</button>
+        <button id="btn-spin" aria-pressed="true">Auto-Turntable</button>
+        <button id="btn-wire" aria-pressed="false">Wireframe</button>
+        <button id="btn-hdr" aria-pressed="false">Torch Light</button>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="group" id="filter-btns">
+        <span class="group-lbl">Filter Group:</span>
+        <button data-filter="all" aria-pressed="true">All 6 Karts</button>
+        <button data-filter="original" aria-pressed="false">Original 3 (#1–#3)</button>
+        <button data-filter="megaman" aria-pressed="false">Mega Man 3 (#4–#6)</button>
+      </div>
+      <div class="group">
+        <button id="btn-replay-boom" class="boom-btn">↻ Trigger / Replay Explosion</button>
+        <button id="btn-boom-loop" aria-pressed="true">Loop Explosion</button>
+        <div class="range-wrap">
+          <span>Playback Speed</span>
+          <input id="rng-speed" type="range" min="0.2" max="2.5" step="0.1" value="1.0">
+          <span class="mono" id="out-speed">1.0×</span>
+        </div>
+      </div>
+    </div>
+    <div class="bar-row" style="justify-content:flex-start">
+      <span class="mono" id="boom-hint" style="font-size:11.5px;color:var(--muted)">
+        Frames: Idle (0–11) · Going Fast (12–27) · Super Flames (28–43) · Explosion (44–63)
+      </span>
+    </div>
+  </section>
+
+  <section class="grid" id="grid"></section>
+
+  <section class="feedback-panel" id="feedback-panel">
+    <div class="feedback-head">
+      <div>
+        <p class="kicker" style="margin-bottom:2px">Custom Driver Integration &amp; Design Alignment</p>
+        <h2>Player Integration &amp; Design Feedback</h2>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-fb-driver" class="fit-btn" aria-pressed="false">Toggle Seated Driver</button>
+        <button id="btn-fb-fit" class="fit-btn" aria-pressed="false">Toggle Fit Guides Overlay</button>
+      </div>
+    </div>
+    <div class="feedback-grid">
+      <div class="fb-box">
+        <h3>Empty Parked Karts + Separate Driver &amp; Skid Physics</h3>
+        <ul>
+          <li><b>Empty Cockpits When Parked:</b> <span class="mono">progs/gokart_{1..6}.md3</span> ship with <b>empty seats</b> so approaching a parked go-kart never shows a phantom driver inside.</li>
+          <li><b>Attached Quake Ranger While Driven:</b> <span class="mono">progs/gokart_driver.md3</span> (<span class="mono">218v / 294t</span>, <span class="mono">progs/gk_driver.png</span>) spawns onto <span class="mono">v.veh_driverent</span> only when a player enters (<span class="mono">Veh_Enter</span>) and is removed on exit or explosion (<span class="mono">Veh_Leave</span>).</li>
+          <li><b>High-Speed Skids, Peel-Outs &amp; Tire Smoke:</b> <span class="mono">gokart.qc</span> computes momentum-based lateral tire slip + speed-dependent rear grip so hard high-speed turns, braking turns, and launches peel out &amp; slide naturally with <span class="mono">gk_tire_smoke</span> clouds + <span class="mono">tire_squeal.wav</span>.</li>
+        </ul>
+      </div>
+      <div class="fb-box">
+        <h3>Where Everything Lives (See GOKART_HANDOFF.md)</h3>
+        <ol>
+          <li><b>Go-Kart MD3s &amp; Driver:</b> <span class="mono">progs/gokart_{1..6}.md3</span> + <span class="mono">progs/gokart_driver.md3</span> + <span class="mono">scripts/gokart.shader</span>.</li>
+          <li><b>QuakeC Driving &amp; FX:</b> <span class="mono">source/qc_combat_decomp/gokart.qc</span>, <span class="mono">vehicles.qc</span>, <span class="mono">vehicle_drive.qc</span>, <span class="mono">vehicles_defs.qc</span>, and <span class="mono">effectinfo.txt</span> (<span class="mono">gk_tire_smoke</span>).</li>
+          <li><b>Python Asset Pipeline:</b> <span class="mono">source/mm_tools/gokart_{1..6}.py</span>, <span class="mono">gokart_driver.py</span>, and <span class="mono">build_gokart_showcase.py</span>.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<section id="detail">
+  <div id="detail-stage">
+    <div class="detail-top-hud">
+      <div class="hud-bar">
+        <button id="d-close">✕ Back to Grid</button>
+        <button id="d-prev">← Prev</button>
+        <button id="d-next">Next →</button>
+      </div>
+      <div class="hud-bar">
+        <button id="d-play" aria-pressed="true">⏸ Pause</button>
+        <button id="d-replay" class="boom-btn">↻ Replay</button>
+        <button id="d-loop" aria-pressed="true">Loop</button>
+        <input id="d-scrub" type="range" min="0" max="63" step="0.1" value="0" style="width:190px;accent-color:var(--cyan)">
+        <span class="pill mono" id="d-frame-lbl">frame 0 / 63 · idle_00</span>
+      </div>
+    </div>
+    <div class="detail-cam-hud">
+      <div class="hud-bar" id="d-clips"></div>
+      <div class="hud-bar">
+        <button data-cam="front">Front 3/4</button>
+        <button data-cam="side">Side</button>
+        <button data-cam="cockpit">Cockpit</button>
+        <button data-cam="rear">Chase Rear</button>
+        <button data-cam="top">Top</button>
+        <button id="d-reset-cam" title="Reset Orbit, Pan & Zoom">↺ Reset</button>
+        <button id="d-driver" class="fit-btn" aria-pressed="false">Driver</button>
+        <button id="d-fit" class="fit-btn" aria-pressed="false">Fit Guides</button>
+        <button id="d-spin" aria-pressed="true">Turntable</button>
+        <button id="d-wire" aria-pressed="false">Wireframe</button>
+        <button id="d-hdr" aria-pressed="false">Torch</button>
+      </div>
+    </div>
+  </div>
+  <aside class="detail-side">
+    <span class="pill vtag" id="d-vtag" style="align-self:flex-start"></span>
+    <h2 id="d-title"></h2>
+    <div id="d-tagline" class="tagline"></div>
+    <div class="mono" id="d-file" style="font-size:11.5px;color:var(--muted)"></div>
+    <div class="palette-row" id="d-palette"></div>
+    <p class="desc" id="d-desc"></p>
+    <ul class="parts-list" id="d-highlights"></ul>
+    <div class="spec-box mono" id="d-stats"></div>
+    <div>
+      <div class="palette-lbl" style="margin-bottom:5px">MD3 Surfaces</div>
+      <div class="surf-list" id="d-surfs"></div>
+    </div>
+  </aside>
+</section>
+
+<script>
+const DATA = /*__GOKART_DATA__*/null;
+</script>
+<script>
+(function() {
+'use strict';
+const $ = id => document.getElementById(id);
+
+const CLIPS = [
+  { id: 'idle',    label: 'Idle (0–11)',               short: 'Idle',    fps: 12, start: 0,  count: 12, loop: true,  cls: '' },
+  { id: 'fast',    label: 'Going Fast (12–27)',        short: 'Fast',    fps: 28, start: 12, count: 16, loop: true,  cls: '' },
+  { id: 'super',   label: 'Super Speed + Flames (28–43)', short: 'Super', fps: 36, start: 28, count: 16, loop: true,  cls: 'super-btn' },
+  { id: 'skid',    label: 'Skid / Peel-Out! (12–27)',  short: 'Skid',    fps: 34, start: 12, count: 16, loop: true,  cls: 'fit-btn' },
+  { id: 'explode', label: 'Explosion! (44–63)',        short: 'Explosion!', fps: 16, start: 44, count: 20, loop: false, cls: 'boom-btn' },
+];
+const BOOM_CLIP_IDX = 4;
+
+function frameNameFor(fi) {
+  const f = Math.max(0, Math.min(63, Math.floor(fi)));
+  if (f < 12) return `idle_${String(f).padStart(2, '0')}`;
+  if (f < 28) return `fast_${String(f - 12).padStart(2, '0')}`;
+  if (f < 44) return `super_${String(f - 28).padStart(2, '0')}`;
+  return `explode_${String(f - 44).padStart(2, '0')}`;
+}
+
+async function gunzipBytes(b64) {
+  const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream !== 'undefined') {
+    const ds = new DecompressionStream('gzip');
+    const stream = new Blob([raw]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  throw new Error('DecompressionStream not supported in this browser.');
+}
+
+function mat4Persp(out, fovY, asp, zn, zf) {
+  const f = 1.0 / Math.tan(fovY * 0.5);
+  out.fill(0);
+  out[0] = f / asp; out[5] = f;
+  out[10] = (zf + zn) / (zn - zf); out[11] = -1;
+  out[14] = (2 * zf * zn) / (zn - zf);
+}
+function mat4LookAt(out, eye, tgt, up) {
+  let zx = eye[0]-tgt[0], zy = eye[1]-tgt[1], zz = eye[2]-tgt[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  let yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+}
+function mat4Mul(out, a, b) {
+  const t = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      t[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+    }
+  }
+  out.set(t);
+}
+function mat4Ident(out) {
+  out.fill(0); out[0] = out[5] = out[10] = out[15] = 1;
+}
+function mat4PitchAbout(out, px, py, pz, pitchDeg) {
+  const r = pitchDeg * Math.PI / 180;
+  const c = Math.cos(r), s = Math.sin(r);
+  // Rotate around Y at pivot (px, py, pz): positive pitchDeg tilts +X nose UP
+  out[0]=c;  out[1]=0; out[2]=s;  out[3]=0;
+  out[4]=0;  out[5]=1; out[6]=0;  out[7]=0;
+  out[8]=-s; out[9]=0; out[10]=c; out[11]=0;
+  out[12]=px - c*px + s*pz;
+  out[13]=0;
+  out[14]=pz - s*px - c*pz;
+  out[15]=1;
+}
+function mat4YawRoll(out, yawDeg, rollDeg) {
+  const yr = yawDeg * Math.PI / 180, rr = rollDeg * Math.PI / 180;
+  const cy = Math.cos(yr), sy = Math.sin(yr);
+  const cr = Math.cos(rr), sr = Math.sin(rr);
+  // M = Rz(yaw) * Rx(roll)
+  out[0]=cy;      out[1]=sy;      out[2]=0;    out[3]=0;
+  out[4]=-sy*cr;  out[5]=cy*cr;   out[6]=sr;   out[7]=0;
+  out[8]=sy*sr;   out[9]=-cy*sr;  out[10]=cr;  out[11]=0;
+  out[12]=0;      out[13]=0;      out[14]=0;   out[15]=1;
+}
+
+// Procedural articulated seated Quake player mesh generator
+function buildSeatedPlayerGeometry(seatPos, steerPos) {
+  const pos = [];
+  const nrm = [];
+  const idx = [];
+  const kind = []; // 0 = cyan suit, 1 = amber helmet visor / gloves / boots / joints
+
+  function pushVert(x, y, z, nx, ny, nz, k) {
+    const l = Math.hypot(nx, ny, nz) || 1;
+    pos.push(x, y, z);
+    nrm.push(nx / l, ny / l, nz / l);
+    kind.push(k);
+    return (pos.length / 3) - 1;
+  }
+
+  function addEllipsoid(cx, cy, cz, rx, ry, rz, segU, segV, k) {
+    const base = pos.length / 3;
+    for (let iv = 0; iv <= segV; iv++) {
+      const th = (iv / segV) * Math.PI;
+      const st = Math.sin(th), ct = Math.cos(th);
+      for (let iu = 0; iu <= segU; iu++) {
+        const ph = (iu / segU) * Math.PI * 2;
+        const cp = Math.cos(ph), sp = Math.sin(ph);
+        pushVert(
+          cx + rx * st * cp,
+          cy + ry * st * sp,
+          cz + rz * ct,
+          (st * cp) / rx,
+          (st * sp) / ry,
+          ct / rz,
+          k
+        );
+      }
+    }
+    const stride = segU + 1;
+    for (let iv = 0; iv < segV; iv++) {
+      for (let iu = 0; iu < segU; iu++) {
+        const a = base + iv * stride + iu;
+        const b = a + stride;
+        idx.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+  }
+
+  function addTaperedLimb(p0, p1, r0, r1, segs, k) {
+    const dx = p1[0] - p0[0], dy = p1[1] - p0[1], dz = p1[2] - p0[2];
+    const len = Math.hypot(dx, dy, dz) || 1;
+    const ax = dx / len, ay = dy / len, az = dz / len;
+    let ux = 0, uy = 1, uz = 0;
+    if (Math.abs(ay) > 0.9) { ux = 0; uy = 0; uz = 1; }
+    let bx = ay * uz - az * uy, by = az * ux - ax * uz, bz = ax * uy - ay * ux;
+    const bl = Math.hypot(bx, by, bz) || 1; bx /= bl; by /= bl; bz /= bl;
+    const tx = by * az - bz * ay, ty = bz * ax - bx * az, tz = bx * ay - by * ax;
+
+    const base = pos.length / 3;
+    for (let ring = 0; ring <= 1; ring++) {
+      const c = ring === 0 ? p0 : p1;
+      const rad = ring === 0 ? r0 : r1;
+      for (let i = 0; i <= segs; i++) {
+        const ang = (i / segs) * Math.PI * 2;
+        const ca = Math.cos(ang), sa = Math.sin(ang);
+        const nx = bx * ca + tx * sa;
+        const ny = by * ca + ty * sa;
+        const nz = bz * ca + tz * sa;
+        pushVert(c[0] + nx * rad, c[1] + ny * rad, c[2] + nz * rad, nx, ny, nz, k);
+      }
+    }
+    const stride = segs + 1;
+    for (let i = 0; i < segs; i++) {
+      const a = base + i, b = base + stride + i;
+      idx.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    addEllipsoid(p0[0], p0[1], p0[2], r0, r0, r0, 10, 6, k);
+    addEllipsoid(p1[0], p1[1], p1[2], r1, r1, r1, 10, 6, k);
+  }
+
+  const sx = seatPos.x, sy = seatPos.y, sz = seatPos.z;
+  const wx = steerPos.x, wy = steerPos.y, wz = steerPos.z;
+
+  // Pelvis seated cleanly on seat pan
+  const pelvis = [sx + 1.0, sy, sz + 4.2];
+  addEllipsoid(pelvis[0], pelvis[1], pelvis[2], 6.0, 8.2, 4.4, 14, 10, 0);
+
+  // Torso leaning slightly toward steering wheel
+  const chest = [sx + 2.8, sy, sz + 18.2];
+  addTaperedLimb(pelvis, chest, 7.6, 8.4, 14, 0);
+  // Broad Quake shoulder chest-plate (~24u total shoulder width: Y in [-12, +12])
+  addEllipsoid(chest[0] + 0.5, chest[1], chest[2] + 1.5, 6.2, 11.8, 6.4, 16, 10, 0);
+
+  // Neck + Helmet (~40u tall above seat_pos.z -> crown near sz + 40)
+  const neck = [chest[0] + 0.6, chest[1], sz + 26.8];
+  addTaperedLimb([chest[0], chest[1], chest[2] + 4.5], neck, 3.2, 2.8, 10, 0);
+  const head = [chest[0] + 1.4, chest[1], sz + 33.4];
+  addEllipsoid(head[0], head[1], head[2], 6.4, 5.8, 6.6, 16, 12, 0);
+  // Amber racing helmet visor
+  addEllipsoid(head[0] + 3.4, head[1], head[2] + 0.3, 4.2, 4.9, 3.3, 14, 8, 1);
+
+  // Arms reaching from ~24u shoulders to steering wheel grip (wy +/- 6.4)
+  for (const side of [-1, 1]) {
+    const sh = [chest[0] + 0.6, sy + side * 10.2, chest[2] + 2.2];
+    const hand = [wx - 1.2, wy + side * 6.4, wz];
+    const elbow = [
+      sh[0] * 0.48 + hand[0] * 0.52 - 1.5,
+      sh[1] * 0.40 + hand[1] * 0.60 + side * 2.2,
+      sh[2] * 0.52 + hand[2] * 0.48 - 3.6,
+    ];
+    addEllipsoid(sh[0], sh[1], sh[2], 3.4, 3.4, 3.4, 10, 8, 1);
+    addTaperedLimb(sh, elbow, 2.8, 2.4, 10, 0);
+    addTaperedLimb(elbow, hand, 2.4, 2.0, 10, 0);
+    addEllipsoid(hand[0], hand[1], hand[2], 2.5, 2.3, 2.3, 10, 8, 1);
+  }
+
+  // Bent legs reaching forward into footwell pedals
+  const footX = Math.max(wx + 9.0, sx + 28.0);
+  for (const side of [-1, 1]) {
+    const hip = [pelvis[0] + 1.5, sy + side * 5.2, pelvis[2] - 0.5];
+    const knee = [sx + 16.5, sy + side * 6.8, sz + 6.4];
+    const ankle = [footX, sy + side * 5.6, Math.max(4.0, sz - 4.2)];
+    const toe = [footX + 4.4, sy + side * 5.6, Math.max(3.6, sz - 4.4)];
+    addTaperedLimb(hip, knee, 3.8, 3.0, 10, 0);
+    addEllipsoid(knee[0], knee[1], knee[2], 3.1, 3.1, 3.1, 10, 8, 1);
+    addTaperedLimb(knee, ankle, 2.9, 2.3, 10, 0);
+    addTaperedLimb(ankle, toe, 2.5, 2.4, 10, 1);
+  }
+
+  return {
+    pos: new Float32Array(pos),
+    nrm: new Float32Array(nrm),
+    kind: new Float32Array(kind),
+    idx: new Uint16Array(idx),
+  };
+}
+
+// Deterministic PRNG for explosion & particle patterns
+function hash01(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
+  return x - Math.floor(x);
+}
+
+async function boot() {
+  const arena = await gunzipBytes(DATA.binGz);
+  const buf = arena.buffer;
+  const f32 = s => new Float32Array(buf, s[0], s[1] / 4);
+  const i16 = s => new Int16Array(buf, s[0], s[1] / 2);
+  const i8  = s => new Int8Array(buf, s[0], s[1]);
+  const u16 = s => new Uint16Array(buf, s[0], s[1] / 2);
+
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
+  if (!gl) throw new Error('WebGL2 unavailable in this browser.');
+
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    return sh;
+  }
+  function mkProg(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  function uni(p, names) {
+    const o = {};
+    for (const n of names) o[n] = gl.getUniformLocation(p, n);
+    return o;
+  }
+
+  const pSky = mkProg(`#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main() { vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.999, 1.0); }`, `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform int uTorch;
+uniform float uBoostGlow;
+out vec4 fragColor;
+void main() {
+  vec3 top = uTorch == 1 ? vec3(0.06, 0.08, 0.13) : vec3(0.09, 0.15, 0.27);
+  vec3 bot = uTorch == 1 ? vec3(0.14, 0.11, 0.09) : vec3(0.16, 0.22, 0.33);
+  vec3 c = mix(bot, top, pow(vUv.y, 0.72));
+  c += vec3(0.22, 0.09, 0.03) * uBoostGlow * (1.0 - vUv.y) * 0.65;
+  fragColor = vec4(c, 1.0);
+}`);
+  const uSky = uni(pSky, ['uTorch', 'uBoostGlow']);
+
+  const pGround = mkProg(`#version 300 es
+layout(location=0) in vec2 aPos;
+uniform mat4 uVP;
+uniform float uSize;
+out vec2 vW;
+void main() {
+  vW = aPos * uSize;
+  gl_Position = uVP * vec4(vW.x, vW.y, 0.0, 1.0);
+}`, `#version 300 es
+precision highp float;
+in vec2 vW;
+uniform float uScroll;
+uniform float uBoomFlash;
+out vec4 fragColor;
+void main() {
+  float r = length(vW);
+  float fade = smoothstep(260.0, 70.0, r);
+  float sx = vW.x - uScroll;
+  float gx = abs(fract(sx / 24.0 - 0.5) - 0.5) / max(fwidth(sx / 24.0), 0.001);
+  float gy = abs(fract(vW.y / 24.0 - 0.5) - 0.5) / max(fwidth(vW.y / 24.0), 0.001);
+  float grid = 1.0 - min(min(gx, gy), 1.0);
+  float ring = smoothstep(2.0, 0.0, abs(r - 56.0)) * 0.45;
+  vec3 col = mix(vec3(0.08, 0.11, 0.16), vec3(0.22, 0.56, 0.78), grid * 0.45) + vec3(0.22, 0.75, 0.95) * ring;
+  col += vec3(1.0, 0.48, 0.14) * exp(-r * 0.025) * uBoomFlash;
+  fragColor = vec4(col, fade * (0.58 + grid * 0.25));
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uScroll', 'uBoomFlash']);
+
+  const pMesh = mkProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uShadowPass;
+out vec3 vW;
+out vec3 vN;
+out vec2 vUv;
+void main() {
+  vec3 pLocal = mix(aPos0, aPos1, uLerp) * uPosScale;
+  vec3 nLocal = normalize(mix(aNrm0, aNrm1, uLerp));
+  vec4 wp = uModel * vec4(pLocal, 1.0);
+  vec3 wn = normalize(mat3(uModel) * nLocal);
+  vW = wp.xyz; vN = wn; vUv = aUv;
+  if (uShadowPass == 1) {
+    vec3 lDir = normalize(vec3(0.42, 0.36, 0.83));
+    float t = max(0.0, wp.z) / max(0.20, lDir.z);
+    vec3 sp = vec3(wp.x - lDir.x * t, wp.y - lDir.y * t, 0.14);
+    gl_Position = uVP * vec4(sp, 1.0);
+  } else {
+    gl_Position = uVP * wp;
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vW;
+in vec3 vN;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform vec3 uEye;
+uniform float uMetallic;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uUnlit;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+uniform int uTorch;
+out vec4 fragColor;
+void main() {
+  if (uShadowPass == 1) { fragColor = vec4(0.01, 0.02, 0.04, uShadowAlpha); return; }
+  vec4 tex = texture(uTex, vUv);
+  if (uUnlit == 1) { fragColor = vec4(tex.rgb * 1.35, tex.a); return; }
+  vec3 N = normalize(vN);
+  if (!gl_FrontFacing) N = -N;
+  vec3 V = normalize(uEye - vW);
+  vec3 base = pow(tex.rgb, vec3(2.2));
+  vec3 L1 = normalize(vec3(0.55, 0.45, 0.72));
+  vec3 L2 = normalize(vec3(-0.65, -0.40, 0.45));
+  vec3 L3 = normalize(vec3(-0.30, 0.70, 0.55));
+  float ndl1 = max(dot(N, L1), 0.0);
+  float ndl2 = max(dot(N, L2), 0.0);
+  float ndl3 = max(dot(N, L3), 0.0);
+  vec3 H1 = normalize(L1 + V);
+  float shin = mix(96.0, 14.0, clamp(uRoughness, 0.05, 1.0));
+  float sp1 = pow(max(dot(N, H1), 0.0), shin) * uSpec;
+  float fres = pow(1.0 - max(dot(N, V), 0.0), 3.6);
+  vec3 env = mix(vec3(0.22, 0.25, 0.33), vec3(0.76, 0.88, 1.0), N.z * 0.5 + 0.5);
+  vec3 lit = base * (0.45 + 1.35 * ndl1 + 0.62 * ndl2 + 0.45 * ndl3 + env * 0.38 * (1.0 - uMetallic * 0.45))
+           + mix(vec3(0.14), base, uMetallic) * (sp1 * 1.45 + fres * 0.55 + env * uMetallic * 0.72);
+  if (uTorch == 1) {
+    vec3 Ltorch = normalize(uEye - vW);
+    lit += base * max(dot(N, Ltorch), 0.0) * 1.05;
+  }
+  vec3 outCol = lit / (lit + vec3(0.55));
+  fragColor = vec4(pow(outCol, vec3(1.0 / 2.2)), tex.a);
+}`);
+  const uMesh = uni(pMesh, ['uVP','uModel','uLerp','uPosScale','uShadowPass','uShadowAlpha','uTex','uEye','uMetallic','uRoughness','uSpec','uUnlit','uTorch']);
+
+  // Translucent shaded hologram shader for Seated Player Fit reference driver
+  const pPlayer = mkProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNrm;
+layout(location=2) in float aKind;
+uniform mat4 uVP;
+uniform mat4 uModel;
+out vec3 vW;
+out vec3 vN;
+out float vKind;
+void main() {
+  vec4 wp = uModel * vec4(aPos, 1.0);
+  vW = wp.xyz;
+  vN = normalize(mat3(uModel) * aNrm);
+  vKind = aKind;
+  gl_Position = uVP * wp;
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vW;
+in vec3 vN;
+in float vKind;
+uniform vec3 uEye;
+uniform float uAlphaScale;
+out vec4 fragColor;
+void main() {
+  vec3 N = normalize(vN);
+  vec3 V = normalize(uEye - vW);
+  float ndv = abs(dot(N, V));
+  float fres = pow(1.0 - ndv, 2.2);
+  float ndl = max(dot(N, normalize(vec3(0.4, 0.3, 0.85))), 0.0);
+  vec3 cyanCol = vec3(0.18, 0.80, 1.0);
+  vec3 amberCol = vec3(1.0, 0.74, 0.22);
+  vec3 col = mix(cyanCol, amberCol, clamp(vKind, 0.0, 1.0));
+  col = col * (0.45 + 0.55 * ndl) + vec3(0.35, 0.9, 1.0) * fres * 0.55;
+  float a = (0.18 + 0.30 * fres + 0.12 * vKind) * uAlphaScale;
+  fragColor = vec4(col, a);
+}`);
+  const uPlayer = uni(pPlayer, ['uVP', 'uModel', 'uEye', 'uAlphaScale']);
+
+  const pWire = mkProg(`#version 300 es
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+void main() {
+  vec3 p = mix(aPos0, aPos1, uLerp) * uPosScale;
+  gl_Position = uVP * uModel * vec4(p, 1.0);
+}`, `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP','uModel','uLerp','uPosScale','uColor']);
+
+  const pLine = mkProg(`#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() { vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`, `#version 300 es
+precision highp float;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  // Instanced 3D Particle / FX shader (billboards, directional speedlines/sparks, ground shockwave ring)
+  const pPart = mkProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aCorner;
+layout(location=1) in vec3 aPos;
+layout(location=2) in vec3 aVel;
+layout(location=3) in vec4 aCol;
+layout(location=4) in vec2 aSize;
+layout(location=5) in float aKind;
+uniform mat4 uVP;
+uniform vec3 uCamRight;
+uniform vec3 uCamUp;
+uniform vec3 uEye;
+out vec2 vCorner;
+out vec4 vCol;
+out float vKind;
+void main() {
+  vCorner = aCorner;
+  vCol = aCol;
+  vKind = aKind;
+  vec3 wp;
+  if (aKind > 1.5) {
+    wp = aPos + vec3(aCorner.x * aSize.x, aCorner.y * aSize.x, 0.0);
+  } else if (aKind > 0.5) {
+    vec3 dir = length(aVel) > 0.001 ? normalize(aVel) : vec3(1.0, 0.0, 0.0);
+    vec3 view = normalize(uEye - aPos);
+    vec3 side = cross(view, dir);
+    float sl = length(side);
+    side = sl > 0.001 ? side / sl : uCamRight;
+    wp = aPos + side * (aCorner.x * aSize.x) + dir * (aCorner.y * aSize.y);
+  } else {
+    wp = aPos + uCamRight * (aCorner.x * aSize.x) + uCamUp * (aCorner.y * aSize.x);
+  }
+  gl_Position = uVP * vec4(wp, 1.0);
+}`, `#version 300 es
+precision highp float;
+in vec2 vCorner;
+in vec4 vCol;
+in float vKind;
+out vec4 fragColor;
+void main() {
+  float alpha = 0.0;
+  if (vKind > 1.5) {
+    float r = length(vCorner);
+    float band = smoothstep(0.18, 0.0, abs(r - 0.78));
+    float inner = smoothstep(0.88, 0.45, r) * 0.20;
+    alpha = (band + inner) * (1.0 - smoothstep(0.92, 1.0, r));
+  } else if (vKind > 0.5) {
+    float d2 = vCorner.x * vCorner.x * 2.4 + vCorner.y * vCorner.y * 0.95;
+    alpha = exp(-3.8 * d2) * step(length(vCorner), 1.35);
+  } else {
+    float r = length(vCorner);
+    if (r > 1.0) discard;
+    alpha = pow(1.0 - r, 1.75);
+  }
+  if (alpha < 0.005) discard;
+  fragColor = vec4(vCol.rgb, vCol.a * alpha);
+}`);
+  const uPart = uni(pPart, ['uVP', 'uCamRight', 'uCamUp', 'uEye']);
+
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b);
+    gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 16384 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(16384);
+
+  // Instanced Particle VAO (max 512 particles per draw batch)
+  const MAX_PART = 512;
+  const PART_STRIDE = 13; // 3 pos + 3 vel + 4 col + 2 size + 1 kind = 13 floats (52 bytes)
+  const partVao = gl.createVertexArray();
+  gl.bindVertexArray(partVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const partBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, MAX_PART * PART_STRIDE * 4, gl.DYNAMIC_DRAW);
+  for (let a = 1; a <= 5; a++) {
+    gl.enableVertexAttribArray(a);
+    gl.vertexAttribDivisor(a, 1);
+  }
+  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 52, 0);
+  gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 52, 12);
+  gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 52, 24);
+  gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 52, 40);
+  gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 52, 48);
+  const partAlphaData = new Float32Array(MAX_PART * PART_STRIDE);
+  const partAddData   = new Float32Array(MAX_PART * PART_STRIDE);
+
+  const glTextures = DATA.textures.map(t => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([140,155,180,255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+    img.src = t.uri;
+    return tex;
+  });
+
+  function uploadModelSurfaces(md) {
+    for (const s of md.surfaces) {
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, f32(s.uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris  = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.tris), gl.STATIC_DRAW);
+      s._lastKey = -1;
+    }
+    return md;
+  }
+
+  function uploadPlayerMesh(seatPos, steerPos) {
+    const g = buildSeatedPlayerGeometry(seatPos, steerPos);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    mkBuf(gl.ARRAY_BUFFER, g.pos, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    mkBuf(gl.ARRAY_BUFFER, g.nrm, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+    mkBuf(gl.ARRAY_BUFFER, g.kind, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+    mkBuf(gl.ELEMENT_ARRAY_BUFFER, g.idx, gl.STATIC_DRAW);
+    return { vao, count: g.idx.length };
+  }
+
+  const driverModel = DATA.driverModel ? uploadModelSurfaces(DATA.driverModel) : null;
+
+  const karts = DATA.karts.map((d, idx) => {
+    const k = Object.assign({}, d, { idx });
+    uploadModelSurfaces(k.model);
+    k.playerMesh = uploadPlayerMesh(k.seat_pos, k.steer_pos);
+    // Determine primary exhaust flame theme (cyan-plasma for karts with cyan/plasma palette, else warm nitro)
+    const palStr = (k.palette || []).join(' ').toLowerCase();
+    k.cyanFlame = k.id === 'kart2' || k.id === 'kart5' || palStr.includes('#00e5ff') || palStr.includes('#06b6d4') || palStr.includes('#00dcff');
+    return k;
+  });
+
+  const totTris = karts.reduce((s, k) => s + k.model.nt, 0);
+  const totVerts = karts.reduce((s, k) => s + k.model.nv, 0);
+  const origCount = karts.filter(k => (k.group || (k.num <= 3 ? 'original' : 'megaman')) === 'original').length;
+  const megaCount = karts.length - origCount;
+  $('hero-stats').innerHTML =
+    `<b>${karts.length}</b> Go-Karts (${origCount} Original + ${megaCount} Mega Man) · <b>${totTris.toLocaleString()}</b> Total Tris · <b>${totVerts.toLocaleString()}</b> Verts · <b>64</b> Frames/Kart · Ground <span class="mono">Z=0</span>`;
+
+  const state = {
+    clipIdx: 0,
+    filter: 'all',
+    driverOn: false,
+    playerFit: false,
+    spin: true,
+    wire: false,
+    torch: false,
+    speed: 1.0,
+    boomLoop: true,
+  };
+
+  function syncPlayerFitButtons() {
+    document.body.classList.toggle('fit-on', state.playerFit);
+    ['btn-fit', 'btn-fb-fit', 'd-fit'].forEach(id => {
+      if ($(id)) $(id).setAttribute('aria-pressed', state.playerFit);
+    });
+  }
+  syncPlayerFitButtons();
+
+  const globalClipBtns = CLIPS.map((cl, ci) => {
+    const b = document.createElement('button');
+    b.textContent = cl.label;
+    if (cl.cls) b.className = cl.cls;
+    b.setAttribute('aria-pressed', ci === 0);
+    b.onclick = () => selectGlobalClip(ci);
+    $('clip-btns').appendChild(b);
+    return b;
+  });
+
+  function selectGlobalClip(ci) {
+    state.clipIdx = ci;
+    globalClipBtns.forEach((btn, i) => btn.setAttribute('aria-pressed', i === ci));
+    for (const c of cards) {
+      c.clipIdx = ci;
+      c.clipTime = 0;
+      c.syncMiniClips();
+    }
+    if (detail.k) {
+      detail.clipTime = 0;
+      detail.playing = true;
+      detail.scrubFrame = CLIPS[ci].start;
+      $('d-play').setAttribute('aria-pressed', 'true');
+      $('d-play').textContent = '⏸ Pause';
+      syncDetailClips();
+    }
+  }
+
+  function triggerExplosionReplay() {
+    if (detail.k) {
+      state.clipIdx = BOOM_CLIP_IDX;
+      detail.clipTime = 0;
+      detail.playing = true;
+      detail.scrubFrame = 44;
+      $('d-play').setAttribute('aria-pressed', 'true');
+      $('d-play').textContent = '⏸ Pause';
+      syncDetailClips();
+    } else {
+      selectGlobalClip(BOOM_CLIP_IDX);
+    }
+  }
+
+  function bindToggle(btnIds, key, cb) {
+    for (const id of btnIds) {
+      const el = $(id);
+      if (!el) continue;
+      el.onclick = () => {
+        state[key] = !state[key];
+        for (const bid of btnIds) if ($(bid)) $(bid).setAttribute('aria-pressed', state[key]);
+        if (cb) cb(state[key]);
+      };
+    }
+  }
+  bindToggle(['btn-driver', 'btn-fb-driver', 'd-driver'], 'driverOn');
+  bindToggle(['btn-fit', 'btn-fb-fit', 'd-fit'], 'playerFit', syncPlayerFitButtons);
+  bindToggle(['btn-spin', 'd-spin'], 'spin');
+  bindToggle(['btn-wire', 'd-wire'], 'wire');
+  bindToggle(['btn-hdr', 'd-hdr'], 'torch');
+  bindToggle(['btn-boom-loop', 'd-loop'], 'boomLoop');
+
+  $('btn-replay-boom').onclick = triggerExplosionReplay;
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('out-speed').textContent = state.speed.toFixed(1) + '×';
+  };
+
+  function attachCameraControls(el, view, onInteract) {
+    let mode = null; // 'orbit' | 'pan'
+    let lx = 0, ly = 0;
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button, input')) return;
+      mode = (e.button === 2 || e.button === 1 || e.shiftKey) ? 'pan' : 'orbit';
+      lx = e.clientX; ly = e.clientY;
+      el.classList.add('drag');
+      el.setPointerCapture(e.pointerId);
+      if (onInteract) onInteract();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!mode) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      if (mode === 'orbit') {
+        view.az -= dx * 0.0085;
+        view.el = Math.max(-0.18, Math.min(1.40, view.el + dy * 0.0075));
+      } else {
+        // Pan along camera right & up vectors
+        const panScale = view.dist * 0.0014;
+        const rx = -Math.sin(view.az), ry = Math.cos(view.az);
+        const ux = -Math.sin(view.el) * Math.cos(view.az);
+        const uy = -Math.sin(view.el) * Math.sin(view.az);
+        const uz = Math.cos(view.el);
+        view.panX += (-rx * dx + ux * dy) * panScale;
+        view.panY += (-ry * dx + uy * dy) * panScale;
+        view.panZ += (uz * dy) * panScale;
+      }
+    });
+    const end = () => { mode = null; el.classList.remove('drag'); };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+
+  function resetView(view, az, el, dist) {
+    view.az = az; view.el = el; view.dist = dist;
+    view.panX = 0; view.panY = 0; view.panZ = 0;
+    view.userTouched = false;
+  }
+
+  const cards = karts.map((k, idx) => {
+    const group = k.group || (k.num <= 3 ? 'original' : 'megaman');
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.dataset.group = group;
+    const defAz = 0.62 + idx * 0.04, defEl = 0.28, defDist = 185;
+    const view = { az: defAz, el: defEl, dist: defDist, minDist: 75, maxDist: 460, panX: 0, panY: 0, panZ: 0, userTouched: false };
+    const hiHtml = (k.highlights || []).map(([lbl, txt]) => `<li><b>${lbl}:</b> ${txt}</li>`).join('');
+    const swHtml = (k.palette || []).map(hex => `<span class="swatch" style="background:${hex}" title="${hex}"></span>`).join('');
+    const sp = k.seat_pos, stp = k.steer_pos;
+    const tipsCount = (k.exhaust_tips || []).length;
+    const badgeCls = group === 'megaman' ? 'pill vtag mega' : 'pill vtag';
+
+    card.innerHTML = `
+      <div class="stage">
+        <div class="stage-top">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span class="${badgeCls}">${k.badge}</span>
+            <span class="pill mono">${k.model.nt.toLocaleString()} tris · ${k.model.surfaces.length} surfs</span>
+          </div>
+          <span class="pill fit-pill">Fit Guides ON</span>
+        </div>
+        <div class="stage-btm">
+          <div class="mini-bar" data-role="clips"></div>
+          <div class="mini-bar">
+            <button class="mini-btn" data-role="replay" title="Replay Explosion">↻</button>
+            <button class="mini-btn" data-role="reset" title="Reset Camera">Cam ↺</button>
+            <button class="mini-btn" data-role="open">Studio ⤢</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="title-row">
+          <h2>${k.name}</h2>
+          <span class="mono md3-tag">${k.md3File}</span>
+        </div>
+        <div class="tagline">${k.tagline}</div>
+        <div class="palette-row"><span class="palette-lbl">Palette</span>${swHtml}</div>
+        <p class="desc">${k.description}</p>
+        <ul class="parts-list">${hiHtml}</ul>
+        <div class="spec-mini mono">
+          <b>Seat:</b> (${sp.x}, ${sp.y}, ${sp.z}) · <b>Steer:</b> (${stp.x}, ${stp.y}, ${stp.z})<br>
+          <b>Exhausts:</b> ${tipsCount} tip${tipsCount === 1 ? '' : 's'} · <b>Idle BBox:</b> X[${k.bboxIdle[0]}..${k.bboxIdle[3]}] Y[${k.bboxIdle[1]}..${k.bboxIdle[4]}] Z[${k.bboxIdle[2]}..${k.bboxIdle[5]}]
+        </div>
+        <button class="btn-primary" data-role="studio">Open Fullscreen 3D Studio ⤢</button>
+      </div>
+    `;
+    $('grid').appendChild(card);
+
+    const stageEl = card.querySelector('.stage');
+    attachCameraControls(stageEl, view, () => { view.userTouched = true; });
+    stageEl.addEventListener('dblclick', e => { if (!e.target.closest('button')) openDetail(idx); });
+
+    const cObj = { k, group, card, stageEl, view, clipIdx: 0, clipTime: 0, scrollX: 0, miniBtns: [] };
+    const clipWrap = card.querySelector('[data-role="clips"]');
+    CLIPS.forEach((cl, ci) => {
+      const b = document.createElement('button');
+      b.className = 'mini-btn ' + (cl.cls || '');
+      b.textContent = cl.short;
+      b.onclick = () => {
+        cObj.clipIdx = ci;
+        cObj.clipTime = 0;
+        cObj.syncMiniClips();
+      };
+      clipWrap.appendChild(b);
+      cObj.miniBtns.push(b);
+    });
+    cObj.syncMiniClips = () => cObj.miniBtns.forEach((b, ci) => b.classList.toggle('active', cObj.clipIdx === ci));
+    cObj.syncMiniClips();
+
+    card.querySelector('[data-role="replay"]').onclick = () => {
+      cObj.clipIdx = BOOM_CLIP_IDX;
+      cObj.clipTime = 0;
+      cObj.syncMiniClips();
+    };
+    card.querySelector('[data-role="reset"]').onclick = () => resetView(view, defAz, defEl, defDist);
+    card.querySelector('[data-role="open"]').onclick = () => openDetail(idx);
+    card.querySelector('[data-role="studio"]').onclick = () => openDetail(idx);
+    return cObj;
+  });
+
+  const filterBtns = Array.from(document.querySelectorAll('#filter-btns [data-filter]'));
+  function applyFilter(f) {
+    state.filter = f;
+    filterBtns.forEach(b => b.setAttribute('aria-pressed', b.dataset.filter === f ? 'true' : 'false'));
+    for (const c of cards) {
+      const show = (f === 'all' || c.group === f);
+      c.card.style.display = show ? '' : 'none';
+    }
+  }
+  filterBtns.forEach(b => {
+    b.onclick = () => applyFilter(b.dataset.filter);
+  });
+  applyFilter('all');
+
+  const detail = {
+    k: null,
+    idx: 0,
+    playing: true,
+    clipTime: 0,
+    scrollX: 0,
+    scrubFrame: 0,
+    view: { az: 0.65, el: 0.25, dist: 175, minDist: 65, maxDist: 520, panX: 0, panY: 0, panZ: 0, userTouched: false },
+    clipBtns: [],
+  };
+  attachCameraControls($('detail-stage'), detail.view, () => { detail.view.userTouched = true; });
+
+  CLIPS.forEach((cl, ci) => {
+    const b = document.createElement('button');
+    b.textContent = cl.label;
+    if (cl.cls) b.className = cl.cls;
+    b.onclick = () => {
+      state.clipIdx = ci;
+      detail.clipTime = 0;
+      detail.playing = true;
+      detail.scrubFrame = cl.start;
+      $('d-play').setAttribute('aria-pressed', 'true');
+      $('d-play').textContent = '⏸ Pause';
+      syncDetailClips();
+    };
+    $('d-clips').appendChild(b);
+    detail.clipBtns.push(b);
+  });
+
+  function syncDetailClips() {
+    detail.clipBtns.forEach((b, ci) => b.setAttribute('aria-pressed', state.clipIdx === ci));
+    globalClipBtns.forEach((b, ci) => b.setAttribute('aria-pressed', state.clipIdx === ci));
+  }
+
+  function openDetail(idx) {
+    const k = karts[(idx + karts.length) % karts.length];
+    detail.k = k; detail.idx = k.idx;
+    detail.playing = true;
+    detail.clipTime = 0;
+    detail.scrubFrame = CLIPS[state.clipIdx].start;
+    resetView(detail.view, 0.64, 0.26, 175);
+
+    $('d-vtag').textContent = k.badge;
+    $('d-title').textContent = k.name;
+    $('d-tagline').textContent = k.tagline;
+    $('d-file').textContent = `${k.md3File} · ${k.skinFile || 'default skin'} · ${DATA.shaderFile}`;
+    $('d-palette').innerHTML = '<span class="palette-lbl">Palette</span>' +
+      (k.palette || []).map(hex => `<span class="swatch" style="background:${hex}" title="${hex}"></span>`).join('');
+    $('d-desc').textContent = k.description;
+    $('d-highlights').innerHTML = (k.highlights || []).map(([l, t]) => `<li><b>${l}:</b> ${t}</li>`).join('');
+    const sp = k.seat_pos, stp = k.steer_pos;
+    $('d-stats').innerHTML =
+      `Verts / Tris: <b>${k.model.nv}</b> / <b>${k.model.nt}</b> (64 frames)<br>` +
+      `Seat Pos: <span class="mono">(${sp.x}, ${sp.y}, ${sp.z})</span><br>` +
+      `Steer Pos: <span class="mono">(${stp.x}, ${stp.y}, ${stp.z})</span><br>` +
+      `Exhaust Tips: <b>${(k.exhaust_tips || []).length}</b><br>` +
+      `Idle BBox: <span class="mono">[${k.bboxIdle.slice(0,3).join(', ')}] .. [${k.bboxIdle.slice(3).join(', ')}]</span>`;
+    $('d-surfs').innerHTML = k.model.surfaces.map(s =>
+      `<span class="surf-chip ${s.additive ? 'flame' : ''}">${s.name} (${s.nt}t)</span>`
+    ).join('');
+
+    $('d-play').setAttribute('aria-pressed', 'true');
+    $('d-play').textContent = '⏸ Pause';
+    syncDetailClips();
+    document.body.classList.add('detail-open');
+    $('detail').classList.add('open');
+  }
+  function closeDetail() {
+    detail.k = null;
+    document.body.classList.remove('detail-open');
+    $('detail').classList.remove('open');
+  }
+
+  $('d-close').onclick = closeDetail;
+  $('d-prev').onclick = () => openDetail(detail.idx - 1);
+  $('d-next').onclick = () => openDetail(detail.idx + 1);
+  $('d-play').onclick = () => {
+    detail.playing = !detail.playing;
+    $('d-play').setAttribute('aria-pressed', detail.playing);
+    $('d-play').textContent = detail.playing ? '⏸ Pause' : '▶ Play';
+  };
+  $('d-replay').onclick = triggerExplosionReplay;
+  $('d-reset-cam').onclick = () => resetView(detail.view, 0.64, 0.26, 175);
+  $('d-scrub').oninput = e => {
+    detail.playing = false;
+    $('d-play').setAttribute('aria-pressed', 'false');
+    $('d-play').textContent = '▶ Play';
+    const f = parseFloat(e.target.value);
+    detail.scrubFrame = f;
+    if (f < 12) state.clipIdx = 0;
+    else if (f < 28) state.clipIdx = 1;
+    else if (f < 44) state.clipIdx = 2;
+    else state.clipIdx = 3;
+    syncDetailClips();
+  };
+  document.querySelectorAll('[data-cam]').forEach(btn => {
+    btn.onclick = () => {
+      const c = btn.dataset.cam;
+      detail.view.panX = 0; detail.view.panY = 0; detail.view.panZ = 0;
+      detail.view.userTouched = true;
+      if (c === 'front')   { detail.view.az = 0.52;  detail.view.el = 0.24; detail.view.dist = 175; }
+      if (c === 'side')    { detail.view.az = -1.57; detail.view.el = 0.14; detail.view.dist = 165; }
+      if (c === 'cockpit') { detail.view.az = 2.45;  detail.view.el = 0.42; detail.view.dist = 95;  detail.view.panZ = 6; }
+      if (c === 'rear')    { detail.view.az = 3.14;  detail.view.el = 0.30; detail.view.dist = 170; }
+      if (c === 'top')     { detail.view.az = 0.02;  detail.view.el = 1.32; detail.view.dist = 195; }
+    };
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && detail.k) closeDetail();
+  });
+
+  const matP = new Float32Array(16), matV = new Float32Array(16), matVP = new Float32Array(16);
+  const matKart = new Float32Array(16);
+  mat4Ident(matKart);
+
+  function pushLine(ptr, x0, y0, z0, x1, y1, z1, r, g, b, a) {
+    if (ptr + 14 > lineData.length) return ptr;
+    lineData[ptr++]=x0; lineData[ptr++]=y0; lineData[ptr++]=z0; lineData[ptr++]=r; lineData[ptr++]=g; lineData[ptr++]=b; lineData[ptr++]=a;
+    lineData[ptr++]=x1; lineData[ptr++]=y1; lineData[ptr++]=z1; lineData[ptr++]=r; lineData[ptr++]=g; lineData[ptr++]=b; lineData[ptr++]=a;
+    return ptr;
+  }
+
+  function addPlayerFitGuides(ptr, seatPos, steerPos) {
+    const sx = seatPos.x, sy = seatPos.y, sz = seatPos.z;
+    const wx = steerPos.x, wy = steerPos.y, wz = steerPos.z;
+    // Seat pan cross + 26u cockpit width clearance lines
+    ptr = pushLine(ptr, sx - 6, sy, sz + 0.3, sx + 6, sy, sz + 0.3, 0.22, 0.92, 1.0, 0.85);
+    ptr = pushLine(ptr, sx, sy - 13, sz + 0.3, sx, sy + 13, sz + 0.3, 0.22, 0.92, 1.0, 0.85);
+    ptr = pushLine(ptr, sx - 6, sy - 13, sz + 0.3, sx + 14, sy - 13, sz + 0.3, 0.22, 0.92, 1.0, 0.45);
+    ptr = pushLine(ptr, sx - 6, sy + 13, sz + 0.3, sx + 14, sy + 13, sz + 0.3, 0.22, 0.92, 1.0, 0.45);
+    // 40u driver height vertical gauge next to seat
+    ptr = pushLine(ptr, sx - 10, sy - 15, sz, sx - 10, sy - 15, sz + 40, 1.0, 0.78, 0.25, 0.80);
+    ptr = pushLine(ptr, sx - 12, sy - 15, sz + 40, sx - 8, sy - 15, sz + 40, 1.0, 0.78, 0.25, 0.80);
+    ptr = pushLine(ptr, sx - 12, sy - 15, sz, sx - 8, sy - 15, sz, 1.0, 0.78, 0.25, 0.80);
+    // Steering wheel grip target cross
+    ptr = pushLine(ptr, wx, wy - 7, wz, wx, wy + 7, wz, 1.0, 0.78, 0.25, 0.85);
+    ptr = pushLine(ptr, wx, wy, wz - 6, wx, wy, wz + 6, 1.0, 0.78, 0.25, 0.85);
+    return ptr;
+  }
+
+  function writeParticle(arr, count, px, py, pz, vx, vy, vz, r, g, b, a, sx, sy, kind) {
+    if (count >= MAX_PART) return count;
+    let o = count * PART_STRIDE;
+    arr[o++]=px; arr[o++]=py; arr[o++]=pz;
+    arr[o++]=vx; arr[o++]=vy; arr[o++]=vz;
+    arr[o++]=r;  arr[o++]=g;  arr[o++]=b; arr[o++]=a;
+    arr[o++]=sx; arr[o++]=sy; arr[o++]=kind;
+    return count + 1;
+  }
+
+  function buildDynamicParticles(k, modeId, fContinuous, tSec) {
+    let nAlpha = 0, nAdd = 0;
+
+    if (modeId === 'fast' || modeId === 'super' || modeId === 'skid') {
+      const isSuper = modeId === 'super';
+      const isSkid = modeId === 'skid';
+      const nStreaks = isSuper ? 30 : 20;
+      const spd = isSuper ? 260 : isSkid ? 210 : 175;
+      for (let i = 0; i < nStreaks; i++) {
+        const s1 = hash01(i * 3.1 + k.idx * 17.0);
+        const s2 = hash01(i * 7.3 + 11.0);
+        const s3 = hash01(i * 13.7 + 5.0);
+        const phase = (tSec * (spd / 220.0) + s1) % 1.0;
+        const px = 105 - phase * 230;
+        const py = (s2 > 0.5 ? 1 : -1) * (20 + s2 * 38);
+        const pz = 3 + s3 * 34;
+        const len = isSuper ? (14 + s1 * 14) : (9 + s1 * 8);
+        if (isSuper && i % 3 === 0) {
+          nAdd = writeParticle(partAddData, nAdd, px, py, pz, -1, 0, 0, 1.0, 0.68, 0.22, 0.55, 0.65, len, 1.0);
+        } else {
+          nAdd = writeParticle(partAddData, nAdd, px, py, pz, -1, 0, 0, 0.45, 0.85, 1.0, 0.42, 0.55, len, 1.0);
+        }
+      }
+      // Thick rear-tire smoke clouds (peel-out / high-speed skid / super launch)
+      const smokeCount = isSkid ? 20 : (isSuper ? 10 : 7);
+      const smokeAlpha = isSkid ? 0.46 : (isSuper ? 0.30 : 0.20);
+      const yawRad = isSkid ? (22.0 * Math.sin(tSec * 1.65) * Math.PI / 180) : 0.0;
+      const cy = Math.cos(yawRad), sy = Math.sin(yawRad);
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < smokeCount; i++) {
+          const age = ((tSec * (isSkid ? 2.8 : 2.4) + i / smokeCount + (side > 0 ? 0.31 : 0.0)) % 1.0);
+          const lx = -28 - age * (isSkid ? 64 : 50);
+          const ly = side * (24 + Math.sin(age * 6.0 + i) * 3.0) - (isSkid ? Math.sin(yawRad) * age * 28.0 : 0.0);
+          const px = lx * cy - ly * sy;
+          const py = lx * sy + ly * cy;
+          const pz = 3.0 + age * (isSkid ? 19.0 : 11.0);
+          const rad = (isSkid ? 5.2 : 3.4) + age * (isSkid ? 11.5 : 7.0);
+          const al = (1.0 - age) * smokeAlpha;
+          nAlpha = writeParticle(partAlphaData, nAlpha, px, py, pz, 0, 0, 0, 0.82, 0.85, 0.89, al, rad, rad, 0.0);
+        }
+        if (isSkid) {
+          for (let i = 0; i < 8; i++) {
+            const s1 = hash01(i * 4.3 + side * 7.0);
+            const age = ((tSec * 3.8 + i / 8.0) % 1.0);
+            const lx = -28 - age * 42;
+            const ly = side * 24 + (s1 - 0.5) * 14 * age;
+            const px = lx * cy - ly * sy;
+            const py = lx * sy + ly * cy;
+            const pz = 2.0 + age * 14 * (1.0 - age);
+            nAdd = writeParticle(partAddData, nAdd, px, py, pz, -cy, -sy, 0.25, 1.0, 0.68, 0.18, (1.0 - age) * 0.85, 0.65, 3.4, 1.0);
+          }
+        }
+      }
+    }
+
+    if (modeId === 'super') {
+      // Additive exhaust flame/spark/ember plumes streaming from each exhaust_tip!
+      const tips = (k.exhaust_tips && k.exhaust_tips.length)
+        ? k.exhaust_tips
+        : [{ x: -42, y: 0, z: 14, dx: -1, dy: 0, dz: 0.08 }];
+      for (let ti = 0; ti < tips.length; ti++) {
+        const tip = tips[ti];
+        const dl = Math.hypot(tip.dx || -1, tip.dy || 0, tip.dz || 0) || 1;
+        const dx = (tip.dx !== undefined ? tip.dx : -1) / dl;
+        const dy = (tip.dy || 0) / dl;
+        const dz = (tip.dz || 0) / dl;
+
+        // Flame puffs
+        for (let i = 0; i < 16; i++) {
+          const age = ((tSec * 6.8 + i / 16.0 + ti * 0.27) % 1.0);
+          const dist = age * 36.0;
+          const wobY = Math.sin(tSec * 26.0 + i * 2.1 + ti) * (1.2 + age * 2.8);
+          const wobZ = Math.cos(tSec * 22.0 + i * 1.7) * (0.9 + age * 2.2) + age * 3.0;
+          const px = tip.x + dx * dist;
+          const py = tip.y + dy * dist + wobY;
+          const pz = tip.z + dz * dist + wobZ;
+          const rad = (1.0 - age * 0.55) * (4.8 + Math.sin(tSec * 30 + i) * 0.9);
+          let r, g, b;
+          if (k.cyanFlame) {
+            r = 1.0 - age * 0.85; g = 0.95 - age * 0.20; b = 1.0;
+          } else {
+            r = 1.0; g = Math.max(0.18, 0.96 - age * 0.75); b = Math.max(0.05, 0.65 - age * 0.65);
+          }
+          const al = (1.0 - age) * 0.85;
+          nAdd = writeParticle(partAddData, nAdd, px, py, pz, 0, 0, 0, r, g, b, al, rad, rad, 0.0);
+        }
+        // Bright trailing sparks / embers
+        for (let i = 0; i < 14; i++) {
+          const s1 = hash01(i * 5.7 + ti * 19.0);
+          const s2 = hash01(i * 9.1 + ti * 3.0);
+          const age = ((tSec * (3.2 + s1 * 1.8) + s2) % 1.0);
+          const dist = age * (46.0 + s1 * 24.0);
+          const sprY = (s1 - 0.5) * 14.0 * age;
+          const sprZ = (s2 - 0.35) * 12.0 * age - age * age * 5.0;
+          const px = tip.x + dx * dist;
+          const py = tip.y + dy * dist + sprY;
+          const pz = Math.max(0.8, tip.z + dz * dist + sprZ);
+          const al = (1.0 - age) * 0.95;
+          if (k.cyanFlame) {
+            nAdd = writeParticle(partAddData, nAdd, px, py, pz, dx, dy, dz, 0.55, 0.92, 1.0, al, 0.6, 3.6, 1.0);
+          } else {
+            nAdd = writeParticle(partAddData, nAdd, px, py, pz, dx, dy, dz, 1.0, 0.72, 0.22, al, 0.6, 3.6, 1.0);
+          }
+        }
+      }
+    }
+
+    if (modeId === 'explode') {
+      // Deterministic from frame 44..63 so scrubbing works frame-accurately!
+      const u = Math.max(0.0, Math.min(1.0, (fContinuous - 44.0) / 19.0));
+      const tExp = u * 1.25; // seconds elapsed in explosion
+
+      // 1. Expanding ground shockwave ring
+      if (u < 0.88) {
+        const ringR = 8.0 + Math.pow(u, 0.68) * 135.0;
+        const ringA = (1.0 - u / 0.88) * 0.85;
+        nAdd = writeParticle(partAddData, nAdd, 0, 0, 0.9, 0, 0, 0, 1.0, 0.68, 0.28, ringA, ringR, ringR, 2.0);
+      }
+
+      // 2. Central fireball plasma lobes (peaking early at u=0.05..0.42)
+      if (u < 0.55) {
+        const fu = u / 0.55;
+        const env = Math.sin(Math.min(1.0, fu * 2.2) * Math.PI * 0.5) * (1.0 - fu);
+        for (let i = 0; i < 14; i++) {
+          const a = hash01(i * 4.3 + k.idx) * Math.PI * 2;
+          const radOut = (i === 0 ? 0.0 : (6.0 + hash01(i * 9.7) * 26.0)) * Math.pow(fu, 0.6);
+          const px = Math.cos(a) * radOut;
+          const py = Math.sin(a) * radOut;
+          const pz = 14.0 + hash01(i * 2.9) * 24.0 * fu;
+          const sz = (i === 0 ? 32.0 : 18.0 + hash01(i * 6.1) * 14.0) * (0.45 + fu * 0.95);
+          const hot = Math.max(0.0, 1.0 - fu * 1.3);
+          nAdd = writeParticle(partAddData, nAdd, px, py, pz, 0, 0, 0, 1.0, 0.45 + hot * 0.5, 0.12 + hot * 0.6, env * 0.90, sz, sz, 0.0);
+        }
+      }
+
+      // 3. Billowing dark smoke clouds rising from blast
+      for (let i = 0; i < 22; i++) {
+        const a = hash01(i * 11.3 + 2.0) * Math.PI * 2;
+        const spdR = 14.0 + hash01(i * 5.1) * 44.0;
+        const spdZ = 18.0 + hash01(i * 8.9) * 52.0;
+        const px = Math.cos(a) * spdR * Math.pow(u, 0.72);
+        const py = Math.sin(a) * spdR * Math.pow(u, 0.72);
+        const pz = 8.0 + spdZ * Math.pow(u, 0.82);
+        const sz = 10.0 + u * (22.0 + hash01(i * 3.7) * 14.0);
+        const smA = Math.sin(Math.min(1.0, u * 1.15) * Math.PI) * 0.55;
+        const soot = 0.14 + hash01(i * 7.7) * 0.10;
+        nAlpha = writeParticle(partAlphaData, nAlpha, px, py, pz, 0, 0, 0, soot, soot, soot + 0.02, smA, sz, sz, 0.0);
+      }
+
+      // 4. Ballistic glowing sparks with gravity & ground bounce
+      for (let i = 0; i < 48; i++) {
+        const th = hash01(i * 13.1 + k.idx * 7.0) * Math.PI * 2;
+        const ph = 0.15 + hash01(i * 6.7) * 1.15;
+        const v0 = 55.0 + hash01(i * 3.3) * 95.0;
+        const vx = Math.cos(th) * Math.cos(ph) * v0;
+        const vy = Math.sin(th) * Math.cos(ph) * v0;
+        const vz0 = Math.sin(ph) * v0;
+        const g = 185.0;
+        const px = vx * tExp;
+        const py = vy * tExp;
+        let pz = 12.0 + vz0 * tExp - 0.5 * g * tExp * tExp;
+        let vz = vz0 - g * tExp;
+        if (pz < 1.0) {
+          pz = 1.0 + Math.abs(pz - 1.0) * 0.45;
+          vz = Math.abs(vz) * 0.45;
+        }
+        const al = Math.max(0.0, 1.0 - u * 0.92);
+        nAdd = writeParticle(partAddData, nAdd, px, py, pz, vx, vy, vz, 1.0, 0.75 - u * 0.35, 0.20, al, 0.85, 5.2, 1.0);
+      }
+    }
+
+    return { nAlpha, nAdd };
+  }
+
+  function drawParticles(dataArr, count, eye, camRight, camUp, additive) {
+    if (count <= 0) return;
+    gl.useProgram(pPart);
+    gl.uniformMatrix4fv(uPart.uVP, false, matVP);
+    gl.uniform3f(uPart.uCamRight, camRight[0], camRight[1], camRight[2]);
+    gl.uniform3f(uPart.uCamUp, camUp[0], camUp[1], camUp[2]);
+    gl.uniform3f(uPart.uEye, eye[0], eye[1], eye[2]);
+    gl.bindVertexArray(partVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, dataArr.subarray(0, count * PART_STRIDE));
+    gl.enable(gl.BLEND);
+    gl.depthMask(false);
+    gl.blendFunc(additive ? gl.ONE : gl.SRC_ALPHA, additive ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+
+  function drawMd3Kart(md, fa, fb, frac, modelMat, eye, shadowOnly) {
+    const ordered = md.surfaces.slice().sort((a, b) => a.additive - b.additive);
+    for (const s of ordered) {
+      if (shadowOnly && s.additive) continue;
+      gl.bindVertexArray(s.vao);
+      const poseKey = fa * 65536 + fb;
+      if (s._lastKey !== poseKey) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+        gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+        gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+        gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+        s._lastKey = poseKey;
+      }
+      gl.useProgram(pMesh);
+      gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniformMatrix4fv(uMesh.uModel, false, modelMat);
+      gl.uniform1f(uMesh.uLerp, frac);
+      gl.uniform1f(uMesh.uPosScale, s.posScale);
+      gl.uniform1i(uMesh.uShadowPass, shadowOnly ? 1 : 0);
+      if (shadowOnly) {
+        gl.uniform1f(uMesh.uShadowAlpha, 0.34);
+        gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+        continue;
+      }
+      gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+      gl.uniform1f(uMesh.uMetallic, s.metallic);
+      gl.uniform1f(uMesh.uRoughness, s.roughness);
+      gl.uniform1f(uMesh.uSpec, s.spec);
+      gl.uniform1i(uMesh.uUnlit, s.unlit);
+      gl.uniform1i(uMesh.uTorch, state.torch ? 1 : 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, glTextures[s.tex]);
+      gl.uniform1i(uMesh.uTex, 0);
+      if (s.additive) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+      }
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      if (s.additive) {
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      }
+
+      if (state.wire && !s.additive) {
+        gl.useProgram(pWire);
+        gl.uniformMatrix4fv(uWire.uVP, false, matVP);
+        gl.uniformMatrix4fv(uWire.uModel, false, modelMat);
+        gl.uniform1f(uWire.uLerp, frac);
+        gl.uniform1f(uWire.uPosScale, s.posScale);
+        gl.uniform4f(uWire.uColor, 0.30, 0.85, 1.0, 0.45);
+        gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges);
+        gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+        gl.disable(gl.BLEND);
+      }
+    }
+  }
+
+  function renderViewport(k, view, clipIdx, clipTime, scrollX, tSec, exactOverride) {
+    const cl = CLIPS[clipIdx];
+    let fCont, fa, fb, frac;
+    if (exactOverride !== null) {
+      fCont = Math.max(0, Math.min(63, exactOverride));
+      fa = Math.floor(fCont);
+      const blk = fa < 12 ? [0, 12] : fa < 28 ? [12, 16] : fa < 44 ? [28, 16] : [44, 20];
+      const off = fa - blk[0];
+      fb = blk[0] + ((off + 1) % blk[1]);
+      frac = fCont - fa;
+    } else {
+      const fProg = clipTime * cl.fps;
+      let pos;
+      if (cl.loop || state.boomLoop) {
+        pos = ((fProg % cl.count) + cl.count) % cl.count;
+      } else {
+        pos = Math.min(cl.count - 1.001, Math.max(0.0, fProg));
+      }
+      const i0 = Math.floor(pos);
+      const i1 = (cl.loop || state.boomLoop) ? ((i0 + 1) % cl.count) : Math.min(cl.count - 1, i0 + 1);
+      fa = cl.start + i0;
+      fb = cl.start + i1;
+      frac = pos - i0;
+      fCont = fa + frac;
+    }
+
+    const modeId = cl.id === 'skid' ? 'skid' : (fCont < 12 ? 'idle' : fCont < 28 ? 'fast' : fCont < 44 ? 'super' : 'explode');
+    if (modeId === 'skid') {
+      const yawDeg = 22.0 * Math.sin(clipTime * 1.65);
+      const rollDeg = -4.5 * Math.sin(clipTime * 1.65);
+      mat4YawRoll(matKart, yawDeg, rollDeg);
+    } else {
+      mat4Ident(matKart);
+    }
+    const boomU = modeId === 'explode' ? Math.max(0, Math.min(1, (fCont - 44.0) / 19.0)) : 0.0;
+    const boomFlash = modeId === 'explode' ? Math.max(0.0, 1.0 - boomU * 3.0) : 0.0;
+
+    gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+    gl.useProgram(pSky);
+    gl.uniform1i(uSky.uTorch, state.torch ? 1 : 0);
+    gl.uniform1f(uSky.uBoostGlow, modeId === 'super' ? 1.0 : boomFlash * 1.4);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true); gl.enable(gl.DEPTH_TEST);
+
+    const tgt = [view.panX, view.panY, 18.0 + view.panZ];
+    const eye = [
+      tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+      tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+      tgt[2] + view.dist * Math.sin(view.el),
+    ];
+    mat4Persp(matP, 0.56, view.aspect, 1.5, 1600.0);
+    mat4LookAt(matV, eye, tgt, [0, 0, 1]);
+    mat4Mul(matVP, matP, matV);
+
+    const camRight = [matV[0], matV[4], matV[8]];
+    const camUp    = [matV[1], matV[5], matV[9]];
+
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+    gl.useProgram(pGround);
+    gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+    gl.uniform1f(uGround.uSize, 360.0);
+    gl.uniform1f(uGround.uScroll, scrollX);
+    gl.uniform1f(uGround.uBoomFlash, boomFlash * 0.9);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    if (eye[2] > 1.5) {
+      gl.depthMask(true); gl.depthFunc(gl.LESS);
+      drawMd3Kart(k.model, fa, fb, frac, matKart, eye, true);
+      if (state.driverOn && driverModel) drawMd3Kart(driverModel, fa, fb, frac, matKart, eye, true);
+      gl.depthFunc(gl.LEQUAL);
+    }
+    gl.depthMask(true); gl.disable(gl.BLEND);
+
+    // Draw Kart MD3 surfaces (empty parked kart by default; seated Ranger attached when toggled)
+    drawMd3Kart(k.model, fa, fb, frac, matKart, eye, false);
+    if (state.driverOn && driverModel) drawMd3Kart(driverModel, fa, fb, frac, matKart, eye, false);
+
+    // Player-Fit Reference Driver Overlay
+    if (state.playerFit) {
+      const pAlpha = modeId === 'explode' ? Math.max(0.18, 1.0 - boomU * 1.4) : 1.0;
+      const pMat = new Float32Array(16);
+      if (modeId === 'super') {
+        mat4PitchAbout(pMat, -18.0, 0.0, 10.0, 1.8);
+      } else {
+        mat4Ident(pMat);
+      }
+
+      const ptr = addPlayerFitGuides(0, k.seat_pos, k.steer_pos);
+      if (ptr > 0) {
+        gl.useProgram(pLine); gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+        gl.bindVertexArray(lineVao); gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr));
+        gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.drawArrays(gl.LINES, 0, ptr / 7);
+        gl.disable(gl.BLEND);
+      }
+
+      gl.useProgram(pPlayer);
+      gl.uniformMatrix4fv(uPlayer.uVP, false, matVP);
+      gl.uniformMatrix4fv(uPlayer.uModel, false, pMat);
+      gl.uniform3f(uPlayer.uEye, eye[0], eye[1], eye[2]);
+      gl.uniform1f(uPlayer.uAlphaScale, pAlpha);
+      gl.bindVertexArray(k.playerMesh.vao);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.drawElements(gl.TRIANGLES, k.playerMesh.count, gl.UNSIGNED_SHORT, 0);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
+
+    // Dynamic WebGL2 Particles (speedlines, tire smoke, exhaust flame/spark/ember plumes, explosion)
+    const { nAlpha, nAdd } = buildDynamicParticles(k, modeId, fCont, clipTime);
+    drawParticles(partAlphaData, nAlpha, eye, camRight, camUp, false);
+    drawParticles(partAddData, nAdd, eye, camRight, camUp, true);
+
+    return fCont;
+  }
+
+  $('loading').style.display = 'none';
+  let lastNow = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastNow) * 0.001);
+    lastNow = now;
+    const tSec = now * 0.001;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr), ch = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.027, 0.043, 0.071, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (detail.k) {
+      if (state.spin && !detail.view.userTouched) detail.view.az += dt * 0.36 * state.speed;
+      if (detail.playing) {
+        detail.clipTime += dt * state.speed;
+        const ci = state.clipIdx;
+        if (ci === 1) detail.scrollX += dt * 165 * state.speed;
+        if (ci === 2) detail.scrollX += dt * 280 * state.speed;
+        if (ci === 3) detail.scrollX += dt * 215 * state.speed;
+      }
+      const r = $('detail-stage').getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) {
+        const vx = Math.floor(r.left * dpr), vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr), vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh); gl.scissor(vx, vy, vw, vh); gl.clear(gl.DEPTH_BUFFER_BIT);
+        detail.view.aspect = vw / vh;
+        const fShown = renderViewport(
+          detail.k, detail.view, state.clipIdx, detail.clipTime, detail.scrollX, tSec,
+          detail.playing ? null : detail.scrubFrame
+        );
+        if (detail.playing) {
+          detail.scrubFrame = fShown;
+          $('d-scrub').value = fShown.toFixed(1);
+        }
+        $('d-frame-lbl').textContent = `frame ${Math.floor(fShown)} / 63 · ${frameNameFor(fShown)}`;
+      }
+    } else {
+      for (const c of cards) {
+        if (state.spin && !c.view.userTouched) c.view.az += dt * 0.34 * state.speed;
+        c.clipTime += dt * state.speed;
+        if (c.clipIdx === 1) c.scrollX += dt * 165 * state.speed;
+        if (c.clipIdx === 2) c.scrollX += dt * 280 * state.speed;
+        if (c.clipIdx === 3) c.scrollX += dt * 215 * state.speed;
+        if (c.stageEl.offsetParent === null) continue;
+        const r = c.stageEl.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0 || r.bottom < 0 || r.top > window.innerHeight || r.width < 4 || r.height < 4) continue;
+        const vx = Math.floor(r.left * dpr), vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr), vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh); gl.scissor(vx, vy, vw, vh); gl.clear(gl.DEPTH_BUFFER_BIT);
+        c.view.aspect = vw / vh;
+        renderViewport(c.k, c.view, c.clipIdx, c.clipTime, c.scrollX, tSec, null);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch(err => {
+  $('loading').innerHTML = `<div style="color:#fb7185;max-width:640px;padding:24px"><b>WebGL2 Showcase Error:</b><br><pre style="white-space:pre-wrap">${err && err.stack ? err.stack : err}</pre></div>`;
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+{
+  "id": "kart3",
+  "name": "Baja Dune Scrambler",
+  "tagline": "Acid-Lime Desert Buggy-Kart with Long-Travel Coil-Overs & V-Twin",
+  "palette": [
+    "#84cc16",
+    "#27272a",
+    "#f97316",
+    "#d97706"
+  ],
+  "description": "Rugged Bakersfield desert buggy-kart built around an acid-lime & matte gunmetal tubular exoskeleton, riveted brushed-steel skid plate, bull-bar with twin amber rally fog lamps, Quake 'Q' grille badge, long-travel hazard-orange coil-over shocks, knobby beadlock off-road tires, and an exposed rear V-twin firing dual swept-up chrome megaphones.",
+  "highlights": [
+    [
+      "Chassis",
+      "Acid-lime & gunmetal tubular sand-rail cage, diamond floor, bull-bar & riveted skid plate"
+    ],
+    [
+      "Suspension",
+      "Front double A-arms + 4 hazard-orange helical coil-over shocks, high desert clearance"
+    ],
+    [
+      "Tires",
+      "4 wide knobby-treaded off-road tires (48 3D lugs each) on bronze/gunmetal beadlock rims"
+    ],
+    [
+      "Powertrain",
+      "Finned rear V-twin, gold pleated air cone, heat-wrapped dual chrome megaphones"
+    ],
+    [
+      "Player Fit",
+      "Open overhead cockpit (|Y|<=13 clear), seat at (-9, 0, 10), wheel at (+13, 0, 24.5)"
+    ]
+  ],
+  "seat_pos": {
+    "x": -9.0,
+    "y": 0.0,
+    "z": 10.0
+  },
+  "steer_pos": {
+    "x": 13.0,
+    "y": 0.0,
+    "z": 24.5
+  },
+  "exhaust_tips": [
+    {
+      "x": -46.5,
+      "y": 10.5,
+      "z": 20.5,
+      "dx": -0.946,
+      "dy": 0.074,
+      "dz": 0.315
+    },
+    {
+      "x": -46.5,
+      "y": -10.5,
+      "z": 20.5,
+      "dx": -0.946,
+      "dy": -0.074,
+      "dz": 0.315
+    }
+  ],
+  "textures": {
+    "progs/gk3_chassis": "progs/gk3_chassis.png",
+    "progs/gk3_skid": "progs/gk3_skid.png",
+    "progs/gk3_susp": "progs/gk3_susp.png",
+    "progs/gk3_seat": "progs/gk3_seat.png",
+    "progs/gk3_steer": "progs/gk3_steer.png",
+    "progs/gk3_engine": "progs/gk3_engine.png",
+    "progs/gk3_exhaust": "progs/gk3_exhaust.png",
+    "progs/gk3_wheel": "progs/gk3_wheel.png",
+    "progs/gk3_flame": "progs/gk3_flame.png"
+  },
+  "materials": {
+    "progs/gk3_chassis": {
+      "metallic": 0.45,
+      "roughness": 0.35,
+      "spec": 0.65
+    },
+    "progs/gk3_skid": {
+      "metallic": 0.72,
+      "roughness": 0.28,
+      "spec": 0.8
+    },
+    "progs/gk3_susp": {
+      "metallic": 0.55,
+      "roughness": 0.28,
+      "spec": 0.78
+    },
+    "progs/gk3_seat": {
+      "metallic": 0.05,
+      "roughness": 0.8,
+      "spec": 0.18
+    },
+    "progs/gk3_steer": {
+      "metallic": 0.35,
+      "roughness": 0.48,
+      "spec": 0.45
+    },
+    "progs/gk3_engine": {
+      "metallic": 0.78,
+      "roughness": 0.26,
+      "spec": 0.85
+    },
+    "progs/gk3_exhaust": {
+      "metallic": 0.88,
+      "roughness": 0.2,
+      "spec": 0.92
+    },
+    "progs/gk3_wheel": {
+      "metallic": 0.22,
+      "roughness": 0.68,
+      "spec": 0.32
+    },
+    "progs/gk3_flame": {
+      "metallic": 0.0,
+      "roughness": 1.0,
+      "spec": 0.0,
+      "unlit": true,
+      "additive": true
+    }
+  }
+}

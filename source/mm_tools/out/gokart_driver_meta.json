@@ -1,0 +1,15 @@
+{
+  "id": "gokart_driver",
+  "name": "Quake Ranger Driver",
+  "md3File": "progs/gokart_driver.md3",
+  "textures": {
+    "progs/gk_driver": "progs/gk_driver.png"
+  },
+  "materials": {
+    "progs/gk_driver": {
+      "metallic": 0.12,
+      "roughness": 0.68,
+      "spec": 0.3
+    }
+  }
+}

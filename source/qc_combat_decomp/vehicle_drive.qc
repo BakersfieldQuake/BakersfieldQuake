@@ -254,6 +254,8 @@ float(float kind) Veh_Wheelbase =
 
 float(float kind) Veh_MaxPass =
 {
+	if (Veh_IsKart (kind))
+		return 0;
 	if (kind == VEH_VAN || kind == VEH_SCHOOLBUS)
 		return 5;
 	if (kind == VEH_TRUCK || kind == VEH_HDTRUCK)
@@ -437,6 +439,8 @@ void(entity v, vector org, float yaw) Veh_GroundSample =
 
 float(float kind) Veh_DrivenTopZ =
 {
+	if (Veh_IsKart (kind))
+		return 34;
 	if (kind == VEH_SCHOOLBUS)
 		return 62;
 	if (kind == VEH_VAN || kind == VEH_TRUCK || kind == VEH_HDTRUCK)
@@ -565,6 +569,14 @@ void(entity v) Veh_Park =
 	v.veh_land_dip = 0;
 	v.veh_drift_t = 0;
 	v.veh_air = FALSE;
+	v.gk_boosting = FALSE;
+	v.gk_boost_t = 0;
+	v.gk_boost_pwr = 0;
+	v.gk_drift_dir = 0;
+	v.gk_drift_charge = 0;
+	v.gk_drift_tier = 0;
+	v.gk_air_t = 0;
+	v.gk_speed = 0;
 	v.angles_x = 0;
 	v.angles_z = 0;
 	v.movetype = MOVETYPE_NONE;
@@ -680,7 +692,8 @@ void(entity v, float imp, vector at) Veh_Crash =
 		dprint (ftos (v.health));
 		dprint ("\n");
 	}
-	pointparticles (veh_fx_sparks, at, '0 0 0', 1);
+	if (veh_fx_sparks > 0)
+		pointparticles (veh_fx_sparks, at, '0 0 0', 1);
 	if (random () < 0.5)
 		sound7 (v, CHAN_BODY, "vehicles/clang1.wav", bound (0.5, imp / 500, 1), ATTN_NORM, 78 + random () * 16);
 	else
@@ -731,6 +744,12 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	local vector fwd, lft, pos, tgt, ang;
 	local float yaw, pitch, d, spd, lead, hl, ht, cdist, cup;
 	local float want_dist, spd_frac, vf_cam, look_fwd, tgt_yaw, vel_d, want_pitch;
+
+	if (Veh_IsKart (v.veh_kind))
+	{
+		GK_DriveCamera (p, v, dt);
+		return;
+	}
 
 	cam = v.veh_cament;
 	fwd = Veh_Fwd (v.angles_y);
@@ -829,6 +848,18 @@ void(entity v, float thr) Veh_EngineSound =
 
 	if (time < v.veh_eng_t)
 		return;
+	if (Veh_IsKart (v.veh_kind))
+	{
+		pitch = 78 + 165 * v.veh_rpm;
+		if (v.gk_boosting || time < v.gk_boost_t)
+			pitch = pitch * 1.15;
+		vol = 0.28 + 0.18 * thr;
+		sound7 (v, VD_SOUND_CH, "vehicles/engine_grain_tuktuk.wav", vol, ATTN_NORM, min (245, pitch * 1.08));
+		if (v.veh_eng_t < time - 0.2)
+			v.veh_eng_t = time;
+		v.veh_eng_t = v.veh_eng_t + 16 / max (60, pitch);
+		return;
+	}
 	pitch = 62 + 150 * v.veh_rpm;
 	if (time < v.veh_shift_t)
 		pitch = pitch * 0.86;
@@ -1120,6 +1151,8 @@ void() Veh_PassengerFrame =
 // give the player back to himself
 void(entity p, vector pos, vector vel, float yaw) Veh_ReleasePlayer =
 {
+	if (p.veh_van != world && Veh_IsKart (p.veh_van.veh_kind) && p.ishuman == 1)
+		centerprint (p, "");
 	p.veh_van = world;
 	p.clientcamera = p;
 	msg_entity = p;
@@ -1166,6 +1199,11 @@ void(entity v, vector pos, vector vel, float forced) Veh_Leave =
 	{
 		remove (v.veh_cament);
 		v.veh_cament = world;
+	}
+	if (v.veh_driverent != world)
+	{
+		remove (v.veh_driverent);
+		v.veh_driverent = world;
 	}
 	v.angles_x = 0;
 	v.angles_z = 0;
@@ -1296,7 +1334,38 @@ void(entity v, float dt) Veh_CoastStep =
 	yaw0 = v.angles_y;
 	org0 = v.origin;
 	org1 = org0 + vel * dt;
-	if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+	if (Veh_IsKart (v.veh_kind))
+	{
+		GK_CheckPads (v, world);
+		v.gk_speed = vlen (vel);
+		if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+		{
+			n = vd_hitnorm;
+			vn = vel * n;
+			if (vn < 0)
+			{
+				imp = 0 - vn;
+				living = FALSE;
+				if (vd_hitent != world && vd_hitent.takedamage && ((vd_hitent.flags & FL_CLIENT) || (vd_hitent.flags & FL_MONSTER)))
+				{
+					living = TRUE;
+					Veh_RamHit (v, vd_hitent, imp);
+					vel = vel * 0.95;
+				}
+				else
+				{
+					vel = (vel - n * (vn * 1.65)) * 0.80;
+					sound7 (v, CHAN_BODY, "bikes/tire_bounce.wav", bound (0.35, imp / 450, 0.9), ATTN_NORM, 96 + random () * 16);
+				}
+				org1 = org0 + vel * dt;
+				if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+					org1 = org0;
+			}
+			else
+				org1 = org0;
+		}
+	}
+	else if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
 	{
 		n = vd_hitnorm;
 		vn = vel * n;
@@ -1385,7 +1454,7 @@ void(entity p, entity v) Veh_TryExit =
 		centerprint (p, "No room to open the door.\nPull away from the wall.\n");
 		return;
 	}
-	if (spd > 165)
+	if (spd > 165 && !Veh_IsKart (v.veh_kind))
 	{
 		// Hollywood Dive-Bail! Fling driver clear while the unmanned vehicle coasts forward into walls/enemies!
 		outd = vd_exit - v.origin;
@@ -1460,7 +1529,7 @@ void(entity v, entity drv) Veh_BoardCargoRiders =
 
 void(entity p, entity v) Veh_Enter =
 {
-	local entity cam, oldself;
+	local entity cam, oldself, de;
 
 	if (p.jp_on)
 	{
@@ -1506,6 +1575,18 @@ void(entity p, entity v) Veh_Enter =
 	v.veh_fx_boost_t = 0;
 	v.veh_land_dip = 0;
 	v.veh_drift_t = 0;
+	v.gk_nitro = 100;
+	v.gk_boosting = FALSE;
+	v.gk_boost_t = 0;
+	v.gk_boost_pwr = 0;
+	v.gk_drift_dir = 0;
+	v.gk_drift_charge = 0;
+	v.gk_drift_tier = 0;
+	v.gk_air_t = 0;
+	v.gk_speed = 0;
+	v.gk_hud_t = 0;
+	v.gk_smoke_t = 0;
+	v.gk_hop_prev = TRUE;
 	v.movetype = MOVETYPE_NONE;
 	v.solid = SOLID_BBOX;
 	v.takedamage = DAMAGE_AIM;
@@ -1536,6 +1617,27 @@ void(entity p, entity v) Veh_Enter =
 	p.veh_cam_yaw = v.angles_y;
 	p.veh_cam_pitch = VD_CAM_PITCH;
 	p.veh_cam_dist = max (180, Veh_HalfLen (v.veh_kind) * 2.30);
+	if (v.veh_driverent != world)
+	{
+		remove (v.veh_driverent);
+		v.veh_driverent = world;
+	}
+	if (Veh_IsKart (v.veh_kind))
+	{
+		de = spawn ();
+		de.classname = "gokart_driver";
+		de.movetype = MOVETYPE_NONE;
+		de.solid = SOLID_NOT;
+		de.takedamage = DAMAGE_NO;
+		de.angles = v.angles;
+		de.frame = v.frame;
+		setmodel (de, "progs/gokart_driver.md3");
+		setsize (de, '0 0 0', '0 0 0');
+		setorigin (de, v.origin);
+		v.veh_driverent = de;
+		p.veh_cam_pitch = 12;
+		p.veh_cam_dist = 142;
+	}
 	p.veh_cam_look = 0;
 	p.clientcamera = cam;
 	msg_entity = p;
@@ -1544,7 +1646,7 @@ void(entity p, entity v) Veh_Enter =
 	Veh_DriveCamera (p, v, 0.02);
 
 	sound (v, CHAN_VOICE, "vehicles/ignition.wav", 1, ATTN_NORM);
-	if (!p.veh_hint_shown)
+	if (!p.veh_hint_shown && !Veh_IsKart (v.veh_kind))
 	{
 		p.veh_hint_shown = TRUE;
 		centerprint (p, "WASD drive | SPACE drift/brake | FIRE horn | K cam | H exit");
@@ -1564,7 +1666,7 @@ entity(entity p) Veh_SeatOf =
 	while (e != world)
 	{
 		// the Spruce school bus drives itself on .ltime waypoints and removes itself at the route end: not enterable
-		if (e.veh_kind >= 1 && e.veh_kind <= 9 && e.veh_state != VEH_STATE_WRECK && e.classname != "spruce_schoolbus")
+		if (e.veh_kind >= 1 && e.veh_kind <= VEH_GOKART_6 && e.veh_state != VEH_STATE_WRECK && e.classname != "spruce_schoolbus")
 		{
 			rel = p.origin - e.origin;
 			lx = rel * Veh_Fwd (e.angles_y);
@@ -1761,6 +1863,9 @@ float() Veh_DriveFrame =
 	self.impulse = 0;
 	self.velocity = '0 0 0';
 	self.flags = self.flags - (self.flags & FL_ONGROUND);		// so the jump key (the handbrake) is not a jump
+
+	if (Veh_IsKart (v.veh_kind))
+		return GK_DriveFrame (self, v, dt);
 
 	// ---- the driver's controls
 	started = (time >= v.veh_start_t);

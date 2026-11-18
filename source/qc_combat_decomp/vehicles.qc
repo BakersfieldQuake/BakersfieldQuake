@@ -22,6 +22,18 @@ void(entity v, float kind) Veh_InitEntity;
 
 // ---------------------------------------------------------------- Precache
 
+void() Veh_PrecacheEffects =
+{
+	veh_fx_fire = particleeffectnum ("veh_fire");
+	veh_fx_smoke = particleeffectnum ("veh_smoke");
+	veh_fx_explode = particleeffectnum ("veh_explode");
+	veh_fx_wreck = particleeffectnum ("veh_wreck_fire");
+	veh_fx_sparks = particleeffectnum ("veh_sparks");
+	veh_fx_boost = particleeffectnum ("veh_boost");
+	veh_fx_drift = particleeffectnum ("veh_drift");
+	gk_fx_smoke = particleeffectnum ("gk_tire_smoke");
+};
+
 void() Vehicles_Precache =
 {
 	if (vehicles_precached)
@@ -93,6 +105,14 @@ void() Vehicles_Precache =
 
 	precache_model ("progs/lsj/lsj_golfcart.md3");
 
+	precache_model ("progs/gokart_1.md3");
+	precache_model ("progs/gokart_2.md3");
+	precache_model ("progs/gokart_3.md3");
+	precache_model ("progs/gokart_4.md3");
+	precache_model ("progs/gokart_5.md3");
+	precache_model ("progs/gokart_6.md3");
+	precache_model ("progs/gokart_driver.md3");
+
 	precache_model ("progs/veh_shrap1.md3");
 	precache_model ("progs/veh_shrap2.md3");
 	precache_model ("progs/veh_shrap3.md3");
@@ -124,14 +144,13 @@ void() Vehicles_Precache =
 	precache_sound ("vehicles/ignition.wav");
 	precache_sound ("vehicles/lanvan.wav");
 	precache_sound ("misc/null.wav");
+	precache_sound ("bikes/tire_bounce.wav");
+	precache_sound ("bikes/spoke_ping.wav");
+	precache_sound ("john_bird/swoop.wav");
+	precache_sound ("ambience/windfly.wav");
+	precache_sound ("skypad/launch.wav");
 
-	veh_fx_fire = particleeffectnum ("veh_fire");
-	veh_fx_smoke = particleeffectnum ("veh_smoke");
-	veh_fx_explode = particleeffectnum ("veh_explode");
-	veh_fx_wreck = particleeffectnum ("veh_wreck_fire");
-	veh_fx_sparks = particleeffectnum ("veh_sparks");
-	veh_fx_boost = particleeffectnum ("veh_boost");
-	veh_fx_drift = particleeffectnum ("veh_drift");
+	Veh_PrecacheEffects ();
 };
 
 // ---------------------------------------------------------------- Geometry & Asset Lookup Helpers
@@ -143,6 +162,11 @@ float(float a) Veh_NormYaw =
 	while (a < 0)
 		a = a + 360;
 	return a;
+};
+
+float(float kind) Veh_IsKart =
+{
+	return (kind >= VEH_GOKART_1 && kind <= VEH_GOKART_6);
 };
 
 string(float kind) Veh_DisplayName =
@@ -163,6 +187,18 @@ string(float kind) Veh_DisplayName =
 		return "Island Golf Cart";
 	if (kind == VEH_TUKTUK)
 		return "Bangkok Tuk-Tuk";
+	if (kind == VEH_GOKART_1)
+		return "Bakersfield Tubular Classic";
+	if (kind == VEH_GOKART_2)
+		return "Cyber-Nitro Aero GT";
+	if (kind == VEH_GOKART_3)
+		return "Baja Dune Scrambler";
+	if (kind == VEH_GOKART_4)
+		return "Mega Man Classic Bar-Racer";
+	if (kind == VEH_GOKART_5)
+		return "Mega Man Twin-Dish Interceptor";
+	if (kind == VEH_GOKART_6)
+		return "Mega Man Heavy Fat-Tire Rammer";
 	return "Tuner Coupe";
 };
 
@@ -176,6 +212,7 @@ float(float kind) Veh_HalfLen =
 	if (kind == VEH_SEDAN)     return 98;
 	if (kind == VEH_TUKTUK)    return 58;
 	if (kind == VEH_GOLFCART)  return 50;
+	if (Veh_IsKart (kind))     return 50;
 	return 93;
 };
 
@@ -187,6 +224,7 @@ float(float kind) Veh_HalfWid =
 	if (kind == VEH_VAN)       return 44;
 	if (kind == VEH_TUKTUK)    return 28;
 	if (kind == VEH_GOLFCART)  return 26;
+	if (Veh_IsKart (kind))     return 34;
 	return 39;
 };
 
@@ -200,6 +238,7 @@ float(float kind) Veh_BodyHeight =
 	if (kind == VEH_TUKTUK)    return 70;
 	if (kind == VEH_SEDAN)     return 55;
 	if (kind == VEH_GTCAR)     return 53;
+	if (Veh_IsKart (kind))     return 36;
 	return 50;
 };
 
@@ -221,6 +260,18 @@ string(float kind) Veh_IntactModel =
 		return "progs/lsj/lsj_golfcart.md3";
 	if (kind == VEH_TUKTUK)
 		return "progs/veh_tuktuk.md3";
+	if (kind == VEH_GOKART_1)
+		return "progs/gokart_1.md3";
+	if (kind == VEH_GOKART_2)
+		return "progs/gokart_2.md3";
+	if (kind == VEH_GOKART_3)
+		return "progs/gokart_3.md3";
+	if (kind == VEH_GOKART_4)
+		return "progs/gokart_4.md3";
+	if (kind == VEH_GOKART_5)
+		return "progs/gokart_5.md3";
+	if (kind == VEH_GOKART_6)
+		return "progs/gokart_6.md3";
 	return "progs/veh_coupe.md3";
 };
 
@@ -346,7 +397,7 @@ string(float kind) Veh_IdleSound =
 		return "vehicles/idle_sedan.wav";
 	if (kind == VEH_VAN || kind == VEH_SCHOOLBUS)
 		return "vehicles/idle_van.wav";
-	if (kind == VEH_TUKTUK)
+	if (kind == VEH_TUKTUK || Veh_IsKart (kind))
 		return "vehicles/idle_tuktuk.wav";
 	return "vehicles/idle_coupe.wav";
 };
@@ -369,6 +420,8 @@ float(float kind) Veh_MaxHP =
 		return 200;
 	if (kind == VEH_TUKTUK)
 		return 190;
+	if (Veh_IsKart (kind))
+		return 220;
 	return 210;
 };
 
@@ -391,6 +444,8 @@ vector(float kind) Veh_HoodFireOfs =
 		return '34 0 28';
 	if (kind == VEH_TUKTUK)
 		return '36 0 35';
+	if (Veh_IsKart (kind))
+		return '-24 0 18';
 	return '62 0 29';
 };
 
@@ -463,6 +518,14 @@ void(entity v, float kind, float is_wreck) Veh_SetRotatedBounds =
 		ht = 70;
 		if (is_wreck)
 			ht = 44;
+	}
+	else if (Veh_IsKart (kind))
+	{
+		hl = 50;
+		hw = 34;
+		ht = 36;
+		if (is_wreck)
+			ht = 22;
 	}
 	else
 	{
@@ -690,7 +753,8 @@ void() Veh_DebrisTouch =
 		return;
 	self.mm_bouncetime = time;
 	self.mm_bounces = self.mm_bounces + 1;
-	pointparticles (veh_fx_sparks, self.origin, '0 0 0', 1);
+	if (veh_fx_sparks > 0)
+		pointparticles (veh_fx_sparks, self.origin, '0 0 0', 1);
 	vol = 0.48 + spd / 850;
 	if (vol > 0.95)
 		vol = 0.95;
@@ -722,6 +786,7 @@ void() Veh_DebrisThink =
 			self.avelocity = '0 0 0';
 	}
 	if (age < 2.2 && random () < (0.45 - age * 0.16))
+		if (veh_fx_sparks > 0)
 		pointparticles (veh_fx_sparks, self.origin, '0 0 0', 1);
 };
 
@@ -985,10 +1050,11 @@ void(entity v) Veh_StartFire =
 	if (v.veh_state != VEH_STATE_IDLE)
 		return;
 	v.veh_state = VEH_STATE_FIRE;
-	if (v.veh_kind == VEH_GOLFCART)
+	if (v.veh_kind == VEH_GOLFCART || Veh_IsKart (v.veh_kind))
 	{
 		v.skin = 0;
-		v.frame = 0;
+		if (v.veh_kind == VEH_GOLFCART)
+			v.frame = 0;
 	}
 	else
 	{
@@ -1059,6 +1125,11 @@ void() Veh_ExplodeNow =
 	// Whoever is driving / riding goes out at the seat, with the vehicle's speed, into the blast
 	Veh_AllPassengersBail (self, TRUE);
 	Veh_DriverBail (self);
+	if (self.veh_driverent != world)
+	{
+		remove (self.veh_driverent);
+		self.veh_driverent = world;
+	}
 
 	// Clean up child collision clips if this vehicle had a walk-in interior
 	local entity clp, nxt_clp;
@@ -1085,8 +1156,11 @@ void() Veh_ExplodeNow =
 	upv = '0 0 1';
 
 	blast_org = self.origin + '0 0 36';
-	pointparticles (veh_fx_explode, blast_org, '0 0 0', 1);
-	pointparticles (veh_fx_explode, blast_org + fwd * 32, '0 0 0', 1);
+	if (veh_fx_explode > 0)
+	{
+		pointparticles (veh_fx_explode, blast_org, '0 0 0', 1);
+		pointparticles (veh_fx_explode, blast_org + fwd * 32, '0 0 0', 1);
+	}
 
 	// 20-frame 3D core shatter-burst + shock starburst
 	b = spawn ();
@@ -1189,6 +1263,15 @@ void() Veh_ExplodeNow =
 	}
 
 	// 1. Launch ALL 3 (Tuk-Tuk), 4, or 6 (dually!) UNIQUE WHEELS with fierce skyward/outward arcs & banked rolling!
+	// Go-karts use their built-in MD3 explode animation (frames 44..63) + shrapnel instead of car sub-part models.
+	if (Veh_IsKart (kind))
+	{
+		wild_mul = 1.25;
+		shrap_cnt = 6;
+		rad_dmg = 160;
+	}
+	else
+	{
 	if (kind == VEH_TUKTUK)
 	{
 		// Single Front Center Wheel (+X, 0)
@@ -1261,6 +1344,7 @@ void() Veh_ExplodeNow =
 	wpos = self.origin + fwd * brx + upv * bz;
 	wvel = (fwd * (-310 - random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul;
 	Veh_SpawnDebris (Veh_BumperModel (kind), wpos, wvel, ang_opp, 10.5);
+	}
 
 	// 6. Scatter Twisted Scorched Shrapnel Chunks. In a chain reaction (another car went up in the last 3 s) each car
 	// throws fewer: a parking-lot domino used to leave hundreds of thinking, networked chunks
@@ -1287,17 +1371,32 @@ void() Veh_ExplodeNow =
 	}
 
 	// 7. Transform vehicle entity into its leaping/flipping/rolling crumpled charred wreck!
-	setmodel (self, Veh_WreckModel (kind));
-	if (kind == VEH_GOLFCART)
-		self.scale = 0.65;
-	Veh_SetRotatedBounds (self, kind, TRUE);
-	setorigin (self, self.origin);
-	self.frame = 0;
-	self.veh_anim = 0;
-	self.veh_wreck_t = time + 15.0;
-	self.veh_fx_t = time + 0.9;
-	self.think = Veh_Think;
-	self.nextthink = time + 0.055;
+	if (Veh_IsKart (kind))
+	{
+		self.solid = SOLID_NOT;
+		setsize (self, '-16 -16 0', '16 16 16');
+		setorigin (self, self.origin);
+		self.frame = 44;
+		self.veh_anim = 44;
+		self.veh_wreck_t = time + 8.0;
+		self.veh_fx_t = time + 0.5;
+		self.think = Veh_Think;
+		self.nextthink = time + 0.05;
+	}
+	else
+	{
+		setmodel (self, Veh_WreckModel (kind));
+		if (kind == VEH_GOLFCART)
+			self.scale = 0.65;
+		Veh_SetRotatedBounds (self, kind, TRUE);
+		setorigin (self, self.origin);
+		self.frame = 0;
+		self.veh_anim = 0;
+		self.veh_wreck_t = time + 15.0;
+		self.veh_fx_t = time + 0.9;
+		self.think = Veh_Think;
+		self.nextthink = time + 0.055;
+	}
 
 	// 8. Deal explosion radius damage (triggers chain reactions on neighboring parked cars!)
 	atk = self.veh_igniter;
@@ -1347,7 +1446,10 @@ void() Veh_Explode =
 
 void() Veh_TryRespawn =
 {
-	tracebox (self.veh_spawn_org + '0 0 2', self.mins, self.maxs, self.veh_spawn_org + '0 0 2', FALSE, self);
+	if (Veh_IsKart (self.veh_kind))
+		tracebox (self.veh_spawn_org + '0 0 2', '-48 -36 0', '48 36 36', self.veh_spawn_org + '0 0 2', FALSE, self);
+	else
+		tracebox (self.veh_spawn_org + '0 0 2', self.mins, self.maxs, self.veh_spawn_org + '0 0 2', FALSE, self);
 	if (trace_startsolid || trace_allsolid || trace_ent != world)
 	{
 		// Wait until player/monster steps clear of the parking spot
@@ -1384,6 +1486,39 @@ void() Veh_Think =
 	// ---- STATE 2: Crumpled Charred Wreck (frames 0..19 or 0..39 wild airborne-flip -> ground barrel-roll -> smolder)
 	if (self.veh_state == VEH_STATE_WRECK)
 	{
+		if (Veh_IsKart (self.veh_kind))
+		{
+			if (self.frame < 63)
+			{
+				self.frame = self.frame + 1;
+				if (self.frame == 52)
+				{
+					sound7 (self, CHAN_BODY, "vehicles/clang2.wav", 0.90, ATTN_NORM, 84 + random () * 14);
+					if (veh_fx_sparks > 0)
+						pointparticles (veh_fx_sparks, self.origin + '0 0 10', '0 0 0', 1);
+				}
+				self.nextthink = time + 0.05;
+				return;
+			}
+			if (time < self.veh_wreck_t)
+			{
+				makevectors ('0 1 0' * self.angles_y);
+				hofs = Veh_HoodFireOfs (self.veh_kind);
+				fpos = self.origin + v_forward * hofs_x + '0 0 1' * hofs_z;
+				if (veh_fx_wreck > 0)
+					pointparticles (veh_fx_wreck, fpos, '0 0 0', 1);
+				self.nextthink = time + 0.22;
+				return;
+			}
+			if (!self.veh_temp && autocvar_veh_respawn > 0)
+			{
+				self.think = Veh_TryRespawn;
+				self.nextthink = time + min (autocvar_veh_respawn, 15);
+				return;
+			}
+			self.nextthink = -1;
+			return;
+		}
 		local float max_wf, is_wild;
 		is_wild = ((self.veh_kind >= VEH_HDTRUCK && self.veh_kind <= VEH_GTCAR) || self.veh_kind == VEH_TUKTUK);
 		max_wf = 19;
@@ -1452,7 +1587,9 @@ void() Veh_Think =
 		self.nextthink = time + 0.05;
 		self.veh_anim = self.veh_anim + 0.95;
 		f = floor (self.veh_anim);
-		if (self.veh_kind == VEH_GOLFCART)
+		if (Veh_IsKart (self.veh_kind))
+			GK_ThinkAnim (self);
+		else if (self.veh_kind == VEH_GOLFCART)
 			self.frame = 0;
 		else
 			self.frame = 22 + (f - 14 * floor (f / 14));
@@ -1464,12 +1601,14 @@ void() Veh_Think =
 		if (time >= self.veh_fx_t)
 		{
 			self.veh_fx_t = time + 0.06;
-			pointparticles (veh_fx_fire, fpos, '0 0 0', 1);
+			if (veh_fx_fire > 0)
+				pointparticles (veh_fx_fire, fpos, '0 0 0', 1);
 		}
 		if (time >= self.veh_smoke_t)
 		{
 			self.veh_smoke_t = time + 0.12;
-			pointparticles (veh_fx_smoke, fpos + '0 0 6', '0 0 0', 1);
+			if (veh_fx_smoke > 0)
+				pointparticles (veh_fx_smoke, fpos + '0 0 6', '0 0 0', 1);
 		}
 		if (time >= self.veh_snd_t)
 		{
@@ -1515,7 +1654,9 @@ void() Veh_Think =
 		self.nextthink = time + 0.05;
 	else
 		self.nextthink = time + 0.06;
-	if (self.veh_kind == VEH_GOLFCART)
+	if (Veh_IsKart (self.veh_kind))
+		GK_ThinkAnim (self);
+	else if (self.veh_kind == VEH_GOLFCART)
 		self.frame = 0;
 	else if (time < self.veh_flinch_end)
 	{
@@ -1584,9 +1725,13 @@ void(entity v, float kind) Veh_InitEntity =
 	v.colormod = v.veh_orig_colormod;
 	if (kind == VEH_GOLFCART)
 		v.frame = 0;
+	else if (Veh_IsKart (kind))
+		v.frame = floor (random () * 12);
 	else
 		v.frame = floor (random () * 16);
 	v.veh_anim = v.frame;
+	if (Veh_IsKart (kind))
+		GK_InitKart (v);
 	v.veh_flinch_end = 0;
 	v.veh_chain_t = 0;
 	v.veh_coast_until = 0;
@@ -1687,13 +1832,72 @@ void() misc_vehicle_tuktuk =
 	Veh_InitEntity (self, VEH_TUKTUK);
 };
 
+void() misc_gokart_1 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_1";
+	Veh_InitEntity (self, VEH_GOKART_1);
+};
+
+void() misc_gokart_2 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_2";
+	Veh_InitEntity (self, VEH_GOKART_2);
+};
+
+void() misc_gokart_3 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_3";
+	Veh_InitEntity (self, VEH_GOKART_3);
+};
+
+void() misc_gokart_4 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_4";
+	Veh_InitEntity (self, VEH_GOKART_4);
+};
+
+void() misc_gokart_5 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_5";
+	Veh_InitEntity (self, VEH_GOKART_5);
+};
+
+void() misc_gokart_6 =
+{
+	Vehicles_Precache ();
+	self.classname = "misc_gokart_6";
+	Veh_InitEntity (self, VEH_GOKART_6);
+};
+
+void() misc_gokart =
+{
+	local float k;
+
+	Vehicles_Precache ();
+	k = floor (self.cnt);
+	if (k < 1 || k > 6)
+	{
+		gokart_spawn_cycle = gokart_spawn_cycle + 1;
+		if (gokart_spawn_cycle > 6)
+			gokart_spawn_cycle = 1;
+		k = gokart_spawn_cycle;
+	}
+	self.classname = "misc_gokart";
+	Veh_InitEntity (self, VEH_GOKART_1 + k - 1);
+};
+
 void() misc_vehicle =
 {
 	local float k;
 
 	Vehicles_Precache ();
 	k = floor (self.cnt);
-	if (k < 1 || k > 9)
+	if (k < 1 || k > VEH_GOKART_6)
 	{
 		k = floor (fabs (self.origin_x * 0.013 + self.origin_y * 0.017)) + 1;
 		k = k - 4 * floor ((k - 1) / 4);
@@ -1721,7 +1925,7 @@ void() Veh_PruneTempWrecks =
 		}
 		e = nextent (e);
 	}
-	if (n > 8 && oldest != world)
+	if (n > 14 && oldest != world)
 	{
 		Veh_FreeClips (oldest);		// else its walk-in boxes stay as invisible walls, owned by a freed (reused) edict
 		if (oldest.veh_cament != world)
@@ -1736,7 +1940,10 @@ entity(float kind, vector org, float yaw_deg) Veh_SpawnDynamic =
 
 	Veh_PruneTempWrecks ();
 	v = spawn ();
-	v.classname = "misc_vehicle";
+	if (Veh_IsKart (kind))
+		v.classname = "misc_gokart";
+	else
+		v.classname = "misc_vehicle";
 	v.veh_temp = TRUE;
 	v.angles = '0 0 0';
 	v.angles_y = Veh_NormYaw (yaw_deg);
@@ -1790,8 +1997,26 @@ void() Vehicles_Impulse =
 		Veh_TestTarget ();
 		return;
 	}
-	if (!autocvar_sv_cheats)	// 81-85 & 91-94 spawn cars out of thin air: sv_cheats only
+	if (!autocvar_sv_cheats)	// 81-85, 91-95 & 136-138 spawn vehicles out of thin air: sv_cheats only
 		return;
+	if (self.impulse == 136)
+	{
+		self.impulse = 0;
+		GK_SpawnAndEnter ();
+		return;
+	}
+	if (self.impulse == 137)
+	{
+		self.impulse = 0;
+		GK_SpawnAll6 ();
+		return;
+	}
+	if (self.impulse == 138)
+	{
+		self.impulse = 0;
+		GK_SpawnNext ();
+		return;
+	}
 	if (!((self.impulse >= 81 && self.impulse <= 85) || (self.impulse >= 91 && self.impulse <= 95)))
 		return;
 
