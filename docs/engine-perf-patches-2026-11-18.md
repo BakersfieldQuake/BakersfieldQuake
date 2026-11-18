@@ -2,7 +2,9 @@
 
 Follow-up to `docs/audit-2026-11-18-performance.md` (section 10), `docs/engine-fs-dircache-results.md` and
 `docs/engine-memory-leaks-2026-11-18.md`.
-Nothing here is installed, released or pushed. It is a candidate for the owner to try and for the engine fork to merge.
+Not released and not pushed to the engine fork. Since 2026-11-19 it is the installed engine on the owner's PC only
+(`engine\zircon_beta_gcc.exe`, released engine beside it as `zircon_beta_gcc.stock.exe`): a candidate for the owner to
+play on and for the engine fork to merge.
 
 ## What it is
 
