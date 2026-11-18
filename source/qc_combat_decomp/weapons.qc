@@ -24,7 +24,7 @@ void() W_Precache =
 	Milky_Precache();	// the Milky Gun replaces the super nailgun (milky.qc)
 	Hammer_Precache();	// the Bonk Hammer replaces the axe (hammer.qc)
 	LtGun_Precache();	// the laptop gun replaces the sniper rifle (ltgun.qc)
-	LanProps_Precache();
+	// (the LAN props precache themselves in Lan_InitProp: only maps that place them load their 28 models)
 	Veh_PrecacheEffects();
 	if (cvar("sv_cheats"))
 		Bikes_Precache();

@@ -71,14 +71,14 @@ void() BM_Precache =
 	// Lazy sprite loading: David, Daniel, GreenSuit, RobeGuy and the crowd are about 1 GB of 32-bit sprites. Each of them
 	// precaches itself where it is used (summon impulses, map entities, npc_crowd), so a map that never shows them no longer
 	// loads them. Only the fox crowd is spawned by code after load, so fox still loads its crowd here.
-	RandomNPCs_Precache ();
+	// The random NPCs, the Eric cannon (and its LAN props), the Mega Man tank and the sky pads are map-placed or summoned by
+	// test impulses, and each of them precaches itself in its own init (RandomNPC_InitCommon, EC_InitMonument, Lan_InitProp,
+	// MMT_InitTank, the sky pad spawn function). Loading all of them here cost every map about 70 models and 170 MB of
+	// textures it never showed (2026-11-18 load audit), so a map that places none of them no longer loads them.
 	if (world.model == "maps/fox.bsp")
 		Crowd_Precache ();
 	Soi6_Precache ();
 	JohnBird_Precache ();
-	EricCannon_Precache ();
-	MMTank_Precache ();
-	SkyPad_Precache ();
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push
