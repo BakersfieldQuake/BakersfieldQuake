@@ -41,7 +41,6 @@ set "SCAN=%~dp0tools\lanscan.ps1"
 if not exist "%SCAN%" set "SCAN=%~dp0lanscan.ps1"
 set "PS=powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden"
 
-rem First run (no saved config yet, or only the placeholder from the zip): use the Windows user name and a random colour.
 rem Low-memory mode. With the normal settings the game needs about 4 GB of memory of its own, and on a PC with 8 GB the
 rem map load can end in "Mem_Alloc: out of memory". Under 10 GB of RAM the game therefore starts with lowmem.cfg (model
 rem textures at half size, about 2.5 GB). The RAM size is read once and kept in ram-gb.txt (delete it after a RAM upgrade).
@@ -54,9 +53,33 @@ if not defined BQRAM call :readram
 set "LOWMEM="
 rem (the leading 1 keeps the line valid when BQRAM is empty: 8 becomes 18, 16 becomes 116)
 if defined BQRAM if 1%BQRAM% LSS 110 set "LOWMEM=+exec lowmem.cfg"
+
+rem Weak graphics. A map loads 1.4 to 2.2 GB of textures. A graphics chip with under 3 GB of its own memory (integrated
+rem graphics, or an old 2 GB card) cannot hold them, so such a PC also starts with lowmem.cfg. The first time it starts
+rem the game it also gets lowgpu.cfg (the menu's Simple Mode, no anti-aliasing): ordinary saved settings from then on,
+rem which Options changes back. The size is read once and kept in vram-mb.txt (delete it after a graphics card change;
+rem 0 = unknown = normal settings). Windows reports at most 4095 here, which is all this test needs.
+rem   set BQ_LOWGPU=1  applies lowgpu.cfg at this start,  set BQ_LOWGPU=0  never.
+set "BQVRAMF=%LOCALAPPDATA%\BAKOQUAKE\vram-mb.txt"
+set "BQGPUDONE=%LOCALAPPDATA%\BAKOQUAKE\lowgpu-applied.txt"
+set "BQVRAM="
+if exist "%BQVRAMF%" set /p BQVRAM=<"%BQVRAMF%"
+if defined BQVRAM echo %BQVRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQVRAM="
+if not defined BQVRAM call :readvram
+if "%BQVRAM%"=="0" set "BQVRAM="
+set "WEAKGPU="
+rem (leading 1 again: 512 becomes 1512, 2048 becomes 12048, 4095 becomes 14095)
+if defined BQVRAM if 1%BQVRAM% LSS 13000 set "WEAKGPU=1"
+if defined WEAKGPU set "LOWMEM=+exec lowmem.cfg"
+set "LOWGPU="
+if defined WEAKGPU if not exist "%BQGPUDONE%" set "LOWGPU=+exec lowgpu.cfg"
+if "%BQ_LOWGPU%"=="1" set "LOWGPU=+exec lowgpu.cfg"
+if "%BQ_LOWGPU%"=="0" set "LOWGPU="
+
 if "%BQ_LOWMEM%"=="1" set "LOWMEM=+exec lowmem.cfg"
 if "%BQ_LOWMEM%"=="0" set "LOWMEM="
 
+rem First run (no saved config yet, or only the placeholder from the zip): use the Windows user name and a random colour.
 set "FIRST="
 set "NEWPLAYER="
 if not exist "%ROOT%\BakersfieldQuake\config.cfg" set "NEWPLAYER=1"
@@ -67,7 +90,8 @@ set FIRST=+_cl_name "%USERNAME%" +_cl_color %COLOR%
 :haveconfig
 
 rem Keys (F1 = online server, F2 = LAN) are defaults in default.cfg, not forced here, so a player's rebinds are saved.
-start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %LOWMEM% %COMBAT_ARGS%
+start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %LOWMEM% %LOWGPU% %COMBAT_ARGS%
+if defined LOWGPU if defined WEAKGPU <nul set /p "=1">"%BQGPUDONE%"
 
 rem Keep lan_server.cfg fresh in the background for optional F3 LAN fallback until the game exits.
 if exist "%SCAN%" start "" /min %PS% -File "%SCAN%" -GameDir "%ROOT%\BakersfieldQuake" -WatchExe "%ENGINE%"
@@ -87,4 +111,13 @@ if defined BQRAM echo %BQRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQRAM="
 if not defined BQRAM exit /b 0
 if not exist "%LOCALAPPDATA%\BAKOQUAKE" mkdir "%LOCALAPPDATA%\BAKOQUAKE" 2>nul
 <nul set /p "=%BQRAM%">"%BQRAMF%"
+exit /b 0
+
+:readvram
+rem Largest video memory of any graphics adapter, in MB, into BQVRAM and vram-mb.txt (0 when PowerShell gives no number).
+for /f %%r in ('powershell -NoProfile -Command "[math]::Round(((Get-CimInstance Win32_VideoController | Measure-Object -Property AdapterRAM -Maximum).Maximum)/1MB)" 2^>nul') do set "BQVRAM=%%r"
+if defined BQVRAM echo %BQVRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQVRAM="
+if not defined BQVRAM set "BQVRAM=0"
+if not exist "%LOCALAPPDATA%\BAKOQUAKE" mkdir "%LOCALAPPDATA%\BAKOQUAKE" 2>nul
+<nul set /p "=%BQVRAM%">"%BQVRAMF%"
 exit /b 0
