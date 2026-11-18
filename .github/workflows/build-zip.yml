@@ -57,11 +57,11 @@ jobs:
       ENGINE_TAG: ${{ inputs.engine_tag }}
       DRAFT: ${{ inputs.draft }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: repo
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -135,14 +135,14 @@ jobs:
       # A builder that starts reading a new file must add it to its key, or a stale pk3 gets reused.
       - name: Cache zz_bakovan.pk3
         id: cache_bakovan
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: pk3cache/zz_bakovan.pk3
           key: zz_bakovan-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/van_bako/build_van_bako_pk3.py', 'repo/source/mm_tools/van_bako/van_front_bako.png') }}
 
       - name: Cache zz_karts.pk3
         id: cache_karts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: pk3cache/zz_karts.pk3
           key: zz_karts-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_gokart_pk3.py', 'repo/source/mm_tools/gokart_*.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/mmw_geometry.py', 'repo/source/mm_tools/tank_geom_core.py', 'repo/source/mm_tools/tank_tex_gen.py', 'repo/source/mm_tools/id1/player.mdl', 'repo/scripts/gokart.shader') }}
@@ -308,11 +308,11 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cache source-built dylibs
         # Keyed on the script, which holds every pinned version.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.bq-mac/prefix-13.0
           key: bq-mac-deps-${{ runner.os }}-xcode16.4-${{ hashFiles('source/mac/build_app.sh') }}
