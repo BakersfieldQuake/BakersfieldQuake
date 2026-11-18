@@ -1,7 +1,7 @@
 """Time a listen-server ("host game") map load in Zircon and collect memory, texture and QC profile numbers.
 
     python -I loadtime.py <tag> <map> [--hold N] [--bots N] [--personal] [--quiet] [--exe <engine.exe>]
-                          [--basedir <scratch copy> --same-userdir] [extra engine args...]
+                          [--basedir <scratch copy> --same-userdir] [--record] [extra engine args...]
 
 The engine runs with an isolated -userdir (%TEMP%/bq_perf/ud_<tag>, or $BQ_PERF_DIR) and port 26098, windowed 1280x720, so nothing is
 written to the real config.cfg. By default an EMPTY personal.cfg / personal_post.cfg in that userdir shadows the
@@ -28,10 +28,13 @@ EXE = os.path.join(ENGINE_DIR, "zircon_beta_gcc.exe")
 argv = sys.argv[1:]
 tag, mapname, rest = argv[0], argv[1], argv[2:]
 hold, bots, personal, quiet, extra = 8, 0, False, False, []
+record = False
 basedir, same, memcap = r"G:\Quake\Combat", False, 0
 i = 0
 while i < len(rest):
-    if rest[i] == "--hold":
+    if rest[i] == "--record":
+        record = True; i += 1
+    elif rest[i] == "--hold":
         hold = int(rest[i + 1]); i += 2
     elif rest[i] == "--bots":
         bots = int(rest[i + 1]); i += 2
@@ -68,7 +71,9 @@ def put(name, text):
 if not personal:
     put("personal.cfg", "// empty: audit run uses release-player settings\n")
     put("personal_post.cfg", "// empty: audit run uses release-player settings\n")
-put("zz_audit_go.cfg", "echo BQ_GO\nmap %s\ndefer 3 \"exec zz_audit_end.cfg\"\n" % mapname)
+# --record: start the map through "record", so the whole match is saved as demo zzb_<map>.dem (see timedemo.py)
+go = ("record zzb_%s %s" % (mapname, mapname)) if record else ("map %s" % mapname)
+put("zz_audit_go.cfg", "echo BQ_GO\n%s\ndefer 3 \"exec zz_audit_end.cfg\"\n" % go)
 put("zz_audit_end.cfg", "echo BQ_INGAME\ndefer %d \"exec zz_audit_end2.cfg\"\n" % hold)
 put("zz_audit_end2.cfg", "echo BQ_STATS_BEGIN\necho BQ_PROFILE_SERVER\nprvm_profile server\necho BQ_PROFILE_CLIENT\n"
                          "prvm_profile client\necho BQ_MEM\nmemstats\nr_texturestats\necho BQ_STATS_END\nquit\n")

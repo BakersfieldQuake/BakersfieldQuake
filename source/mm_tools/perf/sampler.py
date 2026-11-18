@@ -3,6 +3,11 @@
 Start a load with loadtime.py in the background, wait until the map command has run (about 3.5 s), then point this at the
 zircon_beta_gcc.exe pid for the length of the load. On 2026-11-18 it showed 45% of a soi6 load in GetFileAttributesW
 (loose-file probes) with a separate -userdir, 20% with -userdir = -basedir. See docs/audit-2026-11-18-performance.md.
+Function names: set BQ_SYMS to an `nm -n` listing (lines "address T name") of an UNSTRIPPED link of the very same build
+(make ... sdl-release STRIP=true, then nm -n exe | grep -E " [TtWw] "). Stripping does not move code, so the listing also
+fits the stripped twin, but it does not fit the shipped engine or any other build. With it the report adds self time by
+function, the exe functions nearest to each system call, and an approximate inclusive list (any return address found
+in the top 32 KB of the stack, so stale frames show up there: trust the self-time list first).
 Every few ms: suspend the main thread, read RIP and the top of its stack, resume. Reports where RIP was by module,
 and for samples outside the exe, the first return address inside the exe (who called into the driver / OS / zlib)."""
 import bisect
@@ -83,9 +88,11 @@ ctx = ctypes.create_string_buffer(1232 + 16)
 base = ctypes.addressof(ctx)
 off = (16 - base % 16) % 16
 CONTEXT_FULL = 0x100000 | 0x1 | 0x2
-stackbuf = ctypes.create_string_buffer(4096)
+STACKN = 32768
+stackbuf = ctypes.create_string_buffer(STACKN)
 got = ctypes.c_size_t()
 samples = []
+stamps = []
 t_end = time.perf_counter() + secs
 while time.perf_counter() < t_end:
     t = time.perf_counter()
@@ -95,8 +102,12 @@ while time.perf_counter() < t_end:
     if k32.GetThreadContext(ht, base + off):
         rip = struct.unpack_from("<Q", ctx, off + 0xF8)[0]
         rsp = struct.unpack_from("<Q", ctx, off + 0x98)[0]
-        k32.ReadProcessMemory(hp, rsp, stackbuf, 4096, ctypes.byref(got))
+        got.value = 0
+        for want in (STACKN, 8192, 2048):      # the read fails as a whole when it crosses the top of the stack
+            if k32.ReadProcessMemory(hp, rsp, stackbuf, want, ctypes.byref(got)) and got.value:
+                break
         samples.append((rip, stackbuf.raw[:got.value]))
+        stamps.append(t)
     k32.ResumeThread(ht)
     time.sleep(max(0.0, interval - (time.perf_counter() - t)))
 
@@ -145,7 +156,7 @@ def hint(rva):
     for m in re.finditer(rb"[\x48\x4c]\x8d[\x05\x0d\x15\x1d\x25\x2d\x35\x3d]", blk):
         p = m.start()
         if p + 7 > len(blk):
-            break
+            continue
         rel = struct.unpack_from("<i", blk, p + 3)[0]
         s = cstr(start + p + 7 + rel)
         if s and s not in out:
@@ -248,3 +259,69 @@ for k, v in exefn.most_common(10):
 print("== samples outside the exe: nearest exe callers (.text only)")
 for (name, fr), v in chains.most_common(14):
     print("  %5.1f%%  %-12s <- %s" % (100.0 * v / n, name, "  <-  ".join("exe+0x%x [%s]" % (f, hint(f + 0x80)[:70]) for f in fr)))
+
+
+# ---- optional: function names from an `nm -n` map of an unstripped build of the same exe (env BQ_SYMS=<file>)
+import os
+if os.environ.get("BQ_SYMS"):
+    imgbase = struct.unpack_from("<Q", data, pe + 24 + 24)[0]
+    syms = []
+    for line in open(os.environ["BQ_SYMS"], encoding="latin-1"):
+        f = line.split()
+        if len(f) == 3:
+            syms.append((int(f[0], 16) - imgbase, f[2]))
+    syms.sort()
+    saddr = [x[0] for x in syms]
+
+    def fn(rva):
+        i = bisect.bisect_right(saddr, rva) - 1
+        return syms[i][1] if i >= 0 else "?"
+    selfc, incl, syscaller = collections.Counter(), collections.Counter(), collections.Counter()
+    for rip, st in samples:
+        m = modof(rip)
+        seen = set()
+        inexe = bool(m and m[0] == exe[0])
+        if inexe:
+            selfc[fn(rip - exe[0])] += 1
+            seen.add(fn(rip - exe[0]))
+        else:
+            selfc["[" + sysname(rip) + "]"] += 1
+        first = []
+        for o in range(0, len(st) - 7, 8):
+            v = struct.unpack_from("<Q", st, o)[0]
+            if exe[0] + 0x1000 <= v < exe[0] + TEXT_END:
+                seen.add(fn(v - exe[0]))
+                if len(first) < 3 and fn(v - exe[0]) not in first:
+                    first.append(fn(v - exe[0]))
+        if not inexe and sysname(rip) != "ntdll.dll!ZwDelayExecution":
+            syscaller[" <- ".join(first) or "(no exe frame)"] += 1
+        for f in seen:
+            incl[f] += 1
+    print("== self time by function (exe functions by name, system code in [brackets])")
+    for k, v in selfc.most_common(45):
+        print("  %5.1f%%  %s" % (100.0 * v / n, k))
+    print("== time in system code (sleep excluded), by the nearest exe functions on the stack")
+    for k, v in syscaller.most_common(25):
+        print("  %5.1f%%  %s" % (100.0 * v / n, k))
+    print("== on the stack (inclusive, approximate: any return address found in the stack memory)")
+    for k, v in incl.most_common(70):
+        print("  %5.1f%%  %s" % (100.0 * v / n, k))
+
+
+# ---- bursts of system work that is not sleep (a hitch shows as a long run): gaps under 6 ms are joined
+tl = []
+for (rip, st), ts in zip(samples, stamps):
+    m = modof(rip)
+    tl.append((ts, "e" if (m and m[0] == exe[0]) else ("s" if sysname(rip) == "ntdll.dll!ZwDelayExecution" else "j")))
+bursts, cur = [], None
+for ts, c in tl:
+    if c == "j":
+        if cur and ts - cur[1] < 0.006:
+            cur[1] = ts; cur[2] += 1
+        else:
+            cur = [ts, ts, 1]; bursts.append(cur)
+print("== bursts of non-sleep system time: %d bursts; longest:" % len(bursts))
+for b in sorted(bursts, key=lambda b: b[0] - b[1])[:12]:
+    print("   at %6.2f s  %6.1f ms  (%d samples)" % (b[0] - stamps[0], 1000 * (b[1] - b[0]), b[2]))
+long_ = [b for b in bursts if b[1] - b[0] >= 0.004]
+print("   bursts of 4 ms or more: %d, starting at s: %s" % (len(long_), " ".join("%.1f" % (b[0] - stamps[0]) for b in long_[:60])))
