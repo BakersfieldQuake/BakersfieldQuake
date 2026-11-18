@@ -102,9 +102,23 @@ if [ ! -f "$CFG" ] || grep -q BAKERSFIELD_SEED "$CFG" 2>/dev/null; then
     FIRST=(+_cl_name "${USER:-player}" +_cl_color $(( (RANDOM % 14) * 17 )))
 fi
 
+# Low-memory mode (lowmem.cfg): with the normal settings the game needs about 4 GB of memory of its own, and with 8 GB of
+# RAM the map load can end in "Mem_Alloc: out of memory". Under 10 GB the game starts with half-size model textures.
+# BQ_LOWMEM=1 forces it on, BQ_LOWMEM=0 off.
+LOWMEM=()
+RAM_GB=0
+if [ -r /proc/meminfo ]; then
+    RAM_GB=$(( $(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0) / 1048576 ))
+elif [ "$(uname)" = Darwin ]; then
+    RAM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))
+fi
+if [ "${BQ_LOWMEM:-}" = 1 ] || { [ "${BQ_LOWMEM:-}" != 0 ] && [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; }; then
+    LOWMEM=(+exec lowmem.cfg)
+fi
+
 echo " Joining the game..."
 # shellcheck disable=SC2086
-"$CLIENT" "${COMMON[@]}" ${FIRST[@]+"${FIRST[@]}"} $COMBAT_ARGS +connect 127.0.0.1 &
+"$CLIENT" "${COMMON[@]}" ${FIRST[@]+"${FIRST[@]}"} ${LOWMEM[@]+"${LOWMEM[@]}"} $COMBAT_ARGS +connect 127.0.0.1 &
 GAME=$!
 if command -v python3 >/dev/null 2>&1 && [ -f "$SCAN" ]; then
     python3 "$SCAN" --gamedir "$ROOT/BakersfieldQuake" --pid "$GAME" >/dev/null 2>&1 &

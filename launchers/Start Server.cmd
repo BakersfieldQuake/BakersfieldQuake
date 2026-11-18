@@ -64,6 +64,21 @@ if not errorlevel 1 (
 :serverready
 
 rem First run (no saved config yet, or only the placeholder from the zip): use the Windows user name and a random colour.
+rem Low-memory mode. With the normal settings the game needs about 4 GB of memory of its own, and on a PC with 8 GB the
+rem map load can end in "Mem_Alloc: out of memory". Under 10 GB of RAM the game therefore starts with lowmem.cfg (model
+rem textures at half size, about 2.5 GB). The RAM size is read once and kept in ram-gb.txt (delete it after a RAM upgrade).
+rem   set BQ_LOWMEM=1  forces it on,  set BQ_LOWMEM=0  off.
+set "BQRAMF=%LOCALAPPDATA%\BAKOQUAKE\ram-gb.txt"
+set "BQRAM="
+if exist "%BQRAMF%" set /p BQRAM=<"%BQRAMF%"
+if defined BQRAM echo %BQRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQRAM="
+if not defined BQRAM call :readram
+set "LOWMEM="
+rem (the leading 1 keeps the line valid when BQRAM is empty: 8 becomes 18, 16 becomes 116)
+if defined BQRAM if 1%BQRAM% LSS 110 set "LOWMEM=+exec lowmem.cfg"
+if "%BQ_LOWMEM%"=="1" set "LOWMEM=+exec lowmem.cfg"
+if "%BQ_LOWMEM%"=="0" set "LOWMEM="
+
 set "FIRST="
 set "NEWPLAYER="
 if not exist "%ROOT%\BakersfieldQuake\config.cfg" set "NEWPLAYER=1"
@@ -75,7 +90,7 @@ set FIRST=+_cl_name "%USERNAME%" +_cl_color %COLOR%
 
 echo  Joining the game...
 rem Keys (F1 = online server, F2 = LAN) are defaults in default.cfg, not forced here, so a player's rebinds are saved.
-start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %COMBAT_ARGS% +connect 127.0.0.1
+start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %LOWMEM% %COMBAT_ARGS% +connect 127.0.0.1
 
 rem Keep lan_server.cfg fresh so F2 rejoins after a disconnect.
 start "" /min %PS% -File "%SCAN%" -GameDir "%ROOT%\BakersfieldQuake" -WatchExe "%ENGINE%"
@@ -90,3 +105,12 @@ echo Could not find engine\zircon_beta_gcc.exe next to Start Server.cmd.
 echo Unzip the whole BAKOQUAKE folder and run Start Server.cmd from inside it.
 pause
 exit /b 1
+
+:readram
+rem Whole GB of RAM into BQRAM and ram-gb.txt. Leaves BQRAM empty (= normal settings) when PowerShell gives no number.
+for /f %%r in ('powershell -NoProfile -Command "[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB)" 2^>nul') do set "BQRAM=%%r"
+if defined BQRAM echo %BQRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQRAM="
+if not defined BQRAM exit /b 0
+if not exist "%LOCALAPPDATA%\BAKOQUAKE" mkdir "%LOCALAPPDATA%\BAKOQUAKE" 2>nul
+<nul set /p "=%BQRAM%">"%BQRAMF%"
+exit /b 0

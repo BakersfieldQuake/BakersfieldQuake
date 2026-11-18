@@ -106,6 +106,13 @@ if [ ! -f "$CFG" ] || grep -q BAKERSFIELD_SEED "$CFG" 2>/dev/null; then
     ARGS+=(+_cl_name "${USER:-player}" +_cl_color $(( (RANDOM % 14) * 17 )))
 fi
 
+# 2b. Low-memory mode (lowmem.cfg): under 10 GB of memory start with half-size model textures, or a big map can end in
+#     "Mem_Alloc: out of memory". BQ_LOWMEM=1 forces it on, BQ_LOWMEM=0 off.
+RAM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))
+if [ "${BQ_LOWMEM:-}" = 1 ] || { [ "${BQ_LOWMEM:-}" != 0 ] && [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; }; then
+    ARGS+=(+exec lowmem.cfg)
+fi
+
 # 3. LAN autoscan only with a real python3: without the Command Line Tools, /usr/bin/python3 is a stub that pops
 #    an install dialog.
 SCAN="$GAME/tools/lanscan.py"
