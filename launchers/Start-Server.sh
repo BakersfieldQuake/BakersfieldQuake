@@ -44,6 +44,16 @@ if [ ! -f "$ROOT/id1/pak0.pak" ]; then
     exit 1
 fi
 
+# Update: fetch only the files that changed in the newest release (BQ_NO_UPDATE=1 skips it, e.g. offline at a LAN).
+# macOS python3 is a stub that asks to install the developer tools, so only use a real one there.
+# One compound command: bash reads a running script from disk, so when files changed (exit 3) the updated launcher
+# restarts.
+if [ -f "$ROOT/tools/bq_update.py" ] && command -v python3 >/dev/null 2>&1 \
+        && { [ "$(uname)" != Darwin ] || xcode-select -p >/dev/null 2>&1; }; then
+    python3 "$ROOT/tools/bq_update.py" --launch --root "$ROOT"
+    [ $? = 3 ] && exec "$ROOT/$(basename "${BASH_SOURCE[0]}")" "$@"
+fi
+
 COMMON=(-basedir "$ROOT" -userdir "$ROOT" -game quake15 -game BakersfieldQuake)
 
 echo

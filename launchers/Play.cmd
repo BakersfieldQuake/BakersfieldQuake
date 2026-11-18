@@ -24,6 +24,10 @@ if not exist "%ROOT%\id1\pak0.pak" (
     exit /b 1
 )
 
+rem Update: fetch only the files that changed in the newest release (set BQ_NO_UPDATE=1 to skip, e.g. offline at a LAN).
+rem All on one line: cmd reads a running script from disk, so when files changed (exit 3) the updated launcher restarts.
+if exist "%ROOT%\tools\bq-update.exe" ( "%ROOT%\tools\bq-update.exe" --launch --root "%ROOT%" & if errorlevel 3 if not errorlevel 4 ( popd & "%~f0" %* ) )
+
 set "SCAN=%~dp0tools\lanscan.ps1"
 if not exist "%SCAN%" set "SCAN=%~dp0lanscan.ps1"
 set "PS=powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden"

@@ -1,7 +1,21 @@
 # BAKOQUAKE auto-updater: plan
 
-Status: proposal, not started. Scope for v1 is Windows x64 and macOS arm64. The code is cross-platform, so Linux
-comes almost for free later.
+Status: v1 implemented 2026-11-18: `tools/bq_update.py`, `source/ci/make_manifest.py`, the `updater` job and the
+manifest steps in `build-zip.yml`, and hooks in all four launchers. Tests: `python -m unittest discover -s source/ci/tests`.
+
+**What v1 covers, and how it differs from the plan below:**
+- Windows: frozen `tools/bq-update.exe`. Linux, and the macOS zip when a real Python exists: `python3 tools/bq_update.py`.
+- **No `release.json` on main.** The pointer is `releases/latest/download/manifest-<platform>.json`. GitHub redirects it
+  anonymously to the newest non-draft release (verified 2026-11-18), so CI makes no commit to main per release, and
+  the 5-minute raw-URL cache is gone. Each manifest names its own tag-specific zip URL, so the pair is consistent.
+- **No frozen macOS binary yet.** `source/mac/build_app.sh` copies `tools/` into the signed app, and an unsigned
+  Mach-O there would fail notarization. The `.app` can't be updated in place anyway; see
+  `docs/prompts/mac-app-updater-handoff.md`.
+- Exit code 3 means files changed. The launchers then re-run themselves, because cmd and bash read a running script
+  from disk line by line, and the update may have just replaced it. Each hook is a single parsed block for that reason.
+- No tkinter window: `PLAY BAKERSFIELDQUAKE.exe` starts `Play.cmd` with `CreateNoWindow`, so the updater opens its own
+  console (`AllocConsole`) only when it has something to download, and uses a MessageBox for errors.
+- `make_manifest.py` lives in `source/ci/`, not `tools/`: everything in `tools/` ships to players.
 
 ## Goal
 
@@ -67,7 +81,7 @@ Verified hosting facts:
 
 ## Files
 
-`release.json` (on `main`, raw URL):
+`release.json` (on `main`, raw URL). **Not used in v1**, see the status above:
 
 ```json
 {

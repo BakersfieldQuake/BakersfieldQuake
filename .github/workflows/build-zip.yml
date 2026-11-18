@@ -45,7 +45,47 @@ permissions:
   contents: write
 
 jobs:
+  # tools/bq-update.exe: the updater (tools/bq_update.py) frozen with PyInstaller, so players need no Python.
+  # PyInstaller output is not byte-reproducible, so the exe is cached on its inputs: an unchanged updater keeps
+  # its exact bytes and players don't re-download it (or run the self-replace path) on every release.
+  updater:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Updater tests (on Windows, where file replacement is strictest)
+        shell: bash
+        run: python -m unittest discover -s source/ci/tests -v
+
+      - name: Cache bq-update.exe
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: dist/bq-update.exe
+          key: bq-update-win-py3.12-pyinstaller6.22.3-${{ hashFiles('tools/bq_update.py') }}
+
+      - name: Freeze tools/bq_update.py
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          python -m pip install --quiet pyinstaller==6.22.3
+          python -m PyInstaller --onefile --console --noupx --name bq-update tools/bq_update.py
+
+      - name: Smoke test
+        shell: bash
+        run: ./dist/bq-update.exe --help
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bq-update-windows
+          path: dist/bq-update.exe
+
   build:
+    needs: updater
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.publish.outputs.tag }}
@@ -130,6 +170,12 @@ jobs:
             cp "$f" out/BAKOQUAKE/tools/
           done
 
+      - name: Add the Windows updater
+        uses: actions/download-artifact@v8
+        with:
+          name: bq-update-windows
+          path: out/BAKOQUAKE/tools
+
       # Overlay pk3s are reproducible, so each is cached and only rebuilt when an input changes. The key holds the
       # base bakersfield.pk3 (both read it), the pinned numpy/pillow, and every source file the builder reads.
       # A builder that starts reading a new file must add it to its key, or a stale pk3 gets reused.
@@ -178,7 +224,8 @@ jobs:
           errors = []
 
           for rel in ("BakersfieldQuake/progs.dat", "BakersfieldQuake/menu.dat", "BakersfieldQuake/csprogs.dat",
-                      "engine/zircon_beta_gcc.exe", "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh"):
+                      "engine/zircon_beta_gcc.exe", "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
+                      "tools/bq_update.py", "tools/bq-update.exe"):
               if not os.path.isfile(os.path.join(root, rel)):
                   errors.append(f"missing {rel}")
           for rel in ("id1/pak0.pak", "id1/pak1.pak"):
@@ -240,6 +287,13 @@ jobs:
           sys.exit(1 if errors else 0)
           EOF
 
+      - name: Release tag
+        run: |
+          tag="${NEW_TAG:-build-$(date -u +%Y%m%d)-${GITHUB_SHA::7}}"
+          [ "$DRAFT" = true ] && tag="${tag}-draft"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "Release tag: $tag"
+
       - name: Zip the Windows package (master)
         # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
         # This is the asset source for the next run, so its name and tree stay exactly as before.
@@ -266,7 +320,7 @@ jobs:
             cp BAKOQUAKE.zip "$out_zip"
             # -ws: wildcards stop at '/', so only root-level Windows files go (subfolders are untouched).
             zip -q -d -ws "$out_zip" 'BAKOQUAKE/engine/*' 'BAKOQUAKE/engine/' \
-              'BAKOQUAKE/*.exe' 'BAKOQUAKE/*.dll' 'BAKOQUAKE/*.cmd' 'BAKOQUAKE/*.bat' || true
+              'BAKOQUAKE/*.exe' 'BAKOQUAKE/*.dll' 'BAKOQUAKE/*.cmd' 'BAKOQUAKE/*.bat' 'BAKOQUAKE/tools/bq-update.exe' || true
             rm -rf stage && mkdir -p stage/BAKOQUAKE
             cp "eng/$sdl" stage/BAKOQUAKE/darkplaces-sdl
             cp "eng/$ded" stage/BAKOQUAKE/darkplaces-dedicated
@@ -277,17 +331,31 @@ jobs:
           make_os_zip BAKOQUAKE-linux-x86_64.zip  zircon_beta_linux_sdl       zircon_beta_linux_dedicated_server
           make_os_zip BAKOQUAKE-macos-arm64.zip   zircon_beta_macos_arm64_sdl zircon_beta_macos_arm64_dedicated_server
 
+      - name: Write updater manifests
+        # One per platform zip: every file's size and sha256, plus the tag-specific zip URL. Players' updaters fetch
+        # releases/latest/download/manifest-<platform>.json (drafts are never "latest") and pull the changed files
+        # out of that zip with Range requests. build = run number, which only goes up (the updater refuses rollbacks).
+        run: |
+          dl="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          for pair in BAKOQUAKE.zip:windows-x64 BAKOQUAKE-linux-x86_64.zip:linux-x86_64 BAKOQUAKE-macos-arm64.zip:macos-arm64; do
+            z="${pair%%:*}" plat="${pair##*:}"
+            python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" > "manifest-$plat.json"
+            python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" "manifest-$plat.json"
+          done
+
       - name: Publish release
         id: publish
         run: |
-          tag="${NEW_TAG:-build-$(date -u +%Y%m%d)-${GITHUB_SHA::7}}"
-          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip)
+          tag="$TAG"
+          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json)
           flags=(--latest)
-          [ "$DRAFT" = true ] && flags=(--draft) && tag="${tag}-draft"
+          [ "$DRAFT" = true ] && flags=(--draft)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
             --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
+
+          Already installed (Windows, Linux)? Play and Start Server update the game on launch, downloading only the files that changed. The macOS app is updated by downloading the new DMG.
 
           You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 
