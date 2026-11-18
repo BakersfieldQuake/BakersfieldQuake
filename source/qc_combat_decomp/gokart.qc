@@ -399,13 +399,15 @@ float(entity v, entity driver) GK_CheckPads =
 	return FALSE;
 };
 
+vector	gk_slip_pos;	// resolved lateral corner-slip position from GK_TryCornerSlip
+
 // Check if the kart's rotated hull overlaps solid BSP geometry (nomonsters=TRUE so bots/players never trigger warps)
 float(entity v, vector org, float yaw) GK_IsEmbedded =
 {
 	local float i, c, s;
 	local vector o, p;
 
-	tracebox (org + '0 0 18', '-22 -22 0', '22 22 20', org + '0 0 18', TRUE, v);
+	tracebox (org + '0 0 22', '-16 -16 0', '16 16 20', org + '0 0 22', TRUE, v);
 	if (trace_startsolid || trace_allsolid)
 		return TRUE;
 	c = Veh_Cos (yaw);
@@ -413,14 +415,14 @@ float(entity v, vector org, float yaw) GK_IsEmbedded =
 	i = 0;
 	while (i < 4)
 	{
-		if (i == 0) o = '36 22 0';
-		else if (i == 1) o = '36 -22 0';
-		else if (i == 2) o = '-36 22 0';
-		else o = '-36 -22 0';
+		if (i == 0) o = '26 14 0';
+		else if (i == 1) o = '26 -14 0';
+		else if (i == 2) o = '-26 14 0';
+		else o = '-26 -14 0';
 		p = org;
 		p_x = org_x + c * o_x - s * o_y;
 		p_y = org_y + s * o_x + c * o_y;
-		p_z = org_z + 18;
+		p_z = org_z + 22;
 		tracebox (p, '-8 -8 0', '8 8 20', p, TRUE, v);
 		if (trace_startsolid || trace_allsolid)
 			return TRUE;
@@ -463,7 +465,29 @@ void(entity v) GK_Depenetrate =
 	}
 };
 
-// Swept footprint around the kart at z+18..z+38 so 18u curbs pass underneath cleanly
+// Chamfered capsule-like 20-hull perimeter (~88u x 52u with rounded corners) so karts don't snag on street junk
+vector(float i) GK_ProbeOfs =
+{
+	local float k;
+
+	if (i == 0) return '26 -15 0';
+	if (i == 1) return '34 -5 0';
+	if (i == 2) return '34 5 0';
+	if (i == 3) return '26 15 0';
+	if (i == 4) return '-26 -15 0';
+	if (i == 5) return '-34 -5 0';
+	if (i == 6) return '-34 5 0';
+	if (i == 7) return '-26 15 0';
+	if (i < 14)
+	{
+		k = i - 8;
+		return '0 16 0' + '1 0 0' * (-18 + 7.2 * k);
+	}
+	k = i - 14;
+	return '0 -16 0' + '1 0 0' * (-18 + 7.2 * k);
+};
+
+// Swept footprint around the kart at z+22..z+42 so <=22u pipes/curbs pass underneath cleanly
 float(entity v, vector org0, float yaw0, vector org1, float yaw1, float zbase) GK_Sweep =
 {
 	local float i, best, c0, s0, c1, s1;
@@ -479,7 +503,7 @@ float(entity v, vector org0, float yaw0, vector org1, float yaw1, float zbase) G
 	i = 0;
 	while (i < 20)
 	{
-		o = Veh_ProbeOfs (v.veh_kind, i);
+		o = GK_ProbeOfs (i);
 		p0 = org0;
 		p0_x = org0_x + c0 * o_x - s0 * o_y;
 		p0_y = org0_y + s0 * o_x + c0 * o_y;
@@ -507,6 +531,70 @@ float(entity v, vector org0, float yaw0, vector org1, float yaw1, float zbase) G
 	return FALSE;
 };
 
+// Try a subtle sideways slip around a narrow pole, pipe, or wall-corner snag without changing heading/camera
+float(entity v, vector org0, float yaw0, vector org1, float yaw1, vector lft, vector hitpos) GK_TryCornerSlip =
+{
+	local float side_dot, try_idx, nudge;
+	local vector dir, step0, cand;
+
+	side_dot = (hitpos - org0) * lft;
+	if (side_dot >= 0)
+		dir = lft * -1;
+	else
+		dir = lft;
+
+	try_idx = 0;
+	while (try_idx < 2)
+	{
+		nudge = 10;
+		while (nudge <= 18)
+		{
+			step0 = org0 + dir * nudge;
+			if (GK_Sweep (v, org0, yaw0, step0, yaw0, 22))
+			{
+				cand = org1 + dir * nudge;
+				if (GK_Sweep (v, step0, yaw0, cand, yaw1, 22))
+				{
+					gk_slip_pos = cand;
+					return TRUE;
+				}
+			}
+			nudge = nudge + 8;
+		}
+		// Only try the other side if the snag was nearly dead-center on the nose
+		if (fabs (side_dot) > 6)
+			break;
+		dir = dir * -1;
+		try_idx = try_idx + 1;
+	}
+	return FALSE;
+};
+
+entity(entity v) GK_DamageAttacker =
+{
+	if (v.veh_driver != world)
+		return v.veh_driver;
+	if (v.veh_igniter != world)
+		return v.veh_igniter;
+	return v;
+};
+
+// Small breakable street/room props the kart should plow straight through (excludes explosive barrels & structural map pieces)
+float(entity e) GK_IsSmashableProp =
+{
+	if (e == world || !e.takedamage)
+		return FALSE;
+	if (e.veh_kind > 0 || e.classname == "veh_van_clip")
+		return FALSE;
+	if (e.lan_kind > 0)
+		return TRUE;
+	if (e.classname == "misc_bicycle" || e.classname == "misc_bike_cruiser" || e.classname == "misc_bike_bmx" || e.classname == "misc_bike_road")
+		return TRUE;
+	if (e.classname == "bk_trashcan")
+		return TRUE;
+	return FALSE;
+};
+
 // Kart hits a player, bot, or monster: massive launch knockback + 25-65 HP (lethal at full Shift boost)
 void(entity v, entity hit, float spd) GK_RamLiving =
 {
@@ -519,11 +607,7 @@ void(entity v, entity hit, float spd) GK_RamLiving =
 	if (spd < 150)
 		return;
 
-	driver = v.veh_driver;
-	if (driver == world)
-		driver = v.veh_igniter;
-	if (driver == world)
-		driver = v;
+	driver = GK_DamageAttacker (v);
 
 	dir = v.velocity;
 	dir_z = 0;
@@ -553,6 +637,24 @@ void(entity v, entity hit, float spd) GK_RamLiving =
 		hit.solid = SOLID_NOT;
 };
 
+// Kart smashes cleanly through breakable street/room props (bikes, LAN gear, rocket trashcans)
+void(entity v, entity hit, float spd) GK_SmashProp =
+{
+	local entity driver;
+	local float dmg;
+
+	if (spd < 110)
+		return;
+	driver = GK_DamageAttacker (v);
+	dmg = max (160, hit.health + 60);
+	sound7 (hit, CHAN_BODY, "vehicles/tire_thud1.wav", 0.85, ATTN_NORM, 92 + random () * 16);
+	if (veh_fx_sparks > 0)
+		pointparticles (veh_fx_sparks, hit.origin + '0 0 16', '0 0 0', 1);
+	veh_runover = TRUE;
+	T_Damage (hit, v, driver, dmg);
+	veh_runover = FALSE;
+};
+
 // Kart bumps another vehicle/kart: deal bump damage without hurting our own kart
 void(entity v, entity hit, float imp) GK_RamVehicle =
 {
@@ -561,9 +663,7 @@ void(entity v, entity hit, float imp) GK_RamVehicle =
 
 	if (imp < 140 || time < hit.veh_hit_t)
 		return;
-	driver = v.veh_driver;
-	if (driver == world)
-		driver = v;
+	driver = GK_DamageAttacker (v);
 	hit.veh_hit_t = time + 0.35;
 	dmg = bound (12, (imp - 100) * 0.08, 55);
 	if (v.gk_boosting)
@@ -664,7 +764,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag;
 	local vector fwd, lft, fwd1, lft1, vel, vel_world, org0, org1, org2, n, tang;
 	local entity hit, restore1, restore2, restore3, restore4;
-	local float rsol1, rsol2, rsol3, rsol4, rcnt, gone;
+	local float rsol1, rsol2, rsol3, rsol4, rcnt, gone, is_living, is_prop, is_veh;
 
 	hud_dirty = FALSE;
 	started = (time >= v.veh_start_t);
@@ -1059,15 +1159,20 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	pass = 0;
 	while (pass < 4)
 	{
-		if (GK_Sweep (v, org0, yaw0, org1, yaw1, 18))
+		if (GK_Sweep (v, org0, yaw0, org1, yaw1, 22))
 			break;
 
-		// Living target: launch skyward & plow cleanly through at 95% speed!
-		if (vd_hitent != world && vd_hitent.takedamage && ((vd_hitent.flags & FL_CLIENT) || (vd_hitent.flags & FL_MONSTER)))
+		// Living target or breakable street/room prop: plow cleanly through at 95% speed!
+		is_living = (vd_hitent != world && vd_hitent.takedamage && ((vd_hitent.flags & FL_CLIENT) || (vd_hitent.flags & FL_MONSTER)));
+		is_prop = (!is_living && GK_IsSmashableProp (vd_hitent));
+		if (is_living || is_prop)
 		{
 			hit = vd_hitent;
 			old_solid = hit.solid;
-			GK_RamLiving (v, hit, spd);
+			if (is_living)
+				GK_RamLiving (v, hit, spd);
+			else
+				GK_SmashProp (v, hit, spd);
 			// the ram's frag may have released the driver (match end / intermission): stop driving him
 			if (p.veh_van != v || bm_wasfreed (v))
 			{
@@ -1089,24 +1194,25 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			continue;
 		}
 
-		// Try curb-step climbing (+18u step-up) before bouncing!
+		// Try curb-step / low-pipe climbing (+24u step-up) before bouncing!
 		climbed = FALSE;
 		if (GK_Sweep (v, org0, yaw0, org1, yaw1, 36))
 		{
 			Veh_GroundSample (v, org1, yaw1);
-			if (vd_found && vd_gh <= org0_z + 20 && vd_gh >= org0_z - 12)
+			if (vd_found && vd_gh <= org0_z + 24 && vd_gh >= org0_z - 12)
 				climbed = TRUE;
 		}
 		if (climbed)
 			break;
 
-		// Non-living obstacle (wall, object, vehicle/kart): elastic bounce / bevel slide
+		// Non-living obstacle (wall, object, vehicle/kart): corner slip-around / smooth wall slide / head-on bounce
 		n = vd_hitnorm;
 		vn = vel * n;
+		is_veh = (vd_hitent != world && (vd_hitent.veh_kind > 0 || vd_hitent.classname == "veh_van_clip"));
 		if (vn < 0)
 		{
 			imp = 0 - vn;
-			if (vd_hitent != world && (vd_hitent.veh_kind > 0 || vd_hitent.classname == "veh_van_clip"))
+			if (is_veh)
 			{
 				GK_RamVehicle (v, vd_hitent, imp);
 				if (p.veh_van != v || bm_wasfreed (v))
@@ -1116,15 +1222,28 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 				}
 			}
 
-			if (fabs (vn) < max (120, spd * 0.35))
+			// Narrow pole/pipe/corner snag: slip subtly sideways around it without jerking heading or camera
+			if (!is_veh && fabs (vn) >= max (160, spd * 0.85) && GK_TryCornerSlip (v, org0, yaw0, org1, yaw1, lft, vd_hitpos))
 			{
-				// Glancing bevel slide: keep ~88% speed
-				vel = (vel - n * (1.15 * vn)) * 0.88;
+				org1 = gk_slip_pos;
+				vel = vel * 0.92;
+				break;
+			}
+
+			if (fabs (vn) < max (160, spd * 0.85))
+			{
+				// Smooth wall/obstacle slide up to ~58 deg: keep ~92% tangential speed
+				vel = (vel - n * (1.06 * vn)) * 0.92;
+				if (imp > 280 && time >= v.veh_crash_t)
+				{
+					v.veh_crash_t = time + 0.18;
+					sound7 (v, CHAN_BODY, "bikes/tire_bounce.wav", bound (0.25, imp / 650, 0.60), ATTN_NORM, 102 + random () * 16);
+				}
 			}
 			else
 			{
-				// Solid wall/vehicle/object elastic bounce: keep ~75-85% speed
-				vel = (vel - n * (1.75 * vn)) * 0.80;
+				// Near-head-on impact against flat wall or vehicle: controlled rebound
+				vel = (vel - n * (1.45 * vn)) * 0.72;
 				if (time >= v.veh_crash_t)
 				{
 					v.veh_crash_t = time + 0.16;
@@ -1138,7 +1257,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		org2 = org0;
 		org2_x = org0_x + vel_x * dt;
 		org2_y = org0_y + vel_y * dt;
-		if (GK_Sweep (v, org0, yaw0, org2, yaw1, 18))
+		if (GK_Sweep (v, org0, yaw0, org2, yaw1, 22))
 		{
 			org1 = org2;
 		}
@@ -1146,22 +1265,22 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		{
 			// Corner bevel fallback: slide pure tangent along wall normal
 			tang = vel - n * (vel * n);
-			org2 = org0 + tang * (dt * 0.85) + n * 1.5;
-			if (GK_Sweep (v, org0, yaw0, org2, yaw1, 18))
+			org2 = org0 + tang * (dt * 0.90) + n * 1.5;
+			if (GK_Sweep (v, org0, yaw0, org2, yaw1, 22))
 			{
 				org1 = org2;
-				vel = tang * 0.85;
+				vel = tang * 0.90;
 			}
-			else if (yaw1 != yaw0 && GK_Sweep (v, org0, yaw0, org0, yaw1, 18))
+			else if (yaw1 != yaw0 && GK_Sweep (v, org0, yaw0, org0, yaw1, 22))
 			{
 				org1 = org0;
-				vel = vel * 0.80;
+				vel = vel * 0.85;
 			}
 			else
 			{
 				org1 = org0;
 				yaw1 = yaw0;
-				vel = vel * 0.78;
+				vel = vel * 0.80;
 				v.veh_yawrate = 0;
 			}
 		}
@@ -1171,10 +1290,10 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	if (gone)
 	{
 		// driver was let go during the ram: put back the bodies we made SOLID_NOT and leave the kart alone
-		if (restore1 != world && restore1.health > 0) restore1.solid = rsol1;
-		if (restore2 != world && restore2.health > 0) restore2.solid = rsol2;
-		if (restore3 != world && restore3.health > 0) restore3.solid = rsol3;
-		if (restore4 != world && restore4.health > 0) restore4.solid = rsol4;
+		if (restore1 != world && restore1.health > 0 && restore1.takedamage != DAMAGE_NO) restore1.solid = rsol1;
+		if (restore2 != world && restore2.health > 0 && restore2.takedamage != DAMAGE_NO) restore2.solid = rsol2;
+		if (restore3 != world && restore3.health > 0 && restore3.takedamage != DAMAGE_NO) restore3.solid = rsol3;
+		if (restore4 != world && restore4.health > 0 && restore4.takedamage != DAMAGE_NO) restore4.solid = rsol4;
 		return TRUE;
 	}
 
@@ -1268,11 +1387,11 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.velocity_z = v.veh_vz;
 	setorigin (v, org1);
 	GK_Depenetrate (v);
-	// Restore solids on launched living entities after depenetration (unless monster died)
-	if (restore1 != world && restore1.health > 0) restore1.solid = rsol1;
-	if (restore2 != world && restore2.health > 0) restore2.solid = rsol2;
-	if (restore3 != world && restore3.health > 0) restore3.solid = rsol3;
-	if (restore4 != world && restore4.health > 0) restore4.solid = rsol4;
+	// Restore solids on launched living entities / un-broken props after depenetration
+	if (restore1 != world && restore1.health > 0 && restore1.takedamage != DAMAGE_NO) restore1.solid = rsol1;
+	if (restore2 != world && restore2.health > 0 && restore2.takedamage != DAMAGE_NO) restore2.solid = rsol2;
+	if (restore3 != world && restore3.health > 0 && restore3.takedamage != DAMAGE_NO) restore3.solid = rsol3;
+	if (restore4 != world && restore4.health > 0 && restore4.takedamage != DAMAGE_NO) restore4.solid = rsol4;
 	Veh_DriveBounds (v);
 
 	// Out of the world: setorigin movement never touches trigger_hurt/teleporters, so a kart that drops below the map
