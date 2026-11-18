@@ -8,7 +8,9 @@
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
 #
-# Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
+# Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces). On first run every
+# launcher looks for the player's own Quake pak0/pak1 (Steam, GOG, usual folders, then Downloads) and copies them into
+# id1/ (tools/find-quake-paks.sh / .ps1). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
 # keeps its exact name and tree so the next run can still take it as the base.
 name: Build BAKOQUAKE.zip
 
@@ -90,6 +92,15 @@ jobs:
             cp "$f" out/BAKOQUAKE/
           done
 
+      - name: Overlay repo tools
+        # Launcher helpers (e.g. find-quake-paks.sh/.ps1) live in repo/tools/ and ship in the package's tools/.
+        run: |
+          mkdir -p out/BAKOQUAKE/tools
+          for f in repo/tools/*; do
+            if ! cmp -s "$f" "out/BAKOQUAKE/tools/$(basename "$f")"; then echo "updated tools/$(basename "$f")"; fi
+            cp "$f" out/BAKOQUAKE/tools/
+          done
+
       - name: Build zz_bakovan.pk3
         run: |
           python -m pip install --quiet numpy pillow
@@ -135,7 +146,7 @@ jobs:
             --title "BAKOQUAKE $tag" \
             --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
-          First, copy Quake's own pak0.pak and pak1.pak into the id1 folder.
+          You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 
           - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe
           - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh

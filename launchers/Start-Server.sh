@@ -34,6 +34,11 @@ if [ -z "$DEDICATED" ]; then
     echo "Could not find darkplaces-dedicated next to Start-Server.sh (see README-LINUX.txt)." >&2
     exit 1
 fi
+# First run: find pak0/pak1 in the usual Steam/GOG folders or ~/Downloads and copy them into id1/.
+if [ ! -f "$ROOT/id1/pak0.pak" ] && [ -f "$ROOT/tools/find-quake-paks.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$ROOT/tools/find-quake-paks.sh" && bq_install_paks "$ROOT"
+fi
 if [ ! -f "$ROOT/id1/pak0.pak" ]; then
     echo "id1/pak0.pak is missing. Copy pak0.pak and pak1.pak from your Quake install into $ROOT/id1/" >&2
     exit 1
