@@ -49,21 +49,23 @@ void(vector org, float cur_ch, float stage) RH_TypeTickAudio =
 	local float k;
 	local string s;
 
-	if (cur_ch > rh_type_last_ch && (time - rh_type_snd_t) >= 0.045)
+	if (cur_ch > rh_type_last_ch && (time - rh_type_snd_t) >= 0.030)
 	{
 		k = cur_ch - 4 * floor (cur_ch / 4);
 		if (k == 0) s = "robhead/key1.wav";
 		else if (k == 1) s = "robhead/key2.wav";
 		else if (k == 2) s = "robhead/key3.wav";
 		else s = "robhead/key4.wav";
-		RH_PlayKey (org, s, 0.24);
+		RH_PlayKey (org, s, 0.56);
 		rh_type_snd_t = time;
 		rh_type_last_ch = cur_ch;
 	}
 	if (stage > rh_type_stage)
 	{
-		if (stage == 1)
-			RH_PlayKey (org, "robhead/key_enter.wav", 0.30);
+		if (stage == 1 || stage == 2 || stage >= 5)
+			RH_PlayKey (org, "robhead/key_enter.wav", 0.65);
+		else if (stage == 3 || stage == 4)
+			RH_PlayKey (org, "robhead/key_beep.wav", 0.45);
 		rh_type_stage = stage;
 	}
 };
@@ -318,39 +320,134 @@ void(entity t, vector cam_org, float w, float h, float top_h, float bot_h, vecto
 	RH_Line (1.2, tip, rwing, col_red, a);
 };
 
-// 14 unique Red Hat Linux hacking sequences (cmd + compact status line)
-string(float seq, float is_result, float n_en) RH_SeqLine =
+// 14 unique Red Hat Linux hacking sequences (all lines <= 28 chars for a compact terminal)
+string(float seq, float slot, float n_en) RH_SeqLine =
 {
 	local string nstr;
 
 	nstr = ftos (n_en);
 	if (seq == 1)
-		return is_result ? strcat ("FOUND ", nstr, " NOOBS THRU WALLS!") : "$ exec hacks/wallhacks.exe";
+	{
+		if (slot == 0) return "$ cd /hacks/redhat-linux";
+		if (slot == 1) return "$ exec hacks/wallhacks.exe";
+		if (slot == 2) return "| RED HAT HACKER MODE ON!! |";
+		if (slot == 3) return "SCANNING QUAKE 4 NEWBIES..";
+		return strcat ("FOUND ", nstr, " NOOBS THRU WALLS!");
+	}
 	if (seq == 2)
-		return is_result ? strcat (nstr, " NOOBS EXPOSED IN X-RAY!") : "$ ./wallhack.sh --no-pvs";
+	{
+		if (slot == 0) return "$ sudo su - root@fedora";
+		if (slot == 1) return "$ ./wallhack.sh --no-pvs";
+		if (slot == 2) return "| FEDORA WALLHACK ONLINE!! |";
+		if (slot == 3) return "BYPASSING PVS LIKE MENACE.";
+		return strcat (nstr, " NOOBS EXPOSED IN X-RAY!");
+	}
 	if (seq == 3)
-		return is_result ? strcat ("TRACED ", nstr, " PLAYERS IN SOCKS!") : "$ python3 xray.py --hax";
+	{
+		if (slot == 0) return "$ cd /bin/bakersfield_os";
+		if (slot == 1) return "$ python3 xray.py --hax";
+		if (slot == 2) return "| RHEL9 SUPERCOMPUTER BOOT |";
+		if (slot == 3) return "READING ENEMY IP ADDRS...";
+		return strcat ("TRACED ", nstr, " PLAYERS IN SOCKS!");
+	}
 	if (seq == 4)
-		return is_result ? strcat ("X-RAY LOCKED ON ", nstr, " VICTIMS!") : "$ modprobe nvidia_wallhack";
+	{
+		if (slot == 0) return "$ ssh fedora@quake-node1";
+		if (slot == 1) return "$ modprobe nvidia_wallhack";
+		if (slot == 2) return "| ROB DOB CYBER-BRAIN ON!! |";
+		if (slot == 3) return "ENHANCE. ENHANCE. ENHANCE.";
+		return strcat ("X-RAY LOCKED ON ", nstr, " VICTIMS!");
+	}
 	if (seq == 5)
-		return is_result ? strcat (nstr, " NOOBS BEHIND BRICK WALL!") : "$ ./hacks.exe --fedora";
+	{
+		if (slot == 0) return "$ cat /proc/enemy_coords";
+		if (slot == 1) return "$ ./hacks.exe --fedora";
+		if (slot == 2) return "| LINUX SUPER-HACKER MODE  |";
+		if (slot == 3) return "PINGING FOR CAMPERS...";
+		return strcat (nstr, " NOOBS BEHIND BRICK WALL!");
+	}
 	if (seq == 6)
-		return is_result ? strcat ("GOT ", nstr, " CHUMPS IN HD X-RAY!") : "$ nohup /tmp/xray.bin &";
+	{
+		if (slot == 0) return "$ chmod +x /tmp/xray.bin";
+		if (slot == 1) return "$ nohup /tmp/xray.bin &";
+		if (slot == 2) return "| RED HAT CYBER-WARFARE ON |";
+		if (slot == 3) return "DOWNLOADING MORE XRAY RAM.";
+		return strcat ("GOT ", nstr, " CHUMPS IN HD X-RAY!");
+	}
 	if (seq == 7)
-		return is_result ? strcat (nstr, " TARGETS TOTAL EXPOSED!!") : "$ systemctl start xrayd";
+	{
+		if (slot == 0) return "$ yum install -y wallhack";
+		if (slot == 1) return "$ systemctl start xrayd";
+		if (slot == 2) return "| YUM INSTALL: EZ WALLHACK |";
+		if (slot == 3) return "HACKING MAINFRAME GIBSON..";
+		return strcat (nstr, " TARGETS TOTAL EXPOSED!!");
+	}
 	if (seq == 8)
-		return is_result ? strcat (nstr, " CAMPERS FLAGGED 4 KISS!") : "$ nmap -sS --xray 10.0/16";
+	{
+		if (slot == 0) return "$ cd /opt/fedora/exploits";
+		if (slot == 1) return "$ nmap -sS --xray 10.0/16";
+		if (slot == 2) return "| FEDORA ROOT SHELL READY! |";
+		if (slot == 3) return "DECRYPTING SPAWN COORDS...";
+		return strcat (nstr, " CAMPERS FLAGGED 4 KISS!");
+	}
 	if (seq == 9)
-		return is_result ? strcat (nstr, " COWARDS BEHIND DOORS!") : "$ ./hax --no-mercy --cyan";
+	{
+		if (slot == 0) return "$ gcc -O3 xray.c -o hax";
+		if (slot == 1) return "$ ./hax --no-mercy --cyan";
+		if (slot == 2) return "| COMPILED WITH 0 WARNINGS |";
+		if (slot == 3) return "TELLING ROB ALL COORDS...";
+		return strcat (nstr, " COWARDS BEHIND DOORS!");
+	}
 	if (seq == 10)
-		return is_result ? strcat ("FOUND ", nstr, " FREE FRAGS ON MAP!") : "$ tail -f /var/log/noobs";
+	{
+		if (slot == 0) return "$ mount /dev/hax /mnt/xray";
+		if (slot == 1) return "$ tail -f /var/log/noobs";
+		if (slot == 2) return "| KERNEL PANIC: 2 MUCH HAX |";
+		if (slot == 3) return "SCANNING ROCKET JUMPERS...";
+		return strcat ("FOUND ", nstr, " FREE FRAGS ON MAP!");
+	}
 	if (seq == 11)
-		return is_result ? strcat (nstr, " TARGETS OFFICIAL DOXXED!") : "$ exec /bin/rob_terminator";
+	{
+		if (slot == 0) return "$ docker run redhat/xray";
+		if (slot == 1) return "$ exec /bin/rob_terminator";
+		if (slot == 2) return "| DOCKER WALLHACK READY!!  |";
+		if (slot == 3) return "BRUTE-FORCING ENGINE PVS..";
+		return strcat (nstr, " TARGETS OFFICIAL DOXXED!");
+	}
 	if (seq == 12)
-		return is_result ? strcat ("TRACKING ", nstr, " POOR VICTIMS!") : "$ LD_PRELOAD=/lib/xray.so";
+	{
+		if (slot == 0) return "$ curl https://hax.sh | sh";
+		if (slot == 1) return "$ LD_PRELOAD=/lib/xray.so";
+		if (slot == 2) return "| LD_PRELOAD HAX INJECTED! |";
+		if (slot == 3) return "COMPUTING POCKET CALC...";
+		return strcat ("TRACKING ", nstr, " POOR VICTIMS!");
+	}
 	if (seq == 13)
-		return is_result ? strcat (nstr, " NEWBIES CANNOT HIDE NOW!") : "$ gdb -p $(pidof zircon)";
-	return is_result ? strcat ("CAUGHT ", nstr, " FOES RED-HANDED!") : "$ ./not_wallhacks_swear.exe";
+	{
+		if (slot == 0) return "$ systemctl start fedorax";
+		if (slot == 1) return "$ gdb -p $(pidof zircon)";
+		if (slot == 2) return "| MEMORY PATCH: DEPTH=OFF! |";
+		if (slot == 3) return "PEEKING THRU EVERY WALL...";
+		return strcat (nstr, " NEWBIES CANNOT HIDE NOW!");
+	}
+	if (slot == 0) return "$ cd ~/Desktop/legit_linux";
+	if (slot == 1) return "$ ./not_wallhacks_swear.exe";
+	if (slot == 2) return "| 100% LEGIT LINUX STATS   |";
+	if (slot == 3) return "AUDITING CAMPING SPOTS...";
+	return strcat ("CAUGHT ", nstr, " FOES RED-HANDED!");
+};
+
+string(float idx) RH_LiveCmd =
+{
+	local float k;
+
+	k = idx - 6 * floor (idx / 6);
+	if (k == 0) return "tail -n1 /proc/xray";
+	if (k == 1) return "nmap --top 10 10.0";
+	if (k == 2) return "grep noob /proc/map";
+	if (k == 3) return "watch -n0 wallhax";
+	if (k == 4) return "cat /dev/fedora_hax";
+	return "ping -c1 127.0.0.1";
 };
 
 void(float w, float h) RH_DrawXRayHUD =
@@ -359,11 +456,12 @@ void(float w, float h) RH_DrawXRayHUD =
 	local float pulse, sy, n_en, dist, rad, dfade;
 	local float tx, ty, rrad, rcx, rcy, sw_ang, swc, sws, bx, by, rf, rr;
 	local float cx, cy, r0, arm, off1_d, off2_d, off3_d;
-	local float len_cmd, total_ch, cur_ch, stage;
-	local vector col_red, col_cyan, col_white, col_green, col_ally, sv;
+	local float tfont, tlh, body_y, total_ch, len0, len1, len3, len4, rem, cur_ch, stage;
+	local float live_t, lidx, lch, llen;
+	local vector col_red, col_cyan, col_white, col_green, col_ally, sv, tsv;
 	local vector cam_org, cam_ang, sp, sp_top, sp_bot, delta;
 	local entity t, off1, off2, off3;
-	local string s, tname, tcmd, tres;
+	local string s, tname, ts0, ts1, ts2, ts3, ts4, live_s, prompt_s;
 
 	if (vid_conwidth > 0)
 		w = vid_conwidth;
@@ -540,29 +638,112 @@ void(float w, float h) RH_DrawXRayHUD =
 		drawfill ((cx - 1) * '1 0 0' + (cy - 1) * '0 1 0', '2 2 0', col_red, 0.70, 0);
 	}
 
-	// 3. Top-left compact 2-line Red Hat terminal (clears con_notify via JBH_TopLeftY())
+	// 3. Top-left Red Hat Linux terminal (active typing + retro keyboard SFX): drop-shadowed lines from JBH_TopLeftY(),
+	//    clear of the con_notify lines, with no window panel or title bar fill
+	tfont = max (7, bound (7, floor (w * 0.0115), 11) * 0.84);
+	tsv = tfont * '1 1 0';
+	tlh = tfont + 3;
 	tx = 10;
 	ty = JBH_TopLeftY ();
-	tcmd = RH_SeqLine (seq, FALSE, n_en);
-	tres = RH_SeqLine (seq, TRUE, n_en);
-	len_cmd = strlen (tcmd);
-	total_ch = floor (max (0, age - 0.04) * 34);
+	RH_ShadowStr (tx * '1 0 0' + ty * '0 1 0', "root@rhel9:/hacks", tsv * 0.94, col_white, 0.98, 0);
+
+	ts0 = RH_SeqLine (seq, 0, n_en);
+	ts1 = RH_SeqLine (seq, 1, n_en);
+	ts2 = RH_SeqLine (seq, 2, n_en);
+	ts3 = RH_SeqLine (seq, 3, n_en);
+	ts4 = RH_SeqLine (seq, 4, n_en);
+	len0 = strlen (ts0);
+	len1 = strlen (ts1);
+	len3 = strlen (ts3);
+	len4 = strlen (ts4);
+
+	total_ch = floor (max (0, age - 0.04) * 28);
 	cur_ch = 0;
 	stage = 0;
+	body_y = ty + tlh + 3;
+	prompt_s = strcat ("[root@rhel9]#", (pulse > 0) ? " _" : "");
 
-	if (total_ch <= len_cmd)
+	if (total_ch <= len0)
 	{
 		cur_ch = total_ch;
 		stage = 0;
-		RH_ShadowStr (tx * '1 0 0' + ty * '0 1 0', strcat (substring (tcmd, 0, total_ch), "_"), sv, col_green, 0.88, 0);
+		RH_ShadowStr (tx * '1 0 0' + body_y * '0 1 0', strcat (substring (ts0, 0, total_ch), "_"), tsv, col_green, 0.98, 0);
+	}
+	else if (total_ch < len0 + 4)
+	{
+		cur_ch = len0;
+		stage = 1;
+		RH_ShadowStr (tx * '1 0 0' + body_y * '0 1 0', ts0, tsv, col_green, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + tlh) * '0 1 0', "_", tsv, col_white, 0.96, 0);
+	}
+	else if (total_ch <= len0 + 4 + len1)
+	{
+		cur_ch = total_ch - 4;
+		stage = 1;
+		RH_ShadowStr (tx * '1 0 0' + body_y * '0 1 0', ts0, tsv, col_green, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + tlh) * '0 1 0', strcat (substring (ts1, 0, total_ch - (len0 + 4)), "_"), tsv, col_white, 0.98, 0);
+	}
+	else if (total_ch < len0 + 4 + len1 + 5)
+	{
+		cur_ch = len0 + len1;
+		stage = 2;
+		RH_ShadowStr (tx * '1 0 0' + body_y * '0 1 0', ts0, tsv, col_green, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + tlh) * '0 1 0', ts1, tsv, col_white, 0.98, 0);
 	}
 	else
 	{
-		cur_ch = len_cmd;
-		stage = 1;
-		RH_ShadowStr (tx * '1 0 0' + ty * '0 1 0', tcmd, sv, col_green, 0.85, 0);
-		RH_ShadowStr (tx * '1 0 0' + (ty + lh) * '0 1 0', tres, sv, col_white, 0.88, 0);
+		RH_ShadowStr (tx * '1 0 0' + body_y * '0 1 0', ts0, tsv, col_green, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + tlh) * '0 1 0', ts1, tsv, col_white, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + 2 * tlh) * '0 1 0', "+==========================+", tsv, col_red, 0.96, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + 3 * tlh) * '0 1 0', ts2, tsv, col_red, 0.98, 0);
+		RH_ShadowStr (tx * '1 0 0' + (body_y + 4 * tlh) * '0 1 0', "+==========================+", tsv, col_red, 0.96, 0);
+		rem = total_ch - (len0 + 4 + len1 + 5);
+		if (rem <= len3)
+		{
+			cur_ch = len0 + len1 + rem;
+			stage = 3;
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 5 * tlh) * '0 1 0', strcat (substring (ts3, 0, rem), "_"), tsv, col_cyan, 0.96, 0);
+		}
+		else if (rem < len3 + 3)
+		{
+			cur_ch = len0 + len1 + len3;
+			stage = 3;
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 5 * tlh) * '0 1 0', ts3, tsv, col_cyan, 0.96, 0);
+		}
+		else if (rem <= len3 + 3 + len4)
+		{
+			cur_ch = len0 + len1 + rem - 3;
+			stage = 3;
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 5 * tlh) * '0 1 0', ts3, tsv, col_cyan, 0.96, 0);
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 6 * tlh) * '0 1 0', strcat (substring (ts4, 0, rem - (len3 + 3)), "_"), tsv, col_white, 0.98, 0);
+		}
+		else
+		{
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 5 * tlh) * '0 1 0', ts3, tsv, col_cyan, 0.96, 0);
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 6 * tlh) * '0 1 0', ts4, tsv, col_white, 0.98, 0);
+			live_t = (rem - (len3 + 3 + len4)) / 28;
+			lidx = floor (live_t / 2.2);
+			live_s = RH_LiveCmd (lidx);
+			llen = strlen (live_s);
+			lch = floor ((live_t - lidx * 2.2) * 26);
+			if (lch <= llen)
+			{
+				cur_ch = len0 + len1 + len3 + len4 + lidx * 24 + lch;
+				stage = 4 + lidx;
+				prompt_s = strcat ("# ", substring (live_s, 0, lch), "_");
+			}
+			else
+			{
+				cur_ch = len0 + len1 + len3 + len4 + (lidx + 1) * 24;
+				stage = 5 + lidx;
+				prompt_s = strcat ("# ", live_s, (pulse > 0) ? "_" : "");
+			}
+			RH_ShadowStr (tx * '1 0 0' + (body_y + 7 * tlh + 2) * '0 1 0', prompt_s, tsv, col_green, 0.95, 0);
+		}
 	}
+	if (stage <= 3)
+		RH_ShadowStr (tx * '1 0 0' + (body_y + 7 * tlh + 2) * '0 1 0', prompt_s, tsv, col_green, 0.95, 0);
+
 	if (mode == 1 || mode == 2)
 		RH_TypeTickAudio (cam_org, cur_ch, stage);
 
