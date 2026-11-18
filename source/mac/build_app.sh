@@ -128,7 +128,7 @@ make -C "$ZD" -f makefile -j"$NPROC" SDL_CONFIG="$SDLC" SDLCONFIG_STATICLIBS="$S
 
 # --- assemble ------------------------------------------------------------------------------------------------
 VERSION="$(echo "$TAG" | sed -n 's/^build-\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/p')"
-[ -n "$VERSION" ] || die "cannot get a date from tag $TAG"
+[ -n "$VERSION" ] || VERSION="$(date -u +%Y.%m.%d)"   # custom tag without a build date
 step "assemble BAKOQUAKE.app $VERSION"
 rm -rf "$APP" "$DMG"
 C="$APP/Contents"

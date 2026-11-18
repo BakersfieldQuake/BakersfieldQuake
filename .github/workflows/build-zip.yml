@@ -7,6 +7,8 @@
 #   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
+#   BAKOQUAKE-macos-arm64.dmg     macOS app: signed + notarized, built from that zip by the macos job
+#                                 (source/mac/build_app.sh). It is added to the release once that job finishes.
 #
 # The base must be a fresh lan/make_lan_package.ps1 build (Zircon layout, menu.dat, today's maps, no id1 paks): server.cfg
 # and quake.rc are only overlaid onto such a base, and "Check the package" fails the run (nothing is published) when
@@ -45,6 +47,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.publish.outputs.tag }}
     env:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ inputs.base_tag }}
@@ -244,11 +248,13 @@ jobs:
           make_os_zip BAKOQUAKE-macos-arm64.zip   zircon_beta_macos_arm64_sdl zircon_beta_macos_arm64_dedicated_server
 
       - name: Publish release
+        id: publish
         run: |
           tag="${NEW_TAG:-build-$(date -u +%Y%m%d)-${GITHUB_SHA::7}}"
           assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip)
           flags=(--latest)
           [ "$DRAFT" = true ] && flags=(--draft) && tag="${tag}-draft"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
             --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
@@ -257,4 +263,50 @@ jobs:
 
           - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe
           - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh
-          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.zip - brew install sdl2 jpeg-turbo; xattr -dr com.apple.quarantine the folder; run ./Play.sh"
+          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE to Applications (macOS 13+). The DMG is added a few minutes after the other files, once notarization finishes."
+
+  # Signed, notarized BAKOQUAKE.app in a DMG, built from the macOS zip just published. The engine and every dylib
+  # it loads are built from pinned sources (see source/mac/build_app.sh); runner image and Xcode are pinned too.
+  macos:
+    needs: build
+    runs-on: macos-15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      WORK: ${{ github.workspace }}/../bq-mac
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache source-built dylibs
+        # Keyed on the script, which holds every pinned version.
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/../bq-mac/prefix-13.0
+          key: bq-mac-deps-${{ runner.os }}-xcode16.4-${{ hashFiles('source/mac/build_app.sh') }}
+
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          kc="$RUNNER_TEMP/signing.keychain-db"
+          kcpw="$(uuidgen)"
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$kcpw" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kcpw" "$kc"
+          security import "$RUNNER_TEMP/cert.p12" -k "$kc" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kcpw" "$kc" >/dev/null
+          security list-keychains -d user | xargs security list-keychains -d user -s "$kc"
+          rm "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$kc"
+
+      - name: Build, sign, notarize, upload DMG
+        run: UPLOAD=1 source/mac/build_app.sh "${{ needs.build.outputs.tag }}"
+
+      - name: Remove signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
