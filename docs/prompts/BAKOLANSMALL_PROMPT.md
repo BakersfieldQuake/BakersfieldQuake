@@ -33,5 +33,5 @@ In real life these are about 2 miles apart along S Union Ave. In `bakolansmall` 
 
 ## Deliverables
 - `maps\bakolansmall.bsp` + `.lit` installed, compiles with no leak, plays with 4-5 players.
-- `make_bakolansmall.py`, `build_bakolansmall.sh`, and a short note (`BAKOLANSMALL_NOTES.md` at the project root) listing the layout (a simple top-down sketch in text), spawn/item counts, what was cut from each source map, and anything you could not do.
+- `make_bakolansmall.py`, `build_bakolansmall.sh`, and a short note (`docs/BAKOLANSMALL_NOTES.md`) listing the layout (a simple top-down sketch in text), spawn/item counts, what was cut from each source map, and anything you could not do.
 - Report back what you built, what you tested (with screenshot paths), and what is left.

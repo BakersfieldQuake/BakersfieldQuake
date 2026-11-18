@@ -2,6 +2,12 @@
 
 Instructions for AI coding agents working in this repo.
 
+## Where docs go
+
+- Agent prompts and handoffs go in `docs/prompts/`; other notes and plans go in `docs/`.
+- The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and files the game itself reads.
+  The `.gitignore` is an allowlist (`*`), so add new files with `git add -f`.
+
 ## Packaging game content (pk3 rules)
 
 Players get updates through a differential updater: only files whose sha256 changed are downloaded. The package
