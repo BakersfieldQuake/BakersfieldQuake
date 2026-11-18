@@ -91,7 +91,10 @@ float() HTB_Customize =
 	if (dx > 2000 || dy > 2000 || (dx * dx + dy * dy) > 4000000)
 		return FALSE;
 
-	self.angles_y = other.v_angle_y;
+	// Face the viewer's POSITION, in 3 degree steps. Facing his view angle (other.v_angle_y) changed this entity for him on
+	// every frame he moved the mouse, so every NPC in range was re-sent to him each frame. Looking straight at the NPC the
+	// two are the same angle.
+	self.angles_y = floor ((vectoyaw (other.origin - self.origin) + 180) / 3 + 0.5) * 3;
 	self.angles_x = 0;
 	self.angles_z = 0;
 
