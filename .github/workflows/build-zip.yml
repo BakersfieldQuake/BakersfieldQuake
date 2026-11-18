@@ -115,6 +115,13 @@ jobs:
           cd ..
           ls -l BAKOQUAKE.zip
 
+      - name: Base pk3 guard
+        # Players download only changed files; the base pk3s are ~920 MB. Warn (not fail) if either differs
+        # from the latest published release. Content belongs in zz_<feature>.pk3 overlays (AGENTS.md).
+        run: |
+          python repo/source/ci/base_pk3_guard.py "$GITHUB_REPOSITORY" BAKOQUAKE.zip \
+            BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 BAKOQUAKE/quake15/q15.pk3
+
       - name: Zip the Linux and macOS packages
         # Derive each from the master zip (no second 1 GB tree on disk, no recompressing assets):
         # strip the Windows-only entries, then add that OS's root darkplaces-sdl/-dedicated binaries.
