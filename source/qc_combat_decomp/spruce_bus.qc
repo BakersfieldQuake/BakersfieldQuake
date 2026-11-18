@@ -354,6 +354,7 @@ void() SB_ManagerThink =
 void() misc_spruce_bus_manager =
 {
 	Vehicles_Precache ();
+	precache_model ("progs/veh_schoolbus.md3");	// SB_SpawnBus sets it directly; vehicle bodies are precached per kind now
 	sb_manager = self;
 	sb_active_bus = world;
 	self.think = SB_ManagerThink;

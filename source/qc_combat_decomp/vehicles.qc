@@ -39,71 +39,8 @@ void() Vehicles_Precache =
 	if (vehicles_precached)
 		return;
 	vehicles_precached = TRUE;
-	precache_model ("progs/veh_truck.md3");
-	precache_model ("progs/veh_truck_wreck.md3");
-	precache_model ("progs/veh_truck_wheel.md3");
-	precache_model ("progs/veh_truck_hood.md3");
-	precache_model ("progs/veh_truck_door.md3");
-	precache_model ("progs/veh_truck_extra.md3");
-	precache_model ("progs/veh_truck_bumper.md3");
-
-	precache_model ("progs/veh_sedan.md3");
-	precache_model ("progs/veh_sedan_wreck.md3");
-	precache_model ("progs/veh_sedan_wheel.md3");
-	precache_model ("progs/veh_sedan_hood.md3");
-	precache_model ("progs/veh_sedan_door.md3");
-	precache_model ("progs/veh_sedan_extra.md3");
-	precache_model ("progs/veh_sedan_bumper.md3");
-
-	precache_model ("progs/veh_van.md3");
-	precache_model ("progs/veh_van_wreck.md3");
-	precache_model ("progs/veh_van_wheel.md3");
-	precache_model ("progs/veh_van_hood.md3");
-	precache_model ("progs/veh_van_door.md3");
-	precache_model ("progs/veh_van_extra.md3");
-	precache_model ("progs/veh_van_bumper.md3");
-
-	precache_model ("progs/veh_coupe.md3");
-	precache_model ("progs/veh_coupe_wreck.md3");
-	precache_model ("progs/veh_coupe_wheel.md3");
-	precache_model ("progs/veh_coupe_hood.md3");
-	precache_model ("progs/veh_coupe_door.md3");
-	precache_model ("progs/veh_coupe_extra.md3");
-	precache_model ("progs/veh_coupe_bumper.md3");
-
-	precache_model ("progs/veh_hdtruck.md3");
-	precache_model ("progs/veh_hdtruck_wreck.md3");
-	precache_model ("progs/veh_hdtruck_wheel.md3");
-	precache_model ("progs/veh_hdtruck_hood.md3");
-	precache_model ("progs/veh_hdtruck_door.md3");
-	precache_model ("progs/veh_hdtruck_extra.md3");
-	precache_model ("progs/veh_hdtruck_bumper.md3");
-
-	precache_model ("progs/veh_schoolbus.md3");
-	precache_model ("progs/veh_schoolbus_wreck.md3");
-	precache_model ("progs/veh_schoolbus_wheel.md3");
-	precache_model ("progs/veh_schoolbus_hood.md3");
-	precache_model ("progs/veh_schoolbus_door.md3");
-	precache_model ("progs/veh_schoolbus_extra.md3");
-	precache_model ("progs/veh_schoolbus_bumper.md3");
-
-	precache_model ("progs/veh_gtcar.md3");
-	precache_model ("progs/veh_gtcar_wreck.md3");
-	precache_model ("progs/veh_gtcar_wheel.md3");
-	precache_model ("progs/veh_gtcar_hood.md3");
-	precache_model ("progs/veh_gtcar_door.md3");
-	precache_model ("progs/veh_gtcar_extra.md3");
-	precache_model ("progs/veh_gtcar_bumper.md3");
-
-	precache_model ("progs/veh_tuktuk.md3");
-	precache_model ("progs/veh_tuktuk_wreck.md3");
-	precache_model ("progs/veh_tuktuk_wheel.md3");
-	precache_model ("progs/veh_tuktuk_hood.md3");
-	precache_model ("progs/veh_tuktuk_door.md3");
-	precache_model ("progs/veh_tuktuk_extra.md3");
-	precache_model ("progs/veh_tuktuk_bumper.md3");
-
-	precache_model ("progs/lsj/lsj_golfcart.md3");
+	// The bodies, wrecks and loose parts are precached per kind in Veh_InitEntity: a map loads only the kinds it spawns
+	// (soi6 has three tuk-tuks and used to load all eight kinds, about 60 models).
 
 	// go-kart models (~42 MB) are precached by GK_Precache, only on maps that really spawn a kart
 
@@ -1719,10 +1656,16 @@ void(entity v, float kind) Veh_InitEntity =
 
 	Vehicles_Precache ();
 	if (Veh_IsKart (kind))
-	{
 		GK_Precache ();
-		precache_model (Veh_IntactModel (kind));	// only the kart bodies this map actually spawns
-	}
+	// only the kinds this map actually spawns: the body, its wreck and the parts it throws when it blows up
+	// (kinds without parts of their own, the golf cart and the karts, use the coupe's)
+	precache_model (Veh_IntactModel (kind));
+	precache_model (Veh_WreckModel (kind));
+	precache_model (Veh_WheelModel (kind));
+	precache_model (Veh_HoodModel (kind));
+	precache_model (Veh_DoorModel (kind));
+	precache_model (Veh_ExtraModel (kind));
+	precache_model (Veh_BumperModel (kind));
 	veh_has_vans = TRUE;
 	v.veh_kind = kind;
 	v.veh_state = VEH_STATE_IDLE;
