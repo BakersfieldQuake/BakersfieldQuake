@@ -1,0 +1,561 @@
+<title>BAKOQUAKE Performance Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (max 1080px), summary scorecard first, then one section per area, each with chart + notes. */
+:root {
+  --bg: #f6f5f1;
+  --surface: #fcfcfb;
+  --ink: #17140f;
+  --ink-2: #4f4a43;
+  --muted: #847d72;
+  --line: #e2ded5;
+  --axis: #c3c2b7;
+  --accent: #a4471f;
+  --accent-soft: #f4e4d9;
+  --good: #0ca30c;  --good-ink: #006300;  --good-soft: #e1f2e1;
+  --warn: #fab219;  --warn-ink: #7a5200;  --warn-soft: #fbf0d6;
+  --serious: #ec835a; --serious-ink: #9a3d17; --serious-soft: #fbe5dc;
+  --crit: #d03b3b;  --crit-ink: #a12727;  --crit-soft: #f9e0e0;
+  --info-ink: #1c5cab; --info-soft: #e2edfb;
+  --s-before: #bdb9ae;
+  --s-mid: #6da7ec;
+  --s-after: #1c5cab;
+  --s-alt: #eb6834;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111110; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #8f8a80;
+    --line: #2c2c2a; --axis: #383835; --accent: #e28a57; --accent-soft: #3a2418;
+    --good-ink: #3fc23f; --good-soft: #142a14; --warn-ink: #f5c04a; --warn-soft: #33290f;
+    --serious-ink: #f09a77; --serious-soft: #3a2017; --crit-ink: #ef7b7b; --crit-soft: #3a1717;
+    --info-ink: #86b6ef; --info-soft: #162a44;
+    --s-before: #5d5a54; --s-mid: #3987e5; --s-after: #9ec5f4; --s-alt: #d95926;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111110; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #8f8a80;
+  --line: #2c2c2a; --axis: #383835; --accent: #e28a57; --accent-soft: #3a2418;
+  --good-ink: #3fc23f; --good-soft: #142a14; --warn-ink: #f5c04a; --warn-soft: #33290f;
+  --serious-ink: #f09a77; --serious-soft: #3a2017; --crit-ink: #ef7b7b; --crit-soft: #3a1717;
+  --info-ink: #86b6ef; --info-soft: #162a44;
+  --s-before: #5d5a54; --s-mid: #3987e5; --s-after: #9ec5f4; --s-alt: #d95926;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font-body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; font-weight: 700; }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+.eyebrow { font: 600 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); }
+.muted { color: var(--muted); }
+.lede { color: var(--ink-2); font-size: 17px; }
+
+header.top { display: grid; gap: 18px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; font: 13px/1.4 var(--font-mono); color: var(--muted); }
+.meta b { color: var(--ink-2); font-weight: 600; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+nav.toc a { text-decoration: none; color: var(--ink-2); font: 500 13px/1 var(--font-body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+nav.toc a:hover { color: var(--accent); border-color: var(--accent); }
+
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px 14px; display: grid; gap: 4px; align-content: start; }
+.kpi .num { font: 700 34px/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.kpi .num small { font-size: 16px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.kpi .lab { font-weight: 600; font-size: 14px; }
+.kpi .sub { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.up { color: var(--good-ink); }
+
+section { display: grid; gap: 18px; scroll-margin-top: 16px; }
+.sec-head { display: grid; gap: 6px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; display: grid; gap: 12px; }
+.panel h3 { font-size: 15px; }
+.chart { position: relative; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.notes { display: grid; gap: 10px; font-size: 14px; color: var(--ink-2); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 14px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--ink); }
+.callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+td.delta { text-align: right; white-space: nowrap; font-weight: 600; color: var(--good-ink); }
+details { font-size: 13.5px; }
+details summary { cursor: pointer; color: var(--muted); font-weight: 500; }
+details[open] summary { margin-bottom: 8px; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; font: 600 11.5px/1 var(--font-body); padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.p-fixed { color: var(--good-ink); background: var(--good-soft); }
+.p-mitig { color: var(--info-ink); background: var(--info-soft); }
+.p-open { color: var(--warn-ink); background: var(--warn-soft); }
+.p-left { color: var(--muted); background: var(--bg); border: 1px solid var(--line); }
+.sev { font: 600 11px/1 var(--font-mono); padding: 4px 7px; border-radius: 4px; white-space: nowrap; }
+.s-crit { color: var(--crit-ink); background: var(--crit-soft); }
+.s-high { color: var(--serious-ink); background: var(--serious-soft); }
+.s-med { color: var(--warn-ink); background: var(--warn-soft); }
+.s-low { color: var(--muted); background: var(--bg); border: 1px solid var(--line); }
+
+.timeline { display: grid; gap: 0; }
+.tl { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.tl:last-child { border-bottom: 0; }
+.tl .when { font: 600 13px/1.4 var(--font-mono); color: var(--ink-2); }
+.tl .when small { display: block; color: var(--muted); font-weight: 400; }
+.tl h3 { font-size: 15px; margin-bottom: 4px; }
+.tl p { font-size: 14px; color: var(--ink-2); }
+@media (max-width: 560px) { .tl { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+.sync { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sync .panel { gap: 6px; }
+.sync .big { font: 700 22px/1.1 var(--font-display); }
+.bloat td:first-child { font-family: var(--font-mono); font-size: 12.5px; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Audit report &middot; 18&ndash;19 November 2026</span>
+  <h1>BAKOQUAKE Performance Audit</h1>
+  <p class="lede">What was measured, what was broken, what was fixed and how much faster, lighter and steadier the mod got on the big custom maps. Every number on this page was measured, on a fast PC unless a note says otherwise.</p>
+  <div class="meta">
+    <span>Live release <b>build-20261118-041eb0b</b></span>
+    <span>GitHub main <b>b74cb61</b></span>
+    <span>Server <b>109 / 109 files match</b></span>
+    <span>Test PC <b>Ryzen 7 7700X &middot; RTX 4070 Ti &middot; NVMe</b></span>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#summary">Summary</a><a href="#load">Load time</a><a href="#fps">Frame rate</a><a href="#memory">Memory</a><a href="#server">Server</a><a href="#crashes">Crashes</a><a href="#bugs">Bug list</a><a href="#bloat">Bloat</a><a href="#releases">Releases &amp; sync</a><a href="#open">Still open</a><a href="#method">Method</a>
+  </nav>
+</header>
+
+<section id="summary">
+  <div class="sec-head">
+    <span class="eyebrow">Summary</span>
+    <h2>The headline numbers</h2>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><span class="num up">&minus;20<small>%</small></span><span class="lab">Map load time</span><span class="sub">9 maps, 76.2 s &rarr; 60.8 s in total. bklan6 11.0 &rarr; 8.3 s</span></div>
+    <div class="kpi"><span class="num up">8&times;</span><span class="lab">terminal21 frame rate</span><span class="sub">46 &rarr; 370 fps, worst second 10 &rarr; 138 fps</span></div>
+    <div class="kpi"><span class="num up">2&times;</span><span class="lab">Downtown frame rate</span><span class="sub">378 &rarr; 752 fps on the same recorded match</span></div>
+    <div class="kpi"><span class="num up">&minus;45<small>%</small></span><span class="lab">Memory on weak PCs</span><span class="sub">Downtown 4.4 &rarr; 2.4 GB with the automatic low-memory mode</span></div>
+    <div class="kpi"><span class="num up">&minus;57<small>%</small></span><span class="lab">Server script work</span><span class="sub">soi6, 15 bots: 1,785 M &rarr; 760 M statements</span></div>
+    <div class="kpi"><span class="num up">41 &rarr; 0</span><span class="lab">Server restarts a day</span><span class="sub">The public server dropped everyone about every 12 minutes</span></div>
+  </div>
+  <div class="callout">Four releases went out. Players have all of it, including the faster Windows engine. The public server, GitHub and the owner's PC are identical to the live release. Two things are not proven: the crash on the owner's other PC is not identified, and nobody has played a real session on the new engine yet (<a href="#open">Still open</a>).</div>
+</section>
+
+<section id="load">
+  <div class="sec-head">
+    <span class="eyebrow">Load time</span>
+    <h2>Hosting a map: 20% faster, 39% on the macOS layout</h2>
+    <p class="muted">From the <code>map</code> command to "entered the game", new-player settings, Windows release layout. Engine start to the menu adds about 3 s.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Seconds to load, per map</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--s-before)"></i>Before the audit</span>
+        <span><i style="background:var(--s-mid)"></i>Game fixes, old engine</span>
+        <span><i style="background:var(--s-after)"></i>With the new engine</span>
+      </div>
+      <div class="chart" style="height:400px"><canvas id="cLoad" role="img" aria-label="Load time per map, before and after, in seconds"></canvas></div>
+      <details><summary>Table view</summary><div class="tbl-wrap"><table id="tLoad"></table></div></details>
+    </div>
+    <div class="notes">
+      <h3>Why it was slow</h3>
+      <p>About 7 s of every load was the same on every map. For each of about 1,900 textures the engine asked the disk for some 40 optional files (<code>_norm</code>, <code>_glow</code>, <code>_gloss</code> &hellip; as <code>.tga/.png/.jpg/.pcx</code>) in every loose folder. Almost none exist. It is the number of files that costs, not their size: shrinking the gun frames to 8&times;8 pixels saved almost nothing.</p>
+      <ul>
+        <li><b>Engine file-lookup cache</b> (<code>fs_dircache</code>): remembers which folders exist and skips the lookups. Main gain.</li>
+        <li><b>Precache gating:</b> the tank, LAN props, Eric cannon, random NPCs and sky pads load only on maps that place them.</li>
+        <li><b>Vehicles per kind:</b> a map with one car no longer loads all 57 vehicle models.</li>
+        <li><b>macOS app:</b> its separate user folder doubled the lookups. soi6 13.0 &rarr; 7.9 s (&minus;39%) once the engine fork merges the patch.</li>
+      </ul>
+      <p class="muted">Measured and rejected: packing the gun frames into atlases saves 0.45 s for a 92 MB download.</p>
+    </div>
+  </div>
+</section>
+
+<section id="fps">
+  <div class="sec-head">
+    <span class="eyebrow">Frame rate</span>
+    <h2>Smoother play on the big maps</h2>
+    <p class="muted">A one-minute 15-bot match recorded once per map and played back flat out. Two runs agree within 2%, unlike live bot matches. 1280&times;720, shipped settings.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Average frames per second on the same recorded match</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--s-before)"></i>Before</span>
+        <span><i style="background:var(--s-mid)"></i>Per-map visibility setting</span>
+        <span><i style="background:var(--s-after)"></i>+ new engine</span>
+      </div>
+      <div class="chart" style="height:320px"><canvas id="cFps" role="img" aria-label="Frames per second before and after on four maps"></canvas></div>
+      <details><summary>Table view</summary><div class="tbl-wrap"><table id="tFps"></table></div></details>
+    </div>
+    <div class="notes">
+      <h3>What the profiler found</h3>
+      <ul>
+        <li><b>Visibility rays</b> (terminal21: 71% of the frame). The engine checks whether each model and light is hidden by tracing rays that test wall faces one by one, and these maps keep thousands of faces on one tree node. The old cheap test is exact on 8 maps, so the game now picks it per map. It stays off where see-through gratings sit on solid walls (downtown: 1,979 such faces), because there it could hide a player.</li>
+        <li><b>Model lighting</b> (downtown: 35%). Every frame, every model looked up its floor light by scanning up to 9,500 faces. Furniture and pickups never move, so the engine now caches the answer: 0.454 &rarr; 0.005 ms per frame. Checked against the uncached result a million times per map, no difference.</li>
+        <li><b>Controller polling</b> (11%). The engine asked Windows about four empty controller slots every frame. Now once a second.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Worst one-second frame rate (the stutter)</h3>
+      <div class="chart" style="height:250px"><canvas id="cMin" role="img" aria-label="Worst one-second frame rate before and after"></canvas></div>
+      <details><summary>Table view</summary><div class="tbl-wrap"><table id="tMin"></table></div></details>
+    </div>
+    <div class="notes">
+      <h3>Settings tested and left alone</h3>
+      <p>Coronas, decals, particle collisions and quality, and dynamic-light shadows changed nothing on terminal21 (46&ndash;47 fps each). Turning the visibility rays off completely costs morrorock 16%, so they stay on. Dynamic lights off (the menu's Simple Mode) gave 71 fps where the per-map setting gives 311.</p>
+      <div class="callout warn">The fps figures are from an RTX 4070 Ti, so they show relative gains. A PC with integrated graphics will be far lower in absolute terms.</div>
+    </div>
+  </div>
+</section>
+
+<section id="memory">
+  <div class="sec-head">
+    <span class="eyebrow">Memory</span>
+    <h2>15% less texture memory, 45% less in low-memory mode</h2>
+    <p class="muted">Peak per map with new-player settings, release layout.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Texture memory per map (MB)</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--s-before)"></i>Before</span>
+        <span><i style="background:var(--s-after)"></i>After</span>
+      </div>
+      <div class="chart" style="height:380px"><canvas id="cMem" role="img" aria-label="Texture memory per map before and after"></canvas></div>
+      <details><summary>Table view</summary><div class="tbl-wrap"><table id="tMem"></table></div></details>
+    </div>
+    <div class="notes">
+      <h3>Where it went</h3>
+      <ul>
+        <li><b>Shadow atlas 8192 &rarr; 4096:</b> the engine default was one 256 MB texture for rocket and muzzle-flash shadows. Now 64 MB, same look.</li>
+        <li><b>Precache gating and vehicles per kind:</b> 230&ndash;370 MB of video memory per map.</li>
+        <li><b>Three gun models without mipmaps</b> (<code>zz_gunnomip.pk3</code>, 56 KB): 68 MB less.</li>
+        <li><b>Map-change leaks fixed in the engine:</b> the old engine gained about 70 MB on every map change and never gave it back. Engine memory after four maps: 757 &rarr; 617 MB.</li>
+        <li><b>Low-memory mode</b> (<code>lowmem.cfg</code>, model textures at half size): starts by itself under 10 GB of RAM or under 3 GB of video memory. Downtown: 2,155 &rarr; 945 MB of textures, 3.8 &rarr; 2.4 GB committed.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="server">
+  <div class="sec-head">
+    <span class="eyebrow">Server</span>
+    <h2>Server script work cut by more than half</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Server script statements in 75 s, soi6, 15 bots (millions)</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--s-alt)"></i>Gib physics ("Gyro")</span>
+        <span><i style="background:var(--s-mid)"></i>Everything else</span>
+      </div>
+      <div class="chart" style="height:200px"><canvas id="cQc" role="img" aria-label="Server script work split into gib physics and the rest, before and after"></canvas></div>
+      <details><summary>Table view</summary><div class="tbl-wrap"><table id="tQc"></table></div></details>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Gib physics off</b> (<code>gyroset 0</code>): every gib ran about 8 script calls each server frame for 30&ndash;40 s, and one rocket into a Soi 6 bar makes about 150 gibs. 61% of all server script work. Gibs still fly and bounce. Host frame rate on soi6: 114 &rarr; 147 fps (+29%).</li>
+        <li><b>Gib budget</b> for Soi 6 NPCs: four full showers per 10 s, then three gibs and a splat.</li>
+        <li><b>NPCs no longer resent every frame:</b> they copied the viewer's view angle, so every mouse move re-sent each NPC in range. They now face the viewer's position.</li>
+        <li><b>Measured and left:</b> the Soi 6 per-NPC hook. A dedicated server with 4 players used 17.7% of a core with it and 16.0% without, inside the noise, and was asleep 98% of the time.</li>
+        <li>Ten minutes with 15 bots on downtown: 6 million statements a second, a few percent of one core.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="crashes">
+  <div class="sec-head">
+    <span class="eyebrow">Crashes</span>
+    <h2>Four causes found, all fixed or mitigated</h2>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Crash</th><th>Cause</th><th>Evidence</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><b>Public server drops everyone</b>, about every 12 minutes</td><td>The health check and the demo recorder both polled from 127.0.0.1, and the server answers one status query per address per second, so the check missed and restarted the server.</td><td>41 restarts on 18 Nov before 10:46 UTC, 0 after</td><td><span class="pill p-fixed">Fixed on VPS</span></td></tr>
+        <tr><td><b>"Server runaway loop counter hit limit"</b> with bots</td><td>FrikBot's <code>wisible</code> check looped for ever between two brush entities.</td><td>Reproduced on spruce; afterwards 2-minute 15-bot matches on 13 maps, all clean</td><td><span class="pill p-fixed">Fixed, released</span></td></tr>
+        <tr><td><b>"Mem_Alloc: out of memory"</b> while loading</td><td>3.1&ndash;4.4 GB committed per map; dies decoding textures (<code>image_png.c:81</code>).</td><td>Reproduced with a 3.0 GB limit on downtown and 2.8 GB on bklan6; low-memory mode loads all three maps at 2.2&ndash;2.5 GB</td><td><span class="pill p-mitig">Mitigated</span></td></tr>
+        <tr><td><b>Memory grows on every map change</b></td><td>Engine never freed lightmap update buffers and the server script VM.</td><td>+70 MB per change on the old engine, flat after the fix</td><td><span class="pill p-fixed">Fixed in engine</span></td></tr>
+        <tr><td><b>The crash on the owner's other PC</b> (16 GB, integrated graphics)</td><td>Not identified: no access to that PC, and the game kept no log.</td><td>Every launcher now keeps a game log, and <b>Report a Problem</b> collects it with the PC's details. Tested on a forced crash.</td><td><span class="pill p-open">Unconfirmed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="bugs">
+  <div class="sec-head">
+    <span class="eyebrow">Bug list</span>
+    <h2>Everything found, by severity</h2>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Sev.</th><th>Area</th><th>Finding</th><th class="n">Measured effect</th><th>Status</th></tr></thead>
+      <tbody id="bugRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="bloat">
+  <div class="sec-head">
+    <span class="eyebrow">Bloat</span>
+    <h2>What takes the space</h2>
+    <p class="muted">The two big packs cannot be repacked without forcing every player to re-download about 450 MB each, so new content ships as small overlay packs.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Size (MB)</h3>
+      <div class="chart" style="height:300px"><canvas id="cBloat" role="img" aria-label="Size of the largest items"></canvas></div>
+    </div>
+    <div class="tbl-wrap bloat">
+      <table>
+        <thead><tr><th>Item</th><th class="n">Size</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>bakersfield.pk3</td><td class="n">503 MB</td><td>16,442 files. PNG 320 MB, models 69 MB, sprites 52 MB, sound 51 MB. At most 28 MB looks unused</td></tr>
+          <tr><td>q15.pk3 (Combat+)</td><td class="n">477 MB</td><td>Includes 24 MB of Photoshop sky templates. Not ours to repack</td></tr>
+          <tr><td>maps/</td><td class="n">268 MB</td><td>14 maps with lighting files</td></tr>
+          <tr><td>dist/ on this PC</td><td class="n">17 GB</td><td>Every release zip since v1.0</td></tr>
+          <tr><td>VPS backups</td><td class="n">4.3 GB</td><td>38 folders; the VPS disk is 79% full</td></tr>
+          <tr><td>VPS maps/</td><td class="n">730 MB</td><td>54 of 84 files are maps no longer in the release</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="releases">
+  <div class="sec-head">
+    <span class="eyebrow">Releases &amp; sync</span>
+    <h2>Four releases, everything in step</h2>
+  </div>
+  <div class="sync">
+    <div class="panel"><span class="eyebrow">GitHub main</span><span class="big mono">b74cb61</span><span class="muted">Release built from 041eb0b; later commits are report text only</span></div>
+    <div class="panel"><span class="eyebrow">Live release</span><span class="big mono">041eb0b</span><span class="muted">Build 34, Windows, Linux, macOS app and DMG</span></div>
+    <div class="panel"><span class="eyebrow">Public server</span><span class="big">109 / 109</span><span class="muted">game files identical to the release</span></div>
+    <div class="panel"><span class="eyebrow">Owner's PC</span><span class="big">126 / 128</span><span class="muted">identical; the two others are the player's own config and the "dev" version stamp</span></div>
+  </div>
+  <div class="panel">
+    <div class="timeline">
+      <div class="tl"><div class="when">18 Nov 13:56 UTC<small>build 27 &middot; 17.9 MB update</small></div><div><h3>build-20261118-74b8bd0: crash and memory fixes</h3><p>Bot runaway-loop fix, precache gating, vehicles per kind, gib budget, NPC facing, lower shadow atlas, low-memory mode in every launcher. Also put back the game code that the two previous releases had silently rolled back.</p></div></div>
+      <div class="tl"><div class="when">18 Nov 22:12 UTC<small>build 29 &middot; 0.52 MB</small></div><div><h3>build-20261118-52bbdb8: frame rate and weak graphics</h3><p>Per-map visibility setting (terminal21 8&times;), video-memory check in the launchers with Simple Mode once under 3 GB.</p></div></div>
+      <div class="tl"><div class="when">18 Nov 22:42 UTC<small>build 31 &middot; 9.0 MB</small></div><div><h3>build-20261118-0ebe292: the new Windows engine</h3><p>File-lookup cache, map-change leak fixes, lighting cache, controller polling, AMD laptop hint. Plus <code>zz_gunnomip.pk3</code>. Released by a second session on the owner's go-ahead.</p></div></div>
+      <div class="tl"><div class="when">18 Nov 23:07 UTC<small>build 34 &middot; 37 KB</small></div><div><h3>build-20261118-041eb0b: game log and Report a Problem</h3><p>Every launcher keeps <code>bq_game.log</code> plus the previous one; <code>Report a Problem.cmd</code> writes a report to the Desktop. A first draft on the old base would have put the old engine back; the manifest comparison caught it before publishing.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="open">
+  <div class="sec-head">
+    <span class="eyebrow">Still open</span>
+    <h2>What is not proven, and what the owner decides</h2>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Item</th><th>Why it is open</th><th>Next step</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-open">Other PC's crash</span></td><td>No access to that PC; the diagnosis was dropped for this session.</td><td>After the next crash there, run <b>Report a Problem</b> and send <code>BAKOQUAKE-report.txt</code>.</td></tr>
+        <tr><td><span class="pill p-open">Real play on the new engine</span></td><td>All automated checks passed (regression suite, downloads, ten-minute match, fullscreen, map changes). No person has played on it.</td><td>The owner plays a session. To go back on one PC: copy <code>zircon_beta_gcc.stock.exe</code> over <code>zircon_beta_gcc.exe</code>.</td></tr>
+        <tr><td><span class="pill p-left">Linux and macOS engine</span></td><td>They take the engine from the fork, which has not merged the patches.</td><td>Merge rgr4y/zircon-darkplaces#1, then move <code>ZIRCON_REF</code>.</td></tr>
+        <tr><td><span class="pill p-left">Weak graphics, measured</span></td><td>This PC always draws on its RTX card.</td><td>Check frame rate on a PC with integrated graphics.</td></tr>
+        <tr><td><span class="pill p-left">PNG decoding</span></td><td>Now 20% of a map load (the engine's own slow decoder).</td><td>Engine change: use the zlib it already loads. Estimated &minus;0.7 s per load.</td></tr>
+        <tr><td><span class="pill p-left">Housekeeping</span></td><td>dist/ 17 GB, VPS backups 4.3 GB, 54 unused maps on the VPS, three verification drafts on GitHub.</td><td>Owner's call; nothing was deleted.</td></tr>
+        <tr><td><span class="pill p-left">VPS side service</span></td><td>An unrelated service (<code>tailscale-map</code>) crash-loops and writes its credentials into the system journal on every start.</td><td>Not part of the mod and not touched. Rotate that token.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="method">
+  <div class="sec-head">
+    <span class="eyebrow">Method</span>
+    <h2>How it was measured</h2>
+  </div>
+  <div class="grid2">
+    <div class="notes">
+      <ul>
+        <li><b>Load time:</b> <code>loadtime.py</code> runs a scratch copy of the release package in the release layout, times the map command to "entered the game", and records memory and errors. Reset settings before every run.</li>
+        <li><b>Profiling:</b> <code>sampler.py</code> samples the engine's main thread every 1&ndash;3 ms. With a symbol map from an unstripped rebuild it names the engine functions.</li>
+        <li><b>Frame rate:</b> recorded matches played back with <code>timedemo.py</code>. Live bot matches swing too much: three settings looked good or bad live and were all noise.</li>
+        <li><b>Out of memory:</b> the engine run inside a Windows job object with a commit limit.</li>
+        <li><b>Server:</b> script profiles (<code>prvm_profile</code>) and CPU time of a dedicated server with real clients connected.</li>
+      </ul>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Releases:</b> base zip compared file by file with the live manifest, a draft build, the draft's manifest compared again, the exact file set smoke-tested, then the real build. Files for the server taken from the published zip and checked against the manifest, installed only while it was empty, with a backup.</li>
+        <li><b>Limits:</b> one fast PC. Several sessions were testing on it at the same time; load repeats differ by up to 0.5 s.</li>
+        <li>Full detail: <code>docs/audit-2026-11-18-performance.md</code> and <code>docs/engine-perf-patches-2026-11-18.md</code> in the repository.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>BAKOQUAKE (BakersfieldQuake mod for Combat+ on the Zircon engine). Audit run 18&ndash;19 November 2026.</span>
+  <span>Tools: <code>source/mm_tools/perf/</code> (loadtime, sampler, timedemo, fence_solid, dedtime).</span>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  var D = {
+    load: {
+      maps: ["start", "goldenwest", "terminal21", "little_st_james", "spruce", "soicowboy_bkk", "soi6", "bakersfielddowntown", "bklan6"],
+      before: [7.1, 7.5, 7.5, 7.6, 7.7, 8.3, 8.6, 10.9, 11.0],
+      mid:    [6.4, 6.7, 7.0, 7.5, 7.5, 7.9, 8.3, 10.8, 11.0],
+      after:  [5.5, 6.4, 5.9, 6.4, 6.3, 6.8, 6.6, 8.6, 8.3]
+    },
+    fps: {
+      maps: ["terminal21", "morrorock", "soi6", "bakersfielddowntown"],
+      before: [46, 139, 712, 378],
+      mid:    [311, 146, 708, 378],
+      after:  [370, 162, 806, 752],
+      minBefore: [10, 74, 255, 255],
+      minAfter:  [138, 83, 277, 283]
+    },
+    mem: {
+      maps: ["start", "goldenwest", "terminal21", "little_st_james", "spruce", "soicowboy_bkk", "soi6", "bklan6", "bakersfielddowntown"],
+      before: [1690, 1765, 1777, 1790, 1795, 2153, 2156, 2194, 2381],
+      after:  [1352, 1429, 1441, 1518, 1539, 1897, 1819, 1917, 2155],
+      commitBefore: [3.1, 3.5, 3.5, 3.3, 3.4, 3.8, 4.1, 4.2, 4.4],
+      commitAfter:  [2.3, 2.7, 2.7, 2.6, 2.8, 3.0, 3.4, 3.5, 3.8]
+    },
+    qc: { labels: ["Before", "After (gyroset 0)"], gyro: [1089, 0], rest: [696, 760] },
+    bloat: { labels: ["dist/ (local)", "VPS backups", "VPS maps/", "bakersfield.pk3", "q15.pk3", "maps/"], mb: [17000, 4300, 730, 503, 477, 268] }
+  };
+
+  var bugs = [
+    ["crit", "Server", "Health check restarted the public server about every 12 minutes (status queries limited to 1 per second per address, shared with the demo recorder)", "41 &rarr; 0 restarts", "fixed"],
+    ["crit", "Game code", "FrikBot <code>wisible</code> loops for ever between two brush entities: server runaway loop with bots", "13 maps clean", "fixed"],
+    ["crit", "Memory", "Out of memory while loading on PCs with little free memory", "4.4 &rarr; 2.4 GB in low-memory mode", "mitig"],
+    ["high", "Release", "Two releases were built on a stale base and silently shipped older game code and dropped four packs", "corrected in build 27", "fixed"],
+    ["high", "Engine", "About 40 disk lookups per texture per loose folder on every map load", "&minus;20% load, &minus;39% macOS", "fixed"],
+    ["high", "Engine", "Visibility rays test faces one by one on maps with thousands of faces per node", "terminal21 46 &rarr; 311 fps", "fixed"],
+    ["high", "Engine", "Lighting lookup walks the BSP tree for every model every frame", "downtown 378 &rarr; 752 fps", "fixed"],
+    ["high", "Engine", "Lightmap buffers and server VM leak on every map change", "+70 MB per change &rarr; flat", "fixed"],
+    ["high", "Game code", "Combat+ gib physics ran 8 calls per gib per server frame", "&minus;57% server script work", "fixed"],
+    ["med", "Game code", "Tank, LAN props, Eric cannon, random NPCs, sky pads and all 57 vehicle models loaded on every map", "&minus;230 to 370 MB VRAM", "fixed"],
+    ["med", "Config", "Shadow atlas at the engine default of 8192 (one 256 MB texture)", "&minus;192 MB", "fixed"],
+    ["med", "Engine", "Four empty controller slots polled through Windows every frame", "11% of a frame", "fixed"],
+    ["med", "Launcher", "Weak graphics started with full settings (only RAM was checked)", "auto low-memory + Simple Mode", "fixed"],
+    ["med", "Launcher", "No game log: a crash left nothing to read afterwards", "log + Report a Problem", "fixed"],
+    ["med", "Game code", "Soi 6 NPCs re-sent to every player on every mouse move", "network, not measured", "fixed"],
+    ["low", "Game code", "Soi 6 NPC gib showers unbounded", "4 full showers / 10 s", "fixed"],
+    ["low", "Engine", "No AMD dual-graphics hint (NVIDIA one present)", "fast GPU on AMD laptops", "fixed"],
+    ["low", "Assets", "Three gun view models built mipmaps they never use", "&minus;68 MB", "fixed"],
+    ["low", "Server cfg", "<code>sv_gameplayfix_q1bsptracelinereportstexture 1</code> would drop downtown to 9&ndash;16 fps", "kept at 0", "left"],
+    ["low", "Game code", "<code>gyro_physics.qc</code> has four endless loops; nothing calls them", "unreachable with gyroset 0", "left"],
+    ["low", "Maps", "bakersfielddowntown has no bot waypoint file, so bots route by search", "15% of server script there", "left"],
+    ["low", "Config", "<code>bm_up_13.cfg</code> binds SHIFT over an existing bind", "", "open"],
+    ["low", "Config", "<code>menu_background*</code> settings are read by nothing", "", "left"]
+  ];
+  var sevName = { crit: "Critical", high: "High", med: "Medium", low: "Low" };
+  var stName = { fixed: ["p-fixed", "Fixed"], mitig: ["p-mitig", "Mitigated"], open: ["p-open", "Open"], left: ["p-left", "Left as is"] };
+  var sevCls = { crit: "s-crit", high: "s-high", med: "s-med", low: "s-low" };
+  document.getElementById("bugRows").innerHTML = bugs.map(function (b) {
+    return '<tr><td><span class="sev ' + sevCls[b[0]] + '">' + sevName[b[0]] + '</span></td><td>' + b[1] + '</td><td>' + b[2] +
+      '</td><td class="n">' + b[3] + '</td><td><span class="pill ' + stName[b[4]][0] + '">' + stName[b[4]][1] + '</span></td></tr>';
+  }).join("");
+
+  function pct(a, b) { var p = Math.round((b - a) / a * 100); return (p > 0 ? "+" : "&minus;") + Math.abs(p) + "%"; }
+  function table(id, head, rows) {
+    document.getElementById(id).innerHTML = "<thead><tr>" + head.map(function (h, i) { return '<th' + (i ? ' class="n"' : '') + '>' + h + '</th>'; }).join("") + "</tr></thead><tbody>" +
+      rows.map(function (r) { return "<tr>" + r.map(function (c, i) { return i === r.length - 1 && String(c).indexOf("%") > -1 ? '<td class="delta">' + c + '</td>' : '<td' + (i ? ' class="n"' : '') + '>' + c + '</td>'; }).join("") + "</tr>"; }).join("") + "</tbody>";
+  }
+  table("tLoad", ["Map", "Before (s)", "Game fixes (s)", "New engine (s)", "Change"],
+    D.load.maps.map(function (m, i) { return [m, D.load.before[i].toFixed(1), D.load.mid[i].toFixed(1), D.load.after[i].toFixed(1), pct(D.load.before[i], D.load.after[i])]; })
+      .concat([["<b>All nine</b>", "<b>76.2</b>", "<b>73.1</b>", "<b>60.8</b>", "<b>&minus;20%</b>"]]));
+  table("tFps", ["Recorded match", "Before", "Per-map setting", "+ new engine", "Change"],
+    D.fps.maps.map(function (m, i) { return [m, D.fps.before[i], D.fps.mid[i], D.fps.after[i], pct(D.fps.before[i], D.fps.after[i])]; }));
+  table("tMin", ["Recorded match", "Worst second before", "Worst second after", "Change"],
+    D.fps.maps.map(function (m, i) { return [m, D.fps.minBefore[i], D.fps.minAfter[i], pct(D.fps.minBefore[i], D.fps.minAfter[i])]; }));
+  table("tMem", ["Map", "Textures before (MB)", "after (MB)", "Commit before (GB)", "after (GB)", "Change"],
+    D.mem.maps.map(function (m, i) { return [m, D.mem.before[i].toLocaleString("en-US"), D.mem.after[i].toLocaleString("en-US"), D.mem.commitBefore[i].toFixed(1), D.mem.commitAfter[i].toFixed(1), pct(D.mem.before[i], D.mem.after[i])]; }));
+  table("tQc", ["Run", "Gib physics (M)", "Everything else (M)", "Total (M)"],
+    D.qc.labels.map(function (l, i) { return [l, D.qc.gyro[i], D.qc.rest[i], D.qc.gyro[i] + D.qc.rest[i]]; }));
+
+  if (!window.Chart) return;
+  var charts = [];
+  function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function base(horizontal, unit) {
+    var grid = tok("--line"), ink = tok("--ink-2"), muted = tok("--muted"), axis = tok("--axis");
+    var valueAxis = { beginAtZero: true, grid: { color: grid, drawTicks: false }, border: { color: axis }, ticks: { color: muted, font: { family: "JetBrains Mono, monospace", size: 11 }, padding: 6 } };
+    var catAxis = { grid: { display: false }, border: { color: axis }, ticks: { color: ink, font: { family: "Inter, system-ui, sans-serif", size: 12 } } };
+    return {
+      responsive: true, maintainAspectRatio: false, indexAxis: horizontal ? "y" : "x",
+      animation: matchMedia("(prefers-reduced-motion: reduce)").matches ? false : { duration: 500 },
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: tok("--surface"), titleColor: tok("--ink"), bodyColor: ink, borderColor: grid, borderWidth: 1,
+          padding: 10, titleFont: { family: "Inter, system-ui", weight: "600" }, bodyFont: { family: "JetBrains Mono, monospace", size: 12 },
+          callbacks: { label: function (c) { return " " + c.dataset.label + ": " + c.formattedValue + (unit || ""); } }
+        }
+      },
+      scales: horizontal ? { x: valueAxis, y: catAxis } : { x: catAxis, y: valueAxis }
+    };
+  }
+  function ds(label, data, color, extra) {
+    var o = { label: label, data: data, backgroundColor: color, borderColor: tok("--surface"), borderWidth: 1, borderRadius: 4, borderSkipped: "start", barPercentage: 0.86, categoryPercentage: 0.78 };
+    for (var k in extra || {}) o[k] = extra[k];
+    return o;
+  }
+  function build() {
+    charts.forEach(function (c) { c.destroy(); }); charts = [];
+    var b = tok("--s-before"), m = tok("--s-mid"), a = tok("--s-after"), alt = tok("--s-alt");
+    charts.push(new Chart(document.getElementById("cLoad"), { type: "bar", options: base(true, " s"), data: { labels: D.load.maps, datasets: [
+      ds("Before", D.load.before, b), ds("Game fixes, old engine", D.load.mid, m), ds("New engine", D.load.after, a)] } }));
+    charts.push(new Chart(document.getElementById("cFps"), { type: "bar", options: base(false, " fps"), data: { labels: D.fps.maps, datasets: [
+      ds("Before", D.fps.before, b), ds("Per-map setting", D.fps.mid, m), ds("+ new engine", D.fps.after, a)] } }));
+    charts.push(new Chart(document.getElementById("cMin"), { type: "bar", options: base(false, " fps"), data: { labels: D.fps.maps, datasets: [
+      ds("Worst second, before", D.fps.minBefore, b), ds("Worst second, after", D.fps.minAfter, a)] } }));
+    charts.push(new Chart(document.getElementById("cMem"), { type: "bar", options: base(true, " MB"), data: { labels: D.mem.maps, datasets: [
+      ds("Before", D.mem.before, b), ds("After", D.mem.after, a)] } }));
+    var qo = base(true, " M"); qo.scales.x.stacked = true; qo.scales.y.stacked = true;
+    charts.push(new Chart(document.getElementById("cQc"), { type: "bar", options: qo, data: { labels: D.qc.labels, datasets: [
+      ds("Gib physics", D.qc.gyro, alt, { borderWidth: 2 }), ds("Everything else", D.qc.rest, m, { borderWidth: 2 })] } }));
+    var bo = base(true, " MB"); bo.scales.x.type = "logarithmic"; bo.scales.x.beginAtZero = false; bo.scales.x.min = 100;
+    bo.scales.x.ticks.callback = function (v) { return [100, 300, 1000, 3000, 10000, 30000].indexOf(v) > -1 ? (v >= 1000 ? (v / 1000) + " GB" : v + " MB") : ""; };
+    charts.push(new Chart(document.getElementById("cBloat"), { type: "bar", options: bo, data: { labels: D.bloat.labels, datasets: [ds("Size", D.bloat.mb, m)] } }));
+  }
+  build();
+  try {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", build);
+    new MutationObserver(build).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  } catch (e) {}
+})();
+</script>
