@@ -2,9 +2,10 @@
 
 Follow-up to `docs/audit-2026-11-18-performance.md` (section 10), `docs/engine-fs-dircache-results.md` and
 `docs/engine-memory-leaks-2026-11-18.md`.
-Not released and not pushed to the engine fork. Since 2026-11-19 it is the installed engine on the owner's PC only
-(`engine\zircon_beta_gcc.exe`, released engine beside it as `zircon_beta_gcc.stock.exe`): a candidate for the owner to
-play on and for the engine fork to merge.
+Released for Windows on 2026-11-19 in `build-20261118-0ebe292` (base `base-v1.14`) on the owner's decision, and sent
+to the engine fork as https://github.com/rgr4y/zircon-darkplaces/pull/1 (open). It is `engine\zircon_beta_gcc.exe`
+on the owner's PC and in the release; the engine from before is beside it here as `zircon_beta_gcc.stock.exe`.
+Linux and macOS stay on the old engine until the pull request is merged. Nobody has played a real session on it yet.
 
 ## What it is
 

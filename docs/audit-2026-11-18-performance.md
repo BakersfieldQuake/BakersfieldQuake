@@ -15,17 +15,19 @@ below is a best case.
 | Public server dropped everyone about every 12 minutes | health check and demo recorder shared one address; the server answers one status query per address per second | fixed on the VPS |
 | Hosted game with bots dies: "server runaway loop counter hit limit" | FrikBot's `wisible` visibility check loops for ever between two brush entities | found on spruce, fixed, released, live on the VPS |
 | Game stops mid-load with "Mem_Alloc: out of memory" on small PCs | 3.1 to 4.4 GB of committed memory per map | reproduced with a memory cap. Normal settings now need 0.6 to 0.8 GB less; launchers switch to a 2.2 to 2.5 GB mode under 10 GB of RAM |
-| Map loads of 7 to 11 s (13 to 20 s on the macOS app layout), 7 s of it the same on every map | the engine probes the disk about 40 times per texture per loose folder | engine patch written, built and measured: 6 to 8.6 s. Installed on this PC only; not shipped |
+| Map loads of 7 to 11 s (13 to 20 s on the macOS app layout), 7 s of it the same on every map | the engine probes the disk about 40 times per texture per loose folder | engine patch written, built and measured: 6 to 8.6 s. Released for Windows in `build-20261118-0ebe292`; Linux and macOS wait for the engine pull request (section 8) |
 | Server script time on soi6 with 15 bots | Combat+ gib physics ran on every gib every frame | switched off: 57% less script work |
 | Every map loaded the tank, LAN props, Eric cannon, random NPCs, sky pads and all eight vehicle kinds | unconditional precache | they now load only where a map places them: 230 to 370 MB less video memory per map |
 | Server, release and source out of step | VPS had this PC's builds of two packs; the two newest releases carried older `progs.dat` and `csprogs.dat` and lacked four packs | one release built from the current source; VPS identical to it |
 | terminal21 at 46 fps with dips to 10 on a fast PC (same recorded match every time) | the engine's visibility rays test wall faces one by one, thousands per BSP node on these maps | the client code now picks the classic cheap test on the eight maps where it is exact: 311 fps, dips to 121. Released in `build-20261118-52bbdb8` (section 10) |
-| A third of each frame on bakersfielddowntown spent on model lighting, a tenth on empty controller slots | engine: a BSP walk per model per frame; `XInputGetState` per slot per frame | engine candidate with five changes built and validated: 378 to 752 fps on that demo. Installed on this PC for the owner to play on; not released |
+| A third of each frame on bakersfielddowntown spent on model lighting, a tenth on empty controller slots | engine: a BSP walk per model per frame; `XInputGetState` per slot per frame | engine with five changes built and validated: 378 to 752 fps on that demo. Released for Windows in `build-20261118-0ebe292` |
+| Memory grows by about 70 MB on every map change | engine: lightmap update buffers and the server script VM are never freed (`docs/engine-memory-leaks-2026-11-18.md`) | fixed in the same engine: flat over twelve map loads. Released for Windows in `build-20261118-0ebe292` |
 | Weak graphics start with full settings | launchers looked at RAM only | launchers now also read video memory: low-memory textures, and Simple Mode once, under 3 GB. Released in `build-20261118-52bbdb8` |
 
 **Shipped.** With the owner's go-ahead the work was pushed, released as `build-20261118-74b8bd0` ("Latest") and
 deployed to the VPS, which matches that release on all 106 game files. An existing player's updater downloads 17
-files, 17.9 MB. The patched engine is installed on this PC only, for the owner to try.
+files, 17.9 MB. Two more releases followed (section 8); the third, `build-20261118-0ebe292`, is "Latest" and carries
+the patched Windows engine. The VPS matches it on all 109 game files.
 
 While preparing the release it turned out that the two releases before it (`build-20261118-c34bfc0` and
 `build-20261118-7f30a1e`) had been built on a stale draft base and had quietly put older game code back
@@ -288,7 +290,8 @@ Deleting any of the last four is the owner's call; nothing was deleted.
 
 ## 6. Sync: GitHub, this PC, the server
 
-State at the end (2026-11-18 14:00 UTC):
+State after the first release (2026-11-18 14:00 UTC). After the third release (section 8) `main` is past `0ebe292`,
+"Latest" is `build-20261118-0ebe292` and the VPS matches it on 109 of 109 game files:
 
 | | game code | state |
 |---|---|---|
@@ -371,17 +374,43 @@ Second release, 2026-11-19, with the owner's go-ahead ("settings and map fix"; t
   files match the release. A client with the released engine joined and entered the game on spruce.
 - This PC: the same `csprogs.dat`, and the engine candidate `zircon_beta_perf3.exe` as the installed engine.
 
+Third release, 2026-11-19, with the owner's go-ahead ("ship it now", the engine with all five changes):
+- Base package v1.14 (`dist\BAKOQUAKE_v1.14.zip`, draft `base-v1.14`): v1.13 with `engine/zircon_beta_gcc.exe`
+  replaced by `zircon_beta_perf3.exe` (sha256 `9be0edb3...c682948`, 8,921,537 bytes) and `VERSION.txt`. Nothing else.
+- Release `build-20261118-0ebe292` (build 31) is "Latest". From the previous release the Windows updater fetches 4
+  files, 9.0 MB: the engine, `zz_gunnomip.pk3` (new, built by CI from `0ebe292`), `version.cfg`, `VERSION.txt`.
+  All three jobs finished; the macOS DMG is attached.
+- Checked before publishing, on that engine: the file-lookup regression list (11 of 11) and the download list
+  (4 of 4), a dedicated server with a joining client, a six-map session with 15 bots, twelve map loads with memory
+  sampled (flat; the old engine gained about 70 MB a load), a draft build's manifest, and the published file set in
+  game.
+- VPS: the changed game files taken from the published zip while the server was empty (backup
+  `/opt/quake/backup/20261118-224519-release-0ebe292`). All 109 game files match the release. The server itself is a
+  Linux DarkPlaces build and is not affected by the Windows engine.
+- `lan\make_lan_package.ps1`: `$StockEngineSha` is now that engine's sha256, so a base built on this PC ships it.
+  `engine\zircon_beta_gcc.stock.exe` is the engine from before (sha256 `bc7e8fe7...`).
+- Engine fork: all five changes are in one pull request, https://github.com/rgr4y/zircon-darkplaces/pull/1 (open,
+  no review yet). The Linux and macOS builds take the engine from that fork (`ZIRCON_REF`), so they stay on the old
+  engine until it is merged and the pin is moved.
+- After the release, a scripted check on the installed engine (soi6, windowed): W and S moved the player, a mouse
+  sweep turned the view, the game kept running while another window had focus and took keys again afterwards, and
+  it quit with exit code 0. Somebody was using the PC during two of the three runs, so single inputs went missing
+  on both the new and the old engine; it shows the input path works, it does not replace a person playing.
+
 Left for the owner:
-1. Play on the engine candidate that is now installed here (`docs/engine-perf-patches-2026-11-18.md`). If fullscreen,
-   sound and input are fine over a real session, ship it (put its sha256 into `$StockEngineSha` in
-   `make_lan_package.ps1`, build a base, release) and send the five patches to the engine fork for Linux and macOS.
-   To go back: copy `zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`.
-2. Tell everyone who cuts releases about `base_tag` (section 6): leave it empty or use `base-v1.13`.
-3. The macOS job of the second release run was still in progress at the time of writing; the DMG is added by it
-   (the first release's finished and has its DMG).
-4. Housekeeping in section 5. The drafts `build-20261118-74b8bd0-draft` and `build-20261118-52bbdb8-draft` (the
-   verification runs) can be deleted; keep `base-v1.13`.
-5. A new map: run `source/mm_tools/perf/fence_solid.py` on it and add it to `BM_TraceCullSetup` only if it reports 0.
+1. Play a real session on the release (fullscreen, sound, mouse, a controller if anyone uses one). Nobody has yet.
+   To go back on one PC: copy `engine\zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`. To go back for
+   everyone: release again from `base-v1.13`.
+2. The crash on the other PC is not identified. The next time it happens, send the text of the error box, the
+   PC's RAM and graphics card, and the game log (the launchers from `9150fdc` on keep one per session and have a
+   "Report a Problem" entry; that commit is not in a release yet). Without that the out-of-memory crash, which was
+   reproduced and fixed, is only the most likely candidate.
+3. Tell everyone who cuts releases about `base_tag` (section 6): leave it empty or use `base-v1.14`. An older base
+   puts the old engine back.
+4. Get the engine pull request merged, then move `ZIRCON_REF` so Linux and macOS get the same engine.
+5. Housekeeping in section 5. The drafts `build-20261118-74b8bd0-draft`, `build-20261118-52bbdb8-draft` and
+   `build-20261118-52bbdb8-enginetest-draft` (the verification runs) can be deleted; keep `base-v1.14`.
+6. A new map: run `source/mm_tools/perf/fence_solid.py` on it and add it to `BM_TraceCullSetup` only if it reports 0.
 
 ## 9. Limits
 
