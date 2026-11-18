@@ -303,7 +303,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
-      WORK: ${{ github.workspace }}/../bq-mac
+      WORK: ${{ github.workspace }}/.bq-mac   # inside the workspace: actions/cache rejects ".." paths
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -314,7 +314,7 @@ jobs:
         # Keyed on the script, which holds every pinned version.
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/../bq-mac/prefix-13.0
+          path: ${{ github.workspace }}/.bq-mac/prefix-13.0
           key: bq-mac-deps-${{ runner.os }}-xcode16.4-${{ hashFiles('source/mac/build_app.sh') }}
 
       - name: Import Developer ID certificate
