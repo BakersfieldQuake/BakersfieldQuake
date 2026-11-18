@@ -118,7 +118,10 @@ fi
 
 echo " Joining the game..."
 # shellcheck disable=SC2086
-"$CLIENT" "${COMMON[@]}" ${FIRST[@]+"${FIRST[@]}"} ${LOWMEM[@]+"${LOWMEM[@]}"} $COMBAT_ARGS +connect 127.0.0.1 &
+# Game log. The engine appends to its log, so the previous one is moved aside first: BakersfieldQuake/bq_game.log is
+# this session, bq_game_prev.log the one before. They are what to send when the game crashes or runs badly.
+[ -f "$ROOT/BakersfieldQuake/bq_game.log" ] && mv -f "$ROOT/BakersfieldQuake/bq_game.log" "$ROOT/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
+"$CLIENT" "${COMMON[@]}" +log_file bq_game.log ${FIRST[@]+"${FIRST[@]}"} ${LOWMEM[@]+"${LOWMEM[@]}"} $COMBAT_ARGS +connect 127.0.0.1 &
 GAME=$!
 if command -v python3 >/dev/null 2>&1 && [ -f "$SCAN" ]; then
     python3 "$SCAN" --gamedir "$ROOT/BakersfieldQuake" --pid "$GAME" >/dev/null 2>&1 &

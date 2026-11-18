@@ -99,6 +99,9 @@ or run BAKOQUAKE again and pick your Quake id1 folder."
 done
 
 ARGS=(-basedir "$GAME" -userdir "$USERDIR" -game quake15 -game BakersfieldQuake)
+# Game log in the user folder. The engine appends, so the previous one is moved aside first (bq_game_prev.log).
+[ -f "$USERDIR/BakersfieldQuake/bq_game.log" ] && mv -f "$USERDIR/BakersfieldQuake/bq_game.log" "$USERDIR/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
+ARGS+=(+log_file bq_game.log)
 
 # 2. First run (no saved config, or only the package's seed): login name and a random colour, like Play.sh.
 CFG="$USERDIR/BakersfieldQuake/config.cfg"

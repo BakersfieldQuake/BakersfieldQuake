@@ -90,7 +90,10 @@ fi
 
 # Keys (F1 = online server, F2 = LAN) are defaults in default.cfg, not forced here, so a player's rebinds are saved.
 # shellcheck disable=SC2086
-"$ENGINE" "${COMMON[@]}" ${FIRST[@]+"${FIRST[@]}"} ${LOWMEM[@]+"${LOWMEM[@]}"} ${COMBAT_ARGS:-} ${JOIN[@]+"${JOIN[@]}"} &
+# Game log. The engine appends to its log, so the previous one is moved aside first: BakersfieldQuake/bq_game.log is
+# this session, bq_game_prev.log the one before. They are what to send when the game crashes or runs badly.
+[ -f "$ROOT/BakersfieldQuake/bq_game.log" ] && mv -f "$ROOT/BakersfieldQuake/bq_game.log" "$ROOT/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
+"$ENGINE" "${COMMON[@]}" +log_file bq_game.log ${FIRST[@]+"${FIRST[@]}"} ${LOWMEM[@]+"${LOWMEM[@]}"} ${COMBAT_ARGS:-} ${JOIN[@]+"${JOIN[@]}"} &
 GAME=$!
 
 # Keep lan_server.cfg fresh until the game exits, so F2 works.

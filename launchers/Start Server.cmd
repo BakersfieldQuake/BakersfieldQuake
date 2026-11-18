@@ -54,7 +54,9 @@ powershell -NoProfile -Command "if (Get-CimInstance Win32_Process -Filter 'Name=
 if not errorlevel 1 (
     echo  A server is already running on this PC - just joining it.
 ) else (
-    start "Combat+ LAN Server" /D "%ROOT%\engine" "%ENGINE%" -dedicated 16 -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake +exec server.cfg
+    rem Server log, kept like the game log below: bq_server.log, and the one before as bq_server_prev.log.
+    if exist "%ROOT%\BakersfieldQuake\bq_server.log" move /y "%ROOT%\BakersfieldQuake\bq_server.log" "%ROOT%\BakersfieldQuake\bq_server_prev.log" >nul 2>&1
+    start "Combat+ LAN Server" /D "%ROOT%\engine" "%ENGINE%" -dedicated 16 -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake +log_file bq_server.log +exec server.cfg
     echo  Starting the server...
     rem Wait until the dedicated server finishes loading the map and answers LAN queries (up to ~12 s)
     for /L %%i in (1,1,20) do (
@@ -113,7 +115,10 @@ set FIRST=+_cl_name "%USERNAME%" +_cl_color %COLOR%
 
 echo  Joining the game...
 rem Keys (F1 = online server, F2 = LAN) are defaults in default.cfg, not forced here, so a player's rebinds are saved.
-start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake %FIRST% %LOWMEM% %LOWGPU% %COMBAT_ARGS% +connect 127.0.0.1
+rem Game log. The engine appends to its log, so the previous one is moved aside first: BakersfieldQuake\bq_game.log is
+rem this session, bq_game_prev.log the one before. "Report a Problem.cmd" reads both after a crash or a bad session.
+if exist "%ROOT%\BakersfieldQuake\bq_game.log" move /y "%ROOT%\BakersfieldQuake\bq_game.log" "%ROOT%\BakersfieldQuake\bq_game_prev.log" >nul 2>&1
+start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake +log_file bq_game.log %FIRST% %LOWMEM% %LOWGPU% %COMBAT_ARGS% +connect 127.0.0.1
 if defined LOWGPU if defined WEAKGPU <nul set /p "=1">"%BQGPUDONE%"
 
 rem Keep lan_server.cfg fresh so F2 rejoins after a disconnect.

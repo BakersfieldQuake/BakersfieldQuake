@@ -85,6 +85,28 @@ Fixes:
   overrides and a corrupt cache file.
 - The normal settings also need less now (sections 3 and 4).
 
+### Finding out what a crash was, on a PC nobody else can look at (added 2026-11-19)
+
+The game left nothing behind when it died: no log unless it was started with `-condebug`. The crash on the owner's
+other PC (16 GB, integrated graphics) could therefore not be confirmed from here, only reproduced by capping memory.
+
+- All five launchers now start the engine with `+log_file bq_game.log` (the dedicated server window of Start Server
+  with `bq_server.log`). The engine appends to its log, so the launcher first moves the previous one to
+  `bq_game_prev.log`: one file for this session, one for the session before. The engine writes each line straight
+  through, so the last line before a crash is on disk. A two-minute start writes about 50 KB.
+- `Report a Problem.cmd` (new, next to Play) runs `tools\bq-report.ps1`, which writes `BAKOQUAKE-report.txt` to the
+  Desktop and opens it: package version and file hashes, Windows, CPU, RAM and commit limit, every graphics adapter
+  with its video memory and driver date, what the launcher decided (the RAM and video-memory cache files, the
+  overrides), a few saved graphics settings, the error lines and the last 60 lines of both game logs, and the
+  crashes Windows recorded for the engine in the last 30 days (faulting module and exception code). Nothing is
+  sent anywhere.
+- Tested in a scratch copy laid out like the package: Play.cmd twice (log written, previous one kept), then the
+  capped-memory crash. The report shows one error line, `Engine Error: Mem_Alloc: out of memory (alloc of size ...
+  at image_png.c:81)`. On this PC it also lists the one engine crash Windows recorded (below).
+- So the next crash on that PC answers the question: run Report a Problem there and read the "Game log" and
+  "Crashes Windows recorded" parts. An error box is in the game log; a driver crash names the graphics driver's
+  module in the Windows part.
+
 ### This PC
 
 Windows logged one engine crash in the last 30 days (2026-11-17 21:32). The dump shows a call through a null pointer
