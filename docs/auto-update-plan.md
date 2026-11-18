@@ -8,9 +8,13 @@ manifest steps in `build-zip.yml`, and hooks in all four launchers. Tests: `pyth
 - **No `release.json` on main.** The pointer is `releases/latest/download/manifest-<platform>.json`. GitHub redirects it
   anonymously to the newest non-draft release (verified 2026-11-18), so CI makes no commit to main per release, and
   the 5-minute raw-URL cache is gone. Each manifest names its own tag-specific zip URL, so the pair is consistent.
-- **No frozen macOS binary yet.** `source/mac/build_app.sh` copies `tools/` into the signed app, and an unsigned
-  Mach-O there would fail notarization. The `.app` can't be updated in place anyway; see
-  `docs/prompts/mac-app-updater-handoff.md`.
+- **macOS app:** the signed bundle can't change, so `source/mac/launcher.sh` runs the game from an APFS clone of the
+  bundle's game data in `~/Library/Application Support/BAKOQUAKE/game` (instant, no extra disk) and updates that clone
+  with `Contents/MacOS/bq-update` (this script frozen and signed by `build_app.sh`) against `manifest-macos-app.json`,
+  which lists only `BakersfieldQuake/`, `quake15/` and `tools/`. A new DMG gets a fresh clone. Engine changes still
+  need a new DMG. Overlaying updates into the userdir was rejected: Zircon searches every userdir pk3 before every
+  basedir file, so an updated `bakersfield.pk3` would shadow the bundle's `zz_*.pk3` overrides. Validation:
+  `docs/updater-validation.md`.
 - Exit code 3 means files changed. The launchers then re-run themselves, because cmd and bash read a running script
   from disk line by line, and the update may have just replaced it. Each hook is a single parsed block for that reason.
 - No tkinter window: `PLAY BAKERSFIELDQUAKE.exe` starts `Play.cmd` with `CreateNoWindow`, so the updater opens its own

@@ -1,12 +1,13 @@
 #!/bin/bash
 # BAKOQUAKE.app main executable (Contents/MacOS/BAKOQUAKE). Installed by source/mac/build_app.sh.
-# Finds the player's Quake paks, then execs the engine. Everything the game writes goes to
+# Updates the game data, finds the player's Quake paks, then execs the engine. Everything the game writes goes to
 # ~/Library/Application Support/BAKOQUAKE (-userdir), so the signed bundle stays read-only.
-# There is no terminal, so every message goes through a dialog.
+# There is no terminal, so every message goes through a dialog or a notification.
 set -u
 
 APP="$(cd "$(dirname "$0")/.." && pwd)"
-GAME="$APP/Resources/game"
+BUNDLE_GAME="$APP/Resources/game"
+GAME="$BUNDLE_GAME"
 USERDIR="$HOME/Library/Application Support/BAKOQUAKE"
 mkdir -p "$USERDIR/id1"
 
@@ -17,6 +18,52 @@ on run argv
 end run
 EOF
 }
+notify() {   # notify <title> <message>
+    osascript - "$1" "$2" <<'EOF' >/dev/null 2>&1
+on run argv
+    display notification (item 2 of argv) with title (item 1 of argv)
+end run
+EOF
+}
+
+# 0. Game data updates. The signed bundle can't change, so the game runs from a clone of the bundle's game data in
+#    $USERDIR/game, and the updater (Contents/MacOS/bq-update: tools/bq_update.py, frozen) patches that clone with
+#    the files that changed in the latest release (manifest-macos-app.json). An APFS clone shares the bundle's
+#    blocks: it is instant and takes no disk until a file is replaced. A new DMG (new release-tag) gets a fresh clone.
+#    On another volume than the bundle (run from the DMG, App Translocation, an external drive) a clone would be a
+#    1.2 GB copy, so the game runs from the bundle without updates. Engine changes still need a new DMG.
+#    BQ_NO_UPDATE=1 skips the update check; BQ_MANIFEST_URL points it at another manifest (testing).
+DATA="$USERDIR/game"
+TAG="$(cat "$APP/Resources/release-tag" 2>/dev/null)"
+if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")" ]; then
+    if [ "$(cat "$DATA/.bq/bundle-tag" 2>/dev/null)" != "$TAG" ]; then
+        rm -rf "$DATA.new" "$DATA.old"
+        if cp -cR "$BUNDLE_GAME" "$DATA.new" 2>/dev/null && mkdir -p "$DATA.new/.bq" \
+                && echo "$TAG" >"$DATA.new/.bq/bundle-tag"; then
+            { [ ! -e "$DATA" ] || mv "$DATA" "$DATA.old"; } && mv "$DATA.new" "$DATA"
+        fi
+        rm -rf "$DATA.new" "$DATA.old"
+    fi
+    if [ "$(cat "$DATA/.bq/bundle-tag" 2>/dev/null)" = "$TAG" ]; then
+        GAME="$DATA"
+        if [ "${BQ_NO_UPDATE:-0}" != 1 ]; then
+            # The frozen Python carries no CA list of its own; every macOS has this one.
+            export SSL_CERT_FILE=/etc/ssl/cert.pem
+            UPD=("$APP/MacOS/bq-update" --root "$DATA" --platform macos-app)
+            [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")   # testing
+            # --check prints "... N files (X MB) to download, M to remove" and exits 10 when there is an update.
+            SUMMARY="$("${UPD[@]}" --check 2>/dev/null)"
+            if [ $? = 10 ]; then
+                notify "Updating BAKOQUAKE" "${SUMMARY##*: }. The game starts when it is done."
+                "${UPD[@]}" >/dev/null 2>&1
+                case $? in
+                    3) notify "BAKOQUAKE updated" "Starting the game." ;;
+                    *) notify "BAKOQUAKE update failed" "Playing the installed version. Log: $DATA/.bq/update.log" ;;
+                esac
+            fi
+        fi
+    fi
+fi
 
 has_paks() {   # has_paks <dir>: prints the pak0/pak1 paths (any case) if both are there
     local p0 p1

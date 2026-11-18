@@ -347,12 +347,18 @@ jobs:
             python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" > "manifest-$plat.json"
             python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" "manifest-$plat.json"
           done
+          # The macOS app has its own engine in the signed bundle and updates only a clone of its game data (see
+          # source/mac/launcher.sh), so its manifest lists just those folders.
+          z=BAKOQUAKE-macos-arm64.zip
+          python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
+            --only BakersfieldQuake/ --only quake15/ --only tools/ > manifest-macos-app.json
+          python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" manifest-macos-app.json
 
       - name: Publish release
         id: publish
         run: |
           tag="$TAG"
-          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json)
+          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json)
           flags=(--latest)
           [ "$DRAFT" = true ] && flags=(--draft)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -360,7 +366,7 @@ jobs:
             --title "BAKOQUAKE $tag" \
             --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
-          Already installed (Windows, Linux)? Play and Start Server update the game on launch, downloading only the files that changed. The macOS app is updated by downloading the new DMG.
+          Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
 
           You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 
@@ -383,6 +389,12 @@ jobs:
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
+
+      # Freezes tools/bq_update.py into the app (Contents/MacOS/bq-update). This Python's libraries end up inside
+      # the frozen binary, so build_app.sh checks they target macOS 13.0 like everything else in the bundle.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
 
       - name: Cache source-built dylibs
         # Keyed on the script, which holds every pinned version.

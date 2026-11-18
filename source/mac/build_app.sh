@@ -18,8 +18,11 @@
 #   SKIP_NOTARIZE=1  build and sign only (for local iteration)
 #   UPLOAD=1         upload the DMG to the release after notarizing
 #   WORK             build directory (default ~/build/bakoquake-mac); the deps prefix is kept there between runs
+#   PYTHON           Python that freezes the updater (default python3). Its libraries go into Contents/MacOS/bq-update,
+#                    so it must target macOS 13.0 or older (python.org / actions/setup-python builds do; Homebrew's
+#                    does not). The script checks.
 #
-# Needs: Xcode, cmake, gh, git, curl.
+# Needs: Xcode, cmake, gh, git, curl, Python 3.
 set -euo pipefail
 
 TAG="${1:?usage: $0 <release-tag>}"
@@ -129,6 +132,42 @@ SDLLIBS="$("$SDLC" --libs) -framework Cocoa -Wl,-rpath,@executable_path/../Frame
 make -C "$ZD" -f makefile -j"$NPROC" SDL_CONFIG="$SDLC" SDLCONFIG_STATICLIBS="$SDLLIBS" \
     sdl-release sv-release >"$WORK/zircon-build.log" 2>&1 || { tail -30 "$WORK/zircon-build.log"; die "engine build failed"; }
 
+# --- updater -------------------------------------------------------------------------------------------------
+# tools/bq_update.py frozen into one Mach-O, so players need no Python (without the Command Line Tools,
+# /usr/bin/python3 is only an installer stub). PyInstaller signs the libraries it embeds with SIGN_ID and the hardened
+# runtime, which library validation needs when they are unpacked at run time; the outer binary is signed below.
+PYINSTALLER=6.22.3
+step "freeze the updater (PyInstaller $PYINSTALLER)"
+PYI="$WORK/pyi"
+rm -rf "$PYI/build" "$PYI/dist"
+"${PYTHON:-python3}" -m venv "$PYI/venv-$PYINSTALLER"
+"$PYI/venv-$PYINSTALLER/bin/python" -m pip install --quiet --disable-pip-version-check "pyinstaller==$PYINSTALLER"
+"$PYI/venv-$PYINSTALLER/bin/python" -m PyInstaller --onefile --console --noupx --name bq-update \
+    --codesign-identity "$SIGN_ID" --distpath "$PYI/dist" --workpath "$PYI/build" --specpath "$PYI" \
+    "$ROOT/tools/bq_update.py" >"$PYI/pyinstaller.log" 2>&1 || { tail -30 "$PYI/pyinstaller.log"; die "freeze failed"; }
+# The check-Mach-O gate below can't see inside the onefile archive: check what went into it here.
+"$PYI/venv-$PYINSTALLER/bin/python" - "$PYI/build/bq-update/PKG-00.toc" "$MINOS" <<'PY' || die "updater embeds libraries newer than macOS $MINOS"
+import ast, subprocess, sys
+toc, want = ast.literal_eval(open(sys.argv[1]).read())[2], tuple(map(int, sys.argv[2].split(".")))
+bad = 0
+for name, src, kind in toc:
+    if kind not in ("BINARY", "EXTENSION"):
+        continue
+    words = subprocess.run(["otool", "-l", src], capture_output=True, text=True).stdout.split()
+    # LC_BUILD_VERSION says "minos"; the older LC_VERSION_MIN_MACOSX says "version".
+    minos = "?"
+    for cmd, key in (("LC_BUILD_VERSION", "minos"), ("LC_VERSION_MIN_MACOSX", "version")):
+        if cmd in words:
+            rest = words[words.index(cmd):]
+            minos = rest[rest.index(key) + 1]
+            break
+    if minos == "?" or tuple(map(int, minos.split("."))) > want:
+        print(f"  {name}: minos {minos}")
+        bad = 1
+sys.exit(bad)
+PY
+"$PYI/dist/bq-update" --help >/dev/null || die "frozen updater does not run"
+
 # --- assemble ------------------------------------------------------------------------------------------------
 VERSION="$(echo "$TAG" | sed -n 's/^build-\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/p')"
 [ -n "$VERSION" ] || VERSION="$(date -u +%Y.%m.%d)"   # custom tag without a build date
@@ -139,10 +178,19 @@ mkdir -p "$C/MacOS" "$C/Frameworks" "$C/Resources/game/id1"
 install -m 755 "$HERE/launcher.sh" "$C/MacOS/BAKOQUAKE"
 install -m 755 "$ZD/zircon_beta_linux_sdl" "$C/MacOS/darkplaces-sdl"
 install -m 755 "$ZD/zircon_beta_linux_dedicated_server" "$C/MacOS/darkplaces-dedicated"
+install -m 755 "$PYI/dist/bq-update" "$C/MacOS/bq-update"
+# The launcher re-clones the game data into Application Support when this changes (a new DMG was installed).
+echo "$TAG" >"$C/Resources/release-tag"
 # Real files plus their relative symlinks (libvorbis.dylib -> libvorbis.0.dylib etc.), so the names the engine
 # dlopen()s and the @rpath install names both resolve to one file.
 cp -a "$PREFIX"/lib/*.dylib "$C/Frameworks/"
 cp -R "$PKG/BakersfieldQuake" "$PKG/quake15" "$PKG/tools" "$C/Resources/game/"
+# Updater state for the launcher's clone of game/ (see launcher.sh): it lists the files the bundle ships, so the first
+# update also removes those a newer release dropped. Build 0 means every file is compared.
+mkdir -p "$C/Resources/game/.bq"
+(cd "$C/Resources/game" && find BakersfieldQuake quake15 tools -type f | LC_ALL=C sort) |
+    "$PYI/venv-$PYINSTALLER/bin/python" -c 'import json, sys; json.dump({"build": 0, "managed": sys.stdin.read().splitlines()}, sys.stdout)' \
+    >"$C/Resources/game/.bq/state.json"
 
 ICONSET="$WORK/bakoquake.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
@@ -197,7 +245,7 @@ echo "  ok"
 step "sign"
 sign() { codesign --force --timestamp --options runtime -s "$SIGN_ID" "$@"; }
 find "$C/Frameworks" -type f -name '*.dylib' -print0 | while IFS= read -r -d '' f; do sign "$f"; done
-sign "$C/MacOS/darkplaces-sdl" "$C/MacOS/darkplaces-dedicated"
+sign "$C/MacOS/darkplaces-sdl" "$C/MacOS/darkplaces-dedicated" "$C/MacOS/bq-update"
 sign "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
