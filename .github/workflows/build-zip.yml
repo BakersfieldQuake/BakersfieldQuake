@@ -103,7 +103,7 @@ jobs:
 
       - name: Build zz_bakovan.pk3
         run: |
-          python -m pip install --quiet numpy pillow
+          python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
           python repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
 
       - name: Zip the Windows package (master)

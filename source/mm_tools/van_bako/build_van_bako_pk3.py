@@ -79,14 +79,19 @@ def main():
     for u, v in HEADLIGHTS_UV:
         glow.paste(blob, (X0 + int(u * W) - blob.width // 2, Y0 + int(v * H) - blob.height // 2))
 
+    files = dict(models)
+    for name, im in (("progs/veh_van_tex.png", tex), ("progs/veh_van_tex_glow.png", glow)):
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        files[name] = buf.getvalue()
+
+    # Reproducible output: the updater ships files by sha256, so an unchanged build must be byte-identical.
+    # Fixed timestamp and attributes, sorted entries (writestr with a bare name would stamp the current time).
     with zipfile.ZipFile(out_pk3, "w", zipfile.ZIP_STORED) as z:   # PNGs are already compressed
-        for name, im in (("progs/veh_van_tex.png", tex), ("progs/veh_van_tex_glow.png", glow)):
-            buf = io.BytesIO()
-            im.save(buf, "PNG")
-            z.writestr(name, buf.getvalue())
-            print(f"wrote {name} -> {out_pk3}")
-        for name, data in models.items():
-            z.writestr(name, data)
+        for name in sorted(files):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.external_attr = 0o100644 << 16   # regular file, rw-r--r--
+            z.writestr(info, files[name])
             print(f"wrote {name} -> {out_pk3}")
 
 
