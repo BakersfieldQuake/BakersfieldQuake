@@ -144,8 +144,25 @@ A sixth release-layout pair is left out: the audit session's engine started on t
 - Loads vary by ±0.6 s between runs on this PC. Treat the release-layout figure as "about half a second".
 - All runs above used the released engine. Since then `G:\Quake\Combat\engine\zircon_beta_gcc.exe` on this PC is the
   fs_dircache test build, and the released one is `zircon_beta_gcc.stock.exe` beside it. To repeat these numbers, pass
-  `--exe` with the stock copy to `loadtime.py`. With the dircache build the per-file lookup cost the pack saves is
-  mostly gone already, so expect a smaller gain there (not measured).
+  `--exe` with the stock copy to `loadtime.py`.
+
+### With the fs_dircache engine
+
+Four more alternating pairs, release layout, same method, with the fs_dircache build installed as
+`zircon_beta_gcc.exe` (sha256 `038c070a…`):
+
+| | before | after |
+|---|---|---|
+| load (s) | 6.9, 6.8, 6.7, 6.7 (mean 6.78) | 6.8, 6.8, 6.6, 6.8 (mean 6.75) |
+| texture memory | 1,819 MB | 1,767 MB (−52 MB) |
+| peak commit | 3,308 to 3,320 MB | 3,187 to 3,200 MB (about −120 MB) |
+
+- The engine change removes the per-file lookup cost the atlas was saving, so the pack gains nothing on load time
+  there (0.03 s, well inside the noise).
+- The memory saving stays. It comes from the dookie, greenjar and drone frames no longer building mipmaps, and a
+  small overlay that only adds `nomipmaps` to `dookievm`, `greenjarvm` and `rh_dronevm.shader` gives it without
+  the 92 MB download: `zz_gunnomip.pk3` (56.5 KB, −68 MB texture memory), see `docs/gunnomip-2026-11-19.md`. It
+  replaces the same shader files as this pack, so the two must not ship together.
 
 ## CI
 
@@ -173,7 +190,8 @@ Decided: the three unused robhead variants are left out of the pack (owner, 2026
 
 ## Not done
 
-- Not installed in `G:\Quake\Combat\BakersfieldQuake`, not deployed to the VPS, not committed, not pushed.
+- Not installed in `G:\Quake\Combat\BakersfieldQuake` and not deployed to the VPS. The builder and this report are
+  committed (`12c3da9`); the CI step is only kept as a patch.
 - Measured on one fast PC, on soi6 only.
 - Not checked with `gl_picmip_other 1`: the atlases are halved like any picmip texture, and the 2 px gutters become
   1 px, which is still enough for bilinear filtering.
