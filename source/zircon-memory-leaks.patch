@@ -1,0 +1,35 @@
+diff --git a/gl_textures.c b/gl_textures.c
+index f28cdf0..de53707 100644
+--- a/gl_textures.c
++++ b/gl_textures.c
+@@ -401,6 +401,10 @@ void R_FreeTexture(rtexture_t *rt)
+ 
+ 	if (glt->inputtexels)
+ 		Mem_Free(glt->inputtexels);
++	// TEXF_ALLOWUPDATES textures (every lightmap page) keep a full copy of their pixels in bufferpixels.
++	// It was never freed, so each map change leaked the previous map's lightmaps (about 30 MB a map).
++	if (glt->bufferpixels)
++		Mem_Free(glt->bufferpixels);
+ 	Mem_ExpandableArray_FreeRecord(&texturearray, glt);
+ }
+ 
+diff --git a/prvm_edict.c b/prvm_edict.c
+index d4fb3df..8072c28 100644
+--- a/prvm_edict.c
++++ b/prvm_edict.c
+@@ -3171,6 +3171,15 @@ void PRVM_Prog_Reset(prvm_prog_t *prog)
+ 		if (prog->po)
+ 			PRVM_PO_Destroy((po_t *) prog->po);
+ 	}
++	else if (prog->progs_mempool)
++	{
++		// SV_Shutdown and CL_Disconnect clear prog->loaded (so no QC runs after shutdown) but leave the VM allocated.
++		// The memset below then dropped the only pointer to its pool: every "map" command leaked the whole server VM
++		// (edicts, fields, the progs file: 20 to 30 MB).
++		Mem_FreePool(&prog->progs_mempool);
++		if (prog->po)
++			PRVM_PO_Destroy((po_t *) prog->po);
++	}
+ 	memset(prog,0,sizeof(prvm_prog_t));
+ 	prog->break_statement = -1;
+ 	prog->watch_global_type = ev_void;
