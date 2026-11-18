@@ -53,6 +53,13 @@ exec version.cfg
 // per-client demo recording is server-config only (VPS): a 1 saved by an old Host session must not stick
 sv_autodemo_perclient 0
 
+// gib physics ("Gyro") off for hosted games. Each gib ran about 8 QC calls on EVERY server frame for its whole 30-40 s life:
+// measured 2026-11-18 on soi6 with 15 bots, Gyro was 61% of all server QC work (1089M of 1785M statements in 75 s) and the
+// host's client lost a quarter of its frame rate. Gibs still fly and bounce (engine physics); they only stop floating and
+// tumbling. Combat+ saves gyroset 2 into config.cfg, so it is set here, after config.cfg. To get it back: gyroset 2 in
+// personal_post.cfg (or in the console after start).
+gyroset 0
+
 // always start with mouse look on: test runs can save vid_mouse 0 / freelook 0 / -mlook into config.cfg.
 // Command-line overrides (+vid_mouse 0, +freelook 0, -window...) still win (stuffcmds / engine -window below).
 vid_mouse 1
