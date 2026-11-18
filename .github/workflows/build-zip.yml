@@ -2,7 +2,8 @@
 #
 # The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
-# root, rebuilds zz_bakovan.pk3 and zz_karts.pk3 from the zip's own bakersfield.pk3, then publishes three per-OS packages:
+# root, rebuilds zz_bakovan.pk3, zz_karts.pk3 and zz_gunnomip.pk3 from the zip's own bakersfield.pk3, then publishes
+# three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
@@ -181,7 +182,7 @@ jobs:
           path: out/BAKOQUAKE/tools
 
       # Overlay pk3s are reproducible, so each is cached and only rebuilt when an input changes. The key holds the
-      # base bakersfield.pk3 (both read it), the pinned numpy/pillow, and every source file the builder reads.
+      # base bakersfield.pk3 (all of them read it), the pinned numpy/pillow where used, and every source file the builder reads.
       # A builder that starts reading a new file must add it to its key, or a stale pk3 gets reused.
       - name: Cache zz_bakovan.pk3
         id: cache_bakovan
@@ -196,6 +197,14 @@ jobs:
         with:
           path: pk3cache/zz_karts.pk3
           key: zz_karts-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_gokart_pk3.py', 'repo/source/mm_tools/gokart_*.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/mmw_geometry.py', 'repo/source/mm_tools/tank_geom_core.py', 'repo/source/mm_tools/tank_tex_gen.py', 'repo/source/mm_tools/id1/player.mdl', 'repo/scripts/gokart.shader') }}
+
+      - name: Cache zz_gunnomip.pk3
+        # Standard library only (no numpy/pillow) and stored entries, so the key is the base pack and the builder.
+        id: cache_gunnomip
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_gunnomip.pk3
+          key: zz_gunnomip-${{ env.BASE_BAKERSFIELD_SHA256 }}-${{ hashFiles('repo/source/mm_tools/build_gunnomip_pk3.py') }}
 
       - name: Install pk3 build dependencies
         if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true'
@@ -213,9 +222,16 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/build_gokart_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_karts.pk3
 
+      - name: Build zz_gunnomip.pk3
+        # The dookie, green-jar and drone view-model shaders with "nomipmaps": about 52 MB less texture memory per map.
+        if: steps.cache_gunnomip.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/build_gunnomip_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_gunnomip.pk3
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Check the package
@@ -285,6 +301,24 @@ jobs:
               for n in sorted(set(re.findall(r"exec\s+(bm_up_\w+\.cfg)", code))):
                   if not os.path.isfile(os.path.join(root, "BakersfieldQuake", n)):
                       errors.append(f"quake.rc execs {n} but it is not in the package")
+
+          # zz_gunnomip.pk3 replaces three whole shader files of bakersfield.pk3: each must be there, with every shader
+          # block still carrying nomipmaps. zz_gunframes.pk3 (the atlas pack) replaces the same files and would lose.
+          gunnomip = os.path.join(root, "BakersfieldQuake", "zz_gunnomip.pk3")
+          if not os.path.isfile(gunnomip):
+              errors.append("missing BakersfieldQuake/zz_gunnomip.pk3")
+          else:
+              with zipfile.ZipFile(gunnomip) as z:
+                  for n in ("scripts/dookievm.shader", "scripts/greenjarvm.shader", "scripts/rh_dronevm.shader"):
+                      if n not in z.namelist():
+                          errors.append(f"zz_gunnomip.pk3 lacks {n}")
+                          continue
+                      text = z.read(n).decode("latin-1")
+                      blocks, nomip = len(re.findall(r"^\{$", text, re.M)), text.count("\tnomipmaps\n")
+                      if not blocks or nomip != blocks:
+                          errors.append(f"zz_gunnomip.pk3 {n}: {nomip} of {blocks} shaders have nomipmaps")
+          if os.path.exists(os.path.join(root, "BakersfieldQuake", "zz_gunframes.pk3")):
+              errors.append("zz_gunframes.pk3 and zz_gunnomip.pk3 replace the same shader files: ship only one")
 
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:
@@ -369,7 +403,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
 
