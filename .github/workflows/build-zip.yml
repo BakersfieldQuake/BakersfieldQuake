@@ -107,7 +107,7 @@ jobs:
             fresh_base=0
             echo "::warning::Base $BASE is not a make_lan_package (Zircon) build: keeping its own server.cfg and quake.rc."
           fi
-          for f in repo/*.cfg repo/quake.rc; do
+          for f in repo/*.cfg repo/quake.rc repo/effectinfo.txt; do
             [ "$(basename "$f")" = lan_server.cfg ] && continue
             case "$(basename "$f")" in server.cfg|quake.rc) [ "$fresh_base" = 1 ] || continue ;; esac
             if ! cmp -s "$f" "$game/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
