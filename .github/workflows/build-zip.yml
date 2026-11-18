@@ -130,14 +130,43 @@ jobs:
             cp "$f" out/BAKOQUAKE/tools/
           done
 
+      # Overlay pk3s are reproducible, so each is cached and only rebuilt when an input changes. The key holds the
+      # base bakersfield.pk3 (both read it), the pinned numpy/pillow, and every source file the builder reads.
+      # A builder that starts reading a new file must add it to its key, or a stale pk3 gets reused.
+      - name: Cache zz_bakovan.pk3
+        id: cache_bakovan
+        uses: actions/cache@v4
+        with:
+          path: pk3cache/zz_bakovan.pk3
+          key: zz_bakovan-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/van_bako/build_van_bako_pk3.py', 'repo/source/mm_tools/van_bako/van_front_bako.png') }}
+
+      - name: Cache zz_karts.pk3
+        id: cache_karts
+        uses: actions/cache@v4
+        with:
+          path: pk3cache/zz_karts.pk3
+          key: zz_karts-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_gokart_pk3.py', 'repo/source/mm_tools/gokart_*.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/mmw_geometry.py', 'repo/source/mm_tools/tank_geom_core.py', 'repo/source/mm_tools/tank_tex_gen.py', 'repo/source/mm_tools/id1/player.mdl', 'repo/scripts/gokart.shader') }}
+
+      - name: Install pk3 build dependencies
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true'
+        run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
+
       - name: Build zz_bakovan.pk3
+        if: steps.cache_bakovan.outputs.cache-hit != 'true'
         run: |
-          python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
-          python repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
+          mkdir -p pk3cache
+          python repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_bakovan.pk3
 
       - name: Build zz_karts.pk3
+        if: steps.cache_karts.outputs.cache-hit != 'true'
         run: |
-          python -I repo/source/mm_tools/build_gokart_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 out/BAKOQUAKE/BakersfieldQuake/zz_karts.pk3
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/build_gokart_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_karts.pk3
+
+      - name: Add overlay pk3s to the package
+        run: |
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          sha256sum pk3cache/*.pk3
 
       - name: Check the package
         # Fails the run before anything is zipped or published when the package could not start a game or a server.

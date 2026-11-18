@@ -37,6 +37,9 @@ is about 1.2 GB, almost all of it two base pk3s. If either changes, every player
 - **The repo is text/source only.** Generate overlay pk3s in CI from source: a build script under
   `source/mm_tools/`, plus a step in `.github/workflows/build-zip.yml` that writes to
   `out/BAKOQUAKE/BakersfieldQuake/`. Model it on the `zz_bakovan.pk3` step. Don't commit built binaries.
+- **Overlay pk3s are cached in CI** (`actions/cache`, one entry per pk3). The key is the base `bakersfield.pk3`
+  sha256, the pinned numpy/pillow and a hash of every repo file the builder reads. When a builder starts reading a
+  new file (an import, a shader, a texture), add it to that pk3's cache key, or CI keeps shipping the stale pk3.
 
 ## Reproducible builds
 
