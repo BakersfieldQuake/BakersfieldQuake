@@ -31,6 +31,8 @@ PROGS_DIR = os.path.join(REPO_ROOT, "progs")
 OUT_DIR = os.path.join(HERE, "out")
 BAKER_PK3 = os.path.join(REPO_ROOT, "bakersfield.pk3")
 ID1_PAK0 = os.path.abspath(os.path.join(REPO_ROOT, "..", "id1", "pak0.pak"))
+# Quake 1.06 progs/player.mdl (sha256 10cecfe0...), committed so CI can build the driver without the paks.
+ID1_PLAYER_MDL = os.path.join(HERE, "id1", "player.mdl")
 
 DRIVER_SHADER = "progs/gk_driver"
 DRIVER_TEX_REL = "progs/gk_driver.png"
@@ -136,7 +138,8 @@ def _load_player_mdl_bytes(bakersfield_pk3=BAKER_PK3):
                 return z.read("progs/player_id1.mdl")
     if os.path.isfile(ID1_PAK0):
         return _read_pak_entry(ID1_PAK0, "progs/player.mdl")
-    raise FileNotFoundError(f"progs/player_id1.mdl not found in {bakersfield_pk3} and {ID1_PAK0} is absent")
+    with open(ID1_PLAYER_MDL, "rb") as f:
+        return f.read()
 
 
 def _load_quake_palette():
