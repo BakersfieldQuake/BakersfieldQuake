@@ -1843,3 +1843,35 @@ void(float w, float h) BM_DrawIntroHUD =
 		BM_ShadowCentered (cx, py + 17, sub, 7, '0.96 0.96 0.98', 0.95 * pop);
 	}
 };
+
+// ---- Visibility rays for models and dynamic lights, chosen per map.
+// The engine decides whether a model or a dynamic light is hidden by firing rays at it. With
+// r_cullentities_trace_entityocclusion 1 (the engine default) each ray tests wall faces one by one, and these maps keep
+// thousands of faces on one BSP node. Measured 2026-11-18 on a recorded 15-bot match: terminal21 played at 46 fps with
+// dips to 10; with the classic world-only test (0) at 311 fps with dips to 121. No other map lost anything.
+// The world-only test is blocked by see-through faces that sit on SOLID world brushes (fire-escape gratings, window
+// panes): it could hide a player standing behind one. So it is switched on only for maps that have no such face.
+// source/mm_tools/perf/fence_solid.py lists them per map; run it before adding a map here. Every other map keeps the
+// engine default. bm_tracecull_auto 0 leaves the engine setting alone.
+float(string n) BM_MapIs =
+{
+	if (mapname == n)
+		return TRUE;
+	if (mapname == strcat ("maps/", n))
+		return TRUE;
+	if (mapname == strcat ("maps/", n, ".bsp"))
+		return TRUE;
+	return FALSE;
+};
+
+void() BM_TraceCullSetup =
+{
+	registercvar ("bm_tracecull_auto", "1");
+	if (!cvar ("bm_tracecull_auto"))
+		return;
+	if (BM_MapIs ("terminal21") || BM_MapIs ("morrorock") || BM_MapIs ("soi6") || BM_MapIs ("soicowboy_bkk")
+	 || BM_MapIs ("lolmap1") || BM_MapIs ("little_st_james") || BM_MapIs ("ooika_lawrenceville") || BM_MapIs ("slo_bike_kitchen"))
+		cvar_set ("r_cullentities_trace_entityocclusion", "0");
+	else
+		cvar_set ("r_cullentities_trace_entityocclusion", "1");
+};

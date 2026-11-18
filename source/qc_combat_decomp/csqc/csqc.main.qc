@@ -15,6 +15,7 @@ void() CSQC_Init =
 	registercvar("hud_showtitle", "1");
 	registercvar("bm_hud_style", "0");
 	init_servercmds();
+	BM_TraceCullSetup ();
 	stGtype = gametype;
 	precache_pic("gfx/milkdrips");
 	precache_pic("textures/HUD/HUD_shells.png");
