@@ -194,7 +194,7 @@ class Updater:
             raise IOError(f"{info.filename}: downloaded file does not match the manifest")
 
     # ---- main flow ---------------------------------------------------------------------------------------------
-    def run(self, check=False, force=False):
+    def run(self, check=False, force=False, launch=False):
         state = self.load_state()
         try:
             self.manifest = self.get_json(self.manifest_url, CHECK_TIMEOUT)
@@ -229,7 +229,8 @@ class Updater:
             return 10 if fetch or delete else 0
         changed = bool(fetch or delete)
         if changed:
-            show_console()
+            if launch:
+                show_console()
             print(f"Updating BAKOQUAKE build {installed} to {m['build']}: {len(fetch)} files, {fmt(total)}", flush=True)
             self.apply(fetch, delete, cache)
         self.save_state({"build": m["build"], "version": m.get("version", ""), "managed": sorted(m["files"]),
@@ -392,11 +393,12 @@ def main(argv=None):
     os.close(fd)
     try:
         url = a.manifest_url or LATEST.format(platform=a.platform)
-        return Updater(root, a.platform, url, log).run(check=a.check, force=a.force_rehash)
+        return Updater(root, a.platform, url, log).run(check=a.check, force=a.force_rehash, launch=a.launch)
     except Exception as e:  # never block the game
         log(f"update failed: {e}")
         print(f"\nUpdate failed, starting the installed version: {e}", flush=True)
-        message_box(f"The update failed, so the installed version will start.\n\n{e}")
+        if a.launch:   # only from a launcher: a dialog would hang a headless run (CI, ssh)
+            message_box(f"The update failed, so the installed version will start.\n\n{e}")
         return 0
     finally:
         lock.unlink(missing_ok=True)
