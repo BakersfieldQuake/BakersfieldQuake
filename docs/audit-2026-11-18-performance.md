@@ -26,8 +26,9 @@ below is a best case.
 
 **Shipped.** With the owner's go-ahead the work was pushed, released as `build-20261118-74b8bd0` ("Latest") and
 deployed to the VPS, which matches that release on all 106 game files. An existing player's updater downloads 17
-files, 17.9 MB. Two more releases followed (section 8); the third, `build-20261118-0ebe292`, is "Latest" and carries
-the patched Windows engine. The VPS matches it on all 109 game files.
+files, 17.9 MB. Three more releases followed (section 8). The third, `build-20261118-0ebe292`, carries the patched
+Windows engine; the fourth, `build-20261118-041eb0b`, is "Latest" and adds a game log per session and a "Report a
+Problem" tool. The VPS matches it on all 109 game files.
 
 While preparing the release it turned out that the two releases before it (`build-20261118-c34bfc0` and
 `build-20261118-7f30a1e`) had been built on a stale draft base and had quietly put older game code back
@@ -290,8 +291,8 @@ Deleting any of the last four is the owner's call; nothing was deleted.
 
 ## 6. Sync: GitHub, this PC, the server
 
-State after the first release (2026-11-18 14:00 UTC). After the third release (section 8) `main` is past `0ebe292`,
-"Latest" is `build-20261118-0ebe292` and the VPS matches it on 109 of 109 game files:
+State after the first release (2026-11-18 14:00 UTC). After the fourth release (section 8) "Latest" is
+`build-20261118-041eb0b`, built from `main` at `041eb0b`, and the VPS matches it on 109 of 109 game files:
 
 | | game code | state |
 |---|---|---|
@@ -397,14 +398,31 @@ Third release, 2026-11-19, with the owner's go-ahead ("ship it now", the engine 
   it quit with exit code 0. Somebody was using the PC during two of the three runs, so single inputs went missing
   on both the new and the old engine; it shows the input path works, it does not replace a person playing.
 
+Fourth release, 2026-11-19, with the owner's go-ahead (the game log and "Report a Problem", section 1):
+- A first draft of it was built on `base-v1.13` while the third release was being published by another session. Its
+  manifest showed the old engine coming back, so it was cancelled and deleted, and the release was built on
+  `base-v1.14`, the same base as the third. This is the `base_tag` trap of section 6 once more, caught by comparing
+  the draft's manifest with the live one before publishing.
+- Release `build-20261118-041eb0b` (build 34) is "Latest". From the third release the Windows updater fetches 5
+  files, 37 KB: `Play.cmd`, `Start Server.cmd`, `Report a Problem.cmd` (new), `tools/bq-report.ps1` (new) and
+  `version.cfg`. Linux gets `Play.sh` and `Start-Server.sh`. Engine, game code and every pack are unchanged.
+- Checked before publishing: the draft's manifest against the live release, and that exact file set started through
+  `Play.cmd` in a scratch copy of the package (soi6 and terminal21 with bots on the new engine: both logs written,
+  the previous one kept, no error lines; the report tool reads them).
+- VPS: only `version.cfg` differed (the third release's game files were already there). Replaced while the server was
+  empty (backup `/opt/quake/backup/20261118-230845-release-041eb0b`), service restarted, all 109 game files match.
+- This PC: 126 of 128 game and engine files are identical to the release. The two others are the player's own
+  `config.cfg` and `version.cfg`, which reads "dev" in the source tree on purpose.
+
 Left for the owner:
 1. Play a real session on the release (fullscreen, sound, mouse, a controller if anyone uses one). Nobody has yet.
    To go back on one PC: copy `engine\zircon_beta_gcc.stock.exe` over `zircon_beta_gcc.exe`. To go back for
    everyone: release again from `base-v1.13`.
-2. The crash on the other PC is not identified. The next time it happens, send the text of the error box, the
-   PC's RAM and graphics card, and the game log (the launchers from `9150fdc` on keep one per session and have a
-   "Report a Problem" entry; that commit is not in a release yet). Without that the out-of-memory crash, which was
-   reproduced and fixed, is only the most likely candidate.
+2. The crash on the other PC is not identified. Start the game there once so it updates to the fourth release. The
+   next time it crashes, double-click "Report a Problem" in the game folder and send the `BAKOQUAKE-report.txt` it
+   puts on the Desktop: it holds the error line from the game log, the PC's RAM and graphics adapters, and any crash
+   Windows recorded. Until then the out-of-memory crash, which was reproduced and fixed, is only the most likely
+   candidate.
 3. Tell everyone who cuts releases about `base_tag` (section 6): leave it empty or use `base-v1.14`. An older base
    puts the old engine back.
 4. Get the engine pull request merged, then move `ZIRCON_REF` so Linux and macOS get the same engine.
