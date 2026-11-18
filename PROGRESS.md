@@ -138,3 +138,47 @@
 - Thin app + data in Application Support (notarize about 10 MB instead of 1 GB; needed for the updater anyway). Proposed, not started.
 - Notarize step is silent (`--output-format json`); switch to text output for progress.
 - Dock icon flips to the Zircon "Z" (engine `SDL_SetWindowIcon`); fix in rgr4y/zircon-darkplaces.
+
+## 2026-11-18 — Differential updater (Windows, Linux) and game shortcuts
+
+**Outcome**
+- `tools/bq_update.py`: on launch, fetches `releases/latest/download/manifest-<platform>.json` and downloads only changed files out of the release zip, one HTTP Range request each. Everything is verified before anything is replaced. A failure rolls back and starts the installed version. It refuses rollbacks and never touches files outside the manifests (paks, `config.cfg`). Exit 3 means files changed; the launcher then restarts itself.
+- `source/ci/make_manifest.py` and the CI changes:
+  - New `updater` job: runs the tests on Windows and freezes `tools/bq-update.exe`, cached on the script.
+  - Releases now carry `manifest-{windows-x64,linux-x86_64,macos-arm64}.json`.
+  - No `release.json` on main: the latest-release redirect is the pointer (verified anonymous + Range).
+- Hooks in Play/Start Server (`.cmd` and `.sh`). Each is a single parsed block, because cmd and bash read a running script from disk.
+- Manifest signing dropped (Rob: game among friends).
+- Start Menu/Desktop shortcuts (Windows, `tools/install-shortcuts.ps1`) and `.desktop` entries (Linux, `tools/install-shortcuts.sh`). CI ships `source/icons/*` into `tools/`. Done by a subagent on a branch, reviewed and fast-forwarded.
+- `AGENTS.md`: docs only under `docs/`; batch and squash commits before pushing.
+- win11 VM:
+  - Clock fixed: libvirt `offset='utc'`, because the guest has `RealTimeIsUniversal=1` and w32time is disabled.
+  - SSH (`ssh win11`) and autologin set up.
+
+**Root cause**
+- Windows CI test step hung 30 min: a failed update in a test opened `MessageBoxW`, which blocks forever headless. Dialogs and the console now appear only with `--launch`.
+
+**Verification**
+- Unit tests (7) pass on Linux and on the Windows runner.
+- Live Range smoke test against the GitHub latest release.
+- win11 VM with the draft `build-20261118-4517e29-draft`, served from the host:
+  - untouched install: hashes in 2 s, downloads nothing
+  - tampered/deleted files repaired; `config.cfg` and `id1` kept
+  - `--check` exits 10
+  - offline: exit 0 in 3 s; `BQ_NO_UPDATE` skips
+  - locked engine exe: earlier swap rolled back
+  - running updater replaced itself
+  - tampered `Play.cmd` restored, re-executed, and the engine started
+- Shortcuts: verified by the subagent on Linux (temporary HOME) and on the VM (.lnk read back); not double-clicked in a desktop session.
+
+**Changed files**
+- `tools/bq_update.py`, `tools/install-shortcuts.{ps1,sh}`
+- `source/ci/make_manifest.py`, `source/ci/tests/test_bq_update.py`
+- `launchers/*`, `.github/workflows/build-zip.yml`, `README.md`, `AGENTS.md`, `.gitignore`
+- `docs/auto-update-plan.md`, `docs/prompts/mac-app-updater-handoff.md`
+
+**Follow-up**
+- Local `main` is 2 commits ahead (shortcuts, rollback message fix). Push, then run the next draft build.
+- Publish a v1.10-based build as Latest. Until then, the default base is stale, and players' updaters find no manifest (404, harmless).
+- macOS app updates: see `docs/prompts/mac-app-updater-handoff.md` (mac agent).
+- The updater's console window from a hidden `PLAY BAKERSFIELDQUAKE.exe` launch (AllocConsole) was not seen in a real desktop session.
