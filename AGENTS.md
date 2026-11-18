@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repo.
 
 - Agent prompts and handoffs go in `docs/prompts/`; other notes and plans go in `docs/`.
 - The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and files the game itself reads.
-  The `.gitignore` is an allowlist (`*`), so add new files with `git add -f`.
+  The `.gitignore` only excludes local build data (the unpacked `BAKOQUAKE/` package, logs, `source/darkplaces/`).
 
 ## macOS app
 
