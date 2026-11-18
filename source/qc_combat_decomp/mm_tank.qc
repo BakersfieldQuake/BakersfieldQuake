@@ -26,6 +26,7 @@ MEGA MAN TANK - Drivable Heavy Tank Implementation (Combat+)
 
 void() MMT_Think;
 void(entity tank, float forced) MMT_CatastrophicExplode;
+void(entity p, entity tank) MMT_UpdateCameraAndAim;
 
 // ---------------------------------------------------------------- Math Helpers
 
@@ -514,6 +515,7 @@ void(entity p, entity tank) MMT_RestoreViewAndBody =
 {
 	local entity oldself;
 
+	p.mmt_st_active = 0;
 	if (tank != world && tank.mmt_cam != world)
 	{
 		if (!bm_wasfreed (tank.mmt_cam) && tank.mmt_cam.classname == "mmt_cam")
@@ -816,9 +818,14 @@ void(vector boom_org, float max_rad, float max_punch) MMT_ShakePlayers =
 	}
 };
 
+// private link lists: Traffic_BlastExplode / T_Damage can run findradius and overwrite .chain
+.entity	mmt_boom_next;
+.entity	mmt_run_next;
+.float	mmt_pad_scan_t;		// next jump/sky pad scan in MMT_CheckPads (entity-list walk throttled to 20 Hz)
+
 void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity ignore, entity reduced_self_tank) MMT_RadiusBlast =
 {
-	local entity head, explo;
+	local entity head, explo, cars, nxt;
 	local vector org, push_dir;
 	local float dist, falloff, points;
 
@@ -834,12 +841,15 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 	Gyro_Force_AddProperty_Instant (explo);
 	Gyro_Force_AddProperty_WaterOnly (explo);
 
+	cars = world;
 	head = findradius (inflictor.origin, blast_rad);
 	while (head)
 	{
 		if (head != ignore && mmt_inflicting == 1 && head.classname == "misc_traffic_car")
 		{
-			Traffic_BlastExplode (head, attacker);
+			// explode after the loop: its T_RadiusDamage would overwrite .chain mid-walk
+			head.mmt_boom_next = cars;
+			cars = head;
 		}
 		else if (head != ignore && head.takedamage)
 		{
@@ -882,6 +892,14 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 			}
 		}
 		head = head.chain;
+	}
+
+	while (cars != world)
+	{
+		nxt = cars.mmt_boom_next;
+		cars.mmt_boom_next = world;
+		Traffic_BlastExplode (cars, attacker);
+		cars = nxt;
 	}
 };
 
@@ -1310,11 +1328,11 @@ void() MMT_BarThink =
 	self.nextthink = time + 0.04;
 };
 
-// Trace the 3rd-person chase camera ray past the tank itself so aiming directly at the ground works cleanly;
-// stores computed cam_des into vd_hitpos as well.
+// Trace the 3rd-person chase camera ray starting forward of the tank plane so walls/props
+// behind the tank never hijack the aim; stores computed cam_des into vd_hitpos as well.
 vector(entity p, entity tank) MMT_GetCrosshairTarget =
 {
-	local float dist_back, lift_up, step;
+	local float dist_back, lift_up, start_dist, step;
 	local vector look_ang, pivot, cam_des, p0, aim_end;
 
 	look_ang = '0 0 0';
@@ -1339,79 +1357,132 @@ vector(entity p, entity tank) MMT_GetCrosshairTarget =
 		cam_des = trace_endpos + trace_plane_normal * 8;
 
 	vd_hitpos = cam_des;
-	p0 = cam_des;
-	aim_end = cam_des + v_forward * 4096;
+
+	start_dist = (pivot - cam_des) * v_forward;
+	if (start_dist < 0)
+		start_dist = 0;
+	p0 = cam_des + v_forward * start_dist;
+	aim_end = p0 + v_forward * 8192;
 	step = 0;
-	while (step < 3)
+	while (step < 4)
 	{
 		traceline (p0, aim_end, FALSE, tank);
+		if (trace_startsolid)
+			return p0;
 		if (trace_fraction >= 1)
-			break;
+			return aim_end;
 		if (trace_ent == tank || trace_ent == p || (trace_ent != world && trace_ent.mmt_base == tank))
 		{
-			p0 = trace_endpos + v_forward * 12;
+			p0 = trace_endpos + v_forward * 8;
 			step = step + 1;
 		}
 		else
-		{
-			if (vlen (trace_endpos - cam_des) >= 32)
-				return trace_endpos;
-			break;
-		}
+			return trace_endpos;
 	}
-	return cam_des + v_forward * 1600;
+	return aim_end;
 };
 
-void(entity tank, entity driver) MMT_FireBar =
+// Shared exact aim & trajectory sweep used by both live aiming line and MMT_FireBar.
+// Updates tank turret yaw/pitch directly and populates mmt_aim_muz, mmt_aim_dir, mmt_aim_end.
+void(entity tank, entity driver) MMT_CalcAim =
 {
-	local vector aim_ang, aim_pt, fwd, muz_pivot, muz, dir, shot_ang;
-	local entity bar, hit_ent;
-	local float pack, instant_boom;
+	local vector aim_pt, muz_pivot, raw_fwd, shot_ang, aim_ang, fwd, step_pos;
+	local float step;
 
 	muz_pivot = tank.origin + '0 0 63';
 	if (driver != world && driver.classname == "player")
 	{
 		aim_pt = MMT_GetCrosshairTarget (driver, tank);
-		fwd = aim_pt - muz_pivot;
-		if (vlen (fwd) < 1)
-			fwd = '1 0 0';
+		raw_fwd = aim_pt - muz_pivot;
+		if (vlen (raw_fwd) < 1)
+		{
+			aim_ang = '0 0 0';
+			aim_ang_x = driver.v_angle_x;
+			aim_ang_y = driver.v_angle_y;
+			makevectors (aim_ang);
+			raw_fwd = v_forward;
+		}
 		else
-			fwd = normalize (fwd);
-		shot_ang = vectoangles (fwd);
+			raw_fwd = normalize (raw_fwd);
+
+		shot_ang = vectoangles (raw_fwd);
 		if (shot_ang_x > 180)
 			shot_ang_x = shot_ang_x - 360;
-		tank.mmt_turret_yaw = shot_ang_y;
-		tank.mmt_turret_pitch = bound (-82, shot_ang_x, 65);
-	}
-	else
-	{
-		aim_ang = '0 0 0';
-		aim_ang_x = 0 - tank.mmt_turret_pitch;
-		aim_ang_y = tank.mmt_turret_yaw;
-		makevectors (aim_ang);
-		fwd = v_forward;
-		aim_pt = muz_pivot + fwd * 1600;
+		tank.mmt_turret_yaw = MMT_NormYaw (shot_ang_y);
+		tank.mmt_turret_pitch = bound (-82, shot_ang_x, 75);
 	}
 
-	instant_boom = FALSE;
-	hit_ent = world;
-	traceline (muz_pivot, muz_pivot + fwd * 88, FALSE, tank);
+	aim_ang = '0 0 0';
+	aim_ang_x = 0 - tank.mmt_turret_pitch;
+	aim_ang_y = tank.mmt_turret_yaw;
+	makevectors (aim_ang);
+	fwd = v_forward;
+	mmt_aim_dir = fwd;
+
+	mmt_aim_instant = FALSE;
+	mmt_aim_hit = world;
+
+	// Sweep the projectile's actual 24x24x24 bbox out to the 88u muzzle tip
+	tracebox (muz_pivot, '-12 -12 -12', '12 12 12', muz_pivot + fwd * 88, FALSE, tank);
 	if (trace_fraction < 1 && trace_ent != driver && (trace_ent == world || trace_ent.mmt_base != tank))
 	{
-		muz = trace_endpos - fwd * 8;
-		if (trace_fraction * 88 < 28 || pointcontents (muz) == CONTENT_SOLID)
+		if (trace_startsolid || trace_fraction * 88 < 28)
 		{
-			instant_boom = TRUE;
-			muz = trace_endpos + trace_plane_normal * 6;
-			hit_ent = trace_ent;
+			mmt_aim_instant = TRUE;
+			mmt_aim_hit = trace_ent;
+			if (trace_startsolid)
+				mmt_aim_muz = muz_pivot + fwd * 24;
+			else
+				mmt_aim_muz = trace_endpos;
+			mmt_aim_end = mmt_aim_muz;
+			return;
+		}
+		mmt_aim_muz = trace_endpos - fwd * 2;
+		mmt_aim_end = trace_endpos;
+		return;
+	}
+
+	mmt_aim_muz = muz_pivot + fwd * 88;
+	step_pos = mmt_aim_muz;
+	step = 0;
+	while (step < 4)
+	{
+		tracebox (step_pos, '-12 -12 -12', '12 12 12', mmt_aim_muz + fwd * 8192, FALSE, tank);
+		if (trace_startsolid)
+		{
+			mmt_aim_end = step_pos;
+			return;
+		}
+		if (trace_fraction >= 1)
+		{
+			mmt_aim_end = mmt_aim_muz + fwd * 8192;
+			return;
+		}
+		if (trace_ent == tank || trace_ent == driver || (trace_ent != world && trace_ent.mmt_base == tank))
+		{
+			step_pos = trace_endpos + fwd * 8;
+			step = step + 1;
+		}
+		else
+		{
+			mmt_aim_end = trace_endpos;
+			return;
 		}
 	}
-	else
-		muz = muz_pivot + fwd * 88;
+	mmt_aim_end = mmt_aim_muz + fwd * 8192;
+};
 
-	dir = fwd;
-	if (!instant_boom && (aim_pt - muz) * fwd > 24)
-		dir = normalize (aim_pt - muz);
+void(entity tank, entity driver) MMT_FireBar =
+{
+	local vector muz, dir;
+	local entity bar, hit_ent;
+	local float pack, instant_boom;
+
+	MMT_CalcAim (tank, driver);
+	muz = mmt_aim_muz;
+	dir = mmt_aim_dir;
+	instant_boom = mmt_aim_instant;
+	hit_ent = mmt_aim_hit;
 
 	bar = spawn ();
 	bar.classname = "mm_tank_bar";
@@ -1542,7 +1613,7 @@ void(entity tank, vector org, float yaw) MMT_GroundSample =
 	vd_pitch = bound (-32, MMT_RiseAngle (hf - hr, 104), 32);
 };
 
-void(entity tank, entity hit, float spd) MMT_RamHit =
+void(entity tank, entity hit, float spd, float runover) MMT_RamHit =
 {
 	local entity atk;
 	local float dmg;
@@ -1566,6 +1637,8 @@ void(entity tank, entity hit, float spd) MMT_RamHit =
 		dir = normalize (dir);
 	if (hit.veh_kind > 0 || hit.classname == "veh_van_clip")
 		dmg = 220 + spd * 1.4;
+	else if (runover)
+		dmg = spd * 1.75;	// from 0, no floor: same ~330 as before at top speed (190)
 	else
 		dmg = 160 + spd * 0.90;
 	hit.mmt_hit_t = time + 0.30;
@@ -1582,27 +1655,42 @@ void(entity tank, entity hit, float spd) MMT_RamHit =
 
 void(entity tank) MMT_CheckRunOver =
 {
-	local entity e;
+	local entity e, hits, nxt;
 	local float spd;
 	local vector bmin, bmax;
 
+	// real forward/reverse speed only: turning in place or creeping must not crush roof riders / side huggers
 	spd = fabs (tank.mmt_fwd_spd);
-	if (spd < 35 && fabs (tank.mmt_yawrate) < 20)
+	if (spd <= 120)
 		return;
-	if (spd < 60)
-		spd = 60;
 
-	bmin = tank.origin + '-108 -108 -4';
-	bmax = tank.origin + '108 108 132';
-	e = findradius (tank.origin + '0 0 48', 140);
+	// strictly inside the '-104 -104 0'..'104 104 132' hull, so touching a side is not a run-over
+	bmin = tank.origin + '-100 -100 0';
+	bmax = tank.origin + '100 100 128';
+	hits = world;
+	e = findradius (tank.origin + '0 0 48', 160);
 	while (e != world)
 	{
 		if (e != tank && e != tank.mmt_driver && e.takedamage && ((e.flags & FL_CLIENT) || (e.flags & FL_MONSTER)))
 		{
-			if (bmin_x <= e.absmax_x && bmax_x >= e.absmin_x && bmin_y <= e.absmax_y && bmax_y >= e.absmin_y && bmin_z <= e.absmax_z && bmax_z >= e.absmin_z)
-				MMT_RamHit (tank, e, spd);
+			if (e.absmin_z < tank.absmax_z - 4)	// skip players riding on the roof
+			if (bmin_x < e.absmax_x && bmax_x > e.absmin_x && bmin_y < e.absmax_y && bmax_y > e.absmin_y && bmin_z < e.absmax_z && bmax_z > e.absmin_z)
+			{
+				e.mmt_run_next = hits;
+				hits = e;
+			}
 		}
 		e = e.chain;
+	}
+
+	// damage after the walk: a death that runs findradius would overwrite .chain
+	while (hits != world)
+	{
+		nxt = hits.mmt_run_next;
+		hits.mmt_run_next = world;
+		if (!bm_wasfreed (tank) && tank.mmt_state != MMT_STATE_WRECK)
+			MMT_RamHit (tank, hits, spd, TRUE);
+		hits = nxt;
 	}
 };
 
@@ -1709,6 +1797,7 @@ void(entity p, entity tank) MMT_Enter =
 		msg_entity = p;
 		WriteByte (MSG_ONE, 5);		// svc_setview
 		WriteEntity (MSG_ONE, cam);
+		MMT_UpdateCameraAndAim (p, tank);
 	}
 
 	pack = MMT_ClampPack (autocvar_mm_tank_soundpack);
@@ -1724,13 +1813,11 @@ void(entity p, entity tank) MMT_Enter =
 void(entity p, entity tank) MMT_UpdateCameraAndAim =
 {
 	local entity cam;
-	local vector cam_des, aim_end, dir, want_ang;
-	local float dt, d, want_p;
+	local vector cam_des, line_start;
 
-	dt = bound (0.001, frametime, 0.05);
-	cam = tank.mmt_cam;
-	aim_end = MMT_GetCrosshairTarget (p, tank);
+	MMT_CalcAim (tank, p);
 	cam_des = vd_hitpos;
+	cam = tank.mmt_cam;
 
 	if (cam != world)
 	{
@@ -1741,15 +1828,25 @@ void(entity p, entity tank) MMT_UpdateCameraAndAim =
 		cam.angles_z = 0;
 	}
 
-	dir = normalize (aim_end - (tank.origin + '0 0 63'));
-	want_ang = vectoangles (dir);
-	if (want_ang_x > 180)
-		want_ang_x = want_ang_x - 360;
-	want_p = bound (-82, want_ang_x, 65);
+	if (time >= tank.mmt_reload_end)
+		p.mmt_st_active = 1;
+	else
+		p.mmt_st_active = 2;
 
-	d = MMT_AngDelta (want_ang_y, tank.mmt_turret_yaw);
-	tank.mmt_turret_yaw = MMT_NormYaw (tank.mmt_turret_yaw + bound (-320 * dt, d, 320 * dt));
-	tank.mmt_turret_pitch = MMT_Approach (tank.mmt_turret_pitch, want_p, 260 * dt);
+	// Start the visual aiming line at the silver bar nose tip (or mmt_aim_muz when blocked closer)
+	if (mmt_aim_instant)
+		line_start = mmt_aim_muz;
+	else
+		line_start = tank.origin + '0 0 63' + mmt_aim_dir * 84;
+	if ((mmt_aim_end - line_start) * mmt_aim_dir < 0)
+		line_start = mmt_aim_muz;
+
+	p.mmt_st_sx = line_start_x;
+	p.mmt_st_sy = line_start_y;
+	p.mmt_st_sz = line_start_z;
+	p.mmt_st_ex = mmt_aim_end_x;
+	p.mmt_st_ey = mmt_aim_end_y;
+	p.mmt_st_ez = mmt_aim_end_z;
 };
 
 // ---------------------------------------------------------------- Anti-Rollover, Jump/Launch Pads & Air Physics
@@ -1800,6 +1897,10 @@ void(entity tank, entity driver) MMT_CheckPads =
 
 	if (time < tank.mmt_pad_cool)
 		return;
+	// two find() walks over every entity: 20 Hz is plenty at <= 190 u/s
+	if (time < tank.mmt_pad_scan_t)
+		return;
+	tank.mmt_pad_scan_t = time + 0.05;
 
 	bmin = tank.origin + '-104 -104 -4';
 	bmax = tank.origin + '104 104 132';
@@ -2043,7 +2144,7 @@ float() MMTank_DriveFrame =
 	{
 		n = vd_hitnorm;
 		if (vd_hitent != world && vd_hitent.takedamage)
-			MMT_RamHit (tank, vd_hitent, max (fabs (tank.mmt_fwd_spd), vlen (vel)));
+			MMT_RamHit (tank, vd_hitent, max (fabs (tank.mmt_fwd_spd), vlen (vel)), FALSE);
 		if (tank.mmt_state == MMT_STATE_WRECK)
 			return TRUE;
 		if (vel * n < 0)
@@ -2639,6 +2740,7 @@ void(entity p) MMTank_Reset =
 		MMT_UnhidePlayer (p);
 	p.mmt_tank = world;
 	p.mmt_btn = FALSE;
+	p.mmt_st_active = 0;
 	if (!p.mmt_alias_sent && clienttype (p) == FD_CLIENTTYPE_REAL)
 	{
 		p.mmt_alias_sent = TRUE;

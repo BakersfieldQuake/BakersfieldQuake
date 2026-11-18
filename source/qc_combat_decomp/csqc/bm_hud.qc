@@ -133,13 +133,59 @@ void(float w, float h, float hp) JP_DrawHUD =
 	}
 };
 
+float	bm_topright_y;
+
+float() JP_IsVisible =
+{
+	local float hp, jf;
+
+	hp = getstati (STAT_HEALTH);
+	if (hp <= 0)
+		return FALSE;
+	jf = getstati (BMST_JPFUEL);
+	if (jf > 0)
+		return TRUE;
+	if (time < jp_hud_empty_t)
+		return TRUE;
+	return FALSE;
+};
+
+float(float h) BM_CornerBottomY =
+{
+	local float hs;
+
+	hs = cvar ("bm_hud_style");
+	if (hs == 2 || hs == 3)
+		return h - 72;
+	return h - 56;
+};
+
+void(float x, float y, string s, float sz, float a) BM_DrawColorShadow =
+{
+	local vector sc;
+	local string plain;
+
+	sc = sz * '1 1 0';
+	plain = strdecolorize (s);
+	drawstring ((x + 0.7) * '1 0 0' + (y + 0.7) * '0 1 0', plain, sc, '0 0 0', 0.85 * a, 0);
+	drawcolorcodedstring (x * '1 0 0' + y * '0 1 0', s, sc, a, 0);
+};
+
+void(float rx, float y, string s, float sz, float a) BM_ShadowColorRight =
+{
+	local float wd;
+
+	wd = stringwidth (s, TRUE, sz * '1 1 0');
+	BM_DrawColorShadow (rx - wd, y, s, sz, a);
+};
+
 // text centred on x
 void(float x, float y, string s, float sz, vector rgb, float a) BM_Centered =
 {
 	local float wd;
 
 	wd = stringwidth (s, TRUE, sz * '1 1 0');	// variants: keep builtin results in locals
-	drawcolorcodedstring ((x - wd * 0.5) * '1 0 0' + y * '0 1 0', s, sz * '1 1 0', a, 0);
+	BM_DrawColorShadow (x - wd * 0.5, y, s, sz, a);
 };
 
 // compact lower-screen toast replacing the engine's large mid-screen centerprints
@@ -152,6 +198,7 @@ string	bm_cp_l6;
 string	bm_cp_l7;
 float	bm_cp_n;
 float	bm_cp_end;
+float	bm_cp_top_y;		// top of this frame's bottom-left toast (its base when none shows), so other bottom-left text can stack above it
 
 void() BM_ClearCenterPrint =
 {
@@ -251,12 +298,15 @@ float(string s) CSQC_Parse_CenterPrint =
 
 void(float w, float h) BM_DrawCenterPrint =
 {
-	local float sz, wd, maxw, lim, step, y0, pw, ph, rem, a, cx;
+	local float sz, wd, maxw, lim, step, x0, y0, ph, rem, a, base;
 
+	base = BM_CornerBottomY (h);
+	if (getstati (93) == 2)		// 1st-person Winged John readout fills BM_CornerBottomY(h) - 27 .. - 4 (john_bird_hud.qc): stack the toast above it
+		base = base - 30;
+	bm_cp_top_y = base;
 	if (bm_cp_n <= 0 || time >= bm_cp_end)
 		return;
 
-	cx = w * 0.5;
 	sz = floor (h * 0.0145 + 0.5);
 	if (sz < 5)
 		sz = 5;
@@ -295,63 +345,48 @@ void(float w, float h) BM_DrawCenterPrint =
 		if (wd > maxw) maxw = wd;
 	}
 
-	lim = w * 0.84;
+	x0 = JP_IsVisible () ? 36 : 10;
+	lim = w * 0.48;
 	if (maxw > lim && maxw > 0)
 	{
 		sz = sz * (lim / maxw);
 		if (sz < 4)
 			sz = 4;
-		maxw = lim;
 	}
 
 	rem = bm_cp_end - time;
-	a = 0.88;
+	a = 0.94;
 	if (rem < 0.30)
-		a = 0.88 * (rem / 0.30);
+		a = 0.94 * (rem / 0.30);
 
 	step = sz + 2;
-	ph = bm_cp_n * step + 2;
-	pw = maxw + 8;
-	y0 = h - 58 - ph;
+	ph = bm_cp_n * step;
+	y0 = base - ph;
+	bm_cp_top_y = y0;
 
-	drawfill ((cx - pw * 0.5) * '1 0 0' + y0 * '0 1 0', pw * '1 0 0' + ph * '0 1 0', '0 0 0', 0.30 * (a / 0.88), 0);
-	BM_Centered (cx, y0 + 2, bm_cp_l1, sz, '1 1 1', a);
+	BM_DrawColorShadow (x0, y0, bm_cp_l1, sz, a);
 	if (bm_cp_n >= 2)
-		BM_Centered (cx, y0 + 2 + step, bm_cp_l2, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step, bm_cp_l2, sz, a);
 	if (bm_cp_n >= 3)
-		BM_Centered (cx, y0 + 2 + step * 2, bm_cp_l3, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step * 2, bm_cp_l3, sz, a);
 	if (bm_cp_n >= 4)
-		BM_Centered (cx, y0 + 2 + step * 3, bm_cp_l4, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step * 3, bm_cp_l4, sz, a);
 	if (bm_cp_n >= 5)
-		BM_Centered (cx, y0 + 2 + step * 4, bm_cp_l5, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step * 4, bm_cp_l5, sz, a);
 	if (bm_cp_n >= 6)
-		BM_Centered (cx, y0 + 2 + step * 5, bm_cp_l6, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step * 5, bm_cp_l6, sz, a);
 	if (bm_cp_n >= 7)
-		BM_Centered (cx, y0 + 2 + step * 6, bm_cp_l7, sz, '1 1 1', a);
+		BM_DrawColorShadow (x0, y0 + step * 6, bm_cp_l7, sz, a);
 };
 
-// Resolve a player's display name by 0-based slot index and 1-based entity number
+// Resolve a player's display name by 0-based slot index and 1-based entity number.
+// A player's entity number is always its 0-based player slot + 1 here, so one lookup by slot (entno - 1) does it;
+// a negative index would ask for a scoreboard rank instead of a slot.
 string(float slot, float entno) BM_PlayerNameBySlot =
 {
-	local float k, pvnum;
-	local string pve, pname;
-
-	pname = "";
-	k = 0;
-	while (k < 16 && pname == "")
-	{
-		pve = getplayerkeyvalue (k, "viewentity");
-		if (pve != "")
-		{
-			pvnum = stof (pve);
-			if (pvnum == entno)
-				pname = getplayerkeyvalue (k, "name");
-		}
-		k = k + 1;
-	}
-	if (pname == "")
-		pname = getplayerkeyvalue (-1 - slot, "name");
-	return pname;
+	if (entno >= 1)
+		return getplayerkeyvalue (entno - 1, "name");
+	return getplayerkeyvalue (slot, "name");
 };
 
 float	bm_tag_font;
@@ -420,9 +455,7 @@ void(float w, float h, vector eye, float entno, float slot, float is_bot, float 
 	col = is_bot ? '0.78 0.95 1.0' : '0.96 0.99 1.0';
 	brd = is_bot ? '0.32 0.62 0.80' : '0.50 0.72 0.88';
 
-	drawfill ((tx - 4) * '1 0 0' + (ty - 2) * '0 1 0', (wd + 8) * '1 0 0' + (use_sz + 4) * '0 1 0', '0.03 0.05 0.08', 0.74 * a, 0);
-	drawfill ((tx - 4) * '1 0 0' + (ty - 2) * '0 1 0', (wd + 8) * '1 0 0' + '0 1 0', brd, 0.75 * a, 0);
-	drawstring ((tx + 0.7) * '1 0 0' + (ty + 0.7) * '0 1 0', pname, sv, '0 0 0', 0.85 * a, 0);
+	drawstring ((tx + 0.8) * '1 0 0' + (ty + 0.8) * '0 1 0', pname, sv, '0 0 0', 0.92 * a, 0);
 	drawstring (tx * '1 0 0' + ty * '0 1 0', pname, sv, col, a, 0);
 	drawfont = old_font;
 };
@@ -492,46 +525,35 @@ void(float w, float h) BM_DrawPlayerTags =
 	}
 };
 
-// compact Party Toy Dock in top-right showing ready/cooldown state of Fun Guns, Winged John & Flying Blue Shell
+// top-right Flying Blue Shell ready banner & bottom-right vehicle Bail/Camera prompt (fun-gun toy dock bar removed)
 void(float w, float h, float hp, float y0) BM_DrawToyDock =
 {
-	local float tmask, jcd, bw, sn;
-	local string s, bs;
+	local float tmask, sn, hide_veh_hint, hit_nitro, jb_on;
+	local string bs;
 
 	if (hp <= 0 || showscores || cvar ("bm_hud_toys") == 0)
 		return;
 	tmask = getstati (BMST_TOYMASK);
-	jcd = getstati (BMST_TOYCD);
-
-	s = "";
-	if (tmask & 1)	s = strcat (s, "^2F^7:Head ");
-	else			s = strcat (s, "^8F:Head ");
-	if (tmask & 2)	s = strcat (s, "^2I^7:Jar ");
-	else			s = strcat (s, "^8I:Jar ");
-	if (tmask & 4)	s = strcat (s, "^2X^7:Pkl ");
-	else			s = strcat (s, "^8X:Pkl ");
-	if (tmask & 8)	s = strcat (s, "^2B^7:PC ");
-	else			s = strcat (s, "^8B:PC ");
-	if (tmask & 16)	s = strcat (s, "^2U^7:Dookie ");
-	else			s = strcat (s, "^8U:Dookie ");
-	if (tmask & 32)	s = strcat (s, "^2G^7:Wew ");
-	else			s = strcat (s, "^8G:Wew ");
-	if (tmask & 64)	s = strcat (s, "^2P^7:Bird");
-	else			s = strcat (s, strcat ("^8P:", ftos (jcd), "s"));
-
-	bw = stringwidth (s, TRUE, '5 5 0');
-	drawfill ((w - bw - 11) * '1 0 0' + (y0 - 1) * '0 1 0', (bw + 6) * '1 0 0' + '0 7 0', '0 0 0', 0.34, 0);
-	drawcolorcodedstring ((w - bw - 8) * '1 0 0' + y0 * '0 1 0', s, '5 5 0', 0.88, 0);
 
 	if (tmask & 128)
 	{
 		sn = sin (time * 9);
 		bs = "^5[N] FLYING BLUE SHELL READY!";
-		bw = stringwidth (bs, TRUE, '5 5 0');
-		drawcolorcodedstring ((w - bw - 8) * '1 0 0' + (y0 + 9) * '0 1 0', bs, '5 5 0', 0.75 + 0.25 * sn, 0);
+		BM_ShadowColorRight (w - 8, y0, bs, 5, 0.75 + 0.25 * sn);
+		bm_topright_y = y0 + 9;
 	}
-	if (tmask & 256)
-		BM_Centered (w * 0.5, h - 56, "^3[H]^7 Bail / Dive   ^3[K]^7 Camera", 5, '1 1 1', 0.85);
+	hide_veh_hint = FALSE;
+	jb_on = getstati (93);
+	if (jb_on > 0)
+		hide_veh_hint = TRUE;
+	if (bm_cp_n > 0 && time < bm_cp_end)
+	{
+		hit_nitro = strstrofs (bm_cp_l1, "NITRO ");
+		if (hit_nitro >= 0)
+			hide_veh_hint = TRUE;
+	}
+	if ((tmask & 256) && !hide_veh_hint)
+		BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - 7, "^3[H]^7 Bail / Dive   ^3[K]^7 Camera", 5, 0.90);
 };
 
 // 2-line LAN Keybind Cheat-Sheet drawn at bottom of screen while holding TAB (+showscores)
@@ -556,19 +578,15 @@ void() BM_DrawScoreKeys =
 	if (pw > w - 12 && pw > 0)
 	{
 		sz = sz * ((w - 12) / pw);
-		pw = w - 12;
 	}
-	pw = pw + 10;
-	y0 = h - 67;
-	drawfill ((cx - pw * 0.5) * '1 0 0' + y0 * '0 1 0', pw * '1 0 0' + '0 17 0', '0.04 0.04 0.06', 0.82, 0);
-	drawfill ((cx - pw * 0.5) * '1 0 0' + y0 * '0 1 0', pw * '1 0 0' + '0 1 0', '1 0.76 0.22', 0.78, 0);
-	BM_Centered (cx, y0 + 2, l1, sz, '1 1 1', 0.95);
-	BM_Centered (cx, y0 + 9, l2, sz, '1 1 1', 0.95);
+	y0 = h - 65;
+	BM_Centered (cx, y0, l1, sz, '1 1 1', 0.95);
+	BM_Centered (cx, y0 + 7, l2, sz, '1 1 1', 0.95);
 };
 
 void(float w, float h) BM_DrawHUD =
 {
-	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, bw, ty;
+	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, ty;
 	local string leader, s, hpic, hkey;
 	local vector col;
 
@@ -588,6 +606,7 @@ void(float w, float h) BM_DrawHUD =
 	leader = getstats (BMST_LEADER);
 	hp = getstati (STAT_HEALTH);
 
+	bm_topright_y = 8;
 	JP_DrawHUD (w, h, hp);		// the jetpack's fuel tank
 	intro_on = getstati (BMST_INTRO);
 	if (intro_on <= 0 && !intermission)
@@ -602,10 +621,10 @@ void(float w, float h) BM_DrawHUD =
 				s = strcat ("^xfa3BOTS: ^7", ftos (botcnt), "  ^8(^3F1^8 +  ^3F2^8 -)");
 			else
 				s = "^8Press ^3F1^8 +Bot  ^3F2^8 -Bot";
-			bw = stringwidth (s, TRUE, '5 5 0');
-			drawcolorcodedstring ((w - bw - 8) * '1 0 0' + '0 8 0', s, '5 5 0', 0.82, 0);
+			BM_ShadowColorRight (w - 8, 8, s, 5, 0.88);
 			ty = 17;
 		}
+		bm_topright_y = ty;
 		if (deathmatch)
 			BM_DrawToyDock (w, h, hp, ty);
 	}
@@ -624,7 +643,7 @@ void(float w, float h) BM_DrawHUD =
 
 
 	// CS 1.6 M4A1 weapon tile flush left of [2] on the status bar weapon strip (unobstructed by forearm or prox bar)
-	sl = getstati (BMST_SLOT);	if ((sl == 16 || sl == 18) && hp > 0)
+	sl = getstati (BMST_SLOT);	if ((sl == 16 || sl == 18) && hp > 0 && getstati (93) <= 0)
 	{
 		px = cx - 220;
 		pw = 58;
@@ -641,35 +660,36 @@ void(float w, float h) BM_DrawHUD =
 		BM_Centered (px + pw * 0.5, h - 50, strcat ("^xfc5", ftos (mag)), 7, '1 1 1', 0.92);
 	}
 
-	// reloading: compact label and filling bar well below the crosshair, only while a gun reloads
+	// reloading: drop-shadowed label on the top-right stack with a thin bright fill line under it (no dark bar), only while a gun reloads
 	if (rlp > 0 && hp > 0)
 	{
 		f = sin (time * 9);
-		BM_Centered (cx, cy + h * 0.11, "^xfe4RELOADING", 6, '1 1 1', 0.80 + 0.15 * f);
+		BM_ShadowColorRight (w - 8, bm_topright_y, "^xfe4RELOADING", 5, 0.80 + 0.15 * f);
 		pw = 42;
-		drawfill ((cx - pw * 0.5) * '1 0 0' + (cy + h * 0.11 + 8) * '0 1 0', pw * '1 0 0' + '0 2 0', '0 0 0', 0.55, 0);
-		drawfill ((cx - pw * 0.5) * '1 0 0' + (cy + h * 0.11 + 8) * '0 1 0', (pw * rlp / 100) * '1 0 0' + '0 2 0', '1 0.85 0.3', 0.95, 0);
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + 7) * '0 1 0', pw * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.22, 0);
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + 7) * '0 1 0', (pw * rlp / 100) * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.95, 0);
+		bm_topright_y = bm_topright_y + 12;
 	}
 
-	// spawn protection (compact, below crosshair)
-	if (prot > 0 && hp > 0)
-		BM_Centered (cx, cy + 42, strcat ("^5SHIELD ", ftos (ceil (prot / 10))), 5, '1 1 1', 0.82);
-
-	// regenerating
-	if (regen && hp > 0)
+	// Top-right corner text stack for match/status overlays (never slapped across center screen)
+	if (warm)
 	{
-		f = sin (time * 5);
-		BM_Centered (cx, cy + 33, "^2+ regen", 5, '1 1 1', 0.55 + 0.25 * f);
+		f = sin (time * 3);
+		a = 0.78 + 0.18 * f;
+		if (time > 15)
+			a = 0.65;
+		BM_ShadowColorRight (w - 8, bm_topright_y, "^xfd0WARMUP^7 - ^3F1^7 +Bot  ^3F2^7 -Bot  ^3F3^7 LAN", 5, a);
+		bm_topright_y = bm_topright_y + 9;
 	}
 
-	// the leader (only once someone pulls 4+ frags clear)
 	if (leader != "" && lheat >= 4)
 	{
 		if (heat >= 4 && heat == lheat)
 			s = strcat ("^3In the lead (+", ftos (lheat), ")");
 		else
 			s = strcat ("^3Leader: ", leader, "^3 (+", ftos (lheat), ")");
-		BM_Centered (cx, 22, s, 5, '1 1 1', 0.82);
+		BM_ShadowColorRight (w - 8, bm_topright_y, s, 5, 0.88);
+		bm_topright_y = bm_topright_y + 9;
 	}
 
 	// a marker on the leader, wherever they are (only once they show through walls)
@@ -689,18 +709,23 @@ void(float w, float h) BM_DrawHUD =
 		}
 	}
 
-	// comeback boost (only when meaningful)
 	if (boost >= 15 && hp > 0)
-		BM_Centered (cx, 30, strcat ("^2boost +", ftos (boost), "%"), 5, '1 1 1', 0.78);
-
-	// warmup hint
-	if (warm)
 	{
-		f = sin (time * 3);
-		a = 0.70 + 0.20 * f;
-		if (time > 15)
-			a = 0.45;
-		BM_Centered (cx, 12, "^xfd0WARMUP^7 - ^3F1^7 +Bot  ^3F2^7 -Bot  |  ^3F3^7 Join LAN", 6, '1 1 1', a);
+		BM_ShadowColorRight (w - 8, bm_topright_y, strcat ("^2boost +", ftos (boost), "%"), 5, 0.86);
+		bm_topright_y = bm_topright_y + 9;
+	}
+
+	if (prot > 0 && hp > 0)
+	{
+		BM_ShadowColorRight (w - 8, bm_topright_y, strcat ("^5SHIELD ", ftos (ceil (prot / 10))), 5, 0.88);
+		bm_topright_y = bm_topright_y + 9;
+	}
+
+	if (regen && hp > 0)
+	{
+		f = sin (time * 5);
+		BM_ShadowColorRight (w - 8, bm_topright_y, "^2+ regen", 5, 0.65 + 0.25 * f);
+		bm_topright_y = bm_topright_y + 9;
 	}
 };
 

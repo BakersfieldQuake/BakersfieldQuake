@@ -140,6 +140,22 @@ float	mmt_fx_sparks;
 .float	mmt_hint_shown;
 .float	mmt_alias_sent;
 
+// Driver clientstats (86..92) for live CSQC aiming trajectory line
+.float	mmt_st_active;			// 0 = off, 1 = ready to fire, 2 = reloading
+.float	mmt_st_sx;
+.float	mmt_st_sy;
+.float	mmt_st_sz;
+.float	mmt_st_ex;
+.float	mmt_st_ey;
+.float	mmt_st_ez;
+
+// Shared exact shot-line results from MMT_CalcAim
+vector	mmt_aim_muz;
+vector	mmt_aim_dir;
+vector	mmt_aim_end;
+float	mmt_aim_instant;
+entity	mmt_aim_hit;
+
 void() MMTank_Precache;
 void() MMTank_StartFrame;
 float(entity p) MMTank_Driving;

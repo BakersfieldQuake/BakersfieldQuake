@@ -507,9 +507,10 @@ Top-right bot count/hint and Party Toy Dock (calls BM_DrawToyDock).
 */
 void(float w, float h, float hp) HUD_DrawTopRightToys =
 {
-	local float intro_on, botcnt, ty, bw;
+	local float intro_on, botcnt, ty;
 	local string s;
 
+	bm_topright_y = 8;
 	intro_on = getstati(BMST_INTRO);
 	if (intro_on > 0 || intermission)
 		return;
@@ -522,10 +523,10 @@ void(float w, float h, float hp) HUD_DrawTopRightToys =
 			s = strcat("^xfa3BOTS: ^7", ftos(botcnt), "  ^8(^3F1^8 +  ^3F2^8 -)");
 		else
 			s = "^8Press ^3F1^8 +Bot  ^3F2^8 -Bot";
-		bw = stringwidth(s, TRUE, '5 5 0');
-		drawcolorcodedstring((w - bw - 8) * '1 0 0' + '0 8 0', s, '5 5 0', 0.82, 0);
+		BM_ShadowColorRight(w - 8, 8, s, 5, 0.88);
 		ty = 17;
 	}
+	bm_topright_y = ty;
 	if (deathmatch)
 		BM_DrawToyDock(w, h, hp, ty);
 };
@@ -561,13 +562,14 @@ void(float w, float h, float hp) HUD_DrawStatusBanners =
 		drawfill((cx - pw * 0.5) * '1 0 0' + (cy + h * 0.11 + 8) * '0 1 0', (pw * rlp / 100) * '1 0 0' + '0 2 0', '1 0.85 0.3', 0.95, 0);
 	}
 
-	if (prot > 0 && hp > 0)
-		BM_Centered(cx, cy + 42, strcat("^5SHIELD ", ftos(ceil(prot / 10))), 5, '1 1 1', 0.82);
-
-	if (regen && hp > 0)
+	if (warm)
 	{
-		f = sin(time * 5);
-		BM_Centered(cx, cy + 33, "^2+ regen", 5, '1 1 1', 0.55 + 0.25 * f);
+		f = sin(time * 3);
+		a = 0.78 + 0.18 * f;
+		if (time > 15)
+			a = 0.65;
+		BM_ShadowColorRight(w - 8, bm_topright_y, "^xfd0WARMUP^7 - ^3F1^7 +Bot  ^3F2^7 -Bot  ^3F3^7 LAN", 5, a);
+		bm_topright_y = bm_topright_y + 9;
 	}
 
 	if (leader != "" && lheat >= 4)
@@ -576,19 +578,27 @@ void(float w, float h, float hp) HUD_DrawStatusBanners =
 			s = strcat("^3In the lead (+", ftos(lheat), ")");
 		else
 			s = strcat("^3Leader: ", leader, "^3 (+", ftos(lheat), ")");
-		BM_Centered(cx, 22, s, 5, '1 1 1', 0.82);
+		BM_ShadowColorRight(w - 8, bm_topright_y, s, 5, 0.88);
+		bm_topright_y = bm_topright_y + 9;
 	}
 
 	if (boost >= 15 && hp > 0)
-		BM_Centered(cx, 30, strcat("^2boost +", ftos(boost), "%"), 5, '1 1 1', 0.78);
-
-	if (warm)
 	{
-		f = sin(time * 3);
-		a = 0.70 + 0.20 * f;
-		if (time > 15)
-			a = 0.45;
-		BM_Centered(cx, 12, "^xfd0WARMUP^7 - ^3F1^7 +Bot  ^3F2^7 -Bot  |  ^3F3^7 Join LAN", 6, '1 1 1', a);
+		BM_ShadowColorRight(w - 8, bm_topright_y, strcat("^2boost +", ftos(boost), "%"), 5, 0.86);
+		bm_topright_y = bm_topright_y + 9;
+	}
+
+	if (prot > 0 && hp > 0)
+	{
+		BM_ShadowColorRight(w - 8, bm_topright_y, strcat("^5SHIELD ", ftos(ceil(prot / 10))), 5, 0.88);
+		bm_topright_y = bm_topright_y + 9;
+	}
+
+	if (regen && hp > 0)
+	{
+		f = sin(time * 5);
+		BM_ShadowColorRight(w - 8, bm_topright_y, "^2+ regen", 5, 0.65 + 0.25 * f);
+		bm_topright_y = bm_topright_y + 9;
 	}
 };
 

@@ -4,7 +4,7 @@
 # Stop the server with:  ./Start-Server.sh stop
 set -u
 
-ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"   # no readlink -f: macOS before 12.3 lacks it
 cd "$ROOT" || exit 1
 [ "$(uname)" = Darwin ] && export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:+$DYLD_FALLBACK_LIBRARY_PATH:}/opt/homebrew/lib:/usr/local/lib"  # macOS: libpng etc. from Homebrew
 SCAN="$ROOT/tools/lanscan.py"

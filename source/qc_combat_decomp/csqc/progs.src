@@ -13,6 +13,7 @@ csqc.entities.qc
 csqc.maplist.qc
 bm_hud.qc
 robhead_xray.qc
+john_bird_hud.qc
 hud_common.qc
 hud_style_1.qc
 hud_style_2.qc

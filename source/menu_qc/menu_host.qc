@@ -123,6 +123,10 @@ void() BM_Host_StartMatch =
 	m_toggle(0);
 
 	cmd = strcat("set bm_menu_bg 0; deathmatch 1; coop 0; ctf 0; sv_public ", ftos(g_host_public));
+	// No longer turns sv_autodemo_perclient on (it is saved and was never turned off;
+	// it filled demos/ with per-client files named with player addresses). Only the
+	// name format is kept so demos recorded when it is enabled elsewhere still parse.
+	cmd = strcat(cmd, "; sv_autodemo_perclient_nameformat \"demos/%Y-%m-%d_%H-%M\"");
 	cmd = strcat(cmd, "; hostname \"", hname, "\"; fraglimit ", ftos(fl), "; timelimit ", ftos(tl));
 	cmd = strcat(cmd, "; maxplayers ", ftos(mp), "; bm_botfill ", ftos(g_host_bots), "; map ", bsp, "\n");
 	localcmd(cmd);

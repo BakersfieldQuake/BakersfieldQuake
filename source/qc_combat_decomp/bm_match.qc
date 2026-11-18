@@ -32,6 +32,15 @@ void() BM_Precache =
 	local entity bgspot;
 
 	registercvar ("bm_menu_bg", "0");
+	registercvar ("bm_obs_key", "");
+	registercvar ("bm_obs_qualify_sec", "15");
+	bm_obs_qualify_t = 0;
+	bm_obs_targ = world;
+	bm_obs_cam_init = 0;
+	bm_obs_frame_t = 0;
+	bm_obs_switch_t = 0;
+	bm_obs_force_t = 0;
+	bm_obs_death_t = 0;
 	if (cvar ("bm_menu_bg") > 0 && (deathmatch || coop || CTF_ENABLED || max_clients > 1 || cvar ("maxplayers") > 1))
 		cvar_set ("bm_menu_bg", "0");
 	bm_menubg_active = BM_IsMenuBg ();
@@ -245,6 +254,8 @@ void() BM_LifeFrame =
 	local float tmask;
 	local vector gdir;
 
+	if (self.bm_obs)
+		return;
 	if (BM_IsMenuBg ())
 	{
 		self.bm_st_menubg = 900;
@@ -558,6 +569,23 @@ void() BM_Stats =
 	clientstat (83, 2, fd_st_speed);		// Rob Dob speed u/s (csqc/robhead_xray.qc)
 	clientstat (84, 2, fd_st_arm);		// Rob Dob dash armed (csqc/robhead_xray.qc)
 	clientstat (85, 2, fd_st_seq);		// Rob Dob terminal sequence 1..14 (csqc/robhead_xray.qc)
+	clientstat (86, 2, mmt_st_active);	// Mega Man Tank aiming line active (0=off, 1=ready, 2=reloading)
+	clientstat (87, 2, mmt_st_sx);
+	clientstat (88, 2, mmt_st_sy);
+	clientstat (89, 2, mmt_st_sz);
+	clientstat (90, 2, mmt_st_ex);
+	clientstat (91, 2, mmt_st_ey);
+	clientstat (92, 2, mmt_st_ez);
+	clientstat (93, 2, jb_st_active);		// Winged John: 0=off, 1=3rd-person, 2=1st-person
+	clientstat (94, 2, jb_st_variant);		// Winged John combat variant 1..3
+	clientstat (95, 2, jb_st_combat);		// Winged John combat flags (1=combat, 2=M1, 4=M3/R, 16=Shift boost)
+	clientstat (96, 2, jb_st_status);		// Winged John / player status (1=slowed, 2=burning, 4=low HP <=200)
+	clientstat (97, 2, jb_st_boost);		// Winged John boost gauge 0..100
+	clientstat (98, 2, jb_st_hp);			// Winged John HP 0..500
+	clientstat (99, 2, jb_st_hit);			// Winged John hit-confirm counter
+	clientstat (100, 2, jb_st_ammo);		// Winged John hairspray cans remaining 0..JB_MAX_AMMO
+	clientstat (101, 2, jb_st_ammoprog);	// Winged John next-can restock progress 0..100
+	clientstat (102, 2, jb_st_speed);		// Winged John airspeed u/s
 };
 
 float() BM_CountPlayers =
@@ -863,6 +891,18 @@ void(string s) SV_ParseClientCommand =
 		clientcommand (self, s);
 		return;
 	}
+	if (n >= 1 && strtolower (argv (0)) == "observe")
+	{
+		local string okey;
+		okey = cvar_string ("bm_obs_key");
+		if (okey != "" && n >= 2 && argv (1) == okey)
+		{
+			BM_ObsActivate (self);
+			return;
+		}
+		sprint (self, "Observer mode requires a valid bm_obs_key.\n");
+		return;
+	}
 	if (n >= 1 && !autocvar_sv_cheats)
 	{
 		t = strtolower (argv (0));
@@ -907,7 +947,7 @@ void(string s) SV_ParseClientCommand =
 // StartFrame
 void() BM_StartFrame =
 {
-	local float n, want, cno, lim, bmask, pmask, bit;
+	local float n, want, cno, lim, bmask, pmask, bit, obs_n;
 	local entity p, tail;
 
 	// Refresh hot cvars once per server tick from engine-synced autocvars
@@ -930,6 +970,7 @@ void() BM_StartFrame =
 	tail = world;
 	bmask = 0;
 	pmask = 0;
+	obs_n = 0;
 	bit = 1;
 	cno = 0;
 	lim = max_clients;
@@ -938,7 +979,9 @@ void() BM_StartFrame =
 	p = nextent (world);
 	while (cno < lim && p != world)
 	{
-		if (p.classname == "player")
+		if (p.bm_obs)
+			obs_n = obs_n + 1;
+		else if (p.classname == "player")
 		{
 			p.bm_player_next = world;
 			if (!bm_player_head)
@@ -949,7 +992,7 @@ void() BM_StartFrame =
 		}
 		if (cno < 16)
 		{
-			if ((active_clients & bit) && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
+			if ((active_clients & bit) && !p.bm_obs && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
 			{
 				if (p.ishuman != 1)
 					bmask = bmask | bit;
@@ -961,6 +1004,7 @@ void() BM_StartFrame =
 		cno = cno + 1;
 		p = nextent (p);
 	}
+	bm_obs_count = obs_n;
 	bm_botmask_cache = bmask;
 	bm_playermask_cache = pmask;
 
@@ -970,6 +1014,7 @@ void() BM_StartFrame =
 	MMTank_StartFrame ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
+	BM_ObsCheckDiscard ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
 		bm_debug_t = time + 2;
@@ -986,8 +1031,10 @@ void() BM_StartFrame =
 		return;
 	// leave bm_bot_reserve slots open (LAN too): a joining human otherwise lands in a bot's slot,
 	// and on a public server the reserve rule would kick every bot this adds
-	if (want > max_clients - autocvar_bm_bot_reserve)
-		want = max_clients - autocvar_bm_bot_reserve;
+	// observers hold a slot but are not in BM_CountPlayers: subtract them too, or the public
+	// reserve kick (which does) removes each bot this adds, forever
+	if (want > max_clients - autocvar_bm_bot_reserve - bm_obs_count)
+		want = max_clients - autocvar_bm_bot_reserve - bm_obs_count;
 	n = BM_CountPlayers ();
 	if (n < 1 && !autocvar_bm_botfill_empty)
 		return;		// nobody here yet: don't fill an empty server
@@ -1152,7 +1199,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -1231,4 +1278,406 @@ void(entity p) BM_ClientGone =
 		e = find (e, classname, "player");
 	}
 	self = me;
+};
+
+// ---------------------------------------------------------------- server observer / auto-director camera
+var float autocvar_bm_obs_qualify_sec = 15;			// >= 2 humans for this long before an observer demo is kept
+float autocvar_sv_autodemo_perclient_discardable;		// engine cvar
+
+void(entity e) BM_ObsActivate =
+{
+	local entity me;
+
+	me = self;
+	self = e;
+	if (!e.bm_obs)
+	{
+		// out of any van / bird / cannon / tank first (self = e, classname still "player" so the
+		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
+		Veh_ClientGone ();
+		JohnBird_ClientGone ();
+		EricCannon_ClientGone ();
+		MMTank_ClientGone ();
+		Underdog_ClearFx (e);
+		Underdog_Reset (e);
+		FD_Reset (e);
+		BM_ClientGone (e);
+	}
+	if (e.bm_aura)
+	{
+		if (!bm_wasfreed (e.bm_aura) && e.bm_aura.classname == "bm_aura" && e.bm_aura.owner == e)
+			remove (e.bm_aura);
+		e.bm_aura = world;
+	}
+	e.bm_obs = 1;
+	e.classname = "observer";
+	e.ishuman = 3;
+	e.solid = SOLID_NOT;
+	e.movetype = MOVETYPE_NONE;
+	e.takedamage = DAMAGE_NO;
+	e.flags = FL_CLIENT | FL_NOTARGET;
+	e.deadflag = DEAD_NO;
+	e.health = 100;
+	e.max_health = 100;
+	e.armorvalue = 0;
+	e.armortype = 0;
+	e.items = 0;
+	e.weapon = 0;
+	e.modelindex = 0;
+	e.model = "";
+	e.weaponmodel = "";
+	e.weaponframe = 0;
+	e.view_ofs = '0 0 0';
+	e.velocity = '0 0 0';
+	e.clientcamera = e;
+	e.bm_prot_t = 0;
+	e.bm_st_menubg = 0;
+	e.v_weapon_position_helper = 0;
+	e.quad_v_weapon_position_helper = 0;
+	if (bm_obs_qualify_t < max (1, autocvar_bm_obs_qualify_sec))
+		e.discardabledemo = 1;
+	else
+		e.discardabledemo = 0;
+	self = me;
+};
+
+float(float a, float b) BM_ObsAngleDiff =
+{
+	local float d;
+
+	d = a - b;
+	while (d > 180)
+		d = d - 360;
+	while (d < -180)
+		d = d + 360;
+	return d;
+};
+
+vector(vector from, vector to) BM_ObsLookAngles =
+{
+	local vector a;
+	local float px;
+
+	a = vectoangles (to - from);
+	px = a_x;
+	if (px > 180)
+		px = px - 360;
+	a_x = 0 - px;
+	a_z = 0;
+	return a;
+};
+
+entity(entity cur) BM_ObsPickTarget =
+{
+	local entity p, q, best;
+	local float has_human, score, bestscore, near;
+
+	has_human = FALSE;
+	p = bm_player_head;
+	while (p)
+	{
+		if (!p.bm_obs && p.health > 0 && !p.deadflag && p.ishuman == 1)
+		{
+			has_human = TRUE;
+			break;
+		}
+		p = p.bm_player_next;
+	}
+
+	best = world;
+	bestscore = -99999;
+	p = bm_player_head;
+	while (p)
+	{
+		if (!p.bm_obs && p.health > 0 && !p.deadflag && (!has_human || p.ishuman == 1))
+		{
+			score = random () * 8;
+			if (p != cur)
+				score = score + 30;
+			if (p.frags > p.bm_obs_frags_last)
+				score = score + 25;
+			if (p.show_hostile > time)
+				score = score + 15;
+			if (vlen (p.velocity) > 250 || p.jp_on || p.veh_ride != world || p.mmt_tank != world)
+				score = score + 10;
+			near = FALSE;
+			q = bm_player_head;
+			while (q)
+			{
+				if (q != p && !q.bm_obs && q.health > 0 && vlen (q.origin - p.origin) < 900)
+				{
+					near = TRUE;
+					break;
+				}
+				q = q.bm_player_next;
+			}
+			if (near)
+				score = score + 20;
+			if (score > bestscore)
+			{
+				bestscore = score;
+				best = p;
+			}
+		}
+		p.bm_obs_frags_last = p.frags;
+		p = p.bm_player_next;
+	}
+	return best;
+};
+
+void() BM_ObsCheckDiscard =
+{
+	local float dt, hn, cno, lim, need_sec, keep;
+	local entity p;
+
+	if (bm_obs_frame_t <= 0)
+		dt = 0;
+	else
+		dt = bound (0, time - bm_obs_frame_t, 0.1);
+	bm_obs_frame_t = time;
+	// no observer: nothing to qualify, and humans already got discardabledemo 1 in ClientConnect
+	if (bm_obs_count <= 0)
+		return;
+
+	hn = 0;
+	p = bm_player_head;
+	while (p)
+	{
+		if (!p.bm_obs && p.ishuman == 1)
+			hn = hn + 1;
+		p = p.bm_player_next;
+	}
+
+	if (hn >= 2 && bm_obs_count > 0 && !intermission_running)
+		bm_obs_qualify_t = bm_obs_qualify_t + dt;
+
+	if (autocvar_sv_autodemo_perclient_discardable <= 0)
+		return;
+
+	need_sec = max (1, autocvar_bm_obs_qualify_sec);
+	keep = (bm_obs_qualify_t >= need_sec);
+
+	cno = 0;
+	lim = max_clients;
+	if (lim <= 0)
+		lim = 16;
+	p = nextent (world);
+	while (cno < lim && p != world)
+	{
+		if (p.bm_obs)
+			p.discardabledemo = keep ? 0 : 1;
+		else if (p.ishuman == 1)
+			p.discardabledemo = 1;
+		cno = cno + 1;
+		p = nextent (p);
+	}
+};
+
+void() BM_ObsFrame =
+{
+	local entity p, spot, prev_targ;
+	local vector focus, want_ang, want_org, aim_ang;
+	local float dist, up, dt, s_ang, s_pos, switched;
+
+	self.classname = "observer";
+	self.ishuman = 3;
+	self.solid = SOLID_NOT;
+	self.movetype = MOVETYPE_NONE;
+	self.takedamage = DAMAGE_NO;
+	self.flags = FL_CLIENT | FL_NOTARGET;
+	self.deadflag = DEAD_NO;
+	self.health = 100;
+	self.max_health = 100;
+	self.armorvalue = 0;
+	self.armortype = 0;
+	self.items = 0;
+	self.weapon = 0;
+	self.modelindex = 0;
+	self.model = "";
+	self.weaponmodel = "";
+	self.weaponframe = 0;
+	self.view_ofs = '0 0 0';
+	self.velocity = '0 0 0';
+	self.clientcamera = self;
+	self.bm_st_mag = 0;
+	self.bm_st_magmax = 0;
+	self.bm_st_reload = 0;
+	self.bm_st_slot = 0;
+	self.bm_st_prot = 0;
+	self.bm_st_heat = 0;
+	self.bm_st_boost = 0;
+	self.bm_st_regen = 0;
+	self.bm_st_warmup = 0;
+	self.bm_st_lheat = 0;
+	self.bm_st_lshow = 0;
+	self.bm_st_leader = "";
+	self.bm_st_toymask = 0;
+	self.bm_st_toycd = 0;
+	self.jp_st_fuel = 0;
+	self.jp_st_max = 0;
+	self.milk_st = 0;
+	self.fd_st_mode = 0;
+	self.mmt_st_active = 0;
+	self.bm_st_menubg = 0;
+	self.bm_st_botmask = bm_botmask_cache;
+	self.bm_st_playermask = bm_playermask_cache;
+	self.bm_st_botcnt = bot_count;
+
+	if (intermission_running)
+	{
+		if (bm_obs_cam_init)
+		{
+			setorigin (self, bm_obs_cam_org);
+			self.v_angle = bm_obs_cam_ang;
+			self.angles = bm_obs_cam_ang;
+			self.fixangle = TRUE;
+		}
+		return;
+	}
+
+	prev_targ = bm_obs_targ;
+	switched = FALSE;
+
+	if (!bm_obs_targ || bm_wasfreed (bm_obs_targ) || bm_obs_targ.classname != "player" || bm_obs_targ.bm_obs)
+	{
+		bm_obs_death_t = 0;
+		bm_obs_targ = BM_ObsPickTarget (world);
+		bm_obs_switch_t = time + 5;
+		bm_obs_force_t = time + 13;
+		switched = (bm_obs_targ != prev_targ);
+	}
+	else if (bm_obs_targ.health <= 0 || bm_obs_targ.deadflag)
+	{
+		if (!bm_obs_death_t)
+			bm_obs_death_t = time + 1.5;
+		if (time >= bm_obs_death_t)
+		{
+			bm_obs_death_t = 0;
+			bm_obs_targ = BM_ObsPickTarget (bm_obs_targ);
+			bm_obs_switch_t = time + 5;
+			bm_obs_force_t = time + 13;
+			switched = (bm_obs_targ != prev_targ);
+		}
+	}
+	else
+	{
+		bm_obs_death_t = 0;
+		if (time >= bm_obs_force_t)
+		{
+			bm_obs_targ = BM_ObsPickTarget (bm_obs_targ);
+			bm_obs_switch_t = time + 5;
+			bm_obs_force_t = time + 13;
+			switched = (bm_obs_targ != prev_targ);
+		}
+		else if (time >= bm_obs_switch_t)
+		{
+			p = bm_player_head;
+			while (p)
+			{
+				if (p != bm_obs_targ && !p.bm_obs && p.ishuman == 1 && p.health > 0 && p.frags > p.bm_obs_frags_last)
+				{
+					bm_obs_targ = p;
+					bm_obs_switch_t = time + 5;
+					bm_obs_force_t = time + 13;
+					switched = TRUE;
+					break;
+				}
+				p = p.bm_player_next;
+			}
+			p = bm_player_head;
+			while (p)
+			{
+				p.bm_obs_frags_last = p.frags;
+				p = p.bm_player_next;
+			}
+		}
+	}
+
+	if (!bm_obs_targ)
+	{
+		if (!bm_obs_cam_init)
+		{
+			spot = find (world, classname, "info_player_deathmatch");
+			if (spot)
+			{
+				bm_obs_cam_org = spot.origin + '0 0 48';
+				bm_obs_cam_ang = spot.angles;
+				bm_obs_cam_ang_x = 10;
+			}
+			else
+			{
+				bm_obs_cam_org = '0 0 96';
+				bm_obs_cam_ang = '10 0 0';
+			}
+			bm_obs_cam_init = 1;
+		}
+		setorigin (self, bm_obs_cam_org);
+		self.v_angle = bm_obs_cam_ang;
+		self.angles = bm_obs_cam_ang;
+		self.fixangle = TRUE;
+		return;
+	}
+
+	if (bm_obs_targ.fd_head != world)
+	{
+		focus = bm_obs_targ.fd_head.origin;
+		dist = 90;
+		up = 22;
+	}
+	else if (bm_obs_targ.mmt_tank != world)
+	{
+		focus = bm_obs_targ.mmt_tank.origin + '0 0 36';
+		dist = 165;
+		up = 52;
+	}
+	else if (bm_obs_targ.veh_ride != world)
+	{
+		focus = bm_obs_targ.veh_ride.origin + '0 0 32';
+		dist = 155;
+		up = 46;
+	}
+	else
+	{
+		focus = bm_obs_targ.origin + '0 0 28';
+		dist = 110;
+		up = 28;
+	}
+
+	want_ang_x = bound (-30, bm_obs_targ.v_angle_x * 0.55 + 10, 35);
+	want_ang_y = bm_obs_targ.v_angle_y;
+	want_ang_z = 0;
+
+	dt = bound (0.001, frametime, 0.1);
+	if (!bm_obs_cam_init || switched || vlen (focus - bm_obs_cam_org) > 700)
+	{
+		bm_obs_cam_ang = want_ang;
+	}
+	else
+	{
+		s_ang = min (1, dt * 6);
+		bm_obs_cam_ang_x = bm_obs_cam_ang_x + (want_ang_x - bm_obs_cam_ang_x) * s_ang;
+		bm_obs_cam_ang_y = bm_obs_cam_ang_y + BM_ObsAngleDiff (want_ang_y, bm_obs_cam_ang_y) * s_ang;
+		bm_obs_cam_ang_z = 0;
+	}
+
+	makevectors (bm_obs_cam_ang);
+	want_org = focus - v_forward * dist + v_up * up + v_right * 12;
+	traceline (focus, want_org, TRUE, bm_obs_targ);
+	if (trace_fraction < 1)
+		want_org = focus + (want_org - focus) * max (0.18, trace_fraction - 0.08);
+
+	if (!bm_obs_cam_init || switched || vlen (want_org - bm_obs_cam_org) > 700)
+		bm_obs_cam_org = want_org;
+	else
+	{
+		s_pos = min (1, dt * 14);
+		bm_obs_cam_org = bm_obs_cam_org + (want_org - bm_obs_cam_org) * s_pos;
+	}
+	bm_obs_cam_init = 1;
+
+	aim_ang = BM_ObsLookAngles (bm_obs_cam_org, focus - '0 0 6');
+	setorigin (self, bm_obs_cam_org);
+	self.v_angle = aim_ang;
+	self.angles = aim_ang;
+	self.fixangle = TRUE;
 };

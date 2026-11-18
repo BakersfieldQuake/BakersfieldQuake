@@ -106,6 +106,8 @@ float	FD_XRAY_MAX		= 24;		// max simultaneous X-ray targets tracked per drone
 .float	fd_xray_yaw;		// node: target yaw
 .float	fd_xray_scale;		// node: target scale
 .float	fd_xray_cnt;		// head: count of active tracker nodes
+.float	fd_xray_sent_t;		// node: resend by this time even if nothing changed (CSQC drops a target after 0.6 s)
+.float	fd_xray_scan_t;		// scanner: next monster findradius in deathmatch
 
 void(entity h) FD_XRayStop;
 void(entity pilot, entity h) FD_XRayStart;
@@ -736,7 +738,8 @@ void(entity h) FD_XRayStop =
 void(entity h, entity pilot, entity targ) FD_XRayTrack =
 {
 	local entity	n;
-	local float		ally, fl;
+	local float		ally, fl, hp, dyaw;
+	local string	nm;
 
 	if (!targ || targ == pilot || targ == h || targ.health <= 0 || !targ.takedamage)
 		return;
@@ -776,20 +779,31 @@ void(entity h, entity pilot, entity targ) FD_XRayTrack =
 
 	n.cnt = 1;
 	setorigin (n, h.origin);		// stay inside the drone camera's PVS leaf
+	if (targ.netname != "")
+		nm = targ.netname;
+	else if (targ.classname != "")
+		nm = targ.classname;
+	else
+		nm = "HOSTILE";
+	hp = max (0, floor (targ.health));
+	dyaw = targ.angles_y - n.fd_xray_yaw;
+	dyaw = dyaw - 360 * rint (dyaw / 360);
+	// ~75 bytes a target: resend only on a change (or the heartbeat), not 20 times a second.
+	// The strings ride the same bit: the CSQC reader (robhead_xray.qc) expects them with every update
+	if (time < n.fd_xray_sent_t && vlen (targ.origin - n.fd_xray_pos) <= 8 && n.fd_xray_hp == hp && n.fd_xray_flags == fl
+		&& n.fd_xray_frame == targ.frame && n.fd_xray_skin == targ.skin && fabs (dyaw) <= 4 && n.fd_xray_scale == targ.scale
+		&& n.fd_xray_mdl == targ.model && n.netname == nm)
+		return;
 	n.fd_xray_pos = targ.origin;
-	n.fd_xray_hp = max (0, floor (targ.health));
+	n.fd_xray_hp = hp;
 	n.fd_xray_flags = fl;
 	n.fd_xray_mdl = targ.model;
 	n.fd_xray_frame = targ.frame;
 	n.fd_xray_skin = targ.skin;
 	n.fd_xray_yaw = targ.angles_y;
 	n.fd_xray_scale = targ.scale;
-	if (targ.netname != "")
-		n.netname = targ.netname;
-	else if (targ.classname != "")
-		n.netname = targ.classname;
-	else
-		n.netname = "HOSTILE";
+	n.netname = nm;
+	n.fd_xray_sent_t = time + 0.4;	// CSQC hides a target not heard from for 0.6 s
 	n.SendFlags = n.SendFlags | 1;
 };
 
@@ -822,12 +836,29 @@ void() FD_XRayThink =
 		e = e.bm_player_next;
 	}
 
-	e = findradius (h.origin, 8192);
-	while (e)
+	// monsters: an 8192 findradius at 20 Hz is costly. In deathmatch (only summons / NPCs) look for
+	// new ones every 0.5 s and keep the known ones fresh from their nodes in between
+	if (!deathmatch || time >= self.fd_xray_scan_t)
 	{
-		if ((e.flags & FL_MONSTER) && e.classname != "player")
-			FD_XRayTrack (h, p, e);
-		e = e.chain;
+		self.fd_xray_scan_t = time + 0.5;
+		e = findradius (h.origin, 8192);
+		while (e)
+		{
+			if ((e.flags & FL_MONSTER) && e.classname != "player")
+				FD_XRayTrack (h, p, e);
+			e = e.chain;
+		}
+	}
+	else
+	{
+		n = h.fd_xray_head;
+		while (n)
+		{
+			e = n.fd_xray_targ;
+			if (!n.cnt && (n.fd_xray_flags & 1) && !bm_wasfreed (e) && e.classname != "player")
+				FD_XRayTrack (h, p, e);
+			n = n.fd_xray_next;
+		}
 	}
 
 	prev = world;

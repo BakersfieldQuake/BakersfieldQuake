@@ -1,3 +1,4 @@
+// STALE COPY - NOT BUILT (2026-11-18). build_combat.py no longer copies this file: the live version is source/qc_combat_decomp/vehicles.qc. Edit that one.
 /*
 ================
 SHOOTABLE / EXPLODABLE 3D VEHICLES - implementation (Combat+)

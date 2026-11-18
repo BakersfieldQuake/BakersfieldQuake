@@ -1,3 +1,4 @@
+// STALE COPY - NOT BUILT (2026-11-18). build_combat.py no longer copies this file: the live version is source/qc_combat_decomp/funguns.qc. Edit that one.
 void() FunGun_Precache =
 {
 	precache_model ("progs/v_pickle.md3");

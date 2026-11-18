@@ -14,6 +14,7 @@ void() m_init =
 	registercvar("centered_weapons", "0", 1);
 
 	precache_pic("gfx/conback.lmp");
+	precache_pic("gfx/conback.png");
 	precache_pic("gfx/qplaque.lmp");
 	precache_pic("gfx/ttl_main.lmp");
 	precache_pic("gfx/p_option.lmp");
@@ -63,6 +64,7 @@ void() m_shutdown =
 	g_ip_buf = BM_ZoneSet(g_ip_buf, "");
 	g_host_buf = BM_ZoneSet(g_host_buf, "");
 	g_opt_status = BM_ZoneSet(g_opt_status, "");
+	BM_Replays_Shutdown();
 };
 
 void() m_newmap =
@@ -125,7 +127,14 @@ void() m_draw =
 	g_last_mx = g_mx;
 	g_last_my = g_my;
 
-	scrim_a = (g_page == PAGE_OPTIONS && g_opt_tab == 0) ? 0.0 : 0.44;
+	if (g_page == PAGE_OPTIONS && g_opt_tab == 0)
+		scrim_a = 0.0;
+	else if (g_page == PAGE_MAIN && clientstate() < CS_CONNECTED)
+		scrim_a = 0.0;
+	else if (clientstate() >= CS_CONNECTED)
+		scrim_a = 0.40;
+	else
+		scrim_a = 0.25;
 	BM_DrawBackdrop(scrim_a);
 
 	if (g_page == PAGE_MAIN)
@@ -134,6 +143,8 @@ void() m_draw =
 		BM_Browser_Draw(FALSE);
 	else if (g_page == PAGE_HOST)
 		BM_Host_Draw(FALSE);
+	else if (g_page == PAGE_REPLAYS)
+		BM_Replays_Draw(FALSE);
 	else if (g_page == PAGE_OPTIONS)
 		BM_Options_Draw(FALSE);
 
@@ -172,6 +183,8 @@ void(float key, float ascii) m_keydown =
 			BM_Browser_Draw(TRUE);
 		else if (g_page == PAGE_HOST)
 			BM_Host_Draw(TRUE);
+		else if (g_page == PAGE_REPLAYS)
+			BM_Replays_Draw(TRUE);
 		else if (g_page == PAGE_OPTIONS)
 			BM_Options_Draw(TRUE);
 		return;
@@ -190,6 +203,8 @@ void(float key, float ascii) m_keydown =
 		BM_Browser_KeyDown(key, ascii);
 	else if (g_page == PAGE_HOST)
 		BM_Host_KeyDown(key, ascii);
+	else if (g_page == PAGE_REPLAYS)
+		BM_Replays_KeyDown(key, ascii);
 	else if (g_page == PAGE_OPTIONS)
 		BM_Options_KeyDown(key, ascii);
 };

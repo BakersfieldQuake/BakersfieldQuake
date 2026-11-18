@@ -91,8 +91,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		{
 			return;
 		}
-		targ.jb_vehicle.jb_last_inflictor = inflictor;
-		targ.jb_vehicle.jb_last_inflictor_t = time;
+		// the bird branch below records the inflictor (setting it here would make the bird skip this hit)
 		T_Damage(targ.jb_vehicle, inflictor, attacker, damage);
 		return;
 	}
@@ -177,6 +176,11 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	if ((targ.classname == "misc_vehicle_johnbird"))
 	{
 		if (((attacker != world) && (attacker == targ.jb_pilot)))
+		{
+			return;
+		}
+		// one splash hits the bird once, whether findradius reaches it through the SOLID_NOT pilot or directly
+		if ((((inflictor != world) && (inflictor != attacker)) && ((targ.jb_last_inflictor == inflictor) && (targ.jb_last_inflictor_t == time))))
 		{
 			return;
 		}

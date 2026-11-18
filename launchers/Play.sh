@@ -5,7 +5,7 @@
 # Extra engine args (e.g. -window) can be passed with:  COMBAT_ARGS="-window" ./Play.sh
 set -u
 
-ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"   # no readlink -f: macOS before 12.3 lacks it
 cd "$ROOT" || exit 1
 # macOS: darkplaces-sdl dlopen()s libpng/freetype/vorbis/curl by bare name; Homebrew's lib dir is not searched by
 # default, and without libpng every PNG texture fails to decode.

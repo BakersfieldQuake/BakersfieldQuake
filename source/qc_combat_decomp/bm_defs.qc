@@ -350,5 +350,22 @@ void() BM_BotSpawnLoadout;
 void() BM_BotStartFrame;
 entity() BM_BotPickSpawn;
 
+// ---------------------------------------------------------------- server observer / auto-director (bm_match.qc)
+.float	bm_obs;				// 1 = headless recording observer client (invisible, non-solid, auto-director camera)
+.float	bm_obs_frags_last;	// last seen frag count on watched players (action-switch scoring)
+float	bm_obs_count;		// live observer count (subtracted from bot-reserve free-slot math)
+float	bm_obs_qualify_t;	// cumulative seconds with >= 2 humans in this map
+entity	bm_obs_targ;		// player currently watched by the auto-director
+float	bm_obs_switch_t;	// earliest time auto-director may switch targets
+float	bm_obs_force_t;		// latest time before auto-director rotates to another player
+float	bm_obs_death_t;		// time watched target died (brief linger before switching)
+vector	bm_obs_cam_org;		// smoothed camera origin
+vector	bm_obs_cam_ang;		// smoothed camera angles
+float	bm_obs_cam_init;	// 1 once camera origin/angles have been initialized
+float	bm_obs_frame_t;		// previous server frame time for observer camera smoothing
+void(entity e) BM_ObsActivate;
+void() BM_ObsFrame;
+void() BM_ObsCheckDiscard;
+
 // wasfreed (#353) with a real type: the Combat+ defs declare it as __variant, which cannot be tested with ! or if ()
 float(entity e) bm_wasfreed = #353;

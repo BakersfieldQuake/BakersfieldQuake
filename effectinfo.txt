@@ -21409,74 +21409,74 @@ airfriction 1.4
 
 // ---- Vehicle drive FX end
 
-// ---- Mega Man Tank: roaring rocket-boosted silver bar trail, mega-bar explosion, reload sparks & catastrophic tank boom
+// ---- Mega Man Tank: restrained silver-bar rocket trail, mega-bar explosion, reload sparks & catastrophic tank boom
 effect mm_tank_bar_trail
-lightradius 260
-lightradiusfade 1500
-lightcolor 3.2 1.4 0.35
+lightradius 90
+lightradiusfade 1800
+lightcolor 1.1 0.52 0.14
 lightshadow 0
 
 effect mm_tank_bar_trail
 notunderwater
-trailspacing 5
-count 3
+trailspacing 14
+count 1
 type alphastatic
 tex 0 8
 color 0xffe890 0xffffff
-size 9 15
-sizeincrease -14
-alpha 235 256 640
-originjitter 4 4 4
-velocitymultiplier 0.14
-velocityjitter 42 42 42
-airfriction 1.5
+size 2.8 4.5
+sizeincrease -10
+alpha 120 165 850
+originjitter 1.5 1.5 1.5
+velocitymultiplier 0.10
+velocityjitter 18 18 18
+airfriction 1.8
 
 effect mm_tank_bar_trail
 notunderwater
-trailspacing 6
-count 4
+trailspacing 12
+count 1
 type alphastatic
 tex 0 8
-color 0xff4000 0xffa820
-size 14 22
-sizeincrease -9
-alpha 210 256 430
-originjitter 6 6 6
-velocitymultiplier 0.18
-velocityjitter 75 75 75
-airfriction 1.5
+color 0xff4800 0xffa820
+size 4.0 6.8
+sizeincrease -12
+alpha 105 145 720
+originjitter 2.5 2.5 2.5
+velocitymultiplier 0.12
+velocityjitter 28 28 28
+airfriction 1.8
 
 effect mm_tank_bar_trail
 notunderwater
-trailspacing 9
-count 3
+trailspacing 22
+count 1
 type spark
 tex 40 40
 color 0xff9020 0xffe880
-size 1.8 3.2
-stretchfactor 1.5
-alpha 256 256 380
-originjitter 5 5 5
-velocitymultiplier 0.22
-velocityjitter 160 160 160
+size 0.9 1.6
+stretchfactor 1.3
+alpha 180 220 550
+originjitter 2 2 2
+velocitymultiplier 0.15
+velocityjitter 85 85 85
 gravity 0.5
-airfriction 0.45
+airfriction 0.6
 
 effect mm_tank_bar_trail
 notunderwater
-trailspacing 8
-count 3
+trailspacing 18
+count 1
 type smoke
 tex 0 7
 color 0x262220 0x584638
-size 15 24
-sizeincrease 22
-alpha 90 140 70
-originjitter 8 8 8
-velocitymultiplier 0.10
-velocityjitter 48 48 48
-gravity -0.06
-airfriction 1.15
+size 4.2 7.0
+sizeincrease 5
+alpha 36 58 145
+originjitter 3 3 3
+velocitymultiplier 0.08
+velocityjitter 20 20 20
+gravity -0.04
+airfriction 1.35
 
 effect mm_tank_bar_trail
 underwater
@@ -21713,3 +21713,377 @@ velocityoffset 0 0 130
 gravity 0.45
 airfriction 0.55
 // ---- Spruce St Water Tower end
+
+// ---- Winged John Combat Update (hairspray, hairfire, bottle trail, sticky foam, feather boom) begin
+// ---- Pressurized white/pale-blue aerosol hairspray mist cone & cloud
+effect jb_fx_hairspray
+notunderwater
+count 5
+type alphastatic
+tex 0 8
+color 0xc8eeff 0xffffff
+size 3.5 7.5
+sizeincrease 28
+alpha 155 215 480
+originjitter 3 3 3
+velocitymultiplier 0.78
+velocityjitter 115 115 115
+airfriction 2.8
+
+effect jb_fx_hairspray
+notunderwater
+count 4
+type spark
+tex 40 40
+color 0xdaf4ff 0xffffff
+size 0.9 1.8
+stretchfactor 1.2
+alpha 210 256 620
+originjitter 4 4 4
+velocitymultiplier 0.92
+velocityjitter 140 140 140
+gravity 0.15
+airfriction 1.9
+
+effect jb_fx_hairspray
+notunderwater
+count 2
+type smoke
+tex 0 7
+color 0xd6f0ff 0xffffff
+size 8 15
+sizeincrease 24
+alpha 65 110 190
+originjitter 6 6 6
+velocitymultiplier 0.45
+velocityjitter 85 85 85
+gravity -0.05
+airfriction 2.4
+
+// ---- Bright orange-blue hairspray flamethrower jet + sparks
+effect jb_fx_hairfire
+lightradius 240
+lightradiusfade 900
+lightcolor 1.4 0.75 0.25
+lightshadow 0
+
+effect jb_fx_hairfire
+notunderwater
+count 3
+type alphastatic
+tex 0 8
+color 0x55b8ff 0xdcf4ff
+size 4.5 8.5
+sizeincrease 10
+alpha 220 256 1250
+originjitter 2 2 2
+velocitymultiplier 0.65
+velocityjitter 55 55 55
+airfriction 2.2
+
+effect jb_fx_hairfire
+notunderwater
+count 5
+type alphastatic
+tex 0 8
+color 0xff5a00 0xffe468
+size 9 16
+sizeincrease 34
+alpha 215 256 680
+originjitter 5 5 5
+velocitymultiplier 0.88
+velocityjitter 105 105 105
+velocityoffset 0 0 24
+gravity -0.15
+airfriction 1.9
+
+effect jb_fx_hairfire
+notunderwater
+count 4
+type spark
+tex 40 40
+color 0xff8818 0xffffb8
+size 1.2 2.4
+stretchfactor 1.6
+alpha 256 256 460
+originjitter 4 4 4
+velocitymultiplier 1.05
+velocityjitter 180 180 160
+gravity 0.55
+bounce 0.35
+airfriction 0.8
+
+// ---- Fizzy white aerosol spiral trail behind flying hairspray bottles (trailparticles)
+effect jb_fx_bottle_trail
+notunderwater
+trailspacing 5
+count 1
+type alphastatic
+tex 0 8
+color 0xc8eeff 0xffffff
+size 4.5 8.5
+sizeincrease 16
+alpha 165 215 440
+originjitter 4 4 4
+velocitymultiplier 0.12
+velocityjitter 55 55 55
+airfriction 2.2
+
+effect jb_fx_bottle_trail
+notunderwater
+trailspacing 7
+count 2
+type spark
+tex 40 40
+color 0xd8f6ff 0xffffff
+size 1.0 2.0
+stretchfactor 1.2
+alpha 215 256 540
+originjitter 6 6 6
+velocitymultiplier 0.08
+velocityjitter 95 95 95
+gravity 0.25
+airfriction 1.4
+
+effect jb_fx_bottle_trail
+notunderwater
+trailspacing 12
+count 1
+type smoke
+tex 0 7
+color 0xe0f5ff 0xffffff
+size 7 12
+sizeincrease 14
+alpha 55 92 165
+originjitter 5 5 5
+velocitymultiplier 0.05
+velocityjitter 35 35 35
+gravity -0.05
+airfriction 1.8
+
+effect jb_fx_bottle_trail
+underwater
+trailspacing 6
+count 3
+type bubble
+tex 62 63
+size 1.2 2.5
+alpha 110 190 80
+gravity -0.15
+bounce 1.2
+liquidfriction 1
+originjitter 6 6 6
+velocityjitter 40 40 40
+
+// ---- Lingering white foamy/sparkly hairspray goo on sticky-slowed targets
+effect jb_fx_sticky_foam
+count 3
+type alphastatic
+tex 0 8
+color 0xdcf4ff 0xffffff
+size 5 10
+sizeincrease 6
+alpha 180 235 280
+originjitter 14 14 16
+velocityjitter 22 22 18
+velocityoffset 0 0 -18
+gravity 0.35
+airfriction 2.5
+
+effect jb_fx_sticky_foam
+count 3
+type spark
+tex 0 8
+color 0xa8e8ff 0xffffff
+size 1.4 2.6
+alpha 240 256 420
+originjitter 15 15 18
+velocityjitter 35 35 35
+gravity 0.15
+airfriction 2.0
+
+effect jb_fx_sticky_foam
+count 1
+type smoke
+tex 0 7
+color 0xe6f8ff 0xffffff
+size 8 14
+sizeincrease 10
+alpha 48 80 140
+originjitter 12 12 14
+velocityjitter 18 18 18
+gravity -0.04
+airfriction 2.2
+
+// ---- Dramatic burst sparks, aerosol cloud & dust for bottle feather explosion
+effect jb_fx_feather_boom
+lightradius 320
+lightradiusfade 950
+lightcolor 1.4 1.2 0.85
+lightshadow 0
+
+effect jb_fx_feather_boom
+notunderwater
+count 14
+type alphastatic
+tex 0 8
+color 0xc8eeff 0xffffff
+size 16 28
+sizeincrease 52
+alpha 200 250 380
+originjitter 14 14 14
+velocityjitter 240 240 220
+airfriction 2.3
+
+effect jb_fx_feather_boom
+notunderwater
+count 10
+type alphastatic
+tex 0 8
+color 0xffdc78 0xffffff
+size 14 24
+sizeincrease 44
+alpha 220 256 540
+originjitter 10 10 10
+velocityjitter 180 180 160
+airfriction 2.5
+
+effect jb_fx_feather_boom
+notunderwater
+count 48
+type spark
+tex 40 40
+color 0xffe488 0xffffff
+size 1.5 3.0
+stretchfactor 1.5
+alpha 256 256 320
+originjitter 14 14 14
+velocityjitter 520 520 440
+velocityoffset 0 0 110
+gravity 0.75
+bounce 0.6
+airfriction 0.55
+
+effect jb_fx_feather_boom
+notunderwater
+count 12
+type smoke
+tex 0 7
+color 0xe8f4ff 0xffffff
+size 20 34
+sizeincrease 32
+alpha 80 130 120
+originjitter 20 20 16
+velocityjitter 150 150 115
+velocityoffset 0 0 65
+gravity -0.05
+airfriction 1.5
+
+// ---- Big pressurized hairspray can explosion mist burst (on bottle impact)
+effect jb_fx_mist_burst
+lightradius 260
+lightradiusfade 620
+lightcolor 0.72 0.95 1.15
+lightshadow 0
+
+effect jb_fx_mist_burst
+notunderwater
+count 26
+type alphastatic
+tex 0 8
+color 0xc2efff 0xffffff
+size 22 40
+sizeincrease 56
+alpha 175 235 190
+originjitter 22 22 18
+velocityjitter 220 220 175
+velocityoffset 0 0 36
+gravity -0.04
+airfriction 2.5
+
+effect jb_fx_mist_burst
+notunderwater
+count 20
+type smoke
+tex 0 7
+color 0xdaf6ff 0xffffff
+size 28 48
+sizeincrease 46
+alpha 95 150 105
+originjitter 28 28 22
+velocityjitter 175 175 135
+velocityoffset 0 0 42
+gravity -0.05
+airfriction 2.1
+
+effect jb_fx_mist_burst
+notunderwater
+count 36
+type spark
+tex 40 40
+color 0x9ce8ff 0xffffff
+size 1.2 2.4
+stretchfactor 1.2
+alpha 230 256 380
+originjitter 18 18 16
+velocityjitter 340 340 280
+velocityoffset 0 0 60
+gravity 0.28
+airfriction 1.4
+
+effect jb_fx_mist_burst
+underwater
+count 28
+type bubble
+tex 62 63
+size 1.5 3.5
+alpha 140 220 90
+originjitter 20 20 20
+velocityjitter 140 140 140
+gravity -0.2
+liquidfriction 1
+
+// ---- Lingering swirling aerosol hairspray mist cloud (spawned by detonated cans)
+effect jb_fx_mist_cloud
+notunderwater
+count 7
+type alphastatic
+tex 0 8
+color 0xc8f2ff 0xffffff
+size 24 44
+sizeincrease 26
+alpha 105 165 88
+originjitter 76 76 46
+velocityjitter 42 42 32
+velocityoffset 0 0 12
+gravity -0.03
+airfriction 1.9
+
+effect jb_fx_mist_cloud
+notunderwater
+count 5
+type smoke
+tex 0 7
+color 0xe0f8ff 0xffffff
+size 30 52
+sizeincrease 28
+alpha 72 118 68
+originjitter 84 84 52
+velocityjitter 36 36 26
+velocityoffset 0 0 16
+gravity -0.04
+airfriction 1.7
+
+effect jb_fx_mist_cloud
+notunderwater
+count 8
+type snow
+tex 40 40
+color 0x9eeaff 0xffffff
+size 0.9 1.9
+alpha 160 225 140
+originjitter 72 72 44
+velocityjitter 48 48 36
+gravity 0.04
+airfriction 1.6
+// ---- Winged John Combat Update end

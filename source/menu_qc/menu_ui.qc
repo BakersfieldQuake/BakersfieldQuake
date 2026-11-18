@@ -313,6 +313,10 @@ float(float sid, float x, float y, float w, float h, string label, float val, fl
 		vstr = (new_v >= 0.005) ? sprintf("+%.2f", new_v) : sprintf("%.2f", new_v);
 
 	BM_DrawTextRight(x + w - 6, y + floor((h - 8) * 0.5), vstr, 8, COL_ACCENT, 0.98);
+	// Only a drag/click changes the value: when idle, hand back the caller's own
+	// value so an out-of-range cvar is shown clamped but never written back.
+	if (!dragging)
+		return val;
 	return new_v;
 };
 
@@ -403,17 +407,22 @@ string(string mapname) BM_LevelshotPic =
 	return "levelshots/_unknown.jpg";
 };
 
-// Classic Quake backdrop: live game with light dark tint when connected, gfx/conback.lmp when disconnected
+// Classic Quake backdrop: live game with light dark tint when connected, brightened conback when disconnected
 void(float scrim_a) BM_DrawBackdrop =
 {
+	local string bg_pic;
+
 	if (clientstate() >= CS_CONNECTED)
 	{
-		BM_Fill(0, 0, g_vw, g_vh, '0 0 0', scrim_a);
+		if (scrim_a > 0)
+			BM_Fill(0, 0, g_vw, g_vh, '0 0 0', scrim_a);
 		return;
 	}
 
-	drawpic('0 0 0', "gfx/conback.lmp", g_vw * '1 0 0' + g_vh * '0 1 0', '1 1 1', 1.0, 0);
-	BM_Fill(0, 0, g_vw, g_vh, '0 0 0', scrim_a);
+	bg_pic = (getimagesize("gfx/conback.png") != '0 0 0') ? "gfx/conback.png" : "gfx/conback.lmp";
+	drawpic('0 0 0', bg_pic, g_vw * '1 0 0' + g_vh * '0 1 0', '1 1 1', 1.0, 0);
+	if (scrim_a > 0)
+		BM_Fill(0, 0, g_vw, g_vh, '0 0 0', scrim_a);
 };
 
 float() BM_IsInLiveMatch =

@@ -5,17 +5,20 @@ sculpts 64 sleek, tangential wind-swept 3D hair locks (swept bangs, parted crown
 temple flicks, and nape locks) that ripple and flap naturally in the breeze, and attaches
 broad, lushly feathered articulated 3-joint 3D bird wings.
 
-72 seamless vertex-animated frames across 5 clips:
+100 seamless vertex-animated frames across 7 clips:
   0..15   fly_breezy     Cruising bird wingbeat + breezy flapping hair
   16..31  windy_soar     Outstretched soaring thermal glide + gusty billowing hair
   32..47  hover_flutter  Energetic figure-8 bird hover + wild downdraft hair
   48..59  swoop_dive     Swept-back falcon dive/swoop + high-speed streaming hair
   60..71  perch_breeze   Articulated folded wings tucked at rest + gentle breeze in hair
+  72..87  combat_fly     Giant 3x shampoo-commercial waving bangs + energetic combat wingbeat
+  88..99  combat_whip    Mega-bangs pompadour puff & dramatic forward/sideways hair-whip slap
 """
 import math
 import os
 import shutil
 import sys
+import zipfile
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -23,7 +26,10 @@ from scipy import ndimage
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import build_char_models as B
+try:
+    import build_char_models as B
+except Exception:
+    B = None
 import md3lib
 
 ROOT_DIR = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -37,7 +43,7 @@ HEAD_HEIGHT = 36.0          # Quake units (chin to crown)
 BASE_Z = 48.0               # Hover altitude above ground shadow plane (z=0)
 NH, MH = 56, 60             # Head cylindrical rings (56 around x 60 vertical)
 HEAD_TEX_W, HEAD_TEX_H = 1024, 1024
-TOTAL_FRAMES = 72
+TOTAL_FRAMES = 100
 
 
 def smoothstep(a, b, x):
@@ -90,7 +96,8 @@ def load_and_despill_front():
     os.makedirs(OUT_DIR, exist_ok=True)
     if os.path.isfile(DEFAULT_UPLOAD):
         shutil.copyfile(DEFAULT_UPLOAD, LOCAL_UPLOAD_COPY)
-    src_path = LOCAL_UPLOAD_COPY if os.path.isfile(LOCAL_UPLOAD_COPY) else os.path.join(B.REF, "johnwave_head_green.jpg")
+    ref_fallback = os.path.join(B.REF, "johnwave_head_green.jpg") if B is not None else os.path.join(HERE, "out", "chars", "ref", "johnwave_head_green.jpg")
+    src_path = LOCAL_UPLOAD_COPY if os.path.isfile(LOCAL_UPLOAD_COPY) else ref_fallback
     im = Image.open(src_path).convert("RGB")
     if im.size != (1024, 566):
         im = im.resize((1024, 566), Image.Resampling.LANCZOS)
@@ -319,34 +326,61 @@ def build_base_head(front_rgb, front_mask):
     g_beard = np.exp(-(((px - 524.0) / 56.0) ** 2 + ((py - 412.0) / 34.0) ** 2))
     P[..., 0] += (8.5 * (g_chk_r + g_chk_l) + 9.5 * g_stache + 11.0 * g_beard) * face_w
 
-    bk = B.Photo(B.SUIT["back"], B.SUIT["key"])
-    byt, bcx, bhw = outline_stats(bk.sil, 262.0, 58.0, MH, sigma=4.0)
-    psi = np.angle(np.exp(1j * (th + math.pi / 2.0)))
-    side = np.sin(np.clip(0.65 * psi, -math.pi / 2.0, math.pi / 2.0))
-    UVB = np.stack([bcx[:, None] - bhw[:, None] * side[None, :], np.repeat(byt[:, None], NH, axis=1)], axis=-1)
+    head_tex_im = None
+    if B is not None and os.path.isfile(os.path.join(B.REF, B.SUIT["back"]["img"])):
+        bk = B.Photo(B.SUIT["back"], B.SUIT["key"])
+        byt, bcx, bhw = outline_stats(bk.sil, 262.0, 58.0, MH, sigma=4.0)
+        psi = np.angle(np.exp(1j * (th + math.pi / 2.0)))
+        side = np.sin(np.clip(0.65 * psi, -math.pi / 2.0, math.pi / 2.0))
+        UVB = np.stack([bcx[:, None] - bhw[:, None] * side[None, :], np.repeat(byt[:, None], NH, axis=1)], axis=-1)
 
-    brgb = bleed(bk.rgb.astype(np.float32), bk.sil, erode_px=4)
-    fh = hair_median(front_rgb, front_mask, int(ytop), int(ytop + 0.26 * (ybot - ytop)))
-    bh = hair_median(brgb, bk.sil, 60, 200)
-    tint = np.clip((fh / max(1.0, fh.mean())) / (bh / max(1.0, bh.mean())), 0.90, 1.10)
-    brgb *= (fh.mean() / max(1.0, bh.mean())) * tint
+        brgb = bleed(bk.rgb.astype(np.float32), bk.sil, erode_px=4)
+        fh = hair_median(front_rgb, front_mask, int(ytop), int(ytop + 0.26 * (ybot - ytop)))
+        bh = hair_median(brgb, bk.sil, 60, 200)
+        tint = np.clip((fh / max(1.0, fh.mean())) / (bh / max(1.0, bh.mean())), 0.90, 1.10)
+        brgb *= (fh.mean() / max(1.0, bh.mean())) * tint
 
-    kk = (np.arange(HEAD_TEX_W) + 0.5) / HEAD_TEX_W * NH
-    jj = np.clip((1.0 - (np.arange(HEAD_TEX_H) + 0.5) / HEAD_TEX_H) * (MH - 1), 0.5, MH - 1.001)
-    KK, JJ = np.meshgrid(kk, jj)
-    skin_arr = np.zeros((HEAD_TEX_H, HEAD_TEX_W, 3), dtype=np.float32)
-    wf = smoothstep(0.10, 0.40, np.sin(-math.pi / 2.0 + 2.0 * math.pi * KK / NH))
-    for grid, img_src, w in ((UVF, front_rgb, wf), (UVB, brgb, 1.0 - wf)):
-        g_wrap = np.concatenate([grid, grid[:, :1]], axis=1)
-        px_map = [ndimage.map_coordinates(g_wrap[..., c], [JJ, KK], order=1, mode="nearest") for c in range(2)]
-        for c in range(3):
-            skin_arr[..., c] += w * ndimage.map_coordinates(img_src[..., c], [px_map[1], px_map[0]], order=1, mode="nearest")
+        kk = (np.arange(HEAD_TEX_W) + 0.5) / HEAD_TEX_W * NH
+        jj = np.clip((1.0 - (np.arange(HEAD_TEX_H) + 0.5) / HEAD_TEX_H) * (MH - 1), 0.5, MH - 1.001)
+        KK, JJ = np.meshgrid(kk, jj)
+        skin_arr = np.zeros((HEAD_TEX_H, HEAD_TEX_W, 3), dtype=np.float32)
+        wf = smoothstep(0.10, 0.40, np.sin(-math.pi / 2.0 + 2.0 * math.pi * KK / NH))
+        for grid, img_src, w in ((UVF, front_rgb, wf), (UVB, brgb, 1.0 - wf)):
+            g_wrap = np.concatenate([grid, grid[:, :1]], axis=1)
+            px_map = [ndimage.map_coordinates(g_wrap[..., c], [JJ, KK], order=1, mode="nearest") for c in range(2)]
+            for c in range(3):
+                skin_arr[..., c] += w * ndimage.map_coordinates(img_src[..., c], [px_map[1], px_map[0]], order=1, mode="nearest")
 
-    # Softly blend top-crown pole rim highlight into rich natural dark hair so top pole has zero bright pinch
-    pole_w = (1.0 - smoothstep(0.0, 0.09, np.linspace(0.0, 1.0, HEAD_TEX_H)[:, None]))[..., None]
-    crown_med = fh[None, None, :] * 1.15
-    skin_arr = skin_arr * (1.0 - 0.72 * pole_w) + np.minimum(skin_arr, crown_med) * (0.72 * pole_w)
-    head_tex_im = Image.fromarray(np.clip(skin_arr * 1.06, 0, 255).astype(np.uint8))
+        # Softly blend top-crown pole rim highlight into rich natural dark hair so top pole has zero bright pinch
+        pole_w = (1.0 - smoothstep(0.0, 0.09, np.linspace(0.0, 1.0, HEAD_TEX_H)[:, None]))[..., None]
+        crown_med = fh[None, None, :] * 1.15
+        skin_arr = skin_arr * (1.0 - 0.72 * pole_w) + np.minimum(skin_arr, crown_med) * (0.72 * pole_w)
+        head_tex_im = Image.fromarray(np.clip(skin_arr * 1.06, 0, 255).astype(np.uint8))
+    else:
+        existing_tex = os.path.join(PROGS_DIR, "john_bird_head.png")
+        pk3_path = os.path.join(ROOT_DIR, "bakersfield.pk3")
+        if os.path.isfile(existing_tex):
+            head_tex_im = Image.open(existing_tex).convert("RGB")
+        elif os.path.isfile(pk3_path):
+            with zipfile.ZipFile(pk3_path) as zf:
+                if "progs/john_bird_head.png" in zf.namelist():
+                    import io
+                    head_tex_im = Image.open(io.BytesIO(zf.read("progs/john_bird_head.png"))).convert("RGB")
+        if head_tex_im is None:
+            # Pure procedural back-hair fallback if neither suit_back.jpg nor pk3 texture exists
+            fh = hair_median(front_rgb, front_mask, int(ytop), int(ytop + 0.26 * (ybot - ytop)))
+            kk = (np.arange(HEAD_TEX_W) + 0.5) / HEAD_TEX_W * NH
+            jj = np.clip((1.0 - (np.arange(HEAD_TEX_H) + 0.5) / HEAD_TEX_H) * (MH - 1), 0.5, MH - 1.001)
+            KK, JJ = np.meshgrid(kk, jj)
+            wf = smoothstep(0.10, 0.40, np.sin(-math.pi / 2.0 + 2.0 * math.pi * KK / NH))
+            g_wrap = np.concatenate([UVF, UVF[:, :1]], axis=1)
+            px_map = [ndimage.map_coordinates(g_wrap[..., c], [JJ, KK], order=1, mode="nearest") for c in range(2)]
+            front_sampled = np.zeros((HEAD_TEX_H, HEAD_TEX_W, 3), dtype=np.float32)
+            for c in range(3):
+                front_sampled[..., c] = ndimage.map_coordinates(front_rgb[..., c], [px_map[1], px_map[0]], order=1, mode="nearest")
+            back_fill = np.broadcast_to(fh[None, None, :], front_sampled.shape).astype(np.float32)
+            skin_arr = front_sampled * wf[..., None] + back_fill * (1.0 - wf[..., None])
+            head_tex_im = Image.fromarray(np.clip(skin_arr * 1.06, 0, 255).astype(np.uint8))
 
     P_all = np.vstack([
         P.reshape(-1, 3),
@@ -605,8 +639,18 @@ def eval_hair_locks_frame(locks, wind_cfg, head_rot, head_pos):
     breeze = wind_cfg["breeze"]
     flutter = wind_cfg["flutter"]
     gust_z = wind_cfg["gust_z"]
+    combat_mode = wind_cfg.get("combat_mode")
+    bang_len_mul = wind_cfg.get("bang_len_mul", 1.0)
+    bang_w_mul = wind_cfg.get("bang_w_mul", 1.0)
+    crown_len_mul = wind_cfg.get("crown_len_mul", 1.0)
+    crown_w_mul = wind_cfg.get("crown_w_mul", 1.0)
+    side_len_mul = wind_cfg.get("side_len_mul", 1.0)
+    side_w_mul = wind_cfg.get("side_w_mul", 1.0)
+    back_len_mul = wind_cfg.get("back_len_mul", 1.0)
+    back_w_mul = wind_cfg.get("back_w_mul", 1.0)
+    whip_u = wind_cfg.get("whip_u", 0.0)
 
-    for lk in locks:
+    for lk_idx, lk in enumerate(locks):
         root = lk["root"]
         n_out = lk["n_out"]
         dir0 = lk["dir0"]
@@ -618,7 +662,45 @@ def eval_hair_locks_frame(locks, wind_cfg, head_rot, head_pos):
         amp = lk["wind_amp"]
         kind = lk["kind"]
 
-        N0 = n_out - np.dot(n_out, dir0) * dir0
+        if kind == "bang":
+            L_eff = L * bang_len_mul
+            W_eff = W * bang_w_mul
+            H_eff = H_th * (1.0 + 0.45 * (bang_w_mul - 1.0))
+        elif kind == "crown":
+            L_eff = L * crown_len_mul
+            W_eff = W * crown_w_mul
+            H_eff = H_th * (1.0 + 0.35 * (crown_w_mul - 1.0))
+        elif kind == "side":
+            L_eff = L * side_len_mul
+            W_eff = W * side_w_mul
+            H_eff = H_th * (1.0 + 0.25 * (side_w_mul - 1.0))
+        else:
+            L_eff = L * back_len_mul
+            W_eff = W * back_w_mul
+            H_eff = H_th * (1.0 + 0.25 * (back_w_mul - 1.0))
+
+        # In Combat Mode, sweep the huge bangs out across the brow first (no forehead gap!),
+        # then curl them into lush, billowing 3D shampoo-commercial waves!
+        dir_eff = dir0
+        curve_eff = curve
+        if combat_mode is not None:
+            if kind == "bang":
+                side_fan = (root[1] / 10.0)
+                dir_eff = make_tangent(
+                    np.array([0.85, -0.45 + 0.55 * side_fan, 0.22], dtype=np.float32),
+                    n_out,
+                    lift=0.14,
+                )
+                curve_eff = np.array([0.55, -0.35 + 0.65 * side_fan, 0.72], dtype=np.float32)
+            elif kind == "crown":
+                dir_eff = make_tangent(
+                    np.array([-0.68, -0.20 + 0.35 * math.sin(ph), 0.55], dtype=np.float32),
+                    n_out,
+                    lift=0.14,
+                )
+                curve_eff = np.array([-0.75, 0.30 * math.cos(ph), 0.38], dtype=np.float32)
+
+        N0 = n_out - np.dot(n_out, dir_eff) * dir_eff
         nl = float(np.linalg.norm(N0))
         N0 = (N0 / nl) if nl > 1e-5 else np.array([0.0, 0.0, 1.0], dtype=np.float32)
 
@@ -628,13 +710,74 @@ def eval_hair_locks_frame(locks, wind_cfg, head_rot, head_pos):
         binorms = []
 
         for s in s_vals:
-            p = root + L * (dir0 * s + 0.36 * curve * (s ** 1.85))
+            p = root + L_eff * (dir_eff * s + 0.36 * curve_eff * (s ** 1.85))
             sw = (s ** 1.65) * amp
             wave1 = math.sin(harm * t_phase - 3.3 * s + ph)
             wave2 = math.cos(2 * harm * t_phase - 5.0 * s + ph * 1.6)
             lat_wave = math.sin(harm * t_phase - 2.6 * s + ph + 1.1)
 
-            if kind == "bang":
+            if combat_mode == "fly":
+                # Shampoo-commercial hurricane: huge traveling S-waves billowing wildly in 3D!
+                sw_c = (s ** 1.35) * amp
+                roll_w1 = math.sin(harm * t_phase - 5.2 * s + ph * 0.85)
+                roll_w2 = math.cos(2 * harm * t_phase - 6.8 * s + ph * 1.3)
+                roll_lat = math.sin(harm * t_phase - 4.4 * s + ph * 0.7 + 1.4)
+                # Arch outward laterally and curl gracefully instead of spiking straight up!
+                side_sgn = 1.0 if (root[1] >= 0.0 or (lk_idx % 2 == 0)) else -1.0
+                if kind == "bang":
+                    disp = np.array([
+                        3.5 * breeze + 7.2 * roll_w2 + 2.8 * roll_w1,
+                        side_sgn * 4.5 - 2.0 + 11.5 * roll_lat + 3.5 * roll_w2,
+                        2.8 + 6.4 * roll_w1 + 2.6 * gust_z - 3.5 * (s ** 2.2),
+                    ], dtype=np.float32) * sw_c
+                elif kind == "crown":
+                    disp = np.array([
+                        -6.2 * breeze + 6.4 * roll_w2,
+                        9.8 * roll_lat,
+                        1.8 + 5.8 * roll_w1 + 2.2 * gust_z - 2.4 * (s ** 2.2),
+                    ], dtype=np.float32) * sw_c
+                elif kind == "side":
+                    sgn_y = 1.0 if root[1] >= 0.0 else -1.0
+                    disp = np.array([
+                        -4.0 * breeze + 5.2 * roll_w2,
+                        sgn_y * (6.8 + 6.8 * (0.4 + 0.6 * roll_w1)),
+                        1.2 + 5.2 * roll_w1 + 1.8 * gust_z,
+                    ], dtype=np.float32) * sw_c
+                else:
+                    disp = np.array([
+                        -6.8 * breeze + 4.8 * roll_w2,
+                        8.2 * roll_lat,
+                        1.4 + 5.6 * roll_w1 + 1.8 * gust_z,
+                    ], dtype=np.float32) * sw_c
+            elif combat_mode == "whip":
+                # Dramatic 12-frame Pompadour Whip / Slap:
+                # u in [0..0.25]: coil back & left, puff towering crest
+                # u in [0.25..0.68]: violent whip slash forward (+X) and across (+Y -> -Y)!
+                # u in [0.68..1.0]: follow-through billow & snap back
+                sw_c = (s ** 1.30) * amp
+                coil = math.exp(-((whip_u - 0.16) / 0.14) ** 2)
+                slash = math.exp(-((whip_u - 0.48) / 0.16) ** 2)
+                sweep_y = 13.5 * coil - 24.0 * slash + 5.5 * math.sin(2.0 * math.pi * whip_u - 4.4 * s + ph)
+                snap_x = -6.0 * coil + 28.0 * slash + 4.2 * math.cos(4.0 * math.pi * whip_u - 4.8 * s)
+                lift_z = 7.5 * coil - 5.5 * slash + 4.8 * math.sin(2.0 * math.pi * whip_u - 3.8 * s + ph)
+                if kind == "bang":
+                    disp = np.array([snap_x, sweep_y, 2.2 + lift_z], dtype=np.float32) * sw_c
+                elif kind == "crown":
+                    disp = np.array([snap_x * 0.78 - 3.0, sweep_y * 0.85, 2.0 + lift_z * 0.85], dtype=np.float32) * sw_c
+                elif kind == "side":
+                    sgn_y = 1.0 if root[1] >= 0.0 else -1.0
+                    disp = np.array([
+                        snap_x * 0.45 - 3.0,
+                        sgn_y * 5.2 + sweep_y * 0.48,
+                        1.2 + 4.2 * math.sin(2.0 * math.pi * whip_u - 3.5 * s + ph),
+                    ], dtype=np.float32) * sw_c
+                else:
+                    disp = np.array([
+                        -6.0 + snap_x * 0.30,
+                        sweep_y * 0.42,
+                        1.5 + 4.5 * math.sin(2.0 * math.pi * whip_u - 3.5 * s + ph),
+                    ], dtype=np.float32) * sw_c
+            elif kind == "bang":
                 # Bangs sweep gracefully across forehead & flutter/ripple in the breeze without spiking above crown!
                 lift_up = breeze * 0.55 + flutter * (1.15 * wave1 + 0.45 * wave2) + gust_z * 0.65
                 push_x = 0.45 * breeze + flutter * (0.65 * wave1)
@@ -695,8 +838,8 @@ def eval_hair_locks_frame(locks, wind_cfg, head_rot, head_pos):
             k = si + 1
             s = s_vals[k]
             # Sleek tapered hair lock profile (narrows cleanly to a wispy pointed tip!)
-            w_s = W * (0.75 + 0.35 * math.sin(s * math.pi * 0.75)) * (1.0 - 0.72 * (s ** 1.75))
-            h_s = H_th * (1.0 - 0.70 * (s ** 1.5))
+            w_s = W_eff * (0.75 + 0.35 * math.sin(s * math.pi * 0.75)) * (1.0 - 0.72 * (s ** 1.75))
+            h_s = H_eff * (1.0 - 0.70 * (s ** 1.5))
             c_p = spine[k]
             nc, bc = normals[k], binorms[k]
             verts.append(c_p + nc * h_s)
@@ -1249,7 +1392,7 @@ def eval_clip_pose(fi):
         )
         return f"dive_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
 
-    else:
+    elif fi < 72:
         # Clip 5 (60..71): FOLDED-WING PERCH IN THE BREEZE (True avian Z-fold tucked down & aft!)
         k = fi - 60
         u = k / 12.0
@@ -1285,6 +1428,111 @@ def eval_clip_pose(fi):
             fold=1.0,
         )
         return f"perch_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
+
+    elif fi < 88:
+        # Clip 6 (72..87): COMBAT FLY / SPRAY (Giant 3x shampoo-commercial waving bangs + energetic combat wingbeat!)
+        k = fi - 72
+        u = k / 16.0
+        ph = 2.0 * math.pi * u
+        s1 = math.sin(ph)
+        c1 = math.cos(ph)
+        s_lag = math.sin(ph - 0.62)
+        upstroke = max(0.0, c1)
+
+        hum_flap = 0.68 * s1 + 0.14
+        hum_sweep = 0.22 * c1 + 0.04
+        hum_pitch = 0.34 + 0.18 * max(0.0, -c1) - 0.20 * upstroke
+        elbow_flap = 0.28 * s_lag - 0.10 * upstroke
+        elbow_sweep = 0.20 - 0.38 * upstroke
+        wrist_flap = 0.50 * math.sin(ph - 0.88) - 0.24 * upstroke
+        wrist_sweep = -0.04 - 0.38 * upstroke
+        wrist_pitch = 0.16 * max(0.0, -c1) - 0.24 * upstroke
+
+        head_pos = np.array([
+            0.9 * math.sin(ph + 0.3),
+            0.7 * math.sin(ph * 0.5 if False else ph),
+            BASE_Z + 2.4 * math.sin(ph - 1.0),
+        ], dtype=np.float32)
+        head_rot = rot_z(0.10 * math.sin(ph)) @ rot_y(0.06 * math.cos(ph)) @ rot_x(0.08 * math.sin(ph))
+        wind_cfg = dict(
+            phase=ph,
+            harm=2,
+            breeze=1.35,
+            flutter=2.25,
+            gust_z=0.95 * max(0.0, -c1) + 0.35,
+            combat_mode="fly",
+            bang_len_mul=3.05,
+            bang_w_mul=2.35,
+            crown_len_mul=2.15,
+            crown_w_mul=1.85,
+            side_len_mul=1.75,
+            side_w_mul=1.45,
+            back_len_mul=1.65,
+            back_w_mul=1.40,
+        )
+        wing_pose = symmetric_wing(
+            hum_flap, hum_sweep, hum_pitch,
+            elbow_flap, elbow_sweep, 0.06,
+            wrist_flap, wrist_sweep, wrist_pitch,
+            aero_load=1.05 * max(0.0, -c1) - 0.42 * upstroke,
+            aero_twist=0.62 * upstroke,
+            alula_open=0.45,
+        )
+        return f"combat_fly_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
+
+    else:
+        # Clip 7 (88..99): MEGA-BANGS POMPADOUR WHIP / SLAP (12 frames: puff huge -> violent forward/side whip!)
+        k = fi - 88
+        u = k / 12.0
+        ph = 2.0 * math.pi * u
+        coil = math.exp(-((u - 0.16) / 0.14) ** 2)
+        slash = math.exp(-((u - 0.48) / 0.16) ** 2)
+
+        hum_flap = 0.48 * coil - 0.56 * slash + 0.16 * math.sin(ph)
+        hum_sweep = -0.35 * coil + 0.45 * slash
+        hum_pitch = 0.28 + 0.25 * slash
+        elbow_flap = 0.24 * coil - 0.26 * slash
+        elbow_sweep = 0.24 - 0.28 * coil
+        wrist_flap = 0.38 * coil - 0.45 * slash
+        wrist_sweep = -0.15 * coil + 0.18 * slash
+
+        head_pos = np.array([
+            -2.4 * coil + 5.2 * slash,
+            2.2 * coil - 3.6 * slash,
+            BASE_Z + 2.8 * coil - 1.2 * slash,
+        ], dtype=np.float32)
+        head_rot = (
+            rot_z(0.28 * coil - 0.36 * slash)
+            @ rot_y(-0.18 * coil + 0.28 * slash)
+            @ rot_x(-0.22 * coil + 0.34 * slash)
+        )
+        wind_cfg = dict(
+            phase=ph,
+            harm=2,
+            breeze=1.55,
+            flutter=2.60,
+            gust_z=1.10 * coil + 0.40,
+            combat_mode="whip",
+            whip_u=u,
+            bang_len_mul=3.65,
+            bang_w_mul=2.65,
+            crown_len_mul=2.55,
+            crown_w_mul=2.05,
+            side_len_mul=1.90,
+            side_w_mul=1.55,
+            back_len_mul=1.80,
+            back_w_mul=1.50,
+        )
+        wing_pose = symmetric_wing(
+            hum_flap, hum_sweep, hum_pitch,
+            elbow_flap, elbow_sweep, 0.08,
+            wrist_flap, wrist_sweep, 0.14,
+            aero_load=0.85 * slash + 0.35,
+            aero_twist=0.45 * coil,
+            alula_open=0.75,
+            bank_asym=0.22 * coil - 0.26 * slash,
+        )
+        return f"combat_whip_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
 
 
 # ==============================================================================
@@ -1420,7 +1668,7 @@ def main():
     wing_frames = []
     frame_names = []
 
-    print(f"5. Animating {TOTAL_FRAMES} seamless frames across 5 flight & breeze clips...", flush=True)
+    print(f"5. Animating {TOTAL_FRAMES} seamless frames across 7 flight, breeze & combat clips...", flush=True)
     for fi in range(TOTAL_FRAMES):
         fname, h_pos, h_rot, wind_cfg, wing_pose = eval_clip_pose(fi)
         frame_names.append(fname)
@@ -1462,6 +1710,14 @@ def main():
         "wings_bird,progs/john_bird_wings.png\n"
     )
     open(os.path.join(PROGS_DIR, "john_bird_head_0.skin"), "w", encoding="utf-8").write(skin_txt)
+    for sk_idx, w_sh in ((0, "progs/john_bird_wings"), (1, "progs/john_bird_wings_hurt"), (2, "progs/john_bird_wings_white")):
+        md3_skin = (
+            "head,progs/john_bird_head\n"
+            "hair_breezy,progs/john_bird_hair\n"
+            f"wings_bird,{w_sh}\n"
+        )
+        with open(os.path.join(PROGS_DIR, f"john_bird_head.md3_{sk_idx}.skin"), "w", encoding="ascii", newline="\n") as f:
+            f.write(md3_skin)
 
     tot_v = sum(len(s["st"]) for s in surfaces)
     tot_t = sum(len(s["tris"]) for s in surfaces)
@@ -1504,6 +1760,28 @@ def main():
     verify_p = os.path.join(OUT_DIR, "john_bird_verify.png")
     sheet.save(verify_p)
     print(f"   Saved verification sheet: {verify_p}", flush=True)
+
+    combat_specs = [
+        ("t8_combat_fly_front.png", "Combat Fly (74) - 3/4 Front",   74,  28,  14, 152.0, 52.0),
+        ("t9_combat_fly_side.png",  "Combat Fly (80) - Side/Billow", 80, -72,  14, 148.0, 52.0),
+        ("t10_combat_whip_coil.png","Combat Whip (90) - Puff Coil",  90,  26,  15, 154.0, 54.0),
+        ("t11_combat_whip_slap.png","Combat Whip (93) - Mega Slap!", 93,  34,  14, 154.0, 52.0),
+    ]
+    ctiles = []
+    for fn, lbl, fi_t, az_t, el_t, dist_t, tz_t in combat_specs:
+        im_t = render_preview_tile(surfaces, tex_np, fi=fi_t, az_deg=az_t, el_deg=el_t, dist=dist_t, tgt_z=tz_t)
+        im_t.save(os.path.join(OUT_DIR, fn), optimize=True)
+        ctiles.append((im_t, lbl))
+    csheet = Image.new("RGB", (420 * 2, 340 * 2), (10, 15, 25))
+    cdr = ImageDraw.Draw(csheet)
+    for idx, (im_t, lbl) in enumerate(ctiles):
+        gx, gy_p = (idx % 2) * 420, (idx // 2) * 340
+        csheet.paste(im_t, (gx, gy_p))
+        cdr.rectangle([gx + 8, gy_p + 8, gx + 315, gy_p + 30], fill=(10, 16, 28))
+        cdr.text((gx + 14, gy_p + 13), lbl, fill=(255, 200, 90))
+    cverify_p = os.path.join(OUT_DIR, "john_bird_combat_verify.png")
+    csheet.save(cverify_p)
+    print(f"   Saved combat verification sheet: {cverify_p}", flush=True)
 
 
 if __name__ == "__main__":

@@ -517,6 +517,12 @@ void() info_intermission =
 
 void() SetChangeParms =
 {
+	if (self.bm_obs)
+	{
+		SetNewParms();
+		parm11 = 1;		// observer: .bm_obs is wiped with the edict on a map change, parm11 carries it (ClientConnect)
+		return;
+	}
 	if ((self.health <= 0))
 	{
 		SetNewParms();
@@ -549,6 +555,7 @@ void() SetChangeParms =
 	parm8 = self.weapon;
 	parm9 = self.armortype * 100;
 	parm10 = self.grenade_ammo;
+	parm11 = 0;		// not an observer
 };
 
 void() SetNewParms =
@@ -563,6 +570,7 @@ void() SetNewParms =
 	parm8 = IT_ROCKET_LAUNCHER;
 	parm9 = 0;
 	parm10 = 0;	// grenade_ammo; was left over from whoever set parms last
+	parm11 = 0;	// observer flag (SetChangeParms): a new client must never inherit the last one's
 };
 
 void() DecodeLevelParms =
@@ -738,7 +746,7 @@ void() intermission_delay =
 
 void() execute_changelevel =
 {
-	local entity pos;
+	local entity pos, e, me;
 
 	intermission_running = 1;
 	if (deathmatch)
@@ -761,6 +769,21 @@ void() execute_changelevel =
 		WriteByte(MSG_ALL, 3);
 		WriteByte(MSG_ALL, 3);
 	}
+	// release drivers / pilots / Rob Dob flyers first: their view stays on the vehicle camera
+	// (clientcamera) otherwise, not on the intermission spot
+	me = self;
+	e = find(world, classname, "player");
+	while (e != world)
+	{
+		self = e;
+		Veh_ClientGone();
+		JohnBird_ClientGone();
+		EricCannon_ClientGone();
+		MMTank_ClientGone();
+		FD_Reset(e);
+		e = find(e, classname, "player");
+	}
+	self = me;
 	pos = FindIntermission();
 	other = find(world, classname, "player");
 	while ((other != world))
@@ -1381,6 +1404,12 @@ void() PutClientInServer =
 {
 	local entity spot;
 
+	if (self.bm_obs)
+	{
+		BM_ObsActivate(self);
+		return;
+	}
+
 	if (((!deathmatch && !coop) || ((deathmatch || coop) && !IN_SLOWMO)))
 	{
 		localcmd("slowmo 1\n");
@@ -1500,6 +1529,7 @@ void() PutClientInServer =
 	Veh_SpawnReset();	// not driving or riding (vehicle_drive.qc)
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
+	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
 	Hammer_Spawn();	// no charge left over (hammer.qc)
 	LtGun_Spawn();	// not shocked, not typing (ltgun.qc)
 	W_SetCurrentAmmo();
@@ -2378,6 +2408,12 @@ void() PlayerPreThink =
 {
 	local float oldnodraw;
 	local float psy;
+
+	if (self.bm_obs)
+	{
+		BM_ObsFrame();
+		return;
+	}
 
 	if (CTF_ENABLED)
 	{
@@ -3670,6 +3706,9 @@ void() PlayerPostThink =
 {
 	local float rg_dt, rg_n;
 
+	if (self.bm_obs)
+		return;
+
 	rg_dt = time - self.rg_last_t;
 	self.rg_last_t = time;
 	if (rg_dt > 0.2)
@@ -3767,6 +3806,17 @@ void() ClientConnect =
 	self.skypad_cool_t = 0;
 	self.skypad_vel_sent = FALSE;
 	ClientInRankings();
+	// an observer stays one across map changes: parm11 is set by SetChangeParms (the engine loads
+	// this client's spawn parms before ClientConnect); PutClientInServer then runs BM_ObsActivate
+	if (parm11 == 1 && cvar_string("bm_obs_key") != "")
+		self.bm_obs = 1;
+	if (self.bm_obs)
+	{
+		self.ishuman = 3;
+		return;
+	}
+	if (cvar("sv_autodemo_perclient_discardable") > 0)
+		self.discardabledemo = 1;
 	bprint(self.netname);
 	bprint(" entered the game\n");
 	if (intermission_running && !deathmatch)	// a friend joining during the scoreboard must not skip it for everybody
@@ -3777,6 +3827,18 @@ void() ClientConnect =
 
 void() ClientDisconnect =
 {
+	if (self.bm_obs)
+	{
+		ClientDisconnected();
+		self.bm_obs = 0;
+		self.classname = "";
+		self.health = 0;
+		self.takedamage = DAMAGE_NO;
+		self.solid = SOLID_NOT;
+		self.movetype = MOVETYPE_NONE;
+		self.modelindex = 0;
+		return;
+	}
 	ClientDisconnected();
 	Veh_ClientGone();	// a driver who drops leaves the van parked (vehicle_drive.qc)
 	JohnBird_ClientGone();	// a flying Winged John pilot who drops leaves him perched (john_bird.qc)
@@ -4046,6 +4108,36 @@ void(entity targ, entity attacker) ClientObituary =
 						deathstring = " got falcon-swooped by ";
 						deathstring2 = "'s Winged Breezy-Hair John\n";
 					}
+					if ((jb_inflicting == 3))
+					{
+						rnum = 999999;
+						deathstring = " got frizzy-glued by ";
+						deathstring2 = "'s John's Mega Hold hairspray\n";
+					}
+					if ((jb_inflicting == 4))
+					{
+						rnum = 999999;
+						deathstring = " got hairspray-torched by ";
+						deathstring2 = "'s Mega Hold flamethrower\n";
+					}
+					if ((jb_inflicting == 5))
+					{
+						rnum = 999999;
+						deathstring = " ate a spinning bottle of ";
+						deathstring2 = "'s John's Mega Hold\n";
+					}
+					if ((jb_inflicting == 6))
+					{
+						rnum = 999999;
+						deathstring = " got pompadour-slapped by ";
+						deathstring2 = "'s giant waving bangs\n";
+					}
+					if ((jb_inflicting == 7))
+					{
+						rnum = 999999;
+						deathstring = " was blown away by ";
+						deathstring2 = "'s pressurized aerosol bomb\n";
+					}
 					if ((ec_inflicting == 2))
 					{
 						rnum = 999999;
@@ -4171,7 +4263,14 @@ void(entity targ, entity attacker) ClientObituary =
 			}
 			if (jb_inflicting)
 			{
-				bprint(" went down in a storm of Winged John's feathers\n");
+				if (jb_inflicting == 3)
+					bprint(" got hairsprayed by AI Winged John\n");
+				else if (jb_inflicting == 4)
+					bprint(" was flame-broiled by AI Winged John\n");
+				else if (jb_inflicting == 5)
+					bprint(" was bonked by AI Winged John's hairspray bottle\n");
+				else
+					bprint(" went down in a storm of Winged John's feathers\n");
 				return;
 			}
 			if (mmt_inflicting)

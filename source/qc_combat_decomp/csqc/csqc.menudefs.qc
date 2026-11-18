@@ -201,7 +201,8 @@ void() loadCFG =
 	cvar_set("hud_proxcount_big", readcvar[9]);
 	cvar_set("hud_showtitle", readcvar[10]);
 	cvar_set("qc_ssg", readcvar[11]);
-	cvar_set("centered_weapons", readcvar[12]);
+	// readcvar[12] (centered_weapons) is not applied: it is a seta cvar kept in config.cfg and owned by the main menu;
+	// restoring the stale copy here undid the CENTERED WEAPONS option at every map load. The column stays in the file.
 	cvar_set("flamestyle", readcvar[13]);
 	cvar_set("gibsduration", readcvar[14]);
 	cvar_set("slowmotion", readcvar[15]);

@@ -5,12 +5,14 @@ float g_main_sel;
 float MAIN_ACT_RESUME     = 1;
 float MAIN_ACT_JOIN       = 2;
 float MAIN_ACT_HOST       = 3;
-float MAIN_ACT_OPTIONS    = 4;
-float MAIN_ACT_DISCONNECT = 5;
-float MAIN_ACT_QUIT       = 6;
+float MAIN_ACT_REPLAYS    = 4;
+float MAIN_ACT_OPTIONS    = 5;
+float MAIN_ACT_DISCONNECT = 6;
+float MAIN_ACT_QUIT       = 7;
 
 void() BM_Browser_Open;
 void() BM_Host_Open;
+void() BM_Replays_Open;
 void() BM_Options_Open;
 
 void(string newname) BM_CommitPlayerName =
@@ -39,6 +41,8 @@ float(float idx, float in_match) BM_Main_RowAction =
 	row = row + 1;
 	if (idx == row) return MAIN_ACT_HOST;
 	row = row + 1;
+	if (idx == row) return MAIN_ACT_REPLAYS;
+	row = row + 1;
 	if (idx == row) return MAIN_ACT_OPTIONS;
 	row = row + 1;
 	if (in_match)
@@ -52,7 +56,7 @@ float(float idx, float in_match) BM_Main_RowAction =
 
 float(float in_match) BM_Main_RowCount =
 {
-	return in_match ? 6 : 4;
+	return in_match ? 7 : 5;
 };
 
 void(float act) BM_Main_Execute =
@@ -64,6 +68,8 @@ void(float act) BM_Main_Execute =
 		BM_Browser_Open();
 	else if (act == MAIN_ACT_HOST)
 		BM_Host_Open();
+	else if (act == MAIN_ACT_REPLAYS)
+		BM_Replays_Open();
 	else if (act == MAIN_ACT_OPTIONS)
 		BM_Options_Open();
 	else if (act == MAIN_ACT_DISCONNECT)
@@ -179,7 +185,7 @@ void(float clicked) BM_Main_Draw =
 	count = BM_Main_RowCount(in_match);
 
 	cx = floor(g_vw * 0.5);
-	top_y = max(24, floor((g_vh - 220) * 0.5));
+	top_y = max(20, floor((g_vh - 246) * 0.5));
 
 	// Bakersfield Quake top header + classic Quake side plaque
 	BM_DrawTextCentered(cx, top_y - 6, "BAKERSFIELD QUAKE", 18, COL_ACCENT, 0.99);
@@ -206,6 +212,7 @@ void(float clicked) BM_Main_Draw =
 		if (act == MAIN_ACT_RESUME) label = "RESUME GAME";
 		else if (act == MAIN_ACT_JOIN) label = "JOIN GAME";
 		else if (act == MAIN_ACT_HOST) label = "HOST GAME";
+		else if (act == MAIN_ACT_REPLAYS) label = "REPLAYS";
 		else if (act == MAIN_ACT_OPTIONS) label = "OPTIONS";
 		else if (act == MAIN_ACT_DISCONNECT) label = "DISCONNECT";
 		else label = "QUIT";

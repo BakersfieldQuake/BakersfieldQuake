@@ -31,6 +31,12 @@ float	GK_TURN_HI		= 132;		// deg/s at cruise/boost (crisp cornering at all speed
 float	GK_GRIP			= 3400;		// lateral grip when not drifting
 float	GK_GRAVITY		= 800;		// matches sv_gravity & SkyPad_CalcVel ballistic arcs
 
+.float	gk_fx_side;		// tire FX alternate rear wheels (one particle message per tick instead of two)
+.float	gk_ex_side;		// exhaust FX alternate the two pipes
+.float	gk_hud_key;		// last centerprinted HUD state (resend only when it changes)
+.float	gk_hud_keep;	// keep-alive resend so the centerprint never fades while unchanged
+.float	gk_pad_scan_t;	// next jump/sky pad scan (entity-list walk throttled to 20 Hz)
+
 void(entity v) GK_InitKart =
 {
 	v.gk_nitro = 100;
@@ -67,10 +73,12 @@ void(entity v) GK_SyncDriverEnt =
 	setorigin (de, v.origin);
 	de.angles = v.angles;
 	de.frame = v.frame;
+	// cockpit view hides the seated body only from the driver himself (EF_NODRAW hid it from everyone)
 	if (v.veh_driver.veh_camera == 0)
-		de.effects = de.effects | EF_NODRAW;
+		de.nodrawtoclient = v.veh_driver;
 	else
-		de.effects = de.effects - (de.effects & EF_NODRAW);
+		de.nodrawtoclient = world;
+	de.effects = de.effects - (de.effects & EF_NODRAW);
 };
 
 // Frame ranges on gokart_1..6.md3: 0..11 idle, 12..27 fast drive, 28..43 super boost, 44..63 explode
@@ -105,33 +113,28 @@ void(entity v) GK_ThinkAnim =
 // Emit thick rear tire smoke & optional rim sparks during peel-outs, burnouts, and high-speed skids
 void(entity v, float slip_mag, float with_sparks) GK_PeelAndSkidFX =
 {
-	local vector fwd, lft, rl, rr, smkvel;
+	local vector fwd, lft, rw, smkvel;
 	local float vol, pitch;
 
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
-	rl = v.origin - fwd * 28 + lft * 26 + '0 0 4';
-	rr = v.origin - fwd * 28 - lft * 26 + '0 0 4';
 	smkvel = fwd * -48 + '0 0 28';
 
+	// network: one message per effect per tick, alternating rear wheels, 3x count (was both wheels every 0.045 s)
 	if (time >= v.gk_smoke_t)
 	{
-		v.gk_smoke_t = time + 0.045;
+		v.gk_smoke_t = time + 0.065;
+		v.gk_fx_side = 1 - v.gk_fx_side;
+		if (v.gk_fx_side)
+			rw = v.origin - fwd * 28 + lft * 26 + '0 0 4';
+		else
+			rw = v.origin - fwd * 28 - lft * 26 + '0 0 4';
 		if (gk_fx_smoke > 0)
-		{
-			pointparticles (gk_fx_smoke, rl, smkvel, 1);
-			pointparticles (gk_fx_smoke, rr, smkvel, 1);
-		}
+			pointparticles (gk_fx_smoke, rw, smkvel, 3);
 		if (with_sparks && veh_fx_drift > 0)
-		{
-			pointparticles (veh_fx_drift, rl, smkvel, 1);
-			pointparticles (veh_fx_drift, rr, smkvel, 1);
-		}
+			pointparticles (veh_fx_drift, rw, smkvel, 3);
 		else if (gk_fx_smoke <= 0 && veh_fx_smoke > 0)
-		{
-			pointparticles (veh_fx_smoke, rl, smkvel, 1);
-			pointparticles (veh_fx_smoke, rr, smkvel, 1);
-		}
+			pointparticles (veh_fx_smoke, rw, smkvel, 3);
 	}
 
 	if (time >= v.veh_skid_t)
@@ -146,25 +149,24 @@ void(entity v, float slip_mag, float with_sparks) GK_PeelAndSkidFX =
 // Emit Blue / Orange / Purple Mini-Turbo sparks + thick tire smoke from both rear tires while drifting
 void(entity v, float tier) GK_DriftSparks =
 {
-	local vector fwd, lft, rl, rr, spvel;
+	local vector fwd, lft, rw, spvel, side;
 	local float col;
 
+	// network: alternate rear wheels, one message per effect, 3x count (caller ticks every 0.08 s, was both wheels every 0.055 s)
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
-	rl = v.origin - fwd * 30 + lft * 26 + '0 0 4';
-	rr = v.origin - fwd * 30 - lft * 26 + '0 0 4';
+	v.gk_fx_side = 1 - v.gk_fx_side;
+	if (v.gk_fx_side)
+		side = lft;
+	else
+		side = lft * -1;
+	rw = v.origin - fwd * 30 + side * 26 + '0 0 4';
 	spvel = fwd * -90 + '0 0 55';
 
 	if (gk_fx_smoke > 0)
-	{
-		pointparticles (gk_fx_smoke, rl, fwd * -45 + '0 0 24', 1);
-		pointparticles (gk_fx_smoke, rr, fwd * -45 + '0 0 24', 1);
-	}
+		pointparticles (gk_fx_smoke, rw, fwd * -45 + '0 0 24', 3);
 	if (veh_fx_drift > 0)
-	{
-		pointparticles (veh_fx_drift, rl, spvel, 1);
-		pointparticles (veh_fx_drift, rr, spvel, 1);
-	}
+		pointparticles (veh_fx_drift, rw, spvel, 3);
 	if (tier == 1)
 		col = 212;		// Blue sparks
 	else if (tier == 2)
@@ -174,34 +176,35 @@ void(entity v, float tier) GK_DriftSparks =
 	else
 		col = 15;		// Neutral white/grey drift dust
 
-	particle (rl, spvel + lft * 40, col, 6 + tier * 4);
-	particle (rr, spvel - lft * 40, col, 6 + tier * 4);
+	particle (rw, spvel + side * 40, col, (6 + tier * 4) * 3);	// <= 54, well under 255 (= explosion)
 	if (tier >= 2 && veh_fx_boost > 0)
-	{
-		pointparticles (veh_fx_boost, rl, spvel, 1);
-		pointparticles (veh_fx_boost, rr, spvel, 1);
-	}
+		pointparticles (veh_fx_boost, rw, spvel, 3);
 };
 
 // Emit twin rear exhaust flames & sparks during Shift Nitro or Mini-Turbo
 void(entity v) GK_BoostExhaust =
 {
-	local vector fwd, lft, ex_l, ex_r;
+	local vector fwd, lft, ex;
 
 	if (veh_fx_boost <= 0)
 		return;
+	// network: alternate the two pipes with 3x count, one message per call (drive frame ticks every 0.05 s, was 2 per 0.035 s)
 	fwd = Veh_Fwd (v.angles_y);
 	lft = Veh_Lft (v.angles_y);
-	ex_l = v.origin - fwd * 44 + lft * 11 + '0 0 14';
-	ex_r = v.origin - fwd * 44 - lft * 11 + '0 0 14';
-	pointparticles (veh_fx_boost, ex_l, fwd * -150, 1);
-	pointparticles (veh_fx_boost, ex_r, fwd * -150, 1);
+	v.gk_ex_side = 1 - v.gk_ex_side;
+	if (v.gk_ex_side)
+		ex = v.origin - fwd * 44 + lft * 11 + '0 0 14';
+	else
+		ex = v.origin - fwd * 44 - lft * 11 + '0 0 14';
+	pointparticles (veh_fx_boost, ex, fwd * -150, 3);
 };
 
-// Clean, compact Nitro & Drift HUD via CSQC-styled centerprint toast
-void(entity p, entity v, float spd) GK_UpdateHUD =
+// Clean, compact Nitro & Drift HUD via centerprint toast. Network: a ~180 B reliable message, so it is only resent
+// when what it shows changes (10% nitro steps, colour, tag; no live speed number), at most 2x a second by the caller,
+// plus a 1.5 s keep-alive so the centerprint (scr_centertime 2) never fades while the text is unchanged.
+void(entity p, entity v, float dirty) GK_UpdateHUD =
 {
-	local float pct, segs, i;
+	local float pct, segs, i, cidx, tidx, key;
 	local string bar, ncolor, tag, line1, line2;
 
 	if (p.ishuman != 1)
@@ -215,10 +218,41 @@ void(entity p, entity v, float spd) GK_UpdateHUD =
 		segs = 0;
 
 	if (v.gk_boosting)
-		ncolor = "^x0ff";
+		cidx = 0;
 	else if (pct >= 60)
-		ncolor = "^2";
+		cidx = 1;
 	else if (pct >= 25)
+		cidx = 2;
+	else
+		cidx = 3;
+
+	if (v.gk_boosting)
+		tidx = 1;
+	else if (time < v.gk_boost_t)
+		tidx = 2;
+	else if (v.gk_drift_tier == 3)
+		tidx = 3;
+	else if (v.gk_drift_tier == 2)
+		tidx = 4;
+	else if (v.gk_drift_tier == 1)
+		tidx = 5;
+	else if (v.veh_air && v.gk_air_t > 0.25)
+		tidx = 6;
+	else
+		tidx = 0;
+
+	key = segs + 11 * cidx + 44 * tidx;
+	if (!dirty && v.gk_hud_t > 0 && key == v.gk_hud_key && time < v.gk_hud_keep)
+		return;		// gk_hud_t == 0: just entered (vehicle_drive.qc), always send
+	v.gk_hud_key = key;
+	v.gk_hud_keep = time + 1.5;
+	v.gk_hud_t = time + 0.5;
+
+	if (cidx == 0)
+		ncolor = "^x0ff";
+	else if (cidx == 1)
+		ncolor = "^2";
+	else if (cidx == 2)
 		ncolor = "^3";
 	else
 		ncolor = "^1";
@@ -235,21 +269,21 @@ void(entity p, entity v, float spd) GK_UpdateHUD =
 	}
 
 	tag = "";
-	if (v.gk_boosting)
+	if (tidx == 1)
 		tag = "  ^x0ff>> NITRO <<";
-	else if (time < v.gk_boost_t)
+	else if (tidx == 2)
 		tag = "  ^xfe4>> TURBO! <<";
-	else if (v.gk_drift_tier == 3)
+	else if (tidx == 3)
 		tag = "  ^xe4f[PURPLE MT]";
-	else if (v.gk_drift_tier == 2)
+	else if (tidx == 4)
 		tag = "  ^xfa0[ORANGE MT]";
-	else if (v.gk_drift_tier == 1)
+	else if (tidx == 5)
 		tag = "  ^4[BLUE MT]";
-	else if (v.veh_air && v.gk_air_t > 0.25)
+	else if (tidx == 6)
 		tag = "  ^5[AIR +NITRO]";
 
-	line1 = strcat ("^3NITRO ^7[", ncolor, bar, "^7] ", ncolor, ftos (pct));
-	line1 = strcat (line1, "%  ^7| ^5", ftos (floor (spd)), " u/s", tag);
+	line1 = strcat ("^3NITRO ^7[", ncolor, bar, "^7] ", ncolor, ftos (segs * 10));
+	line1 = strcat (line1, "%", tag);
 	line2 = "^7WASD Drive  ^3SPACE^7 Hop/Drift  ^3SHIFT^7 Nitro  ^3M1^7 Horn  ^3K^7 Cam  ^3H^7 Exit";
 	centerprint (p, strcat (line1, "\n", line2));
 };
@@ -274,6 +308,10 @@ float(entity v, entity driver) GK_CheckPads =
 
 	if (time < v.gk_pad_cool)
 		return FALSE;
+	// two find() walks over every entity: 20 Hz is plenty (75 u at full nitro, shorter than the 104 u kart)
+	if (time < v.gk_pad_scan_t)
+		return FALSE;
+	v.gk_pad_scan_t = time + 0.05;
 
 	bmin = v.origin + '-52 -36 -4';
 	bmax = v.origin + '52 36 44';
@@ -625,8 +663,8 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	local float pitch_tgt, roll_tgt, hud_dirty, pass, old_solid, climbed, is_boosted;
 	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag;
 	local vector fwd, lft, fwd1, lft1, vel, vel_world, org0, org1, org2, n, tang;
-	local entity hit, restore1, restore2, restore3;
-	local float rsol1, rsol2, rsol3, rcnt;
+	local entity hit, restore1, restore2, restore3, restore4;
+	local float rsol1, rsol2, rsol3, rsol4, rcnt, gone;
 
 	hud_dirty = FALSE;
 	started = (time >= v.veh_start_t);
@@ -790,7 +828,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			}
 			if (time >= v.gk_drift_fx_t)
 			{
-				v.gk_drift_fx_t = time + 0.055;
+				v.gk_drift_fx_t = time + 0.08;		// one wheel per tick, 3x count (GK_DriftSparks)
 				GK_DriftSparks (v, v.gk_drift_tier);
 				if (time >= v.veh_skid_t)
 				{
@@ -1012,9 +1050,12 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	org1_y = org0_y + vel_y * dt;
 
 	rcnt = 0;
+	gone = FALSE;
 	restore1 = world;
 	restore2 = world;
 	restore3 = world;
+	restore4 = world;
+	rsol1 = rsol2 = rsol3 = rsol4 = SOLID_NOT;
 	pass = 0;
 	while (pass < 4)
 	{
@@ -1027,14 +1068,22 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			hit = vd_hitent;
 			old_solid = hit.solid;
 			GK_RamLiving (v, hit, spd);
+			// the ram's frag may have released the driver (match end / intermission): stop driving him
+			if (p.veh_van != v || bm_wasfreed (v))
+			{
+				gone = TRUE;
+				break;
+			}
 			vel = vel * 0.95;
 			org1 = org0;
 			org1_x = org0_x + vel_x * dt;
 			org1_y = org0_y + vel_y * dt;
 			hit.solid = SOLID_NOT;
+			// one restore slot per pass (4), so no rammed body is left SOLID_NOT for good
 			if (rcnt == 0) { restore1 = hit; rsol1 = old_solid; }
 			else if (rcnt == 1) { restore2 = hit; rsol2 = old_solid; }
 			else if (rcnt == 2) { restore3 = hit; rsol3 = old_solid; }
+			else { restore4 = hit; rsol4 = old_solid; }
 			rcnt = rcnt + 1;
 			pass = pass + 1;
 			continue;
@@ -1058,7 +1107,14 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		{
 			imp = 0 - vn;
 			if (vd_hitent != world && (vd_hitent.veh_kind > 0 || vd_hitent.classname == "veh_van_clip"))
+			{
 				GK_RamVehicle (v, vd_hitent, imp);
+				if (p.veh_van != v || bm_wasfreed (v))
+				{
+					gone = TRUE;
+					break;
+				}
+			}
 
 			if (fabs (vn) < max (120, spd * 0.35))
 			{
@@ -1110,6 +1166,16 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			}
 		}
 		break;
+	}
+
+	if (gone)
+	{
+		// driver was let go during the ram: put back the bodies we made SOLID_NOT and leave the kart alone
+		if (restore1 != world && restore1.health > 0) restore1.solid = rsol1;
+		if (restore2 != world && restore2.health > 0) restore2.solid = rsol2;
+		if (restore3 != world && restore3.health > 0) restore3.solid = rsol3;
+		if (restore4 != world && restore4.health > 0) restore4.solid = rsol4;
+		return TRUE;
 	}
 
 	// ---- Vertical Ground Follow, Airtime & Landing Boost
@@ -1206,7 +1272,19 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	if (restore1 != world && restore1.health > 0) restore1.solid = rsol1;
 	if (restore2 != world && restore2.health > 0) restore2.solid = rsol2;
 	if (restore3 != world && restore3.health > 0) restore3.solid = rsol3;
+	if (restore4 != world && restore4.health > 0) restore4.solid = rsol4;
 	Veh_DriveBounds (v);
+
+	// Out of the world: setorigin movement never touches trigger_hurt/teleporters, so a kart that drops below the map
+	// or into sky would fall forever and a map kart would never respawn. Blow it up the deferred way (on its own think).
+	if (v.veh_chain_t == 0 && ((world.maxs_z > world.mins_z && v.origin_z < world.mins_z - 64) || pointcontents (v.origin + '0 0 8') == CONTENT_SKY || pointcontents (v.origin - '0 0 4') == CONTENT_SKY))
+	{
+		v.health = 1;
+		v.takedamage = DAMAGE_NO;
+		v.veh_chain_t = time;
+		v.think = Veh_Think;
+		v.nextthink = time;
+	}
 
 	// ---- Engine Revs, Boost Exhaust & Animation Frame Sync
 	spd = vlen (vel);
@@ -1219,7 +1297,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 
 	if (is_boosted && time >= v.veh_fx_boost_t)
 	{
-		v.veh_fx_boost_t = time + 0.035;
+		v.veh_fx_boost_t = time + 0.05;		// one pipe per tick, 3x count (GK_BoostExhaust)
 		GK_BoostExhaust (v);
 	}
 
@@ -1235,12 +1313,9 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.veh_anim = 12;
 	}
 
-	// ---- Nitro / Drift / Speed HUD
-	if (hud_dirty || time >= v.gk_hud_t)
-	{
-		v.gk_hud_t = time + 0.11;
-		GK_UpdateHUD (p, v, spd);
-	}
+	// ---- Nitro / Drift HUD: at most 2 Hz, and only when its text changes (GK_UpdateHUD sets gk_hud_t)
+	if (time >= v.gk_hud_t)
+		GK_UpdateHUD (p, v, hud_dirty);
 
 	// ---- Seat Driver & Update Mario Kart Chase Camera
 	setorigin (p, v.origin - Veh_Fwd (yaw1) * 9 + '0 0 18');

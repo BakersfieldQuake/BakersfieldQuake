@@ -4,9 +4,13 @@
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, rebuilds zz_bakovan.pk3 and zz_karts.pk3 from the zip's own bakersfield.pk3, then publishes three per-OS packages:
 #
-#   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (currently darkplaces.exe at root).
+#   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
+#
+# The base must be a fresh lan/make_lan_package.ps1 build (Zircon layout, menu.dat, today's maps, no id1 paks): server.cfg
+# and quake.rc are only overlaid onto such a base, and "Check the package" fails the run (nothing is published) when
+# progs.dat/menu.dat/the engine/a map named in server.cfg is missing, or when id1/pak0.pak or pak1.pak would ship.
 #
 # Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces). On first run every
 # launcher looks for the player's own Quake pak0/pak1 (Steam, GOG, usual folders, then Downloads) and copies them into
@@ -90,10 +94,18 @@ jobs:
 
       - name: Overlay repo configs
         # lan_server.cfg is written at run time by tools/lanscan.ps1, so the repo copy is not shipped.
+        # server.cfg and quake.rc depend on the base's game data (maps, menu.dat, Zircon), so they are only laid over a
+        # base built by make_lan_package; on an older base the base's own copies stay (and "Check the package" fails it).
         run: |
           game=out/BAKOQUAKE/BakersfieldQuake
+          fresh_base=1
+          if [ ! -f "$game/menu.dat" ] || [ ! -f out/BAKOQUAKE/engine/zircon_beta_gcc.exe ]; then
+            fresh_base=0
+            echo "::warning::Base $BASE is not a make_lan_package (Zircon) build: keeping its own server.cfg and quake.rc."
+          fi
           for f in repo/*.cfg repo/quake.rc; do
             [ "$(basename "$f")" = lan_server.cfg ] && continue
+            case "$(basename "$f")" in server.cfg|quake.rc) [ "$fresh_base" = 1 ] || continue ;; esac
             if ! cmp -s "$f" "$game/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
             cp "$f" "$game/"
           done
@@ -122,6 +134,77 @@ jobs:
       - name: Build zz_karts.pk3
         run: |
           python -I repo/source/mm_tools/build_gokart_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 out/BAKOQUAKE/BakersfieldQuake/zz_karts.pk3
+
+      - name: Check the package
+        # Fails the run before anything is zipped or published when the package could not start a game or a server.
+        run: |
+          python -I - out/BAKOQUAKE <<'EOF'
+          import os, re, struct, sys, zipfile
+
+          root = sys.argv[1]
+          errors = []
+
+          for rel in ("BakersfieldQuake/progs.dat", "BakersfieldQuake/menu.dat", "BakersfieldQuake/csprogs.dat",
+                      "engine/zircon_beta_gcc.exe", "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh"):
+              if not os.path.isfile(os.path.join(root, rel)):
+                  errors.append(f"missing {rel}")
+          for rel in ("id1/pak0.pak", "id1/pak1.pak"):
+              if os.path.exists(os.path.join(root, rel)):
+                  errors.append(f"{rel} is id Software's paid Quake data and must not ship (the launchers find the player's own)")
+
+          # Every map the package holds: loose maps/*.bsp and maps/ inside the pk3s/paks of each game dir.
+          maps = set()
+          for game in ("id1", "quake15", "BakersfieldQuake"):
+              gdir = os.path.join(root, game)
+              if not os.path.isdir(gdir):
+                  continue
+              if os.path.isdir(os.path.join(gdir, "maps")):
+                  maps.update(f.lower() for f in os.listdir(os.path.join(gdir, "maps")))
+              for f in os.listdir(gdir):
+                  path = os.path.join(gdir, f)
+                  if f.lower().endswith(".pk3"):
+                      with zipfile.ZipFile(path) as z:
+                          maps.update(n[5:].lower() for n in z.namelist() if n.lower().startswith("maps/"))
+                  elif f.lower().endswith(".pak"):
+                      with open(path, "rb") as fh:
+                          magic, off, size = struct.unpack("<4sii", fh.read(12))
+                          if magic == b"PACK":
+                              fh.seek(off)
+                              for _ in range(size // 64):
+                                  name = fh.read(64)[:56].split(b"\0")[0].decode("latin-1").lower()
+                                  if name.startswith("maps/"):
+                                      maps.add(name[5:])
+
+          # server.cfg: the first map (map X) and every map in the bm_maplist rotation.
+          cfg = os.path.join(root, "BakersfieldQuake", "server.cfg")
+          wanted = []
+          if os.path.isfile(cfg):
+              for line in open(cfg, encoding="latin-1"):
+                  line = line.split("//", 1)[0].strip()
+                  m = re.match(r'(?:seta?\s+)?bm_maplist\s+(?:"([^"]*)"|(\S+))', line)
+                  if m:
+                      wanted += (m.group(1) if m.group(1) is not None else m.group(2)).split()
+                  m = re.match(r'(?:map|changelevel)\s+"?([^\s";]+)', line)
+                  if m:
+                      wanted.append(m.group(1))
+          else:
+              errors.append("missing BakersfieldQuake/server.cfg")
+          for name in dict.fromkeys(wanted):
+              if name.lower() + ".bsp" not in maps:
+                  errors.append(f"server.cfg names map '{name}' but maps/{name}.bsp is not in the package")
+
+          # quake.rc's key/setting migrations: every exec'd bm_up_N.cfg must ship.
+          rc = os.path.join(root, "BakersfieldQuake", "quake.rc")
+          if os.path.isfile(rc):
+              for n in sorted(set(re.findall(r"exec\s+(bm_up_\d+\.cfg)", open(rc, encoding="latin-1").read()))):
+                  if not os.path.isfile(os.path.join(root, "BakersfieldQuake", n)):
+                      errors.append(f"quake.rc execs {n} but it is not in the package")
+
+          print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
+          for e in errors:
+              print(f"::error::{e}")
+          sys.exit(1 if errors else 0)
+          EOF
 
       - name: Zip the Windows package (master)
         # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.

@@ -179,6 +179,7 @@ float(float fld, float hostnr) getserverlistnumber = #621;
 float(string key) getserverlistindexforkey = #622;
 void(string key) addwantedserverlistkey = #623;
 string(string fmt, ...) sprintf = #627;
+float(string url, float id, ...) uri_get = #513;
 
 // Serverlist field indices
 var float SLIST_CNAME = 0;
@@ -205,6 +206,7 @@ float PAGE_MAIN = 0;
 float PAGE_BROWSER = 1;
 float PAGE_HOST = 2;
 float PAGE_OPTIONS = 3;
+float PAGE_REPLAYS = 4;
 
 // Active text input IDs
 float INPUT_NONE = 0;
@@ -252,3 +254,4 @@ void(float mode) m_toggle;
 void() m_newmap;
 float(float entry) m_gethostcachecategory;
 void(float width, float height, float defwidth, float defheight) m_drawloading;
+void(float id, float status, string data) URI_Get_Callback;

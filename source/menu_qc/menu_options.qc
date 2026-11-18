@@ -209,7 +209,7 @@ void() BM_Opt_ApplyGraphicsDefaults =
 	cvar_set("bm_hud_style", "0");
 	cvar_set("bm_bot_tags", "1");
 	cvar_set("bm_player_tags", "1");
-	cvar_set("showfps", "0");
+	cvar_set("showfps", "1");
 	localcmd("saveconfig\n");
 	BM_Opt_SetStatus("CLEAN GRAPHICS DEFAULTS APPLIED");
 };
@@ -533,9 +533,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 	rh = 18;
 	gap = 2;
 	live_drag = BM_Opt_IsLiveColorDrag();
-
-	if (stof(cvar_string("v_glslgamma_2d")) == 0)
-		cvar_set("v_glslgamma_2d", "1");
+	// v_glslgamma_2d is no longer forced here every frame; RESET DEFAULTS sets it.
 
 	vis = max(1, floor((ih + gap) / (rh + gap)));
 	max_scroll = max(0, OPT_VID_COUNT - vis);
@@ -594,6 +592,18 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 	}
 };
 
+// Simple Mode is judged from the render cvars BM_Opt_ApplySimpleMode turns off,
+// not from `lowspec` (the old Combat+ CSQC menu toggles lowspec for decals only).
+float() BM_Opt_IsSimpleMode =
+{
+	if (stof(cvar_string("r_bloom")) != 0) return FALSE;
+	if (stof(cvar_string("r_shadow_realtime_dlight")) != 0) return FALSE;
+	if (stof(cvar_string("r_shadow_gloss")) != 0) return FALSE;
+	if (stof(cvar_string("r_glsl_offsetmapping")) != 0) return FALSE;
+	if (stof(cvar_string("r_water")) != 0) return FALSE;
+	return TRUE;
+};
+
 void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Options_DrawGraphicsRow =
 {
 	local float st, v, mi, on;
@@ -601,7 +611,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 
 	if (idx == 0)
 	{
-		on = (stof(cvar_string("lowspec")) != 0);
+		on = BM_Opt_IsSimpleMode();
 		st = BM_DrawStepper(ix, ry, iw, rh, "SIMPLE MODE", on ? "On" : "Off", FALSE, clicked);
 		if (st != 0)
 		{
@@ -612,7 +622,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 	}
 	else if (idx == 1)
 	{
-		if (stof(cvar_string("lowspec")) != 0) { mi = 0; lbl = "Simple"; }
+		if (BM_Opt_IsSimpleMode()) { mi = 0; lbl = "Simple"; }
 		else if (stof(cvar_string("r_water")) != 0 || stof(cvar_string("r_shadow_glossexact")) != 0) { mi = 2; lbl = "Pretty"; }
 		else { mi = 1; lbl = "Default"; }
 		st = BM_DrawStepper(ix, ry, iw, rh, "GRAPHICS PRESET", lbl, FALSE, clicked);

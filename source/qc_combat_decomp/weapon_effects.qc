@@ -90,6 +90,10 @@ void(float eftype) sparklers =
 void() muzzle_think =
 {
 	self.ltime = (self.ltime + 1);
+	if ((self.ltime == 1))
+	{
+		self.delay = (time + 0.05);	// gone ~0.06 s after the spawn (+0.01 first think): by time, so the think rate can't stretch it
+	}
 	if (((self.model == "progs/shot_muzz.spr") || (self.model == "progs/shot_muzz_b.spr")))
 	{
 		self.scale = (self.scale + 0.05);
@@ -100,7 +104,7 @@ void() muzzle_think =
 	}
 	self.think = muzzle_think;
 	self.nextthink = (time + 0.015);
-	if ((self.ltime > 5.65))
+	if ((time >= self.delay))
 	{
 		remove(self);
 	}
@@ -126,6 +130,10 @@ void() muzzle_small_think =
 	}
 	else
 	{
+		if ((self.ltime == 1))
+		{
+			self.delay = (time + 0.05);	// by time, not think count (see muzzle_think)
+		}
 		self.nextthink = (time + 0.015);
 		if ((((self.model == "progs/sng_muzz.spr") || (self.model == "progs/sng_muzz_b.spr")) || (self.model == "progs/shot_muzz_b.spr")))
 		{
@@ -136,7 +144,7 @@ void() muzzle_small_think =
 		{
 			self.scale = (self.scale + 0.1);
 		}
-		if ((self.ltime > 5.65))
+		if ((time >= self.delay))
 		{
 			remove(self);
 		}

@@ -118,6 +118,7 @@ void() CSQC_Init =
 	updateScreenSize();
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
+	precache_pic("progs/mmt_aim_beam");
 };
 
 void() CSQC_Shutdown =
@@ -141,14 +142,117 @@ void() CSQC_Shutdown =
 	saveCFG();
 };
 
+// Mega Man Tank trajectory aiming line & impact reticle (stats 86..92 from mm_tank.qc; the server sends them as
+// clientstat type 2 = whole numbers, so read them with getstati: getstatf would reinterpret the int bits as a float)
+vector(vector a, vector b) MMT_Cross =
+{
+	local vector c;
+	c_x = a_y * b_z - a_z * b_y;
+	c_y = a_z * b_x - a_x * b_z;
+	c_z = a_x * b_y - a_y * b_x;
+	return c;
+};
+
+void() MMT_DrawAimLine3D =
+{
+	local float act, dist0, dist1, w0, w1, alpha;
+	local vector p0, p1, cam_org, dir, s0, s1, col, c;
+
+	act = getstati(86);
+	if (act <= 0)
+		return;
+
+	p0_x = getstati(87);
+	p0_y = getstati(88);
+	p0_z = getstati(89);
+	p1_x = getstati(90);
+	p1_y = getstati(91);
+	p1_z = getstati(92);
+	if (vlen(p1 - p0) < 2)
+		return;
+
+	cam_org = getpropertyvec(VF_ORIGIN);
+	dir = normalize(p1 - p0);
+	s0 = MMT_Cross(dir, p0 - cam_org);
+	if (vlen(s0) < 0.001)
+		s0 = '0 1 0';
+	else
+		s0 = normalize(s0);
+	s1 = MMT_Cross(dir, p1 - cam_org);
+	if (vlen(s1) < 0.001)
+		s1 = s0;
+	else
+		s1 = normalize(s1);
+
+	dist0 = vlen(p0 - cam_org);
+	dist1 = vlen(p1 - cam_org);
+	w0 = bound(0.9, dist0 * 0.0022, 2.2);
+	w1 = bound(1.2, dist1 * 0.0022, 6.0);
+
+	if (act == 1)
+	{
+		col = '0.20 0.96 1.00';
+		alpha = 0.85;
+	}
+	else
+	{
+		col = '1.00 0.62 0.16';
+		alpha = 0.45;
+		w0 = w0 * 0.75;
+		w1 = w1 * 0.75;
+	}
+	c = col * alpha;
+
+	R_BeginPolygon("progs/mmt_aim_beam", 0, FALSE);
+	R_PolygonVertex(p0 - s0 * w0, '0 0 0', c, alpha);
+	R_PolygonVertex(p0 + s0 * w0, '0 1 0', c, alpha);
+	R_PolygonVertex(p1 + s1 * w1, '1 1 0', c, alpha);
+	R_PolygonVertex(p1 - s1 * w1, '1 0 0', c, alpha);
+	R_EndPolygon();
+};
+
+void(float w, float h) MMT_DrawAimReticle2D =
+{
+	local float act, r;
+	local vector p1, sp, col;
+
+	act = getstati(86);
+	if (act <= 0)
+		return;
+
+	p1_x = getstati(90);
+	p1_y = getstati(91);
+	p1_z = getstati(92);
+	sp = cs_project(p1);
+	if (sp_z <= 0 || sp_x < 6 || sp_x > w - 6 || sp_y < 6 || sp_y > h - 6)
+		return;
+
+	if (act == 1)
+	{
+		col = '0.20 0.96 1.00';
+		r = 6;
+	}
+	else
+	{
+		col = '1.00 0.62 0.16';
+		r = 5;
+	}
+	// Four crisp corner ticks around the exact projectile impact point
+	drawfill((sp_x - r) * '1 0 0' + (sp_y - 0.5) * '0 1 0', '3 1 0', col, 0.9, 0);
+	drawfill((sp_x + r - 3) * '1 0 0' + (sp_y - 0.5) * '0 1 0', '3 1 0', col, 0.9, 0);
+	drawfill((sp_x - 0.5) * '1 0 0' + (sp_y - r) * '0 1 0', '1 3 0', col, 0.9, 0);
+	drawfill((sp_x - 0.5) * '1 0 0' + (sp_y + r - 3) * '0 1 0', '1 3 0', col, 0.9, 0);
+};
+
 void(float w, float h) CSQC_UpdateView =
 {
-	local float bm_intro, hud_style, cw, ch, fd_mode;
+	local float bm_intro, hud_style, cw, ch, fd_mode, jb_active;
 
 	initConvars();
 	clearscene();
 	bm_intro = getstati(69);
 	fd_mode = getstati(BMST_FD_MODE);
+	jb_active = getstati(BMST_JB_ACTIVE);
 	hud_style = cvar("bm_hud_style");
 	if (bm_intro)
 	{
@@ -165,7 +269,10 @@ void(float w, float h) CSQC_UpdateView =
 		}
 		else
 		{
-			setproperty(VF_DRAWCROSSHAIR, TRUE);
+			if (jb_active > 0)
+				setproperty(VF_DRAWCROSSHAIR, FALSE);
+			else
+				setproperty(VF_DRAWCROSSHAIR, TRUE);
 			if (hud_style >= 1 && hud_style <= 4)
 				setproperty(VF_DRAWENGINESBAR, FALSE);
 			else
@@ -180,6 +287,8 @@ void(float w, float h) CSQC_UpdateView =
 	addentities(MASK_ENGINE);
 	if (fd_mode == 1 || fd_mode == 2)
 		RH_AddXRayEntities();
+	if (!inMenu && !bm_intro)
+		MMT_DrawAimLine3D();
 	renderscene();
 	if (bm_intro)
 	{
@@ -193,35 +302,41 @@ void(float w, float h) CSQC_UpdateView =
 		fade_camera();
 		if (fd_mode > 0)
 		{
-			RH_DrawXRayHUD(w, h);
-		}
-		else if (hud_style >= 1 && hud_style <= 4)
-		{
-			cw = vid_conwidth;
-			ch = vid_conheight;
-			if (cw <= 0)
-				cw = cvar("vid_conwidth");
-			if (ch <= 0)
-				ch = cvar("vid_conheight");
-			if (cw <= 0)
-				cw = w;
-			if (ch <= 0)
-				ch = h;
-			setHUDparms();
-			getItems();
-			if (hud_style == 1)
-				HUD_DrawStyle1(cw, ch);
-			else if (hud_style == 2)
-				HUD_DrawStyle2(cw, ch);
-			else if (hud_style == 3)
-				HUD_DrawStyle3(cw, ch);
-			else
-				HUD_DrawStyle4(cw, ch);
+			RH_DrawXRayHUD(w, h);	// also draws the bottom-left centerprint toast (BM_DrawCenterPrint), which the normal HUD path draws otherwise
 		}
 		else
 		{
-			DrawHUD();
-			BM_DrawHUD(w, h);	// Bakersfield LAN: reload bar, magazine, leader banner (bm_hud.qc)
+			MMT_DrawAimReticle2D(w, h);
+			if (hud_style >= 1 && hud_style <= 4)
+			{
+				cw = vid_conwidth;
+				ch = vid_conheight;
+				if (cw <= 0)
+					cw = cvar("vid_conwidth");
+				if (ch <= 0)
+					ch = cvar("vid_conheight");
+				if (cw <= 0)
+					cw = w;
+				if (ch <= 0)
+					ch = h;
+				setHUDparms();
+				getItems();
+				if (hud_style == 1)
+					HUD_DrawStyle1(cw, ch);
+				else if (hud_style == 2)
+					HUD_DrawStyle2(cw, ch);
+				else if (hud_style == 3)
+					HUD_DrawStyle3(cw, ch);
+				else
+					HUD_DrawStyle4(cw, ch);
+			}
+			else
+			{
+				DrawHUD();
+				BM_DrawHUD(w, h);	// Bakersfield LAN: reload bar, magazine, leader banner (bm_hud.qc)
+			}
+			if (!intermission && !finale && !inMenu)
+				JB_DrawHUD(w, h);
 		}
 		displayIntro();
 		DrawLevelName('0.9 0.1 0');

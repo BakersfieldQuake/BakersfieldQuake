@@ -312,6 +312,11 @@ void() Hammer_PlayerFrame =
 		self.hm_state = 0;		// put away, or Combat+'s kick / grenade throw took over the hands
 		return;
 	}
+	if (self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || self.fd_head != world)
+	{
+		self.hm_state = 0;		// flying Winged John / a Rob Dob head or driving: fire belongs to the vehicle, no charge or swing
+		return;
+	}
 
 	// R (BM_RELOAD_IMPULSE) with the hammer out: the spinny twirl (leaves key 1 free to toggle Bonk Hammer <-> Chainsaw!)
 	if (self.impulse == BM_RELOAD_IMPULSE)

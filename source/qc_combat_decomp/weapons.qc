@@ -223,7 +223,7 @@ void() HIP_LaserTouch =
 		if ((self.lastvictim == other) && (self.cnt > 1))
 		{
 			// ricocheting yellow C's don't self-murder the shooter in tight hallways
-			sendParticle("ccc_impact", org, VEC_ORIGIN, 1);
+			sendParticle("ccc_impact", org, VEC_ORIGIN, 1, 0);
 			sound(self, CHAN_WEAPON, "weapons/goostick.wav", 1, ATTN_STATIC);
 			remove(self);
 			return;
@@ -241,14 +241,14 @@ void() HIP_LaserTouch =
 		{
 			T_Damage(other, self, self.lastvictim, self.dmg);
 		}
-		sendParticle("ccc_impact", org, VEC_ORIGIN, 1);
+		sendParticle("ccc_impact", org, VEC_ORIGIN, 1, 0);
 		laserdie();
 	}
 	else
 	{
 		if (((self.cnt == 3) || (random() < 0.15)))
 		{
-			sendParticle("ccc_impact", org, VEC_ORIGIN, 1);
+			sendParticle("ccc_impact", org, VEC_ORIGIN, 1, 0);
 			laserdie();
 		}
 		else
@@ -672,11 +672,11 @@ void() W_FireAxe =
 			{
 				if ((autocvar_shootablebuttonsandsecrets == 1))
 				{
-					sendParticle("secret", org, VEC_ORIGIN, 1);
+					sendParticle("secret", org, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+					sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 				}
 				if ((trace_ent.classtype != CT_FUNCBREAK))
 				{
@@ -827,7 +827,7 @@ void() W_FireAxe =
 			tex = getsurfacetexture(world, surfacenum);
 			if ((returnsurface(tex) == GROUND))
 			{
-				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1);
+				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
 				sound7(self, CHAN_AUTO, "player/kickhitw.wav", 1, ATTN_NORM, SNDSPD);
 				return;
 			}
@@ -835,7 +835,7 @@ void() W_FireAxe =
 			{
 				if ((returnsurface(tex) == MEAT))
 				{
-					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1);
+					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
 					sound7(self, CHAN_WEAPON, "kickgib/gib_hit.wav", 1, ATTN_NORM, SNDSPD);
 					return;
 				}
@@ -858,7 +858,7 @@ void() W_FireAxe =
 		}
 		if ((self.meleeing == 1))
 		{
-			sendParticle("TE_DIRT", org, VEC_ORIGIN, 1);
+			sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
 		}
 		else
 		{
@@ -965,7 +965,7 @@ void(vector org, vector vel, float damage) SpawnBlood =
 	}
 	if (trace_ent.veh_kind)
 	{
-		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 		return;
 	}
 	if (trace_ent.bike_kind || other.bike_kind)
@@ -975,7 +975,7 @@ void(vector org, vector vel, float damage) SpawnBlood =
 			other.bike_hit_pos = org;
 			other.bike_hit_t = time;
 		}
-		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 		return;
 	}
 	if (trace_ent.classname == "npc_beach_uncle")
@@ -985,7 +985,7 @@ void(vector org, vector vel, float damage) SpawnBlood =
 	}
 	if ((((trace_ent.classname == "ShalrathMissile") || (trace_ent.classname == "monster_jim")) || (trace_ent.classname == "func_breakable")))
 	{
-		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 		return;
 	}
 	if ((trace_ent.dodge_finished < time))
@@ -1044,7 +1044,7 @@ void() W_FireSaw =
 		}
 		if (((trace_ent.classname == "func_breakable") || (trace_ent.classname == "light_fluoropost")))
 		{
-			sendParticle("TE_SUPERSPIKE", org, VEC_ORIGIN, 1);
+			sendParticle("TE_SUPERSPIKE", org, VEC_ORIGIN, 1, 0);
 		}
 		else
 		{
@@ -1068,7 +1068,7 @@ void() W_FireSaw =
 				{
 					CeilSplat();
 				}
-				sendParticle("blood_saw", org, VEC_ORIGIN, 1);
+				sendParticle("blood_saw", org, VEC_ORIGIN, 1, 0);
 			}
 		}
 		if (((((trace_ent.model == "progs/zombie_noarms.mdl") || (trace_ent.model == "progs/zombie1_noarms.mdl")) || (trace_ent.model == "progs/zombie_new.mdl")) || (trace_ent.meleeattack > 7)))
@@ -1115,14 +1115,14 @@ void() W_FireSaw =
 			tex = getsurfacetexture(world, surfacenum);
 			if ((returnsurface(tex) == GROUND))
 			{
-				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1);
+				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
 				return;
 			}
 			else
 			{
 				if ((returnsurface(tex) == MEAT))
 				{
-					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1);
+					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
 					return;
 				}
 				else
@@ -1231,7 +1231,7 @@ void(float damage, vector dir) TraceAttack =
 	{
 		if (trace_ent.veh_kind)
 		{
-			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 			AddMultiDamage(trace_ent, damage);
 			return;
 		}
@@ -1239,7 +1239,7 @@ void(float damage, vector dir) TraceAttack =
 		{
 			trace_ent.bike_hit_pos = trace_endpos;
 			trace_ent.bike_hit_t = time;
-			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 			AddMultiDamage(trace_ent, damage);
 			return;
 		}
@@ -1266,16 +1266,16 @@ void(float damage, vector dir) TraceAttack =
 				{
 					if ((self.weapon == IT_SUPER_SHOTGUN))
 					{
-						sendParticle("secret_shot2", org, VEC_ORIGIN, 1);
+						sendParticle("secret_shot2", org, VEC_ORIGIN, 1, 0);
 					}
 					else
 					{
-						sendParticle("secret_shot1", org, VEC_ORIGIN, 1);
+						sendParticle("secret_shot1", org, VEC_ORIGIN, 1, 0);
 					}
 				}
 				else
 				{
-					sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1);
+					sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 				}
 				AddMultiDamage(trace_ent, damage);
 				return;
@@ -1335,13 +1335,13 @@ void(float damage, vector dir) TraceAttack =
 						if ((trace_ent.classname == "monster_hell_knight"))
 						{
 							ThrowBloodSplat(dir, trace_endpos, trace_ent, (entity)1073741824i, (entity)0i);
-							sendParticle("sparks", org, VEC_ORIGIN, 1);
+							sendParticle("sparks", org, VEC_ORIGIN, 1, 0);
 						}
 						else
 						{
 							if ((trace_ent.classname == "monster_hell_knight2"))
 							{
-								sendParticle("sparks", org, VEC_ORIGIN, 1);
+								sendParticle("sparks", org, VEC_ORIGIN, 1, 0);
 								if ((trace_ent.dodge_finished < time))
 								{
 									ThrowBloodSplat(dir, trace_endpos, trace_ent, (entity)1073741824i, (entity)0i);
@@ -1370,7 +1370,7 @@ void(float damage, vector dir) TraceAttack =
 										if ((trace_ent.classname == "monster_knight"))
 										{
 											ThrowBloodSplat(dir, trace_endpos, trace_ent, (entity)1073741824i, (entity)0i);
-											sendParticle("sparks", org, VEC_ORIGIN, 1);
+											sendParticle("sparks", org, VEC_ORIGIN, 1, 0);
 										}
 										else
 										{
@@ -1488,14 +1488,14 @@ void(float damage, vector dir) TraceAttack =
 				tex = getsurfacetexture(world, surfacenum);
 				if ((returnsurface(tex) == GROUND))
 				{
-					sendParticle("TE_DIRT", org, VEC_ORIGIN, 1);
+					sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
 					return;
 				}
 				else
 				{
 					if ((returnsurface(tex) == MEAT))
 					{
-						sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1);
+						sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
 						return;
 					}
 					else
@@ -1539,7 +1539,7 @@ void(vector org) spawn_splash =
 	setorigin(en, org);
 	en.nextthink = (time + 1);
 	en.think = SUB_Remove;
-	sendParticle("watersplash", org, VEC_ORIGIN, 1);
+	sendParticle("watersplash", org, VEC_ORIGIN, 1, 0);
 	precache_sound("player/watersplash.wav");
 	sound(en, CHAN_VOICE, "player/watersplash.wav", 0.8, ATTN_IDLE);
 };
@@ -1552,7 +1552,7 @@ void(vector org) spawn_lavasplash =
 	setorigin(en, org);
 	en.nextthink = (time + 1);
 	en.think = SUB_Remove;
-	sendParticle("lavasplash", org, VEC_ORIGIN, 1);
+	sendParticle("lavasplash", org, VEC_ORIGIN, 1, 0);
 	precache_sound("ambience/lavasplash_shotgun.wav");
 	sound(en, CHAN_VOICE, "ambience/lavasplash_shotgun.wav", 0.8, ATTN_IDLE);
 };
@@ -1971,23 +1971,23 @@ void() W_FireShotgun =
 	{
 		if (cvar("chase_active"))
 		{
-			sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -10.5)) + (v_right * 4)) + (v_forward * 15)), (self.velocity * 50), 1);
+			sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -10.5)) + (v_right * 4)) + (v_forward * 15)), (self.velocity * 50), 1, 0);
 		}
 		else
 		{
 			if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
 			{
-				sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * 7)), (self.velocity * 50), 1);
+				sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * 7)), (self.velocity * 50), 1, 0);
 			}
 			else
 			{
 				if ((!autocvar_weapon_position_right && autocvar_weapon_position_fully_adjustable))
 				{
-					sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot1_offset)), (self.velocity * 50), 1);
+					sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot1_offset)), (self.velocity * 50), 1, 0);
 				}
 				else
 				{
-					sendParticle("shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)), (self.velocity * 50), 1);
+					sendParticle("shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)), (self.velocity * 50), 1, 0);
 				}
 			}
 		}
@@ -2039,23 +2039,23 @@ void() W_FireSuperShotgun =
 	{
 		if (cvar("chase_active"))
 		{
-			sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_right * -1.5)) + (v_forward * 17)) + (v_up * -5)), (self.velocity * 50), 1);
+			sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_right * -1.5)) + (v_forward * 17)) + (v_up * -5)), (self.velocity * 50), 1, 0);
 		}
 		else
 		{
 			if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
 			{
-				sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * 6)), (self.velocity * 50), 1);
+				sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * 6)), (self.velocity * 50), 1, 0);
 			}
 			else
 			{
 				if ((!autocvar_weapon_position_right && autocvar_weapon_position_fully_adjustable))
 				{
-					sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot2_offset)), (self.velocity * 50), 1);
+					sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot2_offset)), (self.velocity * 50), 1, 0);
 				}
 				else
 				{
-					sendParticle("double_shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)), (self.velocity * 50), 1);
+					sendParticle("double_shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)), (self.velocity * 50), 1, 0);
 				}
 			}
 		}
@@ -2355,7 +2355,7 @@ void() T_MissileTouch =
 			detonate = detonate - (8 * normalize(self.velocity));
 			if (((other.classname == "monster_shambler") || (other.classname == "monster_hell_knight2")))
 			{
-				sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1);
+				sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1, 0);
 				self.classname = "resistexp";
 				sparklers(1);
 			}
@@ -2363,11 +2363,11 @@ void() T_MissileTouch =
 			{
 				if ((autocvar_effects_classic_explosion == 1))
 				{
-					sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1);
+					sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("rocket_explosion_nodebris", detonate, VEC_ORIGIN, 1);
+					sendParticle("rocket_explosion_nodebris", detonate, VEC_ORIGIN, 1, 0);
 				}
 			}
 		}
@@ -2377,17 +2377,17 @@ void() T_MissileTouch =
 			detonate = detonate - (8 * normalize(self.velocity));
 			if ((pointcontents(self.origin) == CONTENT_SLIME))
 			{
-				sendParticle("slimesplash", detonate, VEC_ORIGIN, 1);
+				sendParticle("slimesplash", detonate, VEC_ORIGIN, 1, 0);
 			}
 			else
 			{
 				if ((autocvar_effects_classic_explosion == 1))
 				{
-					sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1);
+					sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("rocket_explosion", detonate, VEC_ORIGIN, 1);
+					sendParticle("rocket_explosion", detonate, VEC_ORIGIN, 1, 0);
 				}
 			}
 		}
@@ -2398,7 +2398,7 @@ void() T_MissileTouch =
 		{
 			if (((other.classname == "monster_shambler") || (other.classname == "monster_hell_knight2")))
 			{
-				sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1);
+				sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1, 0);
 				sparklers(1);
 				sparklers(1);
 				self.classname = "resistexp";
@@ -2417,17 +2417,17 @@ void() T_MissileTouch =
 		detonate = detonate - (8 * normalize(self.velocity));
 		if ((pointcontents(self.origin) == CONTENT_SLIME))
 		{
-			sendParticle("slimesplash", detonate, VEC_ORIGIN, 1);
+			sendParticle("slimesplash", detonate, VEC_ORIGIN, 1, 0);
 		}
 		else
 		{
 			if ((autocvar_effects_classic_explosion == 1))
 			{
-				sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1);
+				sendParticle("rocket_explo_classic", detonate, VEC_ORIGIN, 1, 0);
 			}
 			else
 			{
-				sendParticle("rocket_explosion", detonate, VEC_ORIGIN, 1);
+				sendParticle("rocket_explosion", detonate, VEC_ORIGIN, 1, 0);
 			}
 		}
 	}
@@ -2544,13 +2544,13 @@ void() T_MissileTouch_chton =
 			T_Damage(other, self, self.owner, damg);
 			detonate = self.origin;
 			detonate = detonate - (8 * normalize(self.velocity));
-			sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1);
+			sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1, 0);
 		}
 		else
 		{
 			detonate = self.origin;
 			detonate = detonate - (8 * normalize(self.velocity));
-			sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1);
+			sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1, 0);
 		}
 	}
 	else
@@ -2565,7 +2565,7 @@ void() T_MissileTouch_chton =
 		}
 		detonate = self.origin;
 		detonate = detonate - (8 * normalize(self.velocity));
-		sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1);
+		sendParticle("cthon_fireball", detonate, VEC_ORIGIN, 1, 0);
 	}
 	T_RadiusDamage(self, self.owner, 120, other);
 	sound(self, CHAN_WEAPON, "boss1/fireball.wav", 1, ATTN_NORM);
@@ -2666,11 +2666,11 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 			{
 				if ((autocvar_shootablebuttonsandsecrets == 1))
 				{
-					sendParticle("secret", ziel, VEC_ORIGIN, 1);
+					sendParticle("secret", ziel, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1);
+					sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1, 0);
 				}
 				T_Damage(trace_ent, from, from, damage);
 				return;
@@ -2722,7 +2722,7 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 				else
 				{
 					ziel = trace_endpos;
-					sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1);
+					sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1, 0);
 				}
 			}
 		}
@@ -2949,7 +2949,7 @@ void() GrenadeExplode =
 	return;
 	if (((other.classname == "monster_shambler") || (other.classname == "monster_hell_knight2")))
 	{
-		sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1);
+		sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1, 0);
 		sparklers(1);
 		sparklers(1);
 	}
@@ -2961,23 +2961,23 @@ void() GrenadeExplode =
 		{
 			if ((pointcontents(self.origin) == CONTENT_SLIME))
 			{
-				sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1);
+				sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1, 0);
 			}
 			else
 			{
 				if ((autocvar_effects_classic_explosion == 1))
 				{
-					sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1);
+					sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
 					if (other.health)
 					{
-						sendParticle("grenade_explosion_nodebris", self.origin, VEC_ORIGIN, 1);
+						sendParticle("grenade_explosion_nodebris", self.origin, VEC_ORIGIN, 1, 0);
 					}
 					else
 					{
-						sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1);
+						sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1, 0);
 					}
 				}
 			}
@@ -2986,17 +2986,17 @@ void() GrenadeExplode =
 		{
 			if ((pointcontents(self.origin) == CONTENT_SLIME))
 			{
-				sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1);
+				sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1, 0);
 			}
 			else
 			{
 				if ((autocvar_effects_classic_explosion == 1))
 				{
-					sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1);
+					sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1);
+					sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1, 0);
 				}
 			}
 		}
@@ -3198,17 +3198,17 @@ void() ProximityExplode =
 	}
 	if ((pointcontents(self.origin) == CONTENT_SLIME))
 	{
-		sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1);
+		sendParticle("slimesplash", self.origin, VEC_ORIGIN, 1, 0);
 	}
 	else
 	{
 		if ((autocvar_effects_classic_explosion == 1))
 		{
-			sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1);
+			sendParticle("rocket_explo_classic", self.origin, VEC_ORIGIN, 1, 0);
 		}
 		else
 		{
-			sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1);
+			sendParticle("grenade_explosion", self.origin, VEC_ORIGIN, 1, 0);
 		}
 	}
 	if ((((pointcontents(self.origin) == CONTENT_WATER) || (pointcontents(self.origin) == CONTENT_SLIME)) || (pointcontents(self.origin) == CONTENT_LAVA)))
@@ -3472,7 +3472,7 @@ void() bullet_enemy_touch =
 			tex = getsurfacetexture(world, surfacenum);
 			if ((returnsurface(tex) == GROUND))
 			{
-				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1);
+				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 				remove(self);
 				return;
 			}
@@ -3480,7 +3480,7 @@ void() bullet_enemy_touch =
 			{
 				if ((returnsurface(tex) == MEAT))
 				{
-					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1);
+					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 					remove(self);
 					return;
 				}
@@ -3495,11 +3495,11 @@ void() bullet_enemy_touch =
 					{
 						if ((other.flags & FL_MONSTER))
 						{
-							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1);
+							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 						}
 						else
 						{
-							sendParticle("TE_GUNSHOT", self.origin, VEC_ORIGIN, 1);
+							sendParticle("TE_GUNSHOT", self.origin, VEC_ORIGIN, 1, 0);
 						}
 					}
 				}
@@ -3616,23 +3616,23 @@ void() W_FireSuperSpikes =
 	{
 		if (cvar("chase_active"))
 		{
-			sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -7)) + (v_right * -1.5)) + (v_forward * 14)), (self.velocity * 50), 1);
+			sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -7)) + (v_right * -1.5)) + (v_forward * 14)), (self.velocity * 50), 1, 0);
 		}
 		else
 		{
 			if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
 			{
-				sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * 7)), (self.velocity * 50), 1);
+				sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * 7)), (self.velocity * 50), 1, 0);
 			}
 			else
 			{
 				if ((!autocvar_weapon_position_right && autocvar_weapon_position_fully_adjustable))
 				{
-					sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail2_offset)), (self.velocity * 50), 1);
+					sendParticle("supernailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail2_offset)), (self.velocity * 50), 1, 0);
 				}
 				else
 				{
-					sendParticle("supernailgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)), (self.velocity * 50), 1);
+					sendParticle("supernailgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)), (self.velocity * 50), 1, 0);
 				}
 			}
 		}
@@ -3780,8 +3780,8 @@ void(float ox) W_FireSpikes =
 	{
 		if (cvar("chase_active"))
 		{
-			sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 2)) + (v_forward * 13)), (self.velocity * 50), 1);
-			sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * -4.6)) + (v_forward * 13)), (self.velocity * 50), 1);
+			sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 2)) + (v_forward * 13)), (self.velocity * 50), 1, 0);
+			sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * -4.6)) + (v_forward * 13)), (self.velocity * 50), 1, 0);
 		}
 		else
 		{
@@ -3789,11 +3789,11 @@ void(float ox) W_FireSpikes =
 			{
 				if ((self.weaponframe == 1))
 				{
-					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 10)) + (v_forward * 19)), (self.velocity * 50), 1);
+					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 10)) + (v_forward * 19)), (self.velocity * 50), 1, 0);
 				}
 				if ((self.weaponframe == 3))
 				{
-					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 5.5)) + (v_forward * 19)), (self.velocity * 50), 1);
+					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 5.5)) + (v_forward * 19)), (self.velocity * 50), 1, 0);
 				}
 			}
 			else
@@ -3802,17 +3802,17 @@ void(float ox) W_FireSpikes =
 				{
 					if ((self.weaponframe == 1))
 					{
-						sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail1a_offset)) + (v_forward * 19)), (self.velocity * 50), 1);
+						sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail1a_offset)) + (v_forward * 19)), (self.velocity * 50), 1, 0);
 					}
 					if ((self.weaponframe == 3))
 					{
-						sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail1b_offset)) + (v_forward * 19)), (self.velocity * 50), 1);
+						sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_nail1b_offset)) + (v_forward * 19)), (self.velocity * 50), 1, 0);
 					}
 				}
 				else
 				{
-					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 3.3)) + (v_forward * 20)), (self.velocity * 50), 1);
-					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * -3.3)) + (v_forward * 20)), (self.velocity * 50), 1);
+					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * 3.3)) + (v_forward * 20)), (self.velocity * 50), 1, 0);
+					sendParticle("nailgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_right * -3.3)) + (v_forward * 20)), (self.velocity * 50), 1, 0);
 				}
 			}
 		}
@@ -4105,11 +4105,11 @@ void() spike_touch =
 			{
 				if ((autocvar_shootablebuttonsandsecrets == 1))
 				{
-					sendParticle("secret", self.origin, VEC_ORIGIN, 1);
+					sendParticle("secret", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+					sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				T_Damage(other, self, self.owner, autocvar_player_nailgun);
 				remove(self);
@@ -4172,7 +4172,7 @@ void() spike_touch =
 						ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 						if (((random() * 100) < 40))
 						{
-							sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+							sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 						}
 						else
 						{
@@ -4186,7 +4186,7 @@ void() spike_touch =
 							ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 							if (((random() * 100) < 60))
 							{
-								sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+								sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 							}
 							else
 							{
@@ -4199,7 +4199,7 @@ void() spike_touch =
 							{
 								if (((random() * 100) < 70))
 								{
-									sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+									sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 								}
 								else
 								{
@@ -4232,7 +4232,7 @@ void() spike_touch =
 											ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 											if (((random() * 100) < 40))
 											{
-												sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+												sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 											}
 										}
 										else
@@ -4340,7 +4340,7 @@ void() spike_touch =
 		{
 			if ((cvar("slowmo") < 0.9))
 			{
-				sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1);
+				sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				if ((random() < 0.8))
 				{
 					sound7(self, CHAN_WEAPON, "weapons/ric1.wav", 0.7, ATTN_NORM, SNDSPD);
@@ -4365,7 +4365,7 @@ void() spike_touch =
 					tex = getsurfacetexture(world, surfacenum);
 					if ((returnsurface(tex) == GROUND))
 					{
-						sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1);
+						sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 						remove(self);
 						return;
 					}
@@ -4373,7 +4373,7 @@ void() spike_touch =
 					{
 						if ((returnsurface(tex) == MEAT))
 						{
-							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1);
+							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 							remove(self);
 							return;
 						}
@@ -4481,11 +4481,11 @@ void() superspike_touch =
 			{
 				if ((autocvar_shootablebuttonsandsecrets == 1))
 				{
-					sendParticle("secret", self.origin, VEC_ORIGIN, 1);
+					sendParticle("secret", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				else
 				{
-					sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+					sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
 				T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 				remove(self);
@@ -4518,7 +4518,7 @@ void() superspike_touch =
 				self.velocity_x = (0 - self.velocity_x);
 				self.velocity_y = (0 - self.velocity_y);
 				T_Damage(other, self, self.owner, (autocvar_player_supernailgun / 2));
-				sendParticle("sparks", self.origin, VEC_ORIGIN, 1);
+				sendParticle("sparks", self.origin, VEC_ORIGIN, 1, 0);
 			}
 			else
 			{
@@ -4551,7 +4551,7 @@ void() superspike_touch =
 						ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 						if (((random() * 100) < 40))
 						{
-							sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+							sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 						}
 					}
 					else
@@ -4561,7 +4561,7 @@ void() superspike_touch =
 							ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 							if (((random() * 100) < 40))
 							{
-								sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+								sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 							}
 						}
 						else
@@ -4570,7 +4570,7 @@ void() superspike_touch =
 							{
 								if (((random() * 100) < 40))
 								{
-									sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+									sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 								}
 								if ((other.dodge_finished < time))
 								{
@@ -4602,7 +4602,7 @@ void() superspike_touch =
 											ThrowBloodSplat(v_forward, self.origin, other, (entity)1073741824i, (entity)1065353216i);
 											if (((random() * 100) < 40))
 											{
-												sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+												sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 											}
 										}
 										else
@@ -4690,7 +4690,7 @@ void() superspike_touch =
 	}
 	if ((cvar("slowmo") < 0.9))
 	{
-		sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1);
+		sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 		if ((random() < 0.8))
 		{
 			sound7(self, CHAN_WEAPON, "weapons/ric1.wav", 0.7, ATTN_NORM, SNDSPD);
@@ -4715,7 +4715,7 @@ void() superspike_touch =
 			tex = getsurfacetexture(world, surfacenum);
 			if ((returnsurface(tex) == GROUND))
 			{
-				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1);
+				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 				remove(self);
 				return;
 			}
@@ -4723,7 +4723,7 @@ void() superspike_touch =
 			{
 				if ((returnsurface(tex) == MEAT))
 				{
-					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1);
+					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 					remove(self);
 					return;
 				}
@@ -6562,13 +6562,20 @@ void() W_WeaponFrame =
 	}
 	if (FD_Frame())
 	{
+		self.jb_st_status = 0;	// JohnBird_DebuffFrame does not run here: don't leave SLOWED/BURNING frozen on the HUD
 		return;	// flying a Rob Dob head: nothing else happens (floathead.qc)
 	}
 	if (Veh_DriveFrame())
 	{
+		self.jb_st_status = 0;	// same: no stale slowed/burning status for the whole drive
 		return;	// driving a vehicle: nothing else happens (vehicle_drive.qc)
 	}
 	Veh_PassengerFrame();	// riding shotgun / turret gunner: syncs seat & H bail while keeping full weapons!
+	JohnBird_DebuffFrame();	// sticky slow / burn DoT & Winged John CSQC stats
+	if (self.deadflag || (self.health <= 0))
+	{
+		return;	// the burn tick above can kill us: same reason as the guard further up
+	}
 	if (JohnBird_Frame())
 	{
 		return;	// flying Winged Breezy-Hair John (john_bird.qc)

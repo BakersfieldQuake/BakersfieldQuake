@@ -160,7 +160,7 @@ float() BM_BotImpulses =
 				centerprint (self, strcat ("^3Bot limit reached^7 (", ftos (bot_count), ") - press ^3F2^7 to kick"));
 				return TRUE;
 			}
-			if (max_clients - BM_CountHumans () - bot_count - 1 < autocvar_bm_bot_reserve)
+			if (max_clients - BM_CountHumans () - bm_obs_count - bot_count - 1 < autocvar_bm_bot_reserve)
 			{
 				sprint (self, strcat ("Keeping a slot open for players (", ftos (bot_count), " bots active). Press F2 to kick a bot.\n"));
 				centerprint (self, strcat ("^3Slot kept free for players^7 (", ftos (bot_count), " bots)"));
@@ -1296,14 +1296,17 @@ void() BM_BotStartFrame =
 	{
 		if (bm_wasfreed (route_table) || route_table.classname != "player" || route_table.health <= 0)
 		{
+			ClearRouteTable ();		// items -1: pending WaypointThinks stop (no busy_waypoints < 0, no finish with self = world)
 			route_table = world;
 			busy_waypoints = 0;
 			bm_route_lock_t = 0;
 		}
 		else if (!bm_route_lock_t)
 			bm_route_lock_t = time + 0.75;
-		else if (time >= bm_route_lock_t)
+		else if (time >= bm_route_lock_t && (busy_waypoints <= 0 || time >= bm_route_lock_t + 2.25))
 		{
+			// a route still being computed (busy_waypoints > 0) gets up to 3 s before it is dropped
+			ClearRouteTable ();
 			route_table = world;
 			busy_waypoints = 0;
 			bm_route_lock_t = 0;
@@ -1321,7 +1324,7 @@ void() BM_BotStartFrame =
 		if (hn > 0)
 		{
 			bm_bot_idle_t = time + autocvar_bm_bot_idle;
-			if (max_clients - hn - bot_count < autocvar_bm_bot_reserve)
+			if (max_clients - hn - bm_obs_count - bot_count < autocvar_bm_bot_reserve)
 				KickABot ();
 		}
 		else
@@ -1376,7 +1379,7 @@ entity() BM_BotPickSpawn =
 	p = player_head;
 	while (p)
 	{
-		if (p != self && p.health > 0)
+		if (p != self && p.health > 0 && !p.bm_obs)		// observers: health 100, nowhere on the map
 			n = n + 1;
 		p = p._next;
 	}
@@ -1401,7 +1404,7 @@ entity() BM_BotPickSpawn =
 				p = player_head;
 				while (p)
 				{
-					if (p != self && p.health > 0)
+					if (p != self && p.health > 0 && !p.bm_obs)
 					{
 						d = vlen (p.origin - spot.origin);
 						if (d < dmin)
@@ -1444,7 +1447,7 @@ entity() BM_BotPickHuntTarget =
 	p = player_head;
 	while (p)
 	{
-		if (p != self && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET))
+		if (p != self && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET) && !p.bm_obs)
 		{
 			if (!(teamplay && p.team == self.team))
 			{
@@ -1453,7 +1456,7 @@ entity() BM_BotPickHuntTarget =
 				b = player_head;
 				while (b)
 				{
-					if (b != self && b != p && b.ishuman != 1 && b.health > 0)
+					if (b != self && b != p && b.ishuman != 1 && b.health > 0 && !b.bm_obs)		// an observer (ishuman 3) is no bot
 					{
 						if (b.enemy == p || b.target1 == p || vlen (b.origin - p.origin) < 950)
 							crowd = crowd + 1;
@@ -1498,7 +1501,7 @@ entity() BM_BotPickPatrolWay =
 				p = player_head;
 				while (p)
 				{
-					if (p != self && p.health > 0 && vlen (p.origin - w.origin) < 1500)
+					if (p != self && p.health > 0 && !p.bm_obs && vlen (p.origin - w.origin) < 1500)
 						crowd = crowd + 1;
 					p = p._next;
 				}
@@ -1569,6 +1572,25 @@ vector(float avoid_last, float curve_bias, entity steer_toward) BM_BotPickOpenDi
 		yaw = yaw + 30;
 	}
 	return open_dir;
+};
+
+.float bm_bot_repick_t;		// roam re-pick throttle: the 12-ray scan at most every 0.25 s per bot
+
+// the flat roam probe hit something: is it stairs / a ramp / a curb he can walk up?
+// floor 42 ahead at most 48 above his feet, and a line 42 over that slope clear for the full 84
+float(vector dir) BM_BotSlopeOpen =
+{
+	local vector ahead, from;
+
+	ahead = self.origin + dir * 42;
+	traceline (ahead + '0 0 60', ahead - '0 0 64', TRUE, self);
+	if (trace_startsolid || trace_fraction == 1)
+		return FALSE;
+	if (trace_endpos_z - (self.origin_z + self.mins_z) > 48)
+		return FALSE;
+	from = self.origin + '0 0 18';
+	traceline (from, from + (trace_endpos + '0 0 42' - from) * 2, TRUE, self);
+	return (trace_fraction >= 0.85);
 };
 
 // Runs every AI frame at the end of BotAI (frikbot.bot_ai.qc)
@@ -1820,14 +1842,17 @@ void() BM_BotPostAI =
 			{
 				self.bm_bot_free_dir = BM_BotPickOpenDir (FALSE, TRUE, world);
 				self.bm_bot_free_t = time + 0.95 + random () * 0.85;
+				self.bm_bot_repick_t = time + 0.25;
 			}
-			else
+			else if (time >= self.bm_bot_repick_t)
 			{
+				// stairs / ramps / curbs blocked this flat probe every frame: re-scan only if the slope check fails too
 				traceline (self.origin + '0 0 18', self.origin + '0 0 18' + self.bm_bot_free_dir * 84, TRUE, self);
-				if (trace_fraction < 0.85)
+				if (trace_fraction < 0.85 && !BM_BotSlopeOpen (self.bm_bot_free_dir))
 				{
 					self.bm_bot_free_dir = BM_BotPickOpenDir (TRUE, TRUE, world);
 					self.bm_bot_free_t = time + 0.90 + random () * 0.70;
+					self.bm_bot_repick_t = time + 0.25;
 				}
 			}
 			self.b_angle_y = vectoyaw (self.bm_bot_free_dir);

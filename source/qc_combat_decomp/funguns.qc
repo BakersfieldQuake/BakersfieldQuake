@@ -676,7 +676,7 @@ void() Binoc_Frame =
 	local vector eye;
 	local string s;
 
-	if (self.health <= 0 || !self.button3 || self.classname != "player")
+	if (self.health <= 0 || !self.button3 || self.classname != "player" || self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || self.fd_head != world || self.ec_cannon_ent != world)
 	{
 		if (self.bn_on)
 		{

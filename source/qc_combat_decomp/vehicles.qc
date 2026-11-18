@@ -105,13 +105,7 @@ void() Vehicles_Precache =
 
 	precache_model ("progs/lsj/lsj_golfcart.md3");
 
-	precache_model ("progs/gokart_1.md3");
-	precache_model ("progs/gokart_2.md3");
-	precache_model ("progs/gokart_3.md3");
-	precache_model ("progs/gokart_4.md3");
-	precache_model ("progs/gokart_5.md3");
-	precache_model ("progs/gokart_6.md3");
-	precache_model ("progs/gokart_driver.md3");
+	// go-kart models (~42 MB) are precached by GK_Precache, only on maps that really spawn a kart
 
 	precache_model ("progs/veh_shrap1.md3");
 	precache_model ("progs/veh_shrap2.md3");
@@ -145,12 +139,23 @@ void() Vehicles_Precache =
 	precache_sound ("vehicles/lanvan.wav");
 	precache_sound ("misc/null.wav");
 	precache_sound ("bikes/tire_bounce.wav");
-	precache_sound ("bikes/spoke_ping.wav");
-	precache_sound ("john_bird/swoop.wav");
 	precache_sound ("ambience/windfly.wav");
 	precache_sound ("skypad/launch.wav");
 
 	Veh_PrecacheEffects ();
+};
+
+// Kart-only assets: called from Veh_InitEntity for kart kinds (misc_gokart*, misc_vehicle kart kinds, Veh_SpawnDynamic);
+// each kart body (gokart_N.md3) is precached there per kind, so a map only loads the karts it places
+float	gk_precached;
+void() GK_Precache =
+{
+	if (gk_precached)
+		return;
+	gk_precached = TRUE;
+	precache_model ("progs/gokart_driver.md3");
+	precache_sound ("bikes/spoke_ping.wav");
+	precache_sound ("john_bird/swoop.wav");
 };
 
 // ---------------------------------------------------------------- Geometry & Asset Lookup Helpers
@@ -1375,7 +1380,13 @@ void() Veh_ExplodeNow =
 	{
 		self.solid = SOLID_NOT;
 		setsize (self, '-16 -16 0', '16 16 16');
-		setorigin (self, self.origin);
+		// blown up mid-air: drop the wreck to the floor instead of hovering for 8 s (MOVETYPE_NONE)
+		tracebox (self.origin, self.mins, self.maxs, self.origin - '0 0 4096', TRUE, self);
+		if (!trace_startsolid && !trace_allsolid && trace_fraction < 1)
+			setorigin (self, trace_endpos + '0 0 0.5');
+		else
+			setorigin (self, self.origin);
+		self.veh_air = FALSE;
 		self.frame = 44;
 		self.veh_anim = 44;
 		self.veh_wreck_t = time + 8.0;
@@ -1707,6 +1718,11 @@ void(entity v, float kind) Veh_InitEntity =
 	local vector org_top;
 
 	Vehicles_Precache ();
+	if (Veh_IsKart (kind))
+	{
+		GK_Precache ();
+		precache_model (Veh_IntactModel (kind));	// only the kart bodies this map actually spawns
+	}
 	veh_has_vans = TRUE;
 	v.veh_kind = kind;
 	v.veh_state = VEH_STATE_IDLE;
