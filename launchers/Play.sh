@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# BAKOQUAKE - Play (Linux).
+# BAKOQUAKE - Play (Linux, and the macOS zip for people who run from a terminal; the macOS app uses
+# source/mac/launcher.sh instead).
 # Joins the LAN server if one is up. Otherwise it starts the game on its own, and quake.rc then plays the
 # BAKOQUAKE intro demo (intro.dem). In the intro, F1 joins the online server and F2 the LAN game.
 # Extra engine args (e.g. -window) can be passed with:  COMBAT_ARGS="-window" ./Play.sh
@@ -7,8 +8,8 @@ set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"   # no readlink -f: macOS before 12.3 lacks it
 cd "$ROOT" || exit 1
-# macOS: darkplaces-sdl dlopen()s libpng/freetype/vorbis/curl by bare name; Homebrew's lib dir is not searched by
-# default, and without libpng every PNG texture fails to decode.
+# macOS zip: darkplaces-sdl links Homebrew SDL2 and dlopen()s freetype/vorbis/jpeg by bare name; Homebrew's lib dir is
+# not searched by default. (PNG is built in. The macOS app bundles its own libraries and doesn't need this.)
 [ "$(uname)" = Darwin ] && export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:+$DYLD_FALLBACK_LIBRARY_PATH:}/opt/homebrew/lib:/usr/local/lib"
 SCAN="$ROOT/tools/lanscan.py"
 [ -f "$SCAN" ] || SCAN="$ROOT/lanscan.py"

@@ -5,11 +5,29 @@ Wheelman Cannon, jetpack and more), Bakersfield maps (`bklan`, `orcom` and other
 
 ## Play it
 
-1. Download `BAKOQUAKE.zip` from the **Releases** page of this repo and unzip it.
-2. Put the Quake data files into the `id1` folder inside it: `pak0.pak` and `pak1.pak` from your own copy of Quake.
-   They are not in the download because they belong to id Software.
-3. Run `PLAY BAKERSFIELDQUAKE.exe`. It joins a LAN server if it finds one, otherwise it opens the intro.
-   Windows only. In game, F2 joins the LAN game; `Start Server.cmd` hosts one.
+You need `pak0.pak` and `pak1.pak` from your own copy of Quake (Steam or GOG). They are not in the download because
+they belong to id Software. On first run every launcher looks for them (Steam, GOG, the usual folders, then
+`~/Downloads`) and copies them in.
+
+Downloads are on the **Releases** page of this repo:
+
+- **Windows:** `BAKOQUAKE.zip`. Unzip it and run `PLAY BAKERSFIELDQUAKE.exe`. It joins a LAN server if it finds one,
+  otherwise it opens the intro. In game, F2 joins the LAN game; `Start Server.cmd` hosts one.
+- **macOS (Apple Silicon, macOS 13+):** `BAKOQUAKE-macos-arm64.dmg`. Open it and drag BAKOQUAKE to Applications. It
+  is signed and notarized, so it opens without a Gatekeeper warning. If it can't find your paks it asks for your
+  Quake `id1` folder. Saved settings and the paks live in `~/Library/Application Support/BAKOQUAKE/`.
+- **Linux:** `BAKOQUAKE-linux-x86_64.zip`. Needs system SDL2 (e.g. `sudo apt install libsdl2-2.0-0`). Unzip it and
+  run `./Play.sh`; `./Start-Server.sh` hosts a LAN game.
+
+## Releases
+
+Releases are built by the **Build release packages** workflow (`.github/workflows/build-zip.yml`, run by hand from
+the Actions tab). It lays this repo's configs, launchers and generated overlay pk3s over the previous release's
+data and publishes the Windows, Linux and macOS packages. Its `macos` job builds the macOS app with
+`source/mac/build_app.sh`: Zircon and every library it loads are built from pinned sources, then the app and DMG
+are signed, notarized and uploaded to the release. macOS packages are built and notarized only in CI, never by
+hand. The signing secrets are `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID` and
+`APPLE_APP_SPECIFIC_PASSWORD`.
 
 ## What is in this repo
 
@@ -17,8 +35,10 @@ Text and source only; the built game data is in the release download.
 
 - `source/mm_tools/` - the QuakeC for the guns and game rules (`*.qc`), the Python that builds models, maps and sounds,
   and the per-feature notes.
+- `source/mac/` - the macOS app: `build_app.sh` (used by CI) and `launcher.sh` (the app's main executable).
+- `launchers/`, `tools/` - the Windows/Linux launchers and their helpers (pak finder, LAN scan).
 - `website/` - the project web page.
-- top-level `*.cfg`, `quake.rc`, `readme.txt` and the `*_NOTES.md` / `*_PROMPT.md` design documents.
+- top-level `*.cfg`, `quake.rc` and `readme.txt`; design notes and plans in `docs/`, agent prompts in `docs/prompts/`.
 
 ## What is not in this repo
 

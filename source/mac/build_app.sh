@@ -3,6 +3,9 @@
 #
 #   source/mac/build_app.sh <release-tag>
 #
+# CI runs this (the macos job in .github/workflows/build-zip.yml) and uploads the DMG. Release DMGs come only from
+# CI; run it locally with SKIP_NOTARIZE=1 to debug the script.
+#
 # Game data comes from that release's BAKOQUAKE-macos-arm64.zip. The engine (Zircon) and every dylib it loads are
 # built from pinned sources for macOS 13.0+, so nothing in the bundle comes from Homebrew. Homebrew bottles target
 # the build machine's macOS and would raise the app's minimum OS.

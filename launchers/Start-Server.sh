@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# BAKOQUAKE - Start Server (Linux). Host PC only.
+# BAKOQUAKE - Start Server (Linux, and the macOS zip). Host PC only.
 # Starts the dedicated server (BakersfieldQuake/server.cfg) in the background, then joins it on this PC.
 # Stop the server with:  ./Start-Server.sh stop
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"   # no readlink -f: macOS before 12.3 lacks it
 cd "$ROOT" || exit 1
-[ "$(uname)" = Darwin ] && export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:+$DYLD_FALLBACK_LIBRARY_PATH:}/opt/homebrew/lib:/usr/local/lib"  # macOS: libpng etc. from Homebrew
+[ "$(uname)" = Darwin ] && export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:+$DYLD_FALLBACK_LIBRARY_PATH:}/opt/homebrew/lib:/usr/local/lib"  # macOS zip: SDL2/freetype/vorbis from Homebrew
 SCAN="$ROOT/tools/lanscan.py"
 [ -f "$SCAN" ] || SCAN="$ROOT/lanscan.py"
 LOG="$ROOT/BakersfieldQuake/lan_server_console.log"

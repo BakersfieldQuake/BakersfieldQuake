@@ -136,6 +136,10 @@ come from the previous manifest, never from a wildcard.
 Files written by `urllib` don't get the `com.apple.quarantine` attribute, so updated macOS binaries won't trip
 Gatekeeper. Only the first zip a player downloads in a browser needs the `xattr -dr` step.
 
+**macOS app (DMG):** most Mac players now use the signed `BAKOQUAKE.app`, which can't be written into without
+breaking its signature. Its game data has to move out of the bundle into `~/Library/Application Support/BAKOQUAKE`
+(already its `-userdir`), and the updater would update it there. Engine or launcher changes still need a new DMG.
+
 ## Launcher integration
 
 - `Play.cmd`, `Start Server.cmd` and `Play.sh` (macOS) run `tools/bq-update[.exe] --launch` before starting the

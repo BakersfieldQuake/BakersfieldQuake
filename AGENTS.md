@@ -8,6 +8,16 @@ Instructions for AI coding agents working in this repo.
 - The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and files the game itself reads.
   The `.gitignore` is an allowlist (`*`), so add new files with `git add -f`.
 
+## macOS app
+
+- The signed, notarized `BAKOQUAKE-macos-arm64.dmg` is built **only in CI** (the `macos` job in
+  `.github/workflows/build-zip.yml`, which runs `source/mac/build_app.sh`). Never upload a locally built DMG or app
+  to a release. Local runs (`SKIP_NOTARIZE=1`) are for debugging the script.
+- Bundle no Homebrew libraries. They are built for the build machine's macOS and would raise the app's minimum OS
+  (13.0). Add a library by building it from a pinned source in `build_app.sh`, like the others.
+- The bundle is read-only once signed. Everything the game writes goes to `~/Library/Application Support/BAKOQUAKE`
+  (`-userdir`).
+
 ## Packaging game content (pk3 rules)
 
 Players get updates through a differential updater: only files whose sha256 changed are downloaded. The package

@@ -1,5 +1,14 @@
 # Handoff: signed macOS BAKOQUAKE.app + DMG (build on mimi)
 
+> **Status (2026-11-17): done.** See `source/mac/build_app.sh`, which CI runs (the `macos` job in `build-zip.yml`).
+> Differences from the plan below:
+> - **No Homebrew libraries.** The bottles on mimi are minos 27, so SDL2, ogg, vorbis, freetype and libjpeg-turbo
+>   are built from pinned sources for macOS 13.0.
+> - **No entitlement and no engine patch.** A leaf-name `dlopen` also searches the main executable's `LC_RPATH`, so
+>   linking with `-rpath @executable_path/../Frameworks` is enough under the hardened runtime.
+> - **The shell launcher passed notarization**, so the C launcher fallback wasn't needed.
+> - **The DMG is built and notarized in CI only.**
+
 **For:** the agent running on `mimi` (macOS 27, Apple Silicon, Xcode installed, Rob's Developer ID in the keychain).
 **Repo:** `GiggleHacks/BakersfieldQuake` (public). Read `AGENTS.md` first.
 **Rules:** no Claude session URLs or `Claude-Session:` trailers in commits; one logical change per commit. Linux
