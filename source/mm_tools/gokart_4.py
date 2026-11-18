@@ -13,10 +13,12 @@ Outputs (only owned files):
 Coordinate system (Quake / DarkPlaces MD3 standard):
   +X = forward, +Y = left, +Z = up, ground contact plane at Z = 0.
 """
+import argparse
 import json
 import math
 import os
 import sys
+import tempfile
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -46,6 +48,7 @@ from mmw_geometry import (
     vsub,
 )
 from tank_geom_core import build_pneumatic_wheel
+import tank_tex_gen
 from tank_tex_gen import (
     UV_CHROME_BAR,
     UV_COTTER_YEL,
@@ -256,12 +259,10 @@ def add_grid_patch(part, grid_pts, uv_rect=(0.0, 0.0, 1.0, 1.0), flip_n=False):
 # Procedural & Calibrated Texture Generation
 # ---------------------------------------------------------------------------
 def _font(size, bold=True):
-    candidates = ["arialbd.ttf", "consolab.ttf", "tahomabd.ttf"] if bold else ["arial.ttf", "consola.ttf"]
-    for nm in candidates:
-        p = os.path.join(r"C:\Windows\Fonts", nm)
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _fbm(h, w, seed=42, octaves=(4, 8, 16, 32)):
@@ -401,12 +402,21 @@ def _tex_flame(path):
     Image.fromarray(rgba.astype(np.uint8), mode="RGBA").save(path, "PNG", optimize=True)
 
 
-def build_all_textures():
-    os.makedirs(PROGS_DIR, exist_ok=True)
-    _tex_wheel_from_mmt(os.path.join(PROGS_DIR, "mmt_wheel.png"), os.path.join(PROGS_DIR, "gk4_wheel.png"))
-    _tex_chrome_from_mmt(os.path.join(PROGS_DIR, "mmt_chrome_bar.png"), os.path.join(PROGS_DIR, "gk4_chrome.png"))
-    _tex_seat(os.path.join(PROGS_DIR, "gk4_seat.png"))
-    _tex_flame(os.path.join(PROGS_DIR, "gk4_flame.png"))
+def build_all_textures(progs_dir=PROGS_DIR):
+    os.makedirs(progs_dir, exist_ok=True)
+    src_wheel = os.path.join(progs_dir, "mmt_wheel.png")
+    src_chrome = os.path.join(progs_dir, "mmt_chrome_bar.png")
+    if os.path.isfile(src_wheel) and os.path.isfile(src_chrome):
+        _tex_wheel_from_mmt(src_wheel, os.path.join(progs_dir, "gk4_wheel.png"))
+        _tex_chrome_from_mmt(src_chrome, os.path.join(progs_dir, "gk4_chrome.png"))
+    else:
+        with tempfile.TemporaryDirectory() as tmp_mmt:
+            p_wheel, _ = tank_tex_gen.build_wheel_textures(tmp_mmt)
+            p_chrome, _ = tank_tex_gen.build_chrome_bar_textures(tmp_mmt)
+            _tex_wheel_from_mmt(p_wheel, os.path.join(progs_dir, "gk4_wheel.png"))
+            _tex_chrome_from_mmt(p_chrome, os.path.join(progs_dir, "gk4_chrome.png"))
+    _tex_seat(os.path.join(progs_dir, "gk4_seat.png"))
+    _tex_flame(os.path.join(progs_dir, "gk4_flame.png"))
 
 
 # ---------------------------------------------------------------------------
@@ -1255,13 +1265,15 @@ def build_model():
 # ---------------------------------------------------------------------------
 # Metadata, Skin, Export & Verification
 # ---------------------------------------------------------------------------
-def write_skin_and_meta(model):
-    skin_path = os.path.join(PROGS_DIR, "gokart_4.md3_0.skin")
-    with open(skin_path, "w", encoding="ascii") as f:
+def write_skin_and_meta(model, progs_dir=PROGS_DIR, meta_dir=OUT_DIR):
+    skin_path = os.path.join(progs_dir, "gokart_4.md3_0.skin")
+    with open(skin_path, "w", encoding="ascii", newline="\n") as f:
         for s in model["surfaces"]:
             f.write(f"{s['name']},{s['shader']}\n")
 
-    os.makedirs(OUT_DIR, exist_ok=True)
+    if meta_dir is None:
+        return
+    os.makedirs(meta_dir, exist_ok=True)
     meta = {
         "id": "kart4",
         "name": "Mega Man Classic Bar-Racer",
@@ -1296,8 +1308,8 @@ def write_skin_and_meta(model):
             "progs/gk4_flame":  {"metallic": 0.00, "roughness": 1.00, "spec": 0.00, "unlit": True, "additive": True},
         },
     }
-    meta_path = os.path.join(OUT_DIR, "gokart_4_meta.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
+    meta_path = os.path.join(meta_dir, "gokart_4_meta.json")
+    with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(meta, f, indent=2)
 
 
@@ -1378,14 +1390,20 @@ def verify_md3(md3_path):
         print(f"  {s['name']:12s} shader={s['shader']:18s} verts={len(s['st']):4d} tris={len(s['tris']):4d}")
 
 
-def main():
-    build_all_textures()
+def main(progs_dir=PROGS_DIR, meta_dir=OUT_DIR):
+    build_all_textures(progs_dir=progs_dir)
     model = build_model()
-    md3_path = os.path.join(PROGS_DIR, "gokart_4.md3")
+    md3_path = os.path.join(progs_dir, "gokart_4.md3")
     md3lib.write(md3_path, model)
-    write_skin_and_meta(model)
+    write_skin_and_meta(model, progs_dir=progs_dir, meta_dir=meta_dir)
     verify_md3(md3_path)
 
 
 if __name__ == "__main__":
-    main()
+    p = argparse.ArgumentParser(description="Build Go-Kart #4 MD3, skin, and textures.")
+    p.add_argument("--out-dir", default=None, help="Output directory for MD3, skin, and PNGs")
+    p.add_argument("--meta-dir", default=None, help="Optional directory for gokart_4_meta.json")
+    args = p.parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS_DIR
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    main(progs_dir=progs_dir, meta_dir=meta_dir)

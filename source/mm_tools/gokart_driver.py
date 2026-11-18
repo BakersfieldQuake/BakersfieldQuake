@@ -8,26 +8,51 @@ with edge-bleed dilation to `progs/gk_driver.png`, and skins/poses the Ranger
 into a distortion-free seated driving posture for any go-kart cockpit.
 """
 from collections import defaultdict, deque
+import argparse
+import base64
 import json
 import math
 import os
 import struct
+import sys
 import zipfile
 
 import numpy as np
 from PIL import Image
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+
 import md3lib
 
-HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 PROGS_DIR = os.path.join(REPO_ROOT, "progs")
+OUT_DIR = os.path.join(HERE, "out")
 BAKER_PK3 = os.path.join(REPO_ROOT, "bakersfield.pk3")
 ID1_PAK0 = os.path.abspath(os.path.join(REPO_ROOT, "..", "id1", "pak0.pak"))
 
 DRIVER_SHADER = "progs/gk_driver"
 DRIVER_TEX_REL = "progs/gk_driver.png"
 DRIVER_TEX_ABS = os.path.join(PROGS_DIR, "gk_driver.png")
+
+# Exact 768-byte Quake 1 palette (gfx/palette.lmp from id1/pak0.pak) for CI/headless builds.
+_QUAKE_PALETTE_B64 = (
+    "AAAADw8PHx8fLy8vPz8/S0tLW1tba2tre3t7i4uLm5ubq6uru7u7y8vL29vb6+vrDwsHFw8LHxcL"
+    "JxsPLyMTNysXPy8XSzcbUzsbW0MfY0sfa1Mfc1cfe18jg2cjj28jCwsPExMbGxsnJyczLy8/NzdL"
+    "Pz9XR0dnT09zW1t/Y2OLa2uXc3Oje3uvg4O7i4vLAAAABwcACwsAExMAGxsAIyMAKysHLy8HNzcH"
+    "Pz8HR0cHS0sLU1MLW1sLY2MLa2sPBwAADwAAFwAAHwAAJwAALwAANwAAPwAARwAATwAAVwAAXwAA"
+    "ZwAAbwAAdwAAfwAAExMAGxsAIyMALysANy8AQzcASzsHV0MHX0cHa0sLd1MPg1cTi1sTl18bo2Mf"
+    "r2cjIxMHLxcLOx8PSyMTVysXYy8fczcjfzsrj0Mzn08zr2Mvv3cvz48r36sn78sf//MbCwcAGxMA"
+    "KyMPNysTRzMbUzcjYz8rb0czf1M/i19Hm2tTp3tft4drw5N706OL47OXq4ujn3+Xk3OHi2d7f1tv"
+    "d1Nja0tXXz9LVzdDSy83QycvNx8jKxcbIxMTFwsLDwcHu3Ofr2uPo1+Dl1d3i09rf0tfc0NTaztL"
+    "XzM/Uys3RyMrOx8jLxcbIxMTFwsLDwcH28O7y7Onv6Obr5eLo4d7l3tvh29fe2NTa1dHX0s7Uz8z"
+    "QzMnNysfJx8XGxMPDwsHb4N7Z3tvX3NnV2tfT2NXR1tPP1NHN0s/L0M3KzsvIzMnHysfFyMXDxsT"
+    "CxMLBwsH//Mb798X28sTy7cPu6cPq5cLm4MHi3MHe2MHa1MAW0cASzcAOysAKx8AGw8ACwcAAAD/"
+    "CwvvExPfGxvPIyO/KyuvLy+fLy+PLy9/Ly9vLy9fKytPIyM/GxsvExMfCwsPKwAAOwAASwcAXwcA"
+    "bw8AfxcHkx8HoycLtzMPw0sbz2Mr238745dP56tf779399OLp3s7t5s3x8M35+NXf7//q+f/1/// "
+    "ZwAAiwAAswAA1wAA/wAA//OT//fH////n1tT"
+).replace(" ", "")
 
 
 def _vadd(a, b):
@@ -104,24 +129,28 @@ def _read_pak_entry(pak_path, target_name):
     raise FileNotFoundError(f"{target_name} not found in {pak_path}")
 
 
-def _load_player_mdl_bytes():
-    if os.path.isfile(BAKER_PK3):
-        with zipfile.ZipFile(BAKER_PK3, "r") as z:
+def _load_player_mdl_bytes(bakersfield_pk3=BAKER_PK3):
+    if bakersfield_pk3 and os.path.isfile(bakersfield_pk3):
+        with zipfile.ZipFile(bakersfield_pk3, "r") as z:
             if "progs/player_id1.mdl" in z.namelist():
                 return z.read("progs/player_id1.mdl")
-    return _read_pak_entry(ID1_PAK0, "progs/player.mdl")
+    if os.path.isfile(ID1_PAK0):
+        return _read_pak_entry(ID1_PAK0, "progs/player.mdl")
+    raise FileNotFoundError(f"progs/player_id1.mdl not found in {bakersfield_pk3} and {ID1_PAK0} is absent")
 
 
 def _load_quake_palette():
-    return _read_pak_entry(ID1_PAK0, "gfx/palette.lmp")
+    if os.path.isfile(ID1_PAK0):
+        return _read_pak_entry(ID1_PAK0, "gfx/palette.lmp")
+    return base64.b64decode(_QUAKE_PALETTE_B64)
 
 
-def ensure_driver_texture(out_path=DRIVER_TEX_ABS):
+def ensure_driver_texture(out_path=DRIVER_TEX_ABS, bakersfield_pk3=BAKER_PK3):
     """Extracts the 296x194 Quake Ranger skin, dilates UV borders to avoid black seams,
     and saves a crisp 592x388 PNG at `progs/gk_driver.png`.
     """
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    data = _load_player_mdl_bytes()
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    data = _load_player_mdl_bytes(bakersfield_pk3=bakersfield_pk3)
     pal = _load_quake_palette()
 
     hdr = struct.unpack("<4si3f3ff3f8if", data[:84])
@@ -154,9 +183,9 @@ def ensure_driver_texture(out_path=DRIVER_TEX_ABS):
     return out_path
 
 
-def _parse_id1_body():
+def _parse_id1_body(bakersfield_pk3=BAKER_PK3):
     """Returns (sw, sh, st, body_tris, frame_verts_fn) for the 149-vert Ranger body."""
-    data = _load_player_mdl_bytes()
+    data = _load_player_mdl_bytes(bakersfield_pk3=bakersfield_pk3)
     hdr = struct.unpack("<4si3f3ff3f8if", data[:84])
     scale, trans = hdr[2:5], hdr[5:8]
     nskins, sw, sh, nverts, ntris, nframes = hdr[12:18]
@@ -405,6 +434,7 @@ def build_seated_driver(
     torso_recline_deg=5.5,
     scale=1.18,
     head_pitch_deg=4.0,
+    bakersfield_pk3=BAKER_PK3,
 ):
     """Builds the authentic Quake Ranger seated inside a go-kart cockpit.
 
@@ -416,13 +446,14 @@ def build_seated_driver(
         torso_recline_deg: Backward torso tilt against seat backrest (+deg leans back).
         scale: Overall Ranger body scale (1.18 gives ~34.5u seated height, ~22u shoulder span).
         head_pitch_deg: Slight downward/forward gaze angle.
+        bakersfield_pk3: Path to bakersfield.pk3 containing progs/player_id1.mdl.
     """
     if isinstance(seat_pos, dict):
         seat_pos = (float(seat_pos["x"]), float(seat_pos["y"]), float(seat_pos["z"]))
     if isinstance(steer_pos, dict):
         steer_pos = (float(steer_pos["x"]), float(steer_pos["y"]), float(steer_pos["z"]))
 
-    sw, sh, st, body, body_tris, get_frame = _parse_id1_body()
+    sw, sh, st, body, body_tris, get_frame = _parse_id1_body(bakersfield_pk3=bakersfield_pk3)
     vs17 = get_frame(17)  # axstnd1: arms free at sides, head straight!
 
     parts_verts = defaultdict(list)
@@ -647,16 +678,19 @@ def _simulate_driver_explosion(mesh, init_ry, init_pivot, vel0, ang_vel0, n_fram
     return frames
 
 
-def build_driver_md3():
+def build_driver_md3(progs_dir=PROGS_DIR, meta_dir=OUT_DIR, bakersfield_pk3=BAKER_PK3):
     """Exports standalone 64-frame seated Quake Ranger MD3 (`progs/gokart_driver.md3`)
     so empty parked go-karts have no driver inside until a player gets in.
     """
-    ensure_driver_texture()
+    os.makedirs(progs_dir, exist_ok=True)
+    tex_out = os.path.join(progs_dir, "gk_driver.png")
+    ensure_driver_texture(out_path=tex_out, bakersfield_pk3=bakersfield_pk3)
     mesh = build_seated_driver(
         seat_pos={"x": -9.0, "y": 0.0, "z": 9.5},
         steer_pos={"x": 13.0, "y": 0.0, "z": 24.0},
         foot_pos=(19.5, 6.8, 7.0),
         grip_half_y=6.6,
+        bakersfield_pk3=bakersfield_pk3,
     )
 
     frame_names = []
@@ -698,28 +732,28 @@ def build_driver_md3():
         frame_names=frame_names,
         surfaces=[dict(name="driver", shader=DRIVER_SHADER, tris=mesh.tris, st=mesh.st, frames=frames)],
     )
-    md3_path = os.path.join(PROGS_DIR, "gokart_driver.md3")
+    md3_path = os.path.join(progs_dir, "gokart_driver.md3")
     md3lib.write(md3_path, model)
 
     skin_path = md3_path + "_0.skin"
     with open(skin_path, "w", encoding="ascii", newline="\n") as f:
         f.write(f"driver,{DRIVER_SHADER}\n")
 
-    out_dir = os.path.join(HERE, "out")
-    os.makedirs(out_dir, exist_ok=True)
-    meta_path = os.path.join(out_dir, "gokart_driver_meta.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "id": "gokart_driver",
-                "name": "Quake Ranger Driver",
-                "md3File": "progs/gokart_driver.md3",
-                "textures": {DRIVER_SHADER: DRIVER_TEX_REL},
-                "materials": {DRIVER_SHADER: {"metallic": 0.12, "roughness": 0.68, "spec": 0.30}},
-            },
-            f,
-            indent=2,
-        )
+    if meta_dir is not None:
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_path = os.path.join(meta_dir, "gokart_driver_meta.json")
+        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(
+                {
+                    "id": "gokart_driver",
+                    "name": "Quake Ranger Driver",
+                    "md3File": "progs/gokart_driver.md3",
+                    "textures": {DRIVER_SHADER: DRIVER_TEX_REL},
+                    "materials": {DRIVER_SHADER: {"metallic": 0.12, "roughness": 0.68, "spec": 0.30}},
+                },
+                f,
+                indent=2,
+            )
 
     rt = md3lib.read(md3_path)
     assert rt["nframes"] == 64 and len(rt["surfaces"]) == 1
@@ -727,5 +761,16 @@ def build_driver_md3():
     return md3_path
 
 
+def _parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Build seated Quake Ranger driver MD3 and skin texture.")
+    parser.add_argument("--bakersfield-pk3", default=BAKER_PK3, help="Path to bakersfield.pk3")
+    parser.add_argument("--out-dir", default=None, help="Output directory for gk_driver.png, gokart_driver.md3, and .skin")
+    parser.add_argument("--meta-dir", default=None, help="Optional directory for gokart_driver_meta.json")
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
-    build_driver_md3()
+    args = _parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS_DIR
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    build_driver_md3(progs_dir=progs_dir, meta_dir=meta_dir, bakersfield_pk3=args.bakersfield_pk3)

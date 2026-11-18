@@ -11,6 +11,7 @@ Coordinate contract (Quake / DarkPlaces):
   +X = forward, +Y = left, +Z = up, ground = Z=0.
   Overall length X in [-48, +50], track width Y in [-35, +35].
 """
+import argparse
 import json
 import math
 import os
@@ -140,12 +141,10 @@ def _fbm(h, w, seed=101, octaves=(4, 8, 16, 32, 64)):
 
 
 def _font(size, bold=True):
-    names = ["consolab.ttf", "arialbd.ttf", "impact.ttf"] if bold else ["consola.ttf", "arial.ttf"]
-    for nm in names:
-        p = os.path.join(r"C:\Windows\Fonts", nm)
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _save_png(arr_f, path, mode="RGB"):
@@ -185,8 +184,8 @@ def _draw_quake_q(draw, cx, cy, r, fill_col, rim_col, shadow_col):
     ], fill=fill_col)
 
 
-def generate_all_textures():
-    os.makedirs(PROGS, exist_ok=True)
+def generate_all_textures(progs_dir=PROGS):
+    os.makedirs(progs_dir, exist_ok=True)
     paths = {}
     W = H = 1024
     half = 512
@@ -244,7 +243,7 @@ def generate_all_textures():
     dr_q4.text((98, 168), "BAJA", font=_font(96), fill=(144, 232, 28))
     dr_q4.text((133, 283), "03", font=_font(168), fill=(244, 122, 26))
     im_ch.paste(im_q4, (half, half))
-    p_ch = os.path.join(PROGS, "gk3_chassis.png")
+    p_ch = os.path.join(progs_dir, "gk3_chassis.png")
     im_ch.save(p_ch, "PNG", optimize=True)
     paths["progs/gk3_chassis"] = "progs/gk3_chassis.png"
 
@@ -306,7 +305,7 @@ def generate_all_textures():
     # Quake 'Q' grille badge in Q4
     dr2.rounded_rectangle((536, 536, 1000, 1000), radius=36, fill=(24, 26, 30), outline=(140, 230, 26), width=10)
     _draw_quake_q(dr2, 768, 768, 158, fill_col=(244, 134, 28), rim_col=(228, 232, 236), shadow_col=(18, 20, 24))
-    p_sk = os.path.join(PROGS, "gk3_skid.png")
+    p_sk = os.path.join(progs_dir, "gk3_skid.png")
     im_sk.save(p_sk, "PNG", optimize=True)
     paths["progs/gk3_skid"] = "progs/gk3_skid.png"
 
@@ -337,7 +336,7 @@ def generate_all_textures():
     for k in range(-4, 14):
         x0 = 512 + k * 64
         dr3.polygon([(x0, 512), (x0 + 32, 512), (x0 - 160, 1024), (x0 - 192, 1024)], fill=(246, 116, 22))
-    p_sp = os.path.join(PROGS, "gk3_susp.png")
+    p_sp = os.path.join(progs_dir, "gk3_susp.png")
     im_sp.save(p_sp, "PNG", optimize=True)
     paths["progs/gk3_susp"] = "progs/gk3_susp.png"
 
@@ -380,7 +379,7 @@ def generate_all_textures():
     # Harness stripe bands in Q3
     dr4.rectangle((60, 512, 110, 1024), fill=(242, 112, 22))
     dr4.rectangle((402, 512, 452, 1024), fill=(242, 112, 22))
-    p_st = os.path.join(PROGS, "gk3_seat.png")
+    p_st = os.path.join(progs_dir, "gk3_seat.png")
     im_st.save(p_st, "PNG", optimize=True)
     paths["progs/gk3_seat"] = "progs/gk3_seat.png"
 
@@ -411,7 +410,7 @@ def generate_all_textures():
     im_sw = Image.fromarray(np.clip(arr5, 0, 255).astype(np.uint8), mode="RGB")
     dr5 = ImageDraw.Draw(im_sw)
     _draw_quake_q(dr5, 768, 768, 130, fill_col=(140, 230, 26), rim_col=(235, 238, 242), shadow_col=(22, 24, 28))
-    p_sw = os.path.join(PROGS, "gk3_steer.png")
+    p_sw = os.path.join(progs_dir, "gk3_steer.png")
     im_sw.save(p_sw, "PNG", optimize=True)
     paths["progs/gk3_steer"] = "progs/gk3_steer.png"
 
@@ -441,7 +440,7 @@ def generate_all_textures():
     arr6[half:, half:, 0] = np.clip(240.0 + 10.0 * nf6[half:, half:], 80, 255)
     arr6[half:, half:, 1] = np.clip(108.0 + 10.0 * nf6[half:, half:], 40, 160)
     arr6[half:, half:, 2] = 22.0
-    p_en = os.path.join(PROGS, "gk3_engine.png")
+    p_en = os.path.join(progs_dir, "gk3_engine.png")
     _save_png(arr6, p_en)
     paths["progs/gk3_engine"] = "progs/gk3_engine.png"
 
@@ -470,7 +469,7 @@ def generate_all_textures():
     arr7[half:, half:, 0] = np.clip(soot, 8, 36)
     arr7[half:, half:, 1] = np.clip(soot, 8, 36)
     arr7[half:, half:, 2] = np.clip(soot + 2.0, 10, 40)
-    p_ex = os.path.join(PROGS, "gk3_exhaust.png")
+    p_ex = os.path.join(progs_dir, "gk3_exhaust.png")
     _save_png(arr7, p_ex)
     paths["progs/gk3_exhaust"] = "progs/gk3_exhaust.png"
 
@@ -516,7 +515,7 @@ def generate_all_textures():
     arr8[half:, half:, 0] = np.clip(188.0 + 12.0 * nf8[half:, half:], 40, 240)
     arr8[half:, half:, 1] = np.clip(142.0 + 10.0 * nf8[half:, half:], 32, 195)
     arr8[half:, half:, 2] = np.clip(74.0 + 8.0 * nf8[half:, half:], 20, 125)
-    p_wh = os.path.join(PROGS, "gk3_wheel.png")
+    p_wh = os.path.join(progs_dir, "gk3_wheel.png")
     _save_png(arr8, p_wh)
     paths["progs/gk3_wheel"] = "progs/gk3_wheel.png"
 
@@ -551,7 +550,7 @@ def generate_all_textures():
     arr9[:, 256:, 2] = 195.0 * (int_c ** 1.15) * (1.0 - 0.45 * v_c)
     arr9[:, 256:, 3] = 255.0 * int_c
 
-    p_fl = os.path.join(PROGS, "gk3_flame.png")
+    p_fl = os.path.join(progs_dir, "gk3_flame.png")
     _save_png(arr9, p_fl, mode="RGBA")
     paths["progs/gk3_flame"] = "progs/gk3_flame.png"
     return paths
@@ -1399,9 +1398,9 @@ def ballistic_step(t, v0, grav=140.0, bounce_z=0.5, restitution=0.52):
 # ---------------------------------------------------------------------------
 # 4. Build Full 64-Frame Model, Verify Contracts, Write MD3 + Skin + Meta
 # ---------------------------------------------------------------------------
-def build_gokart_3():
+def build_gokart_3(progs_dir=PROGS, meta_dir=OUT_DIR):
     print("1. Generating Go-Kart #3 ('Baja Dune Scrambler') procedural textures...", flush=True)
-    tex_paths = generate_all_textures()
+    tex_paths = generate_all_textures(progs_dir=progs_dir)
 
     print("2. Building high-detail 3D surfaces...", flush=True)
     parts = {
@@ -1559,11 +1558,11 @@ def build_gokart_3():
             frames=surf_frames[sname],
         ))
 
-    md3_path = os.path.join(PROGS, "gokart_3.md3")
+    md3_path = os.path.join(progs_dir, "gokart_3.md3")
     md3lib.write(md3_path, dict(name="progs/gokart_3.md3", frame_names=frame_names, surfaces=md3_surfaces))
 
-    skin_path = os.path.join(PROGS, "gokart_3.md3_0.skin")
-    with open(skin_path, "w", encoding="ascii") as f:
+    skin_path = os.path.join(progs_dir, "gokart_3.md3_0.skin")
+    with open(skin_path, "w", encoding="ascii", newline="\n") as f:
         for s in md3_surfaces:
             f.write(f"{s['name']},{s['shader']}\n")
 
@@ -1573,7 +1572,6 @@ def build_gokart_3():
         {"x": -46.5, "y": -10.5, "z": 20.5, "dx": -0.946, "dy": -0.074, "dz": +0.315},
     ]
 
-    os.makedirs(OUT_DIR, exist_ok=True)
     meta = {
         "id": "kart3",
         "name": "Baja Dune Scrambler",
@@ -1598,9 +1596,12 @@ def build_gokart_3():
         "textures": tex_paths,
         "materials": MATERIALS,
     }
-    meta_path = os.path.join(OUT_DIR, "gokart_3_meta.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta, f, indent=2)
+    meta_path = None
+    if meta_dir is not None:
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_path = os.path.join(meta_dir, "gokart_3_meta.json")
+        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(meta, f, indent=2)
 
     # -----------------------------------------------------------------------
     # 5. Self-Verification Round-Trip & Contract Checks
@@ -1679,4 +1680,10 @@ def build_gokart_3():
 
 
 if __name__ == "__main__":
-    build_gokart_3()
+    p = argparse.ArgumentParser(description="Build Go-Kart #3 MD3, skin, and textures.")
+    p.add_argument("--out-dir", default=None, help="Output directory for MD3, skin, and PNGs")
+    p.add_argument("--meta-dir", default=None, help="Optional directory for gokart_3_meta.json")
+    args = p.parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    build_gokart_3(progs_dir=progs_dir, meta_dir=meta_dir)

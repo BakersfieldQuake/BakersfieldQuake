@@ -2,7 +2,7 @@
 #
 # The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
-# root, rebuilds zz_bakovan.pk3 from the zip's own bakersfield.pk3, then publishes three per-OS packages:
+# root, rebuilds zz_bakovan.pk3 and zz_karts.pk3 from the zip's own bakersfield.pk3, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (currently darkplaces.exe at root).
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
@@ -110,6 +110,10 @@ jobs:
           python -m pip install --quiet numpy==2.5.4 pillow==13.0.0
           python -I repo/source/mm_tools/van_bako/build_van_bako_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
 
+      - name: Build zz_karts.pk3
+        run: |
+          python -I repo/source/mm_tools/build_gokart_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 out/BAKOQUAKE/BakersfieldQuake/zz_karts.pk3
+
       - name: Zip the Windows package (master)
         # pk3/pak/png are already compressed: store them instead of deflating 1 GB again.
         # This is the asset source for the next run, so its name and tree stay exactly as before.
@@ -148,7 +152,7 @@ jobs:
           [ "$DRAFT" = true ] && flags=(--draft) && tag="${tag}-draft"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "BAKOQUAKE $tag" \
-            --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
+            --notes "Playable packages, built by the Build BAKOQUAKE.zip workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
           You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 

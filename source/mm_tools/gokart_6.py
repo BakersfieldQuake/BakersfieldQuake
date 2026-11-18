@@ -11,10 +11,12 @@ Coordinate contract (Quake / DarkPlaces):
   +X = forward, +Y = left, +Z = up, ground = Z=0.
   Overall length X in [-47, +58], track width Y in [-36, +36].
 """
+import argparse
 import json
 import math
 import os
 import sys
+import tempfile
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -43,6 +45,7 @@ from mmw_geometry import (
     vsub,
 )
 from tank_geom_core import build_pneumatic_wheel
+import tank_tex_gen
 from tank_tex_gen import (
     UV_CHROME_BAR,
     UV_HEX_ZINC,
@@ -128,12 +131,10 @@ def _fbm(h, w, seed=601, octaves=(4, 8, 16, 32, 64)):
 
 
 def _font(size, bold=True):
-    names = ["consolab.ttf", "arialbd.ttf", "impact.ttf"] if bold else ["consola.ttf", "arial.ttf"]
-    for nm in names:
-        p = os.path.join(r"C:\Windows\Fonts", nm)
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _save_png(arr_f, path, mode="RGB"):
@@ -175,8 +176,8 @@ def _lift_mmt_albedo(arr_u8, mult=2.12):
     return np.clip(np.round(f), 12, 250).astype(np.uint8)
 
 
-def generate_all_textures():
-    os.makedirs(PROGS, exist_ok=True)
+def generate_all_textures(progs_dir=PROGS):
+    os.makedirs(progs_dir, exist_ok=True)
     paths = {}
     W = H = 1024
     half = 512
@@ -184,20 +185,29 @@ def generate_all_textures():
     # -----------------------------------------------------------------------
     # 1. gk6_chrome.png (from read-only progs/mmt_chrome_bar.png, lifted for PBR/viewer)
     # -----------------------------------------------------------------------
-    src_chrome = os.path.join(PROGS, "mmt_chrome_bar.png")
-    im_mc = Image.open(src_chrome).convert("RGB")
+    src_chrome = os.path.join(progs_dir, "mmt_chrome_bar.png")
+    src_wheel = os.path.join(progs_dir, "mmt_wheel.png")
+    if os.path.isfile(src_chrome) and os.path.isfile(src_wheel):
+        im_mc = Image.open(src_chrome).convert("RGB")
+        im_mw = Image.open(src_wheel).convert("RGB")
+    else:
+        with tempfile.TemporaryDirectory() as tmp_mmt:
+            p_wheel, _ = tank_tex_gen.build_wheel_textures(tmp_mmt)
+            p_chrome, _ = tank_tex_gen.build_chrome_bar_textures(tmp_mmt)
+            im_mc = Image.open(p_chrome).convert("RGB")
+            im_mc.load()
+            im_mw = Image.open(p_wheel).convert("RGB")
+            im_mw.load()
     arr_mc = _lift_mmt_albedo(np.asarray(im_mc), mult=2.15)
     # Keep Q3 rubber cap dark matte charcoal
     arr_mc[half:, :half] = np.clip(np.asarray(im_mc)[half:, :half].astype(np.float32) * 1.25, 16, 78).astype(np.uint8)
-    p_chr = os.path.join(PROGS, "gk6_chrome.png")
+    p_chr = os.path.join(progs_dir, "gk6_chrome.png")
     Image.fromarray(arr_mc, mode="RGB").save(p_chr, "PNG", optimize=True)
     paths["progs/gk6_chrome"] = "progs/gk6_chrome.png"
 
     # -----------------------------------------------------------------------
     # 2. gk6_wheel.png (left 75% = mmt_wheel.png, right 25% = mmt_chrome_bar.png Q2+Q4)
     # -----------------------------------------------------------------------
-    src_wheel = os.path.join(PROGS, "mmt_wheel.png")
-    im_mw = Image.open(src_wheel).convert("RGB")
     arr_mw = np.asarray(im_mw).astype(np.float32)
     # Lift rim quadrants (bottom half) to crisp off-white steel, keep tire tread/sidewall rich dark rubber
     lifted_mw = np.empty_like(arr_mw)
@@ -210,7 +220,7 @@ def generate_all_textures():
     im_wh = Image.new("RGB", (1024, 1024))
     im_wh.paste(im_mw_l, (0, 0))
     im_wh.paste(im_hw_r, (768, 0))
-    p_wh = os.path.join(PROGS, "gk6_wheel.png")
+    p_wh = os.path.join(progs_dir, "gk6_wheel.png")
     im_wh.save(p_wh, "PNG", optimize=True)
     paths["progs/gk6_wheel"] = "progs/gk6_wheel.png"
 
@@ -263,7 +273,7 @@ def generate_all_textures():
     dr_q4.text((130, 250), "06", font=_font(174), fill=(242, 196, 36))
     _draw_quake_q(dr_q4, 422, 365, 48, (238, 188, 36), (252, 224, 120), (22, 24, 28))
     im_fr.paste(im_q4, (half, half))
-    p_fr = os.path.join(PROGS, "gk6_frame.png")
+    p_fr = os.path.join(progs_dir, "gk6_frame.png")
     im_fr.save(p_fr, "PNG", optimize=True)
     paths["progs/gk6_frame"] = "progs/gk6_frame.png"
 
@@ -296,7 +306,7 @@ def generate_all_textures():
     arr4[half:, half:, 0] = np.clip(sh_v * 0.95, 22, 100)
     arr4[half:, half:, 1] = np.clip(sh_v * 0.98, 24, 104)
     arr4[half:, half:, 2] = np.clip(sh_v * 1.05, 26, 112)
-    p_st = os.path.join(PROGS, "gk6_seat.png")
+    p_st = os.path.join(progs_dir, "gk6_seat.png")
     _save_png(arr4, p_st)
     paths["progs/gk6_seat"] = "progs/gk6_seat.png"
 
@@ -320,7 +330,7 @@ def generate_all_textures():
     dr_cap.ellipse((24, 24, 488, 488), fill=(36, 38, 44), outline=(210, 214, 222), width=14)
     _draw_quake_q(dr_cap, 256, 256, 128, (238, 192, 36), (252, 226, 125), (34, 36, 42))
     im_str.paste(im_cap, (half, half))
-    p_str = os.path.join(PROGS, "gk6_steer.png")
+    p_str = os.path.join(progs_dir, "gk6_steer.png")
     im_str.save(p_str, "PNG", optimize=True)
     paths["progs/gk6_steer"] = "progs/gk6_steer.png"
 
@@ -356,7 +366,7 @@ def generate_all_textures():
     dr_hz.text((78, 220), "HEAVY", font=_font(104), fill=(236, 238, 244))
     dr_hz.text((70, 336), "FUEL", font=_font(118), fill=(240, 192, 36))
     im_eng.paste(im_hz, (half, half))
-    p_eng = os.path.join(PROGS, "gk6_engine.png")
+    p_eng = os.path.join(progs_dir, "gk6_engine.png")
     im_eng.save(p_eng, "PNG", optimize=True)
     paths["progs/gk6_engine"] = "progs/gk6_engine.png"
 
@@ -390,7 +400,7 @@ def generate_all_textures():
     arr7[:, 256:, 2] = 165.0 * (int_c ** 1.15) * (1.0 - 0.45 * v_c)
     arr7[:, 256:, 3] = 255.0 * int_c
 
-    p_fl = os.path.join(PROGS, "gk6_flame.png")
+    p_fl = os.path.join(progs_dir, "gk6_flame.png")
     _save_png(arr7, p_fl, mode="RGBA")
     paths["progs/gk6_flame"] = "progs/gk6_flame.png"
     return paths
@@ -1039,9 +1049,9 @@ def ballistic_step(t, v0, grav=140.0, restitution=0.52):
 # ---------------------------------------------------------------------------
 # 4. Build Full 64-Frame Model, Verify Contracts, Write MD3 + Skin + Meta
 # ---------------------------------------------------------------------------
-def build_gokart_6():
+def build_gokart_6(progs_dir=PROGS, meta_dir=OUT_DIR):
     print("1. Generating Go-Kart #6 ('Mega Man Heavy Fat-Tire Rammer') textures...", flush=True)
-    tex_paths = generate_all_textures()
+    tex_paths = generate_all_textures(progs_dir=progs_dir)
 
     print("2. Building high-detail 3D surfaces...", flush=True)
     parts = {
@@ -1199,11 +1209,11 @@ def build_gokart_6():
             frames=surf_frames[sname],
         ))
 
-    md3_path = os.path.join(PROGS, "gokart_6.md3")
+    md3_path = os.path.join(progs_dir, "gokart_6.md3")
     md3lib.write(md3_path, dict(name="progs/gokart_6.md3", frame_names=frame_names, surfaces=md3_surfaces))
 
-    skin_path = os.path.join(PROGS, "gokart_6.md3_0.skin")
-    with open(skin_path, "w", encoding="ascii") as f:
+    skin_path = os.path.join(progs_dir, "gokart_6.md3_0.skin")
+    with open(skin_path, "w", encoding="ascii", newline="\n") as f:
         for s in md3_surfaces:
             f.write(f"{s['name']},{s['shader']}\n")
 
@@ -1212,7 +1222,6 @@ def build_gokart_6():
         {"x": -45.8, "y": -10.5, "z": 21.8, "dx": -0.946, "dy": -0.074, "dz": +0.315},
     ]
 
-    os.makedirs(OUT_DIR, exist_ok=True)
     meta = {
         "id": "kart6",
         "name": "Mega Man Heavy Fat-Tire Rammer",
@@ -1239,9 +1248,12 @@ def build_gokart_6():
         "textures": tex_paths,
         "materials": MATERIALS,
     }
-    meta_path = os.path.join(OUT_DIR, "gokart_6_meta.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta, f, indent=2)
+    meta_path = None
+    if meta_dir is not None:
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_path = os.path.join(meta_dir, "gokart_6_meta.json")
+        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(meta, f, indent=2)
 
     # -----------------------------------------------------------------------
     # 5. Self-Verification Round-Trip & Contract Checks
@@ -1319,4 +1331,10 @@ def build_gokart_6():
 
 
 if __name__ == "__main__":
-    build_gokart_6()
+    p = argparse.ArgumentParser(description="Build Go-Kart #6 MD3, skin, and textures.")
+    p.add_argument("--out-dir", default=None, help="Output directory for MD3, skin, and PNGs")
+    p.add_argument("--meta-dir", default=None, help="Optional directory for gokart_6_meta.json")
+    args = p.parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    build_gokart_6(progs_dir=progs_dir, meta_dir=meta_dir)

@@ -16,11 +16,13 @@ Outputs (owned exclusively by kart-5):
 Usage:
   python source/mm_tools/gokart_5.py
 """
+import argparse
 import json
 import math
 import os
 import struct
 import sys
+import tempfile
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -53,6 +55,7 @@ from tank_geom_core import (
     build_t_collar as core_build_t_collar,
     build_tank_silver_bar,
 )
+import tank_tex_gen
 from tank_tex_gen import (
     UV_CHROME_BAR,
     UV_COTTER_YEL,
@@ -131,12 +134,10 @@ UV_Q4_D = (0.77, 0.77, 0.98, 0.98)
 # Procedural Texture Synthesis & Mega-Man Contraption Reuse
 # ---------------------------------------------------------------------------
 def _font(size, bold=True):
-    cands = ["consolab.ttf", "arialbd.ttf", "tahomabd.ttf"] if bold else ["consola.ttf", "arial.ttf"]
-    for nm in cands:
-        p = os.path.join(r"C:\Windows\Fonts", nm)
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _fbm(h, w, seed=55, octaves=(4, 8, 16, 32, 64)):
@@ -178,8 +179,15 @@ def _copy_mmt_textures(progs_dir):
     dst_wheel = os.path.join(progs_dir, "gk5_wheel.png")
     dst_chrome = os.path.join(progs_dir, "gk5_chrome.png")
 
-    Image.open(src_wheel).convert("RGB").save(dst_wheel, "PNG", optimize=True)
-    Image.open(src_chrome).convert("RGB").save(dst_chrome, "PNG", optimize=True)
+    if os.path.isfile(src_wheel) and os.path.isfile(src_chrome):
+        Image.open(src_wheel).convert("RGB").save(dst_wheel, "PNG", optimize=True)
+        Image.open(src_chrome).convert("RGB").save(dst_chrome, "PNG", optimize=True)
+    else:
+        with tempfile.TemporaryDirectory() as tmp_mmt:
+            p_wheel, _ = tank_tex_gen.build_wheel_textures(tmp_mmt)
+            p_chrome, _ = tank_tex_gen.build_chrome_bar_textures(tmp_mmt)
+            Image.open(p_wheel).convert("RGB").save(dst_wheel, "PNG", optimize=True)
+            Image.open(p_chrome).convert("RGB").save(dst_chrome, "PNG", optimize=True)
     return dst_wheel, dst_chrome
 
 
@@ -1179,9 +1187,9 @@ def _animate_flame_frame(meta, fi, is_core, chassis_ry, chassis_dz):
 # ---------------------------------------------------------------------------
 # Master Model Assembly & Verification
 # ---------------------------------------------------------------------------
-def build_gokart_5():
+def build_gokart_5(progs_dir=PROGS, meta_dir=OUT_DIR):
     print("1. Generating & syncing PNG textures (progs/gk5_*.png)...", flush=True)
-    build_all_textures(PROGS)
+    build_all_textures(progs_dir)
 
     print("2. Building 3D procedural surfaces for Mega Man Twin-Dish Interceptor...", flush=True)
     p_chassis = build_chassis()
@@ -1328,7 +1336,7 @@ def build_gokart_5():
         assert np.isfinite(all_v).all() and np.isfinite(all_n).all(), f"NaN/Inf in {s['name']}"
         assert np.max(np.abs(all_v)) < 511.5, f"MD3 int16 overflow in {s['name']}"
 
-    md3_path = os.path.join(PROGS, "gokart_5.md3")
+    md3_path = os.path.join(progs_dir, "gokart_5.md3")
     md3lib.write(md3_path, dict(name="progs/gokart_5.md3", surfaces=surfaces, nframes=64, frame_names=FRAME_NAMES))
 
     skin_path = md3_path + "_0.skin"
@@ -1379,52 +1387,54 @@ def build_gokart_5():
             assert zmin_e >= 0.45, f"{s['name']} clipped below ground at frame {fi} (zmin={zmin_e:.2f})"
 
     # Write shared metadata JSON
-    os.makedirs(OUT_DIR, exist_ok=True)
-    meta_path = os.path.join(OUT_DIR, "gokart_5_meta.json")
-    meta_doc = {
-        "id": "kart5",
-        "name": "Mega Man Twin-Dish Interceptor",
-        "tagline": "Mega-Blue Sidepods, Giant Rear Dish Tires & Elevated T-Collar Silver Bar",
-        "palette": ["#1052d4", "#00dcff", "#eef2f6", "#22262d"],
-        "description": (
-            "Sleek low-slung Mega-Man-Blue and mirror-chrome interceptor go-kart built on "
-            "authentic Mega Man contraption hardware: giant 13.5u rear 5-ribbed pneumatic tires "
-            "and nimble 8.8u front wheels on off-white stamped steel dish rims with zinc hex nuts, "
-            "yellow cotter pins, and brass Schrader valves; underslung stainless cross-axles; "
-            "cobalt-blue and cyan-trim side fairing pods with crisp white racing stripes; a "
-            "prominent +3 deg mirror-chrome bullet-nosed silver torpedo bar clamped in an elevated "
-            "stainless TIG T-collar gimbal ahead of the nose cowl; quilted blue/white bucket seat; "
-            "stainless butterfly steering yoke; and twin angled Mega-Buster exhaust cannons."
-        ),
-        "highlights": [
-            ["Twin-Dish Stance", "Giant R=13.5u rear & R=8.8u front Mega Man 5-ribbed dish wheels w/ hex/cotter/valve"],
-            ["Elevated Gimbal Bar", "Mirror-chrome torpedo bar (X=+10..+56, +3 deg) in elevated TIG T-collar on twin struts"],
-            ["Mega-Buster Twin", "Angled chrome Mega-Buster exhaust cannons w/ cyan/white-hot shock-diamond plumes"],
-        ],
-        "seat_pos": {"x": SEAT_POS[0], "y": SEAT_POS[1], "z": SEAT_POS[2]},
-        "steer_pos": {"x": STEER_POS[0], "y": STEER_POS[1], "z": STEER_POS[2]},
-        "exhaust_tips": EXHAUST_TIPS,
-        "textures": {
-            "progs/gk5_chrome": "progs/gk5_chrome.png",
-            "progs/gk5_wheel": "progs/gk5_wheel.png",
-            "progs/gk5_body": "progs/gk5_body.png",
-            "progs/gk5_seat": "progs/gk5_seat.png",
-            "progs/gk5_steer": "progs/gk5_steer.png",
-            "progs/gk5_exhaust": "progs/gk5_exhaust.png",
-            "progs/gk5_flame": "progs/gk5_flame.png",
-        },
-        "materials": {
-            "progs/gk5_chrome": {"metallic": 0.92, "roughness": 0.14, "spec": 1.50},
-            "progs/gk5_wheel": {"metallic": 0.25, "roughness": 0.48, "spec": 0.55},
-            "progs/gk5_body": {"metallic": 0.62, "roughness": 0.22, "spec": 1.05},
-            "progs/gk5_seat": {"metallic": 0.10, "roughness": 0.60, "spec": 0.35},
-            "progs/gk5_steer": {"metallic": 0.58, "roughness": 0.24, "spec": 0.95},
-            "progs/gk5_exhaust": {"metallic": 0.88, "roughness": 0.18, "spec": 1.40},
-            "progs/gk5_flame": {"metallic": 0.0, "roughness": 1.0, "spec": 0.0, "unlit": True, "additive": True},
-        },
-    }
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta_doc, f, indent=2)
+    meta_path = None
+    if meta_dir is not None:
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_path = os.path.join(meta_dir, "gokart_5_meta.json")
+        meta_doc = {
+            "id": "kart5",
+            "name": "Mega Man Twin-Dish Interceptor",
+            "tagline": "Mega-Blue Sidepods, Giant Rear Dish Tires & Elevated T-Collar Silver Bar",
+            "palette": ["#1052d4", "#00dcff", "#eef2f6", "#22262d"],
+            "description": (
+                "Sleek low-slung Mega-Man-Blue and mirror-chrome interceptor go-kart built on "
+                "authentic Mega Man contraption hardware: giant 13.5u rear 5-ribbed pneumatic tires "
+                "and nimble 8.8u front wheels on off-white stamped steel dish rims with zinc hex nuts, "
+                "yellow cotter pins, and brass Schrader valves; underslung stainless cross-axles; "
+                "cobalt-blue and cyan-trim side fairing pods with crisp white racing stripes; a "
+                "prominent +3 deg mirror-chrome bullet-nosed silver torpedo bar clamped in an elevated "
+                "stainless TIG T-collar gimbal ahead of the nose cowl; quilted blue/white bucket seat; "
+                "stainless butterfly steering yoke; and twin angled Mega-Buster exhaust cannons."
+            ),
+            "highlights": [
+                ["Twin-Dish Stance", "Giant R=13.5u rear & R=8.8u front Mega Man 5-ribbed dish wheels w/ hex/cotter/valve"],
+                ["Elevated Gimbal Bar", "Mirror-chrome torpedo bar (X=+10..+56, +3 deg) in elevated TIG T-collar on twin struts"],
+                ["Mega-Buster Twin", "Angled chrome Mega-Buster exhaust cannons w/ cyan/white-hot shock-diamond plumes"],
+            ],
+            "seat_pos": {"x": SEAT_POS[0], "y": SEAT_POS[1], "z": SEAT_POS[2]},
+            "steer_pos": {"x": STEER_POS[0], "y": STEER_POS[1], "z": STEER_POS[2]},
+            "exhaust_tips": EXHAUST_TIPS,
+            "textures": {
+                "progs/gk5_chrome": "progs/gk5_chrome.png",
+                "progs/gk5_wheel": "progs/gk5_wheel.png",
+                "progs/gk5_body": "progs/gk5_body.png",
+                "progs/gk5_seat": "progs/gk5_seat.png",
+                "progs/gk5_steer": "progs/gk5_steer.png",
+                "progs/gk5_exhaust": "progs/gk5_exhaust.png",
+                "progs/gk5_flame": "progs/gk5_flame.png",
+            },
+            "materials": {
+                "progs/gk5_chrome": {"metallic": 0.92, "roughness": 0.14, "spec": 1.50},
+                "progs/gk5_wheel": {"metallic": 0.25, "roughness": 0.48, "spec": 0.55},
+                "progs/gk5_body": {"metallic": 0.62, "roughness": 0.22, "spec": 1.05},
+                "progs/gk5_seat": {"metallic": 0.10, "roughness": 0.60, "spec": 0.35},
+                "progs/gk5_steer": {"metallic": 0.58, "roughness": 0.24, "spec": 0.95},
+                "progs/gk5_exhaust": {"metallic": 0.88, "roughness": 0.18, "spec": 1.40},
+                "progs/gk5_flame": {"metallic": 0.0, "roughness": 1.0, "spec": 0.0, "unlit": True, "additive": True},
+            },
+        }
+        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(meta_doc, f, indent=2)
 
     tot_v = sum(len(s["st"]) for s in rt["surfaces"])
     tot_t = sum(len(s["tris"]) for s in rt["surfaces"])
@@ -1438,4 +1448,10 @@ def build_gokart_5():
 
 
 if __name__ == "__main__":
-    build_gokart_5()
+    p = argparse.ArgumentParser(description="Build Go-Kart #5 MD3, skin, and textures.")
+    p.add_argument("--out-dir", default=None, help="Output directory for MD3, skin, and PNGs")
+    p.add_argument("--meta-dir", default=None, help="Optional directory for gokart_5_meta.json")
+    args = p.parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    build_gokart_5(progs_dir=progs_dir, meta_dir=meta_dir)

@@ -16,6 +16,7 @@ Outputs (owned exclusively by kart-2):
 Usage:
   python source/mm_tools/gokart_2.py
 """
+import argparse
 import json
 import math
 import os
@@ -97,12 +98,10 @@ UV_Q4_D = (0.77, 0.77, 0.98, 0.98)
 # Procedural Texture Synthesis (1024x1024 RGB + 512x512 RGBA Flame)
 # ---------------------------------------------------------------------------
 def _font(size, bold=True):
-    cands = ["consolab.ttf", "arialbd.ttf", "tahomabd.ttf"] if bold else ["consola.ttf", "arial.ttf"]
-    for nm in cands:
-        p = os.path.join(r"C:\Windows\Fonts", nm)
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _fbm(h, w, seed=42, octaves=(4, 8, 16, 32, 64)):
@@ -1565,9 +1564,9 @@ def _animate_flame_frame(meta, fi, is_core, chassis_ry, chassis_dz):
 # ---------------------------------------------------------------------------
 # Master Model Assembly & Export
 # ---------------------------------------------------------------------------
-def build_gokart_2():
+def build_gokart_2(progs_dir=PROGS, meta_dir=OUT_DIR):
     print("1. Generating high-res procedural PNG textures (progs/gk2_*.png)...", flush=True)
-    tex_map = build_all_textures(PROGS)
+    tex_map = build_all_textures(progs_dir)
 
     print("2. Building 3D procedural surfaces for Cyber-Nitro Aero GT...", flush=True)
     p_body = build_body_shell()
@@ -1718,7 +1717,7 @@ def build_gokart_2():
         assert np.isfinite(all_v).all() and np.isfinite(all_n).all(), f"NaN/Inf in {s['name']}"
         assert np.max(np.abs(all_v)) < 511.5, f"MD3 int16 overflow in {s['name']}"
 
-    md3_path = os.path.join(PROGS, "gokart_2.md3")
+    md3_path = os.path.join(progs_dir, "gokart_2.md3")
     md3lib.write(md3_path, dict(name="progs/gokart_2.md3", surfaces=surfaces, nframes=64, frame_names=FRAME_NAMES))
 
     skin_path = md3_path + "_0.skin"
@@ -1765,48 +1764,50 @@ def build_gokart_2():
             assert zmin_e >= 0.45, f"{s['name']} clipped below ground at frame {fi} (zmin={zmin_e:.2f})"
 
     # Write shared metadata JSON
-    os.makedirs(OUT_DIR, exist_ok=True)
-    meta_path = os.path.join(OUT_DIR, "gokart_2_meta.json")
-    meta_doc = {
-        "id": "kart2",
-        "name": "Cyber-Nitro Aero GT",
-        "tagline": "Formula-E Monocoque, Cyan Slats & Twin Turbo-Jet Afterburners",
-        "palette": ["#0d121c", "#00e5ff", "#ff9e00", "#1e293b"],
-        "description": (
-            "Sleek futuristic Formula-E cyber racer featuring a sculpted midnight-carbon wedge-nose "
-            "monocoque with Quake 'Q' nose decal, low-drag F1 front splitter wing, glowing cyan "
-            "radiator intake slats, carbon-kevlar racing seat, butterfly telemetry yoke, 5-spoke "
-            "turbine alloy slicks, split carbon rear wing, and twin angled titanium turbo-jet thrusters."
-        ),
-        "highlights": [
-            ["Aero Body", "Midnight-carbon wedge monocoque, F1 splitter, cyan intake slats & split rear wing"],
-            ["Thrusters", "Twin angled titanium iris-nozzle turbo jets w/ shock-diamond cyan plasma plumes"],
-            ["Player Fit", "26u open cockpit, seat (-9, 0, 9), yoke (13, 0, 24), clear footwell & open overhead"],
-        ],
-        "seat_pos": {"x": SEAT_POS[0], "y": SEAT_POS[1], "z": SEAT_POS[2]},
-        "steer_pos": {"x": STEER_POS[0], "y": STEER_POS[1], "z": STEER_POS[2]},
-        "exhaust_tips": EXHAUST_TIPS,
-        "textures": {
-            "progs/gk2_body": "progs/gk2_body.png",
-            "progs/gk2_aero": "progs/gk2_aero.png",
-            "progs/gk2_seat": "progs/gk2_seat.png",
-            "progs/gk2_steer": "progs/gk2_steer.png",
-            "progs/gk2_thruster": "progs/gk2_thruster.png",
-            "progs/gk2_wheel": "progs/gk2_wheel.png",
-            "progs/gk2_flame": "progs/gk2_flame.png",
-        },
-        "materials": {
-            "progs/gk2_body": {"metallic": 0.55, "roughness": 0.24, "spec": 0.95},
-            "progs/gk2_aero": {"metallic": 0.45, "roughness": 0.28, "spec": 0.85},
-            "progs/gk2_seat": {"metallic": 0.12, "roughness": 0.58, "spec": 0.35},
-            "progs/gk2_steer": {"metallic": 0.42, "roughness": 0.32, "spec": 0.75},
-            "progs/gk2_thruster": {"metallic": 0.88, "roughness": 0.18, "spec": 1.35},
-            "progs/gk2_wheel": {"metallic": 0.35, "roughness": 0.42, "spec": 0.65},
-            "progs/gk2_flame": {"metallic": 0.0, "roughness": 1.0, "spec": 0.0, "unlit": True, "additive": True},
-        },
-    }
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta_doc, f, indent=2)
+    meta_path = None
+    if meta_dir is not None:
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_path = os.path.join(meta_dir, "gokart_2_meta.json")
+        meta_doc = {
+            "id": "kart2",
+            "name": "Cyber-Nitro Aero GT",
+            "tagline": "Formula-E Monocoque, Cyan Slats & Twin Turbo-Jet Afterburners",
+            "palette": ["#0d121c", "#00e5ff", "#ff9e00", "#1e293b"],
+            "description": (
+                "Sleek futuristic Formula-E cyber racer featuring a sculpted midnight-carbon wedge-nose "
+                "monocoque with Quake 'Q' nose decal, low-drag F1 front splitter wing, glowing cyan "
+                "radiator intake slats, carbon-kevlar racing seat, butterfly telemetry yoke, 5-spoke "
+                "turbine alloy slicks, split carbon rear wing, and twin angled titanium turbo-jet thrusters."
+            ),
+            "highlights": [
+                ["Aero Body", "Midnight-carbon wedge monocoque, F1 splitter, cyan intake slats & split rear wing"],
+                ["Thrusters", "Twin angled titanium iris-nozzle turbo jets w/ shock-diamond cyan plasma plumes"],
+                ["Player Fit", "26u open cockpit, seat (-9, 0, 9), yoke (13, 0, 24), clear footwell & open overhead"],
+            ],
+            "seat_pos": {"x": SEAT_POS[0], "y": SEAT_POS[1], "z": SEAT_POS[2]},
+            "steer_pos": {"x": STEER_POS[0], "y": STEER_POS[1], "z": STEER_POS[2]},
+            "exhaust_tips": EXHAUST_TIPS,
+            "textures": {
+                "progs/gk2_body": "progs/gk2_body.png",
+                "progs/gk2_aero": "progs/gk2_aero.png",
+                "progs/gk2_seat": "progs/gk2_seat.png",
+                "progs/gk2_steer": "progs/gk2_steer.png",
+                "progs/gk2_thruster": "progs/gk2_thruster.png",
+                "progs/gk2_wheel": "progs/gk2_wheel.png",
+                "progs/gk2_flame": "progs/gk2_flame.png",
+            },
+            "materials": {
+                "progs/gk2_body": {"metallic": 0.55, "roughness": 0.24, "spec": 0.95},
+                "progs/gk2_aero": {"metallic": 0.45, "roughness": 0.28, "spec": 0.85},
+                "progs/gk2_seat": {"metallic": 0.12, "roughness": 0.58, "spec": 0.35},
+                "progs/gk2_steer": {"metallic": 0.42, "roughness": 0.32, "spec": 0.75},
+                "progs/gk2_thruster": {"metallic": 0.88, "roughness": 0.18, "spec": 1.35},
+                "progs/gk2_wheel": {"metallic": 0.35, "roughness": 0.42, "spec": 0.65},
+                "progs/gk2_flame": {"metallic": 0.0, "roughness": 1.0, "spec": 0.0, "unlit": True, "additive": True},
+            },
+        }
+        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(meta_doc, f, indent=2)
 
     tot_v = sum(len(s["st"]) for s in rt["surfaces"])
     tot_t = sum(len(s["tris"]) for s in rt["surfaces"])
@@ -1820,4 +1821,10 @@ def build_gokart_2():
 
 
 if __name__ == "__main__":
-    build_gokart_2()
+    p = argparse.ArgumentParser(description="Build Go-Kart #2 MD3, skin, and textures.")
+    p.add_argument("--out-dir", default=None, help="Output directory for MD3, skin, and PNGs")
+    p.add_argument("--meta-dir", default=None, help="Optional directory for gokart_2_meta.json")
+    args = p.parse_args()
+    progs_dir = args.out_dir if args.out_dir is not None else PROGS
+    meta_dir = args.meta_dir if args.meta_dir is not None else (OUT_DIR if args.out_dir is None else None)
+    build_gokart_2(progs_dir=progs_dir, meta_dir=meta_dir)
