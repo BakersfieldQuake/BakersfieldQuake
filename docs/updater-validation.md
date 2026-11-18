@@ -80,3 +80,22 @@ Use any later build.
 - The app shows two notifications and no progress bar. A large pk3 change (about 500 MB) means a silent wait before
   the game starts.
 - `bq_update.py` is unchanged, so Windows players won't re-download `bq-update.exe`.
+
+## Results (2026-11-18)
+
+| Build | Tag | Run number | Result |
+| --- | --- | --- | --- |
+| A | `build-20261118-584fa4a-draft` | 20 | Green. App and DMG notarized. On mimi: no Gatekeeper prompt, clone rebuilt with A's tag. Promoted to Latest. |
+| B | `build-20261118-c34bfc0` | 24 | Green. Adds the version text in game (`showdate` + `version.cfg`). |
+| C | `build-20261118-7f30a1e` | 25 | Shorter version text (`date-sha`). The macos job was first cancelled: no macOS arm64 runner was assigned (GitHub capacity); rerun with `gh run rerun <id> --failed`. |
+
+- Linux (chonk, Build A zip, `tools/bq_update.py`): A to B downloaded 2 files (4 KB: `quake.rc`, `version.cfg`), B to C
+  1 file. Each following `--check` is quiet. In game (dm4) the tag shows at the bottom right and the log has
+  `execing version.cfg`.
+- Windows (win11 VM, Build A zip, `tools\bq-update.exe`): same files and results as Linux. The game starts, but the VM's
+  display is black (no 3D in the VM), so the text was not checked there.
+- Not tested: removing a file in a release (it worked in the local test on mimi; a removed `bm_up_*.cfg` fails the
+  package check because `quake.rc` execs every one), and the Start Menu / `.desktop` shortcuts (the updaters were run
+  directly, not through the launchers).
+- The version text is right-aligned with the FPS counter and runs over the status bar when it is long, so it is only
+  `date-sha`.
