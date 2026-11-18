@@ -203,9 +203,10 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 
 notarize() {   # notarize <file>
     step "notarize $(basename "$1")"
-    xcrun notarytool submit "$1" "${NOTARY_AUTH[@]}" --wait --output-format json | tee "$1.notary.json"
-    grep -q '"status" *: *"Accepted"' "$1.notary.json" || {
-        id="$(sed -n 's/.*"id" *: *"\([^"]*\)".*/\1/p' "$1.notary.json" | head -1)"
+    # Text output, so the upload progress and status polling show in the log as they happen.
+    xcrun notarytool submit "$1" "${NOTARY_AUTH[@]}" --wait | tee "$1.notary.log"
+    grep -q '^ *status: Accepted' "$1.notary.log" || {
+        id="$(sed -n 's/^ *id: *\([0-9a-f-]*\).*/\1/p' "$1.notary.log" | head -1)"
         [ -n "$id" ] && xcrun notarytool log "$id" "${NOTARY_AUTH[@]}"
         die "notarization failed"
     }
