@@ -4,9 +4,22 @@ Instructions for AI coding agents working in this repo.
 
 ## Where docs go
 
-- Agent prompts and handoffs go in `docs/prompts/`; other notes and plans go in `docs/`.
+- Every doc you write goes under `docs/`: plans, specs, notes, screenshots, reports. Never put docs in the repo
+  root or next to source.
+- Agent prompts and handoffs go in `docs/prompts/`.
 - The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and files the game itself reads.
   The `.gitignore` only excludes local build data (the unpacked `BAKOQUAKE/` package and logs).
+
+## Commits and pushing
+
+- **Don't push right after committing.** Commit locally, keep working, and push once a piece of work is finished
+  and checked. Pushes trigger CI builds (some workflows already do, the rest will), and each build costs time and
+  produces artifacts nobody needs.
+- **Before pushing, squash small commits into large, logical ones** (`git commit --fixup` plus
+  `git rebase -i --autosquash`, or a soft reset and recommit). One commit per logical change: "add go-karts"
+  rather than "fix typo", "fix again", "tweak texture".
+- **Only rewrite commits that haven't been pushed.** Never force-push `main`.
+- No AI session links or `Claude-Session:` trailers in commit messages or PR descriptions.
 
 ## macOS app
 
