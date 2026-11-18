@@ -285,6 +285,7 @@ class Updater:
                 st = target.stat()
                 cache[rel] = [st.st_size, st.st_mtime_ns, m["files"][rel]["sha256"]]
         except OSError as e:
+            failed = rel
             for rel in reversed(moved):
                 try:
                     if (backup / rel).exists():
@@ -294,7 +295,7 @@ class Updater:
                 except OSError:
                     pass
                 cache.pop(rel, None)
-            raise IOError(f"could not replace {rel} ({e}); is the game or a server running "
+            raise IOError(f"could not replace {failed} ({e}); is the game or a server running "
                           f"from this folder? The update was rolled back.") from e
 
         # Unzipped on a Mac or Linux box from a zip without mode bits, or just replaced: make them runnable.
