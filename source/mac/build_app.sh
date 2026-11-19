@@ -68,21 +68,34 @@ echo "signing identity: $SIGN_ID"
 mkdir -p "$WORK" "$SRC" "$OUT"
 
 # --- game data -----------------------------------------------------------------------------------------------
-ZIP="$WORK/dl/$TAG/BAKOQUAKE-macos-arm64.zip"
-if [ ! -f "$ZIP" ]; then
+# The unpacked package in $WORK/game is the cache. When it holds an earlier release, the players' updater brings it
+# to $TAG by fetching only the changed files out of the release zip; the full ~1 GB zip is the fallback.
+GAME="$WORK/game"
+PKG="$GAME/BAKOQUAKE"
+sync_game() {
+    local url="https://github.com/$REPO/releases/download/$TAG/manifest-macos-arm64.json"
+    local up=("${PYTHON:-python3}" "$ROOT/tools/bq_update.py" --root "$PKG" --platform macos-arm64 --manifest-url "$url")
+    step "update game data to $TAG (changed files only)"
+    # Without state the updater compares every file by sha256, whatever build it thinks is installed.
+    rm -f "$PKG/.bq/state.json"
+    "${up[@]}" || return 1
+    # The updater exits 0 on failure too (it never blocks a launch), so confirm nothing is left to fetch.
+    "${up[@]}" --check >/dev/null
+}
+if [ "$(cat "$GAME/.tag" 2>/dev/null)" = "$TAG" ]; then
+    step "game data already at $TAG"
+elif [ -d "$PKG" ] && sync_game; then
+    echo "$TAG" > "$GAME/.tag"
+else
     step "download $TAG"
-    # gh writes straight to the target name, so an interrupted download would be reused as the real zip next run.
-    rm -rf "$WORK/dl/$TAG.part"
-    gh release download "$TAG" -R "$REPO" -p BAKOQUAKE-macos-arm64.zip -D "$WORK/dl/$TAG.part"
-    mkdir -p "$WORK/dl/$TAG"
-    mv "$WORK/dl/$TAG.part/BAKOQUAKE-macos-arm64.zip" "$ZIP"
-    rm -rf "$WORK/dl/$TAG.part"
+    rm -rf "$WORK/dl" "$GAME"
+    gh release download "$TAG" -R "$REPO" -p BAKOQUAKE-macos-arm64.zip -D "$WORK/dl"
+    step "unpack game data"
+    mkdir -p "$GAME"
+    ditto -x -k "$WORK/dl/BAKOQUAKE-macos-arm64.zip" "$GAME"
+    rm -rf "$WORK/dl"
+    echo "$TAG" > "$GAME/.tag"
 fi
-step "unpack game data"
-rm -rf "$WORK/game"
-mkdir -p "$WORK/game"
-ditto -x -k "$ZIP" "$WORK/game"
-PKG="$WORK/game/BAKOQUAKE"
 [ -d "$PKG/BakersfieldQuake" ] && [ -d "$PKG/quake15" ] || die "unexpected zip layout"
 
 # --- dependencies (cached in $PREFIX) ------------------------------------------------------------------------

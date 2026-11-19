@@ -207,3 +207,9 @@
 
 - Outcome: `WORK` now defaults to `<repo>/build` in both the Makefile and `build_app.sh`, and `/build/` is gitignored. CI is unaffected because it sets `WORK` itself.
 - Follow-up: `~/build/bakoquake-mac` is now unused. Its `prefix-13.0` has its absolute path baked in (`sdl2-config`, pkg-config, cmake configs), so the first `make app` rebuilds the libraries in `./build` instead of moving them. The downloaded release zips under `dl/` can be moved to `./build/dl/`.
+
+## 2026-11-19 — `make app` fetches only changed game files
+
+- Outcome: `build_app.sh` keeps the unpacked package in `$WORK/game` as its cache and records the release in `game/.tag`. When that folder holds another release, it runs `tools/bq_update.py` (the players' updater) against `releases/download/<tag>/manifest-macos-arm64.json`, which fetches only the files whose sha256 changed with HTTP Range requests. A follow-up `--check` must report nothing left; otherwise it falls back to the full zip download. The zip is deleted after unpacking. CI starts empty and still downloads the zip.
+- Verification: `bash -n`. Synced `build/game` from `1e5859c` to `13e3e44` by hand with the same commands: 1 file fetched, 3.3 s, `--check` exit 0. A full `make app` through the new path has not been run yet.
+- Follow-up: a partial `13e3e44` download in `build/dl` (3.3 MB, 05:47) came from neither me nor Rob. Probably another session; deleted.
