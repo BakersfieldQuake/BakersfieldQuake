@@ -30,16 +30,19 @@ import gokart_4  # noqa: E402
 import gokart_5  # noqa: E402
 import gokart_6  # noqa: E402
 import gokart_driver  # noqa: E402
+import gokart_shell  # noqa: E402
 
 STORE_EXTS = {".png", ".jpg", ".jpeg", ".ogg"}
 DEFLATE_EXTS = {".md3", ".skin", ".shader"}
 
 
 def _validate_assets(progs_dir: Path, shader_text: str) -> None:
-    expected_models = [f"gokart_{i}.md3" for i in range(1, 7)] + ["gokart_driver.md3"]
+    expected_models = [f"gokart_{i}.md3" for i in range(1, 7)] + ["gokart_driver.md3", "gokart_shell.md3"]
     for name in expected_models:
         assert (progs_dir / name).is_file(), f"Missing generated model: {name}"
         assert (progs_dir / f"{name}_0.skin").is_file(), f"Missing generated skin: {name}_0.skin"
+    for s_idx in (1, 2):
+        assert (progs_dir / f"gokart_shell.md3_{s_idx}.skin").is_file(), f"Missing generated skin: gokart_shell.md3_{s_idx}.skin"
 
     defined_shaders = set(re.findall(r"^(progs/gk\S+)", shader_text, re.MULTILINE))
     used_shaders = set()
@@ -121,6 +124,7 @@ def build_zz_karts(bakersfield_pk3: Path, out_pk3: Path) -> Path:
             meta_dir=None,
             bakersfield_pk3=str(bakersfield_pk3),
         )
+        gokart_shell.main(progs_dir=p_str, meta_dir=None)
 
         _validate_assets(progs_dir, shader_text)
         entries = _collect_entries(progs_dir, shader_bytes)
