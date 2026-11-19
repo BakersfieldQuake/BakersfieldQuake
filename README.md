@@ -1,7 +1,20 @@
 # BakersfieldQuake
 
-A Quake mod layered on Combat+ (quake15) and the **Zircon Engine** (we no longer use DarkPlaces): custom guns (Mega Man gun, NetSend, Mystery Box,
-Wheelman Cannon, jetpack and more), Bakersfield maps (`bklan`, `orcom` and others) and a LAN-party deathmatch ruleset.
+**Bakersfield Quake is a retarded AI slop LAN party arcade game.**
+
+Built on Quake, Combat+ (`quake15`), and the **Zircon Engine** (we no longer use DarkPlaces): unhinged AI-forged weapons (Pocket Kyle, Dookie Bazooka, Jar o' Green Guys, Wheelman Cannon, Pink Lady, Mega Man gun, NetSend, Mystery Box, jetpacks and more), Bakersfield maps (`bklan`, `orcom`, `fox`, and others), rideable vans and go-karts, and a chaotic LAN-party deathmatch ruleset.
+
+## Certified AI Slop Gameplay
+
+| Pocket Kyle sprints for your face | Normal Tuesday outside PG&E |
+| :---: | :---: |
+| ![Pocket Kyle charging down Bakersfield Blvd with giant chrome scissors](docs/gifs/pocket_kyle_attack.gif) | ![A green wheel-man tumbles past PG&E while you yeet Pocket Kyle at a flying winged John Bird head](docs/gifs/pge_johnbird_chaos.gif) |
+| *A tiny man with giant chrome scissors hunting you under the Bakersfield arch* | *Green wheel-man airborne on H Street while a winged mullet head approaches* |
+
+| Explodes into US dollars & scissors | Jar o' Green Guys | Paycheck Rider |
+| :---: | :---: | :---: |
+| ![Pocket Kyle exploding into US dollar bills and bouncing 3D chrome scissors](docs/gifs/kyle_money_explosion.gif) | ![A green morphsuit guy on wheels spazzing inside a mason jar](website/media/gifs/greenjar_burst.gif) | ![A man in a tan suit aggressively pedaling a bicycle while waving a paycheck](docs/gifs/paycheck_rider.gif) |
+| *Economic stimulus package* | *Shake well before throwing* | *Direct deposit acquired* |
 
 ## Play it
 
