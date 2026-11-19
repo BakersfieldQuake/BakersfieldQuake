@@ -231,10 +231,15 @@ class Updater:
         if changed:
             if launch:
                 show_console()
-            print(f"Updating BAKOQUAKE build {installed} to {m['build']}: {len(fetch)} files, {fmt(total)}", flush=True)
+            msg = f"Updating BAKOQUAKE build {installed} to {m['build']}: {len(fetch)} files, {fmt(total)}"
+            if launch:      # log() already prints when not launched
+                print(msg, flush=True)
+            self.log(msg)   # launchers discard stdout; the log is the only record of a successful update
             self.apply(fetch, delete, cache)
         self.save_state({"build": m["build"], "version": m.get("version", ""), "managed": sorted(m["files"]),
                          "cache": {p: cache[p] for p in m["files"] if p in cache}, "updater": VERSION})
+        if changed:
+            self.log(f"updated to build {m['build']}")
         return 3 if changed else 0
 
     def apply(self, fetch, delete, cache):
