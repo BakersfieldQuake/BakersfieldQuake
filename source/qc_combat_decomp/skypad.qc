@@ -205,8 +205,9 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	core.effects = EF_FULLBRIGHT | EF_ADDITIVE;
 	core.scale = 1.8;
 	core.alpha = 0.85;
-	core.glow_size = 180;
-	core.glow_color = 251;
+	core.pflags = PFLAGS_FULLDYNAMIC | PFLAGS_NOSHADOW | PFLAGS_CORONA;
+	core.light_lev = 180;
+	core.color = '1 0 0';		// matches palette 251 glow_color without shadow cubemap pass
 	p_z = flz + 18;
 	setorigin (core, p);
 };

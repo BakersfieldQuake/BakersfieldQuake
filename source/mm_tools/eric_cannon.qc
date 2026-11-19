@@ -312,12 +312,13 @@ void(entity p, entity base) EC_Mount =
 	p.ec_return_pos = EC_FindExitPos (base, p);
 	p.ec_return_yaw = base.ec_yaw;
 
+	// While aiming on the pedestal, the operator stays visible & killable behind the breech so rivals can interrupt!
 	p.movetype = MOVETYPE_NONE;
-	p.solid = SOLID_NOT;
-	p.takedamage = DAMAGE_NO;
+	p.solid = SOLID_SLIDEBOX;
+	p.takedamage = DAMAGE_AIM;
+	p.weaponmodel = "";
 	p.velocity = '0 0 0';
-	EC_HidePlayer (p);
-	setorigin (p, base.origin + '0 0 46');
+	setorigin (p, p.ec_return_pos);
 
 	// Align initial player view smoothly with the cannon's current street heading
 	p.angles = '0 0 0';
@@ -844,10 +845,9 @@ void(vector boom_org, entity pilot, entity base) EC_Detonate =
 	else
 		EC_NukeBlastDamage (inf_ent, inf_ent, 450, 750, world);
 	ec_inflicting = 0;
-	remove (inf_ent);
 	EC_NukeShakePlayers (ground_z, 1.0, TRUE);
 
-	// 4. Transition street tripod to 10s reload & transition pilot to 3.5s wide elevated watch-cam!
+	// 4. Transition street tripod to 40s reload & kamikaze the pilot into the mushroom cloud (0 frag cost)!
 	base.ec_pilot = world;
 	base.ec_state = EC_STATE_RELOAD;
 	base.think = EC_BaseThink;
@@ -856,15 +856,18 @@ void(vector boom_org, entity pilot, entity base) EC_Detonate =
 	if (pilot != world && pilot.classname == "player")
 	{
 		pilot.ec_cannon_ent = world;
-		pilot.ec_return_base = base;
-		pilot.ec_return_pos = EC_FindExitPos (base, pilot);
-		pilot.ec_return_yaw = base.ec_yaw;
-		pilot.ec_boomat = ground_z;
-		pilot.ec_watch_until = time + EC_WATCH_TIME;
+		pilot.ec_watch_until = 0;
+		EC_RestoreViewAndBody (pilot);
 		setorigin (pilot, boom_org + '0 0 28');
-		pilot.velocity = '0 0 0';
-		EC_PlaceWatchCam (pilot, pilot.ec_boomat);
+		pilot.velocity = '0 0 260';
+		pilot.bm_prot_t = 0;
+		pilot.takedamage = DAMAGE_AIM;
+		sound (pilot, 5, "misc/null.wav", 1, ATTN_NORM);
+		ec_inflicting = 1;
+		T_Damage (pilot, inf_ent, pilot, 1000);
+		ec_inflicting = 0;
 	}
+	remove (inf_ent);
 };
 
 // ---------------------------------------------------------------- Sky-Ceiling Check & Airborne Step
@@ -1033,7 +1036,10 @@ float() EricCannon_Frame =
 	if (dt > 0.05)
 		dt = 0.05;
 
-	EC_HidePlayer (self);
+	if (base.ec_state != EC_STATE_MOUNTED)
+		EC_HidePlayer (self);
+	else
+		self.weaponmodel = "";
 	self.velocity = '0 0 0';
 	self.flags = self.flags - (self.flags & FL_ONGROUND);
 	if (!self.button0)
@@ -1084,6 +1090,10 @@ float() EricCannon_Frame =
 			base.ec_state = EC_STATE_WINDUP;
 			base.ec_phase_t = time;
 			base.ec_boomed = FALSE;
+			self.solid = SOLID_NOT;
+			self.takedamage = DAMAGE_NO;
+			EC_HidePlayer (self);
+			setorigin (self, base.origin + '0 0 46');
 
 			if (tube != world)
 				sound (tube, CHAN_WEAPON, "eric_cannon/windup.wav", 0.90, ATTN_NORM);

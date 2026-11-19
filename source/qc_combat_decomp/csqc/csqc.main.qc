@@ -14,6 +14,16 @@ void() CSQC_Init =
 	clonemonsters = cvar("clonemonsters");
 	registercvar("hud_showtitle", "1");
 	registercvar("bm_hud_style", "0");
+	registercvar("bm_minimap", "1");
+	registercvar("bm_minimap_range", "1400");
+	registercvar("bm_minimap_size", "39");
+	registercvar("bm_minimap_x", "8");
+	registercvar("bm_minimap_y", "8");
+	registercvar("bm_minimap_alpha", "0.62");
+	registercvar("bm_minimap_bg_alpha", "0.42");
+	registercvar("bm_minimap_rotate", "1");
+	registercvar("bm_minimap_compass", "1");
+	registercvar("bm_minimap_fov", "0.07");
 	init_servercmds();
 	BM_TraceCullSetup ();
 	stGtype = gametype;
@@ -337,7 +347,10 @@ void(float w, float h) CSQC_UpdateView =
 				BM_DrawHUD(w, h);	// Bakersfield LAN: reload bar, magazine, leader banner (bm_hud.qc)
 			}
 			if (!intermission && !finale && !inMenu)
+			{
 				JB_DrawHUD(w, h);
+				BM_DrawMinimap(w, h);
+			}
 		}
 		displayIntro();
 		DrawLevelName('0.9 0.1 0');
@@ -390,6 +403,10 @@ void(float isnew) CSQC_Ent_Update =
 			{
 				RH_XRay_EntUpdate(isnew);
 			}
+			else if ((self.enttype == ENT_BM_RADAR))
+			{
+				BM_Radar_EntUpdate(isnew);
+			}
 			else
 			{
 				print(/*11460i*/"ERR: Unhandled CSQC entity\n");
@@ -403,6 +420,11 @@ void() CSQC_Ent_Remove =
 	if ((self.enttype == ENT_RD_TARGET))
 	{
 		RH_XRay_EntRemove();
+		return;
+	}
+	if ((self.enttype == ENT_BM_RADAR))
+	{
+		BM_Radar_EntRemove();
 		return;
 	}
 	if ((self.classname != "sprite"))

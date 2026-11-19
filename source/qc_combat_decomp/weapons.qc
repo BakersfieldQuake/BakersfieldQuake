@@ -253,7 +253,10 @@ void() HIP_LaserTouch =
 		}
 		else
 		{
-			self.dmg = (0.9 * self.dmg);
+			if ((self.dmg < 21))
+			{
+				self.dmg = 21;		// 1.5x bank-shot trick-kill bonus on wall ricochet!
+			}
 			self.velocity = (oldvel + (2 * trace_plane_normal));
 			self.velocity = normalize(self.velocity);
 			self.velocity = (self.speed * self.velocity);
@@ -307,7 +310,7 @@ void(vector org, vector vec, float light) HIP_LaunchLaser =
 	newmis.effects = EF_FULLBRIGHT;
 	newmis.traileffectnum = particleeffectnum("ccc_trail");
 	newmis.speed = 1500;
-	newmis.dmg = 24;
+	newmis.dmg = 14;
 	newmis.velocity = (vec * newmis.speed);
 	newmis.old_velocity = newmis.velocity;
 	newmis.angles = vectoangles(newmis.velocity);
@@ -392,7 +395,7 @@ void(float stat) HIP_FireLaser =
 			if ((random() < 0.1))
 			{
 				HIP_LaunchLaser(org, dir, 1);
-				newmis.dmg = 34;
+				newmis.dmg = 21;
 			}
 			else
 			{
@@ -756,7 +759,7 @@ void() W_FireAxe =
 	}
 	else
 	{
-		if (autocvar_evil_faces)
+		if ((autocvar_evil_faces && world_has_q1_surfs))
 		{
 			surfnum = getsurfacenearpoint(world, trace_endpos);
 			if ((surfnum >= 0))
@@ -821,29 +824,32 @@ void() W_FireAxe =
 			sound7(trace_ent, CHAN_WEAPON, "kickgib/gib_hit.wav", 1, ATTN_NORM, SNDSPD);
 			return;
 		}
-		surfacenum = getsurfacenearpoint(world, org);
-		if ((surfacenum >= 0))
+		if (world_has_q1_surfs)
 		{
-			tex = getsurfacetexture(world, surfacenum);
-			if ((returnsurface(tex) == GROUND))
+			surfacenum = getsurfacenearpoint(world, org);
+			if ((surfacenum >= 0))
 			{
-				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
-				sound7(self, CHAN_AUTO, "player/kickhitw.wav", 1, ATTN_NORM, SNDSPD);
-				return;
-			}
-			else
-			{
-				if ((returnsurface(tex) == MEAT))
+				tex = getsurfacetexture(world, surfacenum);
+				if ((returnsurface(tex) == GROUND))
 				{
-					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
-					sound7(self, CHAN_WEAPON, "kickgib/gib_hit.wav", 1, ATTN_NORM, SNDSPD);
+					sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
+					sound7(self, CHAN_AUTO, "player/kickhitw.wav", 1, ATTN_NORM, SNDSPD);
 					return;
 				}
 				else
 				{
-					if ((returnsurface(tex) == VOID))
+					if ((returnsurface(tex) == MEAT))
 					{
+						sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
+						sound7(self, CHAN_WEAPON, "kickgib/gib_hit.wav", 1, ATTN_NORM, SNDSPD);
 						return;
+					}
+					else
+					{
+						if ((returnsurface(tex) == VOID))
+						{
+							return;
+						}
 					}
 				}
 			}
@@ -1109,27 +1115,30 @@ void() W_FireSaw =
 	}
 	else
 	{
-		surfacenum = getsurfacenearpoint(world, org);
-		if ((surfacenum >= 0))
+		if (world_has_q1_surfs)
 		{
-			tex = getsurfacetexture(world, surfacenum);
-			if ((returnsurface(tex) == GROUND))
+			surfacenum = getsurfacenearpoint(world, org);
+			if ((surfacenum >= 0))
 			{
-				sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
-				return;
-			}
-			else
-			{
-				if ((returnsurface(tex) == MEAT))
+				tex = getsurfacetexture(world, surfacenum);
+				if ((returnsurface(tex) == GROUND))
 				{
-					sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
+					sendParticle("TE_DIRT", org, VEC_ORIGIN, 1, 0);
 					return;
 				}
 				else
 				{
-					if ((returnsurface(tex) == VOID))
+					if ((returnsurface(tex) == MEAT))
 					{
+						sendParticle("TE_BLOOD", org, VEC_ORIGIN, 1, 0);
 						return;
+					}
+					else
+					{
+						if ((returnsurface(tex) == VOID))
+						{
+							return;
+						}
 					}
 				}
 			}
@@ -1213,7 +1222,6 @@ void(float damage, vector dir) TraceAttack =
 {
 	local vector vel;
 	local vector org;
-	local entity ric2;
 	local float resist;
 	local float surfnum;
 	local string s;
@@ -1288,11 +1296,7 @@ void(float damage, vector dir) TraceAttack =
 		}
 		if (!(coop & !deathmatch))
 		{
-			ric2 = spawn();
-			ric2.origin = (trace_endpos + '0 0 24');
-			ric2.think = SUB_Remove;
-			ric2.nextthink = (time + 0.1);
-			sound7(ric2, CHAN_ITEM, "player/kickflesh2.wav", 0.9, ATTN_NORM, SNDSPD);
+			pointsound((trace_endpos + '0 0 24'), "player/kickflesh2.wav", 0.9, ATTN_NORM);
 		}
 		if ((trace_ent.classname == "monster_spider"))
 		{
@@ -1418,12 +1422,11 @@ void(float damage, vector dir) TraceAttack =
 					}
 				}
 			}
-			ThrowBloodSplat(dir, trace_endpos, trace_ent);
 		}
 	}
 	else
 	{
-		if (autocvar_evil_faces)
+		if ((autocvar_evil_faces && world_has_q1_surfs))
 		{
 			surfnum = getsurfacenearpoint(world, trace_endpos);
 			if ((surfnum >= 0))
@@ -1445,11 +1448,11 @@ void(float damage, vector dir) TraceAttack =
 				}
 			}
 		}
-		if ((pointcontents(trace_endpos) == CONTENT_SKY))
+		if (((pointcontents(trace_endpos) == CONTENT_SKY) || (pointcontents((trace_endpos + (dir * 2))) == CONTENT_SKY)))
 		{
 			return;
 		}
-		if ((trace_ent == world))
+		if (((trace_ent == world) && world_has_q1_surfs))
 		{
 			surfacenum = getsurfacenearpoint(world, trace_endpos);
 			if ((surfacenum >= 0))
@@ -1480,7 +1483,7 @@ void(float damage, vector dir) TraceAttack =
 			sound7(trace_ent, CHAN_WEAPON, "kickgib/gib_hit.wav", 1, ATTN_NORM, SNDSPD);
 			return;
 		}
-		if ((trace_ent == world))
+		if (((trace_ent == world) && world_has_q1_surfs))
 		{
 			surfacenum = getsurfacenearpoint(world, org);
 			if ((surfacenum >= 0))
@@ -1712,7 +1715,11 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		crit = 1;
 	}
 	pdmg = autocvar_player_shotgun_pellets;
-	if (((self.classname == "player") && (pdmg < 6)))
+	if (((self.classname == "player") && (self.weapon == IT_SHOTGUN) && (pdmg < 7)))
+	{
+		pdmg = 7;		// Shotgun: 10 x 7 = 70 dmg (crisp skeet-shooter niche; SSG keeps 16 x 6 = 96)
+	}
+	else if (((self.classname == "player") && (pdmg < 6)))
 	{
 		pdmg = 6;
 	}
@@ -1732,21 +1739,24 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		else
 		{
 			W_BulletSplash(direction);
-			align = dir + (v_up * 0.25);
-			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-			shotvector = (trace_endpos - self.origin) + (normalize(dir) * 80);
-			shot = Gyro_Force_Create("gunshot", self.origin);
-			Gyro_Force_ApplyFalloff_ConeLinear(shot, shotvector, 18, 18);
-			if ((self.weapon == IT_SUPER_SHOTGUN))
+			if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 			{
-				Gyro_Force_ApplyAffector_Directional(shot, shotvector, 85, FALSE);
+				align = dir + (v_up * 0.25);
+				traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+				shotvector = (trace_endpos - self.origin) + (normalize(dir) * 80);
+				shot = Gyro_Force_Create("gunshot", self.origin);
+				Gyro_Force_ApplyFalloff_ConeLinear(shot, shotvector, 18, 18);
+				if ((self.weapon == IT_SUPER_SHOTGUN))
+				{
+					Gyro_Force_ApplyAffector_Directional(shot, shotvector, 85, FALSE);
+				}
+				else
+				{
+					Gyro_Force_ApplyAffector_Directional(shot, shotvector, 105, FALSE);
+				}
+				Gyro_Force_AddProperty_Instant(shot);
+				Gyro_Force_Ignore(shot, self);
 			}
-			else
-			{
-				Gyro_Force_ApplyAffector_Directional(shot, shotvector, 105, FALSE);
-			}
-			Gyro_Force_AddProperty_Instant(shot);
-			Gyro_Force_Ignore(shot, self);
 		}
 	}
 	ApplyMultiDamage();
@@ -1834,66 +1844,65 @@ void(float shotcount, vector dir, vector spread) FireBullets_soldier =
 		}
 		W_BulletSplash(direction);
 		shotcount = shotcount - 1;
-		align = dir + (v_up * 0.25);
-		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-		shotvector = (trace_endpos - self.origin) + (normalize(dir) * 80);
-		shot = Gyro_Force_Create("gunshot", self.origin);
-		Gyro_Force_ApplyFalloff_ConeLinear(shot, shotvector, 18, 18);
-		if ((self.weapon == IT_SUPER_SHOTGUN))
+		if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 		{
-			Gyro_Force_ApplyAffector_Directional(shot, shotvector, 88, FALSE);
+			align = dir + (v_up * 0.25);
+			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+			shotvector = (trace_endpos - self.origin) + (normalize(dir) * 80);
+			shot = Gyro_Force_Create("gunshot", self.origin);
+			Gyro_Force_ApplyFalloff_ConeLinear(shot, shotvector, 18, 18);
+			if ((self.weapon == IT_SUPER_SHOTGUN))
+			{
+				Gyro_Force_ApplyAffector_Directional(shot, shotvector, 88, FALSE);
+			}
+			else
+			{
+				Gyro_Force_ApplyAffector_Directional(shot, shotvector, 130, FALSE);
+			}
+			Gyro_Force_AddProperty_Instant(shot);
+			Gyro_Force_Ignore(shot, self);
 		}
-		else
-		{
-			Gyro_Force_ApplyAffector_Directional(shot, shotvector, 130, FALSE);
-		}
-		Gyro_Force_AddProperty_Instant(shot);
-		Gyro_Force_Ignore(shot, self);
 	}
 	ApplyMultiDamage();
 };
 
 void() updateSNG =
 {
-	if (((self.owner.health <= 0) || intermission_running))
+	if ((((self.owner.health <= 0) || intermission_running) || (self.owner.ishuman != 1)))
 	{
 		remove(self);
 		return;
 	}
-	if ((((self.owner.weapon == IT_SUPER_NAILGUN) && (self.owner.meleeing == 0)) && (self.owner.throwing == 0)))
+	if ((self.owner.weapon != IT_SUPER_NAILGUN))
 	{
-		if (autocvar_centered_weapons)
+		if ((self.alpha > 0))
 		{
-			setmodel(self, string_null);	// v_nail2_barrel_cleared
+			self.alpha = (self.alpha - 0.02);
+			if ((self.alpha < 0))
+			{
+				self.alpha = 0;
+			}
 		}
-		else
-		{
-			setmodel(self, string_null);
-		}
+		self.think = updateSNG;
+		self.nextthink = (time + 0.25);
+		return;
+	}
+	if (((self.owner.button0 && (self.alpha < 1)) && (self.owner.waterlevel != 3)))
+	{
+		self.alpha = (self.alpha + 0.002);
 	}
 	else
 	{
-		setmodel(self, string_null);
-	}
-	if ((self.owner.weapon == IT_SUPER_NAILGUN))
-	{
-		if (((self.owner.button0 && (self.alpha < 1)) && (self.owner.waterlevel != 3)))
+		if ((self.alpha >= 0))
 		{
-			self.alpha = (self.alpha + 0.002);
-		}
-		else
-		{
-			if ((self.alpha >= 0))
+			self.alpha = (self.alpha - 0.001);
+			if ((self.owner.waterlevel == 3))
 			{
-				self.alpha = (self.alpha - 0.001);
-				if ((self.owner.waterlevel == 3))
-				{
-					self.alpha = (self.alpha - 0.0125);
-				}
+				self.alpha = (self.alpha - 0.0125);
 			}
 		}
 	}
-	if ((!self.owner.button0 && (self.owner.weapon == IT_SUPER_NAILGUN)))
+	if (!self.owner.button0)
 	{
 		if ((((random() * 100) < 2) && (self.alpha > 0.6)))
 		{
@@ -1904,28 +1913,14 @@ void() updateSNG =
 			Sprite_Emitter(self.owner, "progs/s_gunsmoke.spr", ((random() * 0.05) + 0.1), '36 -5 -9', '0 0 1', VEC_ORIGIN, 0.4, TYPE_STANDARD);
 		}
 	}
-	if (((self.owner.button0 || ((self.owner.velocity != VEC_ORIGIN) && (self.owner.earthquake_finished < time))) || self.owner.super_damage_finished))
-	{
-		self.origin = self.owner.gunof;
-		self.angles = self.owner.gunang;
-		self.weapon_anim_x_offset_downwards = self.owner.weapon_anim_x_offset_downwards;
-		self.weapon_anim_y_offset_downwards = self.owner.weapon_anim_y_offset_downwards;
-		self.weapon_anim_z_offset_downwards = self.owner.weapon_anim_z_offset_downwards;
-		self.weapon_anim_x_angles_downwards = self.owner.weapon_anim_x_angles_downwards;
-		self.weapon_anim_y_angles_downwards = self.owner.weapon_anim_y_angles_downwards;
-		self.weapon_anim_z_angles_downwards = self.owner.weapon_anim_z_angles_downwards;
-	}
-	else
-	{
-		self.origin = self.owner.gunof;
-		self.angles = self.owner.gunang;
-		self.weapon_anim_x_offset_downwards = self.owner.weapon_anim_x_offset_downwards;
-		self.weapon_anim_y_offset_downwards = self.owner.weapon_anim_y_offset_downwards;
-		self.weapon_anim_z_offset_downwards = self.owner.weapon_anim_z_offset_downwards;
-		self.weapon_anim_x_angles_downwards = self.owner.weapon_anim_x_angles_downwards;
-		self.weapon_anim_y_angles_downwards = self.owner.weapon_anim_y_angles_downwards;
-		self.weapon_anim_z_angles_downwards = self.owner.weapon_anim_z_angles_downwards;
-	}
+	self.origin = self.owner.gunof;
+	self.angles = self.owner.gunang;
+	self.weapon_anim_x_offset_downwards = self.owner.weapon_anim_x_offset_downwards;
+	self.weapon_anim_y_offset_downwards = self.owner.weapon_anim_y_offset_downwards;
+	self.weapon_anim_z_offset_downwards = self.owner.weapon_anim_z_offset_downwards;
+	self.weapon_anim_x_angles_downwards = self.owner.weapon_anim_x_angles_downwards;
+	self.weapon_anim_y_angles_downwards = self.owner.weapon_anim_y_angles_downwards;
+	self.weapon_anim_z_angles_downwards = self.owner.weapon_anim_z_angles_downwards;
 	self.frame = self.owner.weaponframe;
 	self.think = updateSNG;
 	self.nextthink = time;
@@ -1935,6 +1930,10 @@ void() SNGHeater =
 {
 	local entity sngb;
 
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	sngb = spawn();
 	sngb.movetype = 0;
 	sngb.solid = 0;
@@ -2013,7 +2012,7 @@ void() W_FireShotgun =
 	self.ammo_shells = (self.ammo_shells - 1);
 	self.currentammo = (self.ammo_shells - 1);
 	dir = aim(self, 100000);
-	FireBullets(10, dir, '0.032 0.032 0');
+	FireBullets(10, dir, '0.020 0.020 0');
 };
 
 void() W_FireSuperShotgun =
@@ -2153,10 +2152,12 @@ void() screenshake =
 
 	if ((autocvar_effects_explosion_shake == 0))
 	{
+		remove(self);
 		return;
 	}
 	if ((self.attack_finished < time))
 	{
+		remove(self);
 		return;
 	}
 	plyr = findradius(self.origin, 600);
@@ -2285,14 +2286,17 @@ void() T_MissileTouch =
 		remove(self);
 		return;
 	}
-	surfacenum = getsurfacenearpoint(world, self.origin);
-	if ((surfacenum >= 0))
+	if (world_has_q1_surfs)
 	{
-		tex = getsurfacetexture(world, surfacenum);
-		if (((tex == "sky1") || (tex == "sky4")))
+		surfacenum = getsurfacenearpoint(world, self.origin);
+		if ((surfacenum >= 0))
 		{
-			remove(self);
-			return;
+			tex = getsurfacetexture(world, surfacenum);
+			if (((tex == "sky1") || (tex == "sky4")))
+			{
+				remove(self);
+				return;
+			}
 		}
 	}
 	if ((other.inflamed == 1))
@@ -2306,7 +2310,7 @@ void() T_MissileTouch =
 	{
 		spawn_fire();
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, self.origin);
 		if ((surfnum >= 0))
@@ -2483,21 +2487,24 @@ void() T_MissileTouch_chton =
 		remove(self);
 		return;
 	}
-	surfacenum = getsurfacenearpoint(world, self.origin);
-	if ((surfacenum >= 0))
+	if (world_has_q1_surfs)
 	{
-		tex = getsurfacetexture(world, surfacenum);
-		if (((tex == "sky1") || (tex == "sky4")))
+		surfacenum = getsurfacenearpoint(world, self.origin);
+		if ((surfacenum >= 0))
 		{
-			remove(self);
-			return;
+			tex = getsurfacetexture(world, surfacenum);
+			if (((tex == "sky1") || (tex == "sky4")))
+			{
+				remove(self);
+				return;
+			}
 		}
 	}
 	if (((random() * 100) < 10))
 	{
 		spawn_fire();
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, self.origin);
 		if ((surfnum >= 0))
@@ -2711,19 +2718,31 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 	{
 		if (((trace_fraction != 1) && !trace_ent.health))
 		{
-			surfacenum = getsurfacenearpoint(world, trace_endpos);
-			if ((surfacenum >= 0))
+			if (((pointcontents(trace_endpos) == CONTENT_SKY) || (pointcontents((trace_endpos + (normalize(dir) * 2))) == CONTENT_SKY)))
 			{
-				tex = getsurfacetexture(world, surfacenum);
-				if (((tex == "sky1") || (tex == "sky4")))
+				return;
+			}
+			if (world_has_q1_surfs)
+			{
+				surfacenum = getsurfacenearpoint(world, trace_endpos);
+				if ((surfacenum >= 0))
 				{
-					return;
+					tex = getsurfacetexture(world, surfacenum);
+					if (((tex == "sky1") || (tex == "sky4")))
+					{
+						return;
+					}
+					else
+					{
+						ziel = trace_endpos;
+						sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1, 0);
+					}
 				}
-				else
-				{
-					ziel = trace_endpos;
-					sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1, 0);
-				}
+			}
+			else
+			{
+				ziel = trace_endpos;
+				sendParticle("Lightning_gun_impact", ziel, VEC_ORIGIN, 1, 0);
 			}
 		}
 	}
@@ -2882,7 +2901,7 @@ void() W_FireLightning =
 	{
 		traceline(org, (org + (v_forward * 600)), TRUE, self);
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, trace_endpos);
 		if ((surfnum >= 0))
@@ -3049,7 +3068,7 @@ void() GrenadeTouch =
 		GrenadeExplode();
 		return;
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, self.origin);
 		if ((surfnum >= 0))
@@ -3466,43 +3485,57 @@ void() bullet_enemy_touch =
 	}
 	else
 	{
-		surfacenum = getsurfacenearpoint(world, self.origin);
-		if ((surfacenum >= 0))
+		if (world_has_q1_surfs)
 		{
-			tex = getsurfacetexture(world, surfacenum);
-			if ((returnsurface(tex) == GROUND))
+			surfacenum = getsurfacenearpoint(world, self.origin);
+			if ((surfacenum >= 0))
 			{
-				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
-				remove(self);
-				return;
-			}
-			else
-			{
-				if ((returnsurface(tex) == MEAT))
+				tex = getsurfacetexture(world, surfacenum);
+				if ((returnsurface(tex) == GROUND))
 				{
-					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+					sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 					remove(self);
 					return;
 				}
 				else
 				{
-					if ((returnsurface(tex) == VOID))
+					if ((returnsurface(tex) == MEAT))
 					{
+						sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 						remove(self);
 						return;
 					}
 					else
 					{
-						if ((other.flags & FL_MONSTER))
+						if ((returnsurface(tex) == VOID))
 						{
-							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+							remove(self);
+							return;
 						}
 						else
 						{
-							sendParticle("TE_GUNSHOT", self.origin, VEC_ORIGIN, 1, 0);
+							if ((other.flags & FL_MONSTER))
+							{
+								sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+							}
+							else
+							{
+								sendParticle("TE_GUNSHOT", self.origin, VEC_ORIGIN, 1, 0);
+							}
 						}
 					}
 				}
+			}
+		}
+		else
+		{
+			if ((other.flags & FL_MONSTER))
+			{
+				sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+			}
+			else
+			{
+				sendParticle("TE_GUNSHOT", self.origin, VEC_ORIGIN, 1, 0);
 			}
 		}
 		if ((random() < 0.5))
@@ -3727,15 +3760,18 @@ void() W_FireSuperSpikes =
 		pushback1 = trace_endpos - self.origin;
 		self.velocity = (self.velocity - pushback1);
 	}
-	makevectors(self.v_angle);
-	align = dir + (v_up * 0.27);
-	traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-	nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-	nail = Gyro_Force_Create("nailhit", self.origin);
-	Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-	Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-	Gyro_Force_AddProperty_Instant(nail);
-	Gyro_Force_Ignore(nail, self);
+	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
+	{
+		makevectors(self.v_angle);
+		align = dir + (v_up * 0.27);
+		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+		nail = Gyro_Force_Create("nailhit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+		Gyro_Force_AddProperty_Instant(nail);
+		Gyro_Force_Ignore(nail, self);
+	}
 	self.spindown = 1;
 	self.spintimer = 0;
 };
@@ -3898,15 +3934,18 @@ void(float ox) W_FireSpikes =
 		pushback1 = trace_endpos - self.origin;
 		self.velocity = (self.velocity - pushback1);
 	}
-	makevectors(self.v_angle);
-	align = dir + (v_up * 0.27);
-	traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-	nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-	nail = Gyro_Force_Create("nailhit", self.origin);
-	Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-	Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-	Gyro_Force_AddProperty_Instant(nail);
-	Gyro_Force_Ignore(nail, self);
+	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
+	{
+		makevectors(self.v_angle);
+		align = dir + (v_up * 0.27);
+		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+		nail = Gyro_Force_Create("nailhit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+		Gyro_Force_AddProperty_Instant(nail);
+		Gyro_Force_Ignore(nail, self);
+	}
 };
 
 void() spike_stuck_think =
@@ -4071,15 +4110,18 @@ void() spike_touch =
 			trace_ent.hitbox_pos = HEAD_SHOT;
 		}
 	}
-	surfacenum = getsurfacenearpoint(world, self.origin);
 	self.effects = 0;
-	if ((surfacenum >= 0))
+	if (world_has_q1_surfs)
 	{
-		tex = getsurfacetexture(world, surfacenum);
-		if (((tex == "sky1") || (tex == "sky4")))
+		surfacenum = getsurfacenearpoint(world, self.origin);
+		if ((surfacenum >= 0))
 		{
-			remove(self);
-			return;
+			tex = getsurfacetexture(world, surfacenum);
+			if (((tex == "sky1") || (tex == "sky4")))
+			{
+				remove(self);
+				return;
+			}
 		}
 	}
 	if (((other.inflamed == 1) && (other.inflamekillafterdeath == 0)))
@@ -4293,7 +4335,7 @@ void() spike_touch =
 			return;
 		}
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, self.origin);
 		if ((surfnum >= 0))
@@ -4359,30 +4401,33 @@ void() spike_touch =
 			}
 			else
 			{
-				surfacenum = getsurfacenearpoint(world, self.origin);
-				if ((surfacenum >= 0))
+				if (world_has_q1_surfs)
 				{
-					tex = getsurfacetexture(world, surfacenum);
-					if ((returnsurface(tex) == GROUND))
+					surfacenum = getsurfacenearpoint(world, self.origin);
+					if ((surfacenum >= 0))
 					{
-						sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
-						remove(self);
-						return;
-					}
-					else
-					{
-						if ((returnsurface(tex) == MEAT))
+						tex = getsurfacetexture(world, surfacenum);
+						if ((returnsurface(tex) == GROUND))
 						{
-							sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+							sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 							remove(self);
 							return;
 						}
 						else
 						{
-							if ((returnsurface(tex) == VOID))
+							if ((returnsurface(tex) == MEAT))
 							{
+								sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
 								remove(self);
 								return;
+							}
+							else
+							{
+								if ((returnsurface(tex) == VOID))
+								{
+									remove(self);
+									return;
+								}
 							}
 						}
 					}
@@ -4448,14 +4493,17 @@ void() superspike_touch =
 		}
 	}
 	self.effects = 0;
-	surfacenum = getsurfacenearpoint(world, self.origin);
-	if ((surfacenum >= 0))
+	if (world_has_q1_surfs)
 	{
-		tex = getsurfacetexture(world, surfacenum);
-		if (((tex == "sky1") || (tex == "sky4")))
+		surfacenum = getsurfacenearpoint(world, self.origin);
+		if ((surfacenum >= 0))
 		{
-			remove(self);
-			return;
+			tex = getsurfacetexture(world, surfacenum);
+			if (((tex == "sky1") || (tex == "sky4")))
+			{
+				remove(self);
+				return;
+			}
 		}
 	}
 	if (((other.inflamed == 1) && (other.inflamekillafterdeath == 0)))
@@ -4663,7 +4711,7 @@ void() superspike_touch =
 			return;
 		}
 	}
-	if (autocvar_evil_faces)
+	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, self.origin);
 		if ((surfnum >= 0))
@@ -4709,29 +4757,32 @@ void() superspike_touch =
 	}
 	else
 	{
-		surfacenum = getsurfacenearpoint(world, self.origin);
-		if ((surfacenum >= 0))
+		if (world_has_q1_surfs)
 		{
-			tex = getsurfacetexture(world, surfacenum);
-			if ((returnsurface(tex) == GROUND))
+			surfacenum = getsurfacenearpoint(world, self.origin);
+			if ((surfacenum >= 0))
 			{
-				sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
-				remove(self);
-				return;
-			}
-			else
-			{
-				if ((returnsurface(tex) == MEAT))
+				tex = getsurfacetexture(world, surfacenum);
+				if ((returnsurface(tex) == GROUND))
 				{
-					sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+					sendParticle("TE_DIRT", self.origin, VEC_ORIGIN, 1, 0);
 					remove(self);
 					return;
 				}
 				else
 				{
-					if ((returnsurface(tex) == VOID))
+					if ((returnsurface(tex) == MEAT))
 					{
+						sendParticle("TE_BLOOD", self.origin, VEC_ORIGIN, 1, 0);
+						remove(self);
 						return;
+					}
+					else
+					{
+						if ((returnsurface(tex) == VOID))
+						{
+							return;
+						}
 					}
 				}
 			}
@@ -5459,7 +5510,7 @@ void() W_Attack =
 			}
 			else
 			{
-				self.attack_finished = (time + 0.48);
+				self.attack_finished = (time + 0.42);
 			}
 			if ((autocvar_effects_explosion_shake != 0))
 			{
@@ -5591,6 +5642,13 @@ void() W_Attack =
 				}
 			}
 		}
+	}
+	if ((self.weapon != IT_AXE))
+	{
+		if (((self.weapon == IT_ROCKET_LAUNCHER) || (self.weapon == IT_GRENADE_LAUNCHER)))
+			BM_Radar_Ping(self, self.origin, BM_RPK_BLAST);
+		else
+			BM_Radar_Ping(self, self.origin, BM_RPK_GUN);
 	}
 };
 
@@ -5964,6 +6022,10 @@ void() CycleWeaponCommand =
 					}
 				}
 			}
+		if (autocvar_bm_reload)
+		{
+			am = 0;		// LAN magazines: never skip Milky Gun at 1/2 ammo or paired empty guns on scroll
+		}
 		if (((it & self.weapon) && (am == 0)))
 		{
 			W_SetCurrentAmmo();
@@ -6165,6 +6227,10 @@ void() CycleWeaponReverseCommand =
 					}
 				}
 			}
+		}
+		if (autocvar_bm_reload)
+		{
+			am = 0;		// LAN magazines: never skip Milky Gun at 1/2 ammo or paired empty guns on scroll
 		}
 		if (((it & self.weapon) && (am == 0)))
 		{
@@ -6547,6 +6613,7 @@ void() W_WeaponFrame =
 		self.fg_dry_held = FALSE;
 	}
 	BM_Frame();
+	Practice_PlayerFrame();
 	BM_LifeFrame();
 	BM_TestImpulses();
 	MegaMan_ViewFrame();

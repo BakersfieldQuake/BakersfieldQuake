@@ -13,13 +13,13 @@ float	PK_THROW		= 980;		// violent overhand whip-throw speed
 float	PK_FLY			= 5;		// seconds in the air before it gives up and the charge comes back
 float	PK_ARM			= 0.6;		// seconds after it sticks before it can go off
 float	PK_RADIUS		= 105;		// generous trigger radius for fast strafe-jumping Quake players
-float	PK_SAY			= 0.42;		// snappy "pickle surprise" shout before blast
+float	PK_SAY			= 0.55;		// "pickle surprise" shout before blast (gives a split-second comedy double-take)
 float	PK_SCREAM		= 0.24;		// the 360-degree giant scream & balloon swell right before the blast
 float	PK_INFLATE		= 0.12;		// seconds to swell up and stand on end: it all but goes off in their face
 float	PK_ROLL			= 90;		// roll that turns the 3D pickle's face (its +Z side) out of a wall
 float	PK_BLAST		= 125;		// punchy explosion damage at the centre
 float	PK_HEALTH		= 25;		// damage that sets a stuck pickle off
-float	PK_MAX			= 2;		// pickles per player (tone-down 2026-11-02, was 4); a third removes the oldest
+float	PK_MAX			= 3;		// pickles per player; a fourth removes the oldest
 float	PK_GIBS			= 4;		// pickles thrown by the blast
 float	PK_GIB_LIFE		= 1.2;		// seconds a loose pickle (and its flame trail) lasts: 8 was far too long
 float	PK_PS			= 1.7;		// scale of the 3D pickle (13 units long at scale 1): the grenade lying on the floor, ~22 long
@@ -569,6 +569,7 @@ void(entity vm, float is_quad) Pickle_ViewFrame =
 	GreenJar_ViewFrame (vm, is_quad);
 	Dookie_ViewFrame (vm, is_quad);
 	RobHead_ViewFrame (vm, is_quad);
+	Kyle_ViewFrame (vm, is_quad);
 
 	p = vm.owner;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_PICKLE)
@@ -749,7 +750,8 @@ void(vector org) Pk_Gib =
 
 void() Pk_GibTouch =
 {
-	local float m, dmg;
+	local float dmg;
+	local vector push;
 
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
@@ -760,12 +762,15 @@ void() Pk_GibTouch =
 		return;
 	if (other == self.owner && !autocvar_pk_test)
 		return;
-	m = other.max_health;
-	if (m <= 0)
-		m = other.health;
-	dmg = m * 0.02;				// two percent of what it has at most (was one)
-	if (dmg < 1)
-		dmg = 1;
+	dmg = 14;
+	if (other.movetype == MOVETYPE_WALK || other.movetype == MOVETYPE_STEP)
+	{
+		push = normalize (self.velocity);
+		if (vlen (push) < 0.1)
+			push = '0 0 1';
+		other.flags = other.flags - (other.flags & FL_ONGROUND);
+		other.velocity = other.velocity + push * 220 + '0 0 160';
+	}
 	fg_inflicting = FG_PICKLE;
 	T_Damage (other, self, self.owner, dmg);
 	fg_inflicting = 0;

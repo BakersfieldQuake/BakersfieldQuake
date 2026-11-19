@@ -22,31 +22,31 @@ Controls:
   H (impulse 86) : Mount perched Winged John / Dismount while flying
   P (impulse 98) : Summon & immediately fly Winged John anywhere (or dismount)
   K (impulse 87) : Toggle 3rd-person chase camera / 1st-person breezy-crown view
-  WASD + Mouse   : Fast 3D flight (940 u/s cruise)
-  SPACE          : Vigorous upward wing-climb (+540 u/s)
-  SHIFT (+button4): Peregrine Swoop Boost (1,460 u/s) + aerial dive-ram
-  CLICK (Fire)   : Shoot big actively-spraying hairspray can at anything!
+  WASD + Mouse   : Fast 3D flight (780 u/s cruise); sweeping mouse L/R/U/D builds carve speed!
+  SPACE          : Vigorous upward wing-climb (+460 u/s)
+  CLICK (Fire)   : Rapid-fire hairspray cans (anti-bird dogfight)
   V (impulse 20) : Speak random "John" voice line on demand
   impulse 97     : (sv_cheats) Spawn perched Winged John ahead of player
   impulse 99     : (sv_cheats) Spawn AI dogfighting Winged John overhead!
 
 Durability:
-  500 HP — exact 100 damage per direct rocket = 5 rockets to shoot him down!
+  140 HP — easy for a player to shoot down (1-2 rockets or quick gunfire)!
 ================
 */
 
-float	JB_MAX_HP			= 250;		// balanced aerial vehicle: ~2-3 rockets or crisp AA gunfire to shoot down
-float	JB_ROCKET_DMG		= 100;		// 100 per direct rocket (~3 rockets to shoot down)
+float	JB_MAX_HP			= 140;		// easy-to-shoot-down traversal mount (~1-2 rockets or crisp AA gunfire)
+float	JB_LOW_HP			= 60;		// smoking / low-HP warning threshold
+float	JB_ROCKET_DMG		= 100;		// 100 per direct rocket (1-2 rockets to shoot down)
 float	JB_SPEED_CRUISE		= 780;		// fast cruising speed (~2.4x player run speed)
-float	JB_SPEED_SWOOP		= 1220;		// SHIFT (+button4) high-speed falcon swoop boost
+float	JB_SPEED_CARVE_MAX	= 440;		// extra airspeed gained from sweeping/carving with the mouse
 float	JB_SPEED_STRAFE		= 500;
 float	JB_SPEED_CLIMB		= 460;
-float	JB_SLOW_SPEED		= 190;		// on-foot sticky slow horizontal cap (~60% of 320 u/s)
+float	JB_SLOW_SPEED		= 230;		// on-foot sticky slow horizontal cap (~72% of 320 u/s)
 float	JB_BIRD_SLOW_MULT	= 0.58;		// ~42% slower flight when sticky-slowed
 float	JB_VOICE_COUNT		= 14;
-float	JB_MAX_AMMO			= 6;		// finite hairspray can rack capacity (anti-spam balance)
-float	JB_AMMO_RECHARGE_DELAY	= 1.50;	// pause after firing before cans restock
-float	JB_AMMO_RECHARGE_TIME	= 3.00;	// seconds per restocked hairspray can
+float	JB_MAX_AMMO			= 12;		// 12-can rapid-fire rack for bird-vs-bird dogfighting
+float	JB_AMMO_RECHARGE_DELAY	= 0.65;	// brief pause after firing before cans restock
+float	JB_AMMO_RECHARGE_TIME	= 1.15;	// seconds per restocked hairspray can
 
 float	jb_precached;
 float	jb_has_birds;
@@ -72,6 +72,7 @@ float	jb_fx_mist_cloud;
 .float	jb_oldsolid;
 .float	jb_cam_mode;					// 0 = 3rd-person avian chase cam, 1 = 1st-person crown view
 .float	jb_prev_yaw;
+.float	jb_prev_pitch;
 .float	jb_cooldown_t;					// brief cooldown after shootdown
 .float	jb_prompt_scan_t;
 .float	jb_prompt_t;
@@ -87,9 +88,9 @@ float	jb_fx_mist_cloud;
 // CSQC HUD clientstats (slots 93..102)
 .float	jb_st_active;					// 93: 0=off, 1=3rd-person, 2=1st-person
 .float	jb_st_variant;					// 94: 1..3
-.float	jb_st_combat;					// 95: bitmask (1=combat, 2=M1, 4=M3/R, 16=Shift boost)
-.float	jb_st_status;					// 96: bitmask (1=slowed, 2=burning, 4=low HP <=200)
-.float	jb_st_boost;					// 97: 0..100 boost energy
+.float	jb_st_combat;					// 95: bitmask (1=combat, 2=M1, 4=M3/R)
+.float	jb_st_status;					// 96: bitmask (1=slowed, 2=burning, 4=low HP <=60)
+.float	jb_st_boost;					// 97: unused (kept for stat slot compatibility)
 .float	jb_st_hp;						// 98: 0..500 bird HP
 .float	jb_st_hit;						// 99: hit-confirm counter
 .float	jb_st_ammo;						// 100: remaining hairspray cans 0..JB_MAX_AMMO
@@ -116,12 +117,13 @@ float	jb_fx_mist_cloud;
 .float	jb_smoke_t;
 .float	jb_anim_clock;
 .float	jb_ai_phase;
-.float	jb_boost_energy;				// 0..100 continuous Shift boost gauge
-.float	jb_boosting;					// TRUE while Shift boost engaged
-.float	jb_boost_snd_t;
+.float	jb_carve_spd;					// 0..100 mouse-carve speed bonus
+.float	jb_carve_snd_t;
 .float	jb_ammo;						// remaining hairspray cans on this bird
 .float	jb_ammo_regen_t;				// timestamp when next can restocks
 .float	jb_dry_snd_t;					// dry-fire click sound throttle
+.float	jb_cloud_cd;					// throttles mist-cloud & bonk spam during rapid fire
+.float	jb_cam_pull;					// smoothed 3P camera boost pullback offset
 .float	jb_match_on;					// Variant 1 R-key match toggle
 .float	jb_match_was;
 .float	jb_fire_t;

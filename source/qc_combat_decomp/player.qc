@@ -4,147 +4,119 @@ void(entity e, float waterwalk) walksound =
 {
 	local float surfnum;
 	local float r;
+	local float mat;
 	local string s;
 
-	makevectors(e.v_angle);
-	surfnum = getsurfacenearpoint(world, (e.origin - '0 0 24'));
 	if ((vlen(self.velocity) < 100))
 	{
 		return;
 	}
-	if ((surfnum >= 0))
+	makevectors(e.v_angle);
+	if ((waterwalk != 0))
 	{
-		s = getsurfacetexture(world, surfnum);
-		if ((waterwalk == 0))
+		if ((random() < 0.65))
 		{
-			if (((returnsurface(s) == GROUND) || (returnsurface(s) == ROCK)))
-			{
-				r = rint((random() * 3));
-				if ((r == 0))
-				{
-					sound7(e, CHAN_AUTO, "walk/pl_dirt1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-				}
-				else
-				{
-					if ((r == 1))
-					{
-						sound7(e, CHAN_AUTO, "walk/pl_dirt2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-					}
-					else
-					{
-						if ((r == 2))
-						{
-							sound7(e, CHAN_AUTO, "walk/pl_dirt3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-						}
-						else
-						{
-							sound7(e, CHAN_AUTO, "walk/pl_dirt4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-						}
-					}
-				}
-			}
-			else
-			{
-				if ((returnsurface(s) == METAL))
-				{
-					r = rint((random() * 3));
-					if ((r == 0))
-					{
-						sound7(e, CHAN_AUTO, "walk/metal1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-					}
-					else
-					{
-						if ((r == 1))
-						{
-							sound7(e, CHAN_AUTO, "walk/metal2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-						}
-						else
-						{
-							if ((r == 2))
-							{
-								sound7(e, CHAN_AUTO, "walk/metal3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-							}
-							else
-							{
-								sound7(e, CHAN_AUTO, "walk/metal4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-							}
-						}
-					}
-				}
-				else
-				{
-					if ((returnsurface(s) == MEAT))
-					{
-						r = rint((random() * 3));
-						if ((r == 0))
-						{
-							sound7(e, CHAN_AUTO, "custom/flesh1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-						}
-						else
-						{
-							if ((r == 1))
-							{
-								sound7(e, CHAN_AUTO, "custom/flesh5.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-							}
-							else
-							{
-								if ((r == 2))
-								{
-									sound7(e, CHAN_AUTO, "custom/flesh3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-								}
-								else
-								{
-									sound7(e, CHAN_AUTO, "custom/flesh4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-								}
-							}
-						}
-					}
-					else
-					{
-						r = rint((random() * 4));
-						if ((r == 0))
-						{
-							sound7(e, CHAN_AUTO, "walk/generic1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-						}
-						else
-						{
-							if ((r == 1))
-							{
-								sound7(e, CHAN_AUTO, "walk/generic2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-							}
-							else
-							{
-								if ((r == 2))
-								{
-									sound7(e, CHAN_AUTO, "walk/generic3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-								}
-								else
-								{
-									if ((r == 3))
-									{
-										sound7(e, CHAN_AUTO, "walk/generic4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-									}
-									else
-									{
-										sound7(e, CHAN_AUTO, "walk/generic5.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+			sound7(e, CHAN_AUTO, "walk/waterwade1.wav", 0.7, ATTN_NORM, SNDSPD);
 		}
 		else
 		{
-			if ((random() < 0.65))
-			{
-				sound7(e, CHAN_AUTO, "walk/waterwade1.wav", 0.7, ATTN_NORM, SNDSPD);
-			}
-			else
-			{
-				sound7(e, CHAN_AUTO, "walk/waterwade2.wav", 0.7, ATTN_NORM, SNDSPD);
-			}
+			sound7(e, CHAN_AUTO, "walk/waterwade2.wav", 0.7, ATTN_NORM, SNDSPD);
+		}
+		return;
+	}
+	mat = 0;
+	if (world_has_q1_surfs)
+	{
+		surfnum = getsurfacenearpoint(world, (e.origin - '0 0 24'));
+		if ((surfnum < 0))
+		{
+			return;
+		}
+		s = getsurfacetexture(world, surfnum);
+		mat = returnsurface(s);
+	}
+	if (((mat == GROUND) || (mat == ROCK)))
+	{
+		r = rint((random() * 3));
+		if ((r == 0))
+		{
+			sound7(e, CHAN_AUTO, "walk/pl_dirt1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 1))
+		{
+			sound7(e, CHAN_AUTO, "walk/pl_dirt2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 2))
+		{
+			sound7(e, CHAN_AUTO, "walk/pl_dirt3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else
+		{
+			sound7(e, CHAN_AUTO, "walk/pl_dirt4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+	}
+	else if ((mat == METAL))
+	{
+		r = rint((random() * 3));
+		if ((r == 0))
+		{
+			sound7(e, CHAN_AUTO, "walk/metal1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 1))
+		{
+			sound7(e, CHAN_AUTO, "walk/metal2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 2))
+		{
+			sound7(e, CHAN_AUTO, "walk/metal3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else
+		{
+			sound7(e, CHAN_AUTO, "walk/metal4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+	}
+	else if ((mat == MEAT))
+	{
+		r = rint((random() * 3));
+		if ((r == 0))
+		{
+			sound7(e, CHAN_AUTO, "custom/flesh1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 1))
+		{
+			sound7(e, CHAN_AUTO, "custom/flesh5.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 2))
+		{
+			sound7(e, CHAN_AUTO, "custom/flesh3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else
+		{
+			sound7(e, CHAN_AUTO, "custom/flesh4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+	}
+	else
+	{
+		r = rint((random() * 4));
+		if ((r == 0))
+		{
+			sound7(e, CHAN_AUTO, "walk/generic1.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 1))
+		{
+			sound7(e, CHAN_AUTO, "walk/generic2.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 2))
+		{
+			sound7(e, CHAN_AUTO, "walk/generic3.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else if ((r == 3))
+		{
+			sound7(e, CHAN_AUTO, "walk/generic4.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
+		}
+		else
+		{
+			sound7(e, CHAN_AUTO, "walk/generic5.wav", autocvar_playerfootsteps, ATTN_NORM, SNDSPD);
 		}
 	}
 };

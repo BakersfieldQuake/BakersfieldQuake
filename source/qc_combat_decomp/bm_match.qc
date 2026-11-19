@@ -586,6 +586,12 @@ void() BM_Stats =
 	clientstat (100, 2, jb_st_ammo);		// Winged John hairspray cans remaining 0..JB_MAX_AMMO
 	clientstat (101, 2, jb_st_ammoprog);	// Winged John next-can restock progress 0..100
 	clientstat (102, 2, jb_st_speed);		// Winged John airspeed u/s
+	clientstat (103, 2, ky_st_mode);		// Pocket Kyle HUD: 0=off, 1=windup, 2=locking bird, 3=locked, 4=bird too far
+	clientstat (104, 2, ky_st_prog);		// Pocket Kyle HUD: 0..100 charge or lock progress
+	clientstat (105, 2, ky_st_dist);		// Pocket Kyle HUD: distance to bird/sky vehicle in units
+	clientstat (106, 2, ky_st_tx);			// Pocket Kyle HUD: targeted bird world X
+	clientstat (107, 2, ky_st_ty);			// Pocket Kyle HUD: targeted bird world Y
+	clientstat (108, 2, ky_st_tz);			// Pocket Kyle HUD: targeted bird world Z
 };
 
 float() BM_CountPlayers =
@@ -639,7 +645,7 @@ float() BM_DummyBot =
 {
 	local float dir, k;
 
-	if (!BM_DummyMap ())
+	if (!BM_DummyMap () && !(practice_active && !practice_live_fire))
 		return FALSE;
 	self.button0 = 0;
 	self.button2 = 0;
@@ -1015,6 +1021,7 @@ void() BM_StartFrame =
 	BM_VoteTick ();
 	BM_BotStartFrame ();
 	BM_ObsCheckDiscard ();
+	BM_Radar_Tick ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
 		bm_debug_t = time + 2;
@@ -1211,6 +1218,7 @@ void(entity p) BM_ClientGone =
 	local entity e, nx, me;
 
 	NS_ClientGone (p);
+	KY_CleanupOwner (p);
 	FD_Reset (p);
 	me = self;
 	e = find (world, classname, "pickle");

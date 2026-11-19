@@ -265,9 +265,10 @@ void() DK_GlobTouch =
 	if (dir == VEC_ORIGIN)
 		dir = '0 0 -1';
 	if (other == world)
-		DK_WallSplatAlong (self.origin - dir * 16, self.origin + dir * 24, 0.8 + random () * 1.1);
+		DK_WallSplatAlong (self.origin - dir * 16, self.origin + dir * 24, 1.2 + random () * 1.4);
 	else
-		DK_WallSplatAlong (self.origin, self.origin - '0 0 96', 0.7 + random () * 0.8);
+		DK_WallSplatAlong (self.origin, self.origin - '0 0 96', 1.0 + random () * 1.1);
+	pointparticles (particleeffectnum ("dookie_drip"), self.origin, '0 0 0', 2);
 	remove (self);
 };
 
@@ -282,10 +283,10 @@ void(vector org, vector norm, float charge) DK_Splatter =
 	nglobs = floor (DK_SPLAT_GLOBS * (0.70 + 0.30 * bound (0, charge, 1)));
 
 	// stamp a central cluster directly around the impacted wall/floor face
-	for (i = 0; i < 4; i = i + 1)
+	for (i = 0; i < 8; i = i + 1)
 	{
 		dir = normalize ('0 0 0' - norm + randomvec () * 0.65);
-		DK_WallSplatAlong (org, org + dir * 96, 2.2 + random () * 1.8);
+		DK_WallSplatAlong (org, org + dir * 96, 2.5 + random () * 2.2);
 	}
 
 	// radial spray coating surrounding walls, floors, and ceilings
@@ -295,7 +296,7 @@ void(vector org, vector norm, float charge) DK_Splatter =
 		dir_z = dir_z - 0.15;
 		if (dir == VEC_ORIGIN)
 			dir = '0 0 -1';
-		DK_WallSplatAlong (org, org + normalize (dir) * reach * (0.35 + random () * 0.65), 1.6 + random () * 2.2);
+		DK_WallSplatAlong (org, org + normalize (dir) * reach * (0.35 + random () * 0.65), 2.0 + random () * 2.6);
 	}
 
 	// arcing physical poop globs that leave brown trails and splat on distant surfaces
@@ -308,10 +309,10 @@ void(vector org, vector norm, float charge) DK_Splatter =
 		g.frame = floor (random () * 3);
 		if (g.frame > 2)
 			g.frame = 2;
-		g.scale = 0.45 + random () * 0.45;
+		g.scale = 0.60 + random () * 0.65;
 		g.angles = randomvec () * 180;
 		g.avelocity = randomvec () * 600;
-		g.velocity = norm * 220 + randomvec () * 920 + '0 0 380';
+		g.velocity = norm * 240 + randomvec () * 960 + '0 0 400';
 		g.traileffectnum = particleeffectnum ("dookie_glob");
 		g.touch = DK_GlobTouch;
 		g.think = SUB_Remove;
@@ -322,24 +323,101 @@ void(vector org, vector norm, float charge) DK_Splatter =
 	}
 };
 
-void(entity hit, vector norm) DK_Detonate =
+// Returns 0..1 launch factor if the shooter hit walkable ground near their feet; 0 otherwise.
+float(entity hit, float is_ground) DK_GroundBoltFrac =
 {
-	local float splash_dmg;
+	local entity p;
+	local vector owner_ctr;
+	local float dist;
+
+	if (!is_ground)
+		return 0;
+	if (hit && hit != world && hit.takedamage)
+		return 0;
+	p = self.owner;
+	if (!p || p == world || p.classname != "player" || p.health <= 0 || p.deadflag != 0)
+		return 0;
+	if (p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.veh_ride != world || p.fd_head != world)
+		return 0;
+	if (p.movetype != MOVETYPE_WALK && (p.ishuman == 1 || p.movetype != MOVETYPE_NONE))
+		return 0;
+
+	owner_ctr = p.origin + (p.mins + p.maxs) * 0.5;
+	dist = vlen (self.origin - owner_ctr);
+	if (dist >= DK_BOLT_RADIUS)
+		return 0;
+	if (!CanDamage (p, self))
+		return 0;
+	if (dist <= DK_BOLT_FULL_DIST)
+		return 1.0;
+	return (DK_BOLT_RADIUS - dist) / (DK_BOLT_RADIUS - DK_BOLT_FULL_DIST);
+};
+
+// Bolts the shooter straight skyward (~3x a rocket jump) with light RJ-sized self-damage.
+void(entity p, float frac) DK_ApplyGroundBolt =
+{
+	local float vz, pre_vz;
+	local vector prev_vel, dxy;
+
+	prev_vel = p.velocity;
+	pre_vz = prev_vel_z;
+
+	T_Damage (p, self, self.owner, DK_BOLT_SELF_DMG * frac);
+
+	if (p.health <= 0 || p.deadflag != 0)
+		return;
+
+	vz = (DK_BOLT_VZ_BASE + DK_BOLT_VZ_CHARGE * self.dk_charge) * frac;
+	if (pre_vz > 0)
+		vz = vz + min (pre_vz * 0.25, 120);
+
+	// Keep horizontal momentum mostly intact (tiny outward nudge only) so you bolt straight up.
+	dxy = p.origin - self.origin;
+	dxy_z = 0;
+	if (vlen (dxy) > 4)
+		dxy = normalize (dxy) * (60 * frac);
+	else
+		dxy = '0 0 0';
+
+	p.flags = p.flags - (p.flags & FL_ONGROUND);
+	p.jump_flag = 0;
+	p.velocity_x = prev_vel_x + dxy_x;
+	p.velocity_y = prev_vel_y + dxy_y;
+	if (pre_vz > vz)
+		p.velocity_z = pre_vz;
+	else
+		p.velocity_z = vz;
+
+	p.punchangle_x = -8 * frac;
+	FG_Snd (p, CHAN_AUTO, "dookie/dk_scream.wav", 0.95, 1.08 + random () * 0.12);
+};
+
+void(entity hit, vector norm, float is_ground) DK_Detonate =
+{
+	local float splash_dmg, bolt_frac;
 	local vector blast_org;
 
 	if (self.dk_done)
 		return;
 	self.dk_done = TRUE;
+	self.takedamage = DAMAGE_NO;
 
 	sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);
 	sound (self, CHAN_BODY, "misc/null.wav", 1, ATTN_NONE);
 
 	splash_dmg = DK_DAMAGE_BASE + DK_DAMAGE_CHARGE * self.dk_charge;
+	bolt_frac = DK_GroundBoltFrac (hit, is_ground);
 	fg_inflicting = FG_DOOKIE;
 	if (hit && hit != world && hit.takedamage)
 	{
 		T_Damage (hit, self, self.owner, splash_dmg + DK_DIRECT_BONUS);
 		T_RadiusDamage (self, self.owner, splash_dmg, hit);
+	}
+	else if (bolt_frac > 0)
+	{
+		// Skip normal self-splash knockback/damage on owner so the sky-bolt handles both cleanly.
+		T_RadiusDamage (self, self.owner, splash_dmg, self.owner);
+		DK_ApplyGroundBolt (self.owner, bolt_frac);
 	}
 	else
 	{
@@ -372,7 +450,7 @@ void(entity hit, vector norm) DK_Detonate =
 
 void() DK_ProjDieThink =
 {
-	DK_Detonate (world, '0 0 1');
+	DK_Detonate (world, '0 0 1', FALSE);
 };
 
 void() DK_ProjDie =
@@ -388,6 +466,7 @@ void() DK_ProjDie =
 void() DK_ProjTouch =
 {
 	local vector norm;
+	local float is_ground, surf_ok;
 
 	if (other == self.owner)
 		return;
@@ -398,10 +477,18 @@ void() DK_ProjTouch =
 		remove (self);
 		return;
 	}
-	norm = trace_plane_normal;
-	if (vlen (norm) < 0.1)
+	surf_ok = (other == world || other.solid == SOLID_BSP || !other.takedamage);
+	if (vlen (trace_plane_normal) >= 0.1)
+	{
+		norm = trace_plane_normal;
+		is_ground = (surf_ok && norm_z > 0.55 && self.velocity_z < 0);
+	}
+	else
+	{
 		norm = '0 0 1';
-	DK_Detonate (other, norm);
+		is_ground = (surf_ok && self.velocity_z < -0.5 * vlen (self.velocity));
+	}
+	DK_Detonate (other, norm, is_ground);
 };
 
 void() DK_ProjThink =
@@ -410,7 +497,7 @@ void() DK_ProjThink =
 		return;
 	if (time - self.fg_born > DK_LIFE)
 	{
-		DK_Detonate (world, '0 0 1');
+		DK_Detonate (world, '0 0 1', FALSE);
 		return;
 	}
 	if (self.takedamage == DAMAGE_NO && time >= self.fg_born + 0.18)
@@ -441,7 +528,7 @@ void(float c) DK_Launch =
 {
 	local entity p;
 	local float a, spd;
-	local vector org, aim;
+	local vector org, dir, eye;
 
 	a = FunGun_Ammo (self, FG_DOOKIE);
 	self.dk_charging = 0;
@@ -465,8 +552,12 @@ void(float c) DK_Launch =
 
 	spd = DK_SPEED_MIN + (DK_SPEED_MAX - DK_SPEED_MIN) * c;
 	makevectors (self.v_angle);
-	aim = v_forward;
-	org = FG_Muzzle (32) + v_right * 3 - v_up * 2;
+	dir = aim (self, 1000);
+	eye = self.origin + self.view_ofs;
+	org = eye + v_forward * 8 + v_up * -4;
+	traceline (eye, org, TRUE, self);
+	if (trace_fraction < 1)
+		org = eye + (org - eye) * max (0, trace_fraction - 0.1);
 
 	p = spawn ();
 	p.classname = "dookie_shot";
@@ -479,12 +570,13 @@ void(float c) DK_Launch =
 	p.fg_born = time;
 	p.dk_charge = c;
 	p.dk_done = FALSE;
-	p.angles_y = vectoyaw (aim);
+	p.angles_y = vectoyaw (dir);
 	setmodel (p, "progs/dookie_proj.spr32");
 	p.scale = DK_SCALE;
-	setsize (p, '-12 -12 -12', '12 12 12');
+	setsize (p, VEC_ORIGIN, VEC_ORIGIN);	// point hull like Rocket Launcher: clears ledges and walls cleanly
 	setorigin (p, org);
-	p.velocity = aim * spd;
+	p.velocity = dir * spd;
+	p.traileffectnum = particleeffectnum ("dookie_glob");
 	p.customizeentityforclient = DK_ProjCustomize;
 	p.touch = DK_ProjTouch;
 	p.think = DK_ProjThink;
@@ -602,8 +694,6 @@ void(entity vm, float is_quad) Dookie_ViewFrame =
 		vm.origin_z = -0.6 * ease;
 		if (ammo < 1)
 			p.dk_empty = TRUE;
-		else if (!is_quad)
-			p.dk_reload_t = p.dk_fire_t + DK_FOLLOW_TIME;
 		return;
 	}
 

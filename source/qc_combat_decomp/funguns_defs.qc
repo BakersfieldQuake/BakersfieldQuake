@@ -43,7 +43,8 @@ float	FG_NETSEND		= 4;
 float	FG_DOOKIE		= 5;
 float	FG_WCANNON		= 6;
 float	FG_M4			= 7;		// CS 1.6 M4A1 (m4.qc)
-float	FG_TOMMY		= 8;		// DoD 1.3 M1A1 Thompson SMG (tommy.qc)
+float	FG_KYLE			= 8;		// The Pocket Kyle — hold to lock & yeet Kyle Tillet (kyle.qc)
+float	FG_TOMMY		= 8;		// legacy alias for slot 8
 float	FG_GARAND		= 9;		// DoD 1.3 M1 Garand rifle (garand.qc)
 
 float	fg_inflicting;		// which fun gun is dealing damage right now (0 = none), for the obituary
@@ -121,12 +122,13 @@ float	BN_ZOOM_START	= 5;
 .entity	pk_who;			// pickle: whoever set it off
 
 // ammo: max, seconds per round recharged
-float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 20;
+float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 12;
 float	FG_PONG_MAX		= 2;	float	FG_PONG_REGEN	= 10;	// two Jars o' Green Guys; 10 s per jar recharge (greenjar.qc)
-float	FG_PICKLE_MAX	= 2;	float	FG_PICKLE_REGEN	= 5;
-float	FG_DOOKIE_MAX	= 2;	float	FG_DOOKIE_REGEN	= 10;	// two canisters; 10 s to refill the next (dookie.qc)
-float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 18;	// like a BFG: one Wheelman, 18 s to reload the next (wcannon_defs.qc)
+float	FG_PICKLE_MAX	= 3;	float	FG_PICKLE_REGEN	= 4;
+float	FG_DOOKIE_MAX	= 5;	float	FG_DOOKIE_REGEN	= 3;	// five canisters (5 heads in the tank); 3 s reload (dookie.qc)
+float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 12;	// one Wheelman, 12 s to reload the next (wcannon_defs.qc)
 float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
-float	FG_TOMMY_MAX	= 30;	float	FG_TOMMY_REGEN	= 0.2;	// Thompson 30-round stick mag (tommy_defs.qc)
+float	FG_KYLE_MAX	= 3;	float	FG_KYLE_REGEN	= 5;	// 3 Pocket Kyles; 5 s recharge per Kyle (kyle.qc)
+float	FG_TOMMY_MAX	= 3;	float	FG_TOMMY_REGEN	= 5;
 float	FG_GARAND_MAX	= 8;	float	FG_GARAND_REGEN	= 0.35;	// M1 Garand 8-round en-bloc clip (garand_defs.qc)
-float	FG_NETSEND_MAX		= 1;	float	FG_NETSEND_REGEN		= 2;	// one disk; 2 s to write the next LOL.BAT: the only limit is 20 PCs up (netsend_defs.qc)
+float	FG_NETSEND_MAX		= 1;	float	FG_NETSEND_REGEN		= 5;	// one disk; 5 s to write the next LOL.BAT (netsend_defs.qc)

@@ -121,12 +121,72 @@ void() casingSound =
 	}
 };
 
+#define MAX_CSQC_CASINGS 32
+entity casing_q_head;
+entity casing_q_tail;
+float casing_q_count;
+
+void(entity e) casing_unlink_and_remove =
+{
+	local entity p;
+	local entity n;
+
+	if ((e == world))
+	{
+		return;
+	}
+	p = e.enemy;
+	n = e.chain;
+	if ((p != world))
+	{
+		p.chain = n;
+	}
+	else
+	{
+		if ((casing_q_head == e))
+		{
+			casing_q_head = n;
+		}
+	}
+	if ((n != world))
+	{
+		n.enemy = p;
+	}
+	else
+	{
+		if ((casing_q_tail == e))
+		{
+			casing_q_tail = p;
+		}
+	}
+	e.enemy = world;
+	e.chain = world;
+	if ((casing_q_count > 0))
+	{
+		casing_q_count = (casing_q_count - 1);
+	}
+	remove(e);
+};
+
+void() casing_remove =
+{
+	casing_unlink_and_remove(self);
+};
+
 void() runphysics_casing_gravity =
 {
 	local vector v;
 	local vector modelsize;
+	local float dt;
+	local float step_scale;
 
-	v = self.origin + (self.velocity * frametime);
+	dt = 0.025;
+	step_scale = (1.8 * csqc_slowmo);
+	if ((step_scale <= 0))
+	{
+		step_scale = 1.8;
+	}
+	v = self.origin + (self.velocity * dt);
 	if ((self.casetype == CASING_SHELL))
 	{
 		modelsize = '0 0 2';
@@ -150,15 +210,15 @@ void() runphysics_casing_gravity =
 		setorigin(self, v);
 		if ((self.velocity_x > 0))
 		{
-			self.velocity_x = (self.velocity_x - (0.5 * csqc_slowmo));
+			self.velocity_x = (self.velocity_x - (0.5 * step_scale));
 		}
 		if ((self.velocity_y > 0))
 		{
-			self.velocity_y = (self.velocity_y - (0.5 * csqc_slowmo));
+			self.velocity_y = (self.velocity_y - (0.5 * step_scale));
 		}
-		self.velocity_z = (self.velocity_z - (6 * csqc_slowmo));
-		self.angles_x = (self.angles_x + (2 * csqc_slowmo));
-		self.angles_y = (self.angles_y + (2 * csqc_slowmo));
+		self.velocity_z = (self.velocity_z - (6 * step_scale));
+		self.angles_x = (self.angles_x + (2 * step_scale));
+		self.angles_y = (self.angles_y + (2 * step_scale));
 		self.oldorigin = self.origin;
 	}
 	else
@@ -169,7 +229,7 @@ void() runphysics_casing_gravity =
 			{
 				if ((pointcontents((self.origin - '0 0 2')) == CONTENT_SOLID))
 				{
-					setorigin(self, (self.origin + '0 0 0.5'));
+					setorigin(self, (self.origin + '0 0 1'));
 				}
 			}
 			else
@@ -178,13 +238,13 @@ void() runphysics_casing_gravity =
 				{
 					if ((pointcontents((self.origin - '0 0 3')) == CONTENT_SOLID))
 					{
-						setorigin(self, (self.origin + '0 0 0.5'));
+						setorigin(self, (self.origin + '0 0 1'));
 					}
 					else
 					{
 						if ((pointcontents((self.origin - '0 0 1')) == CONTENT_SOLID))
 						{
-							setorigin(self, (self.origin + '0 0 0.3'));
+							setorigin(self, (self.origin + '0 0 0.5'));
 							self.velocity = VEC_0;
 						}
 					}
@@ -253,6 +313,10 @@ void() runphysics_casing_gravity =
 			}
 			self.velocity = (self.velocity_old * 2);
 			self.velocity_z = (self.velocity_old_z * 1.65);
+			if ((self.velocity_z > 0))
+			{
+				v = self.origin + (self.velocity * dt);
+			}
 			setorigin(self, v);
 			if ((self.angles_x != 0))
 			{
@@ -270,17 +334,33 @@ void() casing_placement =
 	{
 		self.velocity = VEC_0;
 		self.nextthink = (time + 8);
-		self.think = SUB_Remove;
+		self.think = casing_remove;
 		return;
 	}
-	self.nextthink = time;
+	self.nextthink = (time + 0.025);
 };
 
 void() casing =
 {
 	local entity casing;
 
+	while (((casing_q_count >= MAX_CSQC_CASINGS) && (casing_q_head != world)))
+	{
+		casing_unlink_and_remove(casing_q_head);
+	}
 	casing = spawn();
+	casing.enemy = casing_q_tail;
+	casing.chain = world;
+	if ((casing_q_tail != world))
+	{
+		casing_q_tail.chain = casing;
+	}
+	else
+	{
+		casing_q_head = casing;
+	}
+	casing_q_tail = casing;
+	casing_q_count = (casing_q_count + 1);
 	casing.casing_born = time;
 	casing.angles = view_angles;
 	casing.angles_x = (casing.angles_x * -1);
@@ -324,8 +404,13 @@ void() casing =
 void() Particle_Emitter_Think =
 {
 	pointparticles(self.fx, self.origin, self.velocity, self.count);
-	self.think = SUB_Remove;
-	self.nextthink = (time + 1);
+	if ((self.wait > 0))
+	{
+		self.think = SUB_Remove;
+		self.nextthink = (time + self.wait);
+		return;
+	}
+	remove(self);
 };
 
 void(float isnew) Sprite_Spawner =

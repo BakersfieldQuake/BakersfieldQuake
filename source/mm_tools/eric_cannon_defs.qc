@@ -24,7 +24,7 @@ float	EC_STATE_RELOAD		= 4;
 float	EC_YOKE_Z			= 24.0;
 float	EC_CANNON_Z			= 56.8;
 float	EC_REST_PITCH		= 15.6;
-float	EC_RELOAD_TIME		= 10.0;
+float	EC_RELOAD_TIME		= 40.0;
 float	EC_WATCH_TIME		= 3.5;
 
 float	ec_precached;

@@ -104,12 +104,17 @@ void() Hammer_Consider =
 	if (trace_fraction >= 1)
 		return;
 	d = vlen (trace_endpos - hm_src);
-	if (trace_ent == hm_h1 && d < hm_d1)
+	if (hm_d1 == 1000 || trace_ent == hm_h1)
 	{
-		hm_d1 = d;
-		hm_p1 = trace_endpos;
+		if (d < hm_d1)
+		{
+			hm_d1 = d;
+			hm_h1 = trace_ent;
+			hm_p1 = trace_endpos;
+		}
+		return;
 	}
-	if (trace_ent != hm_h1 && d < hm_d2)
+	if (d < hm_d2)
 	{
 		hm_d2 = d;
 		hm_h2 = trace_ent;
@@ -347,9 +352,9 @@ void() Hammer_PlayerFrame =
 		else
 			self.weaponframe = 30 + (k - 29) - floor ((k - 29) / 10) * 10;
 		tier = 1;
-		if (k >= 27)
+		if (k >= 21)
 			tier = 3;
-		else if (k >= 14)
+		else if (k >= 12)
 			tier = 2;
 		if (tier > self.hm_tier)
 		{

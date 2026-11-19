@@ -62,7 +62,7 @@ float	JP_NOZZLE_X		= -17;
 float	JP_NOZZLE_Y		= 4.5;
 float	JP_NOZZLE_Z		= 0;
 
-float	jp_fx_fire, jp_fx_smoke, jp_fx_dust, jp_fx_burst, jp_fx_blaze, jp_fx_glow;		// particleeffectnum of the effectinfo.txt effects
+float	jp_fx_fire, jp_fx_light, jp_fx_smoke, jp_fx_dust, jp_fx_burst, jp_fx_blaze, jp_fx_glow;		// particleeffectnum of the effectinfo.txt effects
 
 float	jp_side;		// sv_cheats test: which side of the pickup impulse 73 looks from
 entity	jp_test;		// sv_cheats test: the stand-in armor (impulse 75)

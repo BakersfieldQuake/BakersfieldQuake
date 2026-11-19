@@ -347,13 +347,13 @@ string(float kind) Veh_IdleSound =
 float(float kind) Veh_MaxHP =
 {
 	if (kind == VEH_SCHOOLBUS)
-		return 520;
+		return 400;
 	if (kind == VEH_HDTRUCK)
 		return 380;
 	if (kind == VEH_TRUCK)
 		return 300;
 	if (kind == VEH_VAN)
-		return 420;
+		return 320;
 	if (kind == VEH_GTCAR)
 		return 250;
 	if (kind == VEH_SEDAN)

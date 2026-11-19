@@ -1089,6 +1089,9 @@ void() MegaMan_Blocked =
 #ifdef COMBATPLUS
 void() MegaMan_BlueShellBoom =
 {
+	local entity e;
+	local vector kick;
+
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.classname = "mmdead";
@@ -1101,8 +1104,24 @@ void() MegaMan_BlueShellBoom =
 	WriteCoord (MSG_BROADCAST, self.origin_z);
 
 	mm_inflicting = TRUE;
-	T_RadiusDamage (self, self.owner, 220, world);
+	T_RadiusDamage (self, self.owner, 170, world);
 	mm_inflicting = FALSE;
+	// Massive comic upward sky-launch on anyone caught in the Blue Shell shockwave
+	e = findradius (self.origin, 220);
+	while (e)
+	{
+		if (e.health > 0 && (e.movetype == MOVETYPE_WALK || e.movetype == MOVETYPE_STEP))
+		{
+			kick = e.origin - self.origin;
+			kick_z = 0;
+			if (vlen (kick) < 1)
+				kick = '1 0 0';
+			kick = normalize (kick);
+			e.flags = e.flags - (e.flags & FL_ONGROUND);
+			e.velocity = e.velocity + kick * 420 + '0 0 650';
+		}
+		e = e.chain;
+	}
 	MM_RocketBoom (world);
 	MM_Breakup (TRUE);
 	BecomeExplosion ();
@@ -1147,7 +1166,7 @@ void() MegaMan_BlueShellThink =
 		if (d < 105 || time >= self.ud_shell_t)
 		{
 			self.ud_shell_stage = 2;
-			self.ud_shell_t = time + 0.42;
+			self.ud_shell_t = time + 0.90;
 			self.mm_lastorg = self.ud_hunt.origin;
 			self.velocity = '0 0 0';
 			setorigin (self, self.ud_hunt.origin + '0 0 88');
@@ -1158,7 +1177,7 @@ void() MegaMan_BlueShellThink =
 
 	if (self.ud_shell_stage == 2)
 	{
-		if (self.ud_shell_t - time > 0.17)
+		if (self.ud_shell_t - time > 0.45)
 			self.mm_lastorg = self.ud_hunt.origin;
 		self.velocity = '0 0 0';
 		setorigin (self, self.mm_lastorg + '0 0 88');

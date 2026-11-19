@@ -296,13 +296,18 @@ float(string s) CSQC_Parse_CenterPrint =
 	return 1;
 };
 
+float(float w, float h) BM_MinimapTopY;
+
 void(float w, float h) BM_DrawCenterPrint =
 {
-	local float sz, wd, maxw, lim, step, x0, y0, ph, rem, a, base;
+	local float sz, wd, maxw, lim, step, x0, y0, ph, rem, a, base, mtop;
 
 	base = BM_CornerBottomY (h);
 	if (getstati (93) == 2)		// 1st-person Winged John readout fills BM_CornerBottomY(h) - 27 .. - 4 (john_bird_hud.qc): stack the toast above it
 		base = base - 30;
+	mtop = BM_MinimapTopY (w, h);
+	if (mtop > 0 && mtop < base)
+		base = mtop;
 	bm_cp_top_y = base;
 	if (bm_cp_n <= 0 || time >= bm_cp_end)
 		return;
@@ -569,7 +574,7 @@ void() BM_DrawScoreKeys =
 	cx = w * 0.5;
 	sz = 5;
 	l1 = "^3GUNS: ^7C^8:M4  ^7M^8:Garand  ^7N^8:MegaMan  ^7Y^8:Milky  ^7L^8:Laptop  ^71^8:Hammer  ^7R^8:Reload/Twirl";
-	l2 = "^3TOYS: ^7F^8:RobDob  ^7I^8:Jar  ^7X^8:Pickle  ^7B^8:NetSend  ^7U^8:Dookie  ^7G^8:Wheelman  ^7H^8:Drive/Ride  ^7P^8:JohnBird  ^7J^8/2xSpace:Jetpack";
+	l2 = "^3TOYS: ^7F^8:RobDob  ^7I^8:Jar  ^7X^8:Pickle  ^7B^8:NetSend  ^7U^8:Dookie  ^7G^8:Wheelman  ^7Z^8:Kyle  ^7H^8:Drive/Ride  ^7P^8:JohnBird  ^7J^8/2xSpace:Jetpack";
 	w1 = stringwidth (l1, TRUE, sz * '1 1 0');
 	w2 = stringwidth (l2, TRUE, sz * '1 1 0');
 	pw = w1;
@@ -582,6 +587,125 @@ void() BM_DrawScoreKeys =
 	y0 = h - 65;
 	BM_Centered (cx, y0, l1, sz, '1 1 1', 0.95);
 	BM_Centered (cx, y0 + 7, l2, sz, '1 1 1', 0.95);
+};
+
+void(float w, float h) KY_DrawHUD =
+{
+	local float mode, prog, dist, cx, cy, bw, bh, x0, y0, r, arm, th, pulse, sx, sy;
+	local vector wp, sp, col;
+	local string lbl;
+
+	mode = getstati (103);
+	if (mode <= 0)
+		return;
+	prog = bound (0, getstati (104), 100);
+	dist = getstati (105);
+	cx = w * 0.5;
+	cy = h * 0.5;
+
+	// Mode 1: Throw Wind-Up Power Bar below crosshair
+	if (mode == 1)
+	{
+		bw = 92;
+		bh = 6;
+		x0 = cx - bw * 0.5;
+		y0 = cy + 26;
+		drawfill ([x0 - 1, y0 - 1, 0], [bw + 2, bh + 2, 0], '0 0 0', 0.72, 0);
+		col = (prog >= 95) ? '1 0.35 0.15' : ((prog >= 50) ? '1 0.78 0.15' : '0.35 0.85 1');
+		drawfill ([x0, y0, 0], [bw * (prog / 100), bh, 0], col, 0.92, 0);
+		if (prog >= 95)
+			lbl = "^1MAX THROW WIND-UP!";
+		else if (prog >= 45)
+			lbl = strcat ("^3THROW POWER ", ftos (prog), "%");
+		else
+			lbl = strcat ("^7WINDING UP ", ftos (prog), "%");
+		BM_Centered (cx, y0 + 9, lbl, 5.5, '1 1 1', 0.92);
+		return;
+	}
+
+	// Modes 2, 3, 4: Bird / Sky-Vehicle Lock-On Targeting Reticle projected onto target's live 3D screen position!
+	wp_x = getstati (106);
+	wp_y = getstati (107);
+	wp_z = getstati (108);
+	sp = cs_project (wp);
+	if (sp_z <= 0)
+	{
+		sx = cx;
+		sy = cy;
+	}
+	else
+	{
+		sx = bound (24, sp_x, w - 24);
+		sy = bound (24, sp_y, h - 24);
+	}
+
+	if (mode == 4)
+	{
+		// Bird spotted in aim, but outside hairspray-counter range (>780u)!
+		r = 26;
+		arm = 7;
+		col = '0.75 0.65 0.45';
+		drawfill ([sx - r, sy - r, 0], [arm, 1.5, 0], col, 0.75, 0);
+		drawfill ([sx - r, sy - r, 0], [1.5, arm, 0], col, 0.75, 0);
+		drawfill ([sx + r - arm, sy - r, 0], [arm, 1.5, 0], col, 0.75, 0);
+		drawfill ([sx + r - 1.5, sy - r, 0], [1.5, arm, 0], col, 0.75, 0);
+		drawfill ([sx - r, sy + r - 1.5, 0], [arm, 1.5, 0], col, 0.75, 0);
+		drawfill ([sx - r, sy + r - arm, 0], [1.5, arm, 0], col, 0.75, 0);
+		drawfill ([sx + r - arm, sy + r - 1.5, 0], [arm, 1.5, 0], col, 0.75, 0);
+		drawfill ([sx + r - 1.5, sy + r - arm, 0], [1.5, arm, 0], col, 0.75, 0);
+		lbl = strcat ("^8BIRD TOO FAR (", ftos (dist), "u > 780u)");
+		BM_Centered (sx, sy + r + 5, lbl, 5.2, '1 1 1', 0.85);
+		return;
+	}
+
+	if (mode == 3)
+	{
+		// LOCKED ON! Pulsing neon-green/red targeting brackets + torpedo prompt!
+		pulse = sin (time * 18);
+		pulse = 0.5 + 0.5 * pulse;
+		r = 20 + 3 * pulse;
+		arm = 10;
+		th = 2.4;
+		col = (pulse > 0.5) ? '0.2 1 0.45' : '1 0.25 0.2';
+		// 4 crisp bold corner brackets
+		drawfill ([sx - r, sy - r, 0], [arm, th, 0], col, 0.96, 0);
+		drawfill ([sx - r, sy - r, 0], [th, arm, 0], col, 0.96, 0);
+		drawfill ([sx + r - arm, sy - r, 0], [arm, th, 0], col, 0.96, 0);
+		drawfill ([sx + r - th, sy - r, 0], [th, arm, 0], col, 0.96, 0);
+		drawfill ([sx - r, sy + r - th, 0], [arm, th, 0], col, 0.96, 0);
+		drawfill ([sx - r, sy + r - arm, 0], [th, arm, 0], col, 0.96, 0);
+		drawfill ([sx + r - arm, sy + r - th, 0], [arm, th, 0], col, 0.96, 0);
+		drawfill ([sx + r - th, sy + r - arm, 0], [th, arm, 0], col, 0.96, 0);
+		// Inner lock ticks
+		drawfill ([sx - 6, sy - 0.8, 0], [12, 1.6, 0], col, 0.95, 0);
+		drawfill ([sx - 0.8, sy - 6, 0], [1.6, 12, 0], col, 0.95, 0);
+		lbl = strcat ("^2TORPEDO LOCKED! ^7[", ftos (dist), "u]");
+		BM_Centered (sx, sy - r - 11, lbl, 5.8, '1 1 1', 0.96);
+		BM_Centered (sx, sy + r + 5, "^3RELEASE TO LAUNCH KYLE!", 5.5, '1 1 1', 0.96);
+	}
+	else
+	{
+		// Mode 2: Actively Locking On (brackets smoothly close in as prog goes 0..100!)
+		r = 46 - 24 * (prog / 100);
+		arm = 9;
+		th = 2.0;
+		col = '1 0.82 0.18';
+		drawfill ([sx - r, sy - r, 0], [arm, th, 0], col, 0.92, 0);
+		drawfill ([sx - r, sy - r, 0], [th, arm, 0], col, 0.92, 0);
+		drawfill ([sx + r - arm, sy - r, 0], [arm, th, 0], col, 0.92, 0);
+		drawfill ([sx + r - th, sy - r, 0], [th, arm, 0], col, 0.92, 0);
+		drawfill ([sx - r, sy + r - th, 0], [arm, th, 0], col, 0.92, 0);
+		drawfill ([sx - r, sy + r - arm, 0], [th, arm, 0], col, 0.92, 0);
+		drawfill ([sx + r - arm, sy + r - th, 0], [arm, th, 0], col, 0.92, 0);
+		drawfill ([sx + r - th, sy + r - arm, 0], [th, arm, 0], col, 0.92, 0);
+		// Lock progress bar right beneath the brackets
+		bw = 56;
+		bh = 4;
+		drawfill ([sx - bw * 0.5 - 1, sy + r + 4, 0], [bw + 2, bh + 2, 0], '0 0 0', 0.72, 0);
+		drawfill ([sx - bw * 0.5, sy + r + 5, 0], [bw * (prog / 100), bh, 0], col, 0.94, 0);
+		lbl = strcat ("^3LOCKING BIRD ", ftos (prog), "% ^7[", ftos (dist), "u]");
+		BM_Centered (sx, sy - r - 10, lbl, 5.4, '1 1 1', 0.94);
+	}
 };
 
 void(float w, float h) BM_DrawHUD =
@@ -629,6 +753,8 @@ void(float w, float h) BM_DrawHUD =
 			BM_DrawToyDock (w, h, hp, ty);
 	}
 	BM_DrawCenterPrint (w, h);
+	if (hp > 0 && !intermission)
+		KY_DrawHUD (w, h);
 
 	// low health: red edges, pulsing, fading out as you heal
 	if (hp > 0 && hp < 40)

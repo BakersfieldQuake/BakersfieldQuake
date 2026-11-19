@@ -643,8 +643,9 @@ void() WC_Fizzle =
 
 void(entity hit) WC_Crash =
 {
-	local vector org, in_dir;
-	local float tier, dmg;
+	local vector org, in_dir, kick;
+	local float tier, dmg, dir_bonus;
+	local entity e;
 
 	if (self.owner.classname != "player")
 	{
@@ -658,13 +659,32 @@ void(entity hit) WC_Crash =
 	self.solid = SOLID_NOT;
 	setsize (self, '0 0 0', '0 0 0');		// T_Damage pushes away from the middle of the inflictor's box: with his 48 high box the blast sat above you and pushed you into the floor
 	dmg = WC_DMG_BASE + tier * WC_DMG_STEP;
+	dir_bonus = WC_DMG_DIRECT + tier * 12;
 	dprint (strcat ("wcannon: crash tier ", strcat (ftos (tier), strcat (" at ", strcat (vtos (org), "\n")))));
 	sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);		// the scream stops
 	fg_inflicting = FG_WCANNON;
 	if (hit && hit.takedamage)
-		T_Damage (hit, self, self.owner, dmg + WC_DMG_DIRECT);
+		T_Damage (hit, self, self.owner, dmg + dir_bonus);
 	T_RadiusDamage (self, self.owner, dmg, hit);
 	fg_inflicting = 0;
+	if (tier <= 1)
+	{
+		e = findradius (org, dmg + 60);
+		while (e)
+		{
+			if (e != self.owner && e.health > 0 && (e.movetype == MOVETYPE_WALK || e.movetype == MOVETYPE_STEP))
+			{
+				kick = e.origin - org;
+				kick_z = 0;
+				if (vlen (kick) < 1)
+					kick = in_dir;
+				kick = normalize (kick);
+				e.flags = e.flags - (e.flags & FL_ONGROUND);
+				e.velocity = e.velocity + kick * 260 + '0 0 220';
+			}
+			e = e.chain;
+		}
+	}
 	WC_Boom (org, tier, hit);
 	WC_Dancer (org, in_dir);
 	remove (self);

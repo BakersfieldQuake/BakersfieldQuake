@@ -17,15 +17,15 @@ CS sound events: reload clip out at frame 25, clip in at 53, bolt at 88 (of 114)
 */
 
 float	M4_REFIRE		= 0.09;		// seconds between bullets (CS 1.6 M4A1 is ~666 RPM)
-float	M4_DAMAGE		= 18;		// damage per bullet (8 shots kills 100HP+100GA DM spawn)
+float	M4_DAMAGE		= 19;		// damage per bullet (clean 8-shot kill on 100HP+100GA DM spawn)
 float	M4_SPREAD		= 0.004;	// pinpoint first-shot / tap accuracy standing still
 float	M4_SPREAD_BLOOM	= 0.034;	// additional CS-style full-auto spray cone at max sustained fire
-float	M4_SPREAD_MOVE	= 0.035;	// extra spread at full run speed
-float	M4_SPREAD_AIR	= 0.025;	// extra spread while airborne / jetpacking (matches Thompson & Garand)
+float	M4_SPREAD_MOVE	= 0.021;	// extra spread at full run speed (Quake-friendly, -40%)
+float	M4_SPREAD_AIR	= 0.015;	// extra spread while airborne / jetpacking (-40%)
 float	M4_CLIMB_MAX	= 0.078;	// ~4.5 deg upward recoil climb at max sustained spray (pull down to compensate)
 float	M4_RANGE		= 4096;
-float	M4_RELOAD_TIME	= 3.08;		// 114 frames at 37 fps: the whole CS reload
-float	M4_DRAW_TIME	= 0.55;		// snappy 0.55s deploy lock (41 frames at 74.5 fps)
+float	M4_RELOAD_TIME	= 2.10;		// snappy full CS reload animation
+float	M4_DRAW_TIME	= 0.25;		// snappy deploy lock
 float	M4_RECOIL		= 1.4;		// view kick (degrees) per bullet
 
 float	M4_IDLE_FIRST	= 0;	float	M4_IDLE_COUNT	= 9;	float	M4_IDLE_FPS		= 16;

@@ -165,14 +165,17 @@ void() cs_touch =
 		remove(self);
 		return;
 	}
-	surfacenum = getsurfacenearpoint(world, self.origin);
-	if ((surfacenum >= 0))
+	if (world_has_q1_surfs)
 	{
-		tex = getsurfacetexture(world, surfacenum);
-		if (((((tex == "sky1") || (tex == "sky4")) || (tex == "sky_base")) || (tex == "sky_curse1")))
+		surfacenum = getsurfacenearpoint(world, self.origin);
+		if ((surfacenum >= 0))
 		{
-			remove(self);
-			return;
+			tex = getsurfacetexture(world, surfacenum);
+			if (((((tex == "sky1") || (tex == "sky4")) || (tex == "sky_base")) || (tex == "sky_curse1")))
+			{
+				remove(self);
+				return;
+			}
 		}
 	}
 	sendParticle("hldecal", self.origin, '0 0 100', 2);
@@ -206,4 +209,6 @@ void() CeilSplat =
 	dripper.movetype = MOVETYPE_FLY;
 	dripper.solid = SOLID_TRIGGER;
 	dripper.touch = cs_touch;
+	dripper.think = SUB_Remove;
+	dripper.nextthink = (time + 3);
 };

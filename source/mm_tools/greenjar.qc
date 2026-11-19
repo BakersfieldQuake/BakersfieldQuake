@@ -129,7 +129,7 @@ void() GJ_BalloonPopStep =
 		// Frame 164: Balloon bursts into shockwave ring + rainbow party confetti!
 		FG_Snd (self, CHAN_VOICE, "greenjar/mini_pop.wav", 0.95, 0.95 + random () * 0.14);
 		sendParticle ("pk_puff", self.origin + '0 0 12', '0 0 0', 1, 0);
-		// Post-frenzy balloon burst deals a 12-dmg confetti pop to nearby enemies!
+		// Post-frenzy balloon burst deals a 6-dmg confetti pop to nearby enemies (0 dmg if shot down!)
 		if (self.gj_attack_end > 0 && self.owner.classname == "player")		// no damage credited to a player who left
 		{
 			fg_inflicting = FG_PONG;
@@ -138,7 +138,7 @@ void() GJ_BalloonPopStep =
 			{
 				nxt = e.chain;
 				if (GJ_IsValidTarget (self, e))
-					T_Damage (e, self, self.owner, 12);
+					T_Damage (e, self, self.owner, 6);
 				e = nxt;
 			}
 			fg_inflicting = 0;
@@ -203,6 +203,9 @@ void() GJ_MiniDie =
 	// If already balloon-popping, ignore
 	if (self.gj_state == 5)
 		return;
+
+	// Shot-down gremlins ALWAYS pop harmlessly (rewarding counterplay!)
+	self.gj_attack_end = 0;
 
 	// Shooting a gremlin a 2nd time mid-spin pops it into rainbow confetti immediately!
 	if (self.gj_state == 4)
@@ -308,20 +311,32 @@ float() GJ_MiniCustomize =
 	return TRUE;
 };
 
-// Swarm Attack Hit: lethal 5-damage chaotic pokes + view jolt ("was swarmed silly by"!)
+// Swarm Attack Hit: light 2-dmg comedy pokes + boingy knockback ("was swarmed silly by"!)
 void(entity m, entity victim) GJ_AttackHit =
 {
+	local vector boing;
+
 	if (time < m.gj_next_poke || victim.health <= 0)
 		return;
 	if (m.owner.classname != "player")		// owner left: GJ_MiniThink pops it on its next tick
 		return;
 	m.gj_next_poke = time + 0.42 + random () * 0.25;
 
-	// Energetic ramming view-jiggle & high-pitched shriek/giggle!
+	// Light view-jiggle + boingy slapstick knockback + high-pitched shriek/giggle!
 	if (victim.classname == "player")
 	{
-		victim.punchangle_x = crandom () * 2.2;
-		victim.punchangle_z = crandom () * 2.6;
+		victim.punchangle_x = crandom () * 1.0;
+		victim.punchangle_z = crandom () * 1.2;
+	}
+	if (victim.movetype == MOVETYPE_WALK || victim.movetype == MOVETYPE_STEP)
+	{
+		boing = victim.origin - m.origin;
+		boing_z = 0;
+		if (vlen (boing) < 1)
+			boing = '1 0 0';
+		boing = normalize (boing);
+		victim.flags = victim.flags - (victim.flags & FL_ONGROUND);
+		victim.velocity = victim.velocity + boing * 180 + '0 0 185';
 	}
 	if (time >= m.gj_next_voice)
 	{
@@ -330,7 +345,7 @@ void(entity m, entity victim) GJ_AttackHit =
 	}
 
 	fg_inflicting = FG_PONG;
-	T_Damage (victim, m, m.owner, 5);
+	T_Damage (victim, m, m.owner, 2);
 	fg_inflicting = 0;
 };
 
@@ -362,13 +377,22 @@ void() GJ_MiniTouch =
 	if (GJ_IsValidTarget (self, other))
 	{
 		self.enemy = other;
-		// ONLY attack if all 3 driving laps around the enemy are already complete (`gj_state == 6`)!
+		// Bounce gently off target so 12 gremlins never wedge/pin players in corners
+		sep = self.origin - other.origin;
+		sep_z = 0;
+		if (vlen (sep) < 1)
+			sep = '1 0 0';
+		sep = normalize (sep);
+		self.velocity_x = sep_x * 220;
+		self.velocity_y = sep_y * 220;
+		self.velocity_z = max (self.velocity_z, 120);
+		// ONLY attack if orbiting laps around the enemy are already complete (`gj_state == 6`)!
 		if (self.gj_state == 6)
 		{
 			GJ_AttackHit (self, other);
 			return;
 		}
-		// Otherwise begin swarming & driving 3 circles around them FIRST (zero attack)!
+		// Otherwise begin swarming & orbiting around them FIRST (zero attack)!
 		if (self.gj_state != 3)
 		{
 			self.gj_state = 3;
@@ -756,7 +780,7 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 
 	setmodel (m, "progs/greenguy_mini.spr32");
 	m.scale = 0.9333;			// ~2.3x bigger in-world: waist-to-chest height mini-wheelman!
-	setsize (m, '-15 -15 0', '15 15 44');
+	setsize (m, '-8 -8 0', '8 8 34');
 
 	yaw = idx * (360 / GJ_MINI_COUNT) + crandom () * 12;
 	ang_v = '0 0 0';

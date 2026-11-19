@@ -2364,7 +2364,7 @@ void(entity targ) PoisonDeBuff;
 void(entity targ, float playdmg, float mondmg) ApplyFireDmg;
 float(entity to, float sendFlags) particle_emitter_sendtocsqc;
 void() particle_emitter_think;
-void(string partName, vector partOrg, vector partVel, float amount, float spawntime) sendParticle;
+void(string partName, vector partOrg, vector partVel, float amount, optional float spawntime) sendParticle;
 void() bodyCheck;
 float BLOOD_POOL_CNT;
 float() blood_checkbounds;
@@ -11905,6 +11905,63 @@ float(string s) returnsurface =
 		}
 	}
 	return (0);
+};
+
+float world_has_q1_surfs;
+
+// Probe once at worldspawn whether this BSP uses stock Quake 1 material/sky/evil_faces textures.
+// High-poly custom BSP2 maps (e.g. bakersfielddowntown: 104k world faces, 0 matches) skip O(N)
+// getsurfacenearpoint(world) scans while stock Q1 / Q1.5 maps stay 100% identical.
+void() World_DetectQ1Surfaces =
+{
+	local float lo, hi, mid, n, step, i, mat;
+	local string tex;
+
+	tex = getsurfacetexture(world, 12000);
+	if ((!tex || (tex == "")))
+	{
+		world_has_q1_surfs = TRUE;
+		return;
+	}
+	lo = 12000;
+	hi = 262144;
+	while (((lo + 1) < hi))
+	{
+		mid = floor(((lo + hi) * 0.5));
+		tex = getsurfacetexture(world, mid);
+		if ((tex && (tex != "")))
+		{
+			lo = mid;
+		}
+		else
+		{
+			hi = mid;
+		}
+	}
+	n = hi;
+	step = floor((n / 512));
+	if ((step < 1))
+	{
+		step = 1;
+	}
+	world_has_q1_surfs = FALSE;
+	i = 0;
+	while (i < n)
+	{
+		tex = getsurfacetexture(world, i);
+		mat = returnsurface(tex);
+		if ((mat > 0 && mat != VOID) || tex == "sky1" || tex == "sky4" || tex == "sky_base" || tex == "sky_curse1")
+		{
+			world_has_q1_surfs = TRUE;
+			return;
+		}
+		if (tex == "altarb_1" || tex == "altarb_2" || tex == "dem4_1" || tex == "dem4_4" || tex == "dem5_3" || tex == "demc4_4")
+		{
+			world_has_q1_surfs = TRUE;
+			return;
+		}
+		i = i + step;
+	}
 };
 
 // ---- regenerating health (patch_gameplay_combat.py)

@@ -21,6 +21,7 @@ void() Jetpack_Precache =
 	precache_sound ("items/armor1.wav");
 	precache_sound ("items/itembk2.wav");
 	jp_fx_fire = particleeffectnum ("jp_fire");		// effectinfo.txt, from jetpack_effectinfo.txt
+	jp_fx_light = particleeffectnum ("jp_light");
 	jp_fx_smoke = particleeffectnum ("jp_smoke");
 	jp_fx_dust = particleeffectnum ("jp_dust");
 	jp_fx_burst = particleeffectnum ("jp_burst");
@@ -319,7 +320,7 @@ void() Jetpack_WornFrame =
 void(float climbing) Jetpack_Exhaust =
 {
 	local vector org, dust, o;
-	local float yo, f, n, i, gap;
+	local float yo, f, n, i, gap, fc;
 
 	if (time < self.jp_flame)
 		return;
@@ -327,18 +328,16 @@ void(float climbing) Jetpack_Exhaust =
 	makevectors ('0 1 0' * self.v_angle_y);
 	yo = JP_NOZZLE_Y;
 	org = self.origin + v_forward * JP_NOZZLE_X + v_up * JP_NOZZLE_Z;
-	pointparticles (jp_fx_fire, org + v_right * yo, '0 0 0', 1);
-	pointparticles (jp_fx_fire, org - v_right * yo, '0 0 0', 1);
+	fc = 1;
+	if (climbing)
+		fc = 2;		// a bigger plume while you climb
+	pointparticles (jp_fx_fire, org + v_right * yo, '0 0 0', fc);
+	pointparticles (jp_fx_fire, org - v_right * yo, '0 0 0', fc);
 	if (time >= self.jp_puff)
 	{
 		self.jp_puff = time + 0.12 - 0.08 * self.jp_fast;		// a thin wisp, a third as often as the flame (more at speed)
 		pointparticles (jp_fx_smoke, org + v_right * yo, '0 0 0', 1);
 		pointparticles (jp_fx_smoke, org - v_right * yo, '0 0 0', 1);
-	}
-	if (climbing)
-	{
-		pointparticles (jp_fx_fire, org + v_right * yo, '0 0 0', 1);		// a bigger plume while you climb
-		pointparticles (jp_fx_fire, org - v_right * yo, '0 0 0', 1);
 	}
 	f = self.jp_fast;
 	if (f > 0.04)
@@ -355,12 +354,12 @@ void(float climbing) Jetpack_Exhaust =
 			pointparticles (jp_fx_blaze, org + o - v_right * yo, self.velocity * gap, 1);
 			i = i + 1;
 		}
-		if (f > 0.25)
-		{
-			pointparticles (jp_fx_glow, org + v_right * yo, '0 0 0', 1);
-			pointparticles (jp_fx_glow, org - v_right * yo, '0 0 0', 1);
-		}
 	}
+	// Single centered dynamic light per tick instead of up to 6 overlapping dlights 8u apart
+	if (f > 0.25)
+		pointparticles (jp_fx_glow, org, '0 0 0', 1);
+	else if (jp_fx_light >= 0)
+		pointparticles (jp_fx_light, org, '0 0 0', 1);
 	traceline (org, org - '0 0 150', TRUE, self);
 	if (trace_fraction < 1)
 	{

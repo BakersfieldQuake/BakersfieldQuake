@@ -131,21 +131,24 @@ void() Garand_MuzzleAndBrass =
 
 	if (self.waterlevel < 3)
 	{
-		fl = spawn ();
-		fl.movetype = 0;
-		fl.solid = 0;
-		fl.viewmodelforclient = self;
-		fl.owner = self;
-		fl.classname = "flash";
-		fl.effects = EF_ADDITIVE;
-		setmodel (fl, "progs/muzzleflash1.spr");
-		fl.scale = 0.62 + random () * 0.14;
-		fl.alpha = 0.90;
-		setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
-		// Aligned with baked v_garand.md3 barrel tip [84.05, -7.11, -3.79]
-		setorigin (fl, '84.8 -7.1 -3.8');
-		fl.think = SUB_Remove;
-		fl.nextthink = time + 0.05;
+		if (self.ishuman == 1)
+		{
+			fl = spawn ();
+			fl.movetype = 0;
+			fl.solid = 0;
+			fl.viewmodelforclient = self;
+			fl.owner = self;
+			fl.classname = "flash";
+			fl.effects = EF_ADDITIVE;
+			setmodel (fl, "progs/muzzleflash1.spr");
+			fl.scale = 0.62 + random () * 0.14;
+			fl.alpha = 0.90;
+			setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
+			// Aligned with baked v_garand.md3 barrel tip [84.05, -7.11, -3.79]
+			setorigin (fl, '84.8 -7.1 -3.8');
+			fl.think = SUB_Remove;
+			fl.nextthink = time + 0.05;
+		}
 
 		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 26 + v_right * 9 - v_up * 4, self.velocity * 20, 1, 0);
 	}
@@ -187,21 +190,10 @@ void() Garand_MuzzleAndBrass =
 
 void(vector dir) Garand_WallImpact =
 {
-	local float surfacenum, r;
-	local string tex;
+	local float r;
 
-	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
+	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos + dir * 2) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
 		return;
-	if (trace_ent == world)
-	{
-		surfacenum = getsurfacenearpoint (world, trace_endpos);
-		if (surfacenum >= 0)
-		{
-			tex = getsurfacetexture (world, surfacenum);
-			if (tex == "black" || substring (tex, 0, 3) == "sky")
-				return;
-		}
-	}
 
 	if (gar_fx_hole >= 0)
 		pointparticles (gar_fx_hole, trace_endpos, VEC_ORIGIN, 1);

@@ -455,12 +455,13 @@ void() Milky_Burst =
 	who = self.milky_owner;		// always credit her summoner so shooting her down never barrel-teamkills her owner!
 	if (!who || who.classname != "player")
 		who = self;
-	bdmg = MILKY_BLAST;
-	if (self.milky_hp <= 0)
-		bdmg = MILKY_BLAST * 0.65;
-	milky_inflicting = TRUE;
-	T_RadiusDamage (self, who, bdmg, world);
-	milky_inflicting = FALSE;
+	if (self.milky_hp > 0)
+	{
+		bdmg = MILKY_BLAST;
+		milky_inflicting = TRUE;
+		T_RadiusDamage (self, who, bdmg, world);
+		milky_inflicting = FALSE;
+	}
 	pointparticles (particleeffectnum ("milky_boom"), org, '0 0 0', 1);
 	Milky_SndP (self, CHAN_AUTO, "afrit/body_explode.wav", 0.55, 1.4, 0.8);
 	Milky_SndP (self, CHAN_AUTO, "misc/h2ohit1.wav", 0.55, 1.4, 0.6);		// a big wet splash

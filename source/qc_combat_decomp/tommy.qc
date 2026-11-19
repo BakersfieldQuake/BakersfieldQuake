@@ -130,21 +130,24 @@ void() Tommy_MuzzleAndBrass =
 
 	if (self.waterlevel < 3)
 	{
-		fl = spawn ();
-		fl.movetype = 0;
-		fl.solid = 0;
-		fl.viewmodelforclient = self;
-		fl.owner = self;
-		fl.classname = "flash";
-		fl.effects = EF_ADDITIVE;
-		setmodel (fl, "progs/muzzleflash1.spr");
-		fl.scale = 0.34 + random () * 0.09;
-		fl.alpha = 0.85;
-		setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
-		// Aligned with baked v_tommy.md3 Cutts compensator tip [46.17, -9.44, -5.51]
-		setorigin (fl, '46.6 -9.4 -5.5');
-		fl.think = SUB_Remove;
-		fl.nextthink = time + 0.045;
+		if (self.ishuman == 1)
+		{
+			fl = spawn ();
+			fl.movetype = 0;
+			fl.solid = 0;
+			fl.viewmodelforclient = self;
+			fl.owner = self;
+			fl.classname = "flash";
+			fl.effects = EF_ADDITIVE;
+			setmodel (fl, "progs/muzzleflash1.spr");
+			fl.scale = 0.34 + random () * 0.09;
+			fl.alpha = 0.85;
+			setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
+			// Aligned with baked v_tommy.md3 Cutts compensator tip [46.17, -9.44, -5.51]
+			setorigin (fl, '46.6 -9.4 -5.5');
+			fl.think = SUB_Remove;
+			fl.nextthink = time + 0.045;
+		}
 
 		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 24 + v_right * 10 - v_up * 5, self.velocity * 20, 1);
 	}
@@ -186,21 +189,10 @@ void() Tommy_MuzzleAndBrass =
 
 void(vector dir) Tommy_WallImpact =
 {
-	local float surfacenum, r;
-	local string tex;
+	local float r;
 
-	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
+	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos + dir * 2) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
 		return;
-	if (trace_ent == world)
-	{
-		surfacenum = getsurfacenearpoint (world, trace_endpos);
-		if (surfacenum >= 0)
-		{
-			tex = getsurfacetexture (world, surfacenum);
-			if (tex == "black" || substring (tex, 0, 3) == "sky")
-				return;
-		}
-	}
 
 	if (tom_fx_hole >= 0)
 		pointparticles (tom_fx_hole, trace_endpos, VEC_ORIGIN, 1);

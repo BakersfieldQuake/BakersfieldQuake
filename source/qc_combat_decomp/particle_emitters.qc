@@ -26,8 +26,19 @@ void() particle_emitter_think =
 	self.nextthink = (time + 0.2);
 };
 
-void(string partName, vector partOrg, vector partVel, float amount, float spawntime) sendParticle =
+void(string partName, vector partOrg, vector partVel, float amount, optional float spawntime) sendParticle =
 {
+	local float fx;
+
+	if ((spawntime <= 0))
+	{
+		fx = particleeffectnum(partName);
+		if ((fx >= 0))
+		{
+			pointparticles(fx, partOrg, partVel, amount);
+		}
+		return;
+	}
 	newmis = spawn();
 	newmis.message = partName;
 	setorigin(newmis, partOrg);

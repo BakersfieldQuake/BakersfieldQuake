@@ -153,6 +153,10 @@ void() muzzle_small_think =
 
 void() SpawnMuzzleFlash =
 {
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	newmis = spawn();
 	newmis.movetype = 0;
 	newmis.solid = 0;
@@ -196,6 +200,10 @@ void() SpawnMuzzleFlash =
 
 void() SpawnSSGFlash =
 {
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	newmis = spawn();
 	newmis.movetype = 0;
 	newmis.solid = 0;
@@ -240,7 +248,7 @@ void() SpawnSSGFlash =
 
 void(vector offset) SpawnNailgunFlash =
 {
-	if ((self.waterlevel >= 3))
+	if (((self.ishuman != 1) || (self.waterlevel >= 3)))
 	{
 		return;
 	}
@@ -264,7 +272,7 @@ void(vector offset) SpawnNailgunFlash =
 
 void(vector offset, vector color) SpawnSNGFlash =
 {
-	if ((self.waterlevel >= 3))
+	if (((self.ishuman != 1) || (self.waterlevel >= 3)))
 	{
 		return;
 	}
@@ -313,6 +321,10 @@ void(vector offset, vector color) SpawnSNGFlash =
 
 void() SpawnHLFlash =
 {
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	newmis = spawn();
 	newmis.movetype = 0;
 	newmis.solid = 0;
@@ -335,7 +347,7 @@ void() SpawnHLFlash =
 
 void(vector offset, vector color) SpawnRockFlash =
 {
-	if ((self.waterlevel >= 3))
+	if (((self.ishuman != 1) || (self.waterlevel >= 3)))
 	{
 		return;
 	}
@@ -406,6 +418,10 @@ void() muzzle_spark_think =
 
 void(float spscale, vector offset, float smokedir, vector color, float spritealpha) SpawnSmoke_Flash =
 {
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	newmis = spawn();
 	newmis.movetype = MOVETYPE_NOCLIP;
 	newmis.solid = 0;
@@ -457,6 +473,10 @@ void(float spscale, vector offset, float smokedir, vector color, float spritealp
 
 void(float spscale, vector offset, vector color, float spritealpha) SpawnSpark_Flash =
 {
+	if ((self.ishuman != 1))
+	{
+		return;
+	}
 	newmis = spawn();
 	newmis.movetype = MOVETYPE_NOCLIP;
 	newmis.solid = 0;

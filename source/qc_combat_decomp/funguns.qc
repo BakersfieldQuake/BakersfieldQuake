@@ -11,6 +11,7 @@ void() FunGun_Precache =
 	Pickle_Precache ();
 	GreenJar_Precache ();
 	Dookie_Precache ();
+	Kyle_Precache ();
 	RobHead_Precache ();
 	NS_Precache ();
 	WC_Precache ();
@@ -34,6 +35,15 @@ string(float g) FunGun_VModel =
 		return "progs/v_wewcannon.md3";
 	if (g == FG_DOOKIE)
 		return "progs/v_dookie.md3";
+	if (g == FG_KYLE)
+	{
+		p = self;
+		if (!(self.flags & FL_CLIENT) && self.owner)
+			p = self.owner;
+		if (FunGun_Ammo (p, FG_KYLE) < 1 && p.ky_locking <= 0 && p.ky_throw_at <= 0 && (!p.ky_fire_t || time >= p.ky_fire_t + KY_THROW_DELAY + KY_FOLLOW_TIME))
+			return "";
+		return "progs/v_kyle.md3";
+	}
 	if (g == FG_M4)
 		return M4_VModel ();
 	if (g == FG_GARAND)
@@ -79,6 +89,8 @@ string(float g) FunGun_ShortName =
 		return "Wheelman Cannon";
 	if (g == FG_DOOKIE)
 		return "Dookie Bazooka";
+	if (g == FG_KYLE)
+		return "The Pocket Kyle";
 	if (g == FG_NETSEND)
 		return "NetSend";
 	return "Pickle Surprise";
@@ -98,6 +110,8 @@ string(float g) FunGun_Name =
 		return "Wheelman Cannon - hold fire to charge";
 	if (g == FG_DOOKIE)
 		return "Dookie Bazooka - hold fire to wind up, release to blast!";
+	if (g == FG_KYLE)
+		return "The Pocket Kyle - hold fire to lock on (2x vs John Bird), release to yeet!";
 	if (g == FG_NETSEND)
 		return "NetSend - throws a popup-spamming PC";
 	return "Pickle Surprise - drop trap";
@@ -114,6 +128,8 @@ string(float g) FunGun_Death1 =
 		return " got a NET SEND from ";
 	if (g == FG_DOOKIE)
 		return " got splattered by ";
+	if (g == FG_KYLE)
+		return " got a 50% cut taken by ";
 	if (g == FG_WCANNON)
 		return " got rolled over by ";
 	if (g == FG_M4)
@@ -135,6 +151,8 @@ string(float g) FunGun_Death2 =
 		return "'s NetSend PC\n";
 	if (g == FG_DOOKIE)
 		return "'s Dookie Bazooka\n";
+	if (g == FG_KYLE)
+		return "'s Pocket Kyle\n";
 	if (g == FG_WCANNON)
 		return "'s Wheelman\n";
 	if (g == FG_M4)
@@ -351,6 +369,8 @@ void() FunGun_Attack =
 				centerprint (self, "The disk is still reloading\n");
 			if (g == FG_DOOKIE)
 				centerprint (self, "The reactor is still refilling\n");
+			if (g == FG_KYLE)
+				centerprint (self, "Kyle is still looking for clients...\n");
 			if (g == FG_WCANNON)
 				centerprint (self, "The cannon is still reloading\n");
 			if (g == FG_DOB)
@@ -376,6 +396,11 @@ void() FunGun_Attack =
 		DK_Press ();		// holds fire to wind up tabla reactor; DK_Frame launches on release (dookie.qc)
 		return;
 	}
+	if (g == FG_KYLE)
+	{
+		KY_Press ();		// holds fire to lock on (2x vs John Bird); KY_Frame yeets Kyle on release (kyle.qc)
+		return;
+	}
 	if (g == FG_WCANNON)
 	{
 		WC_Press ();		// holds fire to charge, WC_Frame launches it (wcannon.qc)
@@ -383,8 +408,6 @@ void() FunGun_Attack =
 	}
 	if (g == FG_NETSEND)
 	{
-		if (NS_Count (self) >= NS_MAX_PCS)		// FIFO cap: pop the oldest active PC to make room (netsend.qc)
-			NS_MakeRoom (self);
 		FunGun_SetAmmo (self, g, a - 1);
 		FunGun_Lock (g);
 		self.fg_fire_t = time;
@@ -429,8 +452,6 @@ float(float g) FunGun_Impulse =
 
 float(float g) FunGun_Available =
 {
-	if (g == FG_TOMMY)
-		return FALSE;		// slot 8 was the Thompson, removed 2026-11-16
 	if (g == FG_M4)
 		return m4_ok;
 	if (g == FG_GARAND)
@@ -495,11 +516,9 @@ void(entity p) FunGun_Give =
 	if (ct == FD_CLIENTTYPE_REAL)
 	{
 		stuffcmd (p, "r_lerpsprites 0\n");
-		if (!p.bm_fx_sent)
-		{
-			p.bm_fx_sent = TRUE;
-			stuffcmd (p, "exec zz_tone_fx.cfg\n");		// in zz_tone1.pk3: reloads the lighter effects over an older loose effectinfo.txt. No pack = \"couldn't exec\", no harm
-		}
+		// Loose effectinfo.txt already carries all tone1 effects (and newer FPS/jetpack fixes) and is authoritative;
+		// do not exec zz_tone_fx.cfg here or it reloads stale effectinfo_tone1.txt over loose effectinfo.txt.
+		p.bm_fx_sent = TRUE;
 		stuffcmd (p, "cl_movement_track_canjump 0\n");		// hold-to-jump rebounds on the server: predict it, or every landing snaps online
 	}
 	p.scale = 1;
@@ -511,6 +530,7 @@ void(entity p) FunGun_Give =
 	p.pk_empty = FALSE;
 	GJ_ResetPlayer (p);
 	DK_ResetPlayer (p);
+	KY_ResetPlayer (p);
 	RH_ResetPlayer (p);
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
@@ -750,6 +770,7 @@ void() FunGun_ViewFrame =
 	WC_Frame ();		// the Wheelman Cannon charges and launches (wcannon.qc)
 	GJ_Frame ();		// the Jar o' Green Guys cocktail-shakes and launches (greenjar.qc)
 	DK_Frame ();		// the Dookie Bazooka winds up and blasts (dookie.qc)
+	KY_Frame ();		// The Pocket Kyle locks on and yeets Kyle (kyle.qc)
 	RH_Frame ();		// the Rob Head winds up and throws (robhead.qc)
 	if (!self.button0)
 		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
@@ -760,13 +781,21 @@ void() FunGun_ViewFrame =
 		g = g + 1;
 	}
 
+	if (self.weapon == IT_FUNGUN && (self.meleeing == 1 || self.throwing == 1))
+	{
+		// Keep firearm frame timestamps fresh during quick-melee so returning doesn't re-trigger draw lock!
+		if (self.fg_sel == FG_M4)
+			self.m4_vf_t = time;
+		else if (self.fg_sel == FG_GARAND)
+			self.gar_vf_t = time;
+	}
 	if (self.weapon != IT_FUNGUN || self.meleeing == 1 || self.throwing == 1)
 		return;
 	g = self.fg_sel;
 	t = time - self.fg_fire_t;
 	f = floor (time * 10);
 	f = f - 16 * floor (f / 16);		// idle
-	if (g == FG_PICKLE || g == FG_PONG || g == FG_DOOKIE || g == FG_DOB)
+	if (g == FG_PICKLE || g == FG_PONG || g == FG_DOOKIE || g == FG_KYLE || g == FG_DOB)
 	{
 		f = 0;			// 1-frame card MD3s: their animation frames come from .skin shaders
 		if (self.weaponmodel != FunGun_VModel (g))		// the hand goes when the last charge is thrown, and comes back with the next
@@ -824,7 +853,10 @@ void() FunGun_ViewFrame =
 void() FunGun_PlayerDie =
 {
 	DK_ResetPlayer (self);
+	KY_ResetPlayer (self);
 	RH_ResetPlayer (self);
+	if (EricCannon_Active (self))
+		EricCannon_Reset (self);
 	if (self.wc_charging)
 	{
 		self.wc_charging = 0;

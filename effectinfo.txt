@@ -2030,7 +2030,8 @@ alpha 16 30 22
 velocityjitter 70 70 70
 lightradius 170
 lighttime 0         
-lightcolor 0.4 0.8 0 
+lightcolor 0.4 0.8 0
+lightshadow 0
 
 effect TR_WIZSPIKE_2		// Wizards Trail effect like in SMC Ver.4.15  (= intense)
 trailspacing 1
@@ -2045,6 +2046,7 @@ airfriction 10
 lightradius 90
 lighttime 0
 lightcolor 0.188 1.76 0
+lightshadow 0
 
 effect TR_WIZSPIKE_2
 trailspacing 2
@@ -2351,7 +2353,7 @@ velocityjitter 5 5 -10
 //vore trail light
 effect TR_VORESPIKE
 lightradius 70
-lightshadow 1
+lightshadow 0
 lightcolor .9.8 1 3
 
 
@@ -2987,6 +2989,7 @@ velocitymultiplier 0.01
 lightradius 200
 lightradiusfade 2000
 lightcolor 2 1.5 0.2
+lightshadow 0
 
 //for soldier�s muzzleflash  (sparks)
 effect soldier_muzzleflash	
@@ -3660,7 +3663,6 @@ type alphastatic
 color 0x333333 0x331100
 size 30 30
 alpha 32 126 44
-bounce 1
 tex 2 7
 airfriction 1               
 liquidfriction 1
@@ -3678,7 +3680,6 @@ type smoke
 color 0xffc34d 0xe65c00
 size 30 30
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -3694,7 +3695,6 @@ type smoke
 color 0x331a00 0xe62e00
 size 35 35
 alpha 32 66 44
-bounce 1
 tex 2 7
 airfriction 1               
 liquidfriction 1
@@ -3807,7 +3807,6 @@ type smoke
 color 0x901000 0xFF3010
 size 10 10
 alpha 32 16 64
-bounce -1
 tex 0 8
 airfriction 0.2               
 liquidfriction 1
@@ -3821,7 +3820,6 @@ type smoke
 color 0x901000 0xFF3010
 size 10 10
 alpha 32 16 70
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -3838,7 +3836,6 @@ size 10 13
 alpha 80 100 45
 sizeincrease 4
 color 0x202020 0x404040
-bounce -1
 airfriction 0.5
 liquidfriction 1
 originjitter 3 3 3
@@ -3854,7 +3851,6 @@ size 1 1.2
 sizeincrease 6
 alpha 100 128 50
 color 0x303030 0x000000
-bounce -1
 airfriction 1     
 liquidfriction 1
 originjitter 0 0 5
@@ -3942,7 +3938,6 @@ type smoke
 color 0xffc34d 0xe65c00
 size 30 30
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -4003,7 +3998,6 @@ airfriction 5
 velocityjitter 125 125 0
 velocityoffset 0 0 0
 gravity 0.14
-bounce 1
 
 effect grenade_explosion	// water mist above water
 underwater 
@@ -4022,7 +4016,6 @@ airfriction 2
 velocityjitter 125 125 0
 velocityoffset 0 0 400
 gravity 0.34
-bounce 1
 
 effect grenade_explosion	// underwater shockwave
 underwater 
@@ -4415,7 +4408,6 @@ type smoke
 color 0x901000 0xFF3010
 size 10 10
 alpha 32 16 64
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -4432,7 +4424,6 @@ size 12 15
 alpha 80 100 35
 sizeincrease 5
 color 0x202020 0x404040
-bounce -1
 airfriction 0.5
 liquidfriction 1
 originjitter 5 5 5
@@ -4448,7 +4439,6 @@ size 2 3
 sizeincrease 6
 alpha 100 256 70
 color 0x303030 0x000000
-bounce -1
 airfriction 1     
 liquidfriction 1
 originjitter 0 0 5
@@ -4464,7 +4454,6 @@ type smoke
 color 0xffc34d 0x2d2d2d
 size 40 40
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -4480,7 +4469,6 @@ type alphastatic
 color 0x333333 0x331100
 size 35 35
 alpha 32 126 44
-bounce 1
 tex 2 7
 airfriction 1            
 liquidfriction 1
@@ -4498,7 +4486,6 @@ type smoke
 color 0x331a00 0x2d2d2d
 size 45 45
 alpha 32 66 44
-bounce 1
 tex 2 7
 airfriction 1               
 liquidfriction 1
@@ -4534,7 +4521,6 @@ type smoke
 color 0xffc34d 0x2d2d2d
 size 40 40
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -4615,7 +4601,6 @@ size 16 18
 alpha 100 150 45
 sizeincrease 10
 color 0x212121 0x0f0f0f
-bounce -1
 airfriction 3
 liquidfriction 1
 originjitter 5 5 5
@@ -4635,7 +4620,6 @@ alpha 100 50 -5
 alpha 100 150 35
 sizeincrease 35
 color 0x212121 0x0f0f0f
-bounce -1
 airfriction 2
 liquidfriction 1
 originjitter 5 5 5
@@ -4842,7 +4826,6 @@ type alphastatic
 color 0x333333 0x331100
 size 35 35
 alpha 32 126 44
-bounce 1
 tex 2 7
 airfriction 1               
 liquidfriction 1
@@ -4869,7 +4852,6 @@ type smoke
 color 0xffc156 0x2d2d2d
 size 40 40
 alpha 62 86 74
-bounce -1
 //tex 0 7
 tex 2 7
 airfriction 0.2               
@@ -4887,7 +4869,6 @@ type smoke
 color 0xffc34d 0xfff4bf
 size 40 40
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -5044,7 +5025,6 @@ size 16 18
 alpha 50 100 45
 sizeincrease 10
 color 0x494037 0x442a1c
-bounce -1
 airfriction 3
 liquidfriction 1
 originjitter 5 5 5
@@ -5065,7 +5045,6 @@ alpha 50 100 35
 sizeincrease 35
 //color 0x212121 0x000000
 color 0x494037 0x442a1c
-bounce -1
 airfriction 2
 liquidfriction 1
 originjitter 5 5 5
@@ -5088,7 +5067,6 @@ stretchfactor 0
 size .6 1.6 
 alpha 0 256 90
 //gravity 0.3
-bounce -1
 airfriction 1
 gravity -0.06
 liquidfriction 5
@@ -5106,7 +5084,6 @@ stretchfactor 0
 size .6 1.6 
 alpha 100 256 90
 //gravity 0.3
-bounce -1
 airfriction 1
 gravity -0.06
 liquidfriction 5
@@ -5187,15 +5164,14 @@ velocitymultiplier -0.2
 //rocket trail - gray smoke
 effect TR_ROCKET
 notunderwater
-trailspacing 1.3
+trailspacing 4.5
 type alphastatic
 color 0x353535 0x000000
 tex 0 7
-size 0.2 0.4
-bounce 1
+size 0.6 1.0
 sizeincrease 8
 gravity -0.08
-alpha 75 150 150
+alpha 110 190 150
 airfriction 2 
 originjitter 2 2 2
 velocityjitter 20 20 20
@@ -5209,7 +5185,6 @@ tex 37 37
 size 14 18
 alpha 50 55 255
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease -36.5
 airfriction 1
@@ -5382,7 +5357,6 @@ tex 56 56
 size 3 5
 alpha 50 255 1855
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease 296.5
 airfriction 1
@@ -5422,7 +5396,6 @@ type smoke
 color 0x262626 0x666666
 size 6 11
 alpha 132 116 104
-bounce -1
 tex 0 8
 airfriction 4
 gravity 0.01               
@@ -5439,7 +5412,6 @@ tex 56 56
 size 0.2 .5
 alpha 50 155 55
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease 110.5
 time 0.08 0.08
@@ -5455,7 +5427,6 @@ count 2
 tex 37 37
 size 1 2
 alpha 120 205 2455
-bounce -1
 gravity 0
 sizeincrease 566.5
 airfriction 1
@@ -5656,7 +5627,6 @@ count 2
 tex 56 56
 size 0.2 .5
 alpha 50 155 55
-bounce -1
 gravity 0
 sizeincrease 150.5
 time 0.08 0.08
@@ -5706,7 +5676,6 @@ tex 56 56
 size 3 5
 alpha 50 255 2155
 //color 0xfff8ed 0xffffe6
-bounce -1
 gravity 0
 sizeincrease 296.5
 airfriction 1
@@ -5726,7 +5695,6 @@ count 2
 tex 37 37
 size 1 2
 alpha 100 185 2455
-bounce -1
 gravity 0
 sizeincrease 966.5
 airfriction 1
@@ -5762,7 +5730,6 @@ type smoke
 color 0x262626 0x666666
 size 6 11
 alpha 132 116 104
-bounce -1
 tex 0 8
 airfriction 4
 gravity 0.01               
@@ -5993,7 +5960,6 @@ tex 37 37
 size 7 9
 alpha 20 105 1355
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease 166.5
 airfriction 1
@@ -6162,7 +6128,6 @@ type smoke
 color 0x262626 0x666666
 size 5 8
 alpha 132 116 174
-bounce -1
 tex 0 8
 airfriction 6               
 liquidfriction 1
@@ -6203,7 +6168,6 @@ tex 48 55
 size 5 8
 alpha 50 75 2225
 color 0xffd972 0xFF811A
-bounce -1
 gravity 0
 sizeincrease 100.5
 time 0.03 0.03
@@ -6222,7 +6186,6 @@ tex 40 40
 size .2 .5
 alpha 50 75 2225
 color 0xffd972 0xffeb8c
-bounce -1
 gravity 0
 sizeincrease 400.5
 stretchfactor 2
@@ -6250,6 +6213,7 @@ velocitymultiplier 0.01
 lightradius 200
 lightradiusfade 2000
 lightcolor 2 1.5 0.2
+lightshadow 0
 
 
 //gunshot - muzzleflash underwater bubble
@@ -6275,7 +6239,6 @@ tex 48 55
 size 9 12
 alpha 50 75 225
 color 0xffd972 0xFF811A
-bounce -1
 gravity 0
 sizeincrease 100.5
 time 0.03 0.03
@@ -6294,7 +6257,6 @@ tex 40 40
 size .2 .5
 alpha 50 75 1225
 color 0xffd972 0xffeb8c
-bounce -1
 gravity 0
 sizeincrease 400.5
 stretchfactor 2
@@ -6322,6 +6284,7 @@ velocitymultiplier 0.01
 lightradius 200
 lightradiusfade 2000
 lightcolor 2 1.5 0.2
+lightshadow 0
 
 //doublegunshot - muzzleflash underwater bubble
 effect double_shotgun_muzzleflash
@@ -10850,7 +10813,7 @@ airfriction 20
 effect quad
 lightradius 80
 lightcolor 0 0 1.1
-lightshadow 1
+lightshadow 0
 
 
 
@@ -10951,6 +10914,7 @@ velocityjitter 140 140 0
 effect pentagram_low_gravity
 lightradius 100
 lightcolor 2 0 0
+lightshadow 0
 
 //pentagram upper hemisphere
 effect pentagram_low_gravity
@@ -11007,6 +10971,7 @@ velocityjitter 140 140 0
 effect pentagram_normal_gravity
 lightradius 100
 lightcolor 2 0 0
+lightshadow 0
 
 //pentagram upper hemisphere
 effect pentagram_normal_gravity
@@ -11181,6 +11146,7 @@ velocityjitter 30 30 30
 effect ring
 lightradius 50
 lightcolor 1 0.7 0.25
+lightshadow 0
 
 
 ////////////////
@@ -11191,6 +11157,7 @@ effect biosuit   	//  for biosuit effect
 lightradius 70
 lighttime 0
 lightcolor 0.1 0.6 0
+lightshadow 0
 
 
 
@@ -15391,6 +15358,7 @@ velocityjitter 111 111 100
 lightradius 111
 lighttime 0
 lightcolor 2 1.5 0.5
+lightshadow 0
 
 
 
@@ -16250,7 +16218,6 @@ tex 37 37
 size 24 28
 alpha 50 255 455
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease 70
 airfriction 1
@@ -16399,7 +16366,6 @@ type alphastatic
 color 0x333333 0x331100
 size 35 35
 alpha 32 116 44
-bounce 1
 tex 2 7
 airfriction 1               
 liquidfriction 1
@@ -16428,7 +16394,6 @@ type smoke
 color 0xffc156 0x2d2d2d
 size 40 40
 alpha 62 86 74
-bounce -1
 //tex 0 7
 tex 2 7
 airfriction 0.2               
@@ -16446,7 +16411,6 @@ type smoke
 color 0xffc34d 0xfff4bf
 size 40 40
 alpha 32 126 124
-bounce -1
 tex 0 7
 airfriction 0.2               
 liquidfriction 1
@@ -16600,7 +16564,6 @@ tex 37 37
 size 84 88
 alpha 10 155 225
 //color 0xfff8ed 0xfff8ed
-bounce -1
 gravity 0
 sizeincrease -50
 airfriction 1
@@ -16619,7 +16582,6 @@ size 16 18
 alpha 50 100 45
 sizeincrease 10
 color 0x494037 0x442a1c
-bounce -1
 airfriction 3
 liquidfriction 1
 originjitter 5 5 5
@@ -16640,7 +16602,6 @@ alpha 50 100 35
 sizeincrease 35
 //color 0x212121 0x000000
 color 0x494037 0x442a1c
-bounce -1
 airfriction 2
 liquidfriction 1
 originjitter 5 5 5
@@ -20731,7 +20692,7 @@ bounce 0.12
 // are low, jp_burst is the flash when it lights. Colours are kept dim-ish: the scene brightness is 2.5x.
 
 // ---- the flame out of a nozzle: a hot white-yellow core, an orange body, a flickering light, sparks
-effect jp_fire
+effect jp_light
 lightradius 150
 lightradiusfade 900
 lightcolor 1 0.55 0.15
@@ -20903,12 +20864,12 @@ airfriction 2
 // ---- Dookie Gun begin
 // Thick brown/olive poop spray, flying globs, stink mist, and dripping wall splats
 effect dookie_boom
-count 75
+count 135
 type spark
 blend alpha
 tex 0 8
 color 0x422810 0x7c4e20
-size 4.0 7.2
+size 4.8 8.6
 alpha 256 256 240
 originjitter 22 22 22
 velocityjitter 1300 1300 980
@@ -20918,101 +20879,115 @@ airfriction 0.45
 bounce -1
 
 effect dookie_boom
-count 65
+count 120
 type alphastatic
 tex 0 8
 color 0x38200c 0x6b4218
-size 4.2 8.4
-alpha 256 256 125
-originjitter 30 30 30
-velocityjitter 980 980 720
-velocityoffset 0 0 360
+size 5.2 10.5
+alpha 256 256 105
+originjitter 34 34 34
+velocityjitter 1040 1040 780
+velocityoffset 0 0 380
 gravity 1
-airfriction 0.3
-bounce 0.16
+airfriction 0.28
+bounce 0.22
 
 effect dookie_boom
-count 26
+count 50
 type alphastatic
 tex 0 8
 color 0x462b12 0x7e5222
-size 4.0 7.6
-alpha 256 256 155
-originjitter 12 12 40
-velocityjitter 200 200 340
-velocityoffset 0 0 790
+size 5.0 9.6
+alpha 256 256 145
+originjitter 16 16 42
+velocityjitter 240 240 360
+velocityoffset 0 0 840
 gravity 1
 airfriction 0.2
 
 effect dookie_boom
-count 6
+count 45
+type alphastatic
+tex 0 8
+color 0x361e0a 0x6a4016
+size 5.5 11.0
+alpha 256 256 90
+originjitter 55 55 35
+velocityjitter 460 460 260
+velocityoffset 0 0 220
+gravity 1.15
+airfriction 0.2
+bounce 0.25
+
+effect dookie_boom
+count 10
 type alphastatic
 tex 0 8
 color 0x4d5822 0x70642c
-size 54 88
-sizeincrease 60
+size 64 104
+sizeincrease 68
 alpha 85 130 120
 originjitter 58 58 48
 velocityjitter 280 280 190
 airfriction 2
 
 effect dookie_boom
-count 35
+count 65
 type alphastatic
 tex 0 8
 color 0x4a2e12 0x825424
-size 2.0 3.8
-alpha 256 256 250
-originjitter 10 10 10
+size 2.8 5.0
+alpha 256 256 240
+originjitter 12 12 12
 velocityjitter 1820 1820 1050
 gravity 0.7
 airfriction 1
 
 effect dookie_glob
-trailspacing 3.6
+trailspacing 3.0
 type alphastatic
 tex 0 8
 color 0x442910 0x7a4e1e
-size 2.4 4.2
+size 3.0 5.4
 alpha 256 256 320
-originjitter 2 2 2
-velocityjitter 28 28 28
+originjitter 3 3 3
+velocityjitter 32 32 32
 gravity 0.45
 
 effect dookie_glob
-trailspacing 7.5
+trailspacing 6.0
 type spark
 blend alpha
 tex 0 8
 color 0x523216 0x885826
-size 1.6 3.0
+size 2.2 4.0
 alpha 240 256 360
-velocityjitter 22 22 22
+velocityjitter 24 24 24
 gravity 0.7
 
 effect dookie_drip
-count 2
+count 3
 type alphastatic
 tex 0 8
 color 0x3c220e 0x6e441a
-size 2.2 4.0
+size 2.8 5.2
 alpha 256 256 70
 originjitter 3 3 2
-velocityjitter 8 8 6
+velocityjitter 10 10 8
 velocityoffset 0 0 -42
 gravity 1
 airfriction 0.14
 
 effect dookie_drip
-count 1
+count 2
 type spark
 blend alpha
 tex 0 8
 color 0x482b12 0x784c20
-size 1.5 2.8
+size 2.0 3.6
 alpha 256 256 105
 originjitter 2 2 2
-velocityjitter 5 5 4
+velocityjitter 6 6 5
 velocityoffset 0 0 -75
 gravity 1
 // ---- Dookie Gun end

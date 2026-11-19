@@ -25,7 +25,7 @@ float	GJ_MAX_SHAKE			= 1.35;		// max hold-to-shake windup before auto-hurling
 
 float	GJ_MINI_COUNT			= 12;		// 12 unleashed wheel-driving Green Men per shattered jar
 float	GJ_MAX_MINIS			= 24;		// safety cap per player
-float	GJ_ORBITS_BEFORE_ATK	= 270;		// ~0.75s chaotic swirl around victim BEFORE swarming in to attack!
+float	GJ_ORBITS_BEFORE_ATK	= 600;		// ~1.67 comical orbit laps around victim BEFORE swarming in!
 
 .float	gj_shaking;			// player: timestamp when cocktail-shaker hold started (0 = not shaking)
 .float	gj_next_rattle;		// player: next cocktail-shake sound timestamp

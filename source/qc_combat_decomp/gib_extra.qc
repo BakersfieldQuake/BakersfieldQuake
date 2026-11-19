@@ -65,28 +65,37 @@ float() blood_checkbounds =
 	return (TRUE);
 };
 
+void() bloodpool_remove =
+{
+	if ((BLOOD_POOL_CNT > 0))
+	{
+		BLOOD_POOL_CNT = BLOOD_POOL_CNT - 1;
+	}
+	remove(self);
+};
+
 void() bloodpool_grow =
 {
-	blood_checkbounds();
-	if ((blood_checkbounds() && (self.frame < 69)))
-	{
-		self.frame = (self.frame + 1);
-	}
-	else
-	{
-		self.nextthink = -1;
-	}
-	if ((!(self.flags & FL_ONGROUND) && (self.frame > 20)))
-	{
-		BLOOD_POOL_CNT = BLOOD_POOL_CNT + -1;
-		remove(self);
-	}
 	if ((self.flags & FL_ONGROUND))
 	{
 		self.alpha = 0.92;
 	}
-	self.think = bloodpool_grow;
-	self.nextthink = (time + 0.1);
+	else if ((self.frame > 20))
+	{
+		bloodpool_remove();
+		return;
+	}
+	if (((self.frame < 69) && blood_checkbounds()))
+	{
+		self.frame = (self.frame + 1);
+		self.think = bloodpool_grow;
+		self.nextthink = (time + 0.1);
+	}
+	else
+	{
+		self.think = bloodpool_remove;
+		self.nextthink = (time + 25);
+	}
 };
 
 void() bloodpool =
@@ -442,6 +451,8 @@ void() chargib_think =
 void() gibs_rest =
 {
 	self.touch = SUB_Null;
+	self.think = SUB_Remove;
+	self.nextthink = ((time + 15) + (random() * 5));
 };
 
 void() gibs_think =

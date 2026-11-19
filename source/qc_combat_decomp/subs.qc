@@ -216,6 +216,8 @@ void() SUB_UseTargets =
 void(float normal) SUB_AttackFinished =
 {
 	self.cnt = 0;
+	if ((self.flags & FL_MONSTER))
+		BM_Radar_Ping(self, self.origin, BM_RPK_MONSTER);
 	if ((skill != 3))
 	{
 		self.attack_finished = (time + normal);

@@ -1,6 +1,7 @@
 // BakersfieldQuake MenuQC - Host LAN Game
 
-float HOST_MAP_COUNT = 14;
+float HOST_MAP_COUNT = 15;
+float HOST_DBLCLICK_TIME = 0.5;
 
 float g_host_map_idx;
 float g_host_scroll;
@@ -9,6 +10,8 @@ float g_host_time_idx;
 float g_host_maxp_idx;
 float g_host_bots;
 float g_host_public;
+float g_host_last_click_idx;
+float g_host_last_click_time;
 
 string(float i) BM_Host_MapBsp =
 {
@@ -25,7 +28,8 @@ string(float i) BM_Host_MapBsp =
 	if (i == 10) return "fox";
 	if (i == 11) return "bklan6";
 	if (i == 12) return "aerowalk";
-	return "dm6";
+	if (i == 13) return "dm6";
+	return "practice";
 };
 
 string(float i) BM_Host_MapTitle =
@@ -43,7 +47,8 @@ string(float i) BM_Host_MapTitle =
 	if (i == 10) return "Fox Theater";
 	if (i == 11) return "BKLAN 6";
 	if (i == 12) return "Aerowalk";
-	return "DM6";
+	if (i == 13) return "DM6";
+	return "Practice Range";
 };
 
 float(float idx) BM_Host_FragVal =
@@ -88,6 +93,8 @@ void() BM_Host_Open =
 	g_page = PAGE_HOST;
 	g_focus_input = INPUT_NONE;
 	g_host_scroll = 0;
+	g_host_last_click_idx = -1;
+	g_host_last_click_time = 0;
 
 	if (g_host_frag_idx == 0 && g_host_time_idx == 0 && g_host_maxp_idx == 0)
 	{
@@ -109,6 +116,9 @@ void() BM_Host_StartMatch =
 {
 	local string bsp, hname, cmd;
 	local float fl, tl, mp;
+
+	g_host_last_click_idx = -1;
+	g_host_last_click_time = 0;
 
 	bsp = BM_Host_MapBsp(g_host_map_idx);
 	hname = BM_SanitizeCmdStr(g_host_buf);
@@ -137,7 +147,7 @@ void(float clicked) BM_Host_Draw =
 	local float px, py, pw, ph, gx, gy, gw, gh, sx, sw;
 	local float cols, cw, ch, gap_x, gap_y, rows, vis_rows, max_scroll;
 	local float i, r, c, cx, cy, hov, sel, sb_h, sb_y, tw, th;
-	local float y, st, fl, tl, mp;
+	local float y, st, fl, tl, mp, now;
 	local string bsp, title, thumb, s_val;
 	local vector brd, bg;
 
@@ -151,7 +161,7 @@ void(float clicked) BM_Host_Draw =
 	// Header
 	BM_DrawText(px + 14, py + 11, "BAKERSFIELD QUAKE", 12, COL_ACCENT, 0.98);
 	BM_DrawText(px + 228, py + 14, "HOST LAN GAME", 9, COL_TEXT, 0.92);
-	BM_DrawTextClipped(px + 356, py + 14, pw - 432, "Select a Bakersfield map & rules", 8, COL_MUTED, 0.92, FALSE);
+	BM_DrawTextClipped(px + 356, py + 14, pw - 432, "Double-click a map to start", 8, COL_MUTED, 0.92, FALSE);
 
 	hov = BM_DrawButton(px + pw - 66, py + 9, 54, 18, "BACK", FALSE, FALSE);
 	if (clicked && hov)
@@ -211,12 +221,26 @@ void(float clicked) BM_Host_Draw =
 				{
 					g_click_consumed = TRUE;
 					g_host_map_idx = i;
+					now = gettime();
+					if (g_host_last_click_idx == i && now >= g_host_last_click_time && (now - g_host_last_click_time) <= HOST_DBLCLICK_TIME)
+					{
+						drawresetcliparea();
+						BM_Host_StartMatch();
+						return;
+					}
+					g_host_last_click_idx = i;
+					g_host_last_click_time = now;
 					BM_PlaySound("sound/misc/menu1.wav");
 				}
 			}
 		}
 	}
 	drawresetcliparea();
+	if (clicked && !g_click_consumed)
+	{
+		g_host_last_click_idx = -1;
+		g_host_last_click_time = 0;
+	}
 
 	if (max_scroll > 0)
 	{
@@ -325,6 +349,9 @@ void(float clicked) BM_Host_Draw =
 
 void(float key, float ascii) BM_Host_KeyDown =
 {
+	g_host_last_click_idx = -1;
+	g_host_last_click_time = 0;
+
 	if (g_focus_input == INPUT_HOSTNAME)
 	{
 		if (key == K_ESCAPE || key == K_ENTER || key == K_KP_ENTER || key == K_TAB)

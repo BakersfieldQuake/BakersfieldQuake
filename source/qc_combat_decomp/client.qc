@@ -907,30 +907,37 @@ void() spawn_slipgate_red_fog_detection =
 	}
 	else
 	{
-		surfacenum = getsurfacenearpoint(world, trace_endpos);
-		if ((surfacenum >= 0))
+		if (world_has_q1_surfs)
 		{
-			tex = getsurfacetexture(world, surfacenum);
-			if (((tex == "+0sliptop") || (tex == "+0slipbot")))
+			surfacenum = getsurfacenearpoint(world, trace_endpos);
+			if ((surfacenum >= 0))
 			{
-				self.origin = trace_endpos;
-				if ((autocvar_teleporter_particles_slipgates == 4))
+				tex = getsurfacetexture(world, surfacenum);
+				if (((tex == "+0sliptop") || (tex == "+0slipbot")))
 				{
-					spawn_slipgate_soak_in_and_fog();
+					self.origin = trace_endpos;
+					if ((autocvar_teleporter_particles_slipgates == 4))
+					{
+						spawn_slipgate_soak_in_and_fog();
+						return;
+					}
+					if ((autocvar_teleporter_particles_slipgates == 5))
+					{
+						spawn_slipgate_red_fog_and_stars();
+						return;
+					}
+					spawn_slipgate_red_fog_effect();
 					return;
 				}
-				if ((autocvar_teleporter_particles_slipgates == 5))
+				else
 				{
-					spawn_slipgate_red_fog_and_stars();
-					return;
+					spawn_teleporter_particles_big();
 				}
-				spawn_slipgate_red_fog_effect();
-				return;
 			}
-			else
-			{
-				spawn_teleporter_particles_big();
-			}
+		}
+		else
+		{
+			spawn_teleporter_particles_big();
 		}
 	}
 };
@@ -1530,6 +1537,7 @@ void() PutClientInServer =
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
 	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
+	Practice_OnPlayerSpawn(self);
 	Hammer_Spawn();	// no charge left over (hammer.qc)
 	LtGun_Spawn();	// not shocked, not typing (ltgun.qc)
 	W_SetCurrentAmmo();
@@ -3848,6 +3856,7 @@ void() ClientDisconnect =
 	Underdog_Reset(self);		// bots reuse their slot: the next one must not inherit this streak
 	FD_Reset(self);				// a Rob Dob pilot's head would hum on, orphaned
 	BM_ClientGone(self);		// NetSend PCs, armed pickles, Mega Men: they must not shoot on in an empty (or reused) slot's name
+	BM_Radar_ClientGone(self);
 	if (self.bm_aura)
 	{
 		if (!bm_wasfreed(self.bm_aura) && self.bm_aura.classname == "bm_aura" && self.bm_aura.owner == self)
@@ -4099,7 +4108,7 @@ void(entity targ, entity attacker) ClientObituary =
 					if ((jb_inflicting == 1))
 					{
 						rnum = 999999;
-						deathstring = " was shot out of the sky (5 rockets!) by ";
+						deathstring = " was shot out of the sky by ";
 						deathstring2 = "\n";
 					}
 					if ((jb_inflicting == 2))

@@ -60,6 +60,8 @@ void(entity targ, entity attacker) Killed =
 		return;
 	}
 	Underdog_Killed(targ, attacker);
+	if (((targ.classname == "player") || (targ.flags & FL_MONSTER)))
+		BM_Radar_Ping(targ, targ.origin, BM_RPK_KILL);
 	self.enemy = attacker;
 	if ((self.flags & FL_MONSTER))
 	{
@@ -221,6 +223,12 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	if ((take > 0) && (targ.classname == "player"))
 	{
 		targ.rg_hurt_t = time;	// regenerating health waits for this
+		if ((targ.fd_head != world) && (targ.ishuman == 1) && (time >= targ.fd_warn_t))
+		{
+			targ.fd_warn_t = (time + 1.0);
+			sound(targ, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NORM);
+			centerprint(targ, "^1WARNING: YOUR BODY IS BEING SHOT! Press H to recall!\n");
+		}
 	}
 	if ((targ.flags & FL_CLIENT))
 	{
@@ -233,6 +241,10 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		if (((fg_inflicting == FG_GARAND) && (bm_kb > 20)))
 		{
 			bm_kb = 20;
+		}
+		if (((attacker.classname == "player") && (attacker.weapon == IT_SHOTGUN) && (targ != attacker) && !(targ.flags & FL_ONGROUND)))
+		{
+			bm_kb = (bm_kb * 1.65);		// anti-air skeet-shooter knockback on airborne / jetpacking players
 		}
 		dir = targ.origin - ((inflictor.absmin + inflictor.absmax) * 0.5);
 		dir = normalize(dir);
@@ -401,6 +413,9 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 	local entity head;
 	local vector org;
 	local entity explo;
+
+	if (damage >= 25)
+		BM_Radar_Ping(attacker, inflictor.origin, BM_RPK_BLAST);
 
 	explo = Gyro_Force_Create("explosion", inflictor.origin);
 	Gyro_Force_ApplyFalloff_AreaQuadratic(explo, ('4 4 4' * damage));

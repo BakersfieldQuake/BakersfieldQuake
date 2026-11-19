@@ -134,6 +134,7 @@ void() worldspawn =
 	local entity foo;
 
 	lastspawn = world;
+	World_DetectQ1Surfaces();
 	BotInit();
 	InitBodyQue();
 	clientstat(40, 2, grenade_ammo);
@@ -169,6 +170,7 @@ void() worldspawn =
 		cvar_set("sv_gravity", "800");
 	}
 	W_Precache();
+	Practice_Precache();
 	precache_sound("demon/dland2.wav");
 	precache_sound("misc/h2ohit1.wav");
 	precache_sound("player/watersplash.wav");

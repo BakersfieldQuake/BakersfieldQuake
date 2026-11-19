@@ -43,6 +43,8 @@ float	RH_RAISE_TIME			= 0.25;		// reload raise duration (scaled by 1 / anim_spd)
 .float	rh_reload_t;		// player: timestamp when raise/reset started
 .float	rh_empty;			// player: TRUE while out of ammo after follow-through
 .float	rhvm_on;			// viewmodel entity: active slot (FG_DOB or 0)
+.entity	fd_head;			// player: the Rob Dob head he is flying (world = not flying)
+.float	fd_warn_t;			// player: throttle Rob Dob body-under-attack warning
 
 void() RobHead_Precache;
 void() RH_DronePress;

@@ -63,12 +63,12 @@ float	FD_HUM_LEN		= 1.20;		// robhead/idle.wav is this long: it is played again 
 float	FD_HUM_VOL		= 0.18;		// subtle FPV hover hum underneath Pocket Calculator
 vector	FD_MINS			= '-10 -10 -10';	// the head's own box, small so it fits round corners
 vector	FD_MAXS			= '10 10 10';
-var float	autocvar_fd_flight = 20;	// 20s max flight (0 = fly as long as you want)
+var float	autocvar_fd_flight = 0;		// 0 = fly as long as you want (set fd_flight N for a max duration)
 var float	autocvar_fd_dash = 2000;	// speed of the dash
 void(entity h, float big) FD_Shock;	// defined with the electricity code below, the blast needs it first
 float	FD_CLIENTTYPE_REAL = 1;		// clienttype() result for a real player (the Combat+ defs have no name for it)
 
-.entity	fd_head;			// player: the head he is flying (world = he is not)
+// .entity fd_head is declared in robhead_defs.qc so combat.qc can warn pilots when their body is hit
 .entity	fd_cam;				// player: the camera that sits behind it
 .float	fd_oldmove;			// player: his movetype before the head went out
 .float	fd_oldsolid;		// player: his solid while the head is out (0 = unchanged)
@@ -455,8 +455,21 @@ void() FD_Detonate =
 	self.customizeentityforclient = SUB_Null;
 	setmodel (self, "");
 	fg_inflicting = FG_DOB;				// "got a big wet kiss from X's flying head"
-	T_MissileTouch ();					// a regular explosion: the stock rocket's blast, damage, sprite and sound
+	if (self.enemy && !bm_wasfreed (self.enemy) && self.enemy.health > 0 && self.enemy.takedamage)
+	{
+		T_Damage (self.enemy, self, p, 175);
+		T_RadiusDamage (self, p, autocvar_player_rocket_radius + 15, self.enemy);
+	}
+	else
+		T_RadiusDamage (self, p, autocvar_player_rocket_radius + 15, world);
 	fg_inflicting = 0;
+	sound (self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
+	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+	WriteCoord (MSG_BROADCAST, self.origin_x);
+	WriteCoord (MSG_BROADCAST, self.origin_y);
+	WriteCoord (MSG_BROADCAST, self.origin_z);
+	BecomeExplosion ();
 };
 
 // a think has no 'other': an explosion in mid air
@@ -647,7 +660,10 @@ void(entity p, entity h) FD_Touched =
 	e = h.fd_hitent;
 	boom = FALSE;
 	if (e && e != p && e.health > 0 && e.takedamage && (e.classname == "player" || (e.flags & FL_MONSTER)))
+	{
+		h.enemy = e;
 		boom = TRUE;
+	}
 	else if (h.fd_charging)
 	{
 		if (time > h.fd_dashed + FD_DASH_ARM && 0 - (h.movedir * fd_normal) >= FD_HEADON)
@@ -922,8 +938,8 @@ void() FD_Launch =
 	h.scale = FD_PROJ_SCALE;
 	h.frame = 0;
 	h.customizeentityforclient = FD_Customize;
-	h.health = 60;
-	h.max_health = 60;
+	h.health = 40;
+	h.max_health = 40;
 	h.takedamage = DAMAGE_AIM;
 	h.th_die = FD_Die;
 	h.th_pain = FD_Pain;

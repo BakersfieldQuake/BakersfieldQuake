@@ -189,9 +189,10 @@ void(vector org) Underdog_SpawnPinata =
 	orb.velocity = rv * 55 + '0 0 235';
 	orb.avelocity = '0 160 0';
 	orb.scale = 0.85;
-	orb.effects = EF_FULLBRIGHT | EF_DIMLIGHT;
-	orb.glow_color = 192;
-	orb.glow_size = 140;
+	orb.effects = EF_FULLBRIGHT;
+	orb.pflags = PFLAGS_FULLDYNAMIC | PFLAGS_NOSHADOW | PFLAGS_CORONA;
+	orb.light_lev = 200;
+	orb.color = '1.0 0.953 0.106';		// gold (palette 192), no shadow pass or double EF_DIMLIGHT
 	orb.cnt = time + 0.35;
 	orb.touch = Underdog_PinataTouch;
 	orb.think = SUB_Remove;
@@ -226,6 +227,12 @@ void(entity targ, entity attacker) Underdog_Killed =
 		return;
 	attacker.ud_kills = attacker.ud_kills + 1;
 	attacker.ud_streak = floor (attacker.ud_streak / 2);
+	// Last Stand ends 2s after scoring a kill so it stays a comeback spark, not a multi-wipe godmode sweep
+	if (attacker.invincible_finished > time + 2 && attacker.super_damage_finished > time + 2)
+	{
+		attacker.invincible_finished = time + 2;
+		attacker.super_damage_finished = time + 2;
+	}
 	ud_next_t = 0;
 	if (Underdog_IsLast (targ) && random () < autocvar_bm_newbie)
 		BM_Fun_Say (attacker, "funny/newbie.wav");
@@ -233,10 +240,10 @@ void(entity targ, entity attacker) Underdog_Killed =
 		return;
 	if (autocvar_bm_bounty && targ.ud_heat >= 4)
 	{
-		attacker.frags = attacker.frags + 2;
-		bprint ("^3", attacker.netname, " POPPED ", targ.netname, "'s BOUNTY PINATA! (+2 FRAGS + LOOT ORB!)\n");
+		attacker.frags = attacker.frags + 1;
+		bprint ("^3", attacker.netname, " POPPED ", targ.netname, "'s BOUNTY PINATA! (+1 BONUS FRAG + LOOT ORB!)\n");
 		if (attacker.ishuman == 1)
-			centerprint (attacker, strcat ("^3BOUNTY PINATA! +2 FRAGS!\n^2Took down ", targ.netname));
+			centerprint (attacker, strcat ("^3BOUNTY PINATA! +1 BONUS FRAG!\n^2Took down ", targ.netname));
 		sound (attacker, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
 		particle (targ.origin + '0 0 24', '0 0 180', 192, 64);
 		particle (targ.origin + '0 0 32', '0 0 220', 41, 48);
@@ -299,8 +306,9 @@ void() Underdog_FxFrame =
 		return;
 	self.ud_fx_t = time + 0.05;
 	b = self.ud_aura;
-	b.glow_color = 192;		// gold
-	b.glow_size = min (80 + 25 * self.ud_heat, 400);
+	b.pflags = PFLAGS_FULLDYNAMIC | PFLAGS_NOSHADOW | PFLAGS_CORONA;
+	b.color = '1.0 0.953 0.106';		// gold (palette 192), no shadow cubemap pass
+	b.light_lev = min (80 + 25 * self.ud_heat, 400);
 	if (self.ud_tier >= 3)
 	{
 		// periodic radar beacon: pulses through walls for 1.1s every 4.5s so ambushes stay alive!
@@ -599,9 +607,9 @@ void() Underdog_Spawn =
 	if (last)
 	{
 		Underdog_GiveQuad ();
-		self.super_damage_finished = time + 10;
+		self.super_damage_finished = time + 7;
 		Underdog_GivePent ();
-		self.invincible_finished = time + 10;
+		self.invincible_finished = time + 7;
 	}
 	else if (earned && b >= 0.75)
 	{
@@ -641,9 +649,9 @@ void() Underdog_Spawn =
 
 	if (last)
 	{
-		bprint ("^3", self.netname, " is on LAST STAND - ", ftos (self.ud_streak), " deaths in a row, Quad and pentagram for 10 seconds!\n");
+		bprint ("^3", self.netname, " is on LAST STAND - ", ftos (self.ud_streak), " deaths in a row, Quad and pentagram for 7 seconds!\n");
 		sound (self, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
-		centerprint (self, "^3LAST STAND: Quad + Pentagram (10s)");
+		centerprint (self, "^3LAST STAND: Quad + Pentagram (7s)");
 		return;
 	}
 	best = Underdog_Leader (self);

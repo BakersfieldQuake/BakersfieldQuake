@@ -22,8 +22,8 @@ generic fun gun one (client.qc, through fg_inflicting).
 
 float	NS_RANGE		= 900;		// it only sends to someone this close, and in its view
 float	NS_DAMAGE		= 8;		// per NET SEND
-float	NS_SHOT_GAP		= 4;		// seconds between two NET SENDs
-float	NS_MAX_PCS		= 3;		// PCs one player can have standing at once (oldest pops on #4)
+float	NS_SHOT_GAP		= 7;		// seconds between two NET SENDs (funny popup without HUD spam)
+float	NS_MAX_PCS		= 2;		// PCs one player can have standing at once (oldest pops on #3)
 float	NS_LIFE			= 45;		// battery lifetime (seconds) before a deployed PC powers down & pops
 float	NS_HEALTH		= 40;		// shoot it to bits and it is gone (its owner can have another standing in its place)
 float	NS_THROW		= 620;		// the disk's speed when thrown
@@ -33,8 +33,8 @@ float	NS_TURN			= 240;		// degrees a second the PC turns to face its target (the
 float	NS_AIM			= 12;		// it fires once it faces its target within this many degrees
 float	NS_SCAN_ARC		= 60;		// with nobody in sight it sweeps this many degrees each side of where it faced when it landed
 float	NS_SCAN_RATE	= 1.2;		// radians a second of that sweep
-float	NS_LASER_GAP	= 0.15;		// seconds between two green lasers (review 2026-10-31: "act just like the sentry gun from TF")
-float	NS_LASER_DMG	= 5;		// per laser
+float	NS_LASER_GAP	= 0.20;		// seconds between two green lasers (~15 DPS per PC)
+float	NS_LASER_DMG	= 3;		// per laser (harassment prop, not a laser killbox)
 float	NS_LASER_SPEED	= 1100;
 
 .float	ns_state;		// PC: 2 materializing, 3 booting, 4 sending, for good (the disk in the air has none)

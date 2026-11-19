@@ -25,15 +25,15 @@ DoD sound events: reload clipin at 0.9600s; last-round clipding on 8th shot; rif
 ================
 */
 
-float	GAR_REFIRE				= 0.35;		// seconds between semi-auto shots
+float	GAR_REFIRE				= 0.28;		// seconds between semi-auto shots (~196 DPS)
 float	GAR_DAMAGE				= 55;		// .30-06 punch (3-shots 100HP+100GA DM spawn cleanly)
 float	GAR_SPREAD_STAND		= 0.003;	// pinpoint standing rifle accuracy
 float	GAR_SPREAD_MOVE			= 0.025;	// added at full run speed
 float	GAR_SPREAD_AIR			= 0.020;	// added while airborne
 float	GAR_RANGE				= 4096;
-float	GAR_SHOOT_EMPTY_TIME	= 0.66;		// 66 source frames at 100 fps (clip flies out + ping!)
+float	GAR_SHOOT_EMPTY_TIME	= 0.32;		// snappy clip-eject PING beat before auto-reload begins
 float	GAR_RELOAD_TIME			= 1.92;		// 96 source frames at 50 fps
-float	GAR_DRAW_LOCK			= 0.50;		// seconds after draw begins before firing is allowed
+float	GAR_DRAW_LOCK			= 0.22;		// snappy draw lock before firing is allowed
 float	GAR_RECOIL				= 3.8;		// crisp semi-auto battle-rifle view kick
 
 float	GAR_IDLE_FIRST		= 0;	float	GAR_IDLE_COUNT		= 61;	float	GAR_IDLE_FPS	= 5.0;

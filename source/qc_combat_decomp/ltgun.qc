@@ -472,7 +472,7 @@ float() LtGun_Frame =
 					centerprint (self, strcat ("DDoS FLOOD: ", ftos (self.ltg_queue), " / ", ftos (self.ltg_qmax), " PACKETS\n"));
 			}
 		}
-		if (time >= self.ltg_t && (!self.button0 || (self.ltg_queue >= self.ltg_qmax && time >= self.ltg_qnext)))
+		if (time >= self.ltg_t && (!self.button0 || self.ltg_queue >= self.ltg_qmax))
 		{
 			self.ltg_phase = 2;
 			self.ltg_salvo_total = self.ltg_queue;
@@ -493,6 +493,7 @@ float() LtGun_Frame =
 			{
 				self.ltg_salvo_idx = self.ltg_salvo_total;
 				self.ltg_t = time + LTG_REFIRE;
+				self.attack_finished = time + 0.25;
 			}
 			else
 			{
@@ -501,7 +502,10 @@ float() LtGun_Frame =
 				self.ltg_salvo_idx = self.ltg_salvo_idx + 1;
 				self.ltg_qnext = self.ltg_qnext + LTG_SALVO_GAP;
 				if (self.ltg_salvo_idx >= self.ltg_salvo_total)
+				{
 					self.ltg_t = time + LTG_REFIRE;
+					self.attack_finished = time + 0.25;
+				}
 			}
 		}
 		if (self.ltg_salvo_idx >= self.ltg_salvo_total && time >= self.ltg_t)

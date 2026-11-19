@@ -58,6 +58,7 @@ float(float s) BM_MagSize =
 	if (s == BM_FG5)	return FunGun_Max (FG_DOOKIE);
 	if (s == BM_FG6)	return FunGun_Max (FG_WCANNON);
 	if (s == BM_FG7)	return FunGun_Max (FG_M4);
+	if (s == BM_FG8)	return FunGun_Max (FG_KYLE);
 	if (s == BM_FG9)	return FunGun_Max (FG_GARAND);
 	return 0;
 };
@@ -76,14 +77,15 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_LG)	t = 2.4;
 	else if (s == BM_LASER)	t = 2.2;
 	else if (s == BM_MM)	t = 9;		// 4.5 s a Mega Man (was 12: 6 s)
-	else if (s == BM_FG1)	t = FG_DOB_REGEN;	// Rob Dob: one head
+	else if (s == BM_FG1)	t = FG_DOB_REGEN;	// Rob Dob: one head (12 s)
 	else if (s == BM_FG2)	t = FG_PONG_REGEN;	// Jar o' Green Guys: one jar
-	else if (s == BM_FG3)	t = 16;		// Pickle Surprise 8 s a pickle (the whole magazine of 2)
-	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT
-	else if (s == BM_FG5)	t = FG_DOOKIE_REGEN;		// Dookie Bazooka: 10 s per canister
+	else if (s == BM_FG3)	t = 8;		// Pickle Surprise: 8 s for full magazine of 3
+	else if (s == BM_FG4)	t = FG_NETSEND_REGEN;		// NetSend: one LOL.BAT (5 s)
+	else if (s == BM_FG5)	t = FG_DOOKIE_REGEN;		// Dookie Bazooka: 3 s full reload (5 canisters)
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
+	else if (s == BM_FG8)	t = FG_KYLE_REGEN;		// The Pocket Kyle: 5 s recharge
 	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation
-	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: BFG-slow, 25 s for the next Wheelman
+	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: 12 s for the next Wheelman
 	else
 		t = 2;
 	if (s >= BM_FG1 && !BM_IsFirearmSlot (s))
@@ -143,6 +145,8 @@ float(entity p) BM_SlotOf =
 			return BM_FG6;
 		if (p.fg_sel == FG_M4)
 			return BM_FG7;
+		if (p.fg_sel == FG_KYLE)
+			return BM_FG8;
 		if (p.fg_sel == FG_GARAND)
 			return BM_FG9;
 		return BM_FG3;
@@ -590,6 +594,8 @@ void() BM_Frame =
 					self.dk_reload_t = time;		// fresh Dookie Bazooka canister raises up
 				if (s == BM_FG1)
 					self.rh_reload_t = time;		// fresh Rob Head drone remote raises up
+				if (s == BM_FG8)
+					self.ky_draw_t = time;			// fresh Pocket Kyle pops up into the hand
 			}
 			else if (self.button0 && mag >= BM_PerShot (s) && (self.bm_rl_quiet || time > self.bm_rl_start + 0.15) && !BM_IsFirearmSlot (s))
 			{
@@ -624,6 +630,10 @@ void() BM_Frame =
 		else if (s == BM_FG1 && (self.rh_charging > 0 || self.rh_throw_at > 0 || (self.rh_threw_t > 0 && time < self.rh_threw_t + (RH_FOLLOW_TIME / RH_DRONE_ANIM_SPEED))))
 		{
 			// let the Rob Head windup, throw/launch & follow-through finish before starting reload
+		}
+		else if (s == BM_FG8 && (self.ky_locking > 0 || self.ky_throw_at > 0 || (self.ky_fire_t > 0 && time < self.ky_fire_t + KY_THROW_DELAY + KY_FOLLOW_TIME)))
+		{
+			// let The Pocket Kyle lock-on, throw & open-palm follow-through finish before starting reload
 		}
 		else if (mag < BM_PerShot (s))
 		{

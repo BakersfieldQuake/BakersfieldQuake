@@ -4,6 +4,10 @@ entity(string forcename, vector org) Gyro_Force_Create =
 {
 	local entity f;
 
+	if (((autocvar_gyroset == 0) && !gyro_objectlist_head))
+	{
+		return (world);
+	}
 	if ((GYRO_FORCEDEBUG > 0))
 	{
 		gyro_framedebug = TRUE;
@@ -27,6 +31,10 @@ entity(string forcename, vector org) Gyro_Force_Create =
 
 void(entity f) Gyro_Force_Remove =
 {
+	if (!f)
+	{
+		return;
+	}
 	if ((GYRO_FORCEDEBUG > 0))
 	{
 		gyro_framedebug = TRUE;
@@ -168,6 +176,8 @@ void(entity f) Gyro_Force_Update =
 
 void(entity f) Gyro_Force_Detach =
 {
+	if (!f)
+		return;
 	if (((f.gyro_force_attach.modelindex != 0) && (f.gyro_force_attach.origin != VEC_ORIGIN)))
 	{
 		f.origin = f.gyro_force_attach.origin;
@@ -184,6 +194,8 @@ void(entity f) Gyro_Force_Detach =
 
 void(entity f, entity e) Gyro_Force_Attach =
 {
+	if (!f)
+		return;
 	if ((e == world))
 	{
 		return (Gyro_Force_Detach(f));
@@ -202,6 +214,8 @@ void(entity f, entity e) Gyro_Force_Attach =
 
 void(entity f, entity e) Gyro_Force_Ignore =
 {
+	if (!f)
+		return;
 	f.gyro_force_ignore = e;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -216,21 +230,29 @@ void(entity f, entity e) Gyro_Force_Ignore =
 
 void(entity f, float channels) Gyro_Force_SetChannels =
 {
+	if (!f)
+		return;
 	f.gyro_force_channels = channels;
 };
 
 void(entity f, float channels) Gyro_Force_AddChannels =
 {
+	if (!f)
+		return;
 	f.gyro_force_channels = (f.gyro_force_channels | channels);
 };
 
 void(entity f, float channels) Gyro_Force_RemoveChannels =
 {
+	if (!f)
+		return;
 	f.gyro_force_channels = (f.gyro_force_channels - (f.gyro_force_channels & channels));
 };
 
 void(entity f, float scale) Gyro_Force_SetRangeScale =
 {
+	if (!f)
+		return;
 	if ((scale <= 0))
 	{
 		if ((GYRO_FORCEDEBUG > 0))
@@ -257,6 +279,8 @@ void(entity f, float scale) Gyro_Force_SetRangeScale =
 
 void(entity f, float scalerate) Gyro_Force_SetRangeScaleRate =
 {
+	if (!f)
+		return;
 	f.gyro_force_rangescalerate = scalerate;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -271,6 +295,8 @@ void(entity f, float scalerate) Gyro_Force_SetRangeScaleRate =
 
 void(entity f, float scale) Gyro_Force_SetPowerScale =
 {
+	if (!f)
+		return;
 	if ((scale <= 0))
 	{
 		if ((GYRO_FORCEDEBUG > 0))
@@ -296,6 +322,8 @@ void(entity f, float scale) Gyro_Force_SetPowerScale =
 
 void(entity f, float scalerate) Gyro_Force_SetPowerScaleRate =
 {
+	if (!f)
+		return;
 	f.gyro_force_powerscalerate = scalerate;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -310,6 +338,8 @@ void(entity f, float scalerate) Gyro_Force_SetPowerScaleRate =
 
 void(entity f) Gyro_Force_ClearProperties =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = 0;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -322,6 +352,8 @@ void(entity f) Gyro_Force_ClearProperties =
 
 void(entity f) Gyro_Force_AddProperty_Instant =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_INSTANT);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -334,6 +366,8 @@ void(entity f) Gyro_Force_AddProperty_Instant =
 
 void(entity f) Gyro_Force_RemoveProperty_Instant =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_INSTANT));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -346,6 +380,8 @@ void(entity f) Gyro_Force_RemoveProperty_Instant =
 
 void(entity f) Gyro_Force_AddProperty_IgnoreWalls =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_IGNOREWALLS);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -358,6 +394,8 @@ void(entity f) Gyro_Force_AddProperty_IgnoreWalls =
 
 void(entity f) Gyro_Force_RemoveProperty_IgnoreWalls =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_IGNOREWALLS));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -370,6 +408,8 @@ void(entity f) Gyro_Force_RemoveProperty_IgnoreWalls =
 
 void(entity f) Gyro_Force_AddProperty_AirOnly =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_AIRONLY);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -382,6 +422,8 @@ void(entity f) Gyro_Force_AddProperty_AirOnly =
 
 void(entity f) Gyro_Force_RemoveProperty_AirOnly =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_AIRONLY));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -394,6 +436,8 @@ void(entity f) Gyro_Force_RemoveProperty_AirOnly =
 
 void(entity f) Gyro_Force_AddProperty_WaterOnly =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_WATERONLY);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -406,6 +450,8 @@ void(entity f) Gyro_Force_AddProperty_WaterOnly =
 
 void(entity f) Gyro_Force_RemoveProperty_WaterOnly =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_WATERONLY));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -418,6 +464,8 @@ void(entity f) Gyro_Force_RemoveProperty_WaterOnly =
 
 void(entity f) Gyro_Force_AddProperty_GroundPound =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_GROUNDPOUND);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -430,6 +478,8 @@ void(entity f) Gyro_Force_AddProperty_GroundPound =
 
 void(entity f) Gyro_Force_RemoveProperty_GroundPound =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_GROUNDPOUND));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -442,6 +492,8 @@ void(entity f) Gyro_Force_RemoveProperty_GroundPound =
 
 void(entity f) Gyro_Force_AddProperty_Persistent =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags | GYRO_FORCEFLAG_PERSISTENT);
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -454,6 +506,8 @@ void(entity f) Gyro_Force_AddProperty_Persistent =
 
 void(entity f) Gyro_Force_RemoveProperty_Persistent =
 {
+	if (!f)
+		return;
 	f.gyro_force_flags = (f.gyro_force_flags - (f.gyro_force_flags & GYRO_FORCEFLAG_PERSISTENT));
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -466,6 +520,8 @@ void(entity f) Gyro_Force_RemoveProperty_Persistent =
 
 float(entity f, float falltype, vector fallaxis, float rad1, float rad2) Gyro_Force_ApplyFalloff =
 {
+	if (!f)
+		return (0);
 	if (!f.gyro_forcelist_inlist)
 	{
 		if ((GYRO_FORCEDEBUG > 0))
@@ -474,8 +530,8 @@ float(entity f, float falltype, vector fallaxis, float rad1, float rad2) Gyro_Fo
 			bprint("Gyro Warning: Falloff not applied to \"");
 			bprint(f.classname);
 			bprint("\"\nThe entity is not recognised as a force\n");
-			return (0);
 		}
+		return (0);
 	}
 	if ((falltype & GYRO_FALLOFF_TYPE_AREA))
 	{
@@ -615,6 +671,8 @@ void(entity f, vector falloff_dir, float rad1, float rad2) Gyro_Force_ApplyFallo
 
 void(entity f) Gyro_Force_FalloffCombine_Multiply =
 {
+	if (!f)
+		return;
 	f.gyro_force_falloff_combine = 0;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -627,6 +685,8 @@ void(entity f) Gyro_Force_FalloffCombine_Multiply =
 
 void(entity f) Gyro_Force_FalloffCombine_Minimum =
 {
+	if (!f)
+		return;
 	f.gyro_force_falloff_combine = GYRO_FALLOFF_COMBINE_MINIMUM;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -639,6 +699,8 @@ void(entity f) Gyro_Force_FalloffCombine_Minimum =
 
 void(entity f) Gyro_Force_FalloffCombine_Subtract =
 {
+	if (!f)
+		return;
 	f.gyro_force_falloff_combine = GYRO_FALLOFF_COMBINE_SUBTRACT;
 	if ((GYRO_FORCEDEBUG > 1))
 	{
@@ -653,6 +715,8 @@ float(entity f, float afftype, float affpower, float absolute, vector offset, ve
 {
 	local vector amodz;
 
+	if (!f)
+		return (0);
 	amodz = '0 0 0';
 	if (!f.gyro_forcelist_inlist)
 	{
@@ -662,8 +726,8 @@ float(entity f, float afftype, float affpower, float absolute, vector offset, ve
 			bprint("Gyro Warning: Affector not applied to \"");
 			bprint(f.classname);
 			bprint("\"\nThe entity is not recognised as a force\n");
-			return (0);
 		}
+		return (0);
 	}
 	if (!f.gyro_force_affector1_type)
 	{
