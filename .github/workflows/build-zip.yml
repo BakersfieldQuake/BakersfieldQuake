@@ -418,7 +418,7 @@ jobs:
           [ "$DRAFT" = true ] && flags=(--draft)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
-            --title "BAKOQUAKE $tag" \
+            --title "$tag" \
             --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
