@@ -763,14 +763,14 @@ void() KY_ProjThink =
 	if (self.ky_done)
 		return;
 
-	// ---- MODE 6: COMICAL DEATH POP -> EXPLODES INTO US MONEY + 3 BOUNCING 3D CHROME SCISSORS! ----
+	// ---- MODE 6: COMICAL DEATH POP -> EXPLODES INTO US MONEY + 1 BOUNCING 3D CHROME SCISSORS! ----
 	if (self.ky_mode == KY_MODE_DYING)
 	{
 		if (time >= self.ky_die_t)
 		{
 			self.ky_done = TRUE;
 			KY_SpawnCashBurst (self.origin + '0 0 26', 14, 1.25);
-			KY_SpawnBouncingScissors (self.origin + '0 0 28', 3);
+			KY_SpawnBouncingScissors (self.origin + '0 0 28', 1);
 			FG_Snd (self, CHAN_AUTO, "kyle/cash_register.wav", 0.90, 1.0);
 			FG_Snd (self, CHAN_WEAPON, "kyle/cash_flutter.wav", 0.85, 1.02);
 			remove (self);
