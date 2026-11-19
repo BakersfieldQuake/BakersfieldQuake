@@ -513,16 +513,18 @@ void(entity p) MMT_UnhidePlayer =
 
 void(entity p, entity tank) MMT_RestoreViewAndBody =
 {
-	local entity oldself;
+	local entity oldself, cam;
 
 	p.mmt_st_active = 0;
+	cam = world;
 	if (tank != world && tank.mmt_cam != world)
 	{
-		if (!bm_wasfreed (tank.mmt_cam) && tank.mmt_cam.classname == "mmt_cam")
-			remove (tank.mmt_cam);
+		cam = tank.mmt_cam;
+		if (!bm_wasfreed (cam) && cam.classname == "mmt_cam")
+			remove (cam);
 		tank.mmt_cam = world;
 	}
-	if (p.ishuman == 1)
+	if (p.ishuman == 1 && (p.classname == "player" || (cam != world && p.clientcamera == cam)))
 	{
 		p.clientcamera = p;
 		msg_entity = p;
@@ -533,7 +535,7 @@ void(entity p, entity tank) MMT_RestoreViewAndBody =
 	p.v_angle_z = 0;
 	p.angles_z = 0;
 	MMT_UnhidePlayer (p);
-	if (p.health > 0)
+	if (p.health > 0 && p.classname == "player")
 	{
 		p.movetype = p.mmt_oldmove;
 		if (p.movetype == MOVETYPE_NONE || p.movetype == 0)
@@ -1204,7 +1206,11 @@ void(vector boom_org, entity bar_ent, entity hit) MMT_BarDetonate =
 	local vector v;
 
 	tank = bar_ent.mmt_tank;
+	if (tank != world && (bm_wasfreed (tank) || tank.classname != "misc_mm_tank"))
+		tank = world;
 	atk = bar_ent.mmt_driver;
+	if (atk != world && (bm_wasfreed (atk) || atk.classname != "player"))
+		atk = world;
 	if (atk == world)
 		atk = tank;
 	if (atk == world)
@@ -1286,9 +1292,13 @@ void() MMT_BarTouch =
 {
 	local vector org;
 
-	if (other == self.owner || other == self.mmt_tank || (other.mmt_base != world && other.mmt_base == self.mmt_tank))
+	if (self.mmt_tank != world && (bm_wasfreed (self.mmt_tank) || self.mmt_tank.classname != "misc_mm_tank"))
+		self.mmt_tank = world;
+	if (self.mmt_driver != world && (bm_wasfreed (self.mmt_driver) || self.mmt_driver.classname != "player"))
+		self.mmt_driver = world;
+	if (other == self.owner || (self.mmt_tank != world && (other == self.mmt_tank || other.mmt_base == self.mmt_tank)))
 		return;
-	if (other == self.mmt_driver && time < self.mmt_born + 0.25)
+	if (self.mmt_driver != world && other == self.mmt_driver && time < self.mmt_born + 0.25)
 		return;
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
@@ -1709,12 +1719,13 @@ void(entity tank, entity p, float forced) MMT_Leave =
 	sound (tank, CHAN_BODY, "misc/null.wav", 1, ATTN_NORM);
 	sound (tank, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);
 
-	if (p != world && p.classname == "player")
+	// release on the vehicle link too, not just classname: observe/disconnect can rename p first
+	if (p != world && !bm_wasfreed (p) && (p.classname == "player" || p.mmt_tank == tank))
 	{
 		yaw_out = p.v_angle_y;
 		p.mmt_tank = world;
 		MMT_RestoreViewAndBody (p, tank);
-		if (!forced)
+		if (!forced && p.classname == "player")
 		{
 			exit_p = MMT_FindExitPos (tank, p);
 			setorigin (p, exit_p);
@@ -1737,10 +1748,22 @@ void(entity p, entity tank) MMT_Enter =
 	local entity cam, oldself;
 	local float pack;
 
-	if (p.health <= 0 || MMTank_Driving (p) || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world)
+	if (p.health <= 0 || MMTank_Driving (p) || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || FD_Flying (p))
 		return;
 	if (tank.mmt_state == MMT_STATE_WRECK || tank.mmt_driver != world)
 		return;
+
+	KY_CamDetach (p);
+	DK_ResetPlayer (p);
+	GJ_ResetPlayer (p);
+	RH_ResetPlayer (p);
+	p.mm_pending = FALSE;
+	if (p.bn_on)
+	{
+		p.bn_on = FALSE;
+		p.viewzoom = 0;
+		centerprint (p, "");
+	}
 
 	if (p.jp_on)
 	{

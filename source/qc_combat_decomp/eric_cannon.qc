@@ -280,10 +280,22 @@ void(entity p, entity base) EC_Mount =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world)
+	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || MMTank_Driving (p) || FD_Flying (p))
 		return;
 	if (base.ec_state != EC_STATE_IDLE || base.ec_pilot != world)
 		return;
+
+	KY_CamDetach (p);
+	DK_ResetPlayer (p);
+	GJ_ResetPlayer (p);
+	RH_ResetPlayer (p);
+	p.mm_pending = FALSE;
+	if (p.bn_on)
+	{
+		p.bn_on = FALSE;
+		p.viewzoom = 0;
+		centerprint (p, "");
+	}
 
 	if (p.jp_on)
 	{
@@ -1621,18 +1633,17 @@ void() EricCannon_Impulse =
 		return;
 	}
 
-	// Recycle player's previous unoccupied temp cannon so edicts never pile up
-	c = EC_MyTemp (self);
-	if (c != world && c.ec_pilot == world)
-	{
-		EC_FreeParts (c);
-		remove (c);
-		self.ec_my_temp = world;
-	}
-
 	if (self.impulse == 128)
 	{
 		self.impulse = 0;
+		// Recycle player's previous unoccupied temp cannon so edicts never pile up
+		c = EC_MyTemp (self);
+		if (c != world && c.ec_pilot == world)
+		{
+			EC_FreeParts (c);
+			remove (c);
+			self.ec_my_temp = world;
+		}
 		makevectors ('0 1 0' * self.v_angle_y);
 		org = self.origin + v_forward * 145 + '0 0 16';
 		c = spawn ();
@@ -1648,8 +1659,15 @@ void() EricCannon_Impulse =
 	if (self.impulse == 129)
 	{
 		self.impulse = 0;
-		if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.jb_vehicle != world)
+		if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || MMTank_Driving (self) || FD_Flying (self))
 			return;
+		c = EC_MyTemp (self);
+		if (c != world && c.ec_pilot == world)
+		{
+			EC_FreeParts (c);
+			remove (c);
+			self.ec_my_temp = world;
+		}
 		makevectors ('0 1 0' * self.v_angle_y);
 		org = self.origin + v_forward * 48 + '0 0 16';
 		c = spawn ();

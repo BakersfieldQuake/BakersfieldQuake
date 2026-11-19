@@ -601,9 +601,10 @@ void(entity p) KY_CamDetach =
 		return;
 	cam = p.ky_cam;
 	p.ky_cam = world;
-	p.fixangle = FALSE;
-	if (p.clientcamera != p)
+	// Only restore view if this ky_cam is still the active clientcamera (never clobber a vehicle/drone/observer cam)
+	if (cam != world && p.clientcamera == cam)
 	{
+		p.fixangle = FALSE;
 		p.clientcamera = p;
 		if (p.ishuman == 1)
 		{
@@ -630,7 +631,10 @@ void() KY_CamThink =
 	}
 	if (p.health <= 0 || p.deadflag || intermission_running || !autocvar_kyle_cam || p.clientcamera != self)
 	{
-		KY_CamDetach (p);
+		if (p.ky_cam == self)
+			KY_CamDetach (p);
+		else
+			remove (self);
 		return;
 	}
 
@@ -711,7 +715,8 @@ void(entity p, entity k, entity targ) KY_CamAttach =
 {
 	local entity cam;
 
-	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam || p.health <= 0 || p.deadflag || p.clientcamera != p)
+	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam || intermission_running || p.health <= 0 || p.deadflag || p.clientcamera != p
+		|| FD_Flying (p) || Veh_Driving (p) || JohnBird_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
 		return;
 	KY_CamDetach (p);
 	cam = spawn ();

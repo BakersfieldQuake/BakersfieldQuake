@@ -947,7 +947,8 @@ void() Milky_Launch =
 	if (!Milky_Room ())
 	{
 		self.ammo_nails = self.ammo_nails + 1;		// a wall in the way by now: she squirmed out of the throw
-		self.currentammo = self.ammo_nails;
+		if (self.weapon == IT_SUPER_NAILGUN)
+			self.currentammo = self.ammo_nails;
 		self.milky_threw = 0;
 		self.milky_hide = 0;
 		Milky_Snd (self, CHAN_WEAPON, "weapons/goostick.wav", 0.6, ATTN_NORM);
@@ -1095,7 +1096,16 @@ void() Milky_PlayerFrame =
 	if (self.milky_wind && time >= self.milky_wind)
 	{
 		self.milky_wind = 0;
-		Milky_Launch ();
+		if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+		{
+			self.ammo_nails = self.ammo_nails + 1;
+			if (self.weapon == IT_SUPER_NAILGUN)
+				self.currentammo = self.ammo_nails;
+			self.milky_threw = 0;
+			self.milky_hide = 0;
+		}
+		else
+			Milky_Launch ();
 	}
 	self.milk_st = 0;
 	if (self.milk_scr && time < self.milk_scr + 6)

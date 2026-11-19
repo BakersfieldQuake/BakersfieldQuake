@@ -29,6 +29,14 @@ void() RH_BeginDroneLaunch =
 {
 	local float a;
 
+	if (self.health <= 0 || self.deadflag || intermission_running
+		|| self.veh_ride != world || FD_Flying (self) || Veh_Driving (self)
+		|| JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+	{
+		self.rh_charging = 0;
+		self.rh_charge_gun = 0;
+		return;
+	}
 	a = FunGun_Ammo (self, FG_DOB);
 	if (a < 1)
 	{
@@ -58,8 +66,15 @@ void() RH_DronePress =
 {
 	if (self.rh_charging > 0 || self.rh_throw_at > 0)
 		return;
-	if (self.fd_head != world)
+	if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
 		return;
+	if (self.veh_ride != world)
+	{
+		if (self.ishuman == 1)
+			sprint (self, "Bail out of the vehicle (H) before launching Rob Dob!\n");
+		self.attack_finished = time + 0.35;
+		return;
+	}
 	self.rh_charging = time;
 	self.rh_charge_gun = FG_DOB;
 	self.rh_next_juggle = time + 0.32;
@@ -70,8 +85,19 @@ void() RH_DronePress =
 // Called every frame from FunGun_ViewFrame
 void() RH_Frame =
 {
-	if (self.health <= 0)
+	local float busy, ammo;
+
+	busy = (self.health <= 0 || self.deadflag || intermission_running
+		|| self.veh_ride != world || FD_Flying (self) || Veh_Driving (self)
+		|| JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
+	if (busy)
 	{
+		if (self.rh_throw_at > 0 && self.health > 0 && !self.deadflag && !intermission_running)
+		{
+			ammo = FunGun_Ammo (self, FG_DOB);
+			if (ammo < FunGun_Max (FG_DOB))
+				FunGun_SetAmmo (self, FG_DOB, ammo + 1);
+		}
 		self.rh_charging = 0;
 		self.rh_charge_gun = 0;
 		self.rh_throw_at = 0;

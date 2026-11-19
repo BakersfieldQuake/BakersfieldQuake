@@ -696,7 +696,7 @@ void() Binoc_Frame =
 	local vector eye;
 	local string s;
 
-	if (self.health <= 0 || !self.button3 || self.classname != "player" || self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || self.fd_head != world || self.ec_cannon_ent != world)
+	if (self.health <= 0 || !self.button3 || self.classname != "player" || self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self))
 	{
 		if (self.bn_on)
 		{
@@ -751,8 +751,14 @@ void() Binoc_Frame =
 // (v_<gun>.md3: 0-15 idle bob, 16-18 kick, 19 gone, 20-21 coming back up)
 void() FunGun_ViewFrame =
 {
-	local float g, t, f, nt;
+	local float g, t, f, nt, in_veh;
 
+	in_veh = (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
+	if (in_veh)
+	{
+		self.ns_throw_at = 0;
+		self.pk_throw_at = 0;
+	}
 	if (self.ns_throw_at && time >= self.ns_throw_at)		// the NetSend disk leaves the hand (netsend.qc)
 	{
 		self.ns_throw_at = 0;
@@ -780,6 +786,9 @@ void() FunGun_ViewFrame =
 		FunGun_Regen (g);
 		g = g + 1;
 	}
+
+	if (in_veh || Binoc_On (self))
+		return;
 
 	if (self.weapon == IT_FUNGUN && (self.meleeing == 1 || self.throwing == 1))
 	{
@@ -853,6 +862,7 @@ void() FunGun_ViewFrame =
 void() FunGun_PlayerDie =
 {
 	DK_ResetPlayer (self);
+	GJ_ResetPlayer (self);
 	KY_ResetPlayer (self);
 	RH_ResetPlayer (self);
 	if (EricCannon_Active (self))

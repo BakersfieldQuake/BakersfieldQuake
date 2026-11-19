@@ -452,7 +452,7 @@ void() Pk_Think =
 	}
 
 	ty = self.pk_a0_y;
-	if (self.pk_who.health > 0)
+	if (self.pk_who != world && !bm_wasfreed (self.pk_who) && self.pk_who.health > 0)
 		ty = vectoyaw (self.pk_who.origin - self.origin) + 180;		// its face (-X) toward them
 	d = ty - self.pk_a0_y;
 	d = d - 360 * floor ((d + 180) / 360);

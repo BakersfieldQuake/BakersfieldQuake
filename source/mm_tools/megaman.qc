@@ -1612,7 +1612,7 @@ void() MegaMan_UpdateVwep =
 	local entity e;
 	local float show;
 
-	show = (self.weapon == IT_MEGAMAN && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
+	show = (self.weapon == IT_MEGAMAN && self.health > 0 && !(self.items & IT_INVISIBILITY) && !(self.effects & EF_NODRAW) && self.model == "progs/player_torso.mdl");
 	if (!show)
 	{
 		if (self.mm_vwep)
@@ -1682,7 +1682,13 @@ void() MegaMan_ViewFrame =
 	if (self.mm_pending && time >= self.mm_launch_t)
 	{
 		self.mm_pending = FALSE;
+#ifdef COMBATPLUS
+		if (time - self.mm_launch_t < 0.3 && self.health > 0
+			&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self)
+			&& !EricCannon_Active (self) && !MMTank_Driving (self))
+#else
 		if (time - self.mm_launch_t < 0.3 && self.health > 0)
+#endif
 			MegaMan_Launch ();
 	}
 
@@ -1694,7 +1700,9 @@ void() MegaMan_ViewFrame =
 		return;
 	}
 #ifdef COMBATPLUS
-	if (self.meleeing == 1 || self.throwing == 1)
+	if (self.meleeing == 1 || self.throwing == 1
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self))
 		return;
 #endif
 

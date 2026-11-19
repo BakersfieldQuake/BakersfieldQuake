@@ -177,11 +177,12 @@ void() DK_WallSplatThink =
 		return;
 	}
 
-	// floor splats don't drip downward; sleep until fade
+	// floor splats don't drip downward; once full size, sleep until fade
 	n = self.dk_splat_n;
 	if (n_z > 0.7)
 	{
-		self.nextthink = self.dk_splat_born + DK_SPLAT_LIFE;
+		if (t > 1.2)
+			self.nextthink = self.dk_splat_born + DK_SPLAT_LIFE;
 		return;
 	}
 
@@ -601,7 +602,10 @@ void() DK_Frame =
 
 	if (!self.dk_charging)
 		return;
-	if (self.health <= 0 || self.weapon != IT_FUNGUN || self.fg_sel != FG_DOOKIE)
+	if (self.health <= 0 || self.deadflag || intermission_running
+		|| self.weapon != IT_FUNGUN || self.fg_sel != FG_DOOKIE
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| EricCannon_Active (self) || MMTank_Driving (self))
 	{
 		sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
 		self.dk_charging = 0;

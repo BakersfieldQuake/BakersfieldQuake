@@ -144,6 +144,9 @@ void(entity hitent, vector org, vector dir, float tier, float hitfloor) Hammer_H
 				Hammer_Snd ("hammer/frying_pan.wav", 0.5);
 			else
 				Hammer_Snd ("hammer/frying_pan.wav", 1);
+			self.hm_result = Hammer_FrameHit (tier);
+			Hammer_HitSound ();
+			return;
 		}
 		else if (hitent.classname == "player")
 		{
@@ -317,9 +320,10 @@ void() Hammer_PlayerFrame =
 		self.hm_state = 0;		// put away, or Combat+'s kick / grenade throw took over the hands
 		return;
 	}
-	if (self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || self.fd_head != world)
+	if (self.health <= 0 || self.deadflag || intermission_running
+		|| self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self) || Binoc_On (self))
 	{
-		self.hm_state = 0;		// flying Winged John / a Rob Dob head or driving: fire belongs to the vehicle, no charge or swing
+		self.hm_state = 0;		// flying Winged John / Rob Dob, Eric Cannon, binoculars, or driving: fire belongs to the vehicle, no charge or swing
 		return;
 	}
 

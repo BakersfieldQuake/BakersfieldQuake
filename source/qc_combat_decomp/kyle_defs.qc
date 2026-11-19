@@ -168,6 +168,7 @@ void() Kyle_Precache;
 void() KY_Press;
 void() KY_Frame;
 void(entity p) KY_ResetPlayer;
+void(entity p) KY_CamDetach;
 void(entity p) KY_CleanupOwner;
 void(entity vm, float is_quad) Kyle_ViewFrame;
 void(vector org, float count, float speed_mult) KY_SpawnCashBurst;

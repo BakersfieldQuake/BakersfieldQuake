@@ -918,6 +918,12 @@ void() FD_Launch =
 	local entity	h, c;
 	local vector	eye;
 
+	if (self.health <= 0 || self.deadflag || intermission_running || FD_Flying (self)
+		|| self.veh_ride != world || Veh_Driving (self) || JohnBird_Flying (self)
+		|| EricCannon_Active (self) || MMTank_Driving (self))
+		return;
+	KY_CamDetach (self);
+
 	makevectors (self.v_angle);
 	eye = self.origin + self.view_ofs;
 	h = spawn ();

@@ -36,6 +36,8 @@ void() GreenJar_Precache =
 
 void(entity p) GJ_ResetPlayer =
 {
+	if (p.gj_shaking > 0)
+		sound (p, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
 	p.gj_shaking = 0;
 	p.gj_next_rattle = 0;
 	p.gj_next_muffle = 0;
@@ -956,8 +958,21 @@ void() GJ_Press =
 // Called every frame from FunGun_ViewFrame
 void() GJ_Frame =
 {
-	if (self.health <= 0)
+	local float busy, ammo;
+
+	busy = (self.health <= 0 || self.deadflag || intermission_running
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| EricCannon_Active (self) || MMTank_Driving (self));
+	if (busy)
 	{
+		if (self.gj_shaking > 0)
+			sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
+		if (self.gj_throw_at > 0 && self.health > 0 && !self.deadflag && !intermission_running)
+		{
+			ammo = FunGun_Ammo (self, FG_PONG);
+			if (ammo < FunGun_Max (FG_PONG))
+				FunGun_SetAmmo (self, FG_PONG, ammo + 1);
+		}
 		self.gj_shaking = 0;
 		self.gj_throw_at = 0;
 		return;

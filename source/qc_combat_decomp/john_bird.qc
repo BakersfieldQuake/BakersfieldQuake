@@ -1454,8 +1454,13 @@ void(entity p, entity jb) JB_Enter =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.veh_ride != world || p.fd_head != world)
+	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.veh_ride != world || FD_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
 		return;
+	KY_CamDetach (p);
+	DK_ResetPlayer (p);
+	GJ_ResetPlayer (p);
+	RH_ResetPlayer (p);
+	p.mm_pending = FALSE;
 	if (p.jp_on)
 	{
 		oldself = self;
