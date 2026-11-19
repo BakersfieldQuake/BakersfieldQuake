@@ -26,6 +26,21 @@ end run
 EOF
 }
 
+run_in_terminal() {   # run_in_terminal <cmd...>: show the command's output in a Terminal window; returns its exit code
+    local d rc
+    d="$(mktemp -d)" || { "$@" >/dev/null 2>&1; return; }
+    {   # printf %q quotes each argument; the window closes itself when the shell exits cleanly
+        printf '#!/bin/bash\nexport SSL_CERT_FILE=%q\necho "BAKOQUAKE update"; echo\n' "${SSL_CERT_FILE:-}"   # `open` drops our env
+        printf '%q ' "$@"
+        printf '\necho $? >%q\nsleep 2\nexit 0\n' "$d/rc"
+    } >"$d/update.command"
+    chmod +x "$d/update.command"
+    open -a Terminal "$d/update.command"
+    while [ ! -s "$d/rc" ]; do sleep 0.5; done   # ponytail: no timeout; Terminal closed by hand mid-update hangs the launch
+    rc="$(cat "$d/rc")"; rm -rf "$d"
+    return "$rc"
+}
+
 # 0. Game data updates. The signed bundle can't change, so the game runs from a clone of the bundle's game data in
 #    $USERDIR/game, and the updater (Contents/MacOS/bq-update: tools/bq_update.py, frozen) patches that clone with
 #    the files that changed in the latest release (manifest-macos-app.json). An APFS clone shares the bundle's
@@ -55,7 +70,7 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
             SUMMARY="$("${UPD[@]}" --check 2>/dev/null)"
             if [ $? = 10 ]; then
                 notify "Updating BAKOQUAKE" "${SUMMARY##*: }. The game starts when it is done."
-                "${UPD[@]}" >/dev/null 2>&1
+                run_in_terminal "${UPD[@]}"
                 case $? in
                     3) notify "BAKOQUAKE updated" "Starting the game." ;;
                     *) notify "BAKOQUAKE update failed" "Playing the installed version. Log: $DATA/.bq/update.log" ;;
