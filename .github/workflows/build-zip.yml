@@ -1,4 +1,5 @@
-# Builds the BAKOQUAKE release packages on demand (Actions tab > "Build release packages" > Run workflow).
+# Builds the BAKOQUAKE release packages on every push to main (docs-only pushes are skipped), or on demand
+# (Actions tab > "Build release packages" > Run workflow). A newer push cancels a build still running for main.
 #
 # The repo is text/source only, so this does not rebuild the game data. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
@@ -22,6 +23,9 @@
 name: Build release packages
 
 on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "**.md"]
   workflow_dispatch:
     inputs:
       base_tag:
@@ -41,6 +45,13 @@ on:
         type: boolean
         required: false
         default: false
+
+# One release build at a time per branch: a new push cancels the older run. Draft test builds get their own group,
+# so they neither cancel nor are cancelled by a release build.
+# A run cancelled while publishing can leave a half-made release (tag without the DMG); delete it and re-run.
+concurrency:
+  group: ${{ inputs.draft == true && github.run_id || 'release' }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
