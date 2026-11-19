@@ -182,3 +182,10 @@
 - Publish a v1.10-based build as Latest. Until then, the default base is stale, and players' updaters find no manifest (404, harmless).
 - macOS app updates: see `docs/prompts/mac-app-updater-handoff.md` (mac agent).
 - The updater's console window from a hidden `PLAY BAKERSFIELDQUAKE.exe` launch (AllocConsole) was not seen in a real desktop session.
+
+## 2026-11-19 — macOS DMG job on self-hosted ozzy-2
+
+- Outcome: `macos` job in `.github/workflows/build-zip.yml` now runs on `[self-hosted, macOS, ARM64]` (ozzy-2). Xcode re-pinned to `/Applications/Xcode.app` 26.3 with a version assert; pinned `cmake==3.31.6` wheel (ozzy has no cmake); deps cache key includes the Xcode version. Commit `782e817`, not pushed.
+- Verification: actionlint clean. On ozzy, a duplicate codesign identity across two keychains signs without ambiguity. A trial `SKIP_NOTARIZE=1 build_app.sh build-20261119-275c39e` over SSH built SDL2, ogg, vorbis, freetype, jpeg and Zircon with Xcode 26.3; the updater freeze failed there because it used Xcode's Python 3.9 and the SSH session's login keychain, neither of which CI uses.
+- Not verified: freeze, signing with the temp keychain, notarization, DMG upload. Needs a manual `workflow_dispatch` after push (the DMG gate ignores workflow changes).
+- Follow-up: `setup-python` installs the python.org framework system-wide on ozzy via passwordless sudo.
