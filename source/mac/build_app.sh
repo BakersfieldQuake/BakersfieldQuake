@@ -17,6 +17,7 @@
 #                    One of the two is required unless SKIP_NOTARIZE=1.
 #   SKIP_NOTARIZE=1  build and sign only (for local iteration)
 #   UPLOAD=1         upload the DMG to the release after notarizing
+#   NO_ZIP=1         never download the full release zip; only update cached game data in $WORK/game
 #   WORK             build directory (default <repo>/build, gitignored); the deps prefix is kept there between runs
 #   PYTHON           Python that freezes the updater (default python3). Its libraries go into Contents/MacOS/bq-update,
 #                    so it must target macOS 13.0 or older (python.org / actions/setup-python builds do; Homebrew's
@@ -86,6 +87,8 @@ if [ "$(cat "$GAME/.tag" 2>/dev/null)" = "$TAG" ]; then
     step "game data already at $TAG"
 elif [ -d "$PKG" ] && sync_game; then
     echo "$TAG" > "$GAME/.tag"
+elif [ "${NO_ZIP:-0}" = 1 ]; then
+    die "NO_ZIP=1: game data in $GAME could not be brought to $TAG without the full zip (rerun with NO_ZIP=0)"
 else
     step "download $TAG"
     rm -rf "$WORK/dl" "$GAME"
