@@ -87,6 +87,8 @@ void(float mode) m_toggle =
 	else
 		g_menu_open = !g_menu_open;
 
+	if (g_focus_input == INPUT_PLAYERNAME)
+		BM_CommitPlayerName(g_name_buf);
 	g_focus_input = INPUT_NONE;
 	g_bind_listen_idx = -1;
 	g_active_slider = 0;
@@ -192,6 +194,8 @@ void(float key, float ascii) m_keydown =
 
 	if ((key == K_BACKQUOTE || key == K_TILDE) && g_focus_input != INPUT_NONE)
 	{
+		if (g_focus_input == INPUT_PLAYERNAME)
+			BM_CommitPlayerName(g_name_buf);
 		g_focus_input = INPUT_NONE;
 		localcmd("toggleconsole\n");
 		return;

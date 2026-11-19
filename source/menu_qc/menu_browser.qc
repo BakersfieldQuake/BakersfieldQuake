@@ -384,7 +384,7 @@ void(float clicked) BM_Browser_Draw =
 	}
 	else
 	{
-		drawsetcliparea(gx, gy, gw, gh);
+		BM_BeginClip(gx, gy, gw, gh);
 		for (i = 0; i < g_br_count; i = i + 1)
 		{
 			r = floor(i * 0.5) - g_br_scroll;
@@ -402,7 +402,7 @@ void(float clicked) BM_Browser_Draw =
 				}
 			}
 		}
-		drawresetcliparea();
+		BM_EndClip();
 
 		// Scrollbar
 		if (max_scroll > 0)
@@ -435,6 +435,22 @@ void(float clicked) BM_Browser_Draw =
 		g_click_consumed = TRUE;
 		BM_ConnectTo(g_ip_buf);
 	}
+};
+
+void() BM_Browser_EnsureVisible =
+{
+	local float gh, vis_rows, rows, max_scroll, row;
+
+	gh = (g_vh - 32) - 98;
+	vis_rows = max(1, floor((gh + 6) / 68));
+	rows = ceil(g_br_count * 0.5);
+	max_scroll = max(0, rows - vis_rows);
+	row = floor(g_br_sel * 0.5);
+	if (row < g_br_scroll)
+		g_br_scroll = row;
+	else if (row >= g_br_scroll + vis_rows)
+		g_br_scroll = row - vis_rows + 1;
+	g_br_scroll = bound(0, g_br_scroll, max_scroll);
 };
 
 void(float key, float ascii) BM_Browser_KeyDown =
@@ -475,22 +491,22 @@ void(float key, float ascii) BM_Browser_KeyDown =
 	else if (key == K_LEFTARROW && g_br_count > 0)
 	{
 		g_br_sel = max(0, g_br_sel - 1);
+		BM_Browser_EnsureVisible();
 	}
 	else if (key == K_RIGHTARROW && g_br_count > 0)
 	{
 		g_br_sel = min(g_br_count - 1, g_br_sel + 1);
+		BM_Browser_EnsureVisible();
 	}
 	else if (key == K_UPARROW && g_br_count > 0)
 	{
 		g_br_sel = max(0, g_br_sel - 2);
-		if (floor(g_br_sel * 0.5) < g_br_scroll)
-			g_br_scroll = floor(g_br_sel * 0.5);
+		BM_Browser_EnsureVisible();
 	}
 	else if (key == K_DOWNARROW && g_br_count > 0)
 	{
 		g_br_sel = min(g_br_count - 1, g_br_sel + 2);
-		if (floor(g_br_sel * 0.5) >= g_br_scroll + 3)
-			g_br_scroll = floor(g_br_sel * 0.5) - 2;
+		BM_Browser_EnsureVisible();
 	}
 	else if ((key == K_ENTER || key == K_KP_ENTER) && g_br_count > 0)
 	{

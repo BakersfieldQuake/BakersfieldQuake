@@ -232,6 +232,8 @@ void(float clicked) BM_Main_Draw =
 		if (clicked && hov)
 		{
 			g_click_consumed = TRUE;
+			if (g_focus_input == INPUT_PLAYERNAME)
+				BM_CommitPlayerName(g_name_buf);
 			g_focus_input = INPUT_NONE;
 			BM_Main_Execute(act);
 			return;
@@ -276,7 +278,6 @@ void(float key, float ascii) BM_Main_KeyDown =
 			return;
 		}
 		g_name_buf = BM_ZoneSet(g_name_buf, BM_EditString(g_name_buf, 22, key, ascii, TRUE));
-		BM_CommitPlayerName(g_name_buf);
 		return;
 	}
 

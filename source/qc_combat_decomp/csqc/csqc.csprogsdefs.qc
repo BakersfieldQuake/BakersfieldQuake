@@ -709,6 +709,7 @@ __variant(...) ReadPicture;
 __variant(...) boxparticles;
 __variant(...) checkpvs;
 __variant(...) getplayerstat;
+float ET_WORLDSPAWN    = 0;
 float ENT_PARTICLE_EMITTER    = 4;
 float ENT_CASING    = 5;
 float ENT_SPRITE_EMITTER    = 6;

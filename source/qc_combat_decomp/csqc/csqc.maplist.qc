@@ -4,9 +4,18 @@ void() create_maplist =
 {
 	local float j;
 
-	mapindex = search_begin(/*11180i*/"maps/*.bsp", TRUE, TRUE);
-	mapcount = search_getsize(mapindex);
 	posveclist = '-60 292 0';
+	mapindex = search_begin(/*11180i*/"maps/*.bsp", TRUE, TRUE);
+	if ((mapindex < 0))
+	{
+		mapcount = 0;
+		return;
+	}
+	mapcount = search_getsize(mapindex);
+	if ((mapcount > 1000))
+	{
+		mapcount = 1000;
+	}
 	j = 0;
 	while ((j < mapcount))
 	{
@@ -26,6 +35,9 @@ void() loadMap =
 {
 	local float IS_MODEL;
 
+	if ((mapcount <= 0))
+		return;
+	arrowPos = bound(0, arrowPos, (mapcount - 1));
 	IS_MODEL = strstrofs(maplist[arrowPos], /*11191i*/"b_", 0);
 	if ((IS_MODEL == -1))
 	{
@@ -93,7 +105,16 @@ void() ShowMapList =
 			create_maplist();
 		}
 		SkillCheck();
-		POINTS_TO_BSP = strstrofs(maplist[arrowPos], /*11191i*/"b_", 0);
+		if ((mapcount > 0))
+		{
+			arrowPos = bound(0, arrowPos, (mapcount - 1));
+			POINTS_TO_BSP = strstrofs(maplist[arrowPos], /*11191i*/"b_", 0);
+		}
+		else
+		{
+			arrowPos = 0;
+			POINTS_TO_BSP = -1;
+		}
 		Sbar_DrawPic('-115 330 0', "gfx/cust_maps", 1, 1);
 		posvecoff = VEC_0;
 		draw_cursor();

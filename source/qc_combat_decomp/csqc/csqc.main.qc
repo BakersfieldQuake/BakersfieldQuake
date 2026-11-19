@@ -4,8 +4,9 @@ void() CSQC_Init =
 {
 
 	mouse = cvar("sensitivity");
-	if (!mouse)
+	if ((mouse <= 0))
 	{
+		mouse = 3;
 		cvar_set("sensitivity", "3");
 	}
 	registercvar("hud_proxcount_big", "1");
@@ -79,32 +80,7 @@ void() CSQC_Init =
 	precache_sound("robhead/key4.wav");
 	precache_sound("robhead/key_enter.wav");
 	precache_sound("robhead/key_beep.wav");
-	loadCFG();
-	if (((((((cvar("slowmo_powerup") == 1) || (cvar("slowmo_powerup") == 2)) || (cvar("slowmo_powerup") == 3)) || (cvar("slowmo_powerup") == 4)) || (cvar("slowmo_powerup") == 5)) || (cvar("slowmo_powerup") == 6)))
-	{
-		cvar_set("slowmo_powerup", "0");
-	}
-	mouse = cvar("saved4");
-	if (!mouse)
-	{
-		cvar_set("saved4", "200");
-	}
-	cvar_set("sv_stopspeed", ftos(cvar("saved4")));
-	mouse = cvar("saved3");
-	if (!mouse)
-	{
-		cvar_set("saved3", "0");
-	}
-	cvar_set("vanilla_ssg", ftos(cvar("saved3")));
 	mouse = cvar("sensitivity");
-	cvar_set("auto_save", ftos(cvar("savedgamecfg")));
-	cvar_set("quadreplacer", ftos(cvar("slowmo_powerup")));
-	if ((cvar("enforcer_defender_prox") == 1))
-	{
-		cvar_set("enforcer_defender_prox", "3");
-	}
-	cvar_set("weaponautoswitch", ftos(cvar("enforcer_defender_prox")));
-	cvar_set("effects_explosion_shake", ftos(cvar("soldier_nailgrunt")));
 	mp_temp = maxplayers;
 	if (!maxplayers)
 	{
@@ -126,7 +102,6 @@ void() CSQC_Init =
 	mp_change = maxplayers;
 	check_gamemode();
 	loadScreenSize();
-	updateScreenSize();
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
 	precache_pic("progs/mmt_aim_beam");
@@ -136,7 +111,7 @@ void() CSQC_Shutdown =
 {
 	local float j;
 
-	if ((mouse > 0))
+	if ((menu_was_open && (mouse > 0)))
 		cvar_set("sensitivity", ftos(mouse));
 	if (maplist_loaded)
 	{
@@ -150,7 +125,6 @@ void() CSQC_Shutdown =
 		maplist_loaded = 0;
 	}
 	maxplayers = mp_temp;
-	saveCFG();
 };
 
 // Mega Man Tank trajectory aiming line & impact reticle (stats 86..92 from mm_tank.qc; the server sends them as
@@ -308,53 +282,67 @@ void(float w, float h) CSQC_UpdateView =
 			BM_DrawIntroHUD(w, h);
 		}
 	}
-	else if (((((!intermission && !finale) && (showHUD > 0)) && !inMenu) || (UIDraw == 1)))
+	else
 	{
-		fade_camera();
-		if (fd_mode > 0)
+		setHUDparms();
+		getItems();
+		cw = vid_conwidth;
+		ch = vid_conheight;
+		if (cw <= 0)
+			cw = cvar("vid_conwidth");
+		if (ch <= 0)
+			ch = cvar("vid_conheight");
+		if (cw <= 0)
+			cw = w;
+		if (ch <= 0)
+			ch = h;
+		if (((!intermission && !finale && !inMenu) || (UIDraw == 1)))
 		{
-			RH_DrawXRayHUD(w, h);	// also draws the bottom-left centerprint toast (BM_DrawCenterPrint), which the normal HUD path draws otherwise
-		}
-		else
-		{
-			MMT_DrawAimReticle2D(w, h);
-			if (hud_style >= 1 && hud_style <= 4)
+			if (fd_mode > 0)
 			{
-				cw = vid_conwidth;
-				ch = vid_conheight;
-				if (cw <= 0)
-					cw = cvar("vid_conwidth");
-				if (ch <= 0)
-					ch = cvar("vid_conheight");
-				if (cw <= 0)
-					cw = w;
-				if (ch <= 0)
-					ch = h;
-				setHUDparms();
-				getItems();
-				if (hud_style == 1)
-					HUD_DrawStyle1(cw, ch);
-				else if (hud_style == 2)
-					HUD_DrawStyle2(cw, ch);
-				else if (hud_style == 3)
-					HUD_DrawStyle3(cw, ch);
-				else
-					HUD_DrawStyle4(cw, ch);
+				if (showHUD > 0 || UIDraw == 1)
+					fade_camera();
+				RH_DrawXRayHUD(w, h);	// also draws the bottom-left centerprint toast (BM_DrawCenterPrint), which the normal HUD path draws otherwise
 			}
 			else
 			{
-				DrawHUD();
-				BM_DrawHUD(w, h);	// Bakersfield LAN: reload bar, magazine, leader banner (bm_hud.qc)
-			}
-			if (!intermission && !finale && !inMenu)
-			{
-				JB_DrawHUD(w, h);
-				BM_DrawMinimap(w, h);
+				if (!intermission && !finale && !inMenu)
+					MMT_DrawAimReticle2D(cw, ch);
+				if (showHUD > 0 || UIDraw == 1)
+				{
+					fade_camera();
+					if (hud_style >= 1 && hud_style <= 4)
+					{
+						if (hud_style == 1)
+							HUD_DrawStyle1(cw, ch);
+						else if (hud_style == 2)
+							HUD_DrawStyle2(cw, ch);
+						else if (hud_style == 3)
+							HUD_DrawStyle3(cw, ch);
+						else
+							HUD_DrawStyle4(cw, ch);
+					}
+					else
+					{
+						DrawHUD();
+						BM_DrawHUD(w, h);	// Bakersfield LAN: reload bar, magazine, leader banner (bm_hud.qc)
+					}
+					displayIntro();
+					DrawLevelName('0.9 0.1 0');
+					spawnBots();
+				}
+				else
+				{
+					BM_DrawCenterPrint(cw, ch);
+				}
+				if (!intermission && !finale && !inMenu)
+				{
+					KY_DrawHUD(cw, ch);
+					JB_DrawHUD(w, h);
+					BM_DrawMinimap(w, h);
+				}
 			}
 		}
-		displayIntro();
-		DrawLevelName('0.9 0.1 0');
-		spawnBots();
 	}
 	if (!bm_intro)
 	{
@@ -369,8 +357,15 @@ void(float w, float h) CSQC_UpdateView =
 void(float isnew) CSQC_Ent_Update =
 {
 	local float flags;
+	local float wtype;
 
 	self.enttype = ReadByte();
+	if ((self.enttype == ET_WORLDSPAWN))
+	{
+		self.drawmask = 0;
+		wtype = ReadByte();
+		return;
+	}
 	if ((self.enttype == ENT_PARTICLE_EMITTER))
 	{
 		flags = ReadByte();
@@ -1398,7 +1393,11 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 			if ((flEventType == INPUT_KEYDOWN))
 			{
 				sound(self, CHAN_ITEM, "misc/menu3.wav", 1, ATTN_NONE);
-				if ((sliderPos < 7))
+				if ((sliderPos < 0))
+				{
+					sliderPos = 0;
+				}
+				else if ((sliderPos < 7))
 				{
 					sliderPos = sliderPos + 1;
 				}
@@ -1406,6 +1405,7 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 				{
 					sliderPos = 0;
 				}
+				updateScreenSize();
 			}
 		}
 		if (((keySelect == 10) && (inMenu != 3)))
@@ -1479,10 +1479,15 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 			if ((flEventType == INPUT_KEYDOWN))
 			{
 				sound(self, CHAN_ITEM, "misc/menu3.wav", 1, ATTN_NONE);
-				if ((sliderPos < 7))
+				if ((sliderPos < 0))
+				{
+					sliderPos = 0;
+				}
+				else if ((sliderPos < 7))
 				{
 					sliderPos = sliderPos + 1;
 				}
+				updateScreenSize();
 			}
 		}
 		if ((flKey == K_LEFTARROW))
@@ -1490,10 +1495,15 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 			if ((flEventType == INPUT_KEYDOWN))
 			{
 				sound(self, CHAN_ITEM, "misc/menu3.wav", 1, ATTN_NONE);
-				if ((sliderPos > 0))
+				if ((sliderPos < 0))
+				{
+					sliderPos = 0;
+				}
+				else if ((sliderPos > 0))
 				{
 					sliderPos = sliderPos - 1;
 				}
+				updateScreenSize();
 			}
 		}
 	}
@@ -1501,11 +1511,11 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 	{
 		if ((flEventType == INPUT_KEYDOWN))
 		{
-			if (((inMenu == 4) && (arrowPos >= 10)))
+			if (((inMenu == 4) && (mapcount > 0) && (arrowPos > 0)))
 			{
 				sound(self, CHAN_ITEM, "misc/menu3.wav", 0.5, ATTN_NONE);
-				arrowPos = arrowPos - 10;
-				posveclist = posveclist - '0 100 0';
+				arrowPos = bound(0, (arrowPos - 10), (mapcount - 1));
+				posveclist_y = 292 + (arrowPos * 10);
 			}
 		}
 	}
@@ -1513,11 +1523,11 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 	{
 		if ((flEventType == INPUT_KEYDOWN))
 		{
-			if (((inMenu == 4) && (arrowPos <= 590)))
+			if (((inMenu == 4) && (mapcount > 0) && (arrowPos < (mapcount - 1))))
 			{
 				sound(self, CHAN_ITEM, "misc/menu3.wav", 0.5, ATTN_NONE);
-				arrowPos = arrowPos + 10;
-				posveclist = posveclist + '0 100 0';
+				arrowPos = bound(0, (arrowPos + 10), (mapcount - 1));
+				posveclist_y = 292 + (arrowPos * 10);
 			}
 		}
 	}
@@ -1560,27 +1570,23 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 							}
 							else
 							{
-								if ((inMenu == 4))
+								if (((inMenu == 4) && (mapcount > 0)))
 								{
 									keytimer = keytimer + 1;
-									if (((keytimer >= 30) && (arrowPos <= 690)))
+									if ((keytimer >= 30))
 									{
 										arrowPos = arrowPos + 3;
-										posveclist = posveclist + '0 30 0';
+									}
+									else if (!POINTS_TO_BSP)
+									{
+										arrowPos = arrowPos + 20;
 									}
 									else
 									{
-										if ((!POINTS_TO_BSP && (arrowPos <= 300)))
-										{
-											arrowPos = arrowPos + 20;
-											posveclist = posveclist + '0 200 0';
-										}
-										else
-										{
-											arrowPos = arrowPos + 1;
-											posveclist = posveclist + '0 10 0';
-										}
+										arrowPos = arrowPos + 1;
 									}
+									arrowPos = bound(0, arrowPos, (mapcount - 1));
+									posveclist_y = 292 + (arrowPos * 10);
 								}
 								else
 								{
@@ -1643,27 +1649,23 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 							}
 							else
 							{
-								if (((inMenu == 4) && (0 > 300)))
+								if (((inMenu == 4) && (mapcount > 0) && (arrowPos > 0)))
 								{
 									keytimer = keytimer + 1;
 									if (((keytimer >= 30) && (arrowPos >= 10)))
 									{
 										arrowPos = arrowPos - 3;
-										posveclist = posveclist - '0 30 0';
+									}
+									else if ((!POINTS_TO_BSP && (arrowPos >= 20)))
+									{
+										arrowPos = arrowPos - 20;
 									}
 									else
 									{
-										if ((!POINTS_TO_BSP && (arrowPos >= 20)))
-										{
-											arrowPos = arrowPos - 20;
-											posveclist = posveclist - '0 200 0';
-										}
-										else
-										{
-											arrowPos = arrowPos + -1;
-											posveclist = posveclist - '0 10 0';
-										}
+										arrowPos = arrowPos - 1;
 									}
+									arrowPos = bound(0, arrowPos, (mapcount - 1));
+									posveclist_y = 292 + (arrowPos * 10);
 								}
 								else
 								{
@@ -1698,7 +1700,7 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 			}
 		}
 	}
-	if (((getkeybind(flKey) == "togglekeybinds") || (flKey == K_HOME)))
+	if (((getkeybind(flKey) == "togglekeybinds") || (inMenu && (flKey == K_HOME))))
 	{
 		if ((flEventType == INPUT_KEYUP))
 		{
@@ -1739,28 +1741,18 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 			}
 		}
 	}
-	if ((flKey == K_BACKSPACE))
+	if ((inMenu && (flKey == K_BACKSPACE)))
 	{
 		if ((flEventType == INPUT_KEYDOWN))
 		{
 			sound(self, CHAN_AUTO, "misc/menu2.wav", 1, ATTN_NONE);
-			if (!inMenu)
+			if ((inMenu == 5))
 			{
 				inMenu = 4;
 			}
 			else
 			{
-				if ((inMenu == 5))
-				{
-					inMenu = 4;
-				}
-				else
-				{
-					if (inMenu)
-					{
-						inMenu = 0;
-					}
-				}
+				inMenu = 0;
 			}
 		}
 	}

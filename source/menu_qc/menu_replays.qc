@@ -573,14 +573,14 @@ void(float clicked) BM_Replays_Draw =
 	}
 	else
 	{
-		drawsetcliparea(lx, ly, lw, lh);
+		BM_BeginClip(lx, ly, lw, lh);
 		for (i = g_rep_scroll; i < count && (i - g_rep_scroll) < vis + 1; i = i + 1)
 		{
 			y = ly + (i - g_rep_scroll) * (ch + gap);
 			if (y + ch <= ly + lh + 2)
 				BM_DrawReplayCard(lx, y, lw - ((max_scroll > 0) ? 10 : 0), ch, i, (g_rep_sel == i), clicked);
 		}
-		drawresetcliparea();
+		BM_EndClip();
 
 		if (max_scroll > 0)
 		{

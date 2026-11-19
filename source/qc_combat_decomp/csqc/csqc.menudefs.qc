@@ -163,8 +163,10 @@ void() saveCFG =
 	savedcvar[17] = strcat("'", ftos(cvar("slowmo_powerup")), "'");
 	savedcvar[18] = strcat("'", ftos(maxplayers), "'");
 	fedit = fopen("config_menu.cfg", FILE_WRITE);
+	if ((fedit < 0))
+		return;
 	x = 0;
-	while ((x <= 19))
+	while ((x <= 18))
 	{
 		fputs(fedit, strcat(" ", savedcvar[x]));
 		x = x + 1;
@@ -725,48 +727,115 @@ void() ShowKeybinds =
 
 void() loadScreenSize =
 {
+	local float vw, vh, cw, aspect;
 
-	if (((cvar("vid_width") / cvar("vid_height")) != 1.33333))
+	sliderPos = -1;
+	vw = cvar("vid_width");
+	vh = cvar("vid_height");
+	if ((vh <= 0))
+		return;
+	aspect = vw / vh;
+	cw = cvar("vid_conwidth");
+	if ((aspect != 1.33333))
 	{
-		if ((cvar("vid_conwidth") == 624))
+		if ((cw == 624))
 		{
 			sliderPos = 0;
+			wepbar_offset = VEC_0;
 		}
-		if ((cvar("vid_conwidth") == 640))
+		else if ((cw == 640))
 		{
 			sliderPos = 1;
+			wepbar_offset = '10 5 0';
 		}
-		if ((cvar("vid_conwidth") == 672))
+		else if ((cw == 672))
 		{
 			sliderPos = 2;
+			wepbar_offset = '25 10 0';
 		}
-		if ((cvar("vid_conwidth") == 688))
+		else if ((cw == 688))
 		{
 			sliderPos = 3;
+			wepbar_offset = '35 15 0';
 		}
-		if ((cvar("vid_conwidth") == 720))
+		else if ((cw == 720))
 		{
 			sliderPos = 4;
+			wepbar_offset = '50 20 0';
 		}
-		if ((cvar("vid_conwidth") == 752))
+		else if ((cw == 752))
 		{
 			sliderPos = 5;
+			wepbar_offset = '65 25 0';
 		}
-		if ((cvar("vid_conwidth") == 816))
+		else if ((cw == 816))
 		{
 			sliderPos = 6;
+			wepbar_offset = '95 35 0';
 		}
-		if ((cvar("vid_conwidth") == 1116))
+		else if ((cw == 1116))
 		{
 			sliderPos = 7;
+			wepbar_offset = '245 85 0';
+		}
+	}
+	else
+	{
+		if ((cw == 632))
+		{
+			sliderPos = 0;
+			wepbar_offset = '0 90 0';
+		}
+		else if ((cw == 640))
+		{
+			sliderPos = 1;
+			wepbar_offset = '10 115 0';
+		}
+		else if ((cw == 672))
+		{
+			sliderPos = 2;
+			wepbar_offset = '25 130 0';
+		}
+		else if ((cw == 688))
+		{
+			sliderPos = 3;
+			wepbar_offset = '35 145 0';
+		}
+		else if ((cw == 720))
+		{
+			sliderPos = 4;
+			wepbar_offset = '50 160 0';
+		}
+		else if ((cw == 752))
+		{
+			sliderPos = 5;
+			wepbar_offset = '65 185 0';
+		}
+		else if ((cw == 784))
+		{
+			sliderPos = 6;
+			wepbar_offset = '80 200 0';
+		}
+		else if ((cw == 816))
+		{
+			sliderPos = 7;
+			wepbar_offset = '95 225 0';
 		}
 	}
 };
 
 void() updateScreenSize =
 {
+	local float vw, vh, aspect;
 
-	if (((cvar("vid_width") / cvar("vid_height")) != 1.33333))
+	if (((sliderPos < 0) || (sliderPos > 7)))
+		return;
+	vw = cvar("vid_width");
+	vh = cvar("vid_height");
+	if ((vh <= 0))
+		return;
+	aspect = vw / vh;
+	if ((aspect != 1.33333))
 	{
 		if ((sliderPos == 0))
 		{
@@ -918,6 +987,7 @@ void() ShowSlider =
 	local vector offsetMod;
 	local float i;
 	local float j;
+	local float sp;
 
 	i = 0;
 	while ((i <= 7))
@@ -939,8 +1009,8 @@ void() ShowSlider =
 		pos[((j * 3) / 3)] = (pos[((j * 3) / 3)] + offsetMod);
 		j = j + 1;
 	}
-	Sbar_DrawCharacter(pos[((sliderPos * 3) / 3)], 131, 1);
-	updateScreenSize();
+	sp = bound(0, sliderPos, 7);
+	Sbar_DrawCharacter(pos[((sp * 3) / 3)], 131, 1);
 };
 
 void() DrawSliderSlot =

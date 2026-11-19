@@ -194,18 +194,12 @@ void() fixIntermission =
 	if (!intermission)
 	{
 		if (finale)
-		{
 			finale = 0;
-			if (((mouse > 0) && (sens == 0)))
-				cvar_set("sensitivity", ftos(mouse));
-		}
-		else if ((sens > 0))
+		if ((sens > 0) && !menu_was_open)
 			mouse = sens;
 		return;
 	}
 	finale = 2;
-	if ((sens != 0))
-		cvar_set("sensitivity", "0");
 	viewpos = getentityvec(player_localentnum, E_ORIGINANDVECTORS);
 	viewang = vectoangles2(v_forward, v_up);
 	viewang_x = 0 - viewang_x;
@@ -820,26 +814,23 @@ void() DrawHUD =
 
 void() initConvars =
 {
+	local float vs;
+
 	vid_conwidth = cvar("vid_conwidth");
 	vid_conheight = cvar("vid_conheight");
 	sbar_alpha = cvar("sbar_alpha_fg");
 	csqc_slowmo = cvar("slowmo");
-	if ((cvar("viewsize") == 100))
+	vs = cvar("viewsize");
+	if ((vs >= 120))
 	{
-		showHUD = 2;
+		showHUD = 0;
+	}
+	else if ((vs >= 110))
+	{
+		showHUD = 1;
 	}
 	else
 	{
-		if ((cvar("viewsize") == 110))
-		{
-			showHUD = 1;
-		}
-		else
-		{
-			if ((cvar("viewsize") == 120))
-			{
-				showHUD = 0;
-			}
-		}
+		showHUD = 2;
 	}
 };

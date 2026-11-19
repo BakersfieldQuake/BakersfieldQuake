@@ -96,14 +96,48 @@ void(float x, float y, string s, float sz, float a) BM_DrawColorText =
 	drawcolorcodedstring(pos, s, sc, a, 0);
 };
 
+void(float x, float y, float w, float h) BM_BeginClip =
+{
+	g_clip_active = TRUE;
+	g_clip_x = x;
+	g_clip_y = y;
+	g_clip_w = w;
+	g_clip_h = h;
+	drawsetcliparea(x, y, w, h);
+};
+
+void() BM_EndClip =
+{
+	g_clip_active = FALSE;
+	drawresetcliparea();
+};
+
 void(float x, float y, float w, string s, float sz, vector rgb, float a, float use_colors) BM_DrawTextClipped =
 {
-	drawsetcliparea(x, y - 1, w, sz + 3);
+	local float cx0, cy0, cx1, cy1;
+
+	cx0 = x;
+	cy0 = y - 1;
+	cx1 = x + w;
+	cy1 = cy0 + sz + 3;
+	if (g_clip_active)
+	{
+		if (cx0 < g_clip_x) cx0 = g_clip_x;
+		if (cy0 < g_clip_y) cy0 = g_clip_y;
+		if (cx1 > g_clip_x + g_clip_w) cx1 = g_clip_x + g_clip_w;
+		if (cy1 > g_clip_y + g_clip_h) cy1 = g_clip_y + g_clip_h;
+		if (cx1 <= cx0 || cy1 <= cy0)
+			return;
+	}
+	drawsetcliparea(cx0, cy0, cx1 - cx0, cy1 - cy0);
 	if (use_colors)
 		BM_DrawColorText(x, y, s, sz, a);
 	else
 		BM_DrawText(x, y, s, sz, rgb, a);
-	drawresetcliparea();
+	if (g_clip_active)
+		drawsetcliparea(g_clip_x, g_clip_y, g_clip_w, g_clip_h);
+	else
+		drawresetcliparea();
 };
 
 void(float cx, float y, string s, float sz, vector rgb, float a) BM_DrawTextCentered =

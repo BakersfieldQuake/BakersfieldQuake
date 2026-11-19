@@ -543,7 +543,7 @@ void(float w, float h, float hp, float y0) BM_DrawToyDock =
 	if (tmask & 128)
 	{
 		sn = sin (time * 9);
-		bs = "^5[N] FLYING BLUE SHELL READY!";
+		bs = "^5[9] FLYING BLUE SHELL READY!";
 		BM_ShadowColorRight (w - 8, y0, bs, 5, 0.75 + 0.25 * sn);
 		bm_topright_y = y0 + 9;
 	}
@@ -573,7 +573,7 @@ void() BM_DrawScoreKeys =
 	h = cvar ("vid_conheight");
 	cx = w * 0.5;
 	sz = 5;
-	l1 = "^3GUNS: ^7C^8:M4  ^7M^8:Garand  ^7N^8:MegaMan  ^7Y^8:Milky  ^7L^8:Laptop  ^71^8:Hammer  ^7R^8:Reload/Twirl";
+	l1 = "^3GUNS: ^7C^8:M4  ^7M^8:Garand  ^79^8:MegaMan  ^75^8:Milky  ^74^8:Laptop  ^71^8:Hammer  ^7R^8:Reload/Twirl";
 	l2 = "^3TOYS: ^7F^8:RobDob  ^7I^8:Jar  ^7X^8:Pickle  ^7B^8:NetSend  ^7U^8:Dookie  ^7G^8:Wheelman  ^7Z^8:Kyle  ^7H^8:Drive/Ride  ^7P^8:JohnBird  ^7J^8/2xSpace:Jetpack";
 	w1 = stringwidth (l1, TRUE, sz * '1 1 0');
 	w2 = stringwidth (l2, TRUE, sz * '1 1 0');
@@ -589,14 +589,25 @@ void() BM_DrawScoreKeys =
 	BM_Centered (cx, y0 + 7, l2, sz, '1 1 1', 0.95);
 };
 
-void(float w, float h) KY_DrawHUD =
+void(float raw_w, float raw_h) KY_DrawHUD =
 {
-	local float mode, prog, dist, cx, cy, bw, bh, x0, y0, r, arm, th, pulse, sx, sy;
+	local float w, h, hp, mode, prog, dist, cx, cy, bw, bh, x0, y0, r, arm, th, pulse, sx, sy;
 	local vector wp, sp, col;
 	local string lbl;
 
+	hp = getstati (STAT_HEALTH);
+	if (hp <= 0)
+		return;
 	mode = getstati (103);
 	if (mode <= 0)
+		return;
+	w = vid_conwidth;
+	h = vid_conheight;
+	if (w <= 0)
+		w = raw_w;
+	if (h <= 0)
+		h = raw_h;
+	if (w <= 0 || h <= 0)
 		return;
 	prog = bound (0, getstati (104), 100);
 	dist = getstati (105);
@@ -753,8 +764,6 @@ void(float w, float h) BM_DrawHUD =
 			BM_DrawToyDock (w, h, hp, ty);
 	}
 	BM_DrawCenterPrint (w, h);
-	if (hp > 0 && !intermission)
-		KY_DrawHUD (w, h);
 
 	// low health: red edges, pulsing, fading out as you heal
 	if (hp > 0 && hp < 40)

@@ -9,7 +9,7 @@ float OPT_TAB_COUNT    = 4;
 float OPT_VID_COUNT    = 15;
 float OPT_GFX_COUNT    = 26;
 float OPT_CTRL_COUNT   = 21;
-float OPT_WEP_COUNT    = 19;
+float OPT_WEP_COUNT    = 20;
 
 float SL_HDR      = 1;
 float SL_GAMMA    = 2;
@@ -259,7 +259,8 @@ string(float tab, float idx) BM_Opt_BindLabel =
 	if (idx == 15) return "Fun: Pickle Surprise";
 	if (idx == 16) return "Fun: NetSend PC";
 	if (idx == 17) return "Fun: Dookie Bazooka";
-	return "Fun: Wheelman Cannon";
+	if (idx == 18) return "Fun: Wheelman Cannon";
+	return "Fun: Pocket Kyle";
 };
 
 string(float tab, float idx) BM_Opt_BindCmd =
@@ -307,7 +308,8 @@ string(float tab, float idx) BM_Opt_BindCmd =
 	if (idx == 15) return "impulse 63";
 	if (idx == 16) return "impulse 64";
 	if (idx == 17) return "impulse 65";
-	return "impulse 66";
+	if (idx == 18) return "impulse 66";
+	return "impulse 68";
 };
 
 string(string cmd) BM_Opt_GetBoundKeys =
@@ -317,7 +319,11 @@ string(string cmd) BM_Opt_GetBoundKeys =
 
 	raw = findkeysforcommand(cmd, 0);
 	if (raw == "")
+	{
+		if (cmd == "impulse 41")
+			return BM_Opt_GetBoundKeys("reload");
 		return "UNBOUND";
+	}
 	n = tokenize(raw);
 	out = "";
 	for (i = 0; i < n; i = i + 1)
@@ -345,21 +351,24 @@ void(string cmd) BM_Opt_ClearCmdBinds =
 	local float n, i, kn, keys_to_clear[8], cnt;
 
 	raw = findkeysforcommand(cmd, 0);
-	if (raw == "")
-		return;
-	n = tokenize(raw);
-	cnt = 0;
-	for (i = 0; i < n && cnt < 8; i = i + 1)
+	if (raw != "")
 	{
-		kn = stof(argv(i));
-		if (kn > 0)
+		n = tokenize(raw);
+		cnt = 0;
+		for (i = 0; i < n && cnt < 8; i = i + 1)
 		{
-			keys_to_clear[cnt] = kn;
-			cnt = cnt + 1;
+			kn = stof(argv(i));
+			if (kn > 0)
+			{
+				keys_to_clear[cnt] = kn;
+				cnt = cnt + 1;
+			}
 		}
+		for (i = 0; i < cnt; i = i + 1)
+			setkeybind(keys_to_clear[i], "", 0);
 	}
-	for (i = 0; i < cnt; i = i + 1)
-		setkeybind(keys_to_clear[i], "", 0);
+	if (cmd == "impulse 41")
+		BM_Opt_ClearCmdBinds("reload");
 };
 
 float() BM_Opt_IsLiveColorDrag =
@@ -549,7 +558,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 		return;
 	}
 
-	drawsetcliparea(ix, iy, iw, ih);
+	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < OPT_VID_COUNT; i = i + 1)
 	{
 		r = i - g_opt_scroll;
@@ -559,7 +568,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 			BM_Options_DrawVideoRow(ix, ry, iw, rh, i, clicked);
 		}
 	}
-	drawresetcliparea();
+	BM_EndClip();
 
 	if (max_scroll > 0)
 	{
@@ -1002,7 +1011,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 	max_scroll = max(0, OPT_GFX_COUNT - vis);
 	g_opt_scroll = bound(0, g_opt_scroll, max_scroll);
 
-	drawsetcliparea(ix, iy, iw, ih);
+	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < OPT_GFX_COUNT; i = i + 1)
 	{
 		r = i - g_opt_scroll;
@@ -1012,7 +1021,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 			BM_Options_DrawGraphicsRow(ix, ry, iw, rh, i, clicked);
 		}
 	}
-	drawresetcliparea();
+	BM_EndClip();
 
 	if (max_scroll > 0)
 	{
@@ -1064,7 +1073,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 	max_scroll = max(0, total - vis);
 	g_opt_scroll = bound(0, g_opt_scroll, max_scroll);
 
-	drawsetcliparea(ix, iy, iw, ih);
+	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < total; i = i + 1)
 	{
 		r = i - g_opt_scroll;
@@ -1100,12 +1109,12 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 				g_click_consumed = TRUE;
 				g_bind_listen_idx = i;
 				BM_PlaySound("sound/misc/menu1.wav");
-				drawresetcliparea();
+				BM_EndClip();
 				return;
 			}
 		}
 	}
-	drawresetcliparea();
+	BM_EndClip();
 
 	if (max_scroll > 0)
 	{

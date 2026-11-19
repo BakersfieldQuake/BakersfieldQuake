@@ -192,7 +192,7 @@ void(float clicked) BM_Host_Draw =
 	max_scroll = max(0, rows - vis_rows);
 	g_host_scroll = bound(0, g_host_scroll, max_scroll);
 
-	drawsetcliparea(gx, gy, gw, gh);
+	BM_BeginClip(gx, gy, gw, gh);
 	for (i = 0; i < HOST_MAP_COUNT; i = i + 1)
 	{
 		r = floor(i / cols) - g_host_scroll;
@@ -224,7 +224,7 @@ void(float clicked) BM_Host_Draw =
 					now = gettime();
 					if (g_host_last_click_idx == i && now >= g_host_last_click_time && (now - g_host_last_click_time) <= HOST_DBLCLICK_TIME)
 					{
-						drawresetcliparea();
+						BM_EndClip();
 						BM_Host_StartMatch();
 						return;
 					}
@@ -235,7 +235,7 @@ void(float clicked) BM_Host_Draw =
 			}
 		}
 	}
-	drawresetcliparea();
+	BM_EndClip();
 	if (clicked && !g_click_consumed)
 	{
 		g_host_last_click_idx = -1;
@@ -347,6 +347,36 @@ void(float clicked) BM_Host_Draw =
 	}
 };
 
+float() BM_Host_VisRows =
+{
+	local float pw, ph, sw, gw, gh, cw, th, ch;
+
+	pw = g_vw - 40;
+	ph = g_vh - 32;
+	sw = bound(190, floor(pw * 0.35), 224);
+	gw = pw - sw - 38;
+	gh = ph - 50;
+	cw = floor((gw - 14) / 3);
+	th = floor(cw * 0.56);
+	ch = th + 17;
+	return max(1, floor((gh + 7) / (ch + 7)));
+};
+
+void() BM_Host_EnsureVisible =
+{
+	local float row, vis_rows, rows, max_scroll;
+
+	row = floor(g_host_map_idx / 3);
+	vis_rows = BM_Host_VisRows();
+	rows = ceil(HOST_MAP_COUNT / 3);
+	max_scroll = max(0, rows - vis_rows);
+	if (row < g_host_scroll)
+		g_host_scroll = row;
+	else if (row >= g_host_scroll + vis_rows)
+		g_host_scroll = row - vis_rows + 1;
+	g_host_scroll = bound(0, g_host_scroll, max_scroll);
+};
+
 void(float key, float ascii) BM_Host_KeyDown =
 {
 	g_host_last_click_idx = -1;
@@ -379,20 +409,22 @@ void(float key, float ascii) BM_Host_KeyDown =
 	else if (key == K_LEFTARROW)
 	{
 		g_host_map_idx = max(0, g_host_map_idx - 1);
+		BM_Host_EnsureVisible();
 	}
 	else if (key == K_RIGHTARROW)
 	{
 		g_host_map_idx = min(HOST_MAP_COUNT - 1, g_host_map_idx + 1);
+		BM_Host_EnsureVisible();
 	}
 	else if (key == K_UPARROW)
 	{
 		g_host_map_idx = max(0, g_host_map_idx - 3);
-		if (floor(g_host_map_idx / 3) < g_host_scroll)
-			g_host_scroll = floor(g_host_map_idx / 3);
+		BM_Host_EnsureVisible();
 	}
 	else if (key == K_DOWNARROW)
 	{
 		g_host_map_idx = min(HOST_MAP_COUNT - 1, g_host_map_idx + 3);
+		BM_Host_EnsureVisible();
 	}
 	else if (key == K_ENTER || key == K_KP_ENTER)
 	{

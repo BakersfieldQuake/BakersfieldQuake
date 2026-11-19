@@ -241,6 +241,11 @@ float g_cast_left;
 float g_cast_right;
 float g_cast_swap_start;
 float g_cast_next_swap;
+float g_clip_active;
+float g_clip_x;
+float g_clip_y;
+float g_clip_w;
+float g_clip_h;
 
 float CAST_COUNT = 10;
 
