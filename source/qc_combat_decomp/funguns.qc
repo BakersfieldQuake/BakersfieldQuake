@@ -176,8 +176,8 @@ float(float g) FunGun_Max =
 		return FG_WCANNON_MAX;
 	if (g == FG_M4)
 		return FG_M4_MAX;
-	if (g == FG_TOMMY)
-		return FG_TOMMY_MAX;
+	if (g == FG_KYLE)
+		return FG_KYLE_MAX;
 	if (g == FG_GARAND)
 		return FG_GARAND_MAX;
 	return FG_PICKLE_MAX;
@@ -197,8 +197,8 @@ float(float g) FunGun_RegenTime =
 		return FG_WCANNON_REGEN;
 	if (g == FG_M4)
 		return FG_M4_REGEN;
-	if (g == FG_TOMMY)
-		return FG_TOMMY_REGEN;
+	if (g == FG_KYLE)
+		return FG_KYLE_REGEN;
 	if (g == FG_GARAND)
 		return FG_GARAND_REGEN;
 	return FG_PICKLE_REGEN;
@@ -218,7 +218,7 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo6;
 	if (g == FG_M4)
 		return p.fg_ammo7;
-	if (g == FG_TOMMY)
+	if (g == FG_KYLE)
 		return p.fg_ammo8;
 	if (g == FG_GARAND)
 		return p.fg_ammo9;
@@ -239,7 +239,7 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo6 = v;
 	else if (g == FG_M4)
 		p.fg_ammo7 = v;
-	else if (g == FG_TOMMY)
+	else if (g == FG_KYLE)
 		p.fg_ammo8 = v;
 	else if (g == FG_GARAND)
 		p.fg_ammo9 = v;
@@ -263,7 +263,7 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen6;
 	if (g == FG_M4)
 		return p.fg_regen7;
-	if (g == FG_TOMMY)
+	if (g == FG_KYLE)
 		return p.fg_regen8;
 	if (g == FG_GARAND)
 		return p.fg_regen9;
@@ -284,7 +284,7 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen6 = v;
 	else if (g == FG_M4)
 		p.fg_regen7 = v;
-	else if (g == FG_TOMMY)
+	else if (g == FG_KYLE)
 		p.fg_regen8 = v;
 	else if (g == FG_GARAND)
 		p.fg_regen9 = v;

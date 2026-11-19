@@ -607,7 +607,7 @@ void() BM_BotShoot =
 		return;
 
 	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar / Rob Head), swap smoothly
-	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.dk_charging && !self.gj_shaking && !self.rh_charging && self.hm_state != 1 && self.ltg_phase != 1)
+	if (!BM_BotCanUseWeapon (BM_BotCurWeaponID ()) && !self.wc_charging && !self.dk_charging && !self.gj_shaking && !self.rh_charging && !self.ky_locking && self.hm_state != 1 && self.ltg_phase != 1)
 	{
 		dist = vlen (realorigin (self.enemy) - self.origin);
 		self.bm_bot_wep_t = 0;
@@ -750,6 +750,29 @@ void() BM_BotShoot =
 				{
 					self.button0 = TRUE;
 					self.bm_bot_wc_rel = time + 0.45 + random () * 0.70;
+				}
+			}
+			else if (time < self.bm_bot_wc_rel)
+				self.button0 = TRUE;
+			else
+				self.button0 = FALSE;
+			return;
+		}
+
+		// Pocket Kyle: hold fire briefly to wind up / lock, then release to throw!
+		if (g == FG_KYLE)
+		{
+			if (self.ky_throw_at > 0)
+			{
+				self.button0 = FALSE;
+				return;
+			}
+			if (!self.ky_locking)
+			{
+				if (time >= self.ky_cool)
+				{
+					self.button0 = TRUE;
+					self.bm_bot_wc_rel = time + 0.30 + random () * 0.45;
 				}
 			}
 			else if (time < self.bm_bot_wc_rel)
@@ -1611,7 +1634,7 @@ void() BM_BotPostAI =
 		else
 			self.button0 = TRUE;
 	}
-	if (self.weapon == IT_FUNGUN && ((self.fg_sel == FG_WCANNON && self.wc_charging > 0) || (self.fg_sel == FG_DOOKIE && self.dk_charging > 0)))
+	if (self.weapon == IT_FUNGUN && ((self.fg_sel == FG_WCANNON && self.wc_charging > 0) || (self.fg_sel == FG_DOOKIE && self.dk_charging > 0) || (self.fg_sel == FG_KYLE && self.ky_locking > 0)))
 	{
 		if (!self.enemy || time >= self.bm_bot_wc_rel)
 			self.button0 = FALSE;

@@ -6,30 +6,30 @@
 THE POCKET KYLE (Fun Gun Slot 8, FG_KYLE = 8, BM_FG8 = 17, impulse 68, key Z / -)
 
 Kyle Tillet: greedy businessman with giant chrome scissors who always wants a 50% cut!
-  - Pull Out (Draw): plays random "Whoa man!" / "Whoa!" voice clip + 12-frame surprised pop-up.
+  - Pull Out (Draw): silent 12-frame surprised pop-up (NO draw voice SFX).
   - Idle: quiet chillin' 24-FPS loop with darting eyes, blinks & occasional casual snip (NO scissor SFX at idle).
-  - Hold Mouse1 (Lock-On): frantic 24-FPS scissoring + yelling face + snip SFX; locks onto enemies
-    in crosshair cone (0.55s; extra-fast 0.35s lock vs Winged John Bird!).
-  - Release Mouse1 (Yeet Kyle): 4-beat comedic throw (stress-toy squeeze -> uncurling fingers ->
-    open palm + spinning launch -> boingy pop-up):
-      * Locked-on: Homing Paper-Plane Kyle glides/hunts through the sky (overhead scissors + cash trail),
-        countering Winged John Bird with 2x snip damage + wing slow!
-      * Un-locked quick tap: Ground-Runner Kyle sprints with chopping scissors chasing nearby enemies,
-        or raids nearby shop counters/registers spraying US $100 bills & coins, or wanders talking!
+  - Hold Mouse1 (Lock-On): frantic 24-FPS scissoring + yelling face + snip SFX; locks onto sky birds/vehicles
+    in crosshair cone (0.48s inside 780u hairspray-counter range) or winds up throw power.
+  - Release Mouse1 (Yeet Kyle): 42-frame physical throw:
+      * Locked-on: Homing Superman-Torpedo Kyle flies nose-first straight at the target with 3D chrome
+        scissors chopping out in front (no spin), countering Winged John Bird with 2x snip damage + wing slow!
+      * Un-locked throw: flies forward chopping scissors in front (no spin), then sprints chasing nearby enemies!
   - Peripheral Latch: latches right into the victim's forward-side peripheral vision (~34u ahead,
     +/-22u side) for up to 5s (shootable, 35 HP), frantically chopping for 12 dmg / 0.45s while
     erupting realistic US $100 bills, 2024 Washington Silver Quarters & Sacagawea Gold Dollars
     visible to both the victim and everyone in third-person!
 
 Assets (zz_kyle.pk3):
-  progs/v_kyle.md3 + v_kyle.md3_0..111.skin + progs/kvm_000..111.png + scripts/kylevm.shader
+  progs/v_kyle.md3 + v_kyle.md3_0..149.skin + scripts/kylevm.shader
     0..47    Idle (48f @ 24 FPS)
-    48..71   Hold-to-Lock frantic chop & yell (24f @ 24 FPS)
-    72..99   4-beat comedic Throw + pop-up (28f @ 24 FPS)
-    100..111 Pull-out Draw pop-up (12f @ 24 FPS)
-  progs/kyle_proj.spr32 (256f: 8 dirs x [8 run + 8 overhead + 8 front + 8 idle])
+    48..71   Ground Throw Power Wind-Up (24f @ 24 FPS)
+    72..95   Horizontal Superman Bird Lock-On (24f @ 24 FPS)
+    96..137  42-frame Real Physical Throw + pop-up
+    138..149 Pull-out Draw pop-up (12f @ 24 FPS)
+  progs/kyle_proj.spr32 (272f: 8 dirs x [8 run + 8 overhead + 8 front + 8 idle] + 8 below + 8 above)
+  progs/kyle_torpedo.md3 (8f: horizontal Superman Kyle w/ 3D snapping chrome scissors straight out in front)
   progs/kyle_cash.spr32 (24f: 8 US $100 bills + 8 Silver Quarters + 8 Gold Dollars)
-  sound/kyle/ wavs (17 clean clips — ZERO "Will stole my clients" clips)
+  sound/kyle/ wavs (ZERO "Will stole my clients" clips)
 ================
 */
 
@@ -62,9 +62,15 @@ float	KY_LATCH_TIME		= 5.0;		// max latch duration before popping
 float	KY_CHOP_INTERVAL	= 0.45;		// seconds between scissor chops while latched
 float	KY_CHOP_DMG			= 12;		// damage per chop (24 vs Winged John Bird!)
 float	KY_SCALE			= 0.50;		// bold, crystal-clear ~80u tall in world
-float	KY_LIFE				= 16.0;		// max lifetime for ground-runner / wander Kyle
+float	KY_LIFE				= 12.0;		// max lifetime for ground-runner / wander Kyle
 float	KY_MAX_ACTIVE		= 4;		// max simultaneous Kyles per owner
 float	KY_CASH_MAX			= 42;		// global FIFO cap on fluttering US bills & coins
+
+// Sound attenuation: tighter than ATTN_NORM (1.0 = 1000u) so distant/off-screen Kyles never spam the map
+float	KY_ATTN_DEATH		= 1.5;		// ~665u: latch & death pop
+float	KY_ATTN_VOICE		= 1.8;		// ~555u: flight/lock voice
+float	KY_ATTN_SNIP		= 2.0;		// ~500u: scissor snips, lock ticks, scissor clangs
+float	KY_ATTN_ROAM		= 2.2;		// ~455u: ground runner / wander voice lines
 
 // Projectile animation states in progs/kyle_proj.spr32 (272 frames)
 float	KY_ANIM_RUN			= 0;		// frames   0..63  (8 dirs x 8f @ 13 FPS)

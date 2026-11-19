@@ -56,17 +56,9 @@ void() Kyle_Precache =
 		KY_RangeInit ();
 };
 
-// DRAW / PULL-OUT: whoa_06_double_warble @ 1.19x, whoa_02_wobble
-void(entity e) KY_PlayWhoa =
+void(entity e, float chan, string samp, float vol, float pitch, float attn) KY_Snd =
 {
-	local float r, pitch;
-
-	r = random ();
-	pitch = 0.97 + random () * 0.06;
-	if (r < 0.55)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_6.wav", 0.98, pitch);
-	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.96, pitch);
+	sound7 (e, chan, samp, vol, attn, SNDSPD * pitch);
 };
 
 // BIRD LOCK-ON: whoa_05_long @ 1.35x, whoa_08_superman_doppler @ 1.35x
@@ -77,9 +69,9 @@ void(entity e) KY_PlayBirdLock =
 	r = random ();
 	pitch = 0.98 + random () * 0.04;
 	if (r < 0.52)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_5.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_5.wav", 0.90, pitch, KY_ATTN_VOICE);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 0.90, pitch, KY_ATTN_VOICE);
 };
 
 // THROW / SUPERMAN TORPEDO FLIGHT: whoa_08 @ 1.35x, whoa_06 @ 1.19x, whoa_09 @ 1.19x, whoa_02_wobble
@@ -90,13 +82,13 @@ void(entity e) KY_PlaySkyWhoa =
 	r = random ();
 	pitch = 0.97 + random () * 0.06;
 	if (r < 0.30)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 0.90, pitch, KY_ATTN_VOICE);
 	else if (r < 0.56)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_6.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_6.wav", 0.90, pitch, KY_ATTN_VOICE);
 	else if (r < 0.80)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_9.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_9.wav", 0.90, pitch, KY_ATTN_VOICE);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.88, pitch, KY_ATTN_VOICE);
 };
 
 // LATCH / CHOP: whoa_11 @ 1.13x, whoa_12, whoa_03_rise, whoa_01_short, edit_02_whoa_give_cut
@@ -107,15 +99,15 @@ void(entity e) KY_PlayLatch =
 	r = random ();
 	pitch = 0.97 + random () * 0.06;
 	if (r < 0.24)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_11.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_11.wav", 0.92, pitch, KY_ATTN_DEATH);
 	else if (r < 0.46)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_12.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_12.wav", 0.92, pitch, KY_ATTN_DEATH);
 	else if (r < 0.66)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut2.wav", 1.0, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/kyle_cut2.wav", 0.92, pitch, KY_ATTN_DEATH);
 	else if (r < 0.84)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_3.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_3.wav", 0.90, pitch, KY_ATTN_DEATH);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_1.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_1.wav", 0.90, pitch, KY_ATTN_DEATH);
 };
 
 // ROAM / CHASE: edit_01_hey_man_tight (primary!), plus classic Kyle/cut lines
@@ -126,30 +118,45 @@ void(entity e) KY_PlayLine =
 	r = random ();
 	pitch = 0.96 + random () * 0.08;
 	if (r < 0.55)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey_man.wav", 0.98, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/kyle_hey_man.wav", 0.78, pitch, KY_ATTN_ROAM);
 	else if (r < 0.72)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut.wav", 0.96, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/kyle_cut.wav", 0.76, pitch, KY_ATTN_ROAM);
 	else if (r < 0.86)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_man.wav", 0.96, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/whoa_man.wav", 0.76, pitch, KY_ATTN_ROAM);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey.wav", 0.95, pitch);
+		KY_Snd (e, CHAN_VOICE, "kyle/kyle_hey.wav", 0.75, pitch, KY_ATTN_ROAM);
+};
+
+float(vector org, float rad) KY_HasNearbyPlayer =
+{
+	local entity p;
+
+	p = find (world, classname, "player");
+	while (p)
+	{
+		if (p.health > 0 && !p.deadflag && !p.bm_obs && vlen (p.origin - org) <= rad)
+			return TRUE;
+		p = find (p, classname, "player");
+	}
+	return FALSE;
 };
 
 // ---------------------------------------------------------------- realistic US currency particles
 
 void() KY_CashRemove =
 {
-	if (self.ky_cash_qprev)
+	if (self.ky_cash_qprev && !bm_wasfreed (self.ky_cash_qprev))
 		self.ky_cash_qprev.ky_cash_qnext = self.ky_cash_qnext;
 	else if (ky_cash_qhead == self)
 		ky_cash_qhead = self.ky_cash_qnext;
-	if (self.ky_cash_qnext)
+	if (self.ky_cash_qnext && !bm_wasfreed (self.ky_cash_qnext))
 		self.ky_cash_qnext.ky_cash_qprev = self.ky_cash_qprev;
 	else if (ky_cash_qtail == self)
 		ky_cash_qtail = self.ky_cash_qprev;
 	self.ky_cash_qprev = world;
 	self.ky_cash_qnext = world;
-	ky_cash_count = ky_cash_count - 1;
+	if (ky_cash_count > 0)
+		ky_cash_count = ky_cash_count - 1;
 	remove (self);
 };
 
@@ -282,27 +289,32 @@ void(vector org, float count, float speed_mult) KY_SpawnCashBurst =
 
 float(entity own, entity e) KY_IsValidTarget =
 {
+	local float own_ok;
+
 	if (e == world || bm_wasfreed (e))
 		return FALSE;
 	if (e.health <= 0 || !e.takedamage || e.solid == SOLID_NOT)
 		return FALSE;
+	own_ok = (own != world && !bm_wasfreed (own));
 	if (e.classname == "misc_vehicle_johnbird")
 	{
 		if (e.jb_dying)
 			return FALSE;
-		if (e.jb_pilot == own && !autocvar_kyle_test)
+		if (own_ok && e.jb_pilot == own && !autocvar_kyle_test)
 			return FALSE;
-		if (teamplay && e.jb_pilot != world && e.jb_pilot.team > 0 && e.jb_pilot.team == own.team)
+		if (teamplay && own_ok && e.jb_pilot != world && e.jb_pilot.team > 0 && e.jb_pilot.team == own.team)
 			return FALSE;
 		return TRUE;
 	}
 	if (e.classname == "player")
 	{
-		if (e == own)
+		if (e.deadflag || e.bm_obs)
+			return FALSE;
+		if (own_ok && e == own)
 			return (autocvar_kyle_test != 0);
 		if (e.jb_vehicle != world)
 			return FALSE;		// target the Winged John Bird vehicle itself!
-		if (teamplay && e.team > 0 && e.team == own.team)
+		if (teamplay && own_ok && e.team > 0 && e.team == own.team)
 			return FALSE;
 		return TRUE;
 	}
@@ -424,7 +436,7 @@ float() KY_ShowAll =
 //   KY_ANIM_ABOVE    (5): 264..271  (12 FPS — looking DOWN from above / bird's-eye!)
 float() KY_ProjCustomize =
 {
-	local float rel, d, k, dt, base, fps, dz, horiz;
+	local float rel, d, k, base, fps, dz, horiz;
 	local vector delta, eye;
 
 	eye = other.origin + other.view_ofs;
@@ -433,41 +445,29 @@ float() KY_ProjCustomize =
 	delta_z = 0;
 	horiz = vlen (delta);
 
-	// Above / Below vertical perspective switching!
-	// When thrown up into the sky (or viewed from below), show real studio From-Below view with scissors ABOVE him!
-	if ((self.ky_sky_throw && dz > 14 && self.movetype == MOVETYPE_TOSS) || (dz > 44 && dz > horiz * 0.36))
+	// Above / Below vertical perspective switching when grounded (never while flying — keep scissors in front!)
+	if (self.movetype != MOVETYPE_TOSS && self.ky_mode != KY_MODE_LATCHED && self.ky_mode != KY_MODE_DYING)
 	{
-		k = floor ((time - self.ky_anim_t) * 14);
-		k = k - 8 * floor (k / 8);
-		self.frame = 256 + k;
-		return TRUE;
-	}
-	// When viewed steeply from above (balcony, ledge, or flying Winged John Bird), show real From-Above view!
-	if (dz < -56 && (0 - dz) > horiz * 0.45 && self.ky_mode != KY_MODE_LATCHED)
-	{
-		k = floor ((time - self.ky_anim_t) * 12);
-		k = k - 8 * floor (k / 8);
-		self.frame = 264 + k;
-		return TRUE;
+		if (dz > 44 && dz > horiz * 0.36)
+		{
+			k = floor ((time - self.ky_anim_t) * 14);
+			k = k - 8 * floor (k / 8);
+			self.frame = 256 + k;
+			return TRUE;
+		}
+		if (dz < -56 && (0 - dz) > horiz * 0.45)
+		{
+			k = floor ((time - self.ky_anim_t) * 12);
+			k = k - 8 * floor (k / 8);
+			self.frame = 264 + k;
+			return TRUE;
+		}
 	}
 
-	dt = time - self.fg_born;
-	if (other == self.owner && dt < 0.48 && self.ky_mode != KY_MODE_LATCHED && self.ky_mode != KY_MODE_DYING)
-	{
-		// Slow, watchable Milky-style palm emergence: lifts off your open palm facing you, then twirls 360 deg!
-		if (dt < 0)
-			dt = 0;
-		k = dt / 0.48;
-		k = k * k * (3 - 2 * k);
-		rel = 360 * k;
-	}
+	if (horiz > 8)
+		rel = vectoyaw (delta) - self.angles_y;
 	else
-	{
-		if (horiz > 8)
-			rel = vectoyaw (delta) - self.angles_y;
-		else
-			rel = 0;
-	}
+		rel = 0;
 	rel = rel - 360 * floor (rel / 360);
 	d = floor (rel / 45.0 + 0.5);
 	if (d >= 8)
@@ -476,7 +476,7 @@ float() KY_ProjCustomize =
 	if (self.ky_anim == KY_ANIM_OVERHEAD)
 	{
 		base = 64;
-		fps = self.ky_sky_throw ? 15 : 13;
+		fps = 13;
 	}
 	else if (self.ky_anim == KY_ANIM_FRONT)
 	{
@@ -506,20 +506,23 @@ void() KY_ScissorTouch =
 {
 	local float spd, vol, r;
 
-	if (other.classname == "kyle_scissor_gib")
+	if (other.classname == "kyle_scissor_gib" || other.solid == SOLID_TRIGGER)
+		return;
+	if (self.fg_bounces >= 3)
 		return;
 	spd = vlen (self.velocity);
-	if (spd < 38 || time < self.ky_clang_t)
+	if (spd < 55 || time < self.ky_clang_t)
 		return;
-	self.ky_clang_t = time + 0.14;
-	vol = bound (0.25, spd / 280, 0.95);
+	self.fg_bounces = self.fg_bounces + 1;
+	self.ky_clang_t = time + 0.22;
+	vol = bound (0.25, spd / 280, 0.85);
 	r = random ();
 	if (r < 0.34)
-		FG_Snd (self, CHAN_AUTO, "kyle/scissor_clang1.wav", vol, 0.94 + random () * 0.14);
+		KY_Snd (self, CHAN_BODY, "kyle/scissor_clang1.wav", vol, 0.94 + random () * 0.14, KY_ATTN_SNIP);
 	else if (r < 0.68)
-		FG_Snd (self, CHAN_AUTO, "kyle/scissor_clang2.wav", vol, 0.94 + random () * 0.14);
+		KY_Snd (self, CHAN_BODY, "kyle/scissor_clang2.wav", vol, 0.94 + random () * 0.14, KY_ATTN_SNIP);
 	else
-		FG_Snd (self, CHAN_AUTO, "kyle/scissor_clang3.wav", vol, 0.94 + random () * 0.14);
+		KY_Snd (self, CHAN_BODY, "kyle/scissor_clang3.wav", vol, 0.94 + random () * 0.14, KY_ATTN_SNIP);
 
 	// Damp spin gradually as it bounces and settles flat on the ground
 	self.avelocity = self.avelocity * 0.72;
@@ -620,7 +623,12 @@ void() KY_CamThink =
 	local float px, orbiting;
 
 	p = self.owner;
-	if (p == world || bm_wasfreed (p) || p.health <= 0 || !autocvar_kyle_cam)
+	if (p == world || bm_wasfreed (p))
+	{
+		remove (self);
+		return;
+	}
+	if (p.health <= 0 || p.deadflag || intermission_running || !autocvar_kyle_cam || p.clientcamera != self)
 	{
 		KY_CamDetach (p);
 		return;
@@ -703,7 +711,7 @@ void(entity p, entity k, entity targ) KY_CamAttach =
 {
 	local entity cam;
 
-	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam)
+	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam || p.health <= 0 || p.deadflag || p.clientcamera != p)
 		return;
 	KY_CamDetach (p);
 	cam = spawn ();
@@ -734,14 +742,25 @@ void() KY_Pop =
 	if (self.ky_done)
 		return;
 	self.ky_done = TRUE;
+	// Immediately silence active voice/weapon loops so removed Kyles never keep talking in empty air
+	sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);
+	sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NONE);
 	remove (self);
 };
 
-// Comical death animation: brief 0.26s flailing pop-swell -> EXPLODES into realistic US money + 3 bouncing 3D chrome scissors!
+// Comical death animation: brief 0.26s flailing pop-swell -> EXPLODES into realistic US money + 1 bouncing 3D chrome scissors!
 void() KY_ProjDie =
 {
 	if (self.ky_done || self.ky_mode == KY_MODE_DYING)
 		return;
+	if (self.model != "progs/kyle_proj.spr32")
+	{
+		setmodel (self, "progs/kyle_proj.spr32");
+		setsize (self, '-14 -14 0', '14 14 58');
+		self.customizeentityforclient = KY_ProjCustomize;
+		self.angles_x = 0;
+		self.angles_z = 0;
+	}
 	self.ky_mode = KY_MODE_DYING;
 	self.ky_die_t = time + 0.26;
 	self.ky_anim = KY_ANIM_OVERHEAD;
@@ -750,9 +769,10 @@ void() KY_ProjDie =
 	self.takedamage = DAMAGE_NO;
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NONE;
+	self.touch = SUB_Null;
 	self.velocity = '0 0 0';
-	FG_Snd (self, CHAN_VOICE, "kyle/whoa_4.wav", 1.0, 1.18);
-	FG_Snd (self, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.9, 1.12);
+	KY_Snd (self, CHAN_VOICE, "kyle/whoa_4.wav", 0.92, 1.18, KY_ATTN_DEATH);
+	KY_Snd (self, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.85, 1.12, KY_ATTN_DEATH);
 	self.nextthink = time + 0.03;
 };
 
@@ -764,6 +784,7 @@ void(entity targ) KY_StartLatch =
 		setsize (self, '-14 -14 0', '14 14 58');
 		self.customizeentityforclient = KY_ProjCustomize;
 	}
+	self.solid = SOLID_BBOX;
 	self.scale = KY_SCALE;
 	self.angles_x = 0;
 	self.angles_z = 0;
@@ -771,13 +792,13 @@ void(entity targ) KY_StartLatch =
 	self.ky_targ = targ;
 	self.ky_latch_end = time + KY_LATCH_TIME;
 	self.ky_chop_t = time + 0.06;
-	self.ky_voice_t = time + 0.15;
+	self.ky_voice_t = time + 3.0 + random () * 0.8;
 	self.ky_anim = KY_ANIM_FRONT;
 	self.ky_anim_t = time;
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';
 	self.ky_latch_side = (random () < 0.5) ? -1 : 1;
-	FG_Snd (self, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.95, 1.0);
+	KY_Snd (self, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.90, 1.0, KY_ATTN_DEATH);
 	KY_PlayLatch (self);
 	if (targ.classname == "player")
 		centerprint (targ, "KYLE WANTS HIS 50% CUT! SHOOT HIM OFF!\n");
@@ -810,6 +831,8 @@ void(float want_yaw, float step_dist, float update_wander) KY_GroundStep =
 {
 	local float diff;
 
+	if (!(self.flags & FL_ONGROUND))
+		return;
 	diff = want_yaw - self.angles_y;
 	while (diff > 180)
 		diff = diff - 360;
@@ -850,7 +873,7 @@ void(float want_yaw, float step_dist, float update_wander) KY_GroundStep =
 
 void() KY_ProjTouch =
 {
-	if (self.ky_done || self.ky_mode == KY_MODE_LATCHED)
+	if (self.ky_done || self.ky_mode == KY_MODE_LATCHED || self.ky_mode == KY_MODE_DYING)
 		return;
 	if (other == self.owner && !autocvar_kyle_test)
 		return;
@@ -864,14 +887,29 @@ void() KY_ProjTouch =
 		KY_StartLatch (other);
 		return;
 	}
-	// Hit floor or wall while flying or tossed -> switch cleanly to MOVETYPE_STEP ground running!
+	// Hit floor or wall while flying or tossed -> switch cleanly to ground running (or drop via TOSS from mid-air wall hit)
 	if (other == world || other.solid == SOLID_BSP)
 	{
 		if (self.ky_mode == KY_MODE_HOMING)
 		{
-			if (trace_plane_normal_z > 0.5 || time > self.fg_born + 0.6)
+			if (trace_plane_normal_z > 0.5)
 			{
 				KY_EnterGroundStep ();
+			}
+			else if (time > self.fg_born + 0.6)
+			{
+				setmodel (self, "progs/kyle_proj.spr32");
+				setsize (self, '-14 -14 0', '14 14 58');
+				self.customizeentityforclient = KY_ProjCustomize;
+				self.scale = KY_SCALE;
+				self.angles_x = 0;
+				self.angles_z = 0;
+				self.ky_mode = KY_MODE_RUNNER;
+				self.ky_anim = KY_ANIM_FRONT;
+				self.ky_anim_t = time;
+				self.movetype = MOVETYPE_TOSS;
+				self.gravity = 0.48;
+				self.velocity = self.velocity - trace_plane_normal * (self.velocity * trace_plane_normal);
 			}
 			else
 			{
@@ -913,8 +951,8 @@ entity() KY_FindNearbyEnemy =
 void() KY_ProjThink =
 {
 	local entity targ, e;
-	local vector aim, pos, desired;
-	local float dist, spd, dmg, is_bird, prev_hp, step_dist;
+	local vector aim, pos, desired, tang;
+	local float dist, spd, dmg, is_bird, prev_hp, step_dist, pc;
 
 	if (self.ky_done)
 		return;
@@ -927,8 +965,8 @@ void() KY_ProjThink =
 			self.ky_done = TRUE;
 			KY_SpawnCashBurst (self.origin + '0 0 26', 14, 1.25);
 			KY_SpawnBouncingScissors (self.origin + '0 0 28', 1);
-			FG_Snd (self, CHAN_AUTO, "kyle/cash_register.wav", 0.90, 1.0);
-			FG_Snd (self, CHAN_WEAPON, "kyle/cash_flutter.wav", 0.85, 1.02);
+			KY_Snd (self, CHAN_AUTO, "kyle/cash_register.wav", 0.85, 1.0, KY_ATTN_DEATH);
+			KY_Snd (self, CHAN_WEAPON, "kyle/cash_flutter.wav", 0.80, 1.02, KY_ATTN_DEATH);
 			remove (self);
 			return;
 		}
@@ -942,12 +980,13 @@ void() KY_ProjThink =
 		return;
 	}
 
-	if (self.owner == world || bm_wasfreed (self.owner))
+	if (self.owner == world || bm_wasfreed (self.owner) || self.owner.classname != "player")
 	{
 		KY_Pop ();
 		return;
 	}
-	if (pointcontents (self.origin) == CONTENT_LAVA || pointcontents (self.origin) == CONTENT_SLIME)
+	pc = pointcontents (self.origin);
+	if (pc == CONTENT_LAVA || pc == CONTENT_SLIME || pc == CONTENT_SKY || pc == CONTENT_SOLID)
 	{
 		KY_Pop ();
 		return;
@@ -975,7 +1014,8 @@ void() KY_ProjThink =
 		else
 		{
 			// Sit right in the victim's forward-side peripheral vision (~34u ahead, +/-22u left/right)!
-			makevectors (targ.v_angle);
+			tang = (targ.classname == "player") ? targ.v_angle : targ.angles;
+			makevectors (tang);
 			desired = targ.origin + targ.view_ofs + v_forward * 34 + v_right * (22 * self.ky_latch_side) - '0 0 28';
 			traceline (targ.origin + targ.view_ofs, desired, TRUE, self);
 			if (trace_fraction < 1)
@@ -983,7 +1023,7 @@ void() KY_ProjThink =
 			else
 				pos = desired;
 			setorigin (self, pos);
-			self.angles_y = targ.v_angle_y + 180;
+			self.angles_y = tang_y + 180;
 		}
 
 		// Alternate frantic Front Lunge-Chop & Overhead Jump-Chop every 1.6s!
@@ -997,18 +1037,26 @@ void() KY_ProjThink =
 			self.ky_chop_t = time + KY_CHOP_INTERVAL;
 			dmg = is_bird ? (KY_CHOP_DMG * 2) : KY_CHOP_DMG;
 			prev_hp = targ.health;
+			pos = targ.origin;
 			fg_inflicting = FG_KYLE;
 			T_Damage (targ, self, self.owner, dmg);
 			fg_inflicting = 0;
-			FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.9, 0.94 + random () * 0.14);
-			// ONLY erupt realistic US $100 bills & 2024 coins when Kyle successfully deals damage!
-			if (bm_wasfreed (targ) || targ.health < prev_hp)
+			if (bm_wasfreed (targ) || !KY_IsValidTarget (self.owner, targ))
 			{
-				KY_SpawnCashBurst (targ.origin + '0 0 18', 5, 0.95);
-				if (random () < 0.45)
-					FG_Snd (self, CHAN_AUTO, "kyle/cash_flutter.wav", 0.55, 0.95 + random () * 0.10);
+				KY_SpawnCashBurst (pos + '0 0 18', 6, 1.05);
+				KY_Snd (self, CHAN_AUTO, "kyle/cash_flutter.wav", 0.60, 1.0, KY_ATTN_DEATH);
+				KY_Pop ();
+				return;
 			}
-			if (!bm_wasfreed (targ) && targ.classname == "player")
+			KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.82, 0.94 + random () * 0.14, KY_ATTN_DEATH);
+			// ONLY erupt realistic US $100 bills & 2024 coins when Kyle successfully deals damage!
+			if (targ.health < prev_hp)
+			{
+				KY_SpawnCashBurst (pos + '0 0 18', 5, 0.95);
+				if (random () < 0.45)
+					KY_Snd (self, CHAN_AUTO, "kyle/cash_flutter.wav", 0.50, 0.95 + random () * 0.10, KY_ATTN_DEATH);
+			}
+			if (targ.classname == "player")
 			{
 				targ.punchangle_x = crandom () * 2.4;
 				targ.punchangle_z = self.ky_latch_side * 2.8;
@@ -1016,7 +1064,7 @@ void() KY_ProjThink =
 		}
 		if (time >= self.ky_voice_t)
 		{
-			self.ky_voice_t = time + 1.55 + random () * 0.7;
+			self.ky_voice_t = time + 3.2 + random () * 1.0;
 			KY_PlayLatch (self);
 		}
 		self.nextthink = time + 0.03;
@@ -1030,7 +1078,7 @@ void() KY_ProjThink =
 		return;
 	}
 
-	// ---- MODE 1: BARREL-ROLLING SUPERMAN-TORPEDO KYLE (Slowly chasing the Bird at bird_speed + 85 u/s!) ----
+	// ---- MODE 1: SUPERMAN-TORPEDO KYLE (Nose-first chasing the Bird, scissors always in front chopping!) ----
 	if (self.ky_mode == KY_MODE_HOMING)
 	{
 		if (autocvar_kyle_cam > 0 && time >= self.fg_born + 0.22 && self.owner.ky_cam == world)
@@ -1062,20 +1110,20 @@ void() KY_ProjThink =
 				spd = bound (410, spd, 920);
 			else
 				spd = bound (320, spd, 620);
-			self.velocity = normalize (self.velocity * 0.72 + normalize (aim) * spd * 0.28) * spd;
+			desired = self.velocity * 0.72 + normalize (aim) * spd * 0.28;
+			if (vlen (desired) < 10)
+				desired = normalize (aim);
+			self.velocity = normalize (desired) * spd;
 
-			// Laying horizontally on his stomach Superman-style with giant 3D chrome scissors straight out in front,
-			// SPINNING SLOWLY IN A FLAT HORIZONTAL CIRCLE (~205 deg/sec = 1 slow full circle every ~1.75s)
-			// while cruising steadily after the Winged John Bird at bird_speed + 85 u/s!
+			// Fly nose-first with giant 3D chrome scissors ALWAYS straight out in front (NO spinning!), chopping vigorously!
 			desired = vectoangles (self.velocity);
 			if (desired_x > 180)
 				desired_x = desired_x - 360;
-			self.angles_x = bound (-14, (0 - desired_x) * 0.28, 14);
-			self.angles_y = (time - self.fg_born) * 205;
-			self.angles_y = self.angles_y - 360 * floor (self.angles_y / 360);
+			self.angles_x = bound (-45, desired_x, 45);
+			self.angles_y = desired_y;
 			self.angles_z = 0;
-			// Animate 3D chrome scissors snapping straight out in front (frames 0..7 @ 14 FPS)!
-			dist = floor ((time - self.fg_born) * 14);
+			// Animate 3D chrome scissors snapping straight out in front (frames 0..7 @ 16 FPS)!
+			dist = floor ((time - self.fg_born) * 16);
 			self.frame = dist - 8 * floor (dist / 8);
 		}
 		else
@@ -1092,22 +1140,24 @@ void() KY_ProjThink =
 			self.ky_anim_t = time;
 			self.movetype = MOVETYPE_TOSS;
 			self.gravity = 0.48;
+			self.nextthink = time + 0.04;
+			return;
 		}
 		if (time >= self.ky_air_snip_t)
 		{
-			self.ky_air_snip_t = time + 0.22;
-			FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.78, 1.00 + random () * 0.12);
+			self.ky_air_snip_t = time + 0.28;
+			KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.58, 1.00 + random () * 0.12, KY_ATTN_SNIP);
 		}
 		if (time >= self.ky_voice_t)
 		{
-			self.ky_voice_t = time + 2.0 + random () * 0.8;
+			self.ky_voice_t = time + 3.2 + random () * 1.0;
 			KY_PlaySkyWhoa (self);
 		}
 		self.nextthink = time + 0.04;
 		return;
 	}
 
-	// ---- AIRBORNE THROW FLIGHT (Watchable Sky Overhead Chop vs Forward Lunge Chop!) ----
+	// ---- AIRBORNE THROW FLIGHT (Scissors always in front chopping, NO spinning!) ----
 	if (self.movetype == MOVETYPE_TOSS)
 	{
 		if (time - self.fg_born < 0.45)
@@ -1124,24 +1174,29 @@ void() KY_ProjThink =
 		}
 		else
 		{
-			if (self.ky_sky_throw)
+			self.ky_anim = KY_ANIM_FRONT;
+			aim = self.velocity;
+			aim_z = 0;
+			if (vlen (aim) > 20)
+				self.angles_y = vectoyaw (aim);
+			if (time >= self.ky_air_snip_t)
 			{
-				// Soaring lazily high in the sky: giant scissors ABOVE him furiously chopping & kicking!
-				self.ky_anim = KY_ANIM_OVERHEAD;
-				if (time - self.fg_born >= 0.48)
+				self.ky_air_snip_t = time + 0.28;
+				KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.55, 0.98 + random () * 0.12, KY_ATTN_SNIP);
+			}
+			e = KY_FindNearbyEnemy ();
+			if (e != world)
+			{
+				dist = vlen (e.origin - self.origin);
+				if (dist <= 68)
 				{
-					self.angles_y = self.angles_y + 10;
-					if (self.angles_y >= 360)
-						self.angles_y = self.angles_y - 360;
-				}
-				if (time >= self.ky_air_snip_t)
-				{
-					self.ky_air_snip_t = time + 0.24;
-					FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.78, 1.05 + random () * 0.12);
+					self.scale = KY_SCALE;
+					KY_StartLatch (e);
+					self.nextthink = time + 0.03;
+					return;
 				}
 				// Anti-air intercept! If lobbed up near a flying Winged John Bird or enemy, transform into Superman Torpedo & hunt it!
-				e = KY_FindNearbyEnemy ();
-				if (e != world && vlen (e.origin - self.origin) <= 460)
+				if (self.ky_sky_throw && dist <= 460)
 				{
 					setmodel (self, "progs/kyle_torpedo.md3");
 					setsize (self, '-16 -16 -14', '16 16 14');
@@ -1151,26 +1206,15 @@ void() KY_ProjThink =
 					self.ky_sky_throw = FALSE;
 					self.movetype = MOVETYPE_FLYMISSILE;
 					self.scale = 1.25;
-					self.nextthink = time + 0.03;
-					return;
-				}
-			}
-			else
-			{
-				// Forward throw: smooth watchable arc doing front scissor lunges mid-air!
-				self.ky_anim = KY_ANIM_FRONT;
-				if (vlen (self.velocity) > 30)
-					self.angles_y = vectoyaw (self.velocity);
-				if (time >= self.ky_air_snip_t)
-				{
-					self.ky_air_snip_t = time + 0.26;
-					FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.65, 0.96 + random () * 0.10);
-				}
-				e = KY_FindNearbyEnemy ();
-				if (e != world && vlen (e.origin - self.origin) <= 68)
-				{
-					self.scale = KY_SCALE;
-					KY_StartLatch (e);
+					aim = normalize ((e.origin + '0 0 18') - self.origin);
+					self.velocity = aim * max (360, vlen (self.velocity));
+					desired = vectoangles (self.velocity);
+					if (desired_x > 180)
+						desired_x = desired_x - 360;
+					self.angles_x = bound (-45, desired_x, 45);
+					self.angles_y = desired_y;
+					self.angles_z = 0;
+					self.frame = 0;
 					self.nextthink = time + 0.03;
 					return;
 				}
@@ -1203,7 +1247,7 @@ void() KY_ProjThink =
 			KY_GroundStep (vectoyaw (aim), 13.8, FALSE);		// ~275 u/s readable sprint!
 		if (time >= self.ky_voice_t)
 		{
-			self.ky_voice_t = time + 1.8 + random () * 0.8;
+			self.ky_voice_t = time + 3.5 + random () * 1.5;
 			KY_PlayLine (self);
 		}
 		self.nextthink = time + 0.05;
@@ -1232,11 +1276,10 @@ void() KY_ProjThink =
 		}
 		else if (random () < 0.35)
 		{
-			// Brief funny businessman shrug & look around, then run again!
+			// Brief funny businessman shrug & look around, then run again (quiet unless player nearby & cooldown ready!)
 			self.ky_anim = KY_ANIM_IDLE;
 			self.ky_anim_t = time;
 			self.ky_wand_t = time + 1.1 + random () * 0.7;
-			KY_PlayLine (self);
 		}
 		else
 		{
@@ -1254,8 +1297,9 @@ void() KY_ProjThink =
 		KY_GroundStep (self.ky_wand_yaw, step_dist, TRUE);
 		if (time >= self.ky_voice_t)
 		{
-			self.ky_voice_t = time + 2.6 + random () * 1.6;
-			KY_PlayLine (self);
+			self.ky_voice_t = time + 4.5 + random () * 2.5;
+			if (KY_HasNearbyPlayer (self.origin, 360))
+				KY_PlayLine (self);
 		}
 	}
 	self.nextthink = time + 0.05;
@@ -1291,15 +1335,19 @@ void(entity p) KY_EnforceCap =
 void(entity p, float is_homing, entity targ, float power) KY_Launch =
 {
 	local entity k;
-	local vector eye, hand_want, org, vel;
-	local float spd, is_sky;
+	local vector eye, hand_want, org, vel, desired;
+	local float spd, is_sky, do_home;
 
 	KY_EnforceCap (p);
 	makevectors (p.v_angle);
 	eye = p.origin + p.view_ofs;
-	// Open-palm emergence: spawn cleanly ahead of your extended right throwing hand so he is visible from frame 1!
+	do_home = (is_homing && KY_IsValidTarget (p, targ));
+	// Open-palm emergence: spawn cleanly ahead of your extended right throwing hand with hull matching setsize!
 	hand_want = eye + v_forward * 44 + v_right * 11 - v_up * 2.0;
-	tracebox (eye, '-12 -12 0', '12 12 40', hand_want, TRUE, p);
+	if (do_home)
+		tracebox (eye, '-16 -16 -14', '16 16 14', hand_want, TRUE, p);
+	else
+		tracebox (eye, '-14 -14 0', '14 14 58', hand_want, TRUE, p);
 	org = trace_endpos;
 
 	is_sky = (p.v_angle_x < -12);
@@ -1316,56 +1364,60 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 	k.fg_born = time;
 	k.ky_anim_t = time;
 	k.ky_trail_t = time + 0.14;
-	k.ky_air_snip_t = time + 0.14;
-	k.ky_voice_t = time + 1.0;
+	k.ky_air_snip_t = time + 0.24;
+	k.ky_voice_t = time + 3.0;
 	k.angles_y = p.v_angle_y;
 	k.ky_wand_yaw = p.v_angle_y;
 	k.ky_wand_t = time + 2.8 + random () * 1.6;
 
-	if (is_homing && KY_IsValidTarget (p, targ))
+	if (do_home)
 	{
-		// SPINNING HORIZONTAL SUPERMAN-TORPEDO KYLE! (Horizontal belly-down w/ 3D snapping scissors straight ahead!)
+		// NOSE-FIRST HORIZONTAL SUPERMAN-TORPEDO KYLE! (3D snapping scissors straight ahead, NO spin!)
 		setmodel (k, "progs/kyle_torpedo.md3");
 		setsize (k, '-16 -16 -14', '16 16 14');
 		setorigin (k, org);
 		k.scale = 0.68;
 		k.ky_mode = KY_MODE_HOMING;
-		k.ky_anim = KY_ANIM_OVERHEAD;
+		k.ky_anim = KY_ANIM_FRONT;
 		k.ky_sky_throw = FALSE;
 		k.ky_targ = targ;
 		k.movetype = MOVETYPE_FLYMISSILE;
 		spd = bound (410, vlen (targ.velocity) + 85, 920);
 		vel = normalize ((targ.origin + '0 0 18') - org);
 		k.velocity = vel * spd;
-		k.angles_x = 0;
-		k.angles_y = vectoyaw (vel);
+		desired = vectoangles (vel);
+		if (desired_x > 180)
+			desired_x = desired_x - 360;
+		k.angles_x = bound (-45, desired_x, 45);
+		k.angles_y = desired_y;
 		k.angles_z = 0;
+		k.frame = 0;
 		// CRITICAL: must return TRUE (SUB_Null returns 0 = engine hides entity from every client!)
 		k.customizeentityforclient = KY_ShowAll;
-		FG_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.92, 0.94);
-		FG_Snd (p, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.78, 1.05);
-		KY_PlaySkyWhoa (p);
+		KY_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.85, 0.94, KY_ATTN_VOICE);
+		KY_Snd (k, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.72, 1.05, KY_ATTN_SNIP);
+		KY_PlaySkyWhoa (k);
 		p.punchangle_x = -3.8;
 		p.punchangle_z = 2.2;
 	}
 	else if (is_sky)
 	{
-		// SKY THROW: wind-up power scales throw height/distance! Slow floaty arc w/ scissors ABOVE him!
+		// SKY THROW: wind-up power scales throw height/distance; scissors straight out in front chopping (NO spin!)
 		setmodel (k, "progs/kyle_proj.spr32");
 		setsize (k, '-14 -14 0', '14 14 58');
 		setorigin (k, org);
 		k.scale = 0.24;
 		k.ky_mode = KY_MODE_RUNNER;
-		k.ky_anim = KY_ANIM_OVERHEAD;
+		k.ky_anim = KY_ANIM_FRONT;
 		k.ky_sky_throw = TRUE;
 		k.movetype = MOVETYPE_TOSS;
 		k.gravity = 0.30;
 		vel = v_forward * (195 + 185 * power) + '0 0 1' * (170 + 120 * power);
 		k.velocity = vel;
 		k.customizeentityforclient = KY_ProjCustomize;
-		FG_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.88, 1.12);
-		FG_Snd (p, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.76, 1.12);
-		KY_PlaySkyWhoa (p);
+		KY_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.82, 1.12, KY_ATTN_VOICE);
+		KY_Snd (k, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.70, 1.12, KY_ATTN_SNIP);
+		KY_PlaySkyWhoa (k);
 		p.punchangle_x = -3.6 - 1.4 * power;
 		p.punchangle_z = 2.2;
 	}
@@ -1384,9 +1436,9 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 		vel = v_forward * (195 + 285 * power) + '0 0 1' * (115 + 75 * power);
 		k.velocity = vel;
 		k.customizeentityforclient = KY_ProjCustomize;
-		FG_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.82, 1.00 + 0.14 * power);
-		FG_Snd (p, CHAN_WEAPON, "kyle/snip_fast.wav", 0.70, 1.02);
-		KY_PlaySkyWhoa (p);
+		KY_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.78, 1.00 + 0.14 * power, KY_ATTN_VOICE);
+		KY_Snd (k, CHAN_WEAPON, "kyle/snip_fast.wav", 0.65, 1.02, KY_ATTN_SNIP);
+		KY_PlaySkyWhoa (k);
 		p.punchangle_x = -2.6 - 1.6 * power;
 		p.punchangle_z = 1.8;
 	}
@@ -1398,15 +1450,25 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 
 // ---------------------------------------------------------------- player weapon controls
 
-void(entity p) KY_ResetPlayer =
+void(entity p) KY_AbortLock =
 {
-	KY_CamDetach (p);
+	if (p.ky_locking > 0)
+		sound (p, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
 	p.ky_locking = 0;
 	p.ky_lock_prog = 0;
 	p.ky_windup = 0;
 	p.ky_bird_locking = FALSE;
 	p.ky_lock_ready = FALSE;
 	p.ky_lock_ent = world;
+	p.ky_st_mode = 0;
+	p.ky_st_prog = 0;
+	p.ky_st_dist = 0;
+};
+
+void(entity p) KY_ResetPlayer =
+{
+	KY_CamDetach (p);
+	KY_AbortLock (p);
 	p.ky_throw_at = 0;
 	p.ky_fire_t = 0;
 	p.ky_threw_t = 0;
@@ -1416,9 +1478,6 @@ void(entity p) KY_ResetPlayer =
 	p.ky_pending_homing = FALSE;
 	p.ky_pending_power = 0;
 	p.ky_pending_targ = world;
-	p.ky_st_mode = 0;
-	p.ky_st_prog = 0;
-	p.ky_st_dist = 0;
 };
 
 void(entity p) KY_CleanupOwner =
@@ -1460,46 +1519,56 @@ void() KY_Press =
 
 void() KY_Frame =
 {
-	local float held, req_t, ammo, d;
+	local float held, req_t, ammo, d, busy;
 	local entity t;
 	local vector tp;
 
-	// Complete delayed throw launch right as fingers snap open!
-	if (self.health <= 0)
+	busy = (self.health <= 0 || self.deadflag || intermission_running
+		|| self.weapon != IT_FUNGUN || self.fg_sel != FG_KYLE
+		|| self.bm_rl_slot != 0 || self.meleeing == 1 || self.throwing == 1
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self));
+
+	if (self.ky_throw_at > 0)
 	{
-		self.ky_throw_at = 0;
-		self.ky_locking = 0;
-		self.ky_st_mode = 0;
-		self.ky_st_prog = 0;
-		return;
-	}
-	if (self.ky_throw_at > 0 && time >= self.ky_throw_at)
-	{
-		self.ky_throw_at = 0;
-		self.ky_threw_t = time;
-		KY_Launch (self, self.ky_pending_homing, self.ky_pending_targ, self.ky_pending_power);
-		self.ky_pending_homing = FALSE;
-		self.ky_pending_power = 0;
-		self.ky_pending_targ = world;
+		if (busy)
+		{
+			// Cancelled mid-windup (switched weapon, entered vehicle, died, etc.): don't fire from another weapon!
+			if (self.health > 0 && !self.deadflag && !intermission_running)
+			{
+				ammo = FunGun_Ammo (self, FG_KYLE);
+				if (ammo < FunGun_Max (FG_KYLE))
+					FunGun_SetAmmo (self, FG_KYLE, ammo + 1);
+			}
+			self.ky_throw_at = 0;
+			self.ky_fire_t = 0;
+			self.ky_pending_homing = FALSE;
+			self.ky_pending_power = 0;
+			self.ky_pending_targ = world;
+		}
+		else if (time >= self.ky_throw_at)
+		{
+			self.ky_throw_at = 0;
+			self.ky_threw_t = time;
+			KY_Launch (self, self.ky_pending_homing, self.ky_pending_targ, self.ky_pending_power);
+			self.ky_pending_homing = FALSE;
+			self.ky_pending_power = 0;
+			self.ky_pending_targ = world;
+		}
 	}
 
 	if (!self.ky_locking)
 	{
 		self.ky_st_mode = 0;
 		self.ky_st_prog = 0;
+		self.ky_st_dist = 0;
 		return;
 	}
 
-	// Abort if switched weapon
-	if (self.weapon != IT_FUNGUN || self.fg_sel != FG_KYLE)
+	// Abort cleanly if dead, switched weapon, entered vehicle, reloading, meleeing, or in binoculars
+	if (busy)
 	{
-		self.ky_locking = 0;
-		self.ky_lock_prog = 0;
-		self.ky_windup = 0;
-		self.ky_bird_locking = FALSE;
-		self.ky_lock_ent = world;
-		self.ky_st_mode = 0;
-		self.ky_st_prog = 0;
+		KY_AbortLock (self);
 		return;
 	}
 
@@ -1509,8 +1578,8 @@ void() KY_Frame =
 	// Frantic scissor SNIP SFX while holding to lock or wind up!
 	if (time >= self.ky_lock_snip_t)
 	{
-		self.ky_lock_snip_t = time + (self.ky_bird_locking ? 0.18 : 0.24);
-		FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.56, 0.96 + 0.20 * max (self.ky_lock_prog, self.ky_windup));
+		self.ky_lock_snip_t = time + (self.ky_bird_locking ? 0.20 : 0.26);
+		KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.50, 0.96 + 0.20 * max (self.ky_lock_prog, self.ky_windup), KY_ATTN_SNIP);
 	}
 
 	// Dual Hold-Fire Behavior:
@@ -1521,7 +1590,7 @@ void() KY_Frame =
 	{
 		if (!self.ky_bird_locking && time >= self.ky_lock_snd_t)
 		{
-			self.ky_lock_snd_t = time + 1.25;
+			self.ky_lock_snd_t = time + 1.8;
 			KY_PlayBirdLock (self);
 		}
 		self.ky_bird_locking = TRUE;
@@ -1546,7 +1615,7 @@ void() KY_Frame =
 			if (!self.ky_lock_ready)
 			{
 				self.ky_lock_ready = TRUE;
-				FG_Snd (self, CHAN_AUTO, "kyle/lock_ready.wav", 0.90, 1.0);
+				KY_Snd (self, CHAN_AUTO, "kyle/lock_ready.wav", 0.85, 1.0, KY_ATTN_SNIP);
 			}
 		}
 		else
@@ -1554,8 +1623,8 @@ void() KY_Frame =
 			self.ky_st_mode = 2;
 			if (time >= self.ky_lock_tick_t)
 			{
-				self.ky_lock_tick_t = time + 0.13;
-				FG_Snd (self, CHAN_AUTO, "kyle/lock_tick.wav", 0.55, 0.90 + 0.40 * self.ky_lock_prog);
+				self.ky_lock_tick_t = time + 0.14;
+				KY_Snd (self, CHAN_AUTO, "kyle/lock_tick.wav", 0.50, 0.90 + 0.40 * self.ky_lock_prog, KY_ATTN_SNIP);
 			}
 		}
 	}
@@ -1603,8 +1672,16 @@ void() KY_Frame =
 	self.ky_locking = 0;
 	self.ky_st_mode = 0;
 	self.ky_st_prog = 0;
+	self.ky_st_dist = 0;
 	if (ammo < 1)
+	{
+		self.ky_lock_ent = world;
+		self.ky_lock_prog = 0;
+		self.ky_windup = 0;
+		self.ky_bird_locking = FALSE;
+		self.ky_lock_ready = FALSE;
 		return;
+	}
 
 	FunGun_SetAmmo (self, FG_KYLE, ammo - 1);
 	FunGun_Lock (FG_KYLE);
@@ -1614,7 +1691,7 @@ void() KY_Frame =
 	self.ky_cool = time + KY_COOLDOWN;
 	self.ky_pending_homing = (self.ky_lock_ready && KY_IsValidTarget (self, self.ky_lock_ent));
 	self.ky_pending_targ = self.ky_pending_homing ? self.ky_lock_ent : world;
-	self.ky_pending_power = self.ky_windup;
+	self.ky_pending_power = max (self.ky_windup, self.ky_lock_prog);
 	self.ky_lock_ent = world;
 	self.ky_lock_prog = 0;
 	self.ky_windup = 0;
@@ -1622,7 +1699,7 @@ void() KY_Frame =
 	self.ky_lock_ready = FALSE;
 	self.punchangle_x = 1.8;				// cock-back anticipation before explosive launch whip!
 	self.punchangle_z = -1.4;
-	FG_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.68, 1.12);
+	KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.60, 1.12, KY_ATTN_SNIP);
 	player_mm1 ();
 	self.attack_finished = time + KY_THROW_DELAY + KY_FOLLOW_TIME;
 };
@@ -1636,13 +1713,6 @@ void(entity vm, float is_quad) Kyle_ViewFrame =
 	local vector vxy;
 
 	p = vm.owner;
-	if (p.clientcamera != p)
-	{
-		vm.alpha = -1;
-		return;
-	}
-	if (vm.alpha < 0)
-		vm.alpha = is_quad ? 0.5 : 1;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_KYLE)
 	{
 		if (vm.kyvm_on)
@@ -1654,6 +1724,11 @@ void(entity vm, float is_quad) Kyle_ViewFrame =
 		}
 		return;
 	}
+	if (p.clientcamera != p || p.health <= 0 || p.deadflag)
+	{
+		vm.alpha = -1;
+		return;
+	}
 
 	if (is_quad && vm.alpha < 0)
 		vm.alpha = 0.5;
@@ -1663,17 +1738,14 @@ void(entity vm, float is_quad) Kyle_ViewFrame =
 	vm.angles = '0 0 0';
 	ammo = FunGun_Ammo (p, FG_KYLE);
 
-	// Pull Out Gun -> play random "Whoa man!" voice + 12-frame surprised pop-up!
+	// Pull Out Gun -> silent 12-frame surprised pop-up (NO draw voice sound!)
 	if (!vm.kyvm_on)
 	{
 		vm.kyvm_on = TRUE;
 		if (ammo >= 1 && p.ky_throw_at <= 0 && (!p.ky_threw_t || time >= p.ky_threw_t + KY_FOLLOW_TIME))
 		{
 			if (!is_quad)
-			{
 				p.ky_draw_t = time;
-				KY_PlayWhoa (p);
-			}
 		}
 		else if (ammo < 1)
 			p.ky_empty = TRUE;
