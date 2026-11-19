@@ -5,33 +5,21 @@
 ================
 PRACTICE RANGE - maps/practice.bsp
 
-Wide-open shooting range, cannons/vehicles proving ground & asset showcase:
+Clean, bloat-free shooting range & custom asset showcase (active in-game
+custom assets only):
   - Auto-grants every gun & refills reserve ammo / fun-gun cooldowns quickly.
-  - Passive respawning range targets (`info_practice_target`) for main Quake
-    monsters & Bakersfield characters: never shoot back, respawn in 2.0 s.
-  - Circling passive aerial targets above the Central Jump Pad (Winged John,
-    Floathead, Scrag): respawn in 2.0 s.
-  - Fast 2.0 s pickup respawn on all Armory weapons, ammo, armor, & powerups.
-  - Optional Live-Fire Arena Pen (`trigger_practice_livefire`): press/shoot the
-    button in the West Wing to toggle live arena fighters & combat FrikBots.
+  - Passive respawning range targets (`info_practice_target`) for active
+    in-game custom characters: never shoot back, respawn in 2.0 s.
+  - Circling passive aerial targets above the Central Jump Pad (Winged John
+    and Rob Dob head): respawn in 2.0 s.
+  - Optional Live-Fire Pen (`trigger_practice_livefire`) in the West Wing.
 ================
 */
 
-float PR_KIND_PLAYER	= 1;
-float PR_KIND_SOLDIER	= 2;
-float PR_KIND_ENFORCER	= 3;
-float PR_KIND_OGRE		= 4;
-float PR_KIND_DEMON		= 5;
-float PR_KIND_SHAMBLER	= 6;
-float PR_KIND_KNIGHT	= 7;
-float PR_KIND_HKNIGHT	= 8;
-float PR_KIND_WIZARD	= 9;
-float PR_KIND_ZOMBIE	= 10;
 float PR_KIND_RANDGUY	= 11;
 float PR_KIND_AFROGUY	= 12;
 float PR_KIND_LADY		= 13;
 float PR_KIND_FATGUY	= 14;
-float PR_KIND_BPOLO		= 15;
 float PR_KIND_GREENSUIT	= 16;
 float PR_KIND_BEERGUY	= 17;
 float PR_KIND_ROBEGUY	= 18;
@@ -61,42 +49,20 @@ void() Practice_Precache =
 	practice_ctrl = world;
 	practice_air_bird = world;
 	practice_air_float = world;
-	practice_air_wiz = world;
 	practice_air_bird_t = time + 0.6;
 	practice_air_float_t = time + 0.8;
-	practice_air_wiz_t = time + 1.0;
 	practice_live_t = 0;
 
 	JohnBird_Precache ();
 	EricCannon_Precache ();
 	MMTank_Precache ();
 	Bikes_Precache ();
-	Bryan_Precache ();
-	David_Precache ();
-	ReeseIce_Precache ();
-	Beerguy_Precache ();
-	Bpolo_Precache ();
 
-	// Monster & character target models
-	precache_model ("progs/player.mdl");
-	precache_model ("progs/player_id1.mdl");
-	precache_model ("progs/soldier.mdl");
-	precache_model ("progs/enforcer.mdl");
-	precache_model ("progs/ogre.mdl");
-	precache_model ("progs/demon.mdl");
-	precache_model ("progs/shambler.mdl");
-	precache_model ("progs/knight.mdl");
-	precache_model ("progs/hknight.mdl");
-	precache_model ("progs/wizard.mdl");
-	precache_model ("progs/zombie.mdl");
-	precache_model ("progs/floathead.mdl");
-	precache_model ("progs/laser.mdl");
-
+	// Active in-game custom character models & sprites
 	precache_model ("progs/npc_randguy.md3");
 	precache_model ("progs/npc_afroguy.md3");
 	precache_model ("progs/npc_randlady.md3");
 	precache_model ("progs/npc_fatguy.md3");
-	precache_model ("progs/npc_bpolo.md3");
 	precache_model ("progs/beach_uncle_a.md3");
 	precache_model ("progs/alex_pattaya_a.md3");
 	precache_model ("progs/pinklady.md3");
@@ -109,13 +75,11 @@ void() Practice_Precache =
 	precache_model ("progs/david.spr32");
 	precache_model ("progs/daniel.spr32");
 	precache_model ("progs/reeseice.spr32");
+	precache_model ("progs/robhead_proj.spr32");
 
 	precache_sound ("player/death1.wav");
 	precache_sound ("player/pain1.wav");
-	precache_sound ("misc/r_tele1.wav");
-	precache_sound ("enforcer/enfire.wav");
-	precache_sound ("soldier/sattck1.wav");
-	precache_sound ("weapons/grenade.wav");
+	precache_sound ("weapons/shotgn2.wav");
 	precache_sound ("buttons/switch04.wav");
 
 	practice_ctrl = spawn ();
@@ -166,7 +130,6 @@ void() Practice_PlayerFrame =
 	if (!self.pr_items_given)
 		Practice_OnPlayerSpawn (self);
 
-	// Keep reserve ammo & jetpack fuel generously topped up so you never run dry
 	if (self.ammo_shells < 40) self.ammo_shells = 100;
 	if (self.ammo_nails < 60) self.ammo_nails = 200;
 	if (self.ammo_rockets < 30) self.ammo_rockets = 100;
@@ -174,7 +137,6 @@ void() Practice_PlayerFrame =
 	if ((self.flags & FL_ONGROUND) && self.jp_fuel < autocvar_jp_fuel)
 		self.jp_fuel = autocvar_jp_fuel;
 
-	// Fast cooldown recharge for MegaMan / Banana / FunGuns on the practice range
 	if (self.mm_ammo < MM_MAX_AMMO && time >= self.mm_regen_t - 3.5)
 	{
 		self.mm_ammo = self.mm_ammo + 1;
@@ -221,34 +183,18 @@ float() Practice_TargetCustomize =
 
 	k = floor (time * self.pr_fps + self.origin_x * 0.02);
 	k = k - self.pr_fcount * floor (k / self.pr_fcount);
-
-	if (self.pr_dir_mode == 1)
-	{
-		// angle is minor index: (f0 + k) * 8 + d
-		self.frame = (self.pr_f0 + k) * 8 + d;
-	}
-	else if (self.pr_dir_mode == 2)
-	{
-		// direction is major index: (d * pr_dir_stride) + pr_f0 + k
-		self.frame = d * self.pr_dir_stride + self.pr_f0 + k;
-	}
+	self.frame = d * self.pr_dir_stride + self.pr_f0 + k;
 	return TRUE;
 };
 
 void() Practice_TargetDie =
 {
-	local entity p;
-
 	sound (self, CHAN_VOICE, "player/death1.wav", 0.85, ATTN_NORM);
 	pointparticles (particleeffectnum ("TE_BLOOD"), self.origin + '0 0 20', '0 0 80', 14);
 
 	if (self.enemy && self.enemy.classname == "player" && self.enemy.ishuman == 1)
-	{
-		p = self.enemy;
-		sprint (p, strcat ("Target eliminated: ", self.netname, " (respawns in 2s)\n"));
-	}
+		sprint (self.enemy, strcat ("Target eliminated: ", self.netname, " (respawns in 2s)\n"));
 
-	// Hide cleanly & schedule exact lane respawn
 	self.flags = self.flags - (self.flags & FL_MONSTER);
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NONE;
@@ -267,7 +213,7 @@ void(entity attacker, float damage) Practice_TargetPain =
 	if (self.health <= 0)
 		return;
 	sound (self, CHAN_VOICE, "player/pain1.wav", 0.55, ATTN_NORM);
-	self.enemy = world;		// Never turn hostile or chase attacker!
+	self.enemy = world;
 	self.think = Practice_TargetThink;
 	self.nextthink = time + 0.05;
 };
@@ -347,80 +293,7 @@ void(entity e, float kind) Practice_ConfigureKind =
 	e.bbmins = VEC_HULL_MIN;
 	e.bbmaxs = VEC_HULL_MAX;
 
-	if (kind == PR_KIND_PLAYER)
-	{
-		e.mdl = "progs/player_id1.mdl";
-		e.netname = "Quake Ranger";
-		e.pr_f0 = 6; e.pr_fcount = 6;
-		if (!e.max_health) e.max_health = 100;
-	}
-	else if (kind == PR_KIND_SOLDIER)
-	{
-		e.mdl = "progs/soldier.mdl";
-		e.netname = "Grunt";
-		e.pr_f0 = 90; e.pr_fcount = 24;
-		if (!e.max_health) e.max_health = 100;
-	}
-	else if (kind == PR_KIND_ENFORCER)
-	{
-		e.mdl = "progs/enforcer.mdl";
-		e.netname = "Enforcer";
-		e.pr_f0 = 7; e.pr_fcount = 16;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_OGRE)
-	{
-		e.mdl = "progs/ogre.mdl";
-		e.netname = "Ogre";
-		e.pr_f0 = 9; e.pr_fcount = 16;
-		e.bbmins = VEC_HULL2_MIN; e.bbmaxs = VEC_HULL2_MAX;
-		if (!e.max_health) e.max_health = 220;
-	}
-	else if (kind == PR_KIND_DEMON)
-	{
-		e.mdl = "progs/demon.mdl";
-		e.netname = "Fiend";
-		e.pr_f0 = 13; e.pr_fcount = 8;
-		e.bbmins = VEC_HULL2_MIN; e.bbmaxs = VEC_HULL2_MAX;
-		if (!e.max_health) e.max_health = 280;
-	}
-	else if (kind == PR_KIND_SHAMBLER)
-	{
-		e.mdl = "progs/shambler.mdl";
-		e.netname = "Shambler";
-		e.pr_f0 = 17; e.pr_fcount = 12;
-		e.bbmins = VEC_HULL2_MIN; e.bbmaxs = VEC_HULL2_MAX;
-		if (!e.max_health) e.max_health = 500;
-	}
-	else if (kind == PR_KIND_KNIGHT)
-	{
-		e.mdl = "progs/knight.mdl";
-		e.netname = "Knight";
-		e.pr_f0 = 52; e.pr_fcount = 14;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_HKNIGHT)
-	{
-		e.mdl = "progs/hknight.mdl";
-		e.netname = "Death Knight";
-		e.pr_f0 = 9; e.pr_fcount = 14;
-		if (!e.max_health) e.max_health = 300;
-	}
-	else if (kind == PR_KIND_WIZARD)
-	{
-		e.mdl = "progs/wizard.mdl";
-		e.netname = "Scrag";
-		e.pr_f0 = 0; e.pr_fcount = 15;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_ZOMBIE)
-	{
-		e.mdl = "progs/zombie.mdl";
-		e.netname = "Zombie";
-		e.pr_f0 = 0; e.pr_fcount = 15;
-		if (!e.max_health) e.max_health = 150;
-	}
-	else if (kind == PR_KIND_RANDGUY)
+	if (kind == PR_KIND_RANDGUY)
 	{
 		e.mdl = "progs/npc_randguy.md3";
 		e.netname = "LAN Citizen";
@@ -447,13 +320,6 @@ void(entity e, float kind) Practice_ConfigureKind =
 		e.netname = "Big LAN Guy";
 		e.pr_f0 = 8; e.pr_fcount = 12;
 		if (!e.max_health) e.max_health = 160;
-	}
-	else if (kind == PR_KIND_BPOLO)
-	{
-		e.mdl = "progs/npc_bpolo.md3";
-		e.netname = "Bpolo";
-		e.pr_f0 = 8; e.pr_fcount = 12;
-		if (!e.max_health) e.max_health = 150;
 	}
 	else if (kind == PR_KIND_GREENSUIT)
 	{
@@ -507,7 +373,7 @@ void(entity e, float kind) Practice_ConfigureKind =
 		e.scale = 0.62;
 		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
 		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 8; e.pr_fcount = 4; e.pr_fps = 11;
-		if (!e.max_health) e.max_health = 150;
+		if (!e.max_health) e.max_health = 220;
 	}
 	else if (kind == PR_KIND_DANIEL)
 	{
@@ -516,7 +382,7 @@ void(entity e, float kind) Practice_ConfigureKind =
 		e.scale = 0.66;
 		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
 		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 8; e.pr_fcount = 4; e.pr_fps = 11;
-		if (!e.max_health) e.max_health = 150;
+		if (!e.max_health) e.max_health = 320;
 	}
 	else if (kind == PR_KIND_REESE)
 	{
@@ -555,7 +421,7 @@ void() info_practice_target =
 	local float k;
 
 	k = self.count;
-	if (!k) k = PR_KIND_SOLDIER;
+	if (!k) k = PR_KIND_GREENSUIT;
 	self.pr_kind = k;
 	if (self.health > 0)
 		self.max_health = self.health;
@@ -595,16 +461,8 @@ void() Practice_AirFloatDie =
 {
 	sound (self, CHAN_VOICE, "weapons/r_exp3.wav", 0.85, ATTN_NORM);
 	pointparticles (particleeffectnum ("TE_EXPLOSION"), self.origin, '0 0 0', 1);
-	if (self == practice_air_float)
-	{
-		practice_air_float = world;
-		practice_air_float_t = time + 2.0;
-	}
-	else if (self == practice_air_wiz)
-	{
-		practice_air_wiz = world;
-		practice_air_wiz_t = time + 2.0;
-	}
+	practice_air_float = world;
+	practice_air_float_t = time + 2.0;
 	remove (self);
 };
 
@@ -616,19 +474,12 @@ void(entity attacker, float damage) Practice_AirFloatPain =
 
 void() Practice_AirOrbitThink =
 {
-	local float ang, rad, z0, spd, f, c, s, s2;
+	local float ang, rad, z0, spd, c, s, s2;
 	local vector nxt;
 
 	if (self.health <= 0)
 		return;
-	if (self == practice_air_float)
-	{
-		rad = 640; z0 = 560; spd = 0.65;
-	}
-	else
-	{
-		rad = 420; z0 = 420; spd = 0.85;
-	}
+	rad = 560; z0 = 540; spd = 0.65;
 	ang = time * spd + self.pr_home_yaw;
 	c = cos (ang);
 	s = sin (ang);
@@ -638,11 +489,6 @@ void() Practice_AirOrbitThink =
 	nxt_z = z0 + s2 * 56;
 	self.angles_y = (ang * 57.29578) + 90;
 	setorigin (self, nxt);
-	if (self.pr_fcount > 1)
-	{
-		f = floor (time * 10);
-		self.frame = self.pr_f0 + (f - self.pr_fcount * floor (f / self.pr_fcount));
-	}
 	self.nextthink = time + 0.05;
 };
 
@@ -652,11 +498,11 @@ void() Practice_SpawnAirBird =
 
 	jb = spawn ();
 	jb.angles = '0 0 0';
-	setorigin (jb, '0 460 660');
+	setorigin (jb, '0 440 620');
 	JB_InitEntity (jb, TRUE);
 	jb.movetype = MOVETYPE_NONE;
 	setsize (jb, '-28 -36 -4', '28 36 58');
-	jb.jb_spawn_org = '0 460 660';
+	jb.jb_spawn_org = '0 440 620';
 	jb.jb_ai = TRUE;
 	jb.jb_ai_strafe = 1;
 	jb.jb_ai_mode = 0;
@@ -675,7 +521,7 @@ void() Practice_SpawnAirFloat =
 
 	e = spawn ();
 	e.classname = "practice_air_float";
-	e.netname = "Aerial Floathead";
+	e.netname = "Aerial Rob Dob";
 	e.flags = FL_MONSTER;
 	e.solid = SOLID_SLIDEBOX;
 	e.movetype = MOVETYPE_NONE;
@@ -683,42 +529,17 @@ void() Practice_SpawnAirFloat =
 	e.health = 160;
 	e.max_health = 160;
 	e.pr_home_yaw = 1.2;
-	e.pr_f0 = 0;
-	e.pr_fcount = 20;
+	e.pr_dir_mode = 3;
+	e.scale = FD_PROJ_SCALE;
 	e.th_pain = Practice_AirFloatPain;
 	e.th_die = Practice_AirFloatDie;
-	setmodel (e, "progs/floathead.mdl");
+	e.customizeentityforclient = Practice_TargetCustomize;
+	setmodel (e, "progs/robhead_proj.spr32");
 	setsize (e, '-24 -24 -24', '24 24 24');
-	setorigin (e, '640 0 560');
+	setorigin (e, '560 0 540');
 	e.think = Practice_AirOrbitThink;
 	e.nextthink = time + 0.05;
 	practice_air_float = e;
-};
-
-void() Practice_SpawnAirWiz =
-{
-	local entity e;
-
-	e = spawn ();
-	e.classname = "practice_air_wiz";
-	e.netname = "Aerial Scrag";
-	e.flags = FL_MONSTER;
-	e.solid = SOLID_SLIDEBOX;
-	e.movetype = MOVETYPE_NONE;
-	e.takedamage = DAMAGE_AIM;
-	e.health = 120;
-	e.max_health = 120;
-	e.pr_home_yaw = 3.5;
-	e.pr_f0 = 0;
-	e.pr_fcount = 15;
-	e.th_pain = Practice_AirFloatPain;
-	e.th_die = Practice_AirFloatDie;
-	setmodel (e, "progs/wizard.mdl");
-	setsize (e, '-16 -16 -24', '16 16 40');
-	setorigin (e, '-420 0 420');
-	e.think = Practice_AirOrbitThink;
-	e.nextthink = time + 0.05;
-	practice_air_wiz = e;
 };
 
 // ---------------------------------------------------------------- Live-Fire Pen
@@ -741,8 +562,8 @@ void(entity attacker, float dmg) Practice_LivePenPain =
 
 void() Practice_LivePenThink =
 {
-	local entity p, best, proj;
-	local float d, bd, f;
+	local entity p, best;
+	local float d, bd;
 	local vector dir;
 
 	if (!practice_live_fire || self.health <= 0)
@@ -751,9 +572,8 @@ void() Practice_LivePenThink =
 		return;
 	}
 
-	// Find nearest living player within 1100u
 	best = world;
-	bd = 1100;
+	bd = 1000;
 	p = find (world, classname, "player");
 	while (p)
 	{
@@ -773,63 +593,20 @@ void() Practice_LivePenThink =
 	{
 		dir = best.origin - self.origin;
 		self.angles_y = vectoyaw (dir);
-		// Keep fighters inside the West Wing Live-Fire Pen (X -2720..-2040, Y -420..+420)
 		if (bd > 160)
 		{
-			if (self.origin_x < -2680 && dir_x < 0) self.angles_y = 0;
-			else if (self.origin_x > -2080 && dir_x > 0) self.angles_y = 180;
+			if (self.origin_x < -2180 && dir_x < 0) self.angles_y = 0;
+			else if (self.origin_x > -1620 && dir_x > 0) self.angles_y = 180;
 			walkmove (self.angles_y, 7.5);
 		}
-		// Fire back periodically
 		if (time >= self.attack_finished && visible (best))
 		{
 			self.attack_finished = time + 1.35 + random () * 0.8;
-			makevectors (self.angles);
+			sound (self, CHAN_WEAPON, "weapons/shotgn2.wav", 0.8, ATTN_NORM);
 			dir = normalize ((best.origin + '0 0 18') - (self.origin + '0 0 24'));
-			if (self.pr_kind == PR_KIND_ENFORCER)
-			{
-				sound (self, CHAN_WEAPON, "enforcer/enfire.wav", 0.8, ATTN_NORM);
-				proj = spawn ();
-				proj.owner = self;
-				proj.movetype = MOVETYPE_FLY;
-				proj.solid = SOLID_BBOX;
-				proj.classname = "laser";
-				setmodel (proj, "progs/laser.mdl");
-				setsize (proj, '0 0 0', '0 0 0');
-				setorigin (proj, self.origin + '0 0 24' + dir * 20);
-				proj.angles = vectoangles (dir);
-				proj.velocity = dir * 650;
-				proj.touch = Laser_Touch;
-				proj.think = SUB_Remove;
-				proj.nextthink = time + 4;
-			}
-			else if (self.pr_kind == PR_KIND_OGRE)
-			{
-				sound (self, CHAN_WEAPON, "weapons/grenade.wav", 0.8, ATTN_NORM);
-				proj = spawn ();
-				proj.owner = self;
-				proj.movetype = MOVETYPE_BOUNCE;
-				proj.solid = SOLID_BBOX;
-				proj.classname = "grenade";
-				setmodel (proj, "progs/grenade.mdl");
-				setsize (proj, '0 0 0', '0 0 0');
-				setorigin (proj, self.origin + '0 0 24');
-				proj.velocity = dir * 550 + '0 0 200';
-				proj.avelocity = '300 300 300';
-				proj.touch = OgreGrenadeTouch;
-				proj.think = OgreGrenadeExplode;
-				proj.nextthink = time + 2.2;
-			}
-			else
-			{
-				sound (self, CHAN_WEAPON, "soldier/sattck1.wav", 0.8, ATTN_NORM);
-				FireBullets (3, dir, '0.06 0.06 0');
-			}
+			FireBullets (3, dir, '0.06 0.06 0');
 		}
 	}
-
-	f = floor (time * 10);
-	self.frame = self.pr_f0 + (f - self.pr_fcount * floor (f / self.pr_fcount));
 	self.nextthink = time + 0.05;
 };
 
@@ -850,6 +627,7 @@ void(float kind, vector org) Practice_SpawnPenFighter =
 	e.attack_finished = time + 1.0 + random ();
 	e.th_pain = Practice_LivePenPain;
 	e.th_die = Practice_LivePenDie;
+	e.customizeentityforclient = Practice_TargetCustomize;
 	setmodel (e, e.mdl);
 	setsize (e, e.bbmins, e.bbmaxs);
 	setorigin (e, org);
@@ -871,12 +649,11 @@ void() Practice_EnsurePenFighters =
 			cnt = cnt + 1;
 		e = find (e, classname, "practice_live_pen");
 	}
-	if (cnt < 4)
+	if (cnt < 3)
 	{
-		if (cnt == 0) Practice_SpawnPenFighter (PR_KIND_SOLDIER, '-2480 -180 32');
-		else if (cnt == 1) Practice_SpawnPenFighter (PR_KIND_ENFORCER, '-2480 180 32');
-		else if (cnt == 2) Practice_SpawnPenFighter (PR_KIND_OGRE, '-2280 -180 32');
-		else Practice_SpawnPenFighter (PR_KIND_SHAMBLER, '-2280 180 32');
+		if (cnt == 0) Practice_SpawnPenFighter (PR_KIND_GREENSUIT, '-2040 -160 32');
+		else if (cnt == 1) Practice_SpawnPenFighter (PR_KIND_BRYAN, '-2040 160 32');
+		else Practice_SpawnPenFighter (PR_KIND_DAVID, '-1820 0 32');
 	}
 };
 
@@ -916,34 +693,6 @@ void() trigger_practice_livefire =
 
 // ---------------------------------------------------------------- Controller Tick
 
-void() Practice_RefillPickups =
-{
-	local entity e;
-	local string cn;
-
-	e = nextent (world);
-	while (e)
-	{
-		if (e.solid == SOLID_NOT && e.model == string_null && e.mdl != "")
-		{
-			cn = e.classname;
-			if (substring (cn, 0, 7) == "weapon_" || substring (cn, 0, 5) == "item_")
-			{
-				if (e.think != SUB_regen)
-				{
-					e.think = SUB_regen;
-					e.nextthink = time + 2.0;
-				}
-				else if (e.nextthink > time + 2.5)
-				{
-					e.nextthink = time + 2.0;
-				}
-			}
-		}
-		e = nextent (e);
-	}
-};
-
 void() Practice_CtrlThink =
 {
 	if (mapname != "practice")
@@ -952,7 +701,6 @@ void() Practice_CtrlThink =
 		return;
 	}
 
-	// Keep the 3 passive aerial targets alive above the Central Jump Pad
 	if (practice_air_bird == world || bm_wasfreed (practice_air_bird) || practice_air_bird.health <= 0 || practice_air_bird.jb_dying)
 	{
 		if (!practice_air_bird_t) practice_air_bird_t = time + 2.0;
@@ -977,18 +725,6 @@ void() Practice_CtrlThink =
 		}
 	}
 
-	if (practice_air_wiz == world || bm_wasfreed (practice_air_wiz) || practice_air_wiz.health <= 0)
-	{
-		if (!practice_air_wiz_t) practice_air_wiz_t = time + 2.0;
-		if (time >= practice_air_wiz_t)
-		{
-			practice_air_wiz_t = 0;
-			Practice_SpawnAirWiz ();
-		}
-	}
-
-	// Fast pickup respawn & optional live-fire pen refill
-	Practice_RefillPickups ();
 	if (practice_live_fire && time >= practice_live_t)
 	{
 		practice_live_t = time + 2.5;

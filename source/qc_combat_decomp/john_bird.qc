@@ -42,7 +42,6 @@ void() JohnBird_Precache =
 	precache_sound ("john_bird/swoop.wav");
 	precache_sound ("john_bird/feather_hit.wav");
 	precache_sound ("john_bird/shootdown.wav");
-	precache_sound ("john_bird/jv_hurt.wav");
 
 	precache_sound ("john_bird/jb_spray_loop.wav");
 	precache_sound ("john_bird/jb_match_light.wav");
@@ -470,7 +469,7 @@ void(entity targ, entity attacker, float dur) JB_ApplyBurn =
 		targ.skin = 1;
 		if (time >= targ.pain_finished)
 		{
-			sound (targ, CHAN_VOICE, "john_bird/jv_hurt.wav", 1, 0.55);
+			JB_PlayRandomVoice (targ, FALSE);
 			targ.pain_finished = time + 1.1;
 			JB_SpawnFeathers (targ.origin + '0 0 34', 3, 0.9);
 		}
@@ -1639,7 +1638,7 @@ void(entity jb, entity pilot, float dt) JB_SlideMove =
 
 // ---------------------------------------------------------------- Animation & Audio Driver
 
-void(entity jb, float dt, float thr_in, float climb_in, float swooping, float combat_on) JB_UpdateAnimAndAudio =
+void(entity jb, float dt, float thr_in, float climb_in, float swooping) JB_UpdateAnimAndAudio =
 {
 	local float hspd, clip_start, clip_len, fps, flap_gap, flap_vol, flap_pitch, idx;
 
@@ -1656,17 +1655,7 @@ void(entity jb, float dt, float thr_in, float climb_in, float swooping, float co
 	}
 	else
 	{
-		if (combat_on)
-		{
-			// Clip 6: Giant Waving Bangs Combat Flight (frames 72..87)
-			clip_start = 72;
-			clip_len = 16;
-			fps = 18;
-			flap_gap = 0.24;
-			flap_vol = 0.85;
-			flap_pitch = 108;
-		}
-		else if (swooping || jb.velocity_z < -420)
+		if (swooping || jb.velocity_z < -420)
 		{
 			// Clip 4: Peregrine Swoop / Dive (frames 48..59)
 			clip_start = 48;
@@ -1955,7 +1944,7 @@ float() JohnBird_Frame =
 	}
 
 	JB_UpdateBirdDebuffs (jb);
-	JB_UpdateAnimAndAudio (jb, dt, (fwd_in > 0 ? fwd_in : 0), up_in, swooping, combat_on);
+	JB_UpdateAnimAndAudio (jb, dt, (fwd_in > 0 ? fwd_in : 0), up_in, swooping);
 
 	// Sync CSQC HUD stats (93..102)
 	if (self.ishuman == 1)
@@ -2165,7 +2154,7 @@ void() JB_AutopilotThink =
 
 	JB_UpdateProps (self, world, combat_on, 1, FALSE);
 	JB_UpdateBirdDebuffs (self);
-	JB_UpdateAnimAndAudio (self, dt, 1.0, 0, FALSE, combat_on);
+	JB_UpdateAnimAndAudio (self, dt, 1.0, 0, FALSE);
 	self.nextthink = time + dt;
 };
 
@@ -2229,11 +2218,10 @@ void(entity attacker, float take) JB_Pain =
 	if (self.health <= JB_LOW_HP)
 		self.skin = 1;
 
-	if (random () < 0.45 && time >= self.pain_finished)
+	if (time >= self.pain_finished)
 	{
-		sound (self, CHAN_VOICE, "john_bird/jv_hurt.wav", 1, 0.55);
-		self.pain_finished = time + 0.9;
-		self.jb_voice_t = time + 3.2;
+		JB_PlayRandomVoice (self, FALSE);
+		self.pain_finished = time + 1.2;
 	}
 
 	if (attacker != world && attacker.classname == "player" && attacker.ishuman == 1)
