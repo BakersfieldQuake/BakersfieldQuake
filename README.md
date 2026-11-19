@@ -44,7 +44,8 @@ the Actions tab). It lays this repo's configs, launchers and generated overlay p
 data and publishes the Windows, Linux and macOS packages. Its `macos` job builds the macOS app with
 `source/mac/build_app.sh`: Zircon and every library it loads are built from pinned sources, then the app and DMG
 are signed, notarized and uploaded to the release. macOS packages are built and notarized only in CI, never by
-hand. The signing secrets are `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID` and
+hand. To test the app locally, `make app` builds it signed but not notarized from the newest release and
+launches it (`make run` relaunches it). The signing secrets are `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID` and
 `APPLE_APP_SPECIFIC_PASSWORD`.
 
 ## What is in this repo

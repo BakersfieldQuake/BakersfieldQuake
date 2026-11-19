@@ -189,3 +189,10 @@
 - Verification: actionlint clean. On ozzy, a duplicate codesign identity across two keychains signs without ambiguity. A trial `SKIP_NOTARIZE=1 build_app.sh build-20261119-275c39e` over SSH built SDL2, ogg, vorbis, freetype, jpeg and Zircon with Xcode 26.3; the updater freeze failed there because it used Xcode's Python 3.9 and the SSH session's login keychain, neither of which CI uses.
 - Not verified: freeze, signing with the temp keychain, notarization, DMG upload. Needs a manual `workflow_dispatch` after push (the DMG gate ignores workflow changes).
 - Follow-up: `setup-python` installs the python.org framework system-wide on ozzy via passwordless sudo.
+
+## 2026-11-19 — `make app` for local macOS builds
+
+- Outcome: root `Makefile`: `make app` builds BAKOQUAKE.app signed but not notarized (newest release with a macOS zip, or `TAG=`) and opens it; `make run` relaunches. It freezes the updater with uv's Python 3.12 (python-build-standalone, macOS 11.0 target), because pyenv's 3.13 targets 27.0 and `build_app.sh` refuses it. AGENTS.md root list and README updated.
+- Root cause (ditto `bakersfield.pk3: No such file or directory`): `gh release download` writes straight to the final zip name; my background test build and Rob's `make app` shared `~/build/bakoquake-mac`, and a 45 MB partial of the 1.13 GB zip got reused. `build_app.sh` now downloads into `<tag>.part` and moves the zip into place when complete. Partial zip deleted.
+- Verification: `bash -n`, `make -n`. Full local build not rerun after the fix (left for Rob, to avoid another shared-WORK race).
+- Follow-up: the `build_app.sh` change alters the DMG gate's input hash, so the next push builds a DMG on ozzy-2: the first real notarization test there.

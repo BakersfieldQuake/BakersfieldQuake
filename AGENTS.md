@@ -7,7 +7,8 @@ Instructions for AI coding agents working in this repo.
 - Every doc you write goes under `docs/`: plans, specs, notes, screenshots, reports. Never put docs in the repo
   root or next to source.
 - Agent prompts and handoffs go in `docs/prompts/`.
-- The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and files the game itself reads.
+- The repo root holds only `README.md`, `AGENTS.md`, `CLAUDE.md`, `PROGRESS.md`, `Makefile` and files the game itself
+  reads.
   The `.gitignore` only excludes local build data (the unpacked `BAKOQUAKE/` package and logs).
 
 ## Commits and pushing
