@@ -201,12 +201,12 @@ def generate_all_textures(progs_dir=PROGS):
     u = np.linspace(0.0, 2.0 * math.pi, half, dtype=np.float32)[None, :]
     v = np.linspace(0.0, 1.0, half, dtype=np.float32)[:, None]
 
-    # Q1: Acid-lime green metallic powder-coat
+    # Q1: Matte olive-drab / desert-sage powder-coat
     sheen = 0.88 + 0.14 * np.cos(u - 0.8) + 0.05 * nf[:half, :half] + flake[:half, :half]
     weld_band = 1.0 - 0.18 * np.exp(-((v - 0.06) ** 2) / 0.0012) - 0.18 * np.exp(-((v - 0.94) ** 2) / 0.0012)
-    arr[:half, :half, 0] = np.clip(132.0 * sheen * weld_band, 20, 235)
-    arr[:half, :half, 1] = np.clip(226.0 * sheen * weld_band, 35, 252)
-    arr[:half, :half, 2] = np.clip(24.0 * sheen * weld_band, 6, 85)
+    arr[:half, :half, 0] = np.clip(92.0 * sheen * weld_band, 22, 145)
+    arr[:half, :half, 1] = np.clip(98.0 * sheen * weld_band, 24, 152)
+    arr[:half, :half, 2] = np.clip(70.0 * sheen * weld_band, 18, 118)
 
     # Q2: Matte gunmetal steel
     gun = 0.86 + 0.10 * np.cos(u - 0.5) + 0.06 * nf[:half, half:] + 0.015 * np.sin(v * 280.0)
@@ -229,19 +229,19 @@ def generate_all_textures(progs_dir=PROGS):
     arr[half:, :half, 1] = np.clip(base_dp * 1.02 + dust * 34.0, 18, 150)
     arr[half:, :half, 2] = np.clip(base_dp * 1.08 + dust * 16.0, 20, 140)
 
-    # Q4: Desert Baja hazard/number decal panel (draw cleanly inside [512..1024, 512..1024])
+    # Q4: Desert Baja stencil plate (draw cleanly inside [512..1024, 512..1024])
     arr[half:, half:, 0] = 36.0 + 6.0 * nf[half:, half:]
     arr[half:, half:, 1] = 40.0 + 6.0 * nf[half:, half:]
     arr[half:, half:, 2] = 44.0 + 6.0 * nf[half:, half:]
     im_ch = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
-    im_q4 = Image.new("RGB", (half, half), (32, 34, 38))
+    im_q4 = Image.new("RGB", (half, half), (34, 36, 38))
     dr_q4 = ImageDraw.Draw(im_q4)
     for k in range(-2, 10):
         x0 = k * 72
-        dr_q4.polygon([(x0, 8), (x0 + 36, 8), (x0 - 44, 108), (x0 - 80, 108)], fill=(238, 114, 24))
-    dr_q4.rectangle((20, 124, 492, 492), fill=(28, 30, 34), outline=(140, 230, 26), width=8)
-    dr_q4.text((98, 168), "BAJA", font=_font(96), fill=(144, 232, 28))
-    dr_q4.text((133, 283), "03", font=_font(168), fill=(244, 122, 26))
+        dr_q4.polygon([(x0, 8), (x0 + 36, 8), (x0 - 44, 108), (x0 - 80, 108)], fill=(154, 134, 92))
+    dr_q4.rectangle((20, 124, 492, 492), fill=(30, 32, 34), outline=(140, 146, 120), width=8)
+    dr_q4.text((98, 168), "BAJA", font=_font(96), fill=(214, 208, 192))
+    dr_q4.text((133, 283), "03", font=_font(168), fill=(176, 152, 106))
     im_ch.paste(im_q4, (half, half))
     p_ch = os.path.join(progs_dir, "gk3_chassis.png")
     im_ch.save(p_ch, "PNG", optimize=True)
@@ -303,22 +303,22 @@ def generate_all_textures(progs_dir=PROGS):
             dr2.ellipse((rx - 9, ry - 9, rx + 9, ry + 9), fill=(90, 92, 95))
             dr2.ellipse((rx - 6, ry - 6, rx + 6, ry + 6), fill=(215, 218, 222))
     # Quake 'Q' grille badge in Q4
-    dr2.rounded_rectangle((536, 536, 1000, 1000), radius=36, fill=(24, 26, 30), outline=(140, 230, 26), width=10)
-    _draw_quake_q(dr2, 768, 768, 158, fill_col=(244, 134, 28), rim_col=(228, 232, 236), shadow_col=(18, 20, 24))
+    dr2.rounded_rectangle((536, 536, 1000, 1000), radius=36, fill=(24, 26, 30), outline=(156, 160, 166), width=10)
+    _draw_quake_q(dr2, 768, 768, 158, fill_col=(182, 148, 84), rim_col=(218, 222, 226), shadow_col=(18, 20, 24))
     p_sk = os.path.join(progs_dir, "gk3_skid.png")
     im_sk.save(p_sk, "PNG", optimize=True)
     paths["progs/gk3_skid"] = "progs/gk3_skid.png"
 
     # -----------------------------------------------------------------------
-    # 3. gk3_susp.png (Hazard-orange springs, anodized gunmetal, chrome, hazard)
+    # 3. gk3_susp.png (Satin steel springs, anodized gunmetal, chrome, muted tan stripe)
     # -----------------------------------------------------------------------
     nf3 = _fbm(H, W, seed=304)
     arr3 = np.zeros((H, W, 3), dtype=np.float32)
-    # Q1: Gloss hazard-orange spring coat
+    # Q1: Satin gunmetal-steel spring coat
     sh3 = 0.88 + 0.14 * np.cos(u - 0.7) + 0.03 * nf3[:half, :half]
-    arr3[:half, :half, 0] = np.clip(248.0 * sh3, 40, 255)
-    arr3[:half, :half, 1] = np.clip(104.0 * sh3, 18, 145)
-    arr3[:half, :half, 2] = np.clip(18.0 * sh3, 4, 42)
+    arr3[:half, :half, 0] = np.clip(124.0 * sh3, 30, 175)
+    arr3[:half, :half, 1] = np.clip(126.0 * sh3, 30, 178)
+    arr3[:half, :half, 2] = np.clip(130.0 * sh3, 32, 184)
     # Q2: Anodized gunmetal / dark bronze damper & A-arm
     gm3 = 0.86 + 0.12 * np.cos(u - 0.5) + 0.05 * nf3[:half, half:]
     arr3[:half, half:, 0] = np.clip(74.0 * gm3, 20, 115)
@@ -329,13 +329,13 @@ def generate_all_textures(progs_dir=PROGS):
     arr3[half:, :half, 0] = np.clip(228.0 * cr3, 45, 255)
     arr3[half:, :half, 1] = np.clip(232.0 * cr3, 45, 255)
     arr3[half:, :half, 2] = np.clip(240.0 * cr3, 50, 255)
-    # Q4: Hazard stripes
+    # Q4: Muted desert-tan / charcoal diagonal stripes
     im_sp = Image.fromarray(np.clip(arr3, 0, 255).astype(np.uint8), mode="RGB")
     dr3 = ImageDraw.Draw(im_sp)
-    dr3.rectangle((512, 512, 1024, 1024), fill=(26, 26, 28))
+    dr3.rectangle((512, 512, 1024, 1024), fill=(32, 34, 36))
     for k in range(-4, 14):
         x0 = 512 + k * 64
-        dr3.polygon([(x0, 512), (x0 + 32, 512), (x0 - 160, 1024), (x0 - 192, 1024)], fill=(246, 116, 22))
+        dr3.polygon([(x0, 512), (x0 + 32, 512), (x0 - 160, 1024), (x0 - 192, 1024)], fill=(154, 134, 92))
     p_sp = os.path.join(progs_dir, "gk3_susp.png")
     im_sp.save(p_sp, "PNG", optimize=True)
     paths["progs/gk3_susp"] = "progs/gk3_susp.png"
@@ -372,19 +372,19 @@ def generate_all_textures(progs_dir=PROGS):
     # Double stitched seams on tan & charcoal panels
     for y_seam in range(85, 480, 85):
         for x_dash in range(16, 496, 20):
-            dr4.line((x_dash, y_seam, x_dash + 10, y_seam), fill=(238, 124, 34), width=3)
+            dr4.line((x_dash, y_seam, x_dash + 10, y_seam), fill=(112, 84, 52), width=3)
     for x_seam in (544, 992):
         for y_dash in range(16, 496, 18):
-            dr4.line((x_seam, y_dash, x_seam, y_dash + 9), fill=(205, 162, 108), width=3)
-    # Harness stripe bands in Q3
-    dr4.rectangle((60, 512, 110, 1024), fill=(242, 112, 22))
-    dr4.rectangle((402, 512, 452, 1024), fill=(242, 112, 22))
+            dr4.line((x_seam, y_dash, x_seam, y_dash + 9), fill=(185, 152, 108), width=3)
+    # Harness stripe bands in Q3 (muted khaki/olive)
+    dr4.rectangle((60, 512, 110, 1024), fill=(138, 126, 86))
+    dr4.rectangle((402, 512, 452, 1024), fill=(138, 126, 86))
     p_st = os.path.join(progs_dir, "gk3_seat.png")
     im_st.save(p_st, "PNG", optimize=True)
     paths["progs/gk3_seat"] = "progs/gk3_seat.png"
 
     # -----------------------------------------------------------------------
-    # 5. gk3_steer.png (Knurled rubber grip, orange band, brushed spoke, cap)
+    # 5. gk3_steer.png (Knurled rubber grip, saddle-tan band, brushed spoke, cap)
     # -----------------------------------------------------------------------
     nf5 = _fbm(H, W, seed=306)
     arr5 = np.zeros((H, W, 3), dtype=np.float32)
@@ -394,10 +394,10 @@ def generate_all_textures(progs_dir=PROGS):
     arr5[:half, :half, 0] = gr5
     arr5[:half, :half, 1] = gr5 + 1.0
     arr5[:half, :half, 2] = gr5 + 4.0
-    # Q2: Hazard-orange 12-o'clock band
-    arr5[:half, half:, 0] = 248.0 + 5.0 * nf5[:half, half:]
-    arr5[:half, half:, 1] = 110.0 + 8.0 * nf5[:half, half:]
-    arr5[:half, half:, 2] = 22.0
+    # Q2: Saddle-tan leather 12-o'clock band
+    arr5[:half, half:, 0] = 152.0 + 6.0 * nf5[:half, half:]
+    arr5[:half, half:, 1] = 112.0 + 6.0 * nf5[:half, half:]
+    arr5[:half, half:, 2] = 66.0 + 4.0 * nf5[:half, half:]
     # Q3: Brushed silver/gunmetal spoke
     sp5 = 148.0 + 18.0 * np.cos(u) + 8.0 * nf5[half:, :half]
     arr5[half:, :half, 0] = sp5
@@ -409,7 +409,7 @@ def generate_all_textures(progs_dir=PROGS):
     arr5[half:, half:, 2] = 38.0
     im_sw = Image.fromarray(np.clip(arr5, 0, 255).astype(np.uint8), mode="RGB")
     dr5 = ImageDraw.Draw(im_sw)
-    _draw_quake_q(dr5, 768, 768, 130, fill_col=(140, 230, 26), rim_col=(235, 238, 242), shadow_col=(22, 24, 28))
+    _draw_quake_q(dr5, 768, 768, 130, fill_col=(186, 174, 148), rim_col=(216, 220, 224), shadow_col=(22, 24, 28))
     p_sw = os.path.join(progs_dir, "gk3_steer.png")
     im_sw.save(p_sw, "PNG", optimize=True)
     paths["progs/gk3_steer"] = "progs/gk3_steer.png"
@@ -424,22 +424,22 @@ def generate_all_textures(progs_dir=PROGS):
     arr6[:half, :half, 0] = np.clip(blk * 0.98, 40, 210)
     arr6[:half, :half, 1] = np.clip(blk * 1.00, 42, 214)
     arr6[:half, :half, 2] = np.clip(blk * 1.04, 46, 222)
-    # Q2: Gold/brass pleated air filter cone
+    # Q2: Muted brass pleated air filter cone
     pleat = 0.72 + 0.28 * np.cos(np.linspace(0, 44.0 * math.pi, half)[None, :])
     mesh = 0.90 + 0.10 * np.sin(np.linspace(0, 120.0, half)[:, None])
     brs = pleat * mesh + 0.05 * nf6[:half, half:]
-    arr6[:half, half:, 0] = np.clip(236.0 * brs, 65, 255)
-    arr6[:half, half:, 1] = np.clip(182.0 * brs, 48, 220)
-    arr6[:half, half:, 2] = np.clip(58.0 * brs, 14, 105)
+    arr6[:half, half:, 0] = np.clip(186.0 * brs, 55, 220)
+    arr6[:half, half:, 1] = np.clip(154.0 * brs, 45, 190)
+    arr6[:half, half:, 2] = np.clip(84.0 * brs, 24, 120)
     # Q3: Crinkle-black valve cover
     crk = 34.0 + 10.0 * nf6[half:, :half]
     arr6[half:, :half, 0] = np.clip(crk, 14, 70)
     arr6[half:, :half, 1] = np.clip(crk + 1.0, 14, 72)
     arr6[half:, :half, 2] = np.clip(crk + 3.0, 16, 76)
-    # Q4: Hazard-orange / brass accent (plug boots & fuel cap)
-    arr6[half:, half:, 0] = np.clip(240.0 + 10.0 * nf6[half:, half:], 80, 255)
-    arr6[half:, half:, 1] = np.clip(108.0 + 10.0 * nf6[half:, half:], 40, 160)
-    arr6[half:, half:, 2] = 22.0
+    # Q4: Muted brass / bronze accent (plug boots & fuel cap)
+    arr6[half:, half:, 0] = np.clip(148.0 + 8.0 * nf6[half:, half:], 60, 195)
+    arr6[half:, half:, 1] = np.clip(122.0 + 8.0 * nf6[half:, half:], 50, 165)
+    arr6[half:, half:, 2] = 68.0
     p_en = os.path.join(progs_dir, "gk3_engine.png")
     _save_png(arr6, p_en)
     paths["progs/gk3_engine"] = "progs/gk3_engine.png"
@@ -1576,7 +1576,7 @@ def build_gokart_3(progs_dir=PROGS, meta_dir=OUT_DIR):
         "id": "kart3",
         "name": "Baja Dune Scrambler",
         "tagline": "Acid-Lime Desert Buggy-Kart with Long-Travel Coil-Overs & V-Twin",
-        "palette": ["#84cc16", "#27272a", "#f97316", "#d97706"],
+        "palette": ["#5c6246", "#27272a", "#9a865c", "#7c8088"],
         "description": (
             "Rugged Bakersfield desert buggy-kart built around an acid-lime & matte gunmetal "
             "tubular exoskeleton, riveted brushed-steel skid plate, bull-bar with twin amber "

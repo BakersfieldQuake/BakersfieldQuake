@@ -172,106 +172,107 @@ def _carbon_weave(h, w, scale=8, base_rgb=(16, 22, 34), hi_rgb=(36, 48, 68), noi
 
 def _copy_mmt_textures(progs_dir):
     """Copies read-only progs/mmt_wheel.png and progs/mmt_chrome_bar.png to progs/gk5_*.png
-    so scripts/gokart.shader never collides with scripts/mm_tank.shader.
+    with clean sRGB contrast so scripts/gokart.shader never collides with scripts/mm_tank.shader.
     """
     src_wheel = os.path.join(progs_dir, "mmt_wheel.png")
     src_chrome = os.path.join(progs_dir, "mmt_chrome_bar.png")
     dst_wheel = os.path.join(progs_dir, "gk5_wheel.png")
     dst_chrome = os.path.join(progs_dir, "gk5_chrome.png")
 
+    def _save_lifted(p_w, p_c):
+        aw = np.asarray(Image.open(p_w).convert("RGB"), dtype=np.float32)
+        ow = aw.copy()
+        ow[:512, :, :] = np.clip(aw[:512, :, :] * 1.38, 14, 125)
+        ow[512:, :, :] = np.clip(aw[512:, :, :] * 2.25, 20, 244)
+        Image.fromarray(ow.astype(np.uint8), mode="RGB").save(dst_wheel, "PNG", optimize=True)
+
+        ac = np.asarray(Image.open(p_c).convert("RGB"), dtype=np.float32)
+        oc = ac.copy()
+        oc[:512, :, :] = np.clip(ac[:512, :, :] * 2.15, 18, 248)
+        oc[512:, :512, :] = np.clip(ac[512:, :512, :] * 1.38, 14, 74)
+        oc[512:768, 512:, :] = np.clip(ac[512:768, 512:, :] * 2.15, 20, 248)
+        oc[768:, 512:768, :] = np.clip(ac[768:, 512:768, :] * 1.35, 12, 68)
+        oc[768:, 768:, :] = np.clip(ac[768:, 768:, :] * 2.15, 20, 248)
+        Image.fromarray(oc.astype(np.uint8), mode="RGB").save(dst_chrome, "PNG", optimize=True)
+
     if os.path.isfile(src_wheel) and os.path.isfile(src_chrome):
-        Image.open(src_wheel).convert("RGB").save(dst_wheel, "PNG", optimize=True)
-        Image.open(src_chrome).convert("RGB").save(dst_chrome, "PNG", optimize=True)
+        _save_lifted(src_wheel, src_chrome)
     else:
         with tempfile.TemporaryDirectory() as tmp_mmt:
             p_wheel, _ = tank_tex_gen.build_wheel_textures(tmp_mmt)
             p_chrome, _ = tank_tex_gen.build_chrome_bar_textures(tmp_mmt)
-            Image.open(p_wheel).convert("RGB").save(dst_wheel, "PNG", optimize=True)
-            Image.open(p_chrome).convert("RGB").save(dst_chrome, "PNG", optimize=True)
+            _save_lifted(p_wheel, p_chrome)
     return dst_wheel, dst_chrome
 
 
 def build_body_texture(progs_dir):
-    """1024x1024 RGB: Mega-Man cobalt-blue metallic bodywork, cyan trim, white racing stripes,
-    carbon-slate undertray, glowing cyan radiator slats, and '05' Interceptor markings.
+    """1024x1024 RGB: Deep motorsport navy metallic bodywork, off-white trim,
+    dark charcoal undertray, gunmetal radiator slats, and red LED tail light.
     """
     W = H = 1024
     nf = _fbm(H, W, seed=501, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
 
-    # Q1: Sculpted Mega-Man Cobalt-Blue Nose Cowl & White/Cyan Racing Stripes
+    # Q1: Deep Satin Motorsport Navy Cowl / Coaming / Spine (clean without wrapped text)
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
     u = xx / 511.0
     v = yy / 511.0
-    sheen = 0.88 + 0.12 * np.sin(v * math.pi) + 0.04 * nf[:512, :512]
+    sheen = 0.90 + 0.10 * np.sin(v * math.pi) + 0.04 * nf[:512, :512]
     q1 = np.zeros((512, 512, 3), dtype=np.float32)
-    q1[..., 0] = 16.0 * sheen
-    q1[..., 1] = 82.0 * sheen
-    q1[..., 2] = 212.0 * sheen
-    # Crisp white center-double racing stripe + electric-cyan trim pinstripe
-    white_band = np.exp(-((np.abs(v - 0.5) - 0.13) ** 2) / 0.0014)
-    cyan_edge = np.exp(-((np.abs(v - 0.5) - 0.21) ** 2) / 0.0005)
-    q1[..., 0] = np.clip(q1[..., 0] * (1.0 - white_band) + 236.0 * white_band + 0.0 * cyan_edge, 0, 255)
-    q1[..., 1] = np.clip(q1[..., 1] * (1.0 - white_band) + 242.0 * white_band + 215.0 * cyan_edge, 0, 255)
-    q1[..., 2] = np.clip(q1[..., 2] * (1.0 - white_band) + 250.0 * white_band + 255.0 * cyan_edge, 0, 255)
-    im1 = Image.fromarray(q1.astype(np.uint8), mode="RGB")
-    dr1 = ImageDraw.Draw(im1)
-    dr1.text((38, 34), "MM-05", fill=(238, 245, 255), font=_font(44))
-    dr1.text((38, 86), "INTERCEPTOR", fill=(0, 224, 255), font=_font(26))
-    arr[:512, :512] = np.asarray(im1, dtype=np.float32)
+    q1[..., 0] = 30.0 * sheen
+    q1[..., 1] = 48.0 * sheen
+    q1[..., 2] = 82.0 * sheen
+    seam_q1 = np.exp(-((v - 0.50) ** 2) / 0.00008)
+    q1 = np.clip(q1 * (1.0 - 0.35 * seam_q1[..., None]), 12, 160)
+    arr[:512, :512] = q1
 
-    # Q2: Mega-Blue Side Fairing Pods w/ Crisp White Side Stripe & Electric Cyan Trim
+    # Q2: Deep Navy Side Fairing Pods w/ Subtle Panel Seam & Rivets (no wrapped text)
     q2 = np.zeros((512, 512, 3), dtype=np.float32)
-    q2[..., 0] = 14.0 * sheen
-    q2[..., 1] = 74.0 * sheen
-    q2[..., 2] = 202.0 * sheen
-    # Diagonal racing stripe & cyan lower trim
-    stripe_w = np.exp(-((v - (0.36 + 0.14 * u)) ** 2) / 0.0028)
-    stripe_c = np.exp(-((v - (0.48 + 0.14 * u)) ** 2) / 0.0007) + np.exp(-((v - 0.84) ** 2) / 0.0012)
-    for ch, wb, cb in ((0, 238, 0), (1, 244, 222), (2, 252, 255)):
-        q2[..., ch] = np.clip(q2[..., ch] * (1.0 - stripe_w) + wb * stripe_w + cb * stripe_c, 0, 255)
+    q2[..., 0] = 28.0 * sheen
+    q2[..., 1] = 46.0 * sheen
+    q2[..., 2] = 78.0 * sheen
+    seam_q2 = np.exp(-((v - 0.78) ** 2) / 0.00010)
+    q2 = np.clip(q2 * (1.0 - 0.35 * seam_q2[..., None]), 12, 160)
     im2 = Image.fromarray(q2.astype(np.uint8), mode="RGB")
     dr2 = ImageDraw.Draw(im2)
-    dr2.text((40, 32), "TWIN-DISH 05", fill=(238, 246, 255), font=_font(38))
-    dr2.text((42, 78), "MEGA INTERCEPTOR", fill=(0, 228, 255), font=_font(22))
     for rx in range(44, 480, 62):
-        dr2.ellipse((rx - 4, 466, rx + 4, 474), fill=(195, 212, 232), outline=(10, 35, 90))
+        dr2.ellipse((rx - 4, 466, rx + 4, 474), fill=(155, 162, 174), outline=(18, 26, 44))
     arr[:512, 512:] = np.asarray(im2, dtype=np.float32)
 
-    # Q3: Dark Carbon-Slate Belly Pan & Venturi Diffuser
-    q3 = _carbon_weave(512, 512, scale=8, base_rgb=(15, 21, 32), hi_rgb=(32, 44, 64), noise=nf[512:, :512])
+    # Q3: Dark Charcoal Belly Pan & Venturi Diffuser
+    q3 = _carbon_weave(512, 512, scale=4, base_rgb=(24, 26, 30), hi_rgb=(36, 40, 46), noise=nf[512:, :512])
     im3 = Image.fromarray(q3.astype(np.uint8), mode="RGB")
     dr3 = ImageDraw.Draw(im3)
     for yk in range(32, 512, 64):
-        dr3.line((0, yk, 512, yk), fill=(26, 38, 58), width=2)
-    dr3.rectangle((12, 438, 500, 468), fill=(0, 190, 245))
+        dr3.line((0, yk, 512, yk), fill=(36, 40, 48), width=2)
+    dr3.rectangle((12, 438, 500, 468), fill=(140, 146, 154))
     arr[512:, :512] = np.asarray(im3, dtype=np.float32)
 
-    # Q4_A: Cyan-Glow Radiator Intake Louvers
-    im_rad = Image.new("RGB", (256, 256), (12, 18, 28))
+    # Q4_A: Dark Gunmetal Aluminum Radiator Intake Louvers
+    im_rad = Image.new("RGB", (256, 256), (20, 22, 26))
     dr_rad = ImageDraw.Draw(im_rad)
     for xk in range(4, 256, 8):
-        dr_rad.line((xk, 0, xk, 256), fill=(24, 34, 52), width=2)
+        dr_rad.line((xk, 0, xk, 256), fill=(34, 38, 44), width=2)
     for yk in range(32, 236, 52):
-        dr_rad.rectangle((10, yk - 10, 246, yk + 10), fill=(0, 145, 220))
-        dr_rad.rectangle((10, yk - 4, 246, yk + 4), fill=(0, 238, 255))
-        dr_rad.rectangle((10, yk - 1, 246, yk + 1), fill=(220, 255, 255))
+        dr_rad.rectangle((10, yk - 10, 246, yk + 10), fill=(52, 56, 62))
+        dr_rad.rectangle((10, yk - 4, 246, yk + 4), fill=(88, 94, 102))
+        dr_rad.rectangle((10, yk - 1, 246, yk + 1), fill=(122, 128, 136))
     arr[512:768, 512:768] = np.asarray(im_rad, dtype=np.float32)
 
-    # Q4_B: Pure Crisp Racing White Accent Trim
-    arr[512:768, 768:] = 236.0 + nf[512:768, 768:, None] * 6.0
+    # Q4_B: Clean Warm Off-White Accent Trim
+    arr[512:768, 768:] = 218.0 + nf[512:768, 768:, None] * 5.0
 
-    # Q4_C: Electric-Cyan Dorsal Fin & Trim Accent
-    arr[768:, 512:768, 0] = 6.0
-    arr[768:, 512:768, 1] = 212.0 + nf[768:, 512:768] * 10.0
-    arr[768:, 512:768, 2] = 252.0
+    # Q4_C: Satin Brushed Silver-Grey Dorsal Fin & Trim Accent
+    arr[768:, 512:768, 0] = 162.0 + nf[768:, 512:768] * 6.0
+    arr[768:, 512:768, 1] = 166.0 + nf[768:, 512:768] * 6.0
+    arr[768:, 512:768, 2] = 172.0 + nf[768:, 512:768] * 6.0
 
-    # Q4_D: Glowing Cyan LED Tail Light Matrix
-    im_tl = Image.new("RGB", (256, 256), (10, 18, 34))
+    # Q4_D: Deep Red LED Tail Light Matrix
+    im_tl = Image.new("RGB", (256, 256), (20, 18, 22))
     dr_tl = ImageDraw.Draw(im_tl)
     for row in range(28, 228, 40):
         for col in range(28, 228, 40):
-            dr_tl.ellipse((col, row, col + 26, row + 26), fill=(0, 235, 255), outline=(215, 255, 255))
+            dr_tl.ellipse((col, row, col + 26, row + 26), fill=(178, 24, 24), outline=(224, 118, 112))
     arr[768:, 768:] = np.asarray(im_tl, dtype=np.float32)
 
     out_path = os.path.join(progs_dir, "gk5_body.png")
@@ -280,49 +281,49 @@ def build_body_texture(progs_dir):
 
 
 def build_seat_texture(progs_dir):
-    """1024x1024 RGB: Mega-Blue bucket shell, crisp white quilted cushion, cyan piping, '05' headrest."""
+    """1024x1024 RGB: Deep navy-slate bucket shell, off-white quilted cushion, navy bolsters, '05' headrest."""
     W = H = 1024
     nf = _fbm(H, W, seed=502, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
 
-    # Q1: Deep Cobalt-Blue Bucket Seat Shell
-    arr[:512, :512, 0] = np.clip(16.0 + nf[:512, :512] * 8.0, 8, 42)
-    arr[:512, :512, 1] = np.clip(76.0 + nf[:512, :512] * 14.0, 40, 120)
-    arr[:512, :512, 2] = np.clip(198.0 + nf[:512, :512] * 18.0, 140, 240)
+    # Q1: Deep Navy-Slate Bucket Seat Shell
+    arr[:512, :512, 0] = np.clip(28.0 + nf[:512, :512] * 6.0, 12, 56)
+    arr[:512, :512, 1] = np.clip(44.0 + nf[:512, :512] * 8.0, 20, 82)
+    arr[:512, :512, 2] = np.clip(74.0 + nf[:512, :512] * 10.0, 36, 120)
 
-    # Q2: Crisp Off-White Diamond-Quilted Seat Cushion w/ Cobalt Stitch
-    q2 = np.full((512, 512, 3), 236.0, dtype=np.float32) + nf[:512, 512:, None] * 6.0
-    im2 = Image.fromarray(np.clip(q2, 195, 252).astype(np.uint8), mode="RGB")
+    # Q2: Warm Off-White Diamond-Quilted Seat Cushion w/ Navy Stitch
+    q2 = np.full((512, 512, 3), 220.0, dtype=np.float32) + nf[:512, 512:, None] * 5.0
+    im2 = Image.fromarray(np.clip(q2, 180, 242).astype(np.uint8), mode="RGB")
     dr2 = ImageDraw.Draw(im2)
     for k in range(-512, 1024, 64):
-        dr2.line((k, 0, k + 512, 512), fill=(18, 92, 210), width=3)
-        dr2.line((k, 512, k + 512, 0), fill=(18, 92, 210), width=3)
-    dr2.rectangle((0, 0, 511, 20), fill=(0, 218, 255))
-    dr2.rectangle((0, 492, 511, 511), fill=(0, 218, 255))
+        dr2.line((k, 0, k + 512, 512), fill=(36, 54, 88), width=3)
+        dr2.line((k, 512, k + 512, 0), fill=(36, 54, 88), width=3)
+    dr2.rectangle((0, 0, 511, 20), fill=(32, 48, 80))
+    dr2.rectangle((0, 492, 511, 511), fill=(32, 48, 80))
     arr[:512, 512:] = np.asarray(im2, dtype=np.float32)
 
-    # Q3: Mega-Blue Side Bolsters + White & Cyan Piping
+    # Q3: Deep Navy-Slate Side Bolsters + Off-White Piping
     q3 = np.zeros((512, 512, 3), dtype=np.float32)
-    q3[..., 0] = 18.0 + nf[512:, :512] * 8.0
-    q3[..., 1] = 104.0 + nf[512:, :512] * 12.0
-    q3[..., 2] = 228.0 + nf[512:, :512] * 14.0
+    q3[..., 0] = 30.0 + nf[512:, :512] * 5.0
+    q3[..., 1] = 46.0 + nf[512:, :512] * 6.0
+    q3[..., 2] = 76.0 + nf[512:, :512] * 8.0
     im3 = Image.fromarray(np.clip(q3, 0, 255).astype(np.uint8), mode="RGB")
     dr3 = ImageDraw.Draw(im3)
     for yk in range(54, 460, 68):
-        dr3.line((0, yk, 512, yk), fill=(10, 60, 165), width=6)
-    dr3.rectangle((0, 0, 511, 22), fill=(240, 246, 255))
-    dr3.rectangle((0, 488, 511, 511), fill=(0, 224, 255))
+        dr3.line((0, yk, 512, yk), fill=(20, 32, 56), width=6)
+    dr3.rectangle((0, 0, 511, 20), fill=(216, 220, 226))
+    dr3.rectangle((0, 490, 511, 511), fill=(216, 220, 226))
     arr[512:, :512] = np.asarray(im3, dtype=np.float32)
 
-    # Q4: White & Mega-Blue Headrest Crest ("05")
-    im4 = Image.new("RGB", (512, 512), (235, 242, 252))
+    # Q4: Off-White & Navy-Slate Headrest Crest ("05")
+    im4 = Image.new("RGB", (512, 512), (218, 222, 226))
     dr4 = ImageDraw.Draw(im4)
-    dr4.rectangle((0, 0, 511, 96), fill=(16, 86, 215))
-    dr4.rectangle((0, 416, 511, 511), fill=(16, 86, 215))
-    dr4.rectangle((0, 96, 511, 118), fill=(0, 224, 255))
-    dr4.rectangle((0, 394, 511, 416), fill=(0, 224, 255))
-    dr4.ellipse((146, 146, 366, 366), fill=(14, 78, 205), outline=(0, 224, 255), width=10)
-    dr4.text((196, 202), "05", fill=(242, 248, 255), font=_font(104))
+    dr4.rectangle((0, 0, 511, 96), fill=(30, 46, 78))
+    dr4.rectangle((0, 416, 511, 511), fill=(30, 46, 78))
+    dr4.rectangle((0, 96, 511, 114), fill=(138, 146, 158))
+    dr4.rectangle((0, 398, 511, 416), fill=(138, 146, 158))
+    dr4.ellipse((146, 146, 366, 366), fill=(28, 44, 74), outline=(145, 152, 164), width=10)
+    dr4.text((196, 202), "05", fill=(228, 232, 238), font=_font(104))
     arr[512:, 512:] = np.asarray(im4, dtype=np.float32)
 
     out_path = os.path.join(progs_dir, "gk5_seat.png")
@@ -331,7 +332,7 @@ def build_seat_texture(progs_dir):
 
 
 def build_steer_texture(progs_dir):
-    """1024x1024 RGB: Brushed stainless butterfly yoke, glowing cyan OLED dash, Mega-Blue grips."""
+    """1024x1024 RGB: Brushed stainless butterfly yoke, dark LCD dash, matte charcoal grips."""
     W = H = 1024
     nf = _fbm(H, W, seed=503, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
@@ -339,40 +340,40 @@ def build_steer_texture(progs_dir):
     # Q1: Brushed Stainless Butterfly Faceplate + Anodized Dials
     u_s = np.linspace(0, 2 * math.pi, 512, dtype=np.float32)[None, :]
     st_m = 162.0 + 36.0 * np.cos(u_s) + 10.0 * nf[:512, :512]
-    q1 = np.stack([st_m * 0.94, st_m * 0.98, st_m * 1.06], axis=-1)
-    im1 = Image.fromarray(np.clip(q1, 30, 245).astype(np.uint8), mode="RGB")
+    q1 = np.stack([st_m * 0.96, st_m * 0.98, st_m * 1.03], axis=-1)
+    im1 = Image.fromarray(np.clip(q1, 30, 240).astype(np.uint8), mode="RGB")
     dr1 = ImageDraw.Draw(im1)
     for cx, cy, col, lbl in [
-        (135, 175, (0, 225, 255), "BUSTER"),
-        (375, 175, (20, 105, 245), "BOOST"),
-        (165, 360, (0, 195, 255), "SYNC"),
-        (345, 360, (240, 246, 255), "MODE"),
+        (135, 175, (158, 42, 42), "BOOST"),
+        (375, 175, (42, 64, 108), "DRS"),
+        (165, 360, (98, 104, 112), "SYNC"),
+        (345, 360, (210, 214, 220), "MODE"),
     ]:
-        dr1.ellipse((cx - 46, cy - 46, cx + 46, cy + 46), fill=(18, 28, 44), outline=col, width=5)
+        dr1.ellipse((cx - 46, cy - 46, cx + 46, cy + 46), fill=(22, 26, 32), outline=col, width=5)
         dr1.ellipse((cx - 24, cy - 24, cx + 24, cy + 24), fill=col)
-        dr1.text((cx - 38, cy + 54), lbl, fill=(14, 30, 60), font=_font(22))
+        dr1.text((cx - 38, cy + 54), lbl, fill=(24, 28, 36), font=_font(22))
     arr[:512, :512] = np.asarray(im1, dtype=np.float32)
 
-    # Q2: Glowing Cyan OLED Telemetry Dash & Shift Light Bar
-    im2 = Image.new("RGB", (512, 512), (8, 14, 26))
+    # Q2: Clean Motorsport LCD Dash & Shift Light Bar
+    im2 = Image.new("RGB", (512, 512), (14, 18, 24))
     dr2 = ImageDraw.Draw(im2)
     for i in range(14):
         lx = 30 + i * 32
-        col = (0, 238, 255) if i < 7 else ((240, 248, 255) if i < 11 else (30, 125, 255))
-        dr2.ellipse((lx, 24, lx + 24, 66), fill=col, outline=(220, 250, 255))
-    dr2.rectangle((22, 92, 490, 470), fill=(10, 24, 48), outline=(0, 224, 255), width=5)
-    dr2.text((46, 124), "288 KM/H", fill=(0, 242, 255), font=_font(72))
-    dr2.text((52, 236), "BUSTER MAX", fill=(238, 248, 255), font=_font(52))
-    dr2.text((52, 338), "TWIN-DISH 05", fill=(85, 200, 255), font=_font(44))
+        col = (68, 152, 74) if i < 7 else ((192, 148, 44) if i < 11 else (178, 42, 42))
+        dr2.ellipse((lx, 24, lx + 24, 66), fill=col, outline=(88, 94, 102))
+    dr2.rectangle((22, 92, 490, 470), fill=(18, 22, 28), outline=(120, 128, 138), width=5)
+    dr2.text((46, 124), "188 KM/H", fill=(220, 224, 230), font=_font(72))
+    dr2.text((52, 236), "GEAR 5", fill=(192, 152, 56), font=_font(52))
+    dr2.text((52, 338), "LAP  01:14", fill=(176, 184, 194), font=_font(44))
     arr[:512, 512:] = np.asarray(im2, dtype=np.float32)
 
-    # Q3: Mega-Man Cobalt-Blue Grips
-    arr[512:, :512, 0] = np.clip(18.0 + nf[512:, :512] * 10.0, 8, 50)
-    arr[512:, :512, 1] = np.clip(98.0 + nf[512:, :512] * 14.0, 50, 145)
-    arr[512:, :512, 2] = np.clip(226.0 + nf[512:, :512] * 16.0, 175, 255)
+    # Q3: Matte Charcoal Rubber/Alcantara Grips
+    arr[512:, :512, 0] = np.clip(30.0 + nf[512:, :512] * 6.0, 14, 68)
+    arr[512:, :512, 1] = np.clip(32.0 + nf[512:, :512] * 6.0, 14, 70)
+    arr[512:, :512, 2] = np.clip(36.0 + nf[512:, :512] * 6.5, 16, 76)
 
     # Q4: Mirror-Polished Stainless Column
-    arr[512:, 512:] = np.clip(q1, 30, 245)
+    arr[512:, 512:] = np.clip(q1, 30, 240)
 
     out_path = os.path.join(progs_dir, "gk5_steer.png")
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB").save(out_path, "PNG", optimize=True)
@@ -380,7 +381,7 @@ def build_steer_texture(progs_dir):
 
 
 def build_exhaust_texture(progs_dir):
-    """1024x1024 RGB: Chrome Mega-Buster cannon barrel, cobalt-blue collector housing, cyan emitter core."""
+    """1024x1024 RGB: Chrome exhaust barrel, navy-slate collector housing, dark metallic baffle core."""
     W = H = 1024
     nf = _fbm(H, W, seed=504, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
@@ -388,24 +389,24 @@ def build_exhaust_texture(progs_dir):
     u = np.linspace(0.0, 2.0 * math.pi, 512, dtype=np.float32)[None, :]
     v = np.linspace(0.0, 1.0, 512, dtype=np.float32)[:, None]
 
-    # Q1: Gleaming Chrome Mega-Buster Barrel w/ Heat-Blued Muzzle Tip
+    # Q1: Gleaming Chrome Barrel w/ Subtle Straw Heat Tint at Tip
     refl = 0.64 + 0.24 * np.cos(u - 0.8) + 0.14 * np.cos(2.0 * u) + 0.02 * nf[:512, :512]
-    heat_blue = np.exp(-((v - 0.88) ** 2) / 0.015)
+    heat_straw = np.exp(-((v - 0.88) ** 2) / 0.015)
     band_dark = 1.0 - 0.18 * np.exp(-((v - 0.52) ** 2) / 0.0014)
-    arr[:512, :512, 0] = np.clip((refl * 208.0 - heat_blue * 60.0) * band_dark, 20, 248)
-    arr[:512, :512, 1] = np.clip((refl * 214.0 + heat_blue * 18.0) * band_dark, 22, 250)
-    arr[:512, :512, 2] = np.clip((refl * 228.0 + heat_blue * 48.0) * band_dark, 26, 255)
+    arr[:512, :512, 0] = np.clip((refl * 204.0 + heat_straw * 16.0) * band_dark, 24, 242)
+    arr[:512, :512, 1] = np.clip((refl * 206.0 + heat_straw * 4.0) * band_dark, 24, 242)
+    arr[:512, :512, 2] = np.clip((refl * 212.0 - heat_straw * 18.0) * band_dark, 26, 246)
 
-    # Q2: Mega-Blue Collector Cowl & White Accent Band
+    # Q2: Deep Navy Collector Cowl & Off-White Accent Band
     q2 = np.zeros((512, 512, 3), dtype=np.float32)
     w_band = np.exp(-((v - 0.25) ** 2) / 0.0025)
-    c_band = np.exp(-((v - 0.82) ** 2) / 0.0018)
-    q2[..., 0] = np.clip(16.0 * refl + 225.0 * w_band, 8, 252)
-    q2[..., 1] = np.clip(92.0 * refl + 150.0 * w_band + 155.0 * c_band, 30, 255)
-    q2[..., 2] = np.clip(225.0 * refl + 30.0 * w_band + 30.0 * c_band, 120, 255)
+    s_band = np.exp(-((v - 0.82) ** 2) / 0.0018)
+    q2[..., 0] = np.clip(30.0 * refl + 185.0 * w_band + 120.0 * s_band, 14, 232)
+    q2[..., 1] = np.clip(46.0 * refl + 170.0 * w_band + 115.0 * s_band, 20, 234)
+    q2[..., 2] = np.clip(80.0 * refl + 140.0 * w_band + 95.0 * s_band, 32, 238)
     arr[:512, 512:] = q2
 
-    # Q3: Glowing Electric-Cyan Mega-Buster Plasma Emitter Core
+    # Q3: Dark Gunmetal Perforated Baffle Core
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
     rx = (xx - 255.5) / 245.0
     ry = (yy - 255.5) / 245.0
@@ -413,13 +414,13 @@ def build_exhaust_texture(progs_dir):
     ang = np.arctan2(ry, rx)
     ring = np.exp(-((rr - 0.68) ** 2) / 0.018) + 0.95 * np.exp(-((rr - 0.24) ** 2) / 0.016)
     vanes = 0.65 + 0.35 * np.cos(ang * 10.0)
-    core = np.clip(ring * vanes, 0.0, 1.3)
-    arr[512:, :512, 0] = np.clip(24.0 + 210.0 * (core ** 2.0), 0, 255)
-    arr[512:, :512, 1] = np.clip(75.0 + 200.0 * core, 0, 255)
-    arr[512:, :512, 2] = np.clip(125.0 + 180.0 * core, 0, 255)
+    core = np.clip(ring * vanes, 0.0, 1.0)
+    arr[512:, :512, 0] = np.clip(24.0 + 72.0 * core, 12, 130)
+    arr[512:, :512, 1] = np.clip(26.0 + 74.0 * core, 12, 134)
+    arr[512:, :512, 2] = np.clip(28.0 + 78.0 * core, 14, 140)
 
-    # Q4: Crisp White-Stripe & Stainless Mount Collar
-    arr[512:, 512:] = np.clip(refl[..., None] * np.array([224.0, 232.0, 242.0]), 30, 250)
+    # Q4: Brushed Stainless Mount Collar
+    arr[512:, 512:] = np.clip(refl[..., None] * np.array([216.0, 220.0, 228.0]), 30, 242)
 
     out_path = os.path.join(progs_dir, "gk5_exhaust.png")
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB").save(out_path, "PNG", optimize=True)
@@ -427,7 +428,7 @@ def build_exhaust_texture(progs_dir):
 
 
 def build_flame_texture(progs_dir):
-    """512x512 RGBA additive Mega-Buster cyan/white-hot shock-diamond plasma plume."""
+    """512x512 RGBA additive warm orange-amber/white-gold exhaust flame plume."""
     W = H = 512
     rgba = np.zeros((H, W, 4), dtype=np.float32)
 
@@ -435,23 +436,23 @@ def build_flame_texture(progs_dir):
     u_wrap = (xx / 255.0) * 2.0 * math.pi
     v_n = yy / 511.0
 
-    # Left half: Electric-cyan/cobalt outer Mega-Buster plasma plume
+    # Left half: Warm orange-amber outer exhaust plume
     mach = 0.54 + 0.46 * (np.cos(v_n * 2.0 * math.pi * 3.5) ** 2)
     streak = 0.86 + 0.14 * np.cos(u_wrap * 4.0 + v_n * 6.0)
     tail_fade = np.clip(1.0 - v_n ** 1.15, 0.0, 1.0) * np.clip(v_n / 0.04, 0.0, 1.0)
     intensity = np.clip(streak * tail_fade * (0.62 + 0.55 * mach), 0.0, 1.0)
-    rgba[:, :256, 0] = np.clip(intensity * (15.0 + 180.0 * (intensity ** 2.2)), 0, 255)
-    rgba[:, :256, 1] = np.clip(intensity * (185.0 + 70.0 * intensity), 0, 255)
-    rgba[:, :256, 2] = np.clip(intensity * 255.0, 0, 255)
+    rgba[:, :256, 0] = np.clip(intensity * 255.0, 0, 255)
+    rgba[:, :256, 1] = np.clip(intensity * (145.0 + 60.0 * intensity), 0, 255)
+    rgba[:, :256, 2] = np.clip(intensity * (34.0 + 90.0 * (intensity ** 2.2)), 0, 255)
     rgba[:, :256, 3] = np.clip(intensity * 255.0, 0, 255)
 
-    # Right half: White-hot inner Mach-diamond plasma core
+    # Right half: White-gold inner core
     core_mach = 0.58 + 0.42 * (np.cos(v_n * 2.0 * math.pi * 4.5) ** 2)
     core_streak = 0.90 + 0.10 * np.cos(u_wrap * 3.0 - v_n * 8.0)
     core_i = np.clip(core_streak * np.clip(1.0 - v_n ** 1.05, 0.0, 1.0) * np.clip(v_n / 0.03, 0.0, 1.0) * core_mach, 0.0, 1.0)
-    rgba[:, 256:, 0] = np.clip(core_i * 225.0, 0, 255)
-    rgba[:, 256:, 1] = np.clip(core_i * 250.0, 0, 255)
-    rgba[:, 256:, 2] = np.clip(core_i * 255.0, 0, 255)
+    rgba[:, 256:, 0] = np.clip(core_i * 255.0, 0, 255)
+    rgba[:, 256:, 1] = np.clip(core_i * 238.0, 0, 255)
+    rgba[:, 256:, 2] = np.clip(core_i * 185.0, 0, 255)
     rgba[:, 256:, 3] = np.clip(core_i * 255.0, 0, 255)
 
     out_path = os.path.join(progs_dir, "gk5_flame.png")
@@ -1395,7 +1396,7 @@ def build_gokart_5(progs_dir=PROGS, meta_dir=OUT_DIR):
             "id": "kart5",
             "name": "Mega Man Twin-Dish Interceptor",
             "tagline": "Mega-Blue Sidepods, Giant Rear Dish Tires & Elevated T-Collar Silver Bar",
-            "palette": ["#1052d4", "#00dcff", "#eef2f6", "#22262d"],
+            "palette": ["#1e3052", "#8c94a0", "#dce0e6", "#22262d"],
             "description": (
                 "Sleek low-slung Mega-Man-Blue and mirror-chrome interceptor go-kart built on "
                 "authentic Mega Man contraption hardware: giant 13.5u rear 5-ribbed pneumatic tires "

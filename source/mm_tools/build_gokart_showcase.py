@@ -318,7 +318,13 @@ def build_showcase():
     with open(driver_meta_path, "r", encoding="utf-8") as f:
         driver_meta = json.load(f)
 
-    generate_shader_file(metas + [driver_meta])
+    extra_metas = [driver_meta]
+    shell_meta_path = os.path.join(OUT_DIR, "gk_shell_meta.json")
+    if os.path.isfile(shell_meta_path):
+        with open(shell_meta_path, "r", encoding="utf-8") as f:
+            extra_metas.append(json.load(f))
+
+    generate_shader_file(metas + extra_metas)
 
     print("2. Packing progs/gokart_{1..6}.md3 + gokart_driver.md3 + PNG textures into ArenaPacker...", flush=True)
     packer = ArenaPacker()

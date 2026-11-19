@@ -118,24 +118,24 @@ def _fbm(h, w, seed=42, octaves=(4, 8, 16, 32, 64)):
     return acc / max(tw, 1e-6)
 
 
-def _carbon_weave(h, w, scale=8, base_rgb=(16, 22, 34), hi_rgb=(36, 48, 68), noise=None):
+def _carbon_weave(h, w, scale=4, base_rgb=(32, 34, 38), hi_rgb=(44, 47, 52), noise=None):
     yy, xx = np.mgrid[0:h, 0:w]
     phase = (xx // scale + yy // scale) % 2
     sub_u = (xx % scale) / float(scale)
     sub_v = (yy % scale) / float(scale)
-    sheen_a = np.sin(sub_u * math.pi) * 0.85 + 0.15
-    sheen_b = np.sin(sub_v * math.pi) * 0.85 + 0.15
-    w_fac = np.where(phase == 0, sheen_a, sheen_b * 0.75)
+    sheen_a = np.sin(sub_u * math.pi) * 0.65 + 0.35
+    sheen_b = np.sin(sub_v * math.pi) * 0.65 + 0.35
+    w_fac = np.where(phase == 0, sheen_a, sheen_b * 0.85)
     out = np.zeros((h, w, 3), dtype=np.float32)
     for c in range(3):
         out[..., c] = base_rgb[c] + (hi_rgb[c] - base_rgb[c]) * w_fac
     if noise is not None:
-        out += noise[..., None] * 6.0
-    return np.clip(out, 4, 255)
+        out += noise[..., None] * 5.0
+    return np.clip(out, 8, 255)
 
 
-def _draw_quake_q(arr_q, cx, cy, radius, cyan=(0, 229, 255), amber=(255, 158, 0), rot90=False):
-    """Draws a crisp cyber-titanium Quake 'Q' emblem directly onto a numpy RGB quadrant."""
+def _draw_quake_q(arr_q, cx, cy, radius, cyan=(195, 200, 208), amber=(168, 38, 38), rot90=False):
+    """Draws a crisp brushed-steel Quake 'Q' emblem directly onto a numpy RGB quadrant."""
     h, w, _ = arr_q.shape
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     dx0 = (xx - cx) / radius
@@ -172,87 +172,81 @@ def _draw_quake_q(arr_q, cx, cy, radius, cyan=(0, 229, 255), amber=(255, 158, 0)
 
     q_mask = np.clip(np.maximum(ring_mask, np.maximum(spear_mask, tooth_mask)), 0.0, 1.0)
 
-    # Outer cyan glow halo
-    glow_ring = np.exp(-((ring_dist - ring_half_w * 0.8) ** 2) / 0.015) * (top_gap > 0.22)
-    glow_spear = np.exp(-(dx * dx) / 0.030) * (dy > -0.25) * (dy < 1.25)
-    glow = np.clip(np.maximum(glow_ring, glow_spear * 0.85), 0.0, 1.0) * 0.65
+    # Subtle dark metallic rim halo (no neon glow)
+    glow_ring = np.exp(-((ring_dist - ring_half_w * 0.8) ** 2) / 0.010) * (top_gap > 0.22)
+    glow_spear = np.exp(-(dx * dx) / 0.020) * (dy > -0.25) * (dy < 1.25)
+    glow = np.clip(np.maximum(glow_ring, glow_spear * 0.85), 0.0, 1.0) * 0.25
 
     # Metallic bevel inside Q
-    bevel = np.clip(0.65 + 0.35 * (-dx * 0.5 - dy * 0.5), 0.3, 1.0)
+    bevel = np.clip(0.68 + 0.32 * (-dx * 0.5 - dy * 0.5), 0.35, 1.0)
     inner_edge = np.clip(1.0 - np.abs(q_mask - 0.65) * 3.0, 0.0, 1.0)
 
     for c in range(3):
-        arr_q[..., c] = arr_q[..., c] * (1.0 - 0.45 * glow) + cyan[c] * glow
-        fill_c = (210.0 * bevel * (1.0 - 0.45 * inner_edge) + amber[c] * 0.55 * inner_edge) if c < 2 else (235.0 * bevel)
+        arr_q[..., c] = arr_q[..., c] * (1.0 - 0.35 * glow) + cyan[c] * glow * 0.35
+        fill_c = 205.0 * bevel * (1.0 - 0.25 * inner_edge) + amber[c] * 0.25 * inner_edge
         arr_q[..., c] = arr_q[..., c] * (1.0 - q_mask) + fill_c * q_mask
 
 
 def build_body_texture(progs_dir):
     W = H = 1024
     nf = _fbm(H, W, seed=201, octaves=(4, 8, 16, 32))
-    arr = _carbon_weave(H, W, scale=8, base_rgb=(13, 18, 28), hi_rgb=(32, 46, 66), noise=nf)
+    arr = _carbon_weave(H, W, scale=4, base_rgb=(36, 39, 44), hi_rgb=(46, 50, 56), noise=nf)
 
-    # Q1: Wedge Nose Top Deck + Sweeping Cyan/Amber Aero Livery + Quake 'Q' Decal
+    # Q1: Wedge Nose Top Deck + Subtle Silver/Crimson Aero Livery + Quake 'Q' Decal
     q1 = arr[:512, :512].copy()
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
     u = xx / 511.0  # nose length +X (0 = cowl, 1 = nose tip)
     v = (yy - 255.5) / 255.5  # -1..+1 across width
-    # Converging cyan chevrons
     chevron_y = 0.72 * (1.0 - 0.68 * u)
-    cyan_stripe = np.exp(-((np.abs(v) - chevron_y) ** 2) / 0.0022)
-    amber_stripe = np.exp(-((np.abs(v) - (chevron_y - 0.09)) ** 2) / 0.00055)
-    center_line = np.exp(-((np.abs(v)) ** 2) / 0.00045) * (u > 0.58)
-    for c, cy, am in ((0, 0, 255), (1, 229, 158), (2, 255, 0)):
-        q1[..., c] = np.clip(q1[..., c] + cy * cyan_stripe * 0.95 + am * (amber_stripe + 0.7 * center_line), 0, 255)
-    # Quake 'Q' emblem centered on nose deck (rotated so horns face cowl -X and spear points to nose tip +X)
+    silver_stripe = np.exp(-((np.abs(v) - chevron_y) ** 2) / 0.0018)
+    red_stripe = np.exp(-((np.abs(v) - (chevron_y - 0.08)) ** 2) / 0.00055)
+    center_line = np.exp(-((np.abs(v)) ** 2) / 0.00040) * (u > 0.58)
+    for c, sv, rd in ((0, 178, 154), (1, 182, 34), (2, 188, 36)):
+        q1[..., c] = np.clip(
+            q1[..., c] * (1.0 - 0.75 * silver_stripe) + sv * silver_stripe * 0.85
+            + rd * (red_stripe * 0.85 + 0.5 * center_line),
+            10, 225,
+        )
     _draw_quake_q(q1, cx=245.0, cy=255.5, radius=105.0, rot90=True)
     arr[:512, :512] = q1
 
-    # Q2: Monocoque Flank, Cockpit Rim & Telemetry Graphics
-    q2 = arr[:512, 512:].copy()
+    # Q2: Satin Dark Graphite Monocoque Flank, Cockpit Rim & Spine (clean seam & rivets, no wrapped text)
+    q2 = _carbon_weave(512, 512, scale=4, base_rgb=(42, 46, 52), hi_rgb=(54, 58, 65), noise=nf[:512, 512:])
     yy2, xx2 = np.mgrid[0:512, 0:512].astype(np.float32)
     v2 = yy2 / 511.0
     u2 = xx2 / 511.0
-    c_band = np.exp(-((v2 - (0.34 + 0.14 * u2)) ** 2) / 0.0020)
-    a_band = np.exp(-((v2 - (0.43 + 0.14 * u2)) ** 2) / 0.00045)
     seam = np.exp(-((u2 - 0.50) ** 2) / 0.00004) + np.exp(-((v2 - 0.72) ** 2) / 0.00004)
-    for c, cy, am in ((0, 0, 255), (1, 229, 255), (2, 255, 0)):
-        q2[..., c] = np.clip(q2[..., c] * (1.0 - 0.55 * seam) + cy * c_band + am * a_band, 0, 255)
+    q2 = np.clip(q2 * (1.0 - 0.45 * seam[..., None]), 12, 180)
     im_q2 = Image.fromarray(q2.astype(np.uint8), mode="RGB")
     dr2 = ImageDraw.Draw(im_q2)
-    dr2.text((34, 34), "CYBER-NITRO", fill=(0, 229, 255), font=_font(36))
-    dr2.text((36, 78), "AERO GT-02", fill=(255, 158, 0), font=_font(28))
     for rx in range(48, 480, 64):
-        dr2.ellipse((rx - 4, 348, rx + 4, 356), fill=(110, 130, 155), outline=(25, 30, 40))
+        dr2.ellipse((rx - 4, 348, rx + 4, 356), fill=(115, 120, 128), outline=(24, 26, 30))
     arr[:512, 512:] = np.asarray(im_q2, dtype=np.float32)
 
-    # Q3: Undertray / Venturi Diffuser & Wishbone Structural Carbon
-    q3 = _carbon_weave(512, 512, scale=6, base_rgb=(10, 13, 20), hi_rgb=(24, 31, 44), noise=nf[512:, :512])
+    # Q3: Undertray / Venturi Diffuser & Wishbone Structural Charcoal Matte
+    q3 = _carbon_weave(512, 512, scale=4, base_rgb=(24, 26, 30), hi_rgb=(32, 35, 40), noise=nf[512:, :512])
     im_q3 = Image.fromarray(q3.astype(np.uint8), mode="RGB")
     dr3 = ImageDraw.Draw(im_q3)
     for yk in range(32, 512, 64):
-        dr3.line((0, yk, 512, yk), fill=(26, 36, 52), width=2)
-    dr3.rectangle((16, 420, 496, 444), fill=(0, 165, 205))
+        dr3.line((0, yk, 512, yk), fill=(36, 40, 46), width=2)
+    dr3.rectangle((16, 420, 496, 444), fill=(72, 76, 82))
     arr[512:, :512] = np.asarray(im_q3, dtype=np.float32)
 
-    # Q4: Footwell Knurled Floor, Brushed Pedals, FIA Cyan Rain Light
-    # Q4_A (top-left of Q4): Knurled floor
-    q4a = _carbon_weave(256, 256, scale=12, base_rgb=(18, 22, 30), hi_rgb=(45, 55, 70), noise=nf[512:768, 512:768])
+    # Q4: Footwell Knurled Floor, Brushed Pedals, Red FIA Rain Light
+    q4a = _carbon_weave(256, 256, scale=10, base_rgb=(22, 24, 28), hi_rgb=(44, 48, 54), noise=nf[512:768, 512:768])
     arr[512:768, 512:768] = q4a
-    # Q4_B (top-right of Q4): Brushed aluminum pedals
     u_p = np.linspace(0, 1, 256, dtype=np.float32)[None, :]
     ped = 155.0 + 25.0 * np.sin(u_p * 42.0) + 8.0 * nf[512:768, 768:]
-    arr[512:768, 768:, 0] = np.clip(ped * 0.94, 40, 230)
-    arr[512:768, 768:, 1] = np.clip(ped * 0.98, 40, 235)
-    arr[512:768, 768:, 2] = np.clip(ped * 1.06, 45, 245)
-    # Q4_C: Titanium suspension clevis
-    arr[768:, 512:768] = 95.0 + 14.0 * nf[768:, 512:768, None]
-    # Q4_D: Glowing FIA Cyan/Amber LED Rain Light array
-    im_rl = Image.new("RGB", (256, 256), (12, 16, 24))
+    arr[512:768, 768:, 0] = np.clip(ped * 0.98, 40, 225)
+    arr[512:768, 768:, 1] = np.clip(ped * 0.99, 40, 228)
+    arr[512:768, 768:, 2] = np.clip(ped * 1.02, 45, 232)
+    arr[768:, 512:768] = 95.0 + 12.0 * nf[768:, 512:768, None]
+    # Q4_D: Deep Red FIA LED Rain Light array
+    im_rl = Image.new("RGB", (256, 256), (18, 18, 22))
     dr_rl = ImageDraw.Draw(im_rl)
     for row in range(30, 226, 36):
         for col in range(30, 226, 36):
-            dr_rl.ellipse((col, row, col + 22, row + 22), fill=(0, 235, 255), outline=(180, 255, 255))
+            dr_rl.ellipse((col, row, col + 22, row + 22), fill=(182, 24, 24), outline=(228, 120, 110))
     arr[768:, 768:] = np.asarray(im_rl, dtype=np.float32)
 
     out_path = os.path.join(progs_dir, "gk2_body.png")
@@ -263,49 +257,48 @@ def build_body_texture(progs_dir):
 def build_aero_texture(progs_dir):
     W = H = 1024
     nf = _fbm(H, W, seed=202, octaves=(4, 8, 16, 32))
-    arr = _carbon_weave(H, W, scale=8, base_rgb=(14, 19, 30), hi_rgb=(35, 49, 72), noise=nf)
+    arr = _carbon_weave(H, W, scale=4, base_rgb=(40, 44, 50), hi_rgb=(52, 56, 64), noise=nf)
 
-    # Q1: Carbon Aero Shell + Cyan Leading Edge + Neon-Amber Pinstripe
-    q1 = arr[:512, :512].copy()
+    # Q1: Satin Racing Gunmetal-Silver Aero Shell (sidepods, front wing, DRS flap - clean without wrap rings)
+    q1 = _carbon_weave(512, 512, scale=4, base_rgb=(88, 93, 100), hi_rgb=(102, 108, 116), noise=nf[:512, :512])
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
+    u = xx / 511.0
     v = yy / 511.0
-    cyan_le = np.exp(-((v - 0.14) ** 2) / 0.0025) + np.exp(-((v - 0.86) ** 2) / 0.0018)
-    amber_pin = np.exp(-((v - 0.24) ** 2) / 0.0005) + np.exp(-((v - 0.77) ** 2) / 0.0004)
-    for c, cy, am in ((0, 0, 255), (1, 229, 158), (2, 255, 0)):
-        q1[..., c] = np.clip(q1[..., c] + cy * cyan_le + am * amber_pin, 0, 255)
+    # Subtle satin panel highlight and fine seam line
+    sheen = 0.94 + 0.08 * np.sin(u * math.pi)
+    seam = np.exp(-((v - 0.50) ** 2) / 0.00012)
+    q1 = np.clip(q1 * sheen[..., None] * (1.0 - 0.25 * seam[..., None]), 20, 185)
     arr[:512, :512] = q1
 
-    # Q2: Glowing Cyan Radiator Intake Slats + Dark Heat Exchanger Fins
-    im_rad = Image.new("RGB", (512, 512), (10, 14, 20))
+    # Q2: Dark Gunmetal Aluminum Radiator Intake Slats + Heat Exchanger Fins
+    im_rad = Image.new("RGB", (512, 512), (20, 22, 26))
     dr_rad = ImageDraw.Draw(im_rad)
     for xk in range(4, 512, 8):
-        dr_rad.line((xk, 0, xk, 512), fill=(22, 30, 42), width=2)
+        dr_rad.line((xk, 0, xk, 512), fill=(34, 38, 44), width=2)
     for yk in range(48, 480, 92):
-        dr_rad.rectangle((12, yk - 14, 500, yk + 14), fill=(0, 140, 195))
-        dr_rad.rectangle((12, yk - 7, 500, yk + 7), fill=(0, 240, 255))
-        dr_rad.rectangle((12, yk - 2, 500, yk + 2), fill=(210, 255, 255))
-    dr_rad.rectangle((0, 0, 511, 18), fill=(255, 158, 0))
-    dr_rad.rectangle((0, 494, 511, 511), fill=(0, 229, 255))
+        dr_rad.rectangle((12, yk - 14, 500, yk + 14), fill=(58, 62, 68))
+        dr_rad.rectangle((12, yk - 6, 500, yk + 6), fill=(96, 102, 110))
+        dr_rad.rectangle((12, yk - 2, 500, yk + 2), fill=(128, 134, 142))
+    dr_rad.rectangle((0, 0, 511, 18), fill=(48, 52, 58))
+    dr_rad.rectangle((0, 494, 511, 511), fill=(48, 52, 58))
     arr[:512, 512:] = np.asarray(im_rad, dtype=np.float32)
 
-    # Q3: Wing Endplates & Telemetry Graphics
+    # Q3: Wing Endplates (Dark Graphite w/ Muted Red & Silver Accent)
     im_ep = Image.fromarray(arr[512:, :512].astype(np.uint8), mode="RGB")
     dr_ep = ImageDraw.Draw(im_ep)
-    dr_ep.polygon([(20, 460), (140, 460), (460, 40), (360, 40)], fill=(0, 195, 235))
-    dr_ep.polygon([(155, 460), (205, 460), (492, 65), (470, 40)], fill=(255, 158, 0))
-    dr_ep.text((34, 42), "NITRO", fill=(240, 248, 255), font=_font(54))
-    dr_ep.text((38, 108), "02", fill=(0, 235, 255), font=_font(84))
-    dr_ep.rectangle((0, 485, 511, 511), fill=(0, 229, 255))
+    dr_ep.polygon([(20, 460), (120, 460), (440, 40), (360, 40)], fill=(142, 34, 34))
+    dr_ep.polygon([(135, 460), (175, 460), (475, 55), (455, 40)], fill=(186, 190, 196))
+    dr_ep.text((38, 48), "02", fill=(216, 220, 226), font=_font(84))
+    dr_ep.rectangle((0, 485, 511, 511), fill=(72, 76, 84))
     arr[512:, :512] = np.asarray(im_ep, dtype=np.float32)
 
-    # Q4: Split Rear Wing Mainplane with Dual Racing Stripes
+    # Q4: Split Rear Wing Mainplane (Dark Graphite w/ Clean Silver & Muted Red Edge Trim)
     im_rw = Image.fromarray(arr[512:, 512:].astype(np.uint8), mode="RGB")
     dr_rw = ImageDraw.Draw(im_rw)
-    dr_rw.rectangle((0, 40, 511, 78), fill=(0, 229, 255))
-    dr_rw.rectangle((0, 92, 511, 110), fill=(255, 158, 0))
-    dr_rw.rectangle((0, 412, 511, 434), fill=(255, 158, 0))
-    dr_rw.rectangle((0, 448, 511, 486), fill=(0, 229, 255))
-    dr_rw.text((130, 220), "AERO GT", fill=(0, 229, 255), font=_font(64))
+    dr_rw.rectangle((0, 40, 511, 66), fill=(176, 180, 186))
+    dr_rw.rectangle((0, 74, 511, 90), fill=(142, 34, 34))
+    dr_rw.rectangle((0, 424, 511, 440), fill=(142, 34, 34))
+    dr_rw.rectangle((0, 448, 511, 474), fill=(176, 180, 186))
     arr[512:, 512:] = np.asarray(im_rw, dtype=np.float32)
 
     out_path = os.path.join(progs_dir, "gk2_aero.png")
@@ -318,39 +311,39 @@ def build_seat_texture(progs_dir):
     nf = _fbm(H, W, seed=203, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
 
-    # Q1: Carbon-Kevlar Hybrid Weave (amber/gold kevlar threads alternating with midnight carbon)
+    # Q1: Dark Carbon Composite Seat Shell
     yy, xx = np.mgrid[0:512, 0:512]
-    phase = (xx // 8 + yy // 8) % 2
-    sub_u = np.sin(((xx % 8) / 8.0) * math.pi)
-    sub_v = np.sin(((yy % 8) / 8.0) * math.pi)
-    for c, kc, cc in ((0, 145, 22), (1, 108, 28), (2, 24, 38)):
-        arr[:512, :512, c] = np.where(phase == 0, kc * (0.45 + 0.55 * sub_u), cc * (0.45 + 0.55 * sub_v)) + nf[:512, :512] * 5.0
+    phase = (xx // 6 + yy // 6) % 2
+    sub_u = np.sin(((xx % 6) / 6.0) * math.pi)
+    sub_v = np.sin(((yy % 6) / 6.0) * math.pi)
+    for c, kc, cc in ((0, 44, 28), (1, 46, 30), (2, 50, 34)):
+        arr[:512, :512, c] = np.where(phase == 0, kc * (0.55 + 0.45 * sub_u), cc * (0.55 + 0.45 * sub_v)) + nf[:512, :512] * 4.5
 
-    # Q2: Quilted Alcantara Center Cushion
-    q2 = np.full((512, 512, 3), 26.0, dtype=np.float32) + nf[:512, 512:, None] * 4.5
-    im_q2 = Image.fromarray(np.clip(q2, 10, 75).astype(np.uint8), mode="RGB")
+    # Q2: Quilted Charcoal Alcantara Center Cushion w/ Silver-Grey Stitch
+    q2 = np.full((512, 512, 3), 30.0, dtype=np.float32) + nf[:512, 512:, None] * 4.5
+    im_q2 = Image.fromarray(np.clip(q2, 14, 75).astype(np.uint8), mode="RGB")
     dr2 = ImageDraw.Draw(im_q2)
     for k in range(-512, 1024, 64):
-        dr2.line((k, 0, k + 512, 512), fill=(0, 185, 220), width=2)
-        dr2.line((k, 512, k + 512, 0), fill=(0, 185, 220), width=2)
+        dr2.line((k, 0, k + 512, 512), fill=(96, 100, 108), width=2)
+        dr2.line((k, 512, k + 512, 0), fill=(96, 100, 108), width=2)
     arr[:512, 512:] = np.asarray(im_q2, dtype=np.float32)
 
-    # Q3: Electric-Cyan Side Bolsters + Amber Piping
+    # Q3: Matte Charcoal-Slate Side Bolsters + Subtle Muted Crimson Piping
     q3 = np.zeros((512, 512, 3), dtype=np.float32)
-    q3[..., 0] = 8.0 + nf[512:, :512] * 6.0
-    q3[..., 1] = 175.0 + nf[512:, :512] * 12.0
-    q3[..., 2] = 225.0 + nf[512:, :512] * 14.0
-    im_q3 = Image.fromarray(np.clip(q3, 0, 255).astype(np.uint8), mode="RGB")
+    q3[..., 0] = 36.0 + nf[512:, :512] * 5.0
+    q3[..., 1] = 38.0 + nf[512:, :512] * 5.0
+    q3[..., 2] = 42.0 + nf[512:, :512] * 5.5
+    im_q3 = Image.fromarray(np.clip(q3, 12, 95).astype(np.uint8), mode="RGB")
     dr3 = ImageDraw.Draw(im_q3)
     for yk in range(40, 480, 56):
-        dr3.line((0, yk, 512, yk), fill=(4, 105, 145), width=6)
-    dr3.rectangle((0, 0, 511, 20), fill=(255, 158, 0))
-    dr3.rectangle((0, 492, 511, 511), fill=(255, 158, 0))
+        dr3.line((0, yk, 512, yk), fill=(26, 28, 32), width=6)
+    dr3.rectangle((0, 0, 511, 16), fill=(142, 36, 36))
+    dr3.rectangle((0, 496, 511, 511), fill=(142, 36, 36))
     arr[512:, :512] = np.asarray(im_q3, dtype=np.float32)
 
-    # Q4: Headrest Pad with Quake 'Q' Embroidered Crest
+    # Q4: Charcoal Headrest Pad with Brushed-Silver Quake 'Q' Crest
     q4 = q3.copy()
-    _draw_quake_q(q4, cx=256.0, cy=256.0, radius=115.0, cyan=(210, 255, 255), amber=(255, 175, 20))
+    _draw_quake_q(q4, cx=256.0, cy=256.0, radius=115.0, cyan=(185, 190, 198), amber=(148, 38, 38))
     arr[512:, 512:] = q4
 
     out_path = os.path.join(progs_dir, "gk2_seat.png")
@@ -361,49 +354,48 @@ def build_seat_texture(progs_dir):
 def build_steer_texture(progs_dir):
     W = H = 1024
     nf = _fbm(H, W, seed=204, octaves=(4, 8, 16, 32))
-    arr = _carbon_weave(H, W, scale=6, base_rgb=(16, 20, 30), hi_rgb=(42, 52, 70), noise=nf)
+    arr = _carbon_weave(H, W, scale=4, base_rgb=(28, 30, 34), hi_rgb=(42, 46, 52), noise=nf)
 
     # Q1: Butterfly Yoke Faceplate + Rotary Dials + Buttons
     im1 = Image.fromarray(arr[:512, :512].astype(np.uint8), mode="RGB")
     dr1 = ImageDraw.Draw(im1)
     for cx, cy, col, lbl in [
-        (135, 170, (0, 229, 255), "NITRO"),
-        (375, 170, (255, 158, 0), "DRS"),
-        (165, 355, (0, 200, 255), "MAP"),
-        (345, 355, (255, 110, 0), "PWR"),
+        (135, 170, (168, 42, 42), "BOOST"),
+        (375, 170, (168, 172, 178), "DRS"),
+        (165, 355, (108, 114, 122), "MAP"),
+        (345, 355, (152, 112, 42), "PWR"),
     ]:
-        dr1.ellipse((cx - 46, cy - 46, cx + 46, cy + 46), fill=(22, 28, 38), outline=col, width=5)
+        dr1.ellipse((cx - 46, cy - 46, cx + 46, cy + 46), fill=(22, 24, 28), outline=col, width=5)
         dr1.ellipse((cx - 24, cy - 24, cx + 24, cy + 24), fill=col)
-        dr1.text((cx - 32, cy + 54), lbl, fill=col, font=_font(24))
+        dr1.text((cx - 32, cy + 54), lbl, fill=(195, 200, 206), font=_font(24))
     arr[:512, :512] = np.asarray(im1, dtype=np.float32)
 
-    # Q2: Glowing Telemetry LED Shift Bar & OLED Display
-    im2 = Image.new("RGB", (512, 512), (8, 12, 20))
+    # Q2: Clean Motorsport LCD Telemetry Display & Shift-Light Bar
+    im2 = Image.new("RGB", (512, 512), (14, 16, 20))
     dr2 = ImageDraw.Draw(im2)
-    # 15-LED shift light bar across top
     for i in range(15):
         lx = 26 + i * 31
-        col = (0, 240, 255) if i < 6 else ((255, 195, 0) if i < 11 else (255, 45, 45))
-        dr2.ellipse((lx, 26, lx + 22, 68), fill=col, outline=(220, 250, 255))
-    dr2.rectangle((24, 96, 488, 468), fill=(10, 20, 34), outline=(0, 215, 255), width=4)
-    dr2.text((52, 126), "296 KM/H", fill=(0, 245, 255), font=_font(72))
-    dr2.text((56, 238), "NITRO 100%", fill=(255, 175, 0), font=_font(52))
-    dr2.text((56, 338), "GEAR 6  +0.42", fill=(185, 245, 255), font=_font(44))
+        col = (64, 156, 72) if i < 6 else ((192, 148, 42) if i < 11 else (182, 42, 42))
+        dr2.ellipse((lx, 26, lx + 22, 68), fill=col, outline=(90, 95, 102))
+    dr2.rectangle((24, 96, 488, 468), fill=(18, 22, 28), outline=(120, 126, 134), width=4)
+    dr2.text((52, 126), "196 KM/H", fill=(220, 224, 228), font=_font(72))
+    dr2.text((56, 238), "RPM 11400", fill=(196, 152, 52), font=_font(52))
+    dr2.text((56, 338), "GEAR 6  +0.42", fill=(185, 190, 198), font=_font(44))
     arr[:512, 512:] = np.asarray(im2, dtype=np.float32)
 
-    # Q3: Electric-Cyan Ergonomic Grips
+    # Q3: Matte Black Alcantara Grips
     q3 = np.zeros((512, 512, 3), dtype=np.float32)
-    q3[..., 0] = 10.0 + nf[512:, :512] * 8.0
-    q3[..., 1] = 165.0 + nf[512:, :512] * 14.0
-    q3[..., 2] = 215.0 + nf[512:, :512] * 16.0
-    arr[512:, :512] = np.clip(q3, 0, 255)
+    q3[..., 0] = 28.0 + nf[512:, :512] * 5.0
+    q3[..., 1] = 30.0 + nf[512:, :512] * 5.0
+    q3[..., 2] = 33.0 + nf[512:, :512] * 5.5
+    arr[512:, :512] = np.clip(q3, 12, 75)
 
     # Q4: Anodized Titanium Column
     u_c = np.linspace(0, 2 * math.pi, 512, dtype=np.float32)[None, :]
-    ti = 95.0 + 35.0 * np.cos(u_c) + 12.0 * nf[512:, 512:]
-    arr[512:, 512:, 0] = np.clip(ti * 0.92, 20, 210)
-    arr[512:, 512:, 1] = np.clip(ti * 0.98, 22, 220)
-    arr[512:, 512:, 2] = np.clip(ti * 1.12, 28, 240)
+    ti = 105.0 + 30.0 * np.cos(u_c) + 10.0 * nf[512:, 512:]
+    arr[512:, 512:, 0] = np.clip(ti * 0.96, 24, 200)
+    arr[512:, 512:, 1] = np.clip(ti * 0.98, 24, 204)
+    arr[512:, 512:, 2] = np.clip(ti * 1.03, 28, 212)
 
     out_path = os.path.join(progs_dir, "gk2_steer.png")
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB").save(out_path, "PNG", optimize=True)
@@ -415,27 +407,26 @@ def build_thruster_texture(progs_dir):
     nf = _fbm(H, W, seed=205, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
 
-    # Q1: Heat-Blued Brushed Titanium / Inconel Shroud
+    # Q1: Brushed Stainless / Heat-Tempered Titanium Exhaust Shroud
     u = np.linspace(0.0, 2.0 * math.pi, 512, dtype=np.float32)[None, :]
     v = np.linspace(0.0, 1.0, 512, dtype=np.float32)[:, None]
-    refl = 0.55 + 0.25 * np.cos(u - 0.8) + 0.14 * np.cos(2.0 * u) + 0.03 * nf[:512, :512]
-    heat_blue = np.exp(-((v - 0.78) ** 2) / 0.025)
-    heat_amber = np.exp(-((v - 0.54) ** 2) / 0.018)
+    refl = 0.58 + 0.22 * np.cos(u - 0.8) + 0.12 * np.cos(2.0 * u) + 0.03 * nf[:512, :512]
+    heat_straw = np.exp(-((v - 0.72) ** 2) / 0.025)
     bands = 1.0 - 0.16 * np.exp(-((v - 0.30) ** 2) / 0.0012) - 0.16 * np.exp(-((v - 0.65) ** 2) / 0.0012)
-    arr[:512, :512, 0] = np.clip((refl * 155.0 + heat_amber * 55.0 - heat_blue * 35.0) * bands, 18, 245)
-    arr[:512, :512, 1] = np.clip((refl * 165.0 + heat_amber * 24.0 + heat_blue * 28.0) * bands, 18, 248)
-    arr[:512, :512, 2] = np.clip((refl * 185.0 - heat_amber * 18.0 + heat_blue * 85.0) * bands, 24, 255)
+    arr[:512, :512, 0] = np.clip((refl * 165.0 + heat_straw * 24.0) * bands, 24, 228)
+    arr[:512, :512, 1] = np.clip((refl * 164.0 + heat_straw * 10.0) * bands, 24, 224)
+    arr[:512, :512, 2] = np.clip((refl * 168.0 - heat_straw * 18.0) * bands, 24, 224)
 
-    # Q2: Dark Carbon-Titanium Iris Nozzle Petals w/ Glowing Inner Edge
-    q2 = np.full((512, 512, 3), 34.0, dtype=np.float32) + nf[:512, 512:, None] * 6.0
+    # Q2: Dark Carbon-Titanium Iris Nozzle Petals w/ Subtle Brushed Steel Rim
+    q2 = np.full((512, 512, 3), 38.0, dtype=np.float32) + nf[:512, 512:, None] * 6.0
     v2 = np.linspace(0.0, 1.0, 512, dtype=np.float32)[:, None]
-    edge_glow = np.exp(-((v2 - 0.92) ** 2) / 0.004)
-    q2[..., 0] += edge_glow * 15.0
-    q2[..., 1] += edge_glow * 185.0
-    q2[..., 2] += edge_glow * 235.0
-    arr[:512, 512:] = np.clip(q2, 12, 255)
+    edge_rim = np.exp(-((v2 - 0.92) ** 2) / 0.004)
+    q2[..., 0] += edge_rim * 55.0
+    q2[..., 1] += edge_rim * 56.0
+    q2[..., 2] += edge_rim * 60.0
+    arr[:512, 512:] = np.clip(q2, 14, 150)
 
-    # Q3: Glowing Cyan Plasma Afterburner Ring & Stator Core
+    # Q3: Dark Metallic Turbine Baffle Core & Exhaust Cone
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
     rx = (xx - 255.5) / 245.0
     ry = (yy - 255.5) / 245.0
@@ -443,15 +434,15 @@ def build_thruster_texture(progs_dir):
     ang = np.arctan2(ry, rx)
     ring = np.exp(-((rr - 0.72) ** 2) / 0.014) + 0.85 * np.exp(-((rr - 0.35) ** 2) / 0.012)
     vanes = 0.5 + 0.5 * np.cos(ang * 12.0)
-    core = np.clip(ring * (0.75 + 0.25 * vanes), 0.0, 1.3)
-    arr[512:, :512, 0] = np.clip(18.0 + 195.0 * (core ** 2.2), 0, 255)
-    arr[512:, :512, 1] = np.clip(35.0 + 220.0 * core, 0, 255)
-    arr[512:, :512, 2] = np.clip(55.0 + 235.0 * core, 0, 255)
+    core = np.clip(ring * (0.65 + 0.35 * vanes), 0.0, 1.0)
+    arr[512:, :512, 0] = np.clip(28.0 + 68.0 * core + 5.0 * nf[512:, :512], 12, 130)
+    arr[512:, :512, 1] = np.clip(29.0 + 70.0 * core + 5.0 * nf[512:, :512], 12, 134)
+    arr[512:, :512, 2] = np.clip(32.0 + 74.0 * core + 5.0 * nf[512:, :512], 14, 140)
 
-    # Q4: Neon-Amber Nozzle Trim Band
-    arr[512:, 512:, 0] = 240.0 + nf[512:, 512:] * 8.0
-    arr[512:, 512:, 1] = 148.0 + nf[512:, 512:] * 6.0
-    arr[512:, 512:, 2] = 12.0
+    # Q4: Satin Dark Gunmetal Nozzle Trim Band
+    arr[512:, 512:, 0] = 62.0 + nf[512:, 512:] * 6.0
+    arr[512:, 512:, 1] = 65.0 + nf[512:, 512:] * 6.0
+    arr[512:, 512:, 2] = 70.0 + nf[512:, 512:] * 6.0
 
     out_path = os.path.join(progs_dir, "gk2_thruster.png")
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB").save(out_path, "PNG", optimize=True)
@@ -463,52 +454,50 @@ def build_wheel_texture(progs_dir):
     nf = _fbm(H, W, seed=206, octaves=(4, 8, 16, 32))
     arr = np.zeros((H, W, 3), dtype=np.float32)
 
-    # Q1: Low-Profile Wide Racing Slick Tread (matte dark rubber + subtle cyan compound stripe)
+    # Q1: Low-Profile Wide Racing Slick Tread (clean matte dark rubber)
     ux = np.linspace(0.0, 1.0, 512, dtype=np.float32)[None, :]
     vy = np.linspace(0.0, 2.0 * math.pi, 512, dtype=np.float32)[:, None]
     shoulder = 1.0 - 0.22 * ((2.0 * ux - 1.0) ** 4)
     grooves = np.exp(-((ux - 0.24) ** 2) / 0.00045) + np.exp(-((ux - 0.76) ** 2) / 0.00045)
-    stripe = np.exp(-((ux - 0.14) ** 2) / 0.00025)
-    rub = (42.0 - 16.0 * grooves) * shoulder + 4.0 * nf[:512, :512] + 3.0 * np.sin(vy * 3.0)
-    arr[:512, :512, 0] = np.clip(rub * 0.95, 10, 110)
-    arr[:512, :512, 1] = np.clip(rub * 1.00 + 145.0 * stripe, 12, 230)
-    arr[:512, :512, 2] = np.clip(rub * 1.08 + 195.0 * stripe, 14, 255)
+    rub = (38.0 - 14.0 * grooves) * shoulder + 4.0 * nf[:512, :512] + 2.5 * np.sin(vy * 3.0)
+    arr[:512, :512, 0] = np.clip(rub * 0.99, 10, 85)
+    arr[:512, :512, 1] = np.clip(rub * 1.00, 10, 85)
+    arr[:512, :512, 2] = np.clip(rub * 1.03, 12, 88)
 
-    # Q2: Polar Sidewall + Glowing Cyan Alloy Rim Lip
+    # Q2: Polar Sidewall + Satin Silver Alloy Rim Lip
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
     rx = (xx - 255.5) / 245.0
     ry = (yy - 255.5) / 245.0
     rr = np.sqrt(rx * rx + ry * ry)
     ang = np.arctan2(ry, rx)
-    sw = 38.0 + 9.0 * np.exp(-((rr - 0.78) ** 2) / 0.008) + 4.0 * nf[:512, 512:]
-    cyan_lip = np.exp(-((rr - 0.56) ** 2) / 0.00085)
-    amber_ticks = np.exp(-((rr - 0.84) ** 2) / 0.0003) * (np.cos(ang * 5.0) > 0.75)
-    arr[:512, 512:, 0] = np.clip(sw * 0.96 + 245.0 * amber_ticks, 12, 255)
-    arr[:512, 512:, 1] = np.clip(sw * 1.00 + 225.0 * cyan_lip + 155.0 * amber_ticks, 12, 255)
-    arr[:512, 512:, 2] = np.clip(sw * 1.08 + 255.0 * cyan_lip, 14, 255)
+    sw = 34.0 + 8.0 * np.exp(-((rr - 0.78) ** 2) / 0.008) + 4.0 * nf[:512, 512:]
+    rim_lip = np.exp(-((rr - 0.56) ** 2) / 0.00085)
+    rib_ticks = np.exp(-((rr - 0.84) ** 2) / 0.0003) * (np.cos(ang * 5.0) > 0.75)
+    arr[:512, 512:, 0] = np.clip(sw + 105.0 * rim_lip + 24.0 * rib_ticks, 12, 185)
+    arr[:512, 512:, 1] = np.clip(sw + 108.0 * rim_lip + 24.0 * rib_ticks, 12, 188)
+    arr[:512, 512:, 2] = np.clip(sw + 112.0 * rim_lip + 26.0 * rib_ticks, 14, 192)
 
-    # Q3: 5-Spoke Turbine Gunmetal Alloy & Cyan Bevel
+    # Q3: 5-Spoke Turbine Satin Gunmetal Alloy
     u3 = np.linspace(0, 1, 512, dtype=np.float32)[None, :]
     v3 = np.linspace(0, 1, 512, dtype=np.float32)[:, None]
-    alloy = 68.0 + 34.0 * np.sin(u3 * math.pi) + 8.0 * nf[512:, :512]
+    alloy = 108.0 + 28.0 * np.sin(u3 * math.pi) + 7.0 * nf[512:, :512]
     edge_c = np.exp(-((v3 - 0.90) ** 2) / 0.004) + np.exp(-((v3 - 0.10) ** 2) / 0.004)
-    arr[512:, :512, 0] = np.clip(alloy * 0.92, 18, 175)
-    arr[512:, :512, 1] = np.clip(alloy * 0.98 + 160.0 * edge_c, 20, 245)
-    arr[512:, :512, 2] = np.clip(alloy * 1.10 + 205.0 * edge_c, 24, 255)
+    arr[512:, :512, 0] = np.clip(alloy * 0.96 + 32.0 * edge_c, 22, 195)
+    arr[512:, :512, 1] = np.clip(alloy * 0.98 + 34.0 * edge_c, 22, 198)
+    arr[512:, :512, 2] = np.clip(alloy * 1.03 + 38.0 * edge_c, 26, 205)
 
-    # Q4: Center-Lock Anodized Nut & Carbon Brake Rotor
-    # Q4_A: Drilled carbon brake rotor
+    # Q4: Center-Lock Steel Nut & Carbon Brake Rotor
     yy4, xx4 = np.mgrid[0:256, 0:256].astype(np.float32)
     r4 = np.sqrt(((xx4 - 127.5) / 120.0) ** 2 + ((yy4 - 127.5) / 120.0) ** 2)
     a4 = np.arctan2(yy4 - 127.5, xx4 - 127.5)
     rot_m = 82.0 + 18.0 * np.sin(r4 * 45.0) + 10.0 * np.cos(a4 * 10.0)
-    arr[512:768, 512:768] = np.clip(rot_m[..., None] * np.array([0.92, 0.95, 1.02]), 18, 165)
-    # Q4_B: Anodized Cyan Center-Lock Nut
-    arr[512:768, 768:] = np.array([0.0, 215.0, 248.0])
-    # Q4_C: Neon-Amber Brake Caliper
-    arr[768:, 512:768] = np.array([245.0, 145.0, 12.0])
+    arr[512:768, 512:768] = np.clip(rot_m[..., None] * np.array([0.96, 0.98, 1.02]), 18, 165)
+    # Q4_B: Brushed Steel / Dark Gunmetal Center-Lock Nut
+    arr[512:768, 768:] = np.array([128.0, 132.0, 138.0])
+    # Q4_C: Muted Dark Red Brake Caliper
+    arr[768:, 512:768] = np.array([142.0, 34.0, 34.0])
     # Q4_D: Inner Dark Barrel
-    arr[768:, 768:] = 26.0 + 5.0 * nf[768:, 768:, None]
+    arr[768:, 768:] = 30.0 + 5.0 * nf[768:, 768:, None]
 
     out_path = os.path.join(progs_dir, "gk2_wheel.png")
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB").save(out_path, "PNG", optimize=True)
@@ -516,7 +505,7 @@ def build_wheel_texture(progs_dir):
 
 
 def build_flame_texture(progs_dir):
-    """512x512 RGBA additive shock-diamond cyan/white-hot afterburner & explosion flash.
+    """512x512 RGBA additive warm orange-amber / white-hot exhaust afterburner & explosion flash.
     Seamlessly wraps around U for 3D cylindrical plume sleeves and fades cleanly to 0 at V=1 tail.
     """
     W = H = 512
@@ -526,23 +515,23 @@ def build_flame_texture(progs_dir):
     u_wrap = (xx / 255.0) * 2.0 * math.pi  # seamless 0..2pi around tube
     v_n = yy / 511.0  # 0 at nozzle -> 1 at tail tip
 
-    # Left half (u: 0..0.5, v: 0..1): Shock-diamond outer cyan-blue plasma plume
+    # Left half (u: 0..0.5, v: 0..1): Warm orange-amber outer exhaust plume
     mach = 0.52 + 0.48 * (np.cos(v_n * 2.0 * math.pi * 3.5) ** 2)
     streak = 0.86 + 0.14 * np.cos(u_wrap * 4.0 + v_n * 6.0)
     tail_fade = np.clip(1.0 - v_n ** 1.15, 0.0, 1.0) * np.clip(v_n / 0.04, 0.0, 1.0)
     intensity = np.clip(streak * tail_fade * (0.62 + 0.55 * mach), 0.0, 1.0)
-    rgba[:, :256, 0] = np.clip(intensity * (12.0 + 190.0 * (intensity ** 2.2)), 0, 255)
-    rgba[:, :256, 1] = np.clip(intensity * (175.0 + 80.0 * intensity), 0, 255)
-    rgba[:, :256, 2] = np.clip(intensity * 255.0, 0, 255)
+    rgba[:, :256, 0] = np.clip(intensity * 255.0, 0, 255)
+    rgba[:, :256, 1] = np.clip(intensity * (140.0 + 65.0 * intensity), 0, 255)
+    rgba[:, :256, 2] = np.clip(intensity * (32.0 + 95.0 * (intensity ** 2.2)), 0, 255)
     rgba[:, :256, 3] = np.clip(intensity * 255.0, 0, 255)
 
-    # Right half (u: 0.5..1.0, v: 0..1): White-hot inner Mach-diamond core & explosion burst
+    # Right half (u: 0.5..1.0, v: 0..1): White-gold inner core & explosion burst
     core_mach = 0.58 + 0.42 * (np.cos(v_n * 2.0 * math.pi * 4.5) ** 2)
     core_streak = 0.90 + 0.10 * np.cos(u_wrap * 3.0 - v_n * 8.0)
     core_i = np.clip(core_streak * np.clip(1.0 - v_n ** 1.05, 0.0, 1.0) * np.clip(v_n / 0.03, 0.0, 1.0) * core_mach, 0.0, 1.0)
-    rgba[:, 256:, 0] = np.clip(core_i * 225.0, 0, 255)
-    rgba[:, 256:, 1] = np.clip(core_i * 250.0, 0, 255)
-    rgba[:, 256:, 2] = np.clip(core_i * 255.0, 0, 255)
+    rgba[:, 256:, 0] = np.clip(core_i * 255.0, 0, 255)
+    rgba[:, 256:, 1] = np.clip(core_i * 238.0, 0, 255)
+    rgba[:, 256:, 2] = np.clip(core_i * 185.0, 0, 255)
     rgba[:, 256:, 3] = np.clip(core_i * 255.0, 0, 255)
 
     out_path = os.path.join(progs_dir, "gk2_flame.png")
@@ -1772,7 +1761,7 @@ def build_gokart_2(progs_dir=PROGS, meta_dir=OUT_DIR):
             "id": "kart2",
             "name": "Cyber-Nitro Aero GT",
             "tagline": "Formula-E Monocoque, Cyan Slats & Twin Turbo-Jet Afterburners",
-            "palette": ["#0d121c", "#00e5ff", "#ff9e00", "#1e293b"],
+            "palette": ["#26292e", "#5c626b", "#962424", "#b8bcc4"],
             "description": (
                 "Sleek futuristic Formula-E cyber racer featuring a sculpted midnight-carbon wedge-nose "
                 "monocoque with Quake 'Q' nose decal, low-drag F1 front splitter wing, glowing cyan "

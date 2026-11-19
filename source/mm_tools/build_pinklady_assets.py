@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import md3lib
+from build_pinklady_pk3 import regrade_pinklady_rgba
 
 import cv2
 import numpy as np
@@ -500,14 +501,16 @@ def write_turnaround_textures(cuts):
         paste_on_canvas(canvas, rs, round(CANVAS / 2 - cx * scale), round(CANVAS / 2 - cy * scale))
         base_canvases.append(canvas)
 
-        # Base snapshot progs/pinklady_00..15.png (with glossy milk drips)
-        snap = paint_glossy_milk_drips(canvas, phase_01=0.18, seed_offset=i)
+        # Base snapshot progs/pinklady_00..15.png (with glossy milk drips, toned for rgbGen identity + Zircon HDR/gamma)
+        snap = regrade_pinklady_rgba(paint_glossy_milk_drips(canvas, phase_01=0.18, seed_offset=i))
         Image.fromarray(snap, "RGBA").save(os.path.join(PROGS, "%s_%02d.png" % (NAME, i)))
 
         # Side & rear views (2..14): 6-frame continuous downward milk-drip loop!
         if i not in FRONT_VIEWS:
             for d in range(SIDE_DRIP_FRAMES):
-                dripped = paint_glossy_milk_drips(canvas, phase_01=d / float(SIDE_DRIP_FRAMES), seed_offset=i)
+                dripped = regrade_pinklady_rgba(
+                    paint_glossy_milk_drips(canvas, phase_01=d / float(SIDE_DRIP_FRAMES), seed_offset=i)
+                )
                 Image.fromarray(dripped, "RGBA").save(
                     os.path.join(PROGS, "%s_v%02d_d%d.png" % (NAME, i, d))
                 )
@@ -558,7 +561,9 @@ def write_bounce_textures(bcuts, front_cut, scale):
     out_frames = []
     for f_idx, src_k in enumerate(ping):
         drip_phase = (3.0 * f_idx / float(len(ping))) % 1.0
-        dripped = paint_glossy_milk_drips(key_cards[src_k], phase_01=drip_phase, seed_offset=0)
+        dripped = regrade_pinklady_rgba(
+            paint_glossy_milk_drips(key_cards[src_k], phase_01=drip_phase, seed_offset=0)
+        )
         Image.fromarray(dripped, "RGBA").save(os.path.join(PROGS, "%s_b%02d.png" % (NAME, f_idx)))
         out_frames.append(dripped)
 

@@ -261,17 +261,17 @@ def generate_all_textures(progs_dir=PROGS):
     arr[half:, :half, 1] = np.clip(fp * 0.99, 42, 236)
     arr[half:, :half, 2] = np.clip(fp * 1.04, 46, 242)
 
-    # Q4: Industrial Mega Man "MM-06" Hazard Nameplate
+    # Q4: Industrial "MM-06" Steel Nameplate (muted ochre-brass, no bright yellow)
     im_fr = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
     im_q4 = Image.new("RGB", (half, half), (34, 36, 40))
     dr_q4 = ImageDraw.Draw(im_q4)
     for k in range(-2, 10):
         x0 = k * 68
-        dr_q4.polygon([(x0, 10), (x0 + 34, 10), (x0 - 40, 96), (x0 - 74, 96)], fill=(238, 192, 32))
-    dr_q4.rectangle((18, 114, 494, 494), fill=(26, 28, 32), outline=(210, 216, 224), width=8)
-    dr_q4.text((46, 146), "MEGA-RAM", font=_font(76), fill=(232, 236, 242))
-    dr_q4.text((130, 250), "06", font=_font(174), fill=(242, 196, 36))
-    _draw_quake_q(dr_q4, 422, 365, 48, (238, 188, 36), (252, 224, 120), (22, 24, 28))
+        dr_q4.polygon([(x0, 10), (x0 + 34, 10), (x0 - 40, 96), (x0 - 74, 96)], fill=(152, 126, 62))
+    dr_q4.rectangle((18, 114, 494, 494), fill=(26, 28, 32), outline=(185, 190, 198), width=8)
+    dr_q4.text((46, 146), "HEAVY-06", font=_font(76), fill=(216, 220, 226))
+    dr_q4.text((130, 250), "06", font=_font(174), fill=(176, 148, 76))
+    _draw_quake_q(dr_q4, 422, 365, 48, (176, 148, 76), (212, 204, 182), (22, 24, 28))
     im_fr.paste(im_q4, (half, half))
     p_fr = os.path.join(progs_dir, "gk6_frame.png")
     im_fr.save(p_fr, "PNG", optimize=True)
@@ -295,12 +295,12 @@ def generate_all_textures(progs_dir=PROGS):
     arr4[:half, half:, 0] = np.clip(ow_v * 0.99, 130, 242)
     arr4[:half, half:, 1] = np.clip(ow_v * 0.98, 128, 240)
     arr4[:half, half:, 2] = np.clip(ow_v * 0.94, 120, 232)
-    # Q3: Yellow-stripe industrial harness webbing
+    # Q3: Charcoal harness webbing w/ subtle muted tan center stripe
     rib_h = 0.82 + 0.18 * np.sin(yy4 * 0.9)
     stripe_m = (np.abs(xx4 - 256.0) < 42.0).astype(np.float32)
-    arr4[half:, :half, 0] = np.clip((38.0 + 196.0 * stripe_m) * rib_h, 16, 246)
-    arr4[half:, :half, 1] = np.clip((40.0 + 152.0 * stripe_m) * rib_h, 16, 210)
-    arr4[half:, :half, 2] = np.clip((44.0 - 12.0 * stripe_m) * rib_h, 16, 80)
+    arr4[half:, :half, 0] = np.clip((38.0 + 116.0 * stripe_m) * rib_h, 16, 185)
+    arr4[half:, :half, 1] = np.clip((40.0 + 96.0 * stripe_m) * rib_h, 16, 165)
+    arr4[half:, :half, 2] = np.clip((44.0 + 48.0 * stripe_m) * rib_h, 16, 115)
     # Q4: Stamped gunmetal seat backplate
     sh_v = 56.0 + 10.0 * nf4[half:, half:]
     arr4[half:, half:, 0] = np.clip(sh_v * 0.95, 22, 100)
@@ -311,15 +311,15 @@ def generate_all_textures(progs_dir=PROGS):
     paths["progs/gk6_seat"] = "progs/gk6_seat.png"
 
     # -----------------------------------------------------------------------
-    # 5. gk6_steer.png (Knurled Rubber Grip, Yellow Center Band, Steel Spokes, Horn Cap)
+    # 5. gk6_steer.png (Knurled Rubber Grip, Muted Crimson Band, Steel Spokes, Horn Cap)
     # -----------------------------------------------------------------------
     nf5 = _fbm(H, W, seed=604)
     arr5 = np.zeros((H, W, 3), dtype=np.float32)
     knurl = 0.5 + 0.5 * np.sin(xx4 * 0.7) * np.sin(yy4 * 0.7)
     arr5[:half, :half] = np.clip((34.0 + 14.0 * knurl + 4.0 * nf5[:half, :half])[..., None], 16, 78)
-    arr5[:half, half:, 0] = np.clip(242.0 + 10.0 * nf5[:half, half:], 180, 252)
-    arr5[:half, half:, 1] = np.clip(196.0 + 10.0 * nf5[:half, half:], 140, 220)
-    arr5[:half, half:, 2] = np.clip(32.0 + 6.0 * nf5[:half, half:], 16, 70)
+    arr5[:half, half:, 0] = np.clip(148.0 + 8.0 * nf5[:half, half:], 100, 185)
+    arr5[:half, half:, 1] = np.clip(46.0 + 6.0 * nf5[:half, half:], 24, 76)
+    arr5[:half, half:, 2] = np.clip(42.0 + 5.0 * nf5[:half, half:], 24, 72)
     sp_v = 178.0 + 20.0 * np.cos(u - 0.5) + 12.0 * nf5[half:, :half]
     arr5[half:, :half, 0] = np.clip(sp_v * 0.96, 60, 232)
     arr5[half:, :half, 1] = np.clip(sp_v * 0.99, 64, 236)
@@ -327,8 +327,8 @@ def generate_all_textures(progs_dir=PROGS):
     im_str = Image.fromarray(np.clip(arr5, 0, 255).astype(np.uint8), mode="RGB")
     im_cap = Image.new("RGB", (half, half), (46, 50, 56))
     dr_cap = ImageDraw.Draw(im_cap)
-    dr_cap.ellipse((24, 24, 488, 488), fill=(36, 38, 44), outline=(210, 214, 222), width=14)
-    _draw_quake_q(dr_cap, 256, 256, 128, (238, 192, 36), (252, 226, 125), (34, 36, 42))
+    dr_cap.ellipse((24, 24, 488, 488), fill=(36, 38, 44), outline=(196, 200, 208), width=14)
+    _draw_quake_q(dr_cap, 256, 256, 128, (182, 162, 112), (218, 212, 194), (34, 36, 42))
     im_str.paste(im_cap, (half, half))
     p_str = os.path.join(progs_dir, "gk6_steer.png")
     im_str.save(p_str, "PNG", optimize=True)
@@ -355,16 +355,16 @@ def generate_all_textures(progs_dir=PROGS):
     arr6[half:, :half, 0] = np.clip(208.0 * stl, 65, 240)
     arr6[half:, :half, 1] = np.clip(214.0 * stl, 68, 244)
     arr6[half:, :half, 2] = np.clip(224.0 * stl, 72, 250)
-    # Q4: Industrial yellow/charcoal hazard fuel cell
+    # Q4: Industrial muted brass/charcoal fuel cell
     im_eng = Image.fromarray(np.clip(arr6, 0, 255).astype(np.uint8), mode="RGB")
     im_hz = Image.new("RGB", (half, half), (42, 44, 48))
     dr_hz = ImageDraw.Draw(im_hz)
     for k in range(-2, 10):
         x0 = k * 74
-        dr_hz.polygon([(x0, 24), (x0 + 36, 24), (x0 - 48, 124), (x0 - 84, 124)], fill=(238, 188, 32))
-    dr_hz.rectangle((28, 152, 484, 484), fill=(52, 54, 60), outline=(228, 182, 72), width=10)
-    dr_hz.text((78, 220), "HEAVY", font=_font(104), fill=(236, 238, 244))
-    dr_hz.text((70, 336), "FUEL", font=_font(118), fill=(240, 192, 36))
+        dr_hz.polygon([(x0, 24), (x0 + 36, 24), (x0 - 48, 124), (x0 - 84, 124)], fill=(156, 128, 62))
+    dr_hz.rectangle((28, 152, 484, 484), fill=(52, 54, 60), outline=(176, 150, 82), width=10)
+    dr_hz.text((78, 220), "HEAVY", font=_font(104), fill=(216, 220, 226))
+    dr_hz.text((70, 336), "FUEL", font=_font(118), fill=(176, 148, 76))
     im_eng.paste(im_hz, (half, half))
     p_eng = os.path.join(progs_dir, "gk6_engine.png")
     im_eng.save(p_eng, "PNG", optimize=True)
@@ -1226,7 +1226,7 @@ def build_gokart_6(progs_dir=PROGS, meta_dir=OUT_DIR):
         "id": "kart6",
         "name": "Mega Man Heavy Fat-Tire Rammer",
         "tagline": "Heavy-Caliber Mirror-Chrome Torpedo Bar & Fat 5-Ribbed Mega Man Tires",
-        "palette": ["#e2e8f0", "#334155", "#eab308", "#1c1917"],
+        "palette": ["#c8cdd4", "#334155", "#9c8244", "#1c1917"],
         "description": (
             "Unmistakable heavy-caliber Mega Man industrial contraption kart built on 4 extra-wide "
             "5-ribbed pneumatic tires (R=11u/12.5u, hw=6.2u) with deep-dish off-white stamped steel rims, "

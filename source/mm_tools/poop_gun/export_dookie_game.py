@@ -518,12 +518,12 @@ def _paint_poop_wall_splat(seed: int, runs: bool) -> Image.Image:
 DOOKIE_EFFECTINFO_BLOCK = """// ---- Dookie Gun begin
 // Thick brown/olive poop spray, flying globs, stink mist, and dripping wall splats
 effect dookie_boom
-count 75
+count 135
 type spark
 blend alpha
 tex 0 8
 color 0x422810 0x7c4e20
-size 4.0 7.2
+size 4.8 8.6
 alpha 256 256 240
 originjitter 22 22 22
 velocityjitter 1300 1300 980
@@ -533,101 +533,115 @@ airfriction 0.45
 bounce -1
 
 effect dookie_boom
-count 65
+count 120
 type alphastatic
 tex 0 8
 color 0x38200c 0x6b4218
-size 4.2 8.4
-alpha 256 256 125
-originjitter 30 30 30
-velocityjitter 980 980 720
-velocityoffset 0 0 360
+size 5.2 10.5
+alpha 256 256 105
+originjitter 34 34 34
+velocityjitter 1040 1040 780
+velocityoffset 0 0 380
 gravity 1
-airfriction 0.3
-bounce 0.16
+airfriction 0.28
+bounce 0.22
 
 effect dookie_boom
-count 26
+count 50
 type alphastatic
 tex 0 8
 color 0x462b12 0x7e5222
-size 4.0 7.6
-alpha 256 256 155
-originjitter 12 12 40
-velocityjitter 200 200 340
-velocityoffset 0 0 790
+size 5.0 9.6
+alpha 256 256 145
+originjitter 16 16 42
+velocityjitter 240 240 360
+velocityoffset 0 0 840
 gravity 1
 airfriction 0.2
 
 effect dookie_boom
-count 6
+count 45
+type alphastatic
+tex 0 8
+color 0x361e0a 0x6a4016
+size 5.5 11.0
+alpha 256 256 90
+originjitter 55 55 35
+velocityjitter 460 460 260
+velocityoffset 0 0 220
+gravity 1.15
+airfriction 0.2
+bounce 0.25
+
+effect dookie_boom
+count 10
 type alphastatic
 tex 0 8
 color 0x4d5822 0x70642c
-size 54 88
-sizeincrease 60
+size 64 104
+sizeincrease 68
 alpha 85 130 120
 originjitter 58 58 48
 velocityjitter 280 280 190
 airfriction 2
 
 effect dookie_boom
-count 35
+count 65
 type alphastatic
 tex 0 8
 color 0x4a2e12 0x825424
-size 2.0 3.8
-alpha 256 256 250
-originjitter 10 10 10
+size 2.8 5.0
+alpha 256 256 240
+originjitter 12 12 12
 velocityjitter 1820 1820 1050
 gravity 0.7
 airfriction 1
 
 effect dookie_glob
-trailspacing 3.6
+trailspacing 3.0
 type alphastatic
 tex 0 8
 color 0x442910 0x7a4e1e
-size 2.4 4.2
+size 3.0 5.4
 alpha 256 256 320
-originjitter 2 2 2
-velocityjitter 28 28 28
+originjitter 3 3 3
+velocityjitter 32 32 32
 gravity 0.45
 
 effect dookie_glob
-trailspacing 7.5
+trailspacing 6.0
 type spark
 blend alpha
 tex 0 8
 color 0x523216 0x885826
-size 1.6 3.0
+size 2.2 4.0
 alpha 240 256 360
-velocityjitter 22 22 22
+velocityjitter 24 24 24
 gravity 0.7
 
 effect dookie_drip
-count 2
+count 3
 type alphastatic
 tex 0 8
 color 0x3c220e 0x6e441a
-size 2.2 4.0
+size 2.8 5.2
 alpha 256 256 70
 originjitter 3 3 2
-velocityjitter 8 8 6
+velocityjitter 10 10 8
 velocityoffset 0 0 -42
 gravity 1
 airfriction 0.14
 
 effect dookie_drip
-count 1
+count 2
 type spark
 blend alpha
 tex 0 8
 color 0x482b12 0x784c20
-size 1.5 2.8
+size 2.0 3.6
 alpha 256 256 105
 originjitter 2 2 2
-velocityjitter 5 5 4
+velocityjitter 6 6 5
 velocityoffset 0 0 -75
 gravity 1
 // ---- Dookie Gun end

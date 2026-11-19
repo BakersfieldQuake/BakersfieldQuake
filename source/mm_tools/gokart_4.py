@@ -62,7 +62,7 @@ from tank_tex_gen import (
 # ---------------------------------------------------------------------------
 # Palette & Constants
 # ---------------------------------------------------------------------------
-PALETTE = ["#e2e8f0", "#1d4ed8", "#38bdf8", "#1c1917"]
+PALETTE = ["#d8dce2", "#243452", "#94a3b8", "#1c1917"]
 
 WHEEL_FRONT_X = 25.0
 WHEEL_FRONT_Y = 25.5
@@ -306,57 +306,57 @@ def _tex_chrome_from_mmt(src_path, dst_path):
 
 
 def _tex_seat(path):
-    """1024x1024: Off-white ribbed cushion, Mega-Man cobalt-blue bolsters, carbon/titanium shell, #04 crest."""
+    """1024x1024: Off-white ribbed cushion, classic navy-slate bolsters, charcoal shell, #04 crest."""
     H = W = 1024
     arr = np.zeros((H, W, 3), dtype=np.float32)
     noise = _fbm(H, W, seed=404, octaves=(4, 8, 16, 64))
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
 
-    # Q1: Off-white ribbed racing cushion with horizontal stitched pleats & cobalt-blue side piping
+    # Q1: Warm off-white ribbed racing cushion with horizontal stitched pleats & navy-slate side piping
     u = xx / 511.0
     v = yy / 511.0
     rib = np.sin(v * math.pi * 10.0)
     seam = np.exp(-((np.abs(np.sin(v * math.pi * 10.0))) ** 2) / 0.03)
     puff = 0.94 + 0.07 * np.abs(rib) - 0.14 * seam
-    blue_pipe = np.exp(-((u - 0.07) ** 2) / 0.0005) + np.exp(-((u - 0.93) ** 2) / 0.0005)
-    blue_pipe = np.clip(blue_pipe, 0.0, 1.0)
-    w_r = 236.0 * puff + 3.5 * noise[:512, :512]
-    w_g = 233.0 * puff + 3.5 * noise[:512, :512]
-    w_b = 224.0 * puff + 4.0 * noise[:512, :512]
-    arr[:512, :512, 0] = np.clip(w_r * (1.0 - blue_pipe) + 28.0 * blue_pipe, 18, 250)
-    arr[:512, :512, 1] = np.clip(w_g * (1.0 - blue_pipe) + 88.0 * blue_pipe, 24, 248)
-    arr[:512, :512, 2] = np.clip(w_b * (1.0 - blue_pipe) + 228.0 * blue_pipe, 40, 252)
+    navy_pipe = np.exp(-((u - 0.07) ** 2) / 0.0005) + np.exp(-((u - 0.93) ** 2) / 0.0005)
+    navy_pipe = np.clip(navy_pipe, 0.0, 1.0)
+    w_r = 224.0 * puff + 3.5 * noise[:512, :512]
+    w_g = 220.0 * puff + 3.5 * noise[:512, :512]
+    w_b = 210.0 * puff + 4.0 * noise[:512, :512]
+    arr[:512, :512, 0] = np.clip(w_r * (1.0 - navy_pipe) + 34.0 * navy_pipe, 18, 240)
+    arr[:512, :512, 1] = np.clip(w_g * (1.0 - navy_pipe) + 48.0 * navy_pipe, 22, 238)
+    arr[:512, :512, 2] = np.clip(w_b * (1.0 - navy_pipe) + 76.0 * navy_pipe, 30, 234)
 
-    # Q2: Iconic Mega-Man cobalt-blue bolsters with cyan-silver edge piping
+    # Q2: Classic deep navy-slate bolsters with off-white edge piping
     pipe = np.exp(-((u - 0.08) ** 2) / 0.00045)
-    arr[:512, 512:, 0] = np.clip(24.0 + 185.0 * pipe + 5.0 * noise[:512, 512:], 10, 242)
-    arr[:512, 512:, 1] = np.clip(82.0 + 148.0 * pipe + 6.0 * noise[:512, 512:], 24, 246)
-    arr[:512, 512:, 2] = np.clip(222.0 + 26.0 * pipe + 7.0 * noise[:512, 512:], 50, 252)
+    arr[:512, 512:, 0] = np.clip(32.0 + 168.0 * pipe + 4.5 * noise[:512, 512:], 14, 225)
+    arr[:512, 512:, 1] = np.clip(46.0 + 154.0 * pipe + 5.0 * noise[:512, 512:], 18, 225)
+    arr[:512, 512:, 2] = np.clip(74.0 + 126.0 * pipe + 5.5 * noise[:512, 512:], 24, 225)
 
-    # Q3: Satin dark charcoal-titanium bucket shell back with twin cobalt-blue & white racing stripe
+    # Q3: Satin dark charcoal-titanium bucket shell back with twin navy & off-white racing stripe
     stripe_w = np.exp(-((u - 0.50) ** 2) / 0.0035)
     stripe_b = np.exp(-((u - 0.42) ** 2) / 0.0012) + np.exp(-((u - 0.58) ** 2) / 0.0012)
     sh = 44.0 + 6.0 * np.sin(yy * 0.25) + 4.0 * noise[512:, :512]
-    arr[512:, :512, 0] = np.clip(sh + 175.0 * stripe_w - 10.0 * stripe_b, 14, 240)
-    arr[512:, :512, 1] = np.clip(sh + 175.0 * stripe_w + 46.0 * stripe_b, 16, 240)
-    arr[512:, :512, 2] = np.clip(sh * 1.08 + 185.0 * stripe_w + 175.0 * stripe_b, 20, 246)
+    arr[512:, :512, 0] = np.clip(sh + 158.0 * stripe_w - 6.0 * stripe_b, 14, 225)
+    arr[512:, :512, 1] = np.clip(sh + 156.0 * stripe_w + 8.0 * stripe_b, 16, 225)
+    arr[512:, :512, 2] = np.clip(sh * 1.06 + 152.0 * stripe_w + 38.0 * stripe_b, 20, 225)
 
-    # Q4: Mega-Man Bar-Racer #04 crest
-    arr[512:, 512:, 0] = 24.0
-    arr[512:, 512:, 1] = 82.0
-    arr[512:, 512:, 2] = 220.0
+    # Q4: Classic Bar-Racer #04 crest
+    arr[512:, 512:, 0] = 32.0
+    arr[512:, 512:, 1] = 46.0
+    arr[512:, 512:, 2] = 74.0
     im = Image.fromarray(arr.astype(np.uint8), mode="RGB")
     dr = ImageDraw.Draw(im)
-    dr.rounded_rectangle([548, 558, 988, 968], radius=38, fill=(18, 56, 178), outline=(235, 240, 248), width=8)
+    dr.rounded_rectangle([548, 558, 988, 968], radius=38, fill=(26, 38, 62), outline=(215, 218, 224), width=8)
     f_big = _font(54, bold=True)
     f_sm = _font(34, bold=True)
-    dr.text((768, 720), "MEGA MAN", fill=(242, 246, 252), font=f_sm, anchor="mm")
-    dr.text((768, 798), "BAR-RACER #04", fill=(56, 212, 252), font=f_big, anchor="mm")
+    dr.text((768, 720), "CLASSIC", fill=(228, 232, 238), font=f_sm, anchor="mm")
+    dr.text((768, 798), "BAR-RACER #04", fill=(182, 194, 212), font=f_big, anchor="mm")
     im.save(path, "PNG", optimize=True)
 
 
 def _tex_flame(path):
-    """512x512 RGBA: Fiery amber/orange rocket plume, electric cyan-white plasma core, fireball burst."""
+    """512x512 RGBA: Fiery amber/orange rocket plume, white-gold inner core, fireball burst."""
     H = W = 512
     rgba = np.zeros((H, W, 4), dtype=np.float32)
     noise = _fbm(H, W, seed=844, octaves=(4, 8, 16, 32))
@@ -373,12 +373,12 @@ def _tex_flame(path):
     rgba[:256, :256, 2] = np.clip(60.0 * (intensity ** 1.9), 0, 255)
     rgba[:256, :256, 3] = np.clip(255.0 * (intensity ** 0.60), 0, 255)
 
-    # Q2: Inner plasma core (Mega-Man electric cyan-white-gold)
+    # Q2: Inner flame core (warm white-gold)
     core_e = np.exp(-(((2.0 * u - 1.0) * 1.32) ** 2)) * np.clip(1.0 - v * 0.70, 0.0, 1.0)
     core_i = np.clip(core_e * (0.88 + 0.12 * np.sin(v * 24.0)), 0.0, 1.0)
-    rgba[:256, 256:, 0] = np.clip(225.0 * (core_i ** 0.48), 0, 255)
-    rgba[:256, 256:, 1] = np.clip(250.0 * (core_i ** 0.38), 0, 255)
-    rgba[:256, 256:, 2] = np.clip(255.0 * (core_i ** 0.30), 0, 255)
+    rgba[:256, 256:, 0] = np.clip(255.0 * (core_i ** 0.35), 0, 255)
+    rgba[:256, 256:, 1] = np.clip(242.0 * (core_i ** 0.50), 0, 255)
+    rgba[:256, 256:, 2] = np.clip(188.0 * (core_i ** 0.95), 0, 255)
     rgba[:256, 256:, 3] = np.clip(255.0 * (core_i ** 0.48), 0, 255)
 
     # Q3 & Q4: Radial explosion fireball outer & white-gold blast core

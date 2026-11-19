@@ -32,7 +32,7 @@ import md3lib
 # ---------------------------------------------------------------------------
 # Palette & Constants
 # ---------------------------------------------------------------------------
-PALETTE = ["#c81e24", "#1d4ed8", "#d4a024", "#1c1917"]
+PALETTE = ["#a82022", "#26282c", "#b8b4aa", "#1c1917"]
 
 WHEEL_FRONT_X = 25.0
 WHEEL_FRONT_Y = 24.5
@@ -516,20 +516,20 @@ def _tex_frame(path):
     noise = _fbm(H, W, seed=101, octaves=(4, 8, 16, 32))
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
 
-    # Q1: Crimson-red chromoly powdercoat tube with subtle TIG heat bands at ends
+    # Q1: Classic racing-red chromoly powdercoat tube with subtle TIG heat bands at ends
     ux = xx / 511.0
     vy = yy / 511.0
     sheen = 1.0 + 0.14 * np.sin(ux * math.pi)
     weld = np.exp(-((vy - 0.03) ** 2) / 0.0005) + np.exp(-((vy - 0.97) ** 2) / 0.0005)
-    flake = 6.0 * noise[:512, :512]
-    arr[:512, :512, 0] = np.clip(202.0 * sheen - 42.0 * weld + flake, 20, 245)
-    arr[:512, :512, 1] = np.clip(28.0 * sheen + 10.0 * weld + flake * 0.4, 8, 90)
-    arr[:512, :512, 2] = np.clip(34.0 * sheen + 18.0 * weld + flake * 0.4, 8, 100)
+    flake = 5.0 * noise[:512, :512]
+    arr[:512, :512, 0] = np.clip(168.0 * sheen - 36.0 * weld + flake, 20, 220)
+    arr[:512, :512, 1] = np.clip(32.0 * sheen + 8.0 * weld + flake * 0.4, 8, 85)
+    arr[:512, :512, 2] = np.clip(34.0 * sheen + 10.0 * weld + flake * 0.4, 8, 88)
 
-    # Q2: Deep crimson racing accent / caliper
-    arr[:512, 512:, 0] = np.clip(188.0 + 18.0 * np.cos(ux * math.pi * 2.0) + 5.0 * noise[:512, 512:], 30, 235)
-    arr[:512, 512:, 1] = np.clip(24.0 + 6.0 * noise[:512, 512:], 8, 70)
-    arr[:512, 512:, 2] = np.clip(30.0 + 6.0 * noise[:512, 512:], 8, 75)
+    # Q2: Deep racing-red accent / caliper
+    arr[:512, 512:, 0] = np.clip(158.0 + 16.0 * np.cos(ux * math.pi * 2.0) + 5.0 * noise[:512, 512:], 28, 210)
+    arr[:512, 512:, 1] = np.clip(30.0 + 5.0 * noise[:512, 512:], 8, 70)
+    arr[:512, 512:, 2] = np.clip(32.0 + 5.0 * noise[:512, 512:], 8, 72)
 
     # Q3: Dark anodized diamond-plate floorpan
     cell_x = (xx % 32.0) / 32.0 - 0.5
@@ -567,32 +567,32 @@ def _tex_frame(path):
 
 
 def _tex_seat(path):
-    """1024x1024: Royal-blue quilted diamond-stitched racing pad, bolster leather, carbon shell back."""
+    """1024x1024: Charcoal quilted diamond-stitched leather pad, dark bolster leather, carbon shell back."""
     H = W = 1024
     arr = np.zeros((H, W, 3), dtype=np.float32)
     noise = _fbm(H, W, seed=202, octaves=(4, 8, 16, 64))
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
 
-    # Q1: Quilted diamond-stitched royal blue pad
+    # Q1: Quilted diamond-stitched charcoal leather pad with subtle silver-grey thread
     u = (xx + yy) / 64.0
     v = (xx - yy) / 64.0
     du = np.abs(u - np.round(u))
     dv = np.abs(v - np.round(v))
     seam = np.exp(-((np.minimum(du, dv)) ** 2) / 0.0022)
-    puff = 1.0 - 0.22 * ((0.5 - du) ** 2 + (0.5 - dv) ** 2)
+    puff = 1.0 - 0.20 * ((0.5 - du) ** 2 + (0.5 - dv) ** 2)
     stitch_dot = (np.sin(u * 40.0) > 0.75) & (np.minimum(du, dv) < 0.04)
-    r = 28.0 * puff - 14.0 * seam + 160.0 * stitch_dot + 4.0 * noise[:512, :512]
-    g = 76.0 * puff - 36.0 * seam + 135.0 * stitch_dot + 5.0 * noise[:512, :512]
-    b = 216.0 * puff - 85.0 * seam + 30.0 * stitch_dot + 6.0 * noise[:512, :512]
-    arr[:512, :512, 0] = np.clip(r, 8, 245)
-    arr[:512, :512, 1] = np.clip(g, 20, 240)
-    arr[:512, :512, 2] = np.clip(b, 55, 250)
+    r = 40.0 * puff - 14.0 * seam + 88.0 * stitch_dot + 4.0 * noise[:512, :512]
+    g = 42.0 * puff - 14.0 * seam + 90.0 * stitch_dot + 4.0 * noise[:512, :512]
+    b = 46.0 * puff - 14.0 * seam + 94.0 * stitch_dot + 4.0 * noise[:512, :512]
+    arr[:512, :512, 0] = np.clip(r, 12, 165)
+    arr[:512, :512, 1] = np.clip(g, 12, 165)
+    arr[:512, :512, 2] = np.clip(b, 14, 170)
 
-    # Q2: Smooth royal blue side bolster vinyl/suede with subtle gold piping band
+    # Q2: Smooth dark charcoal side bolster vinyl/leather with subtle muted red piping band
     pipe = np.exp(-(((xx / 511.0) - 0.08) ** 2) / 0.0004)
-    arr[:512, 512:, 0] = np.clip(26.0 + 185.0 * pipe + 5.0 * noise[:512, 512:], 10, 240)
-    arr[:512, 512:, 1] = np.clip(70.0 + 130.0 * pipe + 6.0 * noise[:512, 512:], 24, 220)
-    arr[:512, 512:, 2] = np.clip(204.0 - 140.0 * pipe + 7.0 * noise[:512, 512:], 40, 240)
+    arr[:512, 512:, 0] = np.clip(34.0 + 128.0 * pipe + 4.5 * noise[:512, 512:], 12, 185)
+    arr[:512, 512:, 1] = np.clip(36.0 + 4.0 * pipe + 4.5 * noise[:512, 512:], 12, 85)
+    arr[:512, 512:, 2] = np.clip(40.0 + 4.0 * pipe + 4.5 * noise[:512, 512:], 14, 88)
 
     # Q3: 2x2 Twill carbon-fiber seat shell back
     tx = ((xx // 8.0) % 4.0)
@@ -604,17 +604,17 @@ def _tex_seat(path):
     arr[512:, :512, 1] = np.clip(cf, 10, 92)
     arr[512:, :512, 2] = np.clip(cf * 1.05, 12, 98)
 
-    # Q4: Embroidered headrest emblem patch
-    arr[512:, 512:, 0] = 24.0
-    arr[512:, 512:, 1] = 66.0
-    arr[512:, 512:, 2] = 198.0
+    # Q4: Embroidered headrest emblem patch (dark charcoal w/ silver-cream & muted red trim)
+    arr[512:, 512:, 0] = 32.0
+    arr[512:, 512:, 1] = 34.0
+    arr[512:, 512:, 2] = 38.0
     im = Image.fromarray(arr.astype(np.uint8), mode="RGB")
     dr = ImageDraw.Draw(im)
-    dr.rounded_rectangle([552, 562, 984, 964], radius=36, fill=(22, 54, 165), outline=(212, 160, 36), width=8)
+    dr.rounded_rectangle([552, 562, 984, 964], radius=36, fill=(26, 28, 32), outline=(164, 42, 42), width=8)
     f_big = _font(58, bold=True)
     f_sm = _font(36, bold=True)
-    dr.text((768, 720), "BAKERSFIELD", fill=(242, 238, 226), font=f_sm, anchor="mm")
-    dr.text((768, 800), "CLASSIC #01", fill=(218, 170, 44), font=f_big, anchor="mm")
+    dr.text((768, 720), "BAKERSFIELD", fill=(224, 222, 216), font=f_sm, anchor="mm")
+    dr.text((768, 800), "CLASSIC #01", fill=(186, 178, 164), font=f_big, anchor="mm")
     im.save(path, "PNG", optimize=True)
 
 
@@ -625,13 +625,13 @@ def _tex_steering(path):
     noise = _fbm(H, W, seed=303, octaves=(4, 8, 16, 32))
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
 
-    # Q1: Perforated black grip with crimson/gold 12-o'clock center marker near v=0.25
+    # Q1: Perforated black grip with muted red 12-o'clock center marker near v=0.25
     perf = (((xx % 12.0) - 6.0) ** 2 + ((yy % 12.0) - 6.0) ** 2) < 5.5
     grip = np.where(perf, 16.0, 34.0) + 4.0 * noise[:512, :512]
     band = np.exp(-(((yy / 511.0) - 0.25) ** 2) / 0.0005)
-    arr[:512, :512, 0] = np.clip(grip * (1.0 - band) + 210.0 * band, 8, 235)
-    arr[:512, :512, 1] = np.clip(grip * (1.0 - band) + 32.0 * band, 8, 100)
-    arr[:512, :512, 2] = np.clip(grip * (1.0 - band) + 36.0 * band, 8, 100)
+    arr[:512, :512, 0] = np.clip(grip * (1.0 - band) + 168.0 * band, 8, 200)
+    arr[:512, :512, 1] = np.clip(grip * (1.0 - band) + 34.0 * band, 8, 90)
+    arr[:512, :512, 2] = np.clip(grip * (1.0 - band) + 36.0 * band, 8, 90)
 
     # Q2: Brushed silver aluminum spokes & shaft
     sp = 178.0 + 18.0 * np.sin(xx * 0.22) + 8.0 * noise[:512, 512:]
@@ -639,15 +639,15 @@ def _tex_steering(path):
     arr[:512, 512:, 1] = np.clip(sp * 0.99, 60, 235)
     arr[:512, 512:, 2] = np.clip(sp * 1.04, 65, 245)
 
-    # Q3: Brushed gold steering hub + black center
+    # Q3: Satin gunmetal steering hub + black center
     r_x = (xx - 255.5) / 240.0
     r_y = (yy - 255.5) / 240.0
     rr = np.sqrt(r_x * r_x + r_y * r_y)
-    gold = 1.0 + 0.14 * np.cos(np.arctan2(r_y, r_x) * 2.0) + 0.06 * noise[512:, :512]
+    hub_s = 1.0 + 0.14 * np.cos(np.arctan2(r_y, r_x) * 2.0) + 0.06 * noise[512:, :512]
     center = rr < 0.35
-    arr[512:, :512, 0] = np.clip(np.where(center, 28.0, 212.0 * gold), 12, 248)
-    arr[512:, :512, 1] = np.clip(np.where(center, 25.0, 160.0 * gold), 12, 210)
-    arr[512:, :512, 2] = np.clip(np.where(center, 24.0, 42.0 * gold), 10, 95)
+    arr[512:, :512, 0] = np.clip(np.where(center, 26.0, 108.0 * hub_s), 12, 175)
+    arr[512:, :512, 1] = np.clip(np.where(center, 27.0, 112.0 * hub_s), 12, 180)
+    arr[512:, :512, 2] = np.clip(np.where(center, 29.0, 118.0 * hub_s), 14, 188)
 
     # Q4: Ribbed rubber pedal pad
     rib = 24.0 + 26.0 * (np.sin(yy * 0.32) > 0.0).astype(np.float32) + 4.0 * noise[512:, 512:]
@@ -682,50 +682,50 @@ def _tex_engine(path):
     arr[:512, 512:, 1] = np.clip(sh, 6, 80)
     arr[:512, 512:, 2] = np.clip(sh, 8, 84)
 
-    # Q3: Crimson fuel tank & knurled gold cap band
+    # Q3: Racing-red fuel tank & brushed steel cap band
     cap_zone = (yy > 380)
-    tk_r = np.where(cap_zone, 214.0, 185.0) + 10.0 * noise[512:, :512]
-    tk_g = np.where(cap_zone, 162.0, 26.0) + 5.0 * noise[512:, :512]
-    tk_b = np.where(cap_zone, 38.0, 32.0) + 5.0 * noise[512:, :512]
-    arr[512:, :512, 0] = np.clip(tk_r, 15, 245)
-    arr[512:, :512, 1] = np.clip(tk_g, 10, 210)
-    arr[512:, :512, 2] = np.clip(tk_b, 10, 95)
+    tk_r = np.where(cap_zone, 178.0, 158.0) + 8.0 * noise[512:, :512]
+    tk_g = np.where(cap_zone, 180.0, 30.0) + 5.0 * noise[512:, :512]
+    tk_b = np.where(cap_zone, 184.0, 32.0) + 5.0 * noise[512:, :512]
+    arr[512:, :512, 0] = np.clip(tk_r, 15, 225)
+    arr[512:, :512, 1] = np.clip(tk_g, 10, 225)
+    arr[512:, :512, 2] = np.clip(tk_b, 10, 230)
 
-    # Q4: Oiled steel chain / sprocket & gold intake stack
-    gold_zone = (yy < 220)
+    # Q4: Oiled steel chain / sprocket & brushed steel intake stack
+    stack_zone = (yy < 220)
     ch = 72.0 + 28.0 * np.sin(xx * 0.45) * np.sin(yy * 0.45) + 8.0 * noise[512:, 512:]
-    arr[512:, 512:, 0] = np.clip(np.where(gold_zone, 212.0, ch), 20, 240)
-    arr[512:, 512:, 1] = np.clip(np.where(gold_zone, 165.0, ch * 0.96), 20, 210)
-    arr[512:, 512:, 2] = np.clip(np.where(gold_zone, 46.0, ch * 0.92), 15, 130)
+    arr[512:, 512:, 0] = np.clip(np.where(stack_zone, 172.0, ch), 20, 225)
+    arr[512:, 512:, 1] = np.clip(np.where(stack_zone, 174.0, ch * 0.96), 20, 225)
+    arr[512:, 512:, 2] = np.clip(np.where(stack_zone, 178.0, ch * 0.92), 15, 228)
 
     Image.fromarray(arr.astype(np.uint8), mode="RGB").save(path, "PNG", optimize=True)
 
 
 def _tex_exhaust(path):
-    """1024x1024: Copper/gold cylindrical muffler, heat-blued header, dark soot tip, stainless clamp."""
+    """1024x1024: Brushed stainless cylindrical muffler, heat-tinted steel header, dark soot tip, stainless clamp."""
     H = W = 1024
     arr = np.zeros((H, W, 3), dtype=np.float32)
     noise = _fbm(H, W, seed=505, octaves=(4, 8, 16, 32))
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
 
-    # Q1: Copper/gold muffler canister with subtle heat-blued inlet end
+    # Q1: Brushed stainless steel muffler canister with subtle warm heat tint at inlet end
     vy = yy / 511.0
     ux = xx / 511.0
-    brush = 1.0 + 0.08 * np.sin(ux * 140.0) + 0.05 * noise[:512, :512]
-    heat_blue = np.exp(-((vy - 0.12) ** 2) / 0.012)
-    r = (212.0 * (1.0 - 0.35 * heat_blue) + 95.0 * heat_blue) * brush
-    g = (146.0 * (1.0 - 0.48 * heat_blue) + 80.0 * heat_blue) * brush
-    b = (42.0 * (1.0 - 0.50 * heat_blue) + 150.0 * heat_blue) * brush
-    arr[:512, :512, 0] = np.clip(r, 25, 248)
-    arr[:512, :512, 1] = np.clip(g, 20, 215)
-    arr[:512, :512, 2] = np.clip(b, 15, 210)
+    brush = 1.0 + 0.07 * np.sin(ux * 140.0) + 0.05 * noise[:512, :512]
+    heat_straw = np.exp(-((vy - 0.14) ** 2) / 0.015)
+    r = (172.0 + 18.0 * heat_straw) * brush
+    g = (172.0 + 4.0 * heat_straw) * brush
+    b = (176.0 - 22.0 * heat_straw) * brush
+    arr[:512, :512, 0] = np.clip(r, 30, 235)
+    arr[:512, :512, 1] = np.clip(g, 30, 232)
+    arr[:512, :512, 2] = np.clip(b, 28, 232)
 
-    # Q2: Heat-tempered titanium/copper header pipe
+    # Q2: Heat-tempered stainless steel header pipe
     vy2 = yy / 511.0
     hb = np.sin(vy2 * math.pi)
-    arr[:512, 512:, 0] = np.clip(182.0 - 25.0 * hb + 10.0 * noise[:512, 512:], 40, 235)
-    arr[:512, 512:, 1] = np.clip(134.0 - 30.0 * hb + 8.0 * noise[:512, 512:], 30, 200)
-    arr[:512, 512:, 2] = np.clip(88.0 + 75.0 * hb + 8.0 * noise[:512, 512:], 25, 210)
+    arr[:512, 512:, 0] = np.clip(164.0 - 12.0 * hb + 9.0 * noise[:512, 512:], 40, 225)
+    arr[:512, 512:, 1] = np.clip(156.0 - 16.0 * hb + 8.0 * noise[:512, 512:], 38, 220)
+    arr[:512, 512:, 2] = np.clip(148.0 - 10.0 * hb + 8.0 * noise[:512, 512:], 36, 215)
 
     # Q3: Dark soot-blackened tailpipe tip
     soot = 24.0 + 12.0 * noise[512:, :512]
@@ -748,24 +748,24 @@ def _tex_nose(path):
     arr = np.zeros((H, W, 3), dtype=np.float32)
     noise = _fbm(H, W, seed=606, octaves=(4, 8, 16, 32))
 
-    # Rich metallic crimson background
-    arr[:, :, 0] = np.clip(198.0 + 6.0 * noise, 20, 240)
-    arr[:, :, 1] = np.clip(24.0 + 3.0 * noise, 8, 65)
-    arr[:, :, 2] = np.clip(30.0 + 3.0 * noise, 8, 70)
+    # Rich metallic racing red background
+    arr[:, :, 0] = np.clip(164.0 + 5.0 * noise, 20, 215)
+    arr[:, :, 1] = np.clip(28.0 + 3.0 * noise, 8, 65)
+    arr[:, :, 2] = np.clip(30.0 + 3.0 * noise, 8, 68)
 
     im = Image.fromarray(arr.astype(np.uint8), mode="RGB")
     dr = ImageDraw.Draw(im)
 
-    # Twin ivory-white & brushed-gold vertical racing stripes framing the emblem
-    dr.rectangle([118, 0, 174, 1024], fill=(242, 236, 224))
-    dr.rectangle([184, 0, 206, 1024], fill=(214, 164, 38))
-    dr.rectangle([850, 0, 906, 1024], fill=(242, 236, 224))
-    dr.rectangle([818, 0, 840, 1024], fill=(214, 164, 38))
+    # Twin ivory-white & muted-silver vertical racing stripes framing the emblem
+    dr.rectangle([118, 0, 174, 1024], fill=(232, 228, 220))
+    dr.rectangle([184, 0, 204, 1024], fill=(178, 174, 166))
+    dr.rectangle([850, 0, 906, 1024], fill=(232, 228, 220))
+    dr.rectangle([820, 0, 840, 1024], fill=(178, 174, 166))
 
     # Dark charcoal circular shield badge behind the Quake 'Q'
     cx, cy = 512, 540
-    dr.ellipse([cx - 255, cy - 255, cx + 255, cy + 255], fill=(24, 22, 22), outline=(218, 168, 42), width=14)
-    dr.ellipse([cx - 226, cy - 226, cx + 226, cy + 226], fill=(32, 28, 28), outline=(145, 24, 28), width=6)
+    dr.ellipse([cx - 255, cy - 255, cx + 255, cy + 255], fill=(24, 24, 26), outline=(188, 182, 168), width=14)
+    dr.ellipse([cx - 226, cy - 226, cx + 226, cy + 226], fill=(32, 30, 32), outline=(132, 28, 30), width=6)
 
     # Vector-rendered Quake 'Q' emblem (tapered horseshoe crescent + central piercing nail)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -803,9 +803,9 @@ def _tex_nose(path):
     im_arr[:, :, 1] = im_arr[:, :, 1] * (1.0 - 0.75 * q_shd)
     im_arr[:, :, 2] = im_arr[:, :, 2] * (1.0 - 0.75 * q_shd)
 
-    im_arr[q_mask, 0] = np.clip(236.0 * bevel[q_mask], 30, 255)
-    im_arr[q_mask, 1] = np.clip(182.0 * bevel[q_mask], 20, 230)
-    im_arr[q_mask, 2] = np.clip(48.0 * bevel[q_mask], 10, 110)
+    im_arr[q_mask, 0] = np.clip(208.0 * bevel[q_mask], 30, 235)
+    im_arr[q_mask, 1] = np.clip(202.0 * bevel[q_mask], 30, 230)
+    im_arr[q_mask, 2] = np.clip(188.0 * bevel[q_mask], 28, 220)
 
     im2 = Image.fromarray(im_arr.astype(np.uint8), mode="RGB")
     dr2 = ImageDraw.Draw(im2)
@@ -817,7 +817,7 @@ def _tex_nose(path):
 
 
 def _tex_wheel(path):
-    """1024x1024: Racing slick rubber tread, sidewall w/ stencil, brushed-gold 5-bolt dish hub, chrome hardware."""
+    """1024x1024: Racing slick rubber tread, matte sidewall, satin alloy 5-bolt dish hub, chrome hardware."""
     H = W = 1024
     arr = np.zeros((H, W, 3), dtype=np.float32)
     noise = _fbm(H, W, seed=707, octaves=(4, 8, 16, 32))
@@ -832,20 +832,20 @@ def _tex_wheel(path):
     arr[:512, :512, 1] = np.clip(rub * 0.99, 10, 65)
     arr[:512, :512, 2] = np.clip(rub * 1.02, 10, 68)
 
-    # Q2: Polar tire sidewall with subtle gold pin-stripe ring
+    # Q2: Polar tire sidewall with subtle dark-grey molded rib ring
     r_x = (xx - 255.5) / 245.0
     r_y = (yy - 255.5) / 245.0
     rr = np.sqrt(r_x * r_x + r_y * r_y)
     sw = 25.0 + 7.0 * np.exp(-((rr - 0.78) ** 2) / 0.01) + 3.5 * noise[:512, 512:]
     stripe = np.exp(-((rr - 0.77) ** 2) / 0.00025)
-    arr[:512, 512:, 0] = np.clip(sw + 165.0 * stripe, 10, 215)
-    arr[:512, 512:, 1] = np.clip(sw + 125.0 * stripe, 10, 175)
-    arr[:512, 512:, 2] = np.clip(sw + 24.0 * stripe, 10, 80)
+    arr[:512, 512:, 0] = np.clip(sw + 28.0 * stripe, 10, 85)
+    arr[:512, 512:, 1] = np.clip(sw + 28.0 * stripe, 10, 85)
+    arr[:512, 512:, 2] = np.clip(sw + 30.0 * stripe, 10, 88)
 
-    # Q3: Brushed-gold 5-bolt dish hub (polar)
+    # Q3: Brushed satin alloy 5-bolt dish hub (polar)
     ang = np.arctan2(r_y, r_x)
-    aniso = 1.0 + 0.16 * np.cos(ang * 2.0 + 0.4) + 0.06 * np.sin(rr * 90.0) + 0.05 * noise[512:, :512]
-    dish = 1.0 - 0.18 * np.exp(-((rr - 0.55) ** 2) / 0.06)
+    aniso = 1.0 + 0.14 * np.cos(ang * 2.0 + 0.4) + 0.05 * np.sin(rr * 90.0) + 0.05 * noise[512:, :512]
+    dish = 1.0 - 0.16 * np.exp(-((rr - 0.55) ** 2) / 0.06)
     lip_hi = np.exp(-((rr - 0.90) ** 2) / 0.0012)
     pockets = np.zeros_like(rr)
     for k in range(5):
@@ -855,20 +855,20 @@ def _tex_wheel(path):
         pockets += np.exp(-(dx * dx + dy * dy) / 0.0045)
     pockets = np.clip(pockets, 0.0, 1.0)
     center_ring = np.exp(-((rr - 0.25) ** 2) / 0.0008)
-    g_r = (214.0 * dish + 28.0 * lip_hi) * aniso * (1.0 - 0.55 * pockets) - 70.0 * center_ring
-    g_g = (162.0 * dish + 24.0 * lip_hi) * aniso * (1.0 - 0.58 * pockets) - 55.0 * center_ring
-    g_b = (42.0 * dish + 16.0 * lip_hi) * aniso * (1.0 - 0.60 * pockets) - 18.0 * center_ring
-    arr[512:, :512, 0] = np.clip(g_r, 18, 252)
-    arr[512:, :512, 1] = np.clip(g_g, 14, 215)
-    arr[512:, :512, 2] = np.clip(g_b, 10, 95)
+    g_r = (176.0 * dish + 26.0 * lip_hi) * aniso * (1.0 - 0.58 * pockets) - 55.0 * center_ring
+    g_g = (178.0 * dish + 26.0 * lip_hi) * aniso * (1.0 - 0.58 * pockets) - 55.0 * center_ring
+    g_b = (184.0 * dish + 28.0 * lip_hi) * aniso * (1.0 - 0.58 * pockets) - 52.0 * center_ring
+    arr[512:, :512, 0] = np.clip(g_r, 22, 232)
+    arr[512:, :512, 1] = np.clip(g_g, 22, 234)
+    arr[512:, :512, 2] = np.clip(g_b, 24, 238)
 
-    # Q4: Satin gold inner rim barrel (left half) + bright silver lug hardware (right half)
+    # Q4: Satin gunmetal inner rim barrel (left half) + bright silver lug hardware (right half)
     hw_mask = xx > 256
-    gold_in = 175.0 + 12.0 * noise[512:, 512:]
-    silv = 205.0 + 18.0 * np.sin(yy * 0.15) + 6.0 * noise[512:, 512:]
-    arr[512:, 512:, 0] = np.clip(np.where(hw_mask, silv * 0.98, gold_in), 20, 248)
-    arr[512:, 512:, 1] = np.clip(np.where(hw_mask, silv * 0.99, gold_in * 0.76), 20, 248)
-    arr[512:, 512:, 2] = np.clip(np.where(hw_mask, silv * 1.03, gold_in * 0.22), 18, 252)
+    rim_in = 86.0 + 10.0 * noise[512:, 512:]
+    silv = 200.0 + 18.0 * np.sin(yy * 0.15) + 6.0 * noise[512:, 512:]
+    arr[512:, 512:, 0] = np.clip(np.where(hw_mask, silv * 0.98, rim_in * 0.96), 20, 242)
+    arr[512:, 512:, 1] = np.clip(np.where(hw_mask, silv * 0.99, rim_in * 0.98), 20, 244)
+    arr[512:, 512:, 2] = np.clip(np.where(hw_mask, silv * 1.03, rim_in * 1.02), 20, 248)
 
     Image.fromarray(arr.astype(np.uint8), mode="RGB").save(path, "PNG", optimize=True)
 
