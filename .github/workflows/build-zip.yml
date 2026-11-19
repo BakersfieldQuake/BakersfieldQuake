@@ -104,6 +104,7 @@ jobs:
     timeout-minutes: 45
     outputs:
       tag: ${{ steps.publish.outputs.tag }}
+      mac: ${{ steps.mac.outputs.build }}
     env:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ inputs.base_tag }}
@@ -451,17 +452,47 @@ jobs:
             --only BakersfieldQuake/ --only quake15/ --only tools/ > manifest-macos-app.json
           python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" manifest-macos-app.json
 
+      # The DMG carries the macOS engine; the app gets game data through its own updater (manifest-macos-app.json). So a
+      # new DMG is only built when the engine changed since the newest release that has one. Every release records its
+      # engine in a hidden <!-- engine-tag: ... --> note; a missing note (older releases) counts as changed.
+      - name: Decide whether the macOS app needs a new DMG
+        id: mac
+        run: |
+          build=true why="started by hand"
+          if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
+            prev=""
+            for t in $(gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do
+              gh release view "$t" -R "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.dmg || continue
+              prev=$(gh release view "$t" -R "$GITHUB_REPOSITORY" --json body -q .body | sed -n 's/.*<!-- engine-tag: \(.*\) -->.*/\1/p' | head -1)
+              break
+            done
+            if [ -n "$prev" ] && [ "$prev" = "$ENGINE" ]; then
+              build=false why="engine $ENGINE is the same as in the newest release with a DMG"
+            else
+              why="engine is $ENGINE, the newest DMG has ${prev:-no recorded engine}"
+            fi
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "macOS app build: $build ($why)"
+
       - name: Publish release
         id: publish
+        env:
+          MAC_BUILD: ${{ steps.mac.outputs.build }}
         run: |
           tag="$TAG"
+          if [ "$MAC_BUILD" = true ]; then
+            dmgnote="The DMG is added a few minutes after the other files, once notarization finishes. <!-- dmg: expected -->"
+          else
+            dmgnote="No new DMG in this release (the engine did not change): use the DMG from an earlier release, the app updates its game data on launch."
+          fi
           assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json)
           flags=(--latest)
           [ "$DRAFT" = true ] && flags=(--draft)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}.
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- engine-tag: ${ENGINE} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
 
@@ -469,12 +500,13 @@ jobs:
 
           - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe
           - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh
-          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE to Applications (macOS 13+). The DMG is added a few minutes after the other files, once notarization finishes."
+          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE to Applications (macOS 13+). ${dmgnote}"
 
   # Signed, notarized BAKOQUAKE.app in a DMG, built from the macOS zip just published. The engine and every dylib
   # it loads are built from pinned sources (see source/mac/build_app.sh); runner image and Xcode are pinned too.
   macos:
     needs: build
+    if: needs.build.outputs.mac == 'true'
     runs-on: macos-15
     timeout-minutes: 90
     env:

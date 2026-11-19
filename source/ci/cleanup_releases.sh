@@ -22,11 +22,13 @@ while read -r tag; do
     fi
 done
 
-# A published release without its DMG means the macos job failed or was cancelled. Players' updaters still work (the
-# manifests are on the release), so it is only reported, not deleted.
+# A release that announced a DMG ("<!-- dmg: expected -->" in its notes) but has none means the macos job failed or was
+# cancelled. Players' updaters still work (the manifests are on the release), so it is only reported, not deleted.
+# Releases built without a new DMG (engine unchanged) carry no such note.
 gh release list -R "$repo" -L 5 --exclude-drafts --json tagName,createdAt \
     --jq '.[] | select(.tagName | startswith("build-")) | select(now - (.createdAt | fromdateiso8601) > 7200) | .tagName' |
 while read -r tag; do
+    gh release view "$tag" -R "$repo" --json body --jq .body | grep -q '<!-- dmg: expected -->' || continue
     if ! gh release view "$tag" -R "$repo" --json assets --jq '.assets[].name' | grep -qx 'BAKOQUAKE-macos-arm64.dmg'; then
         echo "::warning::release $tag has no macOS DMG (macos job failed or was cancelled); re-run the workflow to replace it"
     fi
