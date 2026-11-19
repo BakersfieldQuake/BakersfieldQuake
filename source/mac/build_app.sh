@@ -71,7 +71,12 @@ mkdir -p "$WORK" "$SRC" "$OUT"
 ZIP="$WORK/dl/$TAG/BAKOQUAKE-macos-arm64.zip"
 if [ ! -f "$ZIP" ]; then
     step "download $TAG"
-    gh release download "$TAG" -R "$REPO" -p BAKOQUAKE-macos-arm64.zip -D "$WORK/dl/$TAG"
+    # gh writes straight to the target name, so an interrupted download would be reused as the real zip next run.
+    rm -rf "$WORK/dl/$TAG.part"
+    gh release download "$TAG" -R "$REPO" -p BAKOQUAKE-macos-arm64.zip -D "$WORK/dl/$TAG.part"
+    mkdir -p "$WORK/dl/$TAG"
+    mv "$WORK/dl/$TAG.part/BAKOQUAKE-macos-arm64.zip" "$ZIP"
+    rm -rf "$WORK/dl/$TAG.part"
 fi
 step "unpack game data"
 rm -rf "$WORK/game"
