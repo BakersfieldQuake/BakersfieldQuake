@@ -17,7 +17,7 @@ void() Kyle_Precache =
 	precache_model ("progs/kyle_scissors.md3");
 	precache_model ("progs/kyle_torpedo.md3");
 
-	// Draw, Sky Throw & Superman Torpedo ("Whoa!" / "WHOAAA WHOAAAA!!") voices
+	// User-voted Kyle voice winners (custom pitches baked cleanly; whoa_7 & whoa_10 cut!)
 	precache_sound ("kyle/whoa_man.wav");
 	precache_sound ("kyle/whoa_1.wav");
 	precache_sound ("kyle/whoa_2.wav");
@@ -25,13 +25,12 @@ void() Kyle_Precache =
 	precache_sound ("kyle/whoa_4.wav");
 	precache_sound ("kyle/whoa_5.wav");
 	precache_sound ("kyle/whoa_6.wav");
-	precache_sound ("kyle/whoa_7.wav");
 	precache_sound ("kyle/whoa_8.wav");
 	precache_sound ("kyle/whoa_9.wav");
-	precache_sound ("kyle/whoa_10.wav");
+	precache_sound ("kyle/whoa_11.wav");
 	precache_sound ("kyle/whoa_12.wav");
 
-	// Action / Latch / Wander voices (ZERO "Will stole my clients" clips!)
+	// Action / Latch / Roam voices (ZERO "Will stole my clients" clips!)
 	precache_sound ("kyle/kyle_hey.wav");
 	precache_sound ("kyle/kyle_hey2.wav");
 	precache_sound ("kyle/kyle_cut.wav");
@@ -54,68 +53,83 @@ void() Kyle_Precache =
 		KY_RangeInit ();
 };
 
+// DRAW / PULL-OUT: whoa_06_double_warble @ 1.19x, whoa_02_wobble
 void(entity e) KY_PlayWhoa =
 {
 	local float r, pitch;
 
 	r = random ();
-	pitch = 0.96 + random () * 0.08;
-	if (r < 0.14)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_5.wav", 0.98, pitch);
-	else if (r < 0.28)
+	pitch = 0.97 + random () * 0.06;
+	if (r < 0.55)
 		FG_Snd (e, CHAN_VOICE, "kyle/whoa_6.wav", 0.98, pitch);
-	else if (r < 0.42)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 0.98, pitch);
-	else if (r < 0.54)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_9.wav", 0.98, pitch);
-	else if (r < 0.66)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_10.wav", 0.98, pitch);
-	else if (r < 0.76)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.95, pitch);
-	else if (r < 0.86)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_3.wav", 0.95, pitch);
-	else if (r < 0.94)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_7.wav", 0.95, pitch);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_man.wav", 0.95, pitch);
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.96, pitch);
 };
 
+// BIRD LOCK-ON: whoa_05_long @ 1.35x, whoa_08_superman_doppler @ 1.35x
+void(entity e) KY_PlayBirdLock =
+{
+	local float r, pitch;
+
+	r = random ();
+	pitch = 0.98 + random () * 0.04;
+	if (r < 0.52)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_5.wav", 0.98, pitch);
+	else
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 0.98, pitch);
+};
+
+// THROW / SUPERMAN TORPEDO FLIGHT: whoa_08 @ 1.35x, whoa_06 @ 1.19x, whoa_09 @ 1.19x, whoa_02_wobble
 void(entity e) KY_PlaySkyWhoa =
 {
 	local float r, pitch;
 
 	r = random ();
-	pitch = 0.95 + random () * 0.10;
-	if (r < 0.24)
+	pitch = 0.97 + random () * 0.06;
+	if (r < 0.30)
 		FG_Snd (e, CHAN_VOICE, "kyle/whoa_8.wav", 1.0, pitch);
-	else if (r < 0.46)
+	else if (r < 0.56)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_6.wav", 1.0, pitch);
+	else if (r < 0.80)
 		FG_Snd (e, CHAN_VOICE, "kyle/whoa_9.wav", 1.0, pitch);
-	else if (r < 0.66)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_5.wav", 1.0, pitch);
-	else if (r < 0.84)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_10.wav", 1.0, pitch);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_12.wav", 1.0, pitch);
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_2.wav", 0.98, pitch);
 };
 
+// LATCH / CHOP: whoa_11 @ 1.13x, whoa_12, whoa_03_rise, whoa_01_short, edit_02_whoa_give_cut
+void(entity e) KY_PlayLatch =
+{
+	local float r, pitch;
+
+	r = random ();
+	pitch = 0.97 + random () * 0.06;
+	if (r < 0.24)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_11.wav", 1.0, pitch);
+	else if (r < 0.46)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_12.wav", 1.0, pitch);
+	else if (r < 0.66)
+		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut2.wav", 1.0, pitch);
+	else if (r < 0.84)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_3.wav", 0.98, pitch);
+	else
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_1.wav", 0.98, pitch);
+};
+
+// ROAM / CHASE: edit_01_hey_man_tight (primary!), plus classic Kyle/cut lines
 void(entity e) KY_PlayLine =
 {
 	local float r, pitch;
 
 	r = random ();
-	pitch = 0.95 + random () * 0.10;
-	if (r < 0.22)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut.wav", 1.0, pitch);
-	else if (r < 0.42)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut2.wav", 1.0, pitch);
-	else if (r < 0.60)
-		FG_Snd (e, CHAN_VOICE, "kyle/whoa_man.wav", 1.0, pitch);
-	else if (r < 0.76)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey.wav", 0.95, pitch);
-	else if (r < 0.88)
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey2.wav", 0.95, pitch);
+	pitch = 0.96 + random () * 0.08;
+	if (r < 0.55)
+		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey_man.wav", 0.98, pitch);
+	else if (r < 0.72)
+		FG_Snd (e, CHAN_VOICE, "kyle/kyle_cut.wav", 0.96, pitch);
+	else if (r < 0.86)
+		FG_Snd (e, CHAN_VOICE, "kyle/whoa_man.wav", 0.96, pitch);
 	else
-		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey_man.wav", 0.95, pitch);
+		FG_Snd (e, CHAN_VOICE, "kyle/kyle_hey.wav", 0.95, pitch);
 };
 
 // ---------------------------------------------------------------- realistic US currency particles
@@ -622,7 +636,7 @@ void(entity targ) KY_StartLatch =
 	self.velocity = '0 0 0';
 	self.ky_latch_side = (random () < 0.5) ? -1 : 1;
 	FG_Snd (self, CHAN_WEAPON, "kyle/snip_heavy.wav", 0.95, 1.0);
-	KY_PlayLine (self);
+	KY_PlayLatch (self);
 	if (targ.classname == "player")
 		centerprint (targ, "KYLE WANTS HIS 50% CUT! SHOOT HIM OFF!\n");
 	else if (targ.classname == "misc_vehicle_johnbird" && targ.jb_pilot != world)
@@ -861,7 +875,7 @@ void() KY_ProjThink =
 		if (time >= self.ky_voice_t)
 		{
 			self.ky_voice_t = time + 1.55 + random () * 0.7;
-			KY_PlayLine (self);
+			KY_PlayLatch (self);
 		}
 		self.nextthink = time + 0.03;
 		return;
@@ -943,7 +957,7 @@ void() KY_ProjThink =
 		if (time >= self.ky_voice_t)
 		{
 			self.ky_voice_t = time + 2.0 + random () * 0.8;
-			KY_PlayLine (self);
+			KY_PlaySkyWhoa (self);
 		}
 		self.nextthink = time + 0.04;
 		return;
@@ -1228,7 +1242,7 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 		k.customizeentityforclient = KY_ProjCustomize;
 		FG_Snd (p, CHAN_AUTO, "kyle/plane_whoosh.wav", 0.82, 1.00 + 0.14 * power);
 		FG_Snd (p, CHAN_WEAPON, "kyle/snip_fast.wav", 0.70, 1.02);
-		KY_PlayLine (p);
+		KY_PlaySkyWhoa (p);
 		p.punchangle_x = -2.6 - 1.6 * power;
 		p.punchangle_z = 1.8;
 	}
@@ -1359,6 +1373,11 @@ void() KY_Frame =
 	t = KY_FindLockTarget (self);
 	if (t != world)
 	{
+		if (!self.ky_bird_locking && time >= self.ky_lock_snd_t)
+		{
+			self.ky_lock_snd_t = time + 1.25;
+			KY_PlayBirdLock (self);
+		}
 		self.ky_bird_locking = TRUE;
 		if (t != self.ky_lock_ent)
 		{

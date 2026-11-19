@@ -595,8 +595,10 @@ function playSfx(key, vol = 0.78) {
   return a;
 }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-const DRAW_VOICES = ['whoa_man', 'whoa_1', 'whoa_2', 'whoa_3', 'whoa_4'];
-const ACTION_VOICES = ['kyle_hey', 'kyle_hey2', 'kyle_cut', 'kyle_cut2', 'kyle_hey_man'];
+const DRAW_VOICES = ['whoa_6', 'whoa_2'];
+const BIRDLOCK_VOICES = ['whoa_5', 'whoa_8'];
+const THROW_VOICES = ['whoa_8', 'whoa_6', 'whoa_9', 'whoa_2'];
+const ACTION_VOICES = ['whoa_11', 'whoa_12', 'kyle_cut2', 'whoa_3', 'whoa_1', 'kyle_hey_man'];
 
 // Image Preloader
 function loadImg(src) {
@@ -703,8 +705,9 @@ function setVmState(st, playSound = true) {
   vmStatePill.textContent = labels[st] || st;
   if (!playSound) return;
   if (st === 'draw') playSfx(pick(DRAW_VOICES), 0.85);
-  else if (st === 'lock' || st === 'birdlock') { playSfx('lock_tick', 0.65); playSfx(pick(ACTION_VOICES), 0.78); }
-  else if (st === 'fire') { playSfx('plane_whoosh', 0.85); playSfx('snip_heavy', 0.65); }
+  else if (st === 'lock') { playSfx('lock_tick', 0.65); playSfx(pick(ACTION_VOICES), 0.78); }
+  else if (st === 'birdlock') { playSfx('lock_tick', 0.65); playSfx(pick(BIRDLOCK_VOICES), 0.82); }
+  else if (st === 'fire') { playSfx('plane_whoosh', 0.85); playSfx('snip_heavy', 0.65); playSfx(pick(THROW_VOICES), 0.82); }
 }
 
 document.querySelectorAll('[data-vmstate]').forEach(b => {

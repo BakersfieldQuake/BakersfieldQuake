@@ -63,20 +63,19 @@ PROJ_DIM = 0.78           # balanced for DarkPlaces SPR32 fullbright/HDR
 CASH_DIM = 0.86
 
 SOUND_MAP = {
-    # Draw, Sky Throw & Superman Torpedo ("Whoa man!" / "WHOAAA WHOAAAA!!") voices
+    # Draw, Bird Lock, Throw / Torpedo & Latch ("WHOAAA!" user-voted winners + baked voted pitches!)
     "sound/kyle/whoa_man.wav":      VOICE_SRC_DIR / "cut_01_wheres_my_cut.wav",
     "sound/kyle/whoa_1.wav":        VOICE_SRC_DIR / "whoa_01_short.wav",
     "sound/kyle/whoa_2.wav":        VOICE_SRC_DIR / "whoa_02_wobble.wav",
     "sound/kyle/whoa_3.wav":        VOICE_SRC_DIR / "whoa_03_rise.wav",
     "sound/kyle/whoa_4.wav":        VOICE_SRC_DIR / "whoa_04_punch.wav",
-    "sound/kyle/whoa_5.wav":        VOICE_SRC_DIR / "whoa_05_long.wav",
-    "sound/kyle/whoa_6.wav":        VOICE_SRC_DIR / "whoa_06_double_warble.wav",
-    "sound/kyle/whoa_7.wav":        VOICE_SRC_DIR / "whoa_07_triple_rapid.wav",
-    "sound/kyle/whoa_8.wav":        VOICE_SRC_DIR / "whoa_08_superman_doppler.wav",
-    "sound/kyle/whoa_9.wav":        VOICE_SRC_DIR / "whoa_09_canyon_yell.wav",
-    "sound/kyle/whoa_10.wav":       VOICE_SRC_DIR / "whoa_10_whoa_whoaaa_long.wav",
+    "sound/kyle/whoa_5.wav":        VOICE_SRC_DIR / "whoa_05_long_p135.wav",
+    "sound/kyle/whoa_6.wav":        VOICE_SRC_DIR / "whoa_06_double_warble_p119.wav",
+    "sound/kyle/whoa_8.wav":        VOICE_SRC_DIR / "whoa_08_superman_doppler_p135.wav",
+    "sound/kyle/whoa_9.wav":        VOICE_SRC_DIR / "whoa_09_canyon_yell_p119.wav",
+    "sound/kyle/whoa_11.wav":       VOICE_SRC_DIR / "whoa_11_pocket_excited_p113.wav",
     "sound/kyle/whoa_12.wav":       VOICE_SRC_DIR / "whoa_12_torpedo_cut_cry.wav",
-    # Action / Latch / Wander voices (ZERO "Will stole my clients" clips!)
+    # Action / Latch / Roam voices (ZERO "Will stole my clients" clips; cut whoa_7 & whoa_10!)
     "sound/kyle/kyle_hey.wav":      VOICE_SRC_DIR / "kyle_02_hey_bright.wav",
     "sound/kyle/kyle_hey2.wav":     VOICE_SRC_DIR / "kyle_03_its_kyle.wav",
     "sound/kyle/kyle_cut.wav":      VOICE_SRC_DIR / "cut_02_give_me_a_cut.wav",

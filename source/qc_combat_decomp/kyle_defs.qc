@@ -100,6 +100,7 @@ entity	ky_cash_qtail;
 .float	ky_lock_ready;		// TRUE once bird lock chime played
 .float	ky_lock_snip_t;		// next hold-clipping viewmodel snip SFX timestamp
 .float	ky_lock_tick_t;		// next lock-on reticle tick SFX timestamp
+.float	ky_lock_snd_t;		// cooldown for Bird Lock voice callout
 .float	ky_lock_msg_t;		// throttled centerprint timestamp
 .entity	ky_lock_ent;		// currently tracked/locked sky bird/vehicle entity
 .float	ky_throw_at;		// timestamp when Kyle leaves the hand
