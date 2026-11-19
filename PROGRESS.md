@@ -202,3 +202,8 @@
 - Root cause: `actions/setup-python` sets `AGENT_TOOLSDIRECTORY=/Users/runner/hostedtoolcache` on every Mac (`src/setup-python.ts:98`), so on ozzy-2 it died with `mkdir: /Users/runner: Permission denied`.
 - Outcome: the `macos` job gets Python 3.12 from uv (python-build-standalone, macOS 11.0 target, the same as `make app`) and cmake 3.31.6 from a venv in `$RUNNER_TEMP`. This replaces the earlier note: no python.org framework or sudo install on ozzy anymore.
 - Verification: actionlint; on ozzy under the runner's PATH, `uv python install 3.12` gives 3.12.11 with deployment target 11.0, and the venv cmake reports 3.31.6. The CI run itself is not verified yet.
+
+## 2026-11-19 — local mac build dir moved to ./build
+
+- Outcome: `WORK` now defaults to `<repo>/build` in both the Makefile and `build_app.sh`, and `/build/` is gitignored. CI is unaffected because it sets `WORK` itself.
+- Follow-up: `~/build/bakoquake-mac` is now unused. Its `prefix-13.0` has its absolute path baked in (`sdl2-config`, pkg-config, cmake configs), so the first `make app` rebuilds the libraries in `./build` instead of moving them. The downloaded release zips under `dl/` can be moved to `./build/dl/`.

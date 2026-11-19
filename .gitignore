@@ -2,3 +2,4 @@
 BAKOQUAKE
 *.log
 __pycache__/
+/build/

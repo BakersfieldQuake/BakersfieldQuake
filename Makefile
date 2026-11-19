@@ -4,7 +4,7 @@
 #   make run              launch the last build
 #   make app TAG=<tag>    build from a specific release instead of the newest one with a macOS zip
 
-WORK ?= $(HOME)/build/bakoquake-mac
+WORK ?= $(CURDIR)/build
 APP  := $(WORK)/out/BAKOQUAKE.app
 
 .PHONY: app build run

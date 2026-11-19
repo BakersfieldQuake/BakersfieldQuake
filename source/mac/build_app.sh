@@ -17,7 +17,7 @@
 #                    One of the two is required unless SKIP_NOTARIZE=1.
 #   SKIP_NOTARIZE=1  build and sign only (for local iteration)
 #   UPLOAD=1         upload the DMG to the release after notarizing
-#   WORK             build directory (default ~/build/bakoquake-mac); the deps prefix is kept there between runs
+#   WORK             build directory (default <repo>/build, gitignored); the deps prefix is kept there between runs
 #   PYTHON           Python that freezes the updater (default python3). Its libraries go into Contents/MacOS/bq-update,
 #                    so it must target macOS 13.0 or older (python.org / actions/setup-python builds do; Homebrew's
 #                    does not). The script checks.
@@ -29,7 +29,7 @@ TAG="${1:?usage: $0 <release-tag>}"
 REPO=GiggleHacks/BakersfieldQuake
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-WORK="${WORK:-$HOME/build/bakoquake-mac}"
+WORK="${WORK:-$ROOT/build}"
 MINOS=13.0
 BUNDLE_ID=com.gigglehacks.bakoquake
 
