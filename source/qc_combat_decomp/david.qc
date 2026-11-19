@@ -890,21 +890,25 @@ void() npc_david_squad =
 	makevectors(flat_ang);
 
 	dv = David_SpawnOne(self.origin + '0 0 16', self.angles_y, FALSE);
+	dv.flags = dv.flags - (dv.flags & FL_MONSTER);
 	dv.dv_harmless = TRUE;
 	dv.dv_respawn = 25;
 	dv.dv_home = dv.origin;
 
 	w1 = PregRunner_SpawnOne(1, self.origin - v_forward * 78 - v_right * 48 + '0 0 16', self.angles_y, dv);
+	w1.flags = w1.flags - (w1.flags & FL_MONSTER);
 	w1.dv_harmless = TRUE;
 	w1.dv_respawn = 25;
 	w1.dv_home = w1.origin;
 
 	w2 = PregRunner_SpawnOne(2, self.origin - v_forward * 96 + '0 0 16', self.angles_y, dv);
+	w2.flags = w2.flags - (w2.flags & FL_MONSTER);
 	w2.dv_harmless = TRUE;
 	w2.dv_respawn = 25;
 	w2.dv_home = w2.origin;
 
 	w3 = PregRunner_SpawnOne(3, self.origin - v_forward * 78 + v_right * 48 + '0 0 16', self.angles_y, dv);
+	w3.flags = w3.flags - (w3.flags & FL_MONSTER);
 	w3.dv_harmless = TRUE;
 	w3.dv_respawn = 25;
 	w3.dv_home = w3.origin;

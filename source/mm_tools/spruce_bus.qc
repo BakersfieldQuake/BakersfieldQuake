@@ -118,16 +118,28 @@ void() SB_WreckRemove =
 	remove (self);
 };
 
+void() SB_BusWreckThink =
+{
+	Veh_Think ();
+	if (self.nextthink <= 0)
+		SB_WreckRemove ();
+	else
+		self.think = SB_BusWreckThink;
+};
+
 void() SB_BusExplode =
 {
 	Veh_ExplodeNow ();
-	// Prune the destroyed school bus wreck cleanly after lingering flames finish
-	self.think = SB_WreckRemove;
-	self.nextthink = time + 24;
+	// Run full Veh_Think wreck flip/roll & lingering flame animation, then prune when finished
+	self.think = SB_BusWreckThink;
 };
 
 void() SB_BusDie =
 {
+	if (damage_attacker != world && damage_attacker != self && !damage_attacker.veh_kind)
+		self.veh_igniter = damage_attacker;
+	else if (damage_attacker.veh_kind && damage_attacker.veh_igniter != world)
+		self.veh_igniter = damage_attacker.veh_igniter;
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = VEC_ORIGIN;
 	self.avelocity = VEC_ORIGIN;
@@ -352,6 +364,12 @@ void() misc_spruce_bus_manager =
 {
 	Vehicles_Precache ();
 	precache_model ("progs/veh_schoolbus.md3");	// SB_SpawnBus sets it directly; vehicle bodies are precached per kind now
+	precache_model ("progs/veh_schoolbus_wreck.md3");
+	precache_model ("progs/veh_schoolbus_wheel.md3");
+	precache_model ("progs/veh_schoolbus_hood.md3");
+	precache_model ("progs/veh_schoolbus_door.md3");
+	precache_model ("progs/veh_schoolbus_extra.md3");
+	precache_model ("progs/veh_schoolbus_bumper.md3");
 	sb_manager = self;
 	sb_active_bus = world;
 	self.think = SB_ManagerThink;

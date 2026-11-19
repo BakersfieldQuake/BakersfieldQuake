@@ -263,6 +263,8 @@ void() HTB_Think =
 
 	if (self.soi6_state == SOI6_DEAD || self.soi6_state == SOI6_GIB)
 	{
+		if (self.soi6_state == SOI6_GIB && time > self.soi6_anim_t + 0.45 && self.modelindex)
+			setmodel (self, "");
 		if (time >= self.soi6_respawn_t)
 		{
 			HTB_Respawn ();
@@ -287,6 +289,11 @@ void() HTB_Think =
 			HTB_SetState (self, SOI6_SCREAM);
 			self.soi6_state_t = time + 2.8;
 			HTB_Talk (self, p, FALSE);
+		}
+		else if (self.soi6_state == SOI6_SCREAM && time >= self.soi6_state_t)
+		{
+			HTB_SetState (self, SOI6_IDLE);
+			self.soi6_state_t = time + 2.5 + random () * 3.0;
 		}
 	}
 	else if (time >= self.soi6_state_t)

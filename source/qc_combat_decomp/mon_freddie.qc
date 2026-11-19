@@ -171,13 +171,13 @@ void(vector weapofs) fred_fireweapon =
 	dir = normalize(((self.enemy.origin + vec) - org));
 	if ((random() < 0.2))
 	{
-		dir = dir + '0 0 4';
+		dir = normalize(dir + '0 0 0.04');
 	}
 	else
 	{
 		if ((random() < 0.1))
 		{
-			dir = dir + '0 0 -3';
+			dir = normalize(dir + '0 0 -0.03');
 		}
 	}
 	if ((self.spawnflags & MON_FREDDIE_LASER))
@@ -937,7 +937,7 @@ void() fred_painb5 = [ 76, fred_run ]
 {
 };
 
-void(entity inflictor, entity attacker, float damage) fred_pain =
+void(entity attacker, float damage) fred_th_pain =
 {
 	monster_pain_check(attacker, damage);
 	if (((self.pain_check > 0) && (random() < 0.1)))
@@ -955,6 +955,11 @@ void(entity inflictor, entity attacker, float damage) fred_pain =
 			fred_painb1();
 		}
 	}
+};
+
+void(entity inflictor, entity attacker, float damage) fred_pain =
+{
+	fred_th_pain(attacker, damage);
 };
 
 void() fred_death1 = [ 112, fred_death2 ]
@@ -1204,7 +1209,7 @@ void() monster_freddie =
 	self.th_melee = fred_fswing1;
 	self.th_missile = fred_sfire1;
 	self.th_charge = fred_sfire24;
-	self.th_pain = fred_pain;
+	self.th_pain = fred_th_pain;
 	self.th_die = fred_die;
 	self.classtype = CT_MONFREDDIE;
 	self.classmove = MON_MOVEWALK;
@@ -1220,6 +1225,7 @@ void() add_freddie_support_walk =
 	pos = self.origin + '0 0 40';
 	if (PM_InWall(self, pos))
 	{
+		setsize(self, '-16 -16 -24', '16 16 40');
 		return;
 	}
 	clone = spawn();
@@ -1227,6 +1233,8 @@ void() add_freddie_support_walk =
 	setorigin(clone, pos);
 	clone.think = monster_freddie;
 	clone.nextthink = (time + 0.000100);
+	if (total_monsters > 0)
+		total_monsters = total_monsters - 1;
 	remove(self);
 };
 

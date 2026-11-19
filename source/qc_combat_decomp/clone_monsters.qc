@@ -66,7 +66,10 @@ void() Clone =
 	}
 	clone = spawn();
 	copyentity(self, clone);
-	total_monsters = total_monsters + 1;
+	if ((clone.think != walkmonster_start) && (clone.think != flymonster_start) && (clone.think != swimmonster_start))
+	{
+		total_monsters = total_monsters + 1;
+	}
 	setorigin(clone, pos);
 	if ((clone.monstermodel == 2))
 	{
@@ -1145,7 +1148,10 @@ void() Clone_fly_swim =
 	}
 	clone = spawn();
 	copyentity(self, clone);
-	total_monsters = total_monsters + 1;
+	if ((clone.think != walkmonster_start) && (clone.think != flymonster_start) && (clone.think != swimmonster_start))
+	{
+		total_monsters = total_monsters + 1;
+	}
 	setorigin(clone, pos);
 	if ((clone.multiskin == 1))
 	{

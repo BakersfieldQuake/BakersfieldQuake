@@ -915,8 +915,27 @@ float(entity p) Veh_Riding =
 	return p.veh_ride != world;
 };
 
+void(entity v, vector pos, vector vel, float forced) Veh_Leave;
+
 void() Veh_SpawnReset =
 {
+	local entity v;
+
+	v = self.veh_van;
+	if (v != world && !bm_wasfreed (v) && v.veh_driver == self)
+		Veh_Leave (v, v.origin + '0 0 40', '0 0 0', (v.veh_state == VEH_STATE_WRECK));
+	else if (v != world || self.clientcamera != self)
+	{
+		self.clientcamera = self;
+		if (self.ishuman == 1)
+		{
+			msg_entity = self;
+			WriteByte (MSG_ONE, 5);		// svc_setview
+			WriteEntity (MSG_ONE, self);
+		}
+		self.alpha = 0;
+		self.effects = self.effects - (self.effects & EF_NODRAW);
+	}
 	self.veh_van = world;
 	self.veh_ride = world;
 	self.veh_seat = 0;
@@ -1015,7 +1034,8 @@ void(entity p, float forced) Veh_LeavePassenger =
 		return;
 
 	p.veh_last_van = v;
-	p.veh_bail_safe_t = time + 1.25;
+	if (!forced)
+		p.veh_bail_safe_t = time + 1.25;
 	pos = p.origin + '0 0 18';
 	if (Veh_ExitSpot (v, p))
 		pos = vd_exit;
@@ -1093,7 +1113,7 @@ float(entity p, entity v) Veh_EnterPassenger =
 	local float s;
 	local entity oldself;
 
-	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world)
+	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world || p.mmt_tank != world)
 		return FALSE;
 	s = Veh_FindFreeSeat (v);
 	if (s <= 0)
@@ -1102,6 +1122,11 @@ float(entity p, entity v) Veh_EnterPassenger =
 			sprint (p, "All passenger seats are full!\n");
 		return FALSE;
 	}
+	if (p.ky_cam != world)
+		KY_CamDetach (p);
+	RH_ResetPlayer (p);
+	DK_ResetPlayer (p);
+	GJ_ResetPlayer (p);
 	if (p.jp_on)
 	{
 		oldself = self;
@@ -1531,6 +1556,11 @@ void(entity p, entity v) Veh_Enter =
 {
 	local entity cam, oldself, de;
 
+	if (p.ky_cam != world)
+		KY_CamDetach (p);
+	RH_ResetPlayer (p);
+	DK_ResetPlayer (p);
+	GJ_ResetPlayer (p);
 	if (p.jp_on)
 	{
 		oldself = self;
@@ -1814,7 +1844,7 @@ void() Veh_SpawnAndEnter =
 	local entity v;
 	local vector fwd;
 
-	if (self.veh_van != world || self.health <= 0)
+	if (self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.jb_vehicle != world || self.mmt_tank != world || self.health <= 0)
 		return;
 	fwd = Veh_Fwd (self.v_angle_y);
 	v = Veh_SpawnDynamic (VEH_VAN, self.origin + fwd * 150 + '0 0 8', self.v_angle_y);

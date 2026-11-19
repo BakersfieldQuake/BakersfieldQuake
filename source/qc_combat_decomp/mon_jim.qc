@@ -183,7 +183,6 @@ void(float fstate) jim_update =
 void() jim_stand1 = [ 0, jim_stand1 ]
 {
 	self.solid = SOLID_SLIDEBOX;
-	self.oldorigin = self.origin;
 	self.movetype = MOVETYPE_FLY;
 	jim_update(JS_IDLE);
 	ai_stand();
@@ -192,7 +191,6 @@ void() jim_stand1 = [ 0, jim_stand1 ]
 void() jim_walk1 = [ 0, jim_walk1 ]
 {
 	self.solid = SOLID_SLIDEBOX;
-	self.oldorigin = self.origin;
 	self.movetype = MOVETYPE_STEP;
 	jim_update(JS_IDLE);
 	ai_walk(8);
@@ -200,10 +198,6 @@ void() jim_walk1 = [ 0, jim_walk1 ]
 
 void() jim_run1 = [ 0, jim_run1 ]
 {
-	if ((pointcontents(self.origin) != CONTENT_SOLID))
-	{
-		self.oldorigin = self.origin;
-	}
 	if ((pointcontents(self.origin) == CONTENT_SOLID))
 	{
 		setorigin(self, (self.oldorigin + '0 0 -1'));
@@ -215,6 +209,8 @@ void() jim_run1 = [ 0, jim_run1 ]
 	traceline((self.origin + '0 0 1'), (self.enemy.origin + '0 0 1'), FALSE, self);
 	if (((trace_ent != self.enemy) && (self.attack_chance < 6)))
 	{
+		if ((pointcontents(self.origin) != CONTENT_SOLID))
+			self.oldorigin = self.origin;
 		self.attack_chance = (self.attack_chance + 1);
 		ai_run(-60);
 	}
@@ -609,7 +605,7 @@ void() jim_is_dead =
 	SpawnExplosion(EXPLODE_BIG, self.origin, "jim/explode_major.wav");
 	sparklers();
 	sparklers();
-	entity_hide(self);
+	entity_remove(self, 0.1);
 };
 
 void() jim_die =
@@ -664,6 +660,7 @@ void() monster_jim =
 		return;
 	}
 	setmodel(self, "progs/mon_jimrock.mdl");
+	setsize(self, '-16 -16 -24', '16 16 16');
 	self.solid = SOLID_SLIDEBOX;
 	self.movetype = 0;
 	if ((self.bboxtype < 1))
@@ -729,6 +726,10 @@ void() add_jim_support_walk =
 	}
 	clone = spawn();
 	copyentity(self, clone);
+	clone.health = 0;
+	clone.target = string_null;
+	clone.killtarget = string_null;
+	clone.spawnflags = 0;
 	setorigin(clone, pos);
 	clone.think = monster_jim;
 	clone.nextthink = (time + 0.000100);

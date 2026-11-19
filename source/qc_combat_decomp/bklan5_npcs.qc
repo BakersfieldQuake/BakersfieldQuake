@@ -541,6 +541,8 @@ void() GreenSuit_Think =
 	else
 	{
 		self.npc_state = 1;		// Cheeky Seated Low-Rider Cruise!
+		if (self.goalentity != world && (self.goalentity.flags & (FL_CLIENT | FL_MONSTER)))
+			self.goalentity = world;
 		if (self.target != "" && self.goalentity == world)
 			self.goalentity = find(world, targetname, self.target);
 

@@ -9,8 +9,7 @@ Activated ONLY when `tim_cine 1` is set before loading `map soi6`.
 */
 
 var float autocvar_tim_cine = 0;
-.float soi6_cine_ang;
-.float soi6_cine_rad;
+// soi6_cine_ang / soi6_cine_rad declared in soi6_npcs.qc
 
 void(entity tim, float side_sgn, float want_n, float ang_start, float ang_step) Tim_CinePickSide =
 {
@@ -103,7 +102,7 @@ entity() Tim_CineFindPlayer =
 // director removes itself
 void() Tim_CineEnd =
 {
-	local entity p, oself;
+	local entity p, oself, g;
 
 	if (self.cnt > 0)
 	{
@@ -112,11 +111,21 @@ void() Tim_CineEnd =
 		strunzone (self.netname);
 		strunzone (self.message);
 	}
+	if (tim_soi6 != world && !bm_wasfreed (tim_soi6) && tim_soi6.health > 0)
+		tim_soi6.takedamage = DAMAGE_AIM;
+	g = find (world, classname, "npc_soi6");
+	while (g)
+	{
+		if (g.soi6_cine_rad > 0)
+			g.soi6_cine_rad = 0;
+		g = find (g, classname, "npc_soi6");
+	}
 	p = self.enemy;
-	if (self.cnt > 0 && p && p.classname == "player")		// cnt > 0: the player really was locked
+	if (self.cnt > 0 && p && !bm_wasfreed (p) && p.classname == "player")		// cnt > 0: the player really was locked
 	{
 		oself = self;
 		self = p;
+		Veh_ClientGone ();
 		setspawnparms (self);
 		PutClientInServer ();
 		self = oself;
@@ -140,11 +149,13 @@ void() Tim_CineThink =
 
 	// keep the same player locked (the one restored at the end); pick a new one only if they left
 	p = self.enemy;
-	if (!p || p.classname != "player" || p.ishuman != 1)
+	if (!p || bm_wasfreed (p) || p.classname != "player" || p.ishuman != 1)
 		p = Tim_CineFindPlayer ();
 	self.enemy = p;
 	tim = tim_soi6;
-	if (!p || !tim || tim == world)
+	if (!p || !tim || tim == world || bm_wasfreed (tim))
+		return;
+	if (p.health <= 0 || p.deadflag != 0 || p.bm_obs || Veh_Driving (p) || Veh_Riding (p))
 		return;
 
 	// Lock human player into silent noclip camera observer
@@ -300,6 +311,7 @@ void() Tim_CineStart =
 	self.beer_state = 0;
 	self.beer_state_end = time + 10.0;
 	self.beer_steer_t = time + 10.0;
+	self.takedamage = DAMAGE_NO;
 	self = oself;
 
 	dir = spawn ();

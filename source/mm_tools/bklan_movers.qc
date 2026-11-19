@@ -247,6 +247,7 @@ void() BK_TrashBack =
 	self.avelocity = VEC_ORIGIN;
 	self.angles = '0 0 0';
 	self.traileffectnum = 0;
+	self.effects = self.effects - (self.effects & EF_DIMLIGHT);
 	self.takedamage = DAMAGE_AIM;
 	self.health = 25;
 	self.enemy = world;		// the last life's shooter gets no credit for this one
@@ -264,6 +265,7 @@ void() BK_TrashSky =
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = VEC_ORIGIN;
 	self.traileffectnum = 0;
+	self.effects = self.effects - (self.effects & EF_DIMLIGHT);
 	self.think = BK_TrashBack;
 	self.nextthink = time + 30;
 };

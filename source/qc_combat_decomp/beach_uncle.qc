@@ -357,8 +357,8 @@ void() BeachUncle_Think =
 	if (self.soi6_state == BU_DEAD || self.soi6_state == BU_GIB)
 	{
 		self.nextthink = time + 0.45;
-		if (time > self.soi6_anim_t + 0.40)
-			self.model = "";
+		if (time > self.soi6_anim_t + 0.40 && self.modelindex)
+			setmodel (self, "");
 		if (time >= self.soi6_respawn_t)
 			BeachUncle_Respawn ();
 		return;
@@ -575,6 +575,9 @@ entity(float slot, float start_mode, vector org) BeachUncle_SpawnOne =
 	u.movetype = MOVETYPE_STEP;
 	u.flags = FL_MONSTER;
 	u.yaw_speed = 24;
+	u.th_stand = BeachUncle_Think;
+	u.th_walk = BeachUncle_Think;
+	u.th_run = BeachUncle_Think;
 	u.th_pain = BeachUncle_Pain;
 	u.th_die = BeachUncle_Die;
 	u.touch = BeachUncle_Touch;
@@ -583,7 +586,11 @@ entity(float slot, float start_mode, vector org) BeachUncle_SpawnOne =
 	setmodel (u, "progs/beach_uncle_a.md3");
 	setsize (u, '-15 -15 0', '15 15 68');
 	setorigin (u, org);
+	local entity saved_self;
+	saved_self = self;
+	self = u;
 	droptofloor ();
+	self = saved_self;
 
 	u.soi6_yaw = random () * 360;
 	u.angles_y = u.soi6_yaw;

@@ -117,22 +117,19 @@ void() shambler_walking_quake =
 
 void() start_earthquake_think =
 {
-	if (((self.earthquake_nextquake < time) && (quaketime == 1)))
+	if ((quaketime <= 0))
 	{
-		if ((random() < 0.8))
-		{
-		}
-		else
+		quaketime = ((time + autocvar_earthquake_interval) + (200 * random()));
+		return;
+	}
+	if ((time >= quaketime))
+	{
+		quaketime = ((time + autocvar_earthquake_interval) + (200 * random()));
+		if ((random() >= 0.8))
 		{
 			self.earthquake_finished = (time + 3);
 			sound(self, CHAN_AUTO, "ambience/rumblefade.wav", 0.8, ATTN_NORM);
 		}
-		quaketime = 0;
-	}
-	if ((quaketime == 0))
-	{
-		self.earthquake_nextquake = ((time + autocvar_earthquake_interval) + (200 * random()));
-		quaketime = 1;
 	}
 };
 
@@ -304,7 +301,10 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	}
 	if ((self.owner.weapon == IT_SHOTGUN))
 	{
-		setmodel(self, "progs/v_shot.mdl");
+		if (autocvar_centered_weapons)
+			setmodel(self, "progs/centered/v_shot.mdl");
+		else
+			setmodel(self, "progs/v_shot.mdl");
 		self.origin_x = autocvar_weapon_position_fully_adjustable_shot1_x_offset;
 		self.origin_y = autocvar_weapon_position_fully_adjustable_shot1_y_offset;
 		self.origin_z = autocvar_weapon_position_fully_adjustable_shot1_z_offset;
@@ -316,7 +316,14 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	{
 		if ((self.owner.weapon == IT_SUPER_SHOTGUN))
 		{
-			setmodel(self, "progs/v_shot2.mdl");
+			if ((autocvar_qc_ssg && autocvar_centered_weapons))
+				setmodel(self, "progs/centered/QC/v_shot2.mdl");
+			else if (autocvar_centered_weapons)
+				setmodel(self, "progs/centered/v_shot2.mdl");
+			else if (autocvar_qc_ssg)
+				setmodel(self, "progs/QC/v_shot2.mdl");
+			else
+				setmodel(self, "progs/v_shot2.mdl");
 			self.origin_x = autocvar_weapon_position_fully_adjustable_shot2_x_offset;
 			self.origin_y = autocvar_weapon_position_fully_adjustable_shot2_y_offset;
 			self.origin_z = autocvar_weapon_position_fully_adjustable_shot2_z_offset;
@@ -352,7 +359,10 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 				{
 					if ((self.owner.weapon == IT_GRENADE_LAUNCHER))
 					{
-						setmodel(self, "progs/v_rock.mdl");
+						if (autocvar_centered_weapons)
+							setmodel(self, "progs/centered/v_rock.mdl");
+						else
+							setmodel(self, "progs/v_rock.mdl");
 						self.origin_x = autocvar_weapon_position_fully_adjustable_gren_x_offset;
 						self.origin_y = autocvar_weapon_position_fully_adjustable_gren_y_offset;
 						self.origin_z = autocvar_weapon_position_fully_adjustable_gren_z_offset;
@@ -364,7 +374,10 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 					{
 						if ((self.owner.weapon == IT_ROCKET_LAUNCHER))
 						{
-							setmodel(self, "progs/v_rock2.mdl");
+							if (autocvar_centered_weapons)
+								setmodel(self, "progs/centered/v_rock2.mdl");
+							else
+								setmodel(self, "progs/v_rock2.mdl");
 							self.origin_x = autocvar_weapon_position_fully_adjustable_rock_x_offset;
 							self.origin_y = autocvar_weapon_position_fully_adjustable_rock_y_offset;
 							self.origin_z = autocvar_weapon_position_fully_adjustable_rock_z_offset;
@@ -376,7 +389,10 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 						{
 							if ((self.owner.weapon == IT_LIGHTNING))
 							{
-								setmodel(self, "progs/v_light.mdl");
+								if (autocvar_centered_weapons)
+									setmodel(self, "progs/centered/v_light.mdl");
+								else
+									setmodel(self, "progs/v_light.mdl");
 								if ((autocvar_weapon_position_fully_adjustable == 1))
 								{
 									self.origin_x = autocvar_weapon_position_fully_adjustable_light_x_offset;
@@ -396,14 +412,20 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 							{
 								if ((self.owner.weapon == IT_AXE))
 								{
-									if (autocvar_zombieaxeanimation)
-									{
-										setmodel(self, "progs/v_hammer.mdl");
-									}
+									setmodel(self, "progs/v_hammer.mdl");
+									self.origin_x = autocvar_weapon_position_fully_adjustable_axe_x_offset;
+									self.origin_y = autocvar_weapon_position_fully_adjustable_axe_y_offset;
+									self.origin_z = autocvar_weapon_position_fully_adjustable_axe_z_offset;
+									self.angles_x = autocvar_weapon_position_fully_adjustable_axe_x_angle;
+									self.angles_y = autocvar_weapon_position_fully_adjustable_axe_y_angle;
+									self.angles_z = autocvar_weapon_position_fully_adjustable_axe_z_angle;
+								}
+								else if ((self.owner.weapon == IT_LASER_CANNON))
+								{
+									if (autocvar_centered_weapons)
+										setmodel(self, "progs/centered/v_laserg.mdl");
 									else
-									{
-										setmodel(self, "progs/v_hammer.mdl");
-									}
+										setmodel(self, "progs/v_laserg.mdl");
 									self.origin_x = autocvar_weapon_position_fully_adjustable_axe_x_offset;
 									self.origin_y = autocvar_weapon_position_fully_adjustable_axe_y_offset;
 									self.origin_z = autocvar_weapon_position_fully_adjustable_axe_z_offset;
@@ -442,6 +464,10 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	}
 	self.frame = self.owner.weaponframe;
 	Pickle_ViewFrame (self, TRUE);	// sync articulated Pickle Surprise skin & pose on Quad overlay (pickle.qc)
+	if ((self.owner.throwing == 1) || (self.owner.bm_rl_slot && self.owner.health > 0 && !(M4_ShowsReload (self.owner) || Garand_ShowsReload (self.owner))) || FD_Flying(self.owner) || Veh_Driving(self.owner) || JohnBird_Flying(self.owner) || EricCannon_Active(self.owner) || MMTank_Driving(self.owner) || Binoc_On(self.owner))
+	{
+		self.alpha = -1;
+	}
 	self.nextthink = time;
 };
 
@@ -2619,30 +2645,32 @@ void() update_monster_health_crosshair =
 	{
 		if ((trace_ent.classname != "monster_zombie"))
 		{
-			if (((trace_ent.health / trace_ent.health_initial) >= 0.85))
+			local float hmax, hfrac;
+			hmax = trace_ent.health_initial;
+			if ((hmax <= 0))
+				hmax = trace_ent.max_health;
+			if ((hmax <= 0))
+				hmax = trace_ent.health;
+			hfrac = trace_ent.health / hmax;
+			if ((hfrac >= 0.85))
 			{
 				BM_Crosshair("0", "1", "0");
 			}
+			else if ((hfrac >= 0.63))
+			{
+				BM_Crosshair("0.7", "1.1", "0");
+			}
+			else if ((hfrac >= 0.4))
+			{
+				BM_Crosshair("1.1", "0.93", "0");
+			}
+			else if ((hfrac >= 0.15))
+			{
+				BM_Crosshair("1", "0.55", "0");
+			}
 			else
 			{
-				if (((trace_ent.health / trace_ent.health_initial) >= 0.63))
-				{
-					BM_Crosshair("0.7", "1.1", "0");
-				}
-				else
-				{
-					if (((trace_ent.health / trace_ent.health_initial) >= 0.4))
-					{
-						BM_Crosshair("1.1", "0.93", "0");
-					}
-					else
-					{
-						if (((trace_ent.health / trace_ent.health_initial) >= 0.15))
-						{
-							BM_Crosshair("1", "0.55", "0");
-						}
-					}
-				}
+				BM_Crosshair("1", "0", "0");
 			}
 		}
 		else
@@ -3059,8 +3087,20 @@ void() protective_shield_entity_think =
 	self.nextthink = (time + 0.01);
 };
 
+float() motion_blur_owner_alive =
+{
+	if (!autocvar_demon_jump_motion_blur || (self.owner == world) || bm_wasfreed(self.owner) || (self.owner.health <= 0) || ((self.owner.classname != "monster_demon1") && (self.owner.classname != "monster_warlord")))
+	{
+		remove(self);
+		return FALSE;
+	}
+	return TRUE;
+};
+
 void() motion_blur_entity_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.6 - (0.6 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3079,6 +3119,8 @@ void() motion_blur_entity_think =
 
 void() motion_blur_entity1_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.5 - (0.5 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3097,6 +3139,8 @@ void() motion_blur_entity1_think =
 
 void() motion_blur_entity2_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.4 - (0.4 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3115,6 +3159,8 @@ void() motion_blur_entity2_think =
 
 void() motion_blur_entity3_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.3 - (0.3 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3133,6 +3179,8 @@ void() motion_blur_entity3_think =
 
 void() motion_blur_entity4_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.2 - (0.2 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3151,6 +3199,8 @@ void() motion_blur_entity4_think =
 
 void() motion_blur_entity5_think =
 {
+	if (!motion_blur_owner_alive())
+		return;
 	if (self.owner.tail_visible)
 	{
 		self.alpha = (0.1 - (0.1 * (autocvar_demon_jump_motion_blur / 10)));
@@ -3169,7 +3219,7 @@ void() motion_blur_entity5_think =
 
 void() pain_skin_entity_think =
 {
-	if (((autocvar_painskin_transparency == 0) || (self.owner.delete_painskin == 1)))
+	if (((autocvar_painskin_transparency == 0) || (self.owner == world) || bm_wasfreed(self.owner) || (self.owner.delete_painskin == 1)))
 	{
 		remove(self);
 		return;
@@ -3233,7 +3283,7 @@ void() pain_skin_entity_think =
 
 void() pain_skin_entity_corpse_think =
 {
-	if (((autocvar_painskin_transparency == 0) || (self.owner.delete_painskin == 1)))
+	if (((autocvar_painskin_transparency == 0) || (self.owner == world) || bm_wasfreed(self.owner) || (self.owner.delete_painskin == 1) || (self.owner.model == "") || (self.model != self.owner.model)))
 	{
 		remove(self);
 		return;
@@ -3304,11 +3354,26 @@ void() player_teleporter_entity_think =
 			self.frame = 6;
 		}
 	}
+	if ((self.owner == world) || bm_wasfreed(self.owner) || (self.owner.classname != "player") || (self.owner.health <= 0))
+	{
+		remove(self);
+		return;
+	}
 	if (self.owner.personal_teleporter_start_beam)
 	{
-		self.owner.origin = (self.origin + '0 0 1');
+		local vector dest;
+		dest = self.origin + '0 0 1';
 		self.owner.personal_teleporter_spawned = 0;
 		self.owner.personal_teleporter_start_beam = 0;
+		tracebox(dest, VEC_HULL_MIN, VEC_HULL_MAX, dest, FALSE, self.owner);
+		if (trace_startsolid || trace_allsolid)
+		{
+			if (self.owner.ishuman == 1)
+				sprint(self.owner, "Teleporter destination blocked!\n");
+			remove(self);
+			return;
+		}
+		setorigin(self.owner, dest);
 		if ((random() < 0.5))
 		{
 			sound(self.owner, CHAN_AUTO, "misc/r_tele1.wav", 1, ATTN_NORM);
@@ -3317,8 +3382,11 @@ void() player_teleporter_entity_think =
 		{
 			sound(self.owner, CHAN_AUTO, "misc/r_tele2.wav", 1, ATTN_NORM);
 		}
-		view_zoom_out = 1;
-		self.owner.viewzoom = 0.01;
+		if (!deathmatch && !coop)
+		{
+			view_zoom_out = 1;
+			self.owner.viewzoom = 0.01;
+		}
 		remove(self);
 		return;
 	}
@@ -3337,16 +3405,16 @@ void() player_teleporter_entity_think =
 	self.angles = vectoangles(self.velocity);
 	self.angles_x = 0;
 	traceline(self.origin, (self.origin - '0 0 100'), TRUE, self);
-	if (((self.origin_z - 0) > 30))
+	if ((trace_fraction < 1) && ((self.origin_z - trace_endpos_z) > 30))
 	{
-		self.origin = (self.origin - '0 0 15');
+		setorigin(self, (self.origin - '0 0 15'));
 	}
 	makevectors(self.angles);
 	front_pos = self.origin + (v_forward * 45);
 	traceline(front_pos, (front_pos - '0 0 100'), TRUE, self);
-	if (((self.origin_z - 0) < 22))
+	if ((trace_fraction < 1) && ((self.origin_z - trace_endpos_z) < 22))
 	{
-		self.origin = (self.origin + '0 0 20');
+		setorigin(self, (self.origin + '0 0 20'));
 	}
 	self.nextthink = (time + 0.1);
 	self.think = player_teleporter_entity_think;
@@ -3364,7 +3432,7 @@ void(vector spawn_pos, vector spawn_vel) launch_player_teleporter_entity =
 	player_teleporter_entity.velocity = (spawn_vel * 250);
 	player_teleporter_entity.angles = vectoangles(player_teleporter_entity.velocity);
 	player_teleporter_entity.angles_x = 0;
-	if ((self.owner.weapon == IT_AXE))
+	if ((self.weapon == IT_AXE))
 	{
 		player_teleporter_entity.frame = 0;
 	}
@@ -3581,8 +3649,10 @@ void() spawn_lava_eruption =
 	Yparticle = self.Ysmall + (random() * dY);
 	Zparticle = self.Zheight;
 	eruption_x = Xparticle;
+	eruption_y = Yparticle;
+	eruption_z = Zparticle;
 	eruptiondamage = spawn();
-	eruptiondamage.origin = eruption;
+	setorigin(eruptiondamage, eruption);
 	eruptiondamage.velocity = VEC_ORIGIN;
 	eruptiondamage.movetype = 0;
 	eruptiondamage.solid = SOLID_TRIGGER;
@@ -3672,9 +3742,6 @@ void() spawn_lava_eruption =
 
 void() lava_think =
 {
-	precache_sound("ambience/lava_eruption_small.wav");
-	precache_sound("ambience/lava_eruption_medium.wav");
-	precache_sound("ambience/lava_eruption_large.wav");
 	self.nextthink = ((time + self.count) + (random() * 3));
 	spawn_lava_eruption();
 };
@@ -3683,6 +3750,9 @@ void() lava_init =
 {
 	if ((((((((((((autocvar_ent_00 == 1) && (self.cnt == 0)) || ((autocvar_ent_01 == 1) && (self.cnt == 1))) || ((autocvar_ent_02 == 1) && (self.cnt == 2))) || ((autocvar_ent_03 == 1) && (self.cnt == 3))) || ((autocvar_ent_04 == 1) && (self.cnt == 4))) || ((autocvar_ent_05 == 1) && (self.cnt == 5))) || ((autocvar_ent_06 == 1) && (self.cnt == 6))) || ((autocvar_ent_07 == 1) && (self.cnt == 7))) || ((autocvar_ent_08 == 1) && (self.cnt == 8))) || ((autocvar_ent_09 == 1) && (self.cnt == 9))))
 	{
+		precache_sound("ambience/lava_eruption_small.wav");
+		precache_sound("ambience/lava_eruption_medium.wav");
+		precache_sound("ambience/lava_eruption_large.wav");
 		self.think = lava_think;
 		self.nextthink = (time + 0.01);
 	}
@@ -3694,6 +3764,9 @@ void() lava_init =
 
 void() func_lava =
 {
+	precache_sound("ambience/lava_eruption_small.wav");
+	precache_sound("ambience/lava_eruption_medium.wav");
+	precache_sound("ambience/lava_eruption_large.wav");
 	self.think = lava_think;
 	self.nextthink = (time + 0.01);
 };
@@ -3705,7 +3778,6 @@ void() callsound =
 
 void() sound_think =
 {
-	precache_sound(self.model);
 	self.nextthink = (time + self.count);
 	callsound();
 };
@@ -3714,6 +3786,8 @@ void() sound_init =
 {
 	if ((((((((((((autocvar_ent_00 == 1) && (self.cnt == 0)) || ((autocvar_ent_01 == 1) && (self.cnt == 1))) || ((autocvar_ent_02 == 1) && (self.cnt == 2))) || ((autocvar_ent_03 == 1) && (self.cnt == 3))) || ((autocvar_ent_04 == 1) && (self.cnt == 4))) || ((autocvar_ent_05 == 1) && (self.cnt == 5))) || ((autocvar_ent_06 == 1) && (self.cnt == 6))) || ((autocvar_ent_07 == 1) && (self.cnt == 7))) || ((autocvar_ent_08 == 1) && (self.cnt == 8))) || ((autocvar_ent_09 == 1) && (self.cnt == 9))))
 	{
+		if (self.model != "")
+			precache_sound(self.model);
 		self.think = sound_think;
 		self.nextthink = (time + 0.01);
 	}

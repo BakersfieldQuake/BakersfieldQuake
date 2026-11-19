@@ -201,10 +201,14 @@ void() funcbreakable_use =
 			if ((self.classtype == CT_FUNCBREAK))
 			{
 				rorg_x = self.oldorigin_x + (random() * self.size_x);
+				rorg_y = self.oldorigin_y + (random() * self.size_y);
+				rorg_z = self.oldorigin_z + (random() * self.size_z);
 			}
 			else
 			{
 				rorg_x = self.origin_x + (crandom() * self.brkvol_x);
+				rorg_y = self.origin_y + (crandom() * self.brkvol_y);
+				rorg_z = self.origin_z + (crandom() * self.brkvol_z);
 			}
 			content_flag = pointcontents(rorg);
 			if (((content_flag != CONTENT_SOLID) && (content_flag != CONTENT_SKY)))
@@ -354,26 +358,34 @@ void() funcbreakable_touch =
 	self.use();
 };
 
-void(entity inflictor, entity attacker, float damage) funcbreakable_pain =
+void(entity attacker, float damage) funcbreakable_th_pain =
 {
 	local float loop_count;
-	local vector vel;
+	local vector vel, porg;
 
-	if ((inflictor.classtype == CT_PROJ_GL))
+	if ((damage <= 0))
 	{
 		return;
 	}
-	if ((inflictor == attacker))
+	if ((self.classtype == CT_FUNCBREAK))
 	{
-		return;
+		porg = bmodel_origin(self);
 	}
-	makevectors(inflictor.angles);
-	vel = (VEC_ORIGIN - v_up) * 2;
+	else
+	{
+		porg = self.origin;
+	}
+	vel = '0 0 -2';
 	while ((loop_count < 4))
 	{
-		particle(inflictor.origin, (vel * 0.1), (self.bleedcolour + rint((random() * 7))), damage);
+		particle(porg, (vel * 0.1), (self.bleedcolour + rint((random() * 7))), bound(1, damage, 32));
 		loop_count = loop_count + 1;
 	}
+};
+
+void(entity inflictor, entity attacker, float damage) funcbreakable_pain =
+{
+	funcbreakable_th_pain(attacker, damage);
 };
 
 void() funcbreakable_death =
@@ -1440,7 +1452,7 @@ void() breakable_on =
 	else
 	{
 		self.takedamage = DAMAGE_YES;
-		self.th_pain = funcbreakable_pain;
+		self.th_pain = funcbreakable_th_pain;
 		self.th_die = funcbreakable_death;
 		self.bleedcolour = self.pos1_x;
 		if (self.bsporigin)
@@ -1714,7 +1726,7 @@ void() trig_explode_use =
 void() trigger_explode =
 {
 	self.classtype = CT_TRIGEXPLODE;
-	if ((self.dmg >= 0))
+	if ((self.dmg <= 0))
 	{
 		self.dmg = DAMAGE_MONROCKET;
 	}

@@ -233,9 +233,15 @@ void(entity p) Spruce_PlayerWaterPreThink =
 	local float lvl, dx, dy, r2, feet_z, eye_z, surf_z;
 	local vector wish, fwd, rgt;
 
-	if (p.classname != "player" || p.movetype == MOVETYPE_NOCLIP)
+	if (p.classname != "player" || p.movetype == MOVETYPE_NOCLIP || p.movetype == MOVETYPE_NONE || Veh_Driving (p) || Veh_Riding (p) || intermission_running)
 	{
 		p.spruce_swim_grav = FALSE;
+		if (p.spruce_in_water)
+		{
+			p.spruce_in_water = FALSE;
+			if (p.gravity == 0.04)
+				p.gravity = 1;
+		}
 		if (p.spruce_cshift_on)
 		{
 			p.spruce_cshift_on = FALSE;
@@ -250,8 +256,8 @@ void(entity p) Spruce_PlayerWaterPreThink =
 	lvl = 0;
 	surf_z = -9999;
 
-	// Check intact Water Tower interior chamber
-	if (spruce_wt_state == WT_STATE_INTACT && p.origin_z >= WT_TANK_Z_BOT - 8 && p.origin_z <= WT_TANK_Z_TOP)
+	// Check intact Water Tower interior chamber (only when a map actually has a water tower controller)
+	if (spruce_wt_ctrl != world && spruce_wt_state == WT_STATE_INTACT && p.origin_z >= WT_TANK_Z_BOT - 8 && p.origin_z <= WT_TANK_Z_TOP)
 	{
 		dx = p.origin_x - WT_CENTER_X;
 		dy = p.origin_y - WT_CENTER_Y;
@@ -787,7 +793,11 @@ void(float slot) Spruce_SpawnOneWorker =
 	start_pos_y = 5100 + random () * 50;
 	start_pos_z = 32;
 	setorigin (w, start_pos);
+	local entity oldself;
+	oldself = self;
+	self = w;
 	droptofloor ();
+	self = oldself;
 	w.think = Spruce_WorkerThink;
 	w.nextthink = time + 0.1 + slot * 0.12;
 };

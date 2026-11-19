@@ -1394,10 +1394,30 @@ void() Veh_Explode =
 
 void() Veh_TryRespawn =
 {
+	local float hl, hw, ht, rad, acs, asn, hx, hy;
+	local vector bmin, bmax;
+
 	if (Veh_IsKart (self.veh_kind))
 		tracebox (self.veh_spawn_org + '0 0 2', '-48 -36 0', '48 36 36', self.veh_spawn_org + '0 0 2', FALSE, self);
 	else
-		tracebox (self.veh_spawn_org + '0 0 2', self.mins, self.maxs, self.veh_spawn_org + '0 0 2', FALSE, self);
+	{
+		hl = Veh_HalfLen (self.veh_kind);
+		hw = Veh_HalfWid (self.veh_kind);
+		ht = Veh_BodyHeight (self.veh_kind);
+		rad = self.veh_spawn_ang_y * 0.0174533;
+		acs = fabs (cos (rad));
+		asn = fabs (sin (rad));
+		hx = acs * hl + asn * hw;
+		hy = asn * hl + acs * hw;
+		bmin = '0 0 0';
+		bmax = '0 0 0';
+		bmin_x = 0 - hx;
+		bmin_y = 0 - hy;
+		bmax_x = hx;
+		bmax_y = hy;
+		bmax_z = ht;
+		tracebox (self.veh_spawn_org + '0 0 2', bmin, bmax, self.veh_spawn_org + '0 0 2', FALSE, self);
+	}
 	if (trace_startsolid || trace_allsolid || trace_ent != world)
 	{
 		// Wait until player/monster steps clear of the parking spot
@@ -1706,21 +1726,36 @@ void(entity v, float kind) Veh_InitEntity =
 	v.th_die = Veh_Explode;
 
 	setmodel (v, Veh_IntactModel (kind));
-	if (kind == VEH_VAN)
-	{
-		Veh_Van_InitCollision (v);
-		v.customizeentityforclient = Veh_VanCustomize;
-	}
-	else
-		Veh_SetRotatedBounds (v, kind, FALSE);
 
 	// Snap tire contact patch cleanly onto map floor (+0.5u above BSP plane so splash traces never snag floor)
+	// Must run BEFORE Veh_Van_InitCollision so all 13 child clip/trigger boxes align with the snapped floor origin.
 	org_top = v.origin + '0 0 36';
 	traceline (org_top, v.origin - '0 0 256', TRUE, v);
 	if (trace_fraction < 1 && !trace_startsolid)
 		setorigin (v, trace_endpos + '0 0 0.5');
 	else
 		setorigin (v, v.origin);
+
+	if (kind == VEH_VAN)
+	{
+		local float snap, dy;
+		v.customizeentityforclient = Veh_VanCustomize;
+		snap = floor ((v.angles_y + 45) / 90) * 90;
+		dy = v.angles_y - snap;
+		while (dy > 180)
+			dy = dy - 360;
+		while (dy < -180)
+			dy = dy + 360;
+		if (fabs (dy) <= 5)
+		{
+			v.angles_y = Veh_NormYaw (snap);
+			Veh_Van_InitCollision (v);
+		}
+		else
+			Veh_SetRotatedBounds (v, kind, FALSE);
+	}
+	else
+		Veh_SetRotatedBounds (v, kind, FALSE);
 
 	v.veh_spawn_org = v.origin;
 	v.veh_spawn_ang = v.angles;

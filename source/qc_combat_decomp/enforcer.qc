@@ -3075,8 +3075,6 @@ void() monster_enforcer =
 			return;
 		}
 		setsize(self, '-18 -18 -24', '18 18 52');
-		self.nextthink = (time + 0.3);
-		self.think = SUB_Remove;
 		add_freddie_support_walk();
 		return;
 	}

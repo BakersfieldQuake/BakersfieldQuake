@@ -261,19 +261,45 @@ float() CN_CustomizeKeep =
 	return TRUE;
 };
 
+float() CN_HdOk =
+{
+	return (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
+};
+
+float(float idx) CN_MapSafeKind =
+{
+	local float k, n;
+
+	if (CN_HdOk ())
+	{
+		k = 1 + idx - CN_KINDS * floor (idx / CN_KINDS);
+		return k;
+	}
+	n = CN_KINDS - (CN_FIRST_MD3 - CN_FIRST_HD);
+	k = 1 + idx - n * floor (idx / n);
+	if (k >= CN_FIRST_HD)
+		k = k + (CN_FIRST_MD3 - CN_FIRST_HD);
+	return k;
+};
+
 float() CN_RandomKind =
 {
 	local float k, hd_ok, tries;
 
+	hd_ok = CN_HdOk ();
 	if (autocvar_crowd_kind >= 1 && autocvar_crowd_kind <= CN_KINDS)
-		return floor (autocvar_crowd_kind);
+	{
+		k = floor (autocvar_crowd_kind);
+		if (!hd_ok && k >= CN_FIRST_HD && k < CN_FIRST_MD3)
+			k = CN_MapSafeKind (k - 1);
+		return k;
+	}
 	if (autocvar_crowd_kind < 0)
 	{
-		// -1: one of each in turn (1, 2, 3 ...), to look at them all
+		// -1: one of each precached kind in turn (1, 2, 3 ...), to look at them all
 		crowd_seq = crowd_seq + 1;
-		return 1 + crowd_seq - CN_KINDS * floor ((crowd_seq - 1) / CN_KINDS) - 1;
+		return CN_MapSafeKind (crowd_seq - 1);
 	}
-	hd_ok = (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
 	tries = 0;
 	k = 1;		// the loop always sets it; this only quiets the compiler (F302)
 	while (tries < 4)
@@ -801,7 +827,7 @@ void() Crowd_Line =
 			e.npc_radius = 60;
 			me = self;
 			self = e;
-			CN_Setup (1 + floor (i + 14 * crowd_lineno) - CN_KINDS * floor ((i + 14 * crowd_lineno) / CN_KINDS));	// each call: the next 14 kinds
+			CN_Setup (CN_MapSafeKind (i + 14 * crowd_lineno));	// each call: the next 14 precached kinds
 			CN_Place ();
 			self = me;
 			i = i + 1;

@@ -7,6 +7,8 @@ EXPLODABLE 3D LAN PARTY PROPS - implementation (Combat+)
 ================
 */
 
+.float	lan_chained;
+
 void() Lan_RespawnThink;
 void() Lan_ExplodeNow;
 
@@ -201,7 +203,7 @@ void(string mdl, vector org, vector vel, float is_glass, float life) Lan_ThrowDe
 	d = spawn ();
 	d.classname = "lan_debris";
 	d.movetype = MOVETYPE_BOUNCE;
-	d.solid = SOLID_NOT;
+	d.solid = SOLID_TRIGGER;
 	d.cnt = is_glass;
 	d.velocity = vel;
 	d.avelocity_x = crandom () * 460;
@@ -446,8 +448,9 @@ void() Lan_ExplodeNow =
 	setorigin (inf, blast_org);
 	lan_inflicting = lan_inflicting + 1;
 	// Dampen secondary chain radius slightly so 1 rocket wrecks a cluster of 2-4 rigs without wiping the whole hall!
-	if (lan_inflicting > 1)
+	if (self.lan_chained || lan_inflicting > 1)
 		rad_dmg = rad_dmg * 0.68;
+	self.lan_chained = FALSE;
 	T_RadiusDamage (inf, atk, rad_dmg, self);
 	lan_inflicting = lan_inflicting - 1;
 	remove (inf);
@@ -486,9 +489,15 @@ void() Lan_Die =
 	self.takedamage = DAMAGE_NO;
 	self.think = Lan_ExplodeNow;
 	if (lan_inflicting > 0)
+	{
+		self.lan_chained = TRUE;
 		self.nextthink = time + 0.07 + random () * 0.13;
+	}
 	else
+	{
+		self.lan_chained = FALSE;
 		self.nextthink = time;
+	}
 };
 
 // ---------------------------------------------------------------- Initialization & Deathmatch Respawn
@@ -496,6 +505,7 @@ void() Lan_Die =
 void(entity e) Lan_RestoreProp =
 {
 	e.lan_dead = FALSE;
+	e.lan_chained = FALSE;
 	e.lan_attacker = world;
 	e.angles = e.lan_spawn_ang;
 	e.velocity = '0 0 0';

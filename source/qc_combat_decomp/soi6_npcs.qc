@@ -61,6 +61,8 @@ var float autocvar_bm_soi6_lights = 1;
 .float alex_stuck;      // consecutive blocked walk ticks
 .float alex_cp_t;       // player: next allowed Alex HP centerprint (one per hit flooded the reliable channel)
 .float soi6_swarm_t;    // player: next allowed Soi6_TriggerSwarm from hitting Alex (a find over every bar girl)
+.float soi6_cine_ang;   // tim_cine.qc: cinematic ring angle
+.float soi6_cine_rad;   // tim_cine.qc: > 0 while orbiting/chasing Tim without attacking him
 
 float soi6_precached;
 float soi6_spawned;
@@ -809,7 +811,13 @@ void() Soi6_Think =
 		self.nextthink = time + 0.6;
 		if (self.soi6_state == SOI6_GIB && time > self.soi6_anim_t + 0.45 && self.modelindex)
 			setmodel (self, "");		// the engine draws by modelindex: clearing .model alone left the last gib frame up
-		if (!self.soi6_lineup && time >= self.soi6_respawn_t)
+		if (self.soi6_lineup)
+		{
+			if (time >= self.soi6_anim_t + 3.0)
+				remove (self);
+			return;
+		}
+		if (time >= self.soi6_respawn_t)
 			Soi6_Respawn ();
 		return;
 	}
@@ -833,6 +841,7 @@ void() Soi6_Think =
 		p = self.soi6_target;
 		if (!p || p == world || p.health <= 0 || time >= self.soi6_state_t)
 		{
+			self.soi6_cine_rad = 0;
 			Soi6_SetState (self, SOI6_RETURN);
 			self.soi6_state_t = time + 5.0;
 			return;
@@ -841,6 +850,29 @@ void() Soi6_Think =
 		{
 			Soi6_PlayScream (self, CHAN_VOICE, 0.85);
 			self.soi6_talk_t = time + 1.3 + random () * 0.9;
+		}
+		if (self.soi6_cine_rad > 0)
+		{
+			local vector goal_pt;
+			makevectors ('0 1 0' * self.soi6_cine_ang);
+			goal_pt = p.origin + ('1 0 0' * v_forward_x + '0 1 0' * v_forward_y) * self.soi6_cine_rad;
+			dir = goal_pt - self.origin;
+			dir_z = 0;
+			d_p = vlen (dir);
+			if (d_p > 18)
+			{
+				wy = vectoyaw (dir);
+				self.soi6_yaw = wy;
+				Soi6_StepMove (wy, 22);
+			}
+			else
+			{
+				dir = p.origin - self.origin;
+				dir_z = 0;
+				if (vlen (dir) > 2)
+					self.soi6_yaw = vectoyaw (dir);
+			}
+			return;
 		}
 		dir = p.origin - self.origin;
 		dir_z = 0;
@@ -1624,6 +1656,12 @@ void() Soi6_Line =
 	local float i;
 	local vector fwd, right, org;
 	local entity e, saved_self;
+
+	if (!soi6_precached)
+	{
+		sprint (self, "Soi6_Line: Soi 6 models are only precached on soi6 / soicowboy_bkk.\n");
+		return;
+	}
 
 	makevectors (self.v_angle);
 	fwd = v_forward;

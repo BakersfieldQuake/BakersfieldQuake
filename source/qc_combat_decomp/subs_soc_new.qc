@@ -119,6 +119,8 @@ vector(entity bmodel_ent) bmodel_origin =
 	local vector vorigin;
 
 	vdiff_x = (bmodel_ent.maxs_x - bmodel_ent.mins_x) / 2;
+	vdiff_y = (bmodel_ent.maxs_y - bmodel_ent.mins_y) / 2;
+	vdiff_z = (bmodel_ent.maxs_z - bmodel_ent.mins_z) / 2;
 	vorigin = (bmodel_ent.origin + bmodel_ent.mins) + vdiff;
 	return (vorigin);
 };
@@ -348,7 +350,7 @@ void() monster_start =
 	}
 	if (!self.nomonstercount)
 	{
-		total_monsters = total_monsters + 1;
+		// walkmonster_start() below already increments total_monsters
 	}
 	else
 	{
@@ -366,4 +368,8 @@ void() monster_start =
 	self.skin = self.skin_override;
 	self.frame = self.frame_override;
 	walkmonster_start();
+	if (self.nomonstercount && total_monsters > 0)
+	{
+		total_monsters = total_monsters - 1;
+	}
 };
