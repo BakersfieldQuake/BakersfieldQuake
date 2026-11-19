@@ -1,35 +1,47 @@
-# Local macOS app build for testing. Release DMGs come only from CI (see AGENTS.md).
+# Local macOS app build from this repo, for testing. Release DMGs come only from CI (see AGENTS.md).
 #
-#   make app              build BAKOQUAKE.app (signed, not notarized) and launch it
-#   make run              launch the last build
-#   make app TAG=<tag>    build from a specific release instead of the newest one with a macOS zip
-#   make app NO_ZIP=0     allow the full ~1 GB release zip even when main matches origin/main
+#   make app     assemble the game data from the repo, build BAKOQUAKE.app (signed, not notarized, no DMG), launch it
+#   make run     launch the last build, without the launcher's update from the GitHub release
+#   make base    (re)download the base package; `make app` does it once on a fresh checkout
+#
+# build/base holds the blobs the repo does not (base pk3s, maps, zz_*.pk3s with no builder here).
+# source/mm_tools/assemble_local_package.sh lays the repo over a clone of it in build/pkg; nothing else is fetched.
 
 WORK ?= $(CURDIR)/build
+BASE := $(WORK)/base/BAKOQUAKE
+PKG  := $(WORK)/pkg/BAKOQUAKE
 APP  := $(WORK)/out/BAKOQUAKE.app
+# The updater is frozen with uv's python-build-standalone 3.12 (targets macOS 11.0); build_app.sh refuses
+# Pythons built for anything newer than 13.0, which rules out pyenv/Homebrew builds.
+PY = $(shell uv python find --managed-python 3.12 2>/dev/null)
 
-.PHONY: app build run
+.PHONY: app build run base
 
 app: build run
 
-# The updater is frozen with uv's python-build-standalone 3.12 (targets macOS 11.0); build_app.sh refuses
-# Pythons built for anything newer than 13.0, which rules out pyenv/Homebrew builds.
-build:
-	@set -e; \
-	py=$$(uv python find --managed-python 3.12 2>/dev/null) || { echo "run: uv python install 3.12"; exit 1; }; \
-	tag="$(TAG)"; \
-	if [ -z "$$tag" ]; then \
-	  for t in $$(gh release list --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do \
-	    gh release view "$$t" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.zip && { tag=$$t; break; }; \
-	  done; \
-	fi; \
-	[ -n "$$tag" ] || { echo "no release with BAKOQUAKE-macos-arm64.zip"; exit 1; }; \
-	no_zip="$(NO_ZIP)"; \
-	if [ -z "$$no_zip" ]; then \
-	  no_zip=0; [ "$$(git rev-parse main)" = "$$(git rev-parse origin/main)" ] && no_zip=1; \
-	fi; \
-	echo "release $$tag, python $$py, NO_ZIP=$$no_zip"; \
-	SKIP_NOTARIZE=1 NO_ZIP=$$no_zip WORK="$(WORK)" PYTHON="$$py" source/mac/build_app.sh "$$tag"
+build: $(BASE)/BakersfieldQuake/bakersfield.pk3
+	@[ -n "$(PY)" ] || { echo "run: uv python install 3.12"; exit 1; }
+	WORK="$(WORK)" PYTHON="$(PY)" source/mm_tools/assemble_local_package.sh "$(BASE)" "$(PKG)"
+	SKIP_NOTARIZE=1 NO_DMG=1 PKG_DIR="$(PKG)" WORK="$(WORK)" PYTHON="$(PY)" \
+	  source/mac/build_app.sh "local-$$(date +%Y%m%d%H%M%S)-$$(git rev-parse --short HEAD)"
 
+# BQ_NO_UPDATE: the launcher would otherwise patch the local build back to the latest GitHub release.
 run:
-	open "$(APP)"
+	open --env BQ_NO_UPDATE=1 "$(APP)"
+
+# Fresh checkout only: the newest release's macOS package supplies the base blobs.
+$(BASE)/BakersfieldQuake/bakersfield.pk3:
+	$(MAKE) base
+
+base:
+	@set -e; \
+	for t in $$(gh release list --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do \
+	  gh release view "$$t" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.zip && { tag=$$t; break; }; \
+	done; \
+	[ -n "$$tag" ] || { echo "no release with BAKOQUAKE-macos-arm64.zip"; exit 1; }; \
+	echo "base: $$tag"; \
+	rm -rf "$(WORK)/dl" "$(WORK)/base"; \
+	gh release download "$$tag" -p BAKOQUAKE-macos-arm64.zip -D "$(WORK)/dl"; \
+	mkdir -p "$(WORK)/base"; \
+	ditto -x -k "$(WORK)/dl/BAKOQUAKE-macos-arm64.zip" "$(WORK)/base"; \
+	rm -rf "$(WORK)/dl"

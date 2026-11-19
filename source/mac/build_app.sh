@@ -17,7 +17,9 @@
 #                    One of the two is required unless SKIP_NOTARIZE=1.
 #   SKIP_NOTARIZE=1  build and sign only (for local iteration)
 #   UPLOAD=1         upload the DMG to the release after notarizing
-#   NO_ZIP=1         never download the full release zip; only update cached game data in $WORK/game
+#   NO_DMG=1         stop after the app (local runs)
+#   PKG_DIR          an assembled BAKOQUAKE package to bundle instead of the release's game data (make app); the tag
+#                    then only names the build
 #   WORK             build directory (default <repo>/build, gitignored); the deps prefix is kept there between runs
 #   PYTHON           Python that freezes the updater (default python3). Its libraries go into Contents/MacOS/bq-update,
 #                    so it must target macOS 13.0 or older (python.org / actions/setup-python builds do; Homebrew's
@@ -69,37 +71,21 @@ echo "signing identity: $SIGN_ID"
 mkdir -p "$WORK" "$SRC" "$OUT"
 
 # --- game data -----------------------------------------------------------------------------------------------
-# The unpacked package in $WORK/game is the cache. When it holds an earlier release, the players' updater brings it
-# to $TAG by fetching only the changed files out of the release zip; the full ~1 GB zip is the fallback.
-GAME="$WORK/game"
-PKG="$GAME/BAKOQUAKE"
-sync_game() {
-    local url="https://github.com/$REPO/releases/download/$TAG/manifest-macos-arm64.json"
-    local up=("${PYTHON:-python3}" "$ROOT/tools/bq_update.py" --root "$PKG" --platform macos-arm64 --manifest-url "$url")
-    step "update game data to $TAG (changed files only)"
-    # Without state the updater compares every file by sha256, whatever build it thinks is installed.
-    rm -f "$PKG/.bq/state.json"
-    "${up[@]}" || return 1
-    # The updater exits 0 on failure too (it never blocks a launch), so confirm nothing is left to fetch.
-    "${up[@]}" --check >/dev/null
-}
-if [ "$(cat "$GAME/.tag" 2>/dev/null)" = "$TAG" ]; then
-    step "game data already at $TAG"
-elif [ -d "$PKG" ] && sync_game; then
-    echo "$TAG" > "$GAME/.tag"
-elif [ "${NO_ZIP:-0}" = 1 ]; then
-    die "NO_ZIP=1: game data in $GAME could not be brought to $TAG without the full zip (rerun with NO_ZIP=0)"
+if [ -n "${PKG_DIR:-}" ]; then
+    PKG="$PKG_DIR"
+    step "game data from $PKG"
 else
     step "download $TAG"
-    rm -rf "$WORK/dl" "$GAME"
+    # gh writes straight to the target name, so download into a fresh directory that is removed afterwards.
+    rm -rf "$WORK/dl" "$WORK/game"
     gh release download "$TAG" -R "$REPO" -p BAKOQUAKE-macos-arm64.zip -D "$WORK/dl"
     step "unpack game data"
-    mkdir -p "$GAME"
-    ditto -x -k "$WORK/dl/BAKOQUAKE-macos-arm64.zip" "$GAME"
+    mkdir -p "$WORK/game"
+    ditto -x -k "$WORK/dl/BAKOQUAKE-macos-arm64.zip" "$WORK/game"
     rm -rf "$WORK/dl"
-    echo "$TAG" > "$GAME/.tag"
+    PKG="$WORK/game/BAKOQUAKE"
 fi
-[ -d "$PKG/BakersfieldQuake" ] && [ -d "$PKG/quake15" ] || die "unexpected zip layout"
+[ -d "$PKG/BakersfieldQuake" ] && [ -d "$PKG/quake15" ] || die "unexpected game data layout in $PKG"
 
 # --- dependencies (cached in $PREFIX) ------------------------------------------------------------------------
 fetch() {   # fetch <name> <repo-url> <tag>
@@ -290,6 +276,10 @@ if [ "${SKIP_NOTARIZE:-0}" != 1 ]; then
 fi
 
 # --- DMG -----------------------------------------------------------------------------------------------------
+if [ "${NO_DMG:-0}" = 1 ]; then
+    step "done: $APP (no DMG)"
+    exit 0
+fi
 step "DMG"
 STAGE="$WORK/dmg"
 rm -rf "$STAGE"; mkdir -p "$STAGE"

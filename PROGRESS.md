@@ -214,3 +214,20 @@
 - Verification: `bash -n`. Synced `build/game` from `1e5859c` to `13e3e44` by hand with the same commands: 1 file fetched, 3.3 s, `--check` exit 0. A full `make app` through the new path has not been run yet.
 - Follow-up: a partial `13e3e44` download in `build/dl` (3.3 MB, 05:47) came from neither me nor Rob. Probably another session; deleted.
 - Later: when local `main` equals `origin/main`, `make app` passes `NO_ZIP=1`, and `build_app.sh` then only updates the cached game data. It fails instead of downloading the full zip. Override with `make app NO_ZIP=0`. Checked with `bash -n` and `make -n`.
+
+## 2026-11-19 — `make app` builds from the repo, no GitHub
+
+- Outcome: `make app` assembles game data from the repo onto `build/base` (a base package; `make base` downloads it, and `make app` runs that only on a fresh checkout). It uses the new `source/mm_tools/assemble_local_package.sh`, which:
+  - clones the base (APFS clone);
+  - overlays the repo configs and tools as `build-zip.yml` does;
+  - builds `zz_bakovan`, `zz_karts`, `zz_gunnomip`, `zz_minimap` and `zz_pinklady` with numpy 2.5.4 / pillow 13.0.0;
+  - builds fteqcc from fte-team/fteqw `c781d13` (2025-09-26) and compiles `progs.dat` (needs `-Wno-F313`) and `menu.dat`. CSQC does not compile with stock fteqcc (`MUL_D`/`CONV_FD` opcodes on `__variant` builtins), so `csprogs.dat` stays the base's.
+- `build_app.sh`: `PKG_DIR` bundles an assembled package instead of downloading the release zip, and `NO_DMG=1` stops after the app. This removes the updater-sync and `NO_ZIP` code from `82615b3`/`d05516d`. `make run` launches with `open --env BQ_NO_UPDATE=1`, so the launcher does not patch the build back to the GitHub release.
+- Verification:
+  - `make build` exit 0; the bundled `progs.dat` is the compiled one (55 Kyle strings).
+  - A headless `darkplaces-dedicated` on `+map start` loads it: `program loaded (crc 10838, size 3438K)`, no Host_Error.
+  - Kyle models and sprites are missing (`progs/v_kyle.md3` etc. not found): the builder's inputs are on GiggleHacks's machine.
+  - `zz_gunnomip` is byte-identical to CI; `zz_bakovan` and `zz_minimap` have identical pixels; `zz_karts` and `zz_pinklady` are off by 1–2 levels in a few PNGs and the kart md3s differ (cause not checked; maybe arm64 vs x86 float math).
+  - Not tested in game: menu.dat and gameplay.
+- Follow-up: GiggleHacks to commit the Kyle source assets and the builders for zz_johnbird/mmtank/gfuel/conback/tone1, and to say which fteqcc builds the CSQC.
+- Later, after GiggleHacks's `004bce2`/`9439f1e`/`5afa94f`: the local build also compiles `csprogs.dat` (header CRC stamped from `quake15/csprogs.dat`: 23147) and builds `zz_kyle.pk3`; `-Wno-F313` is no longer needed. `make build` exit 0; a headless server on `start` loads the progs with no missing Kyle models.

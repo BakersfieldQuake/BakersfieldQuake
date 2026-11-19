@@ -1,0 +1,105 @@
+#!/bin/bash
+# Assemble BAKOQUAKE game data from this repo for a local `make app`, without GitHub.
+#
+#   source/mm_tools/assemble_local_package.sh <base BAKOQUAKE dir> <out BAKOQUAKE dir>
+#
+# The base supplies the blobs the repo does not hold (bakersfield.pk3, q15.pk3, maps, the zz_*.pk3s that have no
+# builder here). Over a clone of it this runs the release workflow's steps from the repo
+# (.github/workflows/build-zip.yml: overlay configs and tools, build the overlay pk3s) and also compiles progs.dat,
+# csprogs.dat and menu.dat from source, which CI does not.
+#
+# Env: WORK (default <repo>/build) holds the pk3 venv, the fteqcc build and the QC scratch copy.
+#      PYTHON (default python3): any Python 3.12; the pk3 venv is made from it.
+set -euo pipefail
+
+BASE="${1:?usage: $0 <base BAKOQUAKE dir> <out BAKOQUAKE dir>}"
+OUT="${2:?usage: $0 <base BAKOQUAKE dir> <out BAKOQUAKE dir>}"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WORK="${WORK:-$ROOT/build}"
+# Last fte-team/fteqw commit before the 2025-09-27 fteqcc64.exe the QC is built with on Windows.
+FTEQW_REF=c781d13255ce72fcd24e47567244f970e1ba7c50
+NUMPY=2.5.4 PILLOW=13.0.0   # the release workflow's pins
+
+step() { printf '\n==> %s\n' "$*"; }
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+[ -f "$BASE/BakersfieldQuake/bakersfield.pk3" ] || die "$BASE is not a BAKOQUAKE package"
+
+step "clone base $BASE"
+rm -rf "$OUT"
+mkdir -p "$(dirname "$OUT")"
+cp -Rc "$BASE" "$OUT"   # APFS clone: instant, shares blocks with the base
+G="$OUT/BakersfieldQuake"
+
+step "overlay repo configs and tools"
+# lan_server.cfg is written at run time by tools/lanscan, so the repo copy is not shipped (as in CI).
+for f in "$ROOT"/*.cfg "$ROOT/quake.rc" "$ROOT/effectinfo.txt"; do
+    [ "$(basename "$f")" = lan_server.cfg ] && continue
+    cmp -s "$f" "$G/$(basename "$f")" || echo "  updated $(basename "$f")"
+    cp "$f" "$G/"
+done
+mkdir -p "$OUT/tools"
+for f in "$ROOT"/tools/* "$ROOT"/source/icons/*; do
+    [ -f "$f" ] || continue
+    cmp -s "$f" "$OUT/tools/$(basename "$f")" || echo "  updated tools/$(basename "$f")"
+    cp "$f" "$OUT/tools/"
+done
+
+step "overlay pk3s"
+VENV="$WORK/venv-pk3-numpy$NUMPY-pillow$PILLOW"
+if [ ! -x "$VENV/bin/python" ]; then
+    "${PYTHON:-python3}" -m venv "$VENV"
+    "$VENV/bin/python" -m pip install --quiet --disable-pip-version-check "numpy==$NUMPY" "pillow==$PILLOW"
+fi
+M="$ROOT/source/mm_tools"
+B="$BASE/BakersfieldQuake/bakersfield.pk3"
+pk3() {   # pk3 <name> <python args...>: build zz_<name>.pk3 straight into the package
+    echo "  zz_$1.pk3"
+    local n=$1; shift
+    "$VENV/bin/python" "$@" "$G/zz_$n.pk3" >"$WORK/zz_$n.log" 2>&1 || { tail -20 "$WORK/zz_$n.log"; die "zz_$n.pk3 failed"; }
+}
+# ponytail: rebuilt every run; cache by input hash (like CI) if this gets slow
+pk3 bakovan "$M/van_bako/build_van_bako_pk3.py" "$B"
+pk3 karts -I "$M/build_gokart_pk3.py" "$B"
+pk3 gunnomip -I "$M/build_gunnomip_pk3.py" "$B"
+pk3 minimap -I "$M/build_minimap_pk3.py" "$BASE/BakersfieldQuake"
+pk3 pinklady -I "$M/build_pinklady_pk3.py" "$B"
+pk3 kyle -I "$M/kyle_scissors/build_kyle_pk3.py" "$B"
+
+step "fteqcc ${FTEQW_REF:0:7}"
+FTE="$WORK/src/fteqw-${FTEQW_REF:0:7}"
+QCC="$FTE/engine/qclib/fteqcc.bin"
+if [ ! -x "$QCC" ]; then
+    rm -rf "$FTE"
+    git init -q "$FTE"
+    git -C "$FTE" fetch -q --depth 1 https://github.com/fte-team/fteqw "$FTEQW_REF"
+    git -C "$FTE" checkout -q FETCH_HEAD
+    make -C "$FTE/engine/qclib" -j"$(sysctl -n hw.ncpu)" qcc CC=clang >"$WORK/fteqcc-build.log" 2>&1 ||
+        { tail -20 "$WORK/fteqcc-build.log"; die "fteqcc build failed"; }
+fi
+
+step "compile QC"
+# progs.src writes its output next to the sources, so compile a scratch copy.
+QC="$WORK/qc"
+rm -rf "$QC"; mkdir -p "$QC"
+cp -R "$ROOT/source/qc_combat_decomp" "$ROOT/source/menu_qc" "$QC/"
+qc() {   # qc <dir> <output> <dest> [flags...]
+    local d=$1 o=$2 dest=$3; shift 3
+    (cd "$d" && "$QCC" "$@" -srcfile progs.src) >"$d.log" 2>&1 || { grep -i error "$d.log" | head -20; die "$d failed"; }
+    cp "$d/$o" "$dest"
+    echo "  $(basename "$dest") ($(grep -c warning "$d.log" || true) warnings)"
+}
+qc "$QC/qc_combat_decomp" progs.dat "$G/progs.dat"
+qc "$QC/menu_qc" menu.dat "$G/menu.dat"
+qc "$QC/qc_combat_decomp/csqc" progs.dat "$G/csprogs.dat"
+# The decompiled system defs give another header CRC than the original CSQC; DarkPlaces finds CSQC globals by name,
+# so stamp back the CRC of the quake15 csprogs.dat it was decompiled from (as source/mm_tools/build_csqc.py does).
+"${PYTHON:-python3}" - "$OUT/quake15/csprogs.dat" "$G/csprogs.dat" <<'PY'
+import struct, sys
+crc = struct.unpack_from("<i", open(sys.argv[1], "rb").read(), 4)[0]
+d = bytearray(open(sys.argv[2], "rb").read())
+struct.pack_into("<i", d, 4, crc)
+open(sys.argv[2], "wb").write(d)
+print(f"  csprogs.dat header CRC set to {crc}")
+PY
+
+step "done: $OUT"
