@@ -166,6 +166,7 @@ string	bm_nextmap;			// playlist pick, strzoned
 entity	ud_leader;			// player with the most heat (world = nobody far enough ahead)
 .float	ud_shell_stage;		// Flying Blue Shell: 0 = normal Mega Man, 1 = 3D flight, 2 = overhead lock-on, 3 = slam
 .float	ud_shell_t;			// Flying Blue Shell stage timer
+.float	ud_laststand;		// 1 = spawned with Underdog Last Stand (Quad + Pentagram), cleared after first kill
 .float	mr_geyser_t;		// Morro Rock ocean-geyser rescue cooldown
 
 // ---------------------------------------------------------------- kill announcer (bm_fun.qc)
@@ -174,6 +175,10 @@ entity	ud_leader;			// player with the most heat (world = nobody far enough ahea
 .float	bm_multi_t;			// player: when their last kill was
 .float	bm_multi_n;			// player: kills in the current burst
 .entity	bm_killer;			// player: who killed them last (revenge)
+.float	bm_fun_cp_t;		// player: last time BM_Fun_Killed / Underdog_Killed sent a kill centerprint
+.float	bm_taunt_t;			// player: PlayerPreThink taunt check throttle (separate from self.delay)
+.float	bm_shirt_t;			// player: PlayerPreThink armor-shirt throttle (separate from self.delay)
+.float	bm_ctf_dead_t;		// bot: CTF death respawn timer (separate from self.delay)
 float	bm_fun_first;		// first blood has been drawn this map
 float	bm_fun_say_t;		// when the next announcer clip may play
 

@@ -192,7 +192,7 @@ entity() NS_Target =
 	e = bm_player_head;		// the players, rebuilt once a frame (BM_StartFrame): no scan over every edict
 	while (e)
 	{
-		if (e != self.owner && e.classname == "player" && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY) && !(teamplay && self.owner && e.team > 0 && e.team == self.owner.team))
+		if (e != self.owner && e.classname == "player" && e.takedamage && e.health > 0 && !(e.flags & FL_NOTARGET) && !(e.items & IT_INVISIBILITY) && !((teamplay || CTF_ENABLED) && self.owner && e.team > 0 && e.team == self.owner.team))
 		{
 			d = vlen (e.origin - self.origin);
 			if (d < bd && visible (e))

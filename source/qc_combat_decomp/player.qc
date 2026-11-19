@@ -1726,8 +1726,9 @@ void() DeathBubblesSpawn =
 {
 	local entity bubble;
 
-	if ((self.owner.waterlevel != 3))
+	if (((self.owner.waterlevel != 3) || (self.owner.classname != "player")))
 	{
+		remove(self);
 		return;
 	}
 	bubble = spawn();
@@ -1902,7 +1903,7 @@ void() wepTouch =
 		self.colormod = '0.3 1.6 0.3';
 		return;
 	}
-	if (deathmatch)
+	if ((deathmatch && (self.nextthink <= 0)))
 	{
 		self.think = SUB_Remove;
 		self.nextthink = (time + 60);
@@ -2008,6 +2009,8 @@ void(string gibname, float dm) ThrowWeapon =
 	new.cansplash = TRUE;
 	new.touch = wepTouch;
 	GibPhysics(new);
+	new.think = SUB_Remove;
+	new.nextthink = (time + 20);
 };
 
 void(string gibname, float dm) ThrowBody =
@@ -2029,6 +2032,11 @@ void(string gibname, float dm) ThrowBody =
 		new.scale = ((random() * 0.2) + 0.9);
 		new.think = SUB_Remove;
 		new.nextthink = (time + 45);
+	}
+	else
+	{
+		new.think = SUB_Remove;
+		new.nextthink = (time + 20);
 	}
 	setsize(new, VEC_ORIGIN, VEC_ORIGIN);
 	new.velocity = VelocityForDamage((dm / 2));
@@ -2457,6 +2465,12 @@ void() debTouch =
 	}
 };
 
+void() debris_remove =
+{
+	Gyro_Object_ClearPhysics(self);
+	remove(self);
+};
+
 void(vector org, vector vel, string debrisname) Throwdebris =
 {
 	local entity debris;
@@ -2484,7 +2498,8 @@ void(vector org, vector vel, string debrisname) Throwdebris =
 	debris.avelocity = (crandom() * '0 600 0');
 	debris.alpha = 1;
 	debris.scale = 1;
-	self.nextthink = -1;
+	debris.think = debris_remove;
+	debris.nextthink = ((time + 10) + (random() * 5));
 	debris.frame = 0;
 	debris.flags = 0;
 	debris.gravity = 0.8;
@@ -2715,6 +2730,7 @@ void() PlayerDie =
 				setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
 				player_diessg1();
 				sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_IDLE, SNDSPD);
+				return;
 			}
 			else
 			{
@@ -2742,6 +2758,7 @@ void() PlayerDie =
 				player_diea1();
 				pointparticles(particleeffectnum(/*15139i*/"blood_spurt"), self.origin, VEC_ORIGIN, 1);
 				sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_IDLE, SNDSPD);
+				return;
 			}
 		}
 		if ((self.enemy.weapon == IT_SUPER_SHOTGUN))
@@ -2787,6 +2804,8 @@ void() PlayerDie =
 					ThrowHead("progs/gib_player_torso_head.mdl", self.health);
 					ThrowGib("progs/gib_player_larm.mdl", self.health);
 					ThrowGib("progs/gib_player_legs.mdl", self.health);
+					self.deadflag = DEAD_DEAD;
+					return;
 				}
 				else
 				{
@@ -2805,6 +2824,8 @@ void() PlayerDie =
 					ThrowGib("progs/gib_player_larm.mdl", self.health);
 					ThrowGib("progs/gib_player_head.mdl", self.health);
 					ThrowGib("progs/gib_player_legs.mdl", self.health);
+					self.deadflag = DEAD_DEAD;
+					return;
 				}
 			}
 		}
@@ -2916,6 +2937,8 @@ void() PlayerDie =
 				ThrowGib("progs/chop.mdl", self.health);
 				ThrowGib("progs/gib_player_head.mdl", self.health);
 				sound7(self, CHAN_VOICE, "misc/z_gib.wav", 1, ATTN_IDLE, SNDSPD);
+				self.deadflag = DEAD_DEAD;
+				return;
 			}
 		}
 		if ((self.enemy.weapon == IT_LIGHTNING))
@@ -2960,6 +2983,7 @@ void() PlayerDie =
 					player_diea1();
 					pointparticles(particleeffectnum(/*15139i*/"blood_spurt"), self.origin, VEC_ORIGIN, 1);
 					sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_IDLE, SNDSPD);
+					return;
 				}
 			}
 			else
@@ -3007,6 +3031,7 @@ void() PlayerDie =
 							}
 						}
 						sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_IDLE, SNDSPD);
+						return;
 					}
 				}
 			}
@@ -3126,6 +3151,8 @@ void() PlayerDie =
 									ThrowGib("progs/gib_player_larm.mdl", self.health);
 									ThrowGib("progs/gib_player_head.mdl", self.health);
 									ThrowGib("progs/gib_player_legs.mdl", self.health);
+									self.deadflag = DEAD_DEAD;
+									return;
 								}
 							}
 							else
@@ -3158,6 +3185,8 @@ void() PlayerDie =
 									ThrowGib("progs/gib_player_larm.mdl", self.health);
 									ThrowGib("progs/gib_player_legs.mdl", self.health);
 									setsize(self, VEC_HULL2_MIN, VEC_HULL2_MAX);
+									self.deadflag = DEAD_DEAD;
+									return;
 								}
 								else
 								{
@@ -3295,7 +3324,7 @@ void() PlayerDie =
 
 void() set_suicide_frame =
 {
-	if ((((((((((((((self.model != "progs/player_torso.mdl") || (self.model != "progs/player.mdl")) || (self.model != "progs/player1.mdl")) || (self.model != "progs/player2.mdl")) || (self.model != "progs/player3.mdl")) || (self.model != "progs/player4.mdl")) || (self.model != "progs/player_shot.mdl")) || (self.model != "progs/player_shot2.mdl")) || (self.model != "progs/player_nail.mdl")) || (self.model != "progs/player_nail2.mdl")) || (self.model != "progs/player_rock.mdl")) || (self.model != "progs/player_rock2.mdl")) || (self.model != "progs/player_light.mdl")))
+	if (((((((((((((((self.model != "progs/player_id1.mdl") && (self.model != "progs/player_torso.mdl")) && (self.model != "progs/player.mdl")) && (self.model != "progs/player1.mdl")) && (self.model != "progs/player2.mdl")) && (self.model != "progs/player3.mdl")) && (self.model != "progs/player4.mdl")) && (self.model != "progs/player_shot.mdl")) && (self.model != "progs/player_shot2.mdl")) && (self.model != "progs/player_nail.mdl")) && (self.model != "progs/player_nail2.mdl")) && (self.model != "progs/player_rock.mdl")) && (self.model != "progs/player_rock2.mdl")) && (self.model != "progs/player_light.mdl")))
 	{
 		return;
 	}

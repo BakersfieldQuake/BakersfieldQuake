@@ -852,9 +852,9 @@ entity(float num) GetClientEntity =
 void(float whichteam, float whatbot, float whatskill) BotConnect =
 {
 	local float f;
+	local float s;
 	local string h;
 	local entity uself;
-	local entity teamspawn;
 
 	f = ClientNextAvailable();
 	uself = self;
@@ -870,10 +870,7 @@ void(float whichteam, float whatbot, float whatskill) BotConnect =
 		bot_start_topic(1);
 	}
 	self.b_clientno = f;
-	if (!CTF_ENABLED)
-	{
-		self.colormap = (f + 1);
-	}
+	self.colormap = (f + 1);
 	if (whatbot)
 	{
 		self.netname = BotName(whatbot);
@@ -905,13 +902,20 @@ void(float whichteam, float whatbot, float whatskill) BotConnect =
 	self.b_skill = whatskill;
 	if (((teamplay && !coop) && !CTF_ENABLED))
 	{
-		if (whichteam)
+		if (((uself.classname == "player") && (uself.team > 0)))
 		{
-			self.b_pants = FindAnotherColor((uself.team - 1));
+			if (whichteam)
+			{
+				self.b_pants = FindAnotherColor((uself.team - 1));
+			}
+			else
+			{
+				self.b_pants = (uself.team - 1);
+			}
 		}
-		else
+		else if (whichteam)
 		{
-			self.b_pants = (uself.team - 1);
+			self.b_pants = FindAnotherColor(self.b_pants);
 		}
 	}
 	else
@@ -933,12 +937,14 @@ void(float whichteam, float whatbot, float whatskill) BotConnect =
 	current_bots = current_bots | f;
 	if ((self.b_num <= 8))
 	{
-		saved_skills1 = (saved_skills1 & (65536 - (3 * f))) | (self.b_skill * f);
+		s = f * f;
+		saved_skills1 = (saved_skills1 & (65535 - (3 * s))) | (self.b_skill * s);
 	}
 	else
 	{
 		f = ClientBitFlag((self.b_num - 9));
-		saved_skills2 = (saved_skills2 & (65536 - (3 * f))) | (self.b_skill * f);
+		s = f * f;
+		saved_skills2 = (saved_skills2 & (65535 - (3 * s))) | (self.b_skill * s);
 	}
 	h = ftos(current_bots);
 	cvar_set("scratch1", h);
@@ -947,19 +953,6 @@ void(float whichteam, float whatbot, float whatskill) BotConnect =
 	h = ftos(saved_skills2);
 	cvar_set("scratch3", h);
 	self = uself;
-	if ((CTF_ENABLED && (self.ishuman != 1)))
-	{
-		choose_team();
-		if ((self.side == RED))
-		{
-			teamspawn = find(world, netname, "red start");
-		}
-		else
-		{
-			teamspawn = find(world, netname, "blue start");
-		}
-		self.origin = teamspawn.origin;
-	}
 };
 
 void(entity bot) BotDisconnect =
@@ -976,6 +969,11 @@ void(entity bot) BotDisconnect =
 	ClientDisconnect();
 	if ((self.b_clientno != -1))
 	{
+		if (self.phys_obj)
+		{
+			self.phys_obj.think = SUB_Null;
+			self.phys_obj.nextthink = -1;
+		}
 		self.frags = 0;
 		self.b_frags = 0;
 		self.netname = "";
@@ -990,6 +988,19 @@ void(entity bot) BotDisconnect =
 		self.ammo_rockets = 0;
 		self.ammo_nails = 0;
 		self.ammo_shells = 0;
+		self.enemy = world;
+		self.avoid = world;
+		self.target1 = world;
+		self.target2 = world;
+		self.target3 = world;
+		self.target4 = world;
+		self.current_way = world;
+		self.last_way = world;
+		self.b_aiflags = 0;
+		self.keys = 0;
+		self.side = 0;
+		self.lives = 0;
+		self.bm_ctf_dead_t = 0;
 		UpdateClient(self);
 		active_clients = active_clients - (active_clients & ClientBitFlag(self.b_clientno));
 		self.b_clientno = -1;

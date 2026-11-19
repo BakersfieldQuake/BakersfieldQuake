@@ -103,6 +103,7 @@ void(entity p) Underdog_Reset =
 	p.ud_lead = 0;
 	p.ud_deficit = 0;
 	p.ud_blueshell = FALSE;
+	p.ud_laststand = FALSE;
 	// the kill-streak announcer's numbers too (bm_fun.qc), and nobody may take REVENGE on the next one in this slot
 	p.bm_streak = 0;
 	p.bm_streak_tier = 0;
@@ -228,8 +229,10 @@ void(entity targ, entity attacker) Underdog_Killed =
 	attacker.ud_kills = attacker.ud_kills + 1;
 	attacker.ud_streak = floor (attacker.ud_streak / 2);
 	// Last Stand ends 2s after scoring a kill so it stays a comeback spark, not a multi-wipe godmode sweep
-	if (attacker.invincible_finished > time + 2 && attacker.super_damage_finished > time + 2)
+	// Only truncate when the player actually spawned with Last Stand (don't cut map-picked Quad + Pentagram)
+	if (attacker.ud_laststand && attacker.invincible_finished > time + 2 && attacker.super_damage_finished > time + 2)
 	{
+		attacker.ud_laststand = FALSE;
 		attacker.invincible_finished = time + 2;
 		attacker.super_damage_finished = time + 2;
 	}
@@ -243,7 +246,10 @@ void(entity targ, entity attacker) Underdog_Killed =
 		attacker.frags = attacker.frags + 1;
 		bprint ("^3", attacker.netname, " POPPED ", targ.netname, "'s BOUNTY PINATA! (+1 BONUS FRAG + LOOT ORB!)\n");
 		if (attacker.ishuman == 1)
+		{
 			centerprint (attacker, strcat ("^3BOUNTY PINATA! +1 BONUS FRAG!\n^2Took down ", targ.netname));
+			attacker.bm_fun_cp_t = time;
+		}
 		sound (attacker, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
 		particle (targ.origin + '0 0 24', '0 0 180', 192, 64);
 		particle (targ.origin + '0 0 32', '0 0 220', 41, 48);
@@ -531,6 +537,7 @@ void() Underdog_Spawn =
 	self.ud_earned = FALSE;
 	self.ud_level = 0;
 	self.ud_blueshell = FALSE;
+	self.ud_laststand = FALSE;
 	self.max_health = 100;
 	Underdog_ClearFx (self);
 	BM_SpawnArmor ();		// green 100 for everyone (bm_match.qc)
@@ -606,6 +613,7 @@ void() Underdog_Spawn =
 	// power-ups only after a real death, so `kill` can't re-roll them
 	if (last)
 	{
+		self.ud_laststand = TRUE;
 		Underdog_GiveQuad ();
 		self.super_damage_finished = time + 7;
 		Underdog_GivePent ();

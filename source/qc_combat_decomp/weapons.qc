@@ -84,13 +84,20 @@ void() W_Precache =
 
 void() gib_stuck_think =
 {
+	if ((!self.owner || bm_wasfreed(self.owner) || (time > self.ltime)))
+	{
+		remove(self);
+		return;
+	}
 	setorigin(self, ((self.pos1 + self.owner.origin) - self.pos2));
 	self.think = gib_stuck_think;
-	self.nextthink = time;
+	self.nextthink = (time + 0.05);
 };
 
 void() stickgib_touch =
 {
+	local float dur;
+
 	if ((other.classname == "player"))
 	{
 		return;
@@ -116,13 +123,24 @@ void() stickgib_touch =
 	self.solid = 0;
 	self.velocity = VEC_ORIGIN;
 	self.traileffectnum = particleeffectnum(/*24250i*/"gibd");
+	dur = autocvar_gibsduration;
+	if ((dur <= 0))
+	{
+		dur = 15;
+	}
+	self.ltime = (time + dur);
 	if ((((other.solid == SOLID_BSP) && (other != world)) && (other.classname != "func_breakable")))
 	{
 		self.owner = other;
 		self.pos1 = self.origin;
 		self.pos2 = other.origin;
 		self.think = gib_stuck_think;
-		self.nextthink = time;
+		self.nextthink = (time + 0.05);
+	}
+	else
+	{
+		self.think = SUB_Remove;
+		self.nextthink = self.ltime;
 	}
 };
 
@@ -140,12 +158,22 @@ void(string gibname, float skintype) StickGib =
 	setmodel(new, gibname);
 	setsize(new, VEC_ORIGIN, VEC_ORIGIN);
 	dir = normalize(v_forward);
-	makevectors(self.enemy.v_angle);
+	if ((self.enemy != world))
+	{
+		makevectors(self.enemy.v_angle);
+	}
+	else
+	{
+		makevectors(self.angles);
+	}
 	if ((((gibname == "progs/gib_enforcer_torso_sng2.mdl") || (gibname == "progs/gib_enforcer_torso_nail.mdl")) || (gibname == "progs/gib_soldhead.mdl")))
 	{
 		new.origin_z = (new.origin_z + 15);
 	}
-	new.velocity = aim(self.enemy, 2);
+	if ((self.enemy != world))
+	{
+		new.velocity = aim(self.enemy, 2);
+	}
 	if ((cvar("slowmo") > 0.7))
 	{
 		new.gravity = 0.8;
@@ -170,6 +198,8 @@ void(string gibname, float skintype) StickGib =
 	new.solid = SOLID_TRIGGER;
 	new.touch = stickgib_touch;
 	new.frame = 0;
+	new.think = SUB_Remove;
+	new.nextthink = (time + 20);
 };
 
 void() laserdie =
@@ -366,7 +396,7 @@ void(float stat) HIP_FireLaser =
 	if (((stat == 0) && ((self.weaponframe == 1) || (self.weaponframe == 4))))
 	{
 		self.ammo_cells = (self.ammo_cells - 1);
-		self.currentammo = (self.ammo_cells - 1);
+		self.currentammo = self.ammo_cells;
 		org = org + (aofs * v_right);
 		org = org - (aofs * v_up);
 		HIP_LaunchLaser(org, dir, 0);
@@ -390,7 +420,7 @@ void(float stat) HIP_FireLaser =
 				SpawnSNGFlash('0 17 -13', '1 0.1 0.1');
 			}
 			self.ammo_cells = (self.ammo_cells - 1);
-			self.currentammo = (self.ammo_cells - 1);
+			self.currentammo = self.ammo_cells;
 			org = org + (ofs * v_up);
 			if ((random() < 0.1))
 			{
@@ -1543,7 +1573,6 @@ void(vector org) spawn_splash =
 	en.nextthink = (time + 1);
 	en.think = SUB_Remove;
 	sendParticle("watersplash", org, VEC_ORIGIN, 1, 0);
-	precache_sound("player/watersplash.wav");
 	sound(en, CHAN_VOICE, "player/watersplash.wav", 0.8, ATTN_IDLE);
 };
 
@@ -1556,7 +1585,6 @@ void(vector org) spawn_lavasplash =
 	en.nextthink = (time + 1);
 	en.think = SUB_Remove;
 	sendParticle("lavasplash", org, VEC_ORIGIN, 1, 0);
-	precache_sound("ambience/lavasplash_shotgun.wav");
 	sound(en, CHAN_VOICE, "ambience/lavasplash_shotgun.wav", 0.8, ATTN_IDLE);
 };
 
@@ -1569,17 +1597,21 @@ void(vector dir) W_BulletSplash =
 	local float old_contents;
 
 	shot_length = 2048;
-	stepsize = 2;
-	steps = shot_length / stepsize;
+	stepsize = 16;
 	shot_src = self.origin + (v_forward * 10);
-	if ((((pointcontents(shot_src) == CONTENT_WATER) || (pointcontents(shot_src) == CONTENT_SLIME)) || (pointcontents(shot_src) == CONTENT_LAVA)))
+	old_contents = pointcontents(shot_src);
+	if ((((old_contents == CONTENT_WATER) || (old_contents == CONTENT_SLIME)) || (old_contents == CONTENT_LAVA)))
 	{
 		return;
 	}
-	old_contents = pointcontents(shot_src);
 	traceline(shot_src, (shot_src + (dir * shot_length)), FALSE, self);
 	if (trace_inwater)
 	{
+		steps = ceil(((trace_fraction * shot_length) / stepsize));
+		if ((steps > 128))
+		{
+			steps = 128;
+		}
 		while ((steps > 0))
 		{
 			shot_src = shot_src + (dir * stepsize);
@@ -1738,7 +1770,6 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		}
 		else
 		{
-			W_BulletSplash(direction);
 			if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 			{
 				align = dir + (v_up * 0.25);
@@ -1759,6 +1790,7 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 			}
 		}
 	}
+	W_BulletSplash(dir);
 	ApplyMultiDamage();
 };
 
@@ -1842,7 +1874,6 @@ void(float shotcount, vector dir, vector spread) FireBullets_soldier =
 				TraceAttack(autocvar_soldier_gun, direction);
 			}
 		}
-		W_BulletSplash(direction);
 		shotcount = shotcount - 1;
 		if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 		{
@@ -1863,12 +1894,13 @@ void(float shotcount, vector dir, vector spread) FireBullets_soldier =
 			Gyro_Force_Ignore(shot, self);
 		}
 	}
+	W_BulletSplash(dir);
 	ApplyMultiDamage();
 };
 
 void() updateSNG =
 {
-	if ((((self.owner.health <= 0) || intermission_running) || (self.owner.ishuman != 1)))
+	if (((((self.owner.health <= 0) || intermission_running) || (self.owner.ishuman != 1)) || (self.owner.classname != "player")))
 	{
 		remove(self);
 		return;
@@ -1933,6 +1965,15 @@ void() SNGHeater =
 	if ((self.ishuman != 1))
 	{
 		return;
+	}
+	sngb = find(world, classname, "barrelheat");
+	while (sngb)
+	{
+		if ((sngb.owner == self))
+		{
+			return;
+		}
+		sngb = find(sngb, classname, "barrelheat");
 	}
 	sngb = spawn();
 	sngb.movetype = 0;
@@ -2010,7 +2051,7 @@ void() W_FireShotgun =
 		self.velocity = (self.velocity - pushback1);
 	}
 	self.ammo_shells = (self.ammo_shells - 1);
-	self.currentammo = (self.ammo_shells - 1);
+	self.currentammo = self.ammo_shells;
 	dir = aim(self, 100000);
 	FireBullets(10, dir, '0.020 0.020 0');
 };
@@ -2079,7 +2120,7 @@ void() W_FireSuperShotgun =
 		self.velocity = (self.velocity - (pushback1 * 0.5));
 	}
 	self.ammo_shells = (self.ammo_shells - 2);
-	self.currentammo = (self.ammo_shells - 2);
+	self.currentammo = self.ammo_shells;
 	dir = aim(self, 100000);
 	FireBullets(16, dir, '0.085 0.065 0');
 };
@@ -2299,7 +2340,7 @@ void() T_MissileTouch =
 			}
 		}
 	}
-	if ((other.inflamed == 1))
+	if (((other.inflamed == 1) && (other.health > 0) && other.th_die))
 	{
 		other.health = -100;
 		other.enemy = self.owner;
@@ -2348,7 +2389,7 @@ void() T_MissileTouch =
 	damg = 135 + (random() * 20);
 	if ((autocvar_explosiondebris == 0))
 	{
-		if (other.health)
+		if ((other.health > 0))
 		{
 			if (((other.classname == "monster_shambler") || (other.classname == "monster_hell_knight2")))
 			{
@@ -2586,7 +2627,7 @@ void() W_FireRocket =
 	local vector direc;
 
 	self.ammo_rockets = (self.ammo_rockets - 1);
-	self.currentammo = (self.ammo_rockets - 1);
+	self.currentammo = self.ammo_rockets;
 	sound7(self, CHAN_WEAPON, "weapons/sgun1.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
 	sound7(self, CHAN_ITEM, "weapons/rocket2i.wav", 0.9, ATTN_NORM, self.PLR_SNDSPD);
 	if ((autocvar_pushback != 0))
@@ -2877,7 +2918,7 @@ void() W_FireLightning =
 		self.velocity = (self.velocity - pushback1);
 	}
 	self.ammo_cells = (self.ammo_cells - 0.6);
-	self.currentammo = (self.ammo_cells - 0.6);
+	self.currentammo = self.ammo_cells;
 	if ((((autocvar_weapon_position_right == 1) && !autocvar_weapon_position_fully_adjustable) && !cvar("chase_active")))
 	{
 		org = (((self.origin + self.view_ofs) + (v_forward * 8)) + (v_up * -6.5)) + (v_right * 6);
@@ -3142,7 +3183,7 @@ void() W_FireGrenade =
 	local vector direc;
 
 	self.ammo_rockets = (self.ammo_rockets - 1);
-	self.currentammo = (self.ammo_rockets - 1);
+	self.currentammo = self.ammo_rockets;
 	sound7(self, CHAN_WEAPON, "weapons/grenade.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
 	if ((autocvar_effects_explosion_shake != 0))
 	{
@@ -3672,7 +3713,7 @@ void() W_FireSuperSpikes =
 	}
 	self.attack_finished = (time + 0.2);
 	self.ammo_nails = (self.ammo_nails - 2);
-	self.currentammo = (self.ammo_nails - 2);
+	self.currentammo = self.ammo_nails;
 	dir = aim(self, 1000);
 	if (cvar("chase_active"))
 	{
@@ -3878,7 +3919,7 @@ void(float ox) W_FireSpikes =
 		SpawnNailgunFlash(muzzoff);
 		SpawnSmoke_Flash(0.8, (muzzoff + '0 10 -15'), 0, VEC_ORIGIN, 0.7);
 		self.ammo_nails = (self.ammo_nails - 1);
-		self.currentammo = (self.ammo_nails - 1);
+		self.currentammo = self.ammo_nails;
 		if (((autocvar_shellcasing == 1) && (autocvar_casingejectframe >= 1)))
 		{
 			nailcasing(0);
@@ -3908,7 +3949,7 @@ void(float ox) W_FireSpikes =
 			SpawnNailgunFlash(muzzoff);
 			SpawnSmoke_Flash(0.8, (muzzoff + '0 20 -15'), 0, VEC_ORIGIN, 0.7);
 			self.ammo_nails = (self.ammo_nails - 1);
-			self.currentammo = (self.ammo_nails - 1);
+			self.currentammo = self.ammo_nails;
 			if (((autocvar_shellcasing == 1) && (autocvar_casingejectframe >= 1)))
 			{
 				nailcasing(0);
@@ -4781,6 +4822,7 @@ void() superspike_touch =
 					{
 						if ((returnsurface(tex) == VOID))
 						{
+							remove(self);
 							return;
 						}
 					}
@@ -5738,7 +5780,7 @@ void() W_ChangeWeapon =
 							{
 								if ((self.impulse == 8))
 								{
-									if (((self.items == IT_LASER_CANNON) && (self.items != IT_LIGHTNING)))
+									if (((self.items & IT_LASER_CANNON) && !(self.items & IT_LIGHTNING)))
 									{
 										fl = IT_LASER_CANNON;
 										if ((self.ammo_cells < 1))
@@ -5748,7 +5790,7 @@ void() W_ChangeWeapon =
 									}
 									else
 									{
-										if ((self.items == IT_LIGHTNING))
+										if (((self.items & IT_LIGHTNING) && !(self.items & IT_LASER_CANNON)))
 										{
 											fl = IT_LIGHTNING;
 											if ((self.ammo_cells < 1))
@@ -5898,14 +5940,21 @@ void() CycleWeaponCommand =
 {
 	local float it;
 	local float am;
+	local float tries;
 
 	it = (self.items | IT_FUNGUN);
 	it = (it - (it & IT_BANANA));	// banana gun is removed; its bit is the silver key, so never stop on it
 	self.impulse = 0;
 	self.idletimer = 1;
 	self.switchtimer = -8;
+	tries = 0;
 	do
 	{
+		tries = tries + 1;
+		if ((tries > 24))
+		{
+			return;
+		}
 		am = 0;
 		if ((self.weapon == IT_FUNGUN))
 		{
@@ -6014,6 +6063,10 @@ void() CycleWeaponCommand =
 													am = 1;
 												}
 											}
+											else
+											{
+												self.weapon = IT_AXE;
+											}
 										}
 									}
 								}
@@ -6104,14 +6157,21 @@ void() CycleWeaponReverseCommand =
 {
 	local float it;
 	local float am;
+	local float tries;
 
 	it = (self.items | IT_FUNGUN);
 	it = (it - (it & IT_BANANA));	// banana gun is removed; its bit is the silver key, so never stop on it
 	self.impulse = 0;
 	self.idletimer = 1;
 	self.switchtimer = -8;
+	tries = 0;
 	do
 	{
+		tries = tries + 1;
+		if ((tries > 24))
+		{
+			return;
+		}
 		am = 0;
 		if ((self.weapon == IT_FUNGUN))
 		{
@@ -6220,6 +6280,10 @@ void() CycleWeaponReverseCommand =
 												self.weapon = IT_BANANA;
 											}
 										}
+										else
+										{
+											self.weapon = IT_AXE;
+										}
 									}
 								}
 							}
@@ -6317,9 +6381,6 @@ void() QuadCheat =
 	{
 		return;
 	}
-	precache_sound("items/damage.wav");
-	precache_sound("items/damage2.wav");
-	precache_sound("items/damage3.wav");
 	sound7(self, CHAN_ITEM, "items/damage.wav", 1, ATTN_NORM, SNDSPD);
 	sprint(self, "You got the ");
 	sprint(self, "Quad Damage");
@@ -6336,9 +6397,6 @@ void() RingCheat =
 	{
 		return;
 	}
-	precache_sound("items/inv1.wav");
-	precache_sound("items/inv2.wav");
-	precache_sound("items/inv3.wav");
 	sound(self, CHAN_ITEM, "items/inv1.wav", 1, ATTN_NORM);
 	sprint(self, "You got the ");
 	sprint(self, "Ring of Shadows");
@@ -6355,9 +6413,6 @@ void() PentCheat =
 	{
 		return;
 	}
-	precache_sound("items/protect.wav");
-	precache_sound("items/protect2.wav");
-	precache_sound("items/protect3.wav");
 	sound(self, CHAN_ITEM, "items/protect.wav", 1, ATTN_NORM);
 	sprint(self, "You got the ");
 	sprint(self, "Pentagram of Protection");
@@ -6374,8 +6429,7 @@ void() BiosuitCheat =
 	{
 		return;
 	}
-	precache_sound("items/suit.wav");
-	precache_sound("items/suit2.wav");
+	SpawnRebreather();
 	sound(self, CHAN_ITEM, "items/suit.wav", 1, ATTN_NORM);
 	sprint(self, "You got the ");
 	sprint(self, "Biosuit");
@@ -6534,7 +6588,6 @@ void() ImpulseCommands =
 	}
 	if ((self.impulse == 254))
 	{
-		SpawnRebreather();
 		BiosuitCheat();
 	}
 	if ((self.impulse == 255))

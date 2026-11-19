@@ -407,10 +407,22 @@ void() health_touch =
 	self.healamount_old = self.healamount;
 	if ((self.healtype == 2))
 	{
+		if ((other.health >= 250))
+		{
+			return;
+		}
+		if (((self.model != "maps/b_bh100heart.bsp") && (autocvar_quadreplacer > 0)))
+		{
+			self.healamount = 50;
+		}
+		if (!T_Heal(other, self, 1))
+		{
+			return;
+		}
 		if ((coop && (autocvar_coop_life_pool == 1)))
 		{
 			LIFE_BONUS = PLR_CNT + -1;
-			self.lives = (self.lives + 1);
+			other.lives = (other.lives + 1);
 			centerprint(other, "Life Bonus! ^2+1 lives ^8to all players");
 		}
 		if ((self.model != "maps/b_bh100heart.bsp"))
@@ -418,18 +430,6 @@ void() health_touch =
 			centerprint(other, "You got the Berserk Pack!");
 			te_customflash(self.origin, 400, 500, '2 0 0');
 			autocvar_berserkmode = 3.5;
-			if ((autocvar_quadreplacer > 0))
-			{
-				self.healamount = 50;
-			}
-		}
-		if ((other.health >= 250))
-		{
-			return;
-		}
-		if (!T_Heal(other, self, 1))
-		{
-			return;
 		}
 	}
 	else
@@ -616,13 +616,15 @@ void() armor_touch =
 	other.items = ((other.items - (other.items & 57344)) + bit);
 	self.solid = 0;
 	self.model = string_null;
-	if ((deathmatch == 1))
-	{
-		self.nextthink = (time + 20);
-	}
 	if (deathmatch)
 	{
+		self.nextthink = (time + 20);
 		self.think = SUB_regen;
+	}
+	else
+	{
+		self.think = SUB_Null;
+		self.nextthink = -1;
 	}
 	sprint(other, "You got armor\n");
 	sound(other, CHAN_ITEM, "items/armor1.wav", 1, ATTN_NORM);
@@ -1144,12 +1146,20 @@ void() packTouch =
 		other.ammo_nails = (other.ammo_nails + 20);
 		other.ammo_rockets = (other.ammo_rockets + 6);
 		other.ammo_cells = (other.ammo_cells + 15);
-		other.armortype = 0.6;
+		if ((other.armortype < 0.6))
+		{
+			other.armortype = 0.6;
+			other.items = ((other.items - (other.items & 57344)) + IT_ARMOR2);
+		}
 		other.armorvalue = (other.armorvalue + 30);
-		other.items = ((other.items - (other.items & 57344)) + IT_ARMOR2);
+		if ((other.armorvalue > 200))
+		{
+			other.armorvalue = 200;
+		}
 		sprint(other, "You got a supply pack with 3 proximity grenades, ammo, and 30 yellow armor shards\n");
 		sound(other, CHAN_ITEM, "misc/backpack_armour.wav", 1, ATTN_NORM);
 	}
+	bound_other_ammo();
 	if ((autocvar_effects_explosion_shake != 0))
 	{
 		stuffcmd(other, "bf\n");
@@ -1161,11 +1171,16 @@ void() packTouch =
 	self = stemp;
 	self.model = string_null;
 	self.solid = 0;
-	if ((deathmatch == 1))
+	if (deathmatch)
 	{
 		self.nextthink = (time + 30);
+		self.think = SUB_regen;
 	}
-	self.think = SUB_regen;
+	else
+	{
+		self.think = SUB_Null;
+		self.nextthink = -1;
+	}
 	activator = other;
 	SUB_UseTargets();
 };
@@ -2249,7 +2264,6 @@ void() powerup_touch =
 		self.weapon = IT_AXE;
 		W_SetCurrentAmmo();
 		self = selftemp;
-		W_SetCurrentAmmo();
 		centerprint(other, "You got the Berserk Pentagram!");
 		te_customflash(self.origin, 400, 500, '2 0 0');
 		self.effects = 0;
@@ -2266,7 +2280,6 @@ void() powerup_touch =
 		self.weapon = IT_SHOTGUN;
 		W_SetCurrentAmmo();
 		self = selftemp;
-		W_SetCurrentAmmo();
 		centerprint(other, "You got the Rapid Shotgun Powerup!");
 		self.effects = 0;
 	}
@@ -2315,6 +2328,7 @@ void() item_artifact_invulnerability =
 void() item_sfshotgun =
 {
 	self.touch = powerup_touch;
+	self.noise = "weapons/pkup.wav";
 	setmodel(self, "progs/backpack.mdl");
 	self.avelocity_y = 500;
 	self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
@@ -2396,23 +2410,35 @@ void() item_artifact_envirosuit =
 
 void() slowmo_counter =
 {
-	if ((self.owner.slowmo_timer == 0))
+	if ((((!self.owner || bm_wasfreed(self.owner)) || (self.owner.classname != "player")) || ((self.owner.health <= 0) || (self.owner.slowmo_timer <= 0))))
 	{
 		cvar_set("slowmo", "1");
-		stuffcmd(self.owner, "bf\n");
 		IN_SLOWMO = 0;
-		self.owner.bulletspeed = 900;
+		if ((self.owner && !bm_wasfreed(self.owner)))
+		{
+			self.owner.slowmo_timer = 0;
+			self.owner.bulletspeed = 900;
+			if ((self.owner.classname == "player"))
+			{
+				stuffcmd(self.owner, "bf\n");
+			}
+		}
 		if (deathmatch)
 		{
 			self.think = SUB_regen;
 			self.nextthink = (time + 80);
+		}
+		else
+		{
+			self.think = SUB_Null;
+			self.nextthink = -1;
 		}
 	}
 	else
 	{
 		self.think = slowmo_counter;
 		self.nextthink = (time + 1);
-		self.owner.slowmo_timer = (self.owner.slowmo_timer + -1);
+		self.owner.slowmo_timer = (self.owner.slowmo_timer - 1);
 		if ((self.owner.slowmo_timer == 1))
 		{
 			stuffcmd(self.owner, "bf\n");
@@ -2424,6 +2450,8 @@ void() slowmo_counter =
 
 void() slowmo_touch =
 {
+	local entity e;
+
 	if ((other.classname != "player"))
 	{
 		return;
@@ -2431,6 +2459,25 @@ void() slowmo_touch =
 	if ((other.health <= 0))
 	{
 		return;
+	}
+	// cancel any other rune currently ticking down on this player so they don't double-decrement slowmo_timer
+	e = nextent(world);
+	while (e)
+	{
+		if (((e != self) && (e.think == slowmo_counter) && (e.owner == other)))
+		{
+			if (deathmatch)
+			{
+				e.think = SUB_regen;
+				e.nextthink = (time + 80);
+			}
+			else
+			{
+				e.think = SUB_Null;
+				e.nextthink = -1;
+			}
+		}
+		e = nextent(e);
 	}
 	sprint(other, "You got the ");
 	sprint(other, self.netname);
@@ -2513,7 +2560,8 @@ void() item_artifact_super_damage =
 		item.solid = SOLID_TRIGGER;
 		item.movetype = MOVETYPE_TOSS;
 		item.think = item_artifact_invulnerability2;
-		item.nextthink = 0.000100;
+		item.nextthink = (time + 0.0001);
+		remove(self);
 		return;
 	}
 	if ((((autocvar_slowmo_powerup == 2) && deathmatch) || (((autocvar_slowmo_powerup == 2) && !deathmatch) && (random() > 0.5))))
@@ -2549,6 +2597,7 @@ void() BackpackTouch =
 	local float best;
 	local float old;
 	local float new;
+	local float oldwep;
 	local entity stemp;
 	local float acount;
 
@@ -2830,6 +2879,7 @@ void() BackpackTouch =
 	{
 		remove(self);
 		self = other;
+		oldwep = self.weapon;
 		if (!deathmatch)
 		{
 			self.weapon = new;
@@ -2837,6 +2887,10 @@ void() BackpackTouch =
 		else
 		{
 			Deathmatch_Weapon(old, new);
+		}
+		if ((self.weapon != oldwep))
+		{
+			W_SetCurrentAmmo();
 		}
 		if ((self.weapon == IT_SHOTGUN))
 		{
@@ -2983,7 +3037,7 @@ void() DropBackpack =
 		item.solid = SOLID_TRIGGER;
 		item.movetype = MOVETYPE_TOSS;
 		item.think = item_sfshotgun;
-		item.nextthink = 0.000100;
+		item.nextthink = (time + 0.0001);
 		item.target = self.target;
 		return;
 	}
@@ -3085,7 +3139,6 @@ void() DropBackpack =
 	item.movetype = MOVETYPE_TOSS;
 	if ((autocvar_backpack == 1))
 	{
-		precache_model("progs/backpack1.mdl");
 		setmodel(item, "progs/backpack1.mdl");
 		setsize(item, '-16 -16 -16', VEC_HULL_MAX);
 		BackpackPhysics(item);
@@ -3098,12 +3151,10 @@ void() DropBackpack =
 			{
 				if (autocvar_backpack_soldier_custom)
 				{
-					precache_model("progs/backpack_soldier.mdl");
 					setmodel(item, "progs/backpack_soldier.mdl");
 					setsize(item, '-16 -16 -7', VEC_HULL_MAX);
 					item.avelocity = '0 250 0';
 					item.backpack_sound = 1;
-					precache_sound("ambience/backpack_soldier.wav");
 				}
 				else
 				{
@@ -3117,7 +3168,6 @@ void() DropBackpack =
 				{
 					if (autocvar_backpack_enforcer_custom)
 					{
-						precache_model("progs/backpack_enforcer.mdl");
 						setmodel(item, "progs/backpack_enforcer.mdl");
 						setsize(item, '-16 -16 0', '16 16 48');
 						item.scale = 0.9;
@@ -3144,13 +3194,11 @@ void() DropBackpack =
 					{
 						if (autocvar_backpack_ogre_custom)
 						{
-							precache_model("progs/backpack_ogre.mdl");
 							setmodel(item, "progs/backpack_ogre.mdl");
 							setsize(item, '-16 -16 -6', VEC_HULL_MAX);
 							item.scale = 0.8;
 							item.avelocity = '0 250 0';
 							item.backpack_sound = 3;
-							precache_sound("ambience/backpack_ogre.wav");
 						}
 						else
 						{

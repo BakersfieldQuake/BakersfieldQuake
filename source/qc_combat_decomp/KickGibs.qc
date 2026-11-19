@@ -2,6 +2,10 @@
 
 void() head_gib_faceplayer =
 {
+	if (((self.classname == "player") && (self.health > 0)))
+	{
+		return;
+	}
 	self.ideal_yaw = (self.angles * '0 1 0');
 	if (!self.yaw_speed)
 	{
@@ -27,7 +31,6 @@ void() gib_gravity_reset =
 	{
 		return;
 	}
-	precache_sound("player/gibexplode.wav");
 	self.think = gibsfade_blood;
 	self.ltime = time;
 	self.nextthink = ((time + autocvar_gibsduration) + (random() * 10));
@@ -75,6 +78,12 @@ void() kick_touch2 =
 {
 	local vector v;
 	local float zufall;
+
+	if (((self.classname == "player") && (self.health > 0)))
+	{
+		self.touch = SUB_Null;
+		return;
+	}
 
 	if (!(deathmatch || coop))
 	{
@@ -183,6 +192,12 @@ void() kick_touch2_temp =
 void() kick_touch3 =
 {
 	local float zufall;
+
+	if (((self.classname == "player") && (self.health > 0)))
+	{
+		self.touch = SUB_Null;
+		return;
+	}
 
 	if (((time - self.delay) < 0.2))
 	{

@@ -561,7 +561,9 @@ void() BM_Frame =
 	}
 
 	// R: reload now (impulses wait for attack_finished, this one doesn't)
-	if (self.impulse == BM_RELOAD_IMPULSE)
+	// Only consume BM_RELOAD_IMPULSE when the held weapon has a magazine slot (s != 0),
+	// so melee/non-magazine weapons like Bonk Hammer (IT_AXE) still receive R to spin!
+	if (self.impulse == BM_RELOAD_IMPULSE && s)
 	{
 		self.impulse = 0;
 		self.bm_rl_quiet = FALSE;
@@ -667,8 +669,8 @@ void() BM_Frame =
 			if (mag < size)
 			{
 				rate = size / BM_ReloadTime (i) * autocvar_bm_holster;
-				if (i == BM_MM || (i >= BM_FG1 && i <= BM_FG6))
-					rate = size / BM_ReloadTime (i);		// Mega Man & recharging fun-gun cooldowns tick at 1.0x speed in pocket
+				if (i == BM_MM || (i >= BM_FG1 && i <= BM_FG6) || i == BM_FG8)
+					rate = size / BM_ReloadTime (i);		// Mega Man & recharging fun-gun cooldowns (incl. Pocket Kyle) tick at 1.0x speed in pocket
 				acc = BM_GetAcc (self, i) + rate * dt;
 				if (acc >= 1)
 				{

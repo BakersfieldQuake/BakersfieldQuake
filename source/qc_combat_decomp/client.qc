@@ -789,7 +789,7 @@ void() execute_changelevel =
 	while ((other != world))
 	{
 		other.view_ofs = VEC_ORIGIN;
-		other.angles = other.v_angle;
+		other.angles = other.v_angle = pos.mangle;
 		other.fixangle = TRUE;
 		other.nextthink = (time + 0.5);
 		other.takedamage = 0;
@@ -1381,29 +1381,31 @@ void() music_changer =
 void() CTF_team_spawn =
 {
 	local entity teamspawn;
+	local string sname;
 
 	if ((self.side == BLUE))
 	{
-		teamspawn = find(world, netname, "blue start");
+		sname = "blue start";
 	}
 	else
 	{
-		teamspawn = find(world, netname, "red start");
+		sname = "red start";
 	}
-	if ((pointcontents(teamspawn.origin) != CONTENT_SOLID))
+	teamspawn = find(lastspawn, netname, sname);
+	if (!teamspawn)
 	{
-		setorigin(self, teamspawn.origin);
+		teamspawn = find(world, netname, sname);
 	}
-	else
+	if ((!teamspawn || (pointcontents(teamspawn.origin) == CONTENT_SOLID)))
 	{
-		if ((self.side == BLUE))
-		{
-			teamspawn = find(world, netname, "blue start");
-		}
-		else
-		{
-			teamspawn = find(world, netname, "red start");
-		}
+		teamspawn = SelectSpawnPoint();
+	}
+	if (teamspawn)
+	{
+		lastspawn = teamspawn;
+		setorigin(self, (teamspawn.origin + '0 0 1'));
+		self.angles = teamspawn.angles;
+		self.fixangle = TRUE;
 	}
 };
 
@@ -1460,6 +1462,13 @@ void() PutClientInServer =
 	self.wetsuit_finished = 0;
 	self.inflamed = 0;
 	self.shocked = 0;
+	self.touch = SUB_Null;
+	self.colormod = '1 1 1';
+	self.skin = 0;
+	self.traileffectnum = 0;
+	self.gravity = 1;
+	self.avelocity = VEC_ORIGIN;
+	Gyro_Object_ClearPhysics(self);
 	if (((((autocvar_coop_life_pool == 1) && coop) && (self.health > 0)) && (self.lives == 0)))
 	{
 		if ((self.ishuman == 1))
@@ -1548,8 +1557,11 @@ void() PutClientInServer =
 	self.th_die = PlayerDie;
 	self.deadflag = 0;
 	self.pausetime = 0;
-	self.origin = (spot.origin + '0 0 1');
-	self.angles = spot.angles;
+	if ((spot != world))
+	{
+		self.origin = (spot.origin + '0 0 1');
+		self.angles = spot.angles;
+	}
 	self.fixangle = TRUE;
 	if (((coop && (autocvar_coop_life_pool == 1)) && (autocvar_coop_revive == 1)))
 	{
@@ -1653,7 +1665,6 @@ void() PutClientInServer =
 		spawn_tfog((self.origin + (v_forward * 20)));
 	}
 	self.bulletspeed = 900;
-	PLR_CNT = PLR_CNT + 1;
 	self.revivetimer = 0;
 	if (((!coop && !deathmatch) && autocvar_auto_save))
 	{
@@ -1808,6 +1819,10 @@ void() Spectate =
 	if (((self.button2 || self.button1) || self.button0))
 	{
 		self.cnt = (self.cnt + 1);
+		if ((self.cnt > 3))
+		{
+			self.cnt = 0;
+		}
 	}
 	if ((self.clientcamera.health <= 0))
 	{
@@ -1832,10 +1847,6 @@ void() Spectate =
 			else
 			{
 				whospec = find(world, classname, self.enemy.classname);
-			}
-			if ((self.cnt > 3))
-			{
-				self.cnt = 0;
 			}
 		}
 	}
@@ -1881,12 +1892,19 @@ void() PlayerDeathThink =
 	autocvar_berserkmode = 1;
 	if ((self.deadflag == DEAD_DEAD))
 	{
+		if (CTF_ENABLED)
+		{
+			self.has_flag = 0;
+		}
+		if (((self.button2 || self.button1) || self.button0))
+		{
+			return;
+		}
 		if (autocvar_coop_life_pool)
 		{
-			if (((self.ishuman == 1) && !((self.button2 || self.button1) || self.button0)))
+			if (((self.ishuman == 1) && (self.lives > 0)))
 			{
 				self.lives = (self.lives - 1);
-				autocvar_coop_lives = self.lives;
 				if ((self.lives == 0))
 				{
 					lives_global = lives_global + -1;
@@ -1895,14 +1913,6 @@ void() PlayerDeathThink =
 			}
 			self.oldorigin = self.origin;
 			DED_PLR = DED_PLR + 1;
-		}
-		if (CTF_ENABLED)
-		{
-			self.has_flag = 0;
-		}
-		if (((self.button2 || self.button1) || self.button0))
-		{
-			return;
 		}
 		self.deadflag = DEAD_RESPAWNABLE;
 		return;
@@ -2421,6 +2431,11 @@ void() PlayerPreThink =
 
 	if (self.bm_obs)
 	{
+		if ((self.switch_wallhug && (time >= self.switch_wallhug)))
+		{
+			ClientFixRankings();
+			self.switch_wallhug = 0;
+		}
 		BM_ObsFrame();
 		return;
 	}
@@ -2482,7 +2497,7 @@ void() PlayerPreThink =
 	}
 	else
 	{
-		if (((time - self.delay) >= 0.3))
+		if (((self.health > 0) && ((time - self.delay) >= 0.3)))
 		{
 			if (autocvar_3rd_person_visible_weapons)
 			{
@@ -2544,6 +2559,10 @@ void() PlayerPreThink =
 											else
 											{
 												self.effects = 0;
+											}
+											if ((self.invincible_finished > time))
+											{
+												self.effects = (self.effects | EF_DIMLIGHT);
 											}
 											self.skin = 0;
 											self.colormod = '1 1 1';
@@ -2612,7 +2631,7 @@ void() PlayerPreThink =
 			}
 		}
 	}
-	if (((autocvar_player_changes_shirt_color_according_to_used_armor && !deathmatch) && ((time - self.delay) > 1)))
+	if (((autocvar_player_changes_shirt_color_according_to_used_armor && !deathmatch) && ((time - self.bm_shirt_t) > 1)))
 	{
 		if ((self.armortype == 0.3))
 		{
@@ -2636,7 +2655,7 @@ void() PlayerPreThink =
 				}
 			}
 		}
-		self.delay = time;
+		self.bm_shirt_t = time;
 	}
 	if ((autocvar_flying_dust && !deathmatch))
 	{
@@ -2740,10 +2759,6 @@ void() PlayerPreThink =
 		{
 			psy = 0;
 		}
-		if ((time >= (self.delay + 0.3)))
-		{
-			self.delay = time;
-		}
 	}
 	if (autocvar_evil_faces_psycho_effect)
 	{
@@ -2771,13 +2786,13 @@ void() PlayerPreThink =
 	{
 		BM_Psycho(psy);
 	}
-	if ((autocvar_taunt_sounds && (time >= (self.delay + 0.2))))
+	if ((autocvar_taunt_sounds && (time >= (self.bm_taunt_t + 0.2))))
 	{
 		if ((self.check_bodycount_frequence < time))
 		{
 			check_bodycount();
 		}
-		self.delay = time;
+		self.bm_taunt_t = time;
 	}
 	if (((autocvar_mage_weapon && (self.weapon == IT_LIGHTNING)) && (self.health > 0)))
 	{
@@ -3708,8 +3723,8 @@ void() CheckPowerups =
 				BM_CountdownPrint("QQQ powerup died QQQ");
 			}
 		}
-		WetsuitTime();
 	}
+	WetsuitTime();
 };
 
 void() PlayerPostThink =
@@ -3825,6 +3840,7 @@ void() ClientConnect =
 		self.ishuman = 3;
 		return;
 	}
+	PLR_CNT = PLR_CNT + 1;
 	if (cvar("sv_autodemo_perclient_discardable") > 0)
 		self.discardabledemo = 1;
 	bprint(self.netname);
@@ -3840,6 +3856,7 @@ void() ClientDisconnect =
 	if (self.bm_obs)
 	{
 		ClientDisconnected();
+		BM_Radar_ClientGone(self);
 		self.bm_obs = 0;
 		self.classname = "";
 		self.health = 0;
@@ -3848,6 +3865,10 @@ void() ClientDisconnect =
 		self.movetype = MOVETYPE_NONE;
 		self.modelindex = 0;
 		return;
+	}
+	if ((PLR_CNT > 0))
+	{
+		PLR_CNT = PLR_CNT - 1;
 	}
 	ClientDisconnected();
 	Veh_ClientGone();	// a driver who drops leaves the van parked (vehicle_drive.qc)
@@ -3895,12 +3916,16 @@ void() ClientDisconnect =
 	{
 		if ((self.side == BLUE))
 		{
-			BLUE_PLAYERS = BLUE_PLAYERS + -1;
+			if ((BLUE_PLAYERS > 0))
+				BLUE_PLAYERS = BLUE_PLAYERS - 1;
 		}
-		else
+		else if ((self.side == RED))
 		{
-			RED_PLAYERS = RED_PLAYERS + -1;
+			if ((RED_PLAYERS > 0))
+				RED_PLAYERS = RED_PLAYERS - 1;
 		}
+		self.has_flag = 0;
+		self.side = 0;
 	}
 	if (gameover)
 	{
@@ -3941,7 +3966,7 @@ void(entity targ, entity attacker) ClientObituary =
 		}
 		if ((attacker.classname == "player"))
 		{
-			if ((deathmatch && (attacker.ishuman == 1) && (targ != attacker)))
+			if ((deathmatch && (attacker.ishuman == 1) && (targ != attacker) && (attacker.bm_fun_cp_t != time) && !(((teamplay == 2) || CTF_ENABLED) && (targ.team > 0) && (targ.team == attacker.team))))
 			{
 				if ((attacker.weapon == IT_AXE))
 					centerprint(attacker, strcat("^1Humiliated ^7", targ.netname));
@@ -4025,7 +4050,7 @@ void(entity targ, entity attacker) ClientObituary =
 			}
 			else
 			{
-				if ((((teamplay == 2) && (targ.team > 0)) && (targ.team == attacker.team)))
+				if (((((teamplay == 2) || CTF_ENABLED) && (targ.team > 0)) && (targ.team == attacker.team)))
 				{
 					if ((rnum < 0.25))
 					{

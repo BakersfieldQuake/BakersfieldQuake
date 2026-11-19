@@ -64,10 +64,11 @@ void() BM_Precache =
 		cvar_set ("sv_maxvelocity", cvar_string ("bm_maxvel_saved"));
 		cvar_set ("bm_maxvel_saved", "0");
 	}
-	if (autocvar_bm_newbie > 0)
-		precache_sound ("funny/newbie.wav");
-	if (autocvar_bm_fun)
-		BM_Fun_Precache ();
+	// Unconditionally precache jetpack, newbie, and announcer clips in worldspawn so bots on maps without
+	// item_jetpack/item_armor2 (e.g. terminal21, ooika_lawrenceville) and mid-map cvar toggles never precache post-spawn
+	Jetpack_Precache ();
+	precache_sound ("funny/newbie.wav");
+	BM_Fun_Precache ();
 	// Lazy sprite loading: David, Daniel, GreenSuit, RobeGuy and the crowd are about 1 GB of 32-bit sprites. Each of them
 	// precaches itself where it is used (summon impulses, map entities, npc_crowd), so a map that never shows them no longer
 	// loads them. Only the fox crowd is spawned by code after load, so fox still loads its crowd here.
@@ -1274,6 +1275,30 @@ void(entity p) BM_ClientGone =
 		}
 		e = nx;
 	}
+	// Pink Ladies (milky.qc) and in-flight Dookie canisters (dookie.qc) leave with their owner
+	e = find (world, classname, "milky");
+	while (e)
+	{
+		nx = find (e, classname, "milky");
+		if (e.milky_owner == p)
+		{
+			sound (e, CHAN_BODY, "misc/null.wav", 0, ATTN_NONE);
+			remove (e);
+		}
+		e = nx;
+	}
+	p.milky_active = world;
+	e = find (world, classname, "dookie_shot");
+	while (e)
+	{
+		nx = find (e, classname, "dookie_shot");
+		if (e.owner == p)
+		{
+			sound (e, CHAN_BODY, "misc/null.wav", 0, ATTN_NONE);
+			remove (e);
+		}
+		e = nx;
+	}
 	// a laptop shock from the leaver stops (the zap damage would otherwise go to whoever reuses the slot)
 	e = find (world, classname, "player");
 	while (e)
@@ -1310,6 +1335,7 @@ void(entity e) BM_ObsActivate =
 		Underdog_Reset (e);
 		FD_Reset (e);
 		BM_ClientGone (e);
+		BM_Radar_ClientGone (e);
 	}
 	if (e.bm_aura)
 	{
@@ -1526,6 +1552,8 @@ void() BM_ObsFrame =
 	self.milk_st = 0;
 	self.fd_st_mode = 0;
 	self.mmt_st_active = 0;
+	self.jb_st_active = 0;
+	self.ky_st_mode = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;
 	self.bm_st_playermask = bm_playermask_cache;

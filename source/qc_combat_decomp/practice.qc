@@ -130,23 +130,22 @@ void() Practice_PlayerFrame =
 	if (!self.pr_items_given)
 		Practice_OnPlayerSpawn (self);
 
-	if (self.ammo_shells < 40) self.ammo_shells = 100;
-	if (self.ammo_nails < 60) self.ammo_nails = 200;
-	if (self.ammo_rockets < 30) self.ammo_rockets = 100;
-	if (self.ammo_cells < 60) self.ammo_cells = 200;
+	// Only top up reserve ammo_* directly when bm_reload is OFF: when bm_reload is ON,
+	// ammo_* holds the active magazine (2..36), so overwriting it to 100/200 trips BM_ReadFields
+	// every single frame, cancelling reloads and resetting bm_ssgburst every tick.
+	if (!autocvar_bm_reload)
+	{
+		if (self.ammo_shells < 40) self.ammo_shells = 100;
+		if (self.ammo_nails < 60) self.ammo_nails = 200;
+		if (self.ammo_rockets < 30) self.ammo_rockets = 100;
+		if (self.ammo_cells < 60) self.ammo_cells = 200;
+	}
 	if ((self.flags & FL_ONGROUND) && self.jp_fuel < autocvar_jp_fuel)
 		self.jp_fuel = autocvar_jp_fuel;
 
-	if (self.mm_ammo < MM_MAX_AMMO && time >= self.mm_regen_t - 3.5)
-	{
-		self.mm_ammo = self.mm_ammo + 1;
-		self.mm_regen_t = time + 1.5;
-	}
-	if (self.bn_ammo < BN_MAX_AMMO && time >= self.bn_regen_t - 2.0)
-	{
-		self.bn_ammo = self.bn_ammo + 1;
-		self.bn_regen_t = time + 1.5;
-	}
+	// Fast cooldown cap for MegaMan / Banana / FunGuns (clamp regen timer instead of refilling every frame)
+	if (self.mm_ammo < MM_MAX_AMMO && self.mm_regen_t > time + 1.5) self.mm_regen_t = time + 1.5;
+	if (self.bn_ammo < BN_MAX_AMMO && self.bn_regen_t > time + 1.5) self.bn_regen_t = time + 1.5;
 	if (self.fg_ammo1 < FG_DOB_MAX && self.fg_regen1 > time + 2.0) self.fg_regen1 = time + 2.0;
 	if (self.fg_ammo2 < FG_PONG_MAX && self.fg_regen2 > time + 2.0) self.fg_regen2 = time + 2.0;
 	if (self.fg_ammo3 < FG_PICKLE_MAX && self.fg_regen3 > time + 1.5) self.fg_regen3 = time + 1.5;
@@ -601,10 +600,27 @@ void() Practice_LivePenThink =
 		}
 		if (time >= self.attack_finished && visible (best))
 		{
+			local vector src, aim_ang, pellet_dir;
+			local float shots;
+
 			self.attack_finished = time + 1.35 + random () * 0.8;
 			sound (self, CHAN_WEAPON, "weapons/shotgn2.wav", 0.8, ATTN_NORM);
-			dir = normalize ((best.origin + '0 0 18') - (self.origin + '0 0 24'));
-			FireBullets (3, dir, '0.06 0.06 0');
+			src = self.origin + '0 0 24';
+			dir = normalize ((best.origin + '0 0 18') - src);
+			aim_ang = vectoangles (dir);
+			aim_ang_x = 0 - aim_ang_x;
+			makevectors (aim_ang);
+			ClearMultiDamage ();
+			shots = 3;
+			while (shots > 0)
+			{
+				pellet_dir = normalize (dir + crandom () * 0.06 * v_right + crandom () * 0.06 * v_up);
+				traceline (src, src + pellet_dir * 2048, FALSE, self);
+				if (trace_fraction != 1)
+					TraceAttack (5, pellet_dir);
+				shots = shots - 1;
+			}
+			ApplyMultiDamage ();
 		}
 	}
 	self.nextthink = time + 0.05;

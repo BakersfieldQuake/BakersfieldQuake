@@ -20,39 +20,42 @@ entity() findflag =
 
 void() ai_flagrun =
 {
+	local entity want;
+
+	want = world;
 	if (!self.has_flag)
 	{
 		if (RED_CARRIED)
 		{
-			self.target1 = redflag;
+			want = redflag;
 		}
 		else
 		{
 			if (BLUE_CARRIED)
 			{
-				self.target1 = blueflag;
+				want = blueflag;
 			}
 		}
 		if ((self.side == RED))
 		{
 			if (!redflag.athome)
 			{
-				self.target1 = redflag;
+				want = redflag;
 			}
 			else
 			{
-				self.target1 = blueflag;
+				want = blueflag;
 			}
 		}
 		if ((self.side == BLUE))
 		{
 			if (!blueflag.athome)
 			{
-				self.target1 = blueflag;
+				want = blueflag;
 			}
 			else
 			{
-				self.target1 = redflag;
+				want = redflag;
 			}
 		}
 	}
@@ -60,15 +63,20 @@ void() ai_flagrun =
 	{
 		if ((self.team == RED))
 		{
-			self.target1 = redflag;
+			want = redflag;
 		}
 		else
 		{
 			if ((self.team == BLUE))
 			{
-				self.target1 = blueflag;
+				want = blueflag;
 			}
 		}
+	}
+	if (((want != world) && !target_onstack(want)))
+	{
+		target_add(want);
+		bot_get_path(want, FALSE);
 	}
 };
 
@@ -250,14 +258,17 @@ void(entity targ) bot_check_lost =
 {
 	local vector dist;
 
-	dist = realorigin(targ) - self.origin;
 	if ((targ == world))
 	{
 		return;
 	}
-	else
+	if (bm_wasfreed(targ))
 	{
-		if (((targ.flags & FL_ITEM) || (targ.classname == "item_jetpack")))
+		bot_lost(targ, FALSE);
+		return;
+	}
+	dist = realorigin(targ) - self.origin;
+	if (((targ.flags & FL_ITEM) || (targ.classname == "item_jetpack")))
 		{
 			if ((vlen((targ.origin - self.origin)) < 36))
 			{
@@ -401,10 +412,10 @@ void(entity targ) bot_check_lost =
 				}
 			}
 		}
-	}
 	if (((targ.origin_z - self.origin_z) > 64))
 	{
 		dist = targ.origin - self.origin;
+		dist_z = 0;
 		if ((vlen(dist) < 32))
 		{
 			if ((self.flags & FL_ONGROUND))
@@ -891,7 +902,6 @@ float(entity thing) priority_for_thing =
 						{
 							thisp = 90;
 						}
-						FindRoute(thing);
 					}
 					else
 					{
@@ -1042,6 +1052,10 @@ void() bot_angle_set =
 	}
 	else
 	{
+		if ((self.target1 && bm_wasfreed(self.target1)))
+		{
+			self.target1 = world;
+		}
 		if (self.target1)
 		{
 			view = realorigin(self.target1);
@@ -1127,23 +1141,35 @@ void() BotAI =
 {
 	if ((self.health < 1))
 	{
-		if ((!CTF_ENABLED || (CTF_ENABLED && ((time - self.delay) >= 2))))
+		if (CTF_ENABLED)
 		{
-			self.delay = time;
-			self.button0 = floor((random() * 2));
-			self.button2 = 0;
-			self.keys = 0;
-			self.b_aiflags = 0;
-			ClearMyRoute();
-			self.enemy = world;
-			self.target4 = world;
-			self.target3 = world;
-			self.target2 = world;
-			self.target1 = world;
-			self.last_way = world;
-			return;
+			if (!self.bm_ctf_dead_t)
+			{
+				self.bm_ctf_dead_t = (time + 2);
+			}
+			if ((time < self.bm_ctf_dead_t))
+			{
+				self.button0 = 0;
+				self.button2 = 0;
+				self.keys = 0;
+				return;
+			}
+			self.bm_ctf_dead_t = 0;
 		}
+		self.button0 = floor((random() * 2));
+		self.button2 = 0;
+		self.keys = 0;
+		self.b_aiflags = 0;
+		ClearMyRoute();
+		self.enemy = world;
+		self.target4 = world;
+		self.target3 = world;
+		self.target2 = world;
+		self.target1 = world;
+		self.last_way = world;
+		return;
 	}
+	self.bm_ctf_dead_t = 0;
 	if (BM_DummyBot())
 	{
 		return;	// the Test Box map: bots only walk in circles (bm_match.qc)
@@ -1188,6 +1214,10 @@ void() BotAI =
 	}
 	else
 	{
+		if ((self.target1 && bm_wasfreed(self.target1)))
+		{
+			self.target1 = world;
+		}
 		if (self.target1)
 		{
 			frik_movetogoal();
@@ -1232,7 +1262,12 @@ void() BotAI =
 			}
 		}
 	}
+	if ((self.enemy && bm_wasfreed(self.enemy)))
+	{
+		self.enemy = world;
+	}
 	bot_angle_set();
+	bot_dodge_stuff();
 	if (self.enemy)
 	{
 		bot_fight_style();
@@ -1247,7 +1282,6 @@ void() BotAI =
 			}
 		}
 	}
-	bot_dodge_stuff();
 	BM_BotPostAI();
 	if ((self.waterlevel > 2))
 	{

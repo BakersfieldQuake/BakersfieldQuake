@@ -211,9 +211,11 @@ void() SV_WaterMove =
 	wishvel = (v_right * self.movevect_y) + (v_forward * self.movevect_x);
 	if ((self.movevect == VEC_ORIGIN))
 	{
+		wishvel_z = -60;
 	}
 	else
 	{
+		wishvel_z = self.movevect_z;
 	}
 	wishspeed = vlen(wishvel);
 	if ((wishspeed > sv_maxspeed))
@@ -269,9 +271,11 @@ void() SV_AirMove =
 	wishvel = (v_right * self.movevect_y) + (v_forward * self.movevect_x);
 	if ((self.movetype != MOVETYPE_WALK))
 	{
+		wishvel_z = self.movevect_z;
 	}
 	else
 	{
+		wishvel_z = 0;
 	}
 	if ((vlen(wishvel) > sv_maxspeed))
 	{
@@ -444,13 +448,13 @@ void() SV_CheckOnGround =
 
 	org = self.origin;
 	currentflags = self.flags;
-	self.flags = ((self.flags | FL_ONGROUND) | FL_PARTIALGROUND);
-	walkmove(0, 0);
 	if (((self.velocity_z > 180) || (time < self.skypad_cool_t) || self.jp_on))
 	{
 		self.flags = (currentflags - (currentflags & FL_ONGROUND));
 		return;
 	}
+	self.flags = ((self.flags | FL_ONGROUND) | FL_PARTIALGROUND);
+	walkmove(0, 0);
 	self.flags = (currentflags | FL_ONGROUND);
 	if (((org_x != self.origin_x) || (org_y != self.origin_y)))
 	{
@@ -564,6 +568,10 @@ void() PostPhysics =
 	local float cflags;
 
 	self = self.owner;
+	if (((!self || (self.classname != "player")) || (self.b_clientno == -1)))
+	{
+		return;
+	}
 	self.velocity = ((self.velocity - self.phys_obj.dest1) + self.phys_obj.velocity);
 	if ((self.phys_obj.dest2 == self.origin))
 	{

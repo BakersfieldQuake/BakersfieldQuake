@@ -86,6 +86,13 @@ float(float player_team) checkSwapBalance =
 
 void() teamchange_respawn =
 {
+	Veh_ClientGone();
+	JohnBird_ClientGone();
+	EricCannon_ClientGone();
+	MMTank_ClientGone();
+	FD_Reset(self);
+	self.has_flag = 0;
+	self.items = (self.items - (self.items & (IT_KEY1 | IT_KEY2)));
 	self.health = 0;
 	if (((random() * 100) < 50))
 	{
@@ -236,6 +243,10 @@ void() capture =
 	{
 		flagspawn = find(world, netname, "blue flag");
 	}
+	if (!flagspawn)
+	{
+		return;
+	}
 	setorigin(flagspawn, flagspawn.oldorigin);
 	flagspawn.carrier = world;
 	if (((other.side == BLUE) && (RED_CAP_COOLDOWN == 0)))
@@ -286,7 +297,7 @@ void() flag_run_blue =
 	self.angles = self.oldangles;
 	if ((pointcontents((self.origin - '0 0 1')) != CONTENT_SOLID))
 	{
-		self.origin = (self.origin - '0 0 1');
+		setorigin(self, (self.origin - '0 0 1'));
 	}
 	if (((world.model == "maps/e1m2.bsp") && self.athome))
 	{
@@ -336,7 +347,7 @@ void() flag_run_red =
 	}
 	if ((pointcontents((self.origin - '0 0 1')) != CONTENT_SOLID))
 	{
-		self.origin = (self.origin - '0 0 1');
+		setorigin(self, (self.origin - '0 0 1'));
 	}
 	self.angles = self.oldangles;
 	if (((self.owner.has_flag && (self.owner.items & IT_KEY2)) && (self.owner.health > 0)))
@@ -444,10 +455,10 @@ void() flag_touch_blue =
 	{
 		other.bot_flagrunner = 1;
 	}
-	if (((((!other.has_flag && (other.health > 0)) && (other.side != self.side)) && !BLUE_CARRIED) || (((other.ishuman != 1) && !BLUE_CARRIED) && (other.team != self.side))))
+	if ((((!other.has_flag && (other.health > 0)) && !BLUE_CARRIED) && ((other.side != self.side) || ((other.ishuman != 1) && (other.team != self.side)))))
 	{
 		self.athome = 0;
-		other.items = (other.items + IT_KEY1);
+		other.items = (other.items | IT_KEY1);
 		self.carrier = other;
 		stuffcmd(other, "bf\n");
 		other.has_flag = 1;
@@ -464,7 +475,7 @@ void() flag_touch_blue =
 		{
 			self.nextthink = (time + 0.1);
 			capture();
-			other.items = (other.items - IT_KEY2);
+			other.items = (other.items - (other.items & IT_KEY2));
 			other.has_flag = 0;
 		}
 	}
@@ -480,7 +491,7 @@ void() flag_touch_red =
 	{
 		return;
 	}
-	if ((((((self.origin != self.oldorigin) && ((other.side == RED) && (other.ishuman == 1))) && (self.athome == 0)) && !self.owner.has_flag) && !RED_CARRIED))
+	if ((((((self.origin != self.oldorigin) && (other.side == RED)) && (self.athome == 0)) && !self.owner.has_flag) && !RED_CARRIED))
 	{
 		if ((self.carrier != other))
 		{
@@ -496,14 +507,14 @@ void() flag_touch_red =
 	{
 		self.owner = other;
 	}
-	if (((other.team == BLUE) && (other.ishuman != 1)))
+	if (((other.team == RED) && (other.ishuman != 1)))
 	{
 		other.bot_flagrunner = 1;
 	}
-	if (((((!other.has_flag && (other.health > 0)) && (other.side != self.side)) && !RED_CARRIED) || (((other.ishuman != 1) && !RED_CARRIED) && (other.team != self.side))))
+	if ((((!other.has_flag && (other.health > 0)) && !RED_CARRIED) && ((other.side != self.side) || ((other.ishuman != 1) && (other.team != self.side)))))
 	{
 		self.athome = 0;
-		other.items = (other.items + IT_KEY2);
+		other.items = (other.items | IT_KEY2);
 		self.carrier = other;
 		stuffcmd(other, "bf\n");
 		other.has_flag = 1;
@@ -520,7 +531,7 @@ void() flag_touch_red =
 		{
 			self.nextthink = (time + 0.1);
 			capture();
-			other.items = (other.items - IT_KEY1);
+			other.items = (other.items - (other.items & IT_KEY1));
 			other.has_flag = 0;
 		}
 	}
@@ -540,6 +551,7 @@ void() item_flagblue =
 	if ((FLAG_COUNT > 2))
 	{
 		remove(self);
+		return;
 	}
 	CTF_Precache();
 	self.touch = flag_touch_blue;
@@ -573,6 +585,7 @@ void() item_flagred =
 	if ((FLAG_COUNT > 2))
 	{
 		remove(self);
+		return;
 	}
 	CTF_Precache();
 	self.touch = flag_touch_red;
@@ -606,9 +619,9 @@ vector(vector org) createspawn =
 
 	makevectors(self.angles);
 	orgf = org + (v_forward * 400);
-	orgb = VEC_ORIGIN - orgf;
+	orgb = org - (v_forward * 400);
 	orgr = org + (v_right * 400);
-	orgl = VEC_ORIGIN - orgr;
+	orgl = org - (v_right * 400);
 	if ((pointcontents(orgf) != CONTENT_SOLID))
 	{
 		return (orgf);
@@ -649,7 +662,6 @@ void(vector spawnorg) makeTeamSpawns =
 
 	if ((self.classname == "info_player_start"))
 	{
-		findstart = spawn();
 		findstart = find(world, classname, "info_player_deathmatch");
 		distance = self.origin - findstart.origin;
 		if (!findstart)

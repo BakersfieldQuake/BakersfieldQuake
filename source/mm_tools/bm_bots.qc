@@ -424,11 +424,11 @@ float(float brange) BM_BotWeaponSwitch =
 		return FALSE;
 
 	// Never interrupt active charge/windup/flight states
-	if (self.fd_head != world || self.wc_charging > 0 || self.dk_charging > 0 || self.gj_shaking > 0 || self.ltg_phase == 1)
+	if (self.fd_head != world || self.wc_charging > 0 || self.dk_charging > 0 || self.gj_shaking > 0 || self.rh_charging > 0 || self.ky_locking > 0 || self.ltg_phase == 1)
 		return TRUE;
 	if (self.weapon == IT_AXE && self.hm_state == 1)
 		return TRUE;
-	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.gj_throw_at > 0)
+	if (self.pk_throw_at > 0 || self.ns_throw_at > 0 || self.gj_throw_at > 0 || self.rh_throw_at > 0 || self.ky_throw_at > 0)
 		return TRUE;
 
 	cur = BM_BotCurWeaponID ();
@@ -846,7 +846,6 @@ void() BM_BotSpawnLoadout =
 
 	if (autocvar_bm_bot_jpfuel > 0 && self.jp_fuel < autocvar_bm_bot_jpfuel)
 	{
-		Jetpack_Precache ();
 		self.jp_fuel = autocvar_bm_bot_jpfuel;
 		self.jp_low = FALSE;
 	}
@@ -1322,6 +1321,7 @@ void() BM_BotStartFrame =
 			ClearRouteTable ();		// items -1: pending WaypointThinks stop (no busy_waypoints < 0, no finish with self = world)
 			route_table = world;
 			busy_waypoints = 0;
+			direct_route = 0;
 			bm_route_lock_t = 0;
 		}
 		else if (!bm_route_lock_t)
@@ -1332,6 +1332,7 @@ void() BM_BotStartFrame =
 			ClearRouteTable ();
 			route_table = world;
 			busy_waypoints = 0;
+			direct_route = 0;
 			bm_route_lock_t = 0;
 		}
 	}
@@ -1472,7 +1473,7 @@ entity() BM_BotPickHuntTarget =
 	{
 		if (p != self && p.health > 0 && p.modelindex != 0 && !(p.flags & FL_NOTARGET) && !p.bm_obs)
 		{
-			if (!(teamplay && p.team == self.team))
+			if (!((teamplay || CTF_ENABLED) && p.team > 0 && p.team == self.team))
 			{
 				// Count other bots already swarming this player so bots don't all pile into one street fight
 				crowd = 0;

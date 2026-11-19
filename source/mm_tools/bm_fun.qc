@@ -88,10 +88,8 @@ void(entity e, string clip) BM_Fun_Say =
 	if (time < bm_fun_say_t)
 		return;
 	bm_fun_say_t = time + autocvar_bm_fun_gap;
-	if (clip == "funny/newbie.wav")
-		precache_sound ("funny/newbie.wav");
-	else
-		BM_Fun_Precache ();
+	// All announcer clips and funny/newbie.wav are precached unconditionally in BM_Precache (worldspawn);
+	// never call precache_sound at runtime after spawn.
 	if (bm_cvar_dev)
 		dprint ("announcer: ", clip, " (", e.netname, ")\n");
 	sound (e, CHAN_AUTO, clip, 1, ATTN_NONE);
@@ -219,7 +217,10 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 	}
 
 	if (splash != "" && attacker.ishuman == 1 && (!autocvar_bm_bounty || targ.ud_heat < 4))
+	{
 		centerprint (attacker, splash);
+		attacker.bm_fun_cp_t = time;
+	}
 
 	// the room cheers for last place (checked before this frag is added, so "last" means last)
 	if (Underdog_IsLast (attacker) && random () < autocvar_bm_fun_cheer)

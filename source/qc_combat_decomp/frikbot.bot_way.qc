@@ -213,7 +213,7 @@ entity(entity start) FindWayPoint =
 
 	org = realorigin(self);
 	t = way_head;
-	if ((start != world))
+	if (((start != world) && !bm_wasfreed(start) && (start.classname == "waypoint")))
 	{
 		dst = vlen((start.origin - org));
 		best = start;
@@ -541,6 +541,39 @@ void() ClearAllWays =
 	local entity t;
 	local entity n;
 
+	if (fixer)
+	{
+		fixer.enemy = world;
+		remove(fixer);
+		fixer = world;
+	}
+	route_table = world;
+	busy_waypoints = 0;
+	direct_route = 0;
+	t = nextent(world);
+	while (t)
+	{
+		if (t.current_way)
+		{
+			t.current_way = world;
+		}
+		if (t.last_way)
+		{
+			t.last_way = world;
+		}
+		if ((t.classname == "player"))
+		{
+			if ((t.target1 && (t.target1.classname == "waypoint")))
+				t.target1 = world;
+			if ((t.target2 && (t.target2.classname == "waypoint")))
+				t.target2 = world;
+			if ((t.target3 && (t.target3.classname == "waypoint")))
+				t.target3 = world;
+			if ((t.target4 && (t.target4.classname == "waypoint")))
+				t.target4 = world;
+		}
+		t = nextent(t);
+	}
 	t = way_head;
 	while (t)
 	{
@@ -631,6 +664,30 @@ void(entity what) delete_waypoint =
 			UnlinkWays(t, what);
 		}
 		t = t._next;
+	}
+	if (((what.keys == TRUE) && (busy_waypoints > 0)))
+	{
+		busy_waypoints = busy_waypoints - 1;
+	}
+	t = nextent(world);
+	while (t)
+	{
+		if ((t.current_way == what))
+			t.current_way = world;
+		if ((t.last_way == what))
+			t.last_way = world;
+		if ((t.classname == "player"))
+		{
+			if ((t.target1 == what))
+				t.target1 = world;
+			if ((t.target2 == what))
+				t.target2 = world;
+			if ((t.target3 == what))
+				t.target3 = world;
+			if ((t.target4 == what))
+				t.target4 = world;
+		}
+		t = nextent(t);
 	}
 	if ((self.current_way == what))
 	{
@@ -910,6 +967,16 @@ float() begin_route =
 				return (0);
 			}
 		}
+	}
+	if (((way_head != world) && (way_head.think == FixWaypoints)))
+	{
+		way_head.think = SUB_Null;
+		way_head.nextthink = -1;
+		FixWaypoints();
+	}
+	if ((fixer != world))
+	{
+		return (0);
 	}
 	route_table = self;
 	ClearRouteTable();

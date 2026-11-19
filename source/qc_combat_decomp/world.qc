@@ -180,16 +180,28 @@ void() worldspawn =
 	precache_model("progs/null.spr");
 	precache_sound("player/click.wav");
 	precache_sound("player/personal_player_teleport.wav");
-	if ((autocvar_backpack == 2))
-	{
-		precache_model("progs/backpack_soldier.mdl");
-		precache_model("progs/backpack_enforcer.mdl");
-		precache_model("progs/backpack_ogre.mdl");
-		precache_sound("ambience/backpack_soldier.wav");
-		precache_sound("ambience/backpack_enforcer.wav");
-		precache_sound("ambience/backpack_ogre.wav");
-		precache_sound("ambience/backpack_enforcer_ambience.wav");
-	}
+	// Precache runtime-used assets unconditionally in worldspawn (no post-spawn precache_* calls)
+	precache_sound("ambience/lavasplash_shotgun.wav");
+	precache_model("progs/backpack1.mdl");
+	precache_sound("zombie/penttouch.wav");
+	precache_sound("items/suit.wav");
+	precache_sound("items/suit2.wav");
+	precache_sound("items/damage.wav");
+	precache_sound("items/damage2.wav");
+	precache_sound("items/damage3.wav");
+	precache_sound("items/inv1.wav");
+	precache_sound("items/inv2.wav");
+	precache_sound("items/inv3.wav");
+	precache_sound("items/protect.wav");
+	precache_sound("items/protect2.wav");
+	precache_sound("items/protect3.wav");
+	precache_model("progs/backpack_soldier.mdl");
+	precache_model("progs/backpack_enforcer.mdl");
+	precache_model("progs/backpack_ogre.mdl");
+	precache_sound("ambience/backpack_soldier.wav");
+	precache_sound("ambience/backpack_enforcer.wav");
+	precache_sound("ambience/backpack_ogre.wav");
+	precache_sound("ambience/backpack_enforcer_ambience.wav");
 	precache_model("progs/corpse_pent.mdl");
 	precache_sound("zombie/corpse_lit.wav");
 	precache_sound("zombie/corpse_fire.wav");
@@ -884,6 +896,40 @@ void() StartFrame =
 	Gyro_Run();
 };
 
+.entity bm_painskin;
+
+void(entity attacker, float damage) bodyque_nopain =
+{
+};
+
+void() bodyque_clear =
+{
+	self.delete_painskin = 1;
+	if (self.bm_painskin && !bm_wasfreed(self.bm_painskin) && self.bm_painskin.owner == self)
+		remove(self.bm_painskin);
+	self.bm_painskin = world;
+	if (self.classname != "bodyque")
+	{
+		remove(self);
+		return;
+	}
+	self.i_am_a_corpse = 0;
+	self.takedamage = DAMAGE_NO;
+	self.solid = SOLID_NOT;
+	self.movetype = MOVETYPE_NONE;
+	self.touch = SUB_Null;
+	self.th_die = SUB_Null;
+	self.th_pain = bodyque_nopain;
+	self.think = SUB_Null;
+	self.nextthink = -1;
+	self.semisolid = "n";
+	self.model = string_null;
+	self.modelindex = 0;
+	self.traileffectnum = 0;
+	self.alpha = 1;
+	Gyro_Object_ClearPhysics(self);
+};
+
 void() bodyque =
 {
 };
@@ -956,7 +1002,7 @@ void() baked_explode =
 		}
 	}
 	sound(self, CHAN_AUTO, "ambience/coaled_monster_explode.wav", 1, ATTN_NORM);
-	remove(self);
+	bodyque_clear();
 };
 
 void() touchBody =
@@ -988,6 +1034,11 @@ void(entity ent, float hp, string headmdl) CopyToBodyQue =
 
 	pitch_roll_for_slope(VEC_ORIGIN);
 	spawn_bloodpool(1);
+	// Clean up any previous pain_skin_entity attached to this bodyque slot before recycling it (VEH-23)
+	if (bodyque_head.bm_painskin && !bm_wasfreed(bodyque_head.bm_painskin) && bodyque_head.bm_painskin.owner == bodyque_head)
+		remove(bodyque_head.bm_painskin);
+	bodyque_head.bm_painskin = world;
+	bodyque_head.delete_painskin = 0;
 	bodyque_head.i_am_a_corpse = 1;
 	bodyque_head.sizediff = self.sizediff;
 	bodyque_head.painskin_helper = self.painskin_helper;
@@ -1078,6 +1129,7 @@ void(entity ent, float hp, string headmdl) CopyToBodyQue =
 			if (autocvar_painskin_transparency)
 			{
 				pain_skin_entity = spawn();
+				bodyque_head.bm_painskin = pain_skin_entity;
 				pain_skin_entity.solid = 0;
 				pain_skin_entity.movetype = MOVETYPE_NOCLIP;
 				pain_skin_entity.owner = bodyque_head;
@@ -1590,7 +1642,7 @@ void(float maxgibs, float gibscounter) producegibs_corpse =
 void(string gibname, float dm) removehead =
 {
 	self.nextthink = (time + 0.001);
-	self.think = SUB_Remove;
+	self.think = bodyque_clear;
 };
 
 void() pentagram_touch_delay =
@@ -1688,6 +1740,7 @@ void() control_position_pentagram =
 	if ((self.pent_counter >= 16))
 	{
 		remove(self);
+		return;
 	}
 	self.nextthink = (time + 1.3);
 	self.think = control_position_pentagram;
@@ -1707,7 +1760,6 @@ void() spawn_corpse_pentagram =
 	setmodel(pentagram, "progs/corpse_pent.mdl");
 	setsize(pentagram, '-10 -10 -18', '10 10 40');
 	setorigin(pentagram, (self.origin - '0 0 37'));
-	precache_sound("zombie/penttouch.wav");
 	pentagram.traileffectnum = particleeffectnum(/*38518i*/"corpse_pentagram");
 	pentagram.healamount = autocvar_corpseburnpentagram_health;
 	pentagram.initial_amount = self.healamount;
@@ -1715,7 +1767,7 @@ void() spawn_corpse_pentagram =
 	pentagram.think = control_position_pentagram;
 	sound(self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
 	self.nextthink = (time + 0.01);
-	self.think = SUB_Remove;
+	self.think = bodyque_clear;
 };
 
 void() corpse_fade =
@@ -1723,7 +1775,10 @@ void() corpse_fade =
 	local float countdown;
 
 	self.magiccounter = (self.magiccounter - 1);
-	countdown = 1 / (autocvar_corpseburntime * 12);
+	if (autocvar_corpseburntime > 0)
+		countdown = 1 / (autocvar_corpseburntime * 12);
+	else
+		countdown = 1;
 	if ((self.magiccounter >= 0))
 	{
 		self.alpha = (self.alpha - countdown);
@@ -1740,7 +1795,7 @@ void() corpse_fade =
 		else
 		{
 			sound(self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
-			self.think = SUB_Remove;
+			self.think = bodyque_clear;
 			self.nextthink = time;
 		}
 	}

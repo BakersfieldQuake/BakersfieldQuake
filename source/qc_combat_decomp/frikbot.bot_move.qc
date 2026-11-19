@@ -181,6 +181,7 @@ void() frik_obstacles =
 {
 	local vector start;
 	local vector stop;
+	local vector torg;
 	local vector ang;
 	local float test;
 	local float conts;
@@ -223,7 +224,7 @@ void() frik_obstacles =
 		conts = pointcontents((trace_endpos + '0 0 4'));
 		if ((conts > -4))
 		{
-			if (self.enemy)
+			if ((self.enemy && !bm_wasfreed(self.enemy)))
 			{
 				if (((self.enemy.origin_z + 48) < self.origin_z))
 				{
@@ -231,10 +232,10 @@ void() frik_obstacles =
 					return;
 				}
 			}
-			if (self.target1)
+			if ((self.target1 && !bm_wasfreed(self.target1)))
 			{
-				stop = realorigin(self.target1);
-				if ((((self.origin_z + self.mins_z) - stop_z) > 32))
+				torg = realorigin(self.target1);
+				if ((((self.origin_z + self.mins_z) - torg_z) > 32))
 				{
 					bot_jump();
 					return;
@@ -403,7 +404,7 @@ void() frik_dodge_obstruction =
 		}
 		self.keys = ((self.keys & 960) + frik_KeysForDir(way));
 	}
-	self.origin = org;
+	setorigin(self, org);
 	self.flags = oflags;
 };
 

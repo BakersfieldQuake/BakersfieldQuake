@@ -220,16 +220,6 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	}
 	targ.armorvalue = (targ.armorvalue - save);
 	take = ceil((damage - save));
-	if ((take > 0) && (targ.classname == "player"))
-	{
-		targ.rg_hurt_t = time;	// regenerating health waits for this
-		if ((targ.fd_head != world) && (targ.ishuman == 1) && (time >= targ.fd_warn_t))
-		{
-			targ.fd_warn_t = (time + 1.0);
-			sound(targ, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NORM);
-			centerprint(targ, "^1WARNING: YOUR BODY IS BEING SHOT! Press H to recall!\n");
-		}
-	}
 	if ((targ.flags & FL_CLIENT))
 	{
 		targ.dmg_take = (targ.dmg_take + take);
@@ -267,9 +257,19 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		}
 		return;
 	}
-	if ((((teamplay == 1) && (targ.team > 0)) && (targ.team == attacker.team)))
+	if (((((teamplay == 1) || CTF_ENABLED) && (targ.team > 0)) && (targ.team == attacker.team) && (targ != attacker)))
 	{
 		return;
+	}
+	if ((take > 0) && (targ.classname == "player"))
+	{
+		targ.rg_hurt_t = time;	// regenerating health waits for this
+		if ((targ.fd_head != world) && (targ.ishuman == 1) && (time >= targ.fd_warn_t))
+		{
+			targ.fd_warn_t = (time + 1.0);
+			sound(targ, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NORM);
+			centerprint(targ, "^1WARNING: YOUR BODY IS BEING SHOT! Press H to recall!\n");
+		}
 	}
 	if (!targ.in_cocoon_shape)
 	{

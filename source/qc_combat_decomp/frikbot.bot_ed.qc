@@ -652,7 +652,10 @@ void() bot_menu_display =
 														self.target3 = world;
 														self.target2 = world;
 														self.target1 = world;
+														ClearRouteTable();
 														route_table = world;
+														busy_waypoints = 0;
+														direct_route = 0;
 													}
 													self = self._next;
 												}
@@ -1760,6 +1763,8 @@ void() BSPDumpWaypoints =
 		fixer.enemy = world;
 	}
 };
+
+// Keep legacy builtin stubs matching defs_custom.qc forward declarations (unused; SaveWaypoint/SaveWays use dpextensions fopen/fclose/fputs).
 string(string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7, optional string s8) strcat = #115; 
 __variant(...) open = #86; 
 void(entity killer, entity killee) zone = #79; 
@@ -1773,8 +1778,6 @@ void() SaveWaypoint =
 	local float needcolon;
 	local string h;
 	local string j;
-	local string k;
-	local string l;
 
 	if ((self.enemy == world))
 	{
@@ -1786,23 +1789,15 @@ void() SaveWaypoint =
 	}
 	if ((bytecounter >= 8000))
 	{
-		h = "maps/";
 		j = ftos(filecount);
-		h = zone(strcat("maps/", mapname));
-		k = zone(strcat("maps/", mapname));
-		h = zone(strcat(h, ".wa"));
-		l = zone(strcat(h, ".wa"));
-		unzone(k);
-		h = zone(strcat(h, j));
-		unzone(l);
-		write(file, /*7671i*/"exec ");
-		write(file, h);
-		write(file, /*1199i*/"\n");
+		h = strcat("maps/", mapname, ".wa", j);
+		fputs(file, "exec ");
+		fputs(file, h);
+		fputs(file, "\n");
 		filecount = filecount + 1;
-		close(file);
-		file = open(h, 2);
-		unzone(h);
-		if ((file == -1))
+		fclose(file);
+		file = fopen(h, 2);
+		if ((file < 0))
 		{
 			remove(self);
 			fixer = world;
@@ -1815,8 +1810,8 @@ void() SaveWaypoint =
 	{
 		remove(self);
 		fixer = world;
-		write(file, /*7705i*/"saved4 3\n");
-		close(file);
+		fputs(file, "saved4 3\n");
+		fclose(file);
 		bprint("waypoints saved.\n");
 		bytecounter = bytecounter + 27;
 		return;
@@ -1826,9 +1821,9 @@ void() SaveWaypoint =
 	t.origin_z = rint(t.origin_z);
 	if (((t.origin_x != saved1) || (t.count == 1)))
 	{
-		write(file, /*7106i*/"saved1 ");
+		fputs(file, /*7106i*/"saved1 ");
 		h = ftos(t.origin_x);
-		write(file, h);
+		fputs(file, h);
 		saved1 = t.origin_x;
 		bytecounter = bytecounter + 12;
 		needcolon = TRUE;
@@ -1837,16 +1832,16 @@ void() SaveWaypoint =
 	{
 		if (needcolon)
 		{
-			write(file, /*7114i*/"; ");
+			fputs(file, /*7114i*/"; ");
 			bytecounter = bytecounter + 2;
 		}
 		else
 		{
 			needcolon = TRUE;
 		}
-		write(file, /*7117i*/"saved2 ");
+		fputs(file, /*7117i*/"saved2 ");
 		h = ftos(t.origin_y);
-		write(file, h);
+		fputs(file, h);
 		bytecounter = bytecounter + 12;
 		saved2 = t.origin_y;
 	}
@@ -1854,91 +1849,91 @@ void() SaveWaypoint =
 	{
 		if (needcolon)
 		{
-			write(file, /*7114i*/"; ");
+			fputs(file, /*7114i*/"; ");
 			bytecounter = bytecounter + 2;
 		}
 		else
 		{
 			needcolon = TRUE;
 		}
-		write(file, /*7125i*/"saved3 ");
+		fputs(file, /*7125i*/"saved3 ");
 		h = ftos(t.origin_z);
-		write(file, h);
+		fputs(file, h);
 		bytecounter = bytecounter + 12;
 		saved3 = t.origin_z;
 	}
 	if (needcolon)
 	{
 		bytecounter = bytecounter + 1;
-		write(file, /*1199i*/"\n");
+		fputs(file, /*1199i*/"\n");
 		needcolon = 0;
 	}
 	if (((scratch1 != t.target1.count) || (t.count == 1)))
 	{
 		needcolon = TRUE;
-		write(file, /*7133i*/"scratch1 ");
+		fputs(file, /*7133i*/"scratch1 ");
 		bytecounter = bytecounter + 14;
 		h = ftos(t.target1.count);
-		write(file, h);
+		fputs(file, h);
 		scratch1 = t.target1.count;
 	}
 	if (((scratch2 != t.target2.count) || (t.count == 1)))
 	{
 		if (needcolon)
 		{
-			write(file, /*7114i*/"; ");
+			fputs(file, /*7114i*/"; ");
 			bytecounter = bytecounter + 2;
 		}
 		else
 		{
 			needcolon = TRUE;
 		}
-		write(file, /*7143i*/"scratch2 ");
+		fputs(file, /*7143i*/"scratch2 ");
 		bytecounter = bytecounter + 14;
 		h = ftos(t.target2.count);
-		write(file, h);
+		fputs(file, h);
 		scratch2 = t.target2.count;
 	}
 	if (((scratch3 != t.target3.count) || (t.count == 1)))
 	{
 		if (needcolon)
 		{
-			write(file, /*7114i*/"; ");
+			fputs(file, /*7114i*/"; ");
 			bytecounter = bytecounter + 2;
 		}
 		else
 		{
 			needcolon = TRUE;
 		}
-		write(file, /*7153i*/"scratch3 ");
+		fputs(file, /*7153i*/"scratch3 ");
 		bytecounter = bytecounter + 14;
 		h = ftos(t.target3.count);
-		write(file, h);
+		fputs(file, h);
 		scratch3 = t.target3.count;
 	}
 	if (((scratch4 != t.target4.count) || (t.count == 1)))
 	{
 		if (needcolon)
 		{
-			write(file, /*7114i*/"; ");
+			fputs(file, /*7114i*/"; ");
 			bytecounter = bytecounter + 2;
 		}
 		else
 		{
 			needcolon = TRUE;
 		}
-		write(file, /*7163i*/"scratch4 ");
+		fputs(file, /*7163i*/"scratch4 ");
 		bytecounter = bytecounter + 14;
 		h = ftos(t.target4.count);
-		write(file, h);
+		fputs(file, h);
 		scratch4 = t.target4.count;
 	}
 	if (needcolon)
 	{
-		write(file, /*1199i*/"\n");
+		fputs(file, /*1199i*/"\n");
 		needcolon = 0;
 	}
-	write(file, /*7173i*/"saved4 ");
+	fputs(file, /*7173i*/"saved4 ");
 	bytecounter = bytecounter + 19;
 	if ((t.count != 1))
 	{
@@ -1948,8 +1943,8 @@ void() SaveWaypoint =
 	{
 		h = ftos(((t.b_aiflags * 4) + 1));
 	}
-	write(file, h);
-	write(file, /*7181i*/"; wait\n");
+	fputs(file, h);
+	fputs(file, /*7181i*/"; wait\n");
 	self.nextthink = (time + 0.01);
 	self.enemy = t;
 };
@@ -1957,17 +1952,12 @@ void() SaveWaypoint =
 void() SaveWays =
 {
 	local string h;
-	local string f;
 
 	bytecounter = 50;
 	filecount = 1;
-	h = strcat("maps/", mapname);
-	h = zone(h);
-	f = zone(h);
-	h = strcat(h, ".way");
-	unzone(f);
-	file = open(h, 2);
-	if ((file == -1))
+	h = strcat("maps/", mapname, ".way");
+	file = fopen(h, 2);
+	if ((file < 0))
 	{
 		bprint("Error: failed to open file\n");
 		return;

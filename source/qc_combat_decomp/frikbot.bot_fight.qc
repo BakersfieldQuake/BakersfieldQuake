@@ -99,6 +99,13 @@ void() bot_dodge_stuff =
 	self.avoid = world;
 	if (self.enemy)
 	{
+		if (bm_wasfreed(self.enemy))
+		{
+			self.enemy = world;
+		}
+	}
+	if (self.enemy)
+	{
 		v = self.origin - realorigin(self.enemy);
 		foesz = bot_size_player(self.enemy);
 		foesz = foesz + (vlen(v) * 0.5);
@@ -192,7 +199,7 @@ void() bot_dodge_stuff =
 				{
 					if ((foe.health > 0))
 					{
-						if (!(teamplay && (self.team == foe.team)))
+						if (!((teamplay || CTF_ENABLED) && (self.team > 0) && (self.team == foe.team)))
 						{
 							tsz = bot_size_player(foe) + (vlen((foe.origin - self.origin)) * 0.35);
 							if ((tsz < foesz))
@@ -241,6 +248,11 @@ void() bot_fight_style =
 	local vector org;
 	local float foedist;
 
+	if ((!self.enemy || bm_wasfreed(self.enemy)))
+	{
+		self.enemy = world;
+		return;
+	}
 	if ((self.enemy.health <= 0))
 	{
 		self.enemy = world;
@@ -267,7 +279,7 @@ void() bot_fight_style =
 		{
 			if ((trace_ent.classname == "player"))
 			{
-				if ((((trace_ent.team == self.team) && teamplay) || coop))
+				if (((((trace_ent.team == self.team) && (self.team > 0)) && (teamplay || CTF_ENABLED)) || coop))
 				{
 					return;
 				}
@@ -286,6 +298,10 @@ void() bot_fight_style =
 	}
 	if (!(self.b_aiflags & 161))
 	{
+		if ((self.avoid && bm_wasfreed(self.avoid)))
+		{
+			self.avoid = world;
+		}
 		if (self.avoid)
 		{
 			if (!!self.avoid.velocity)
