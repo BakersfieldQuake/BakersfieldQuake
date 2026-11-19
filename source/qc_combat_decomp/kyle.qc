@@ -590,6 +590,145 @@ void(vector org, float count) KY_SpawnBouncingScissors =
 	}
 };
 
+void(entity p) KY_CamDetach =
+{
+	local entity cam;
+
+	if (p == world || bm_wasfreed (p))
+		return;
+	cam = p.ky_cam;
+	p.ky_cam = world;
+	p.fixangle = FALSE;
+	if (p.clientcamera != p)
+	{
+		p.clientcamera = p;
+		if (p.ishuman == 1)
+		{
+			msg_entity = p;
+			WriteByte (MSG_ONE, 5);		// svc_setview
+			WriteEntity (MSG_ONE, p);
+		}
+	}
+	if (cam != world && !bm_wasfreed (cam))
+		remove (cam);
+};
+
+void() KY_CamThink =
+{
+	local entity p, k, targ;
+	local vector korg, torg, dir, right, des, pos, focus, ang;
+	local float px, orbiting;
+
+	p = self.owner;
+	if (p == world || bm_wasfreed (p) || p.health <= 0 || !autocvar_kyle_cam)
+	{
+		KY_CamDetach (p);
+		return;
+	}
+
+	k = self.ky_cam_kyle;
+	targ = self.ky_cam_targ;
+	if (k != world && !bm_wasfreed (k) && !k.ky_done)
+	{
+		korg = k.origin;
+		self.ky_cam_last = korg;
+		orbiting = (k.ky_mode != KY_MODE_HOMING);
+		if (targ != world && !bm_wasfreed (targ) && targ.health > 0 && !targ.jb_dying)
+		{
+			torg = targ.origin + '0 0 18';
+			self.ky_cam_last = torg;
+		}
+		else
+		{
+			torg = korg;
+			if (!self.ky_cam_end)
+				self.ky_cam_end = time + 1.15;
+		}
+
+		if (!orbiting)
+		{
+			dir = vlen (k.velocity) > 10 ? normalize (k.velocity) : normalize (torg - korg);
+			right_x = 0 - dir_y;
+			right_y = dir_x;
+			right_z = 0;
+			if (vlen (right) > 0.01)
+				right = normalize (right);
+			else
+				right = '1 0 0';
+			des = korg - dir * 88 + right * 26 + '0 0 22';
+			focus = korg * 0.50 + torg * 0.50 + '0 0 8';
+		}
+		else
+		{
+			focus = self.ky_cam_last;
+			makevectors ('0 1 0' * (time * 64));
+			des = focus - v_forward * 145 + v_right * 35 + '0 0 42';
+		}
+	}
+	else
+	{
+		if (!self.ky_cam_end)
+			self.ky_cam_end = time + 1.10;
+		focus = self.ky_cam_last;
+		makevectors ('0 1 0' * (time * 52));
+		des = focus - v_forward * 165 + '0 0 54';
+	}
+
+	if (self.ky_cam_end > 0 && time >= self.ky_cam_end)
+	{
+		KY_CamDetach (p);
+		return;
+	}
+
+	traceline (focus, des, TRUE, p);
+	pos = trace_endpos;
+	if (trace_fraction < 1)
+		pos = pos + trace_plane_normal * 10;
+	setorigin (self, pos);
+
+	ang = vectoangles (focus - pos);
+	px = ang_x;
+	if (px > 180)
+		px = px - 360;
+	ang_x = 0 - px;
+	ang_z = 0;
+	self.angles = ang;
+	p.angles = ang;
+	p.v_angle = ang;
+	p.fixangle = TRUE;
+	self.nextthink = time + 0.02;
+};
+
+void(entity p, entity k, entity targ) KY_CamAttach =
+{
+	local entity cam;
+
+	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam)
+		return;
+	KY_CamDetach (p);
+	cam = spawn ();
+	cam.classname = "ky_cam";
+	cam.owner = p;
+	cam.ky_cam_kyle = k;
+	cam.ky_cam_targ = targ;
+	cam.ky_cam_last = k.origin;
+	cam.health = 100;
+	cam.movetype = MOVETYPE_NONE;
+	cam.solid = SOLID_NOT;
+	cam.alpha = 0.01;
+	cam.scale = 0.01;
+	setmodel (cam, "progs/spike.mdl");
+	setsize (cam, '0 0 0', '0 0 0');
+	setorigin (cam, k.origin);
+	p.ky_cam = cam;
+	p.clientcamera = cam;
+	msg_entity = p;
+	WriteByte (MSG_ONE, 5);		// svc_setview
+	WriteEntity (MSG_ONE, cam);
+	cam.think = KY_CamThink;
+	cam.nextthink = time + 0.01;
+};
+
 void() KY_Pop =
 {
 	if (self.ky_done)
@@ -894,6 +1033,8 @@ void() KY_ProjThink =
 	// ---- MODE 1: BARREL-ROLLING SUPERMAN-TORPEDO KYLE (Slowly chasing the Bird at bird_speed + 85 u/s!) ----
 	if (self.ky_mode == KY_MODE_HOMING)
 	{
+		if (autocvar_kyle_cam > 0 && time >= self.fg_born + 0.22 && self.owner.ky_cam == world)
+			KY_CamAttach (self.owner, self, self.ky_targ);
 		if (time - self.fg_born < 0.35)
 		{
 			spd = (time - self.fg_born) / 0.35;
@@ -1259,6 +1400,7 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 
 void(entity p) KY_ResetPlayer =
 {
+	KY_CamDetach (p);
 	p.ky_locking = 0;
 	p.ky_lock_prog = 0;
 	p.ky_windup = 0;
@@ -1283,6 +1425,7 @@ void(entity p) KY_CleanupOwner =
 {
 	local entity e, nx, oself;
 
+	KY_CamDetach (p);
 	e = find (world, classname, "kyle_proj");
 	while (e)
 	{
@@ -1493,6 +1636,13 @@ void(entity vm, float is_quad) Kyle_ViewFrame =
 	local vector vxy;
 
 	p = vm.owner;
+	if (p.clientcamera != p)
+	{
+		vm.alpha = -1;
+		return;
+	}
+	if (vm.alpha < 0)
+		vm.alpha = is_quad ? 0.5 : 1;
 	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_KYLE)
 	{
 		if (vm.kyvm_on)

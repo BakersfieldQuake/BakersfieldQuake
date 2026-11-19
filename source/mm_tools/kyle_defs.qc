@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 THE POCKET KYLE (Fun Gun Slot 8, FG_KYLE = 8, BM_FG8 = 17, impulse 68, key Z / -)
@@ -80,6 +83,13 @@ float	KY_MODE_WANDER		= 5;		// Active ground roaming & brief funny shrugs
 float	KY_MODE_DYING		= 6;		// Death pop -> explodes into US money + bouncing 3D chrome scissors!
 
 var float	autocvar_kyle_test	= 0;	// 1 = allows locking/latching onto yourself in solo testing
+var float	autocvar_kyle_cam	= 0;	// 1 = cinematic 3rd-person follow cam on flying Superman-Torpedo Kyle
+
+.entity	ky_cam;				// active 3rd-person Kyle follow camera (player)
+.entity	ky_cam_kyle;		// followed Kyle entity (camera)
+.entity	ky_cam_targ;		// hunted bird/target entity (camera)
+.float	ky_cam_end;			// timestamp to detach camera after target kill/pop
+.vector	ky_cam_last;		// smoothed focus origin after projectile/bird explodes
 
 float	ky_cash_count;
 entity	ky_cash_qhead;
