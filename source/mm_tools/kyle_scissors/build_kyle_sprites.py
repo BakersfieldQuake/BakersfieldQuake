@@ -2,7 +2,7 @@
 clean studio portrait cutouts, and sprites/manifest.json.
 
 Outputs to:
-  C:\\Users\\qxdc\\.gemini\\antigravity\\brain\\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\\scratch\\kyle_stage\\sprites\\
+  source/mm_tools/kyle_scissors/assets/sprites/
 
 Sets produced:
   1. running_scissors/  (8 dirs x 6 frames = 48 RGBA PNGs, 192px tall)
@@ -30,12 +30,9 @@ from PIL import Image, ImageDraw, ImageFont
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 PK3_PATH = os.path.join(REPO_ROOT, "bakersfield.pk3")
 UPLOAD_DIR = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\.user_uploaded"
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "raw_photos")
 )
-OUT_DIR = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\scratch\kyle_stage\sprites"
-)
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "sprites")
 
 VID_OVERHEAD = os.path.join(UPLOAD_DIR, "media_1795056597277_fa6b997e.mp4")
 VID_FRONT = os.path.join(UPLOAD_DIR, "media_1795056597277_2a827670.mp4")

@@ -1,24 +1,20 @@
 """Build the reproducible BakersfieldQuake overlay package: zz_kyle.pk3.
 
 Never touches bakersfield.pk3 or quake15/q15.pk3!
+Uses only the Python standard library + pinned numpy and Pillow (no OpenCV).
 Packages all Pocket Kyle Fun Gun (Slot 8 / impulse 68) assets cleanly into zz_kyle.pk3:
   - progs/v_kyle.md3                (1-frame flat viewmodel card)
-  - progs/v_kyle.md3_0..111.skin    (112 skins @ 24 FPS: 48 idle, 24 lock, 28 fire, 12 draw)
-  - progs/kvm_000..111.png          (320x426 RGBA, HDR-toned + edge RGB bled)
-  - scripts/kylevm.shader           (per-frame clampmap + rgbGen lightingDiffuse shaders)
-  - progs/kyle_proj.spr32           (IDSP v32 SPR_VP_PARALLEL, 416f: 4 custom states x 8 dirs)
-      0..127   running_scissors  (8 dirs x 16f @ 24 FPS)
-      128..223 overhead_scissors (8 dirs x 12f @ 24 FPS)
-      224..319 front_scissors    (8 dirs x 12f @ 24 FPS)
-      320..415 no_scissors       (8 dirs x 12f @ 16 FPS)
+  - progs/v_kyle.md3_0..149.skin    (150 skins @ 24 FPS: 48 idle, 24 lock, 24 birdlock, 42 fire, 12 draw)
+  - progs/kvm_000..149.png          (320x426 RGBA, HDR-toned + edge RGB bled)
+  - scripts/kylevm.shader           (per-frame clampmap + nomipmaps + rgbGen lightingDiffuse shaders)
+  - progs/kyle_scissors.md3/.png    (3D bouncing chrome scissors)
+  - progs/kyle_torpedo.md3 + tex    (3D horizontal Superman-Torpedo Kyle w/ snapping chrome scissors)
+  - progs/kyle_proj.spr32           (IDSP v32 SPR_VP_PARALLEL, 272f: 4 states x 8 dirs x 8f + 8 below + 8 above)
   - progs/kyle_cash.spr32           (IDSP v32 SPR_VP_PARALLEL, 24f centered US currency)
-      0..7     Realistic US $100 bills (8 tumbling/fluttering frames)
-      8..15    2024 Washington Silver Quarter (8 spinning 3D frames)
-      16..23   2024 Sacagawea Gold Dollar (8 spinning 3D frames)
-  - sound/kyle/*.wav                (17 clean 22050 Hz mono PCM WAVs — ZERO 'clients' clips)
+  - sound/kyle/*.wav                (26 clean 22050 Hz mono PCM WAVs — ZERO 'clients' clips)
 
 Run:
-    python source/mm_tools/kyle_scissors/build_kyle_pk3.py
+    python -I source/mm_tools/kyle_scissors/build_kyle_pk3.py [base_bakersfield.pk3] <out_zz_kyle.pk3>
 """
 
 import hashlib
@@ -28,11 +24,11 @@ import math
 import os
 import struct
 import sys
+import tempfile
 import zipfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -42,12 +38,13 @@ REPO_ROOT = TOOLS_DIR.parent.parent
 sys.path.insert(0, str(TOOLS_DIR))
 import md3lib
 
-ARTIFACT_ROOT = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-VM_SRC_DIR = ARTIFACT_ROOT / "scratch" / "pocket_kyle_hd"
-SPR_SRC_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "sprites"
-SFX_SRC_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "sfx"
-VOICE_SRC_DIR = ARTIFACT_ROOT / "scratch" / "kyle_clips"
-OUT_PK3 = REPO_ROOT / "zz_kyle.pk3"
+ASSETS_DIR = HERE / "assets"
+VM_SRC_DIR = ASSETS_DIR / "pocket_kyle_hd"
+SPR_SRC_DIR = ASSETS_DIR / "sprites"
+SFX_SRC_DIR = ASSETS_DIR / "sfx"
+VOICE_SRC_DIR = ASSETS_DIR / "clips"
+MODEL_SRC_DIR = ASSETS_DIR / "models"
+DEFAULT_OUT_PK3 = REPO_ROOT / "zz_kyle.pk3"
 
 # Viewmodel card placement (user-tuned via Pocket Kyle POV Tuner on 16:9 FOV 90 viewplane @ VIEW_X = 14)
 VIEW_X = 14.0
@@ -94,25 +91,46 @@ SOUND_MAP = {
     "sound/kyle/scissor_clang3.wav": SFX_SRC_DIR / "scissor_clang3.wav",
 }
 
-MODEL_SRC_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "models"
-
 
 def resize_premul(rgba: np.ndarray, wh: Tuple[int, int]) -> np.ndarray:
-    a = rgba[..., 3:4].astype(np.float32) / 255.0
-    pm = np.empty(rgba.shape, dtype=np.float32)
-    pm[..., :3] = rgba[..., :3].astype(np.float32) * a
-    pm[..., 3:4] = a
-    pm_s = cv2.resize(pm, wh, interpolation=cv2.INTER_AREA)
-    a_s = np.clip(pm_s[..., 3:4], 0.0, 1.0)
-    rgb = np.where(a_s > 1e-4, pm_s[..., :3] / np.maximum(a_s, 1e-4), 0.0)
-    out = np.empty((wh[1], wh[0], 4), dtype=np.uint8)
-    out[..., :3] = np.clip(np.round(rgb), 0, 255).astype(np.uint8)
-    out[..., 3] = np.clip(np.round(a_s[..., 0] * 255.0), 0, 255).astype(np.uint8)
+    """Premultiplied RGBA area resize using only Pillow + NumPy (no dark alpha fringes)."""
+    w, h = wh
+    if rgba.shape[1] == w and rgba.shape[0] == h:
+        return rgba.copy()
+    a = rgba[..., 3].astype(np.float32) / 255.0
+    a_rsz = np.asarray(
+        Image.fromarray(a, mode="F").resize((w, h), Image.Resampling.BOX),
+        dtype=np.float32,
+    )
+    a_rsz = np.clip(a_rsz, 0.0, 1.0)
+    out = np.empty((h, w, 4), dtype=np.uint8)
+    nz = a_rsz > 1e-4
+    denom = np.where(nz, a_rsz, 1.0)
+    for c in range(3):
+        pm = rgba[..., c].astype(np.float32) * a
+        pm_rsz = np.asarray(
+            Image.fromarray(pm, mode="F").resize((w, h), Image.Resampling.BOX),
+            dtype=np.float32,
+        )
+        ch = np.where(nz, pm_rsz / denom, 0.0)
+        out[..., c] = np.clip(np.round(ch), 0.0, 255.0).astype(np.uint8)
+    out[..., 3] = np.clip(np.round(a_rsz * 255.0), 0.0, 255.0).astype(np.uint8)
     return out
 
 
+def _box_sum_3x3_edge(arr: np.ndarray) -> np.ndarray:
+    """3x3 box filter sum with edge-replicated borders (pure NumPy)."""
+    p = np.pad(arr, ((1, 1), (1, 1)), mode="edge")
+    h, w = arr.shape
+    return (
+        p[0:h, 0:w] + p[0:h, 1:w + 1] + p[0:h, 2:w + 2]
+        + p[1:h + 1, 0:w] + p[1:h + 1, 1:w + 1] + p[1:h + 1, 2:w + 2]
+        + p[2:h + 2, 0:w] + p[2:h + 2, 1:w + 1] + p[2:h + 2, 2:w + 2]
+    )
+
+
 def bleed_rgb_edges(rgba: np.ndarray, passes: int = 4) -> np.ndarray:
-    """Propagate foreground RGB into alpha==0 neighbors (pure numpy/cv2, zero scipy)
+    """Propagate foreground RGB into alpha==0 neighbors (pure NumPy)
     so DarkPlaces bilinear filtering never produces dark or white halos."""
     out = rgba.copy()
     mask = out[..., 3] >= 24
@@ -120,14 +138,13 @@ def bleed_rgb_edges(rgba: np.ndarray, passes: int = 4) -> np.ndarray:
         return out
     rgb = out[..., :3].astype(np.float32)
     valid = mask.astype(np.float32)
-    k = np.ones((3, 3), np.float32)
     for _ in range(passes):
-        w_sum = cv2.filter2D(valid, -1, k, borderType=cv2.BORDER_REPLICATE)
+        w_sum = _box_sum_3x3_edge(valid)
         need = (valid < 0.5) & (w_sum > 0.5)
         if not np.any(need):
             break
         for c in range(3):
-            c_sum = cv2.filter2D(rgb[..., c] * valid, -1, k, borderType=cv2.BORDER_REPLICATE)
+            c_sum = _box_sum_3x3_edge(rgb[..., c] * valid)
             rgb[..., c][need] = c_sum[need] / w_sum[need]
         valid[need] = 1.0
     out[..., :3] = np.clip(np.round(rgb), 0, 255).astype(np.uint8)
@@ -180,11 +197,10 @@ def build_md3_card_bytes(aspect: float) -> bytes:
         st=st,
         frames=[(card, [(-1.0, 0.0, 0.0)] * 4)],
     )
-    tmp_path = ARTIFACT_ROOT / "scratch" / "_tmp_v_kyle.md3"
-    md3lib.write(str(tmp_path), dict(name="v_kyle", surfaces=[surf], nframes=1))
-    data = tmp_path.read_bytes()
-    tmp_path.unlink(missing_ok=True)
-    return data
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td) / "v_kyle.md3"
+        md3lib.write(str(tmp_path), dict(name="v_kyle", surfaces=[surf], nframes=1))
+        return tmp_path.read_bytes()
 
 
 def pack_spr32_bytes(frames_rgba: List[np.ndarray], center_origin: bool = False,
@@ -227,16 +243,17 @@ def pack_spr32_bytes(frames_rgba: List[np.ndarray], center_origin: bool = False,
 def build_pk3(out_path: Path) -> str:
     files: Dict[str, bytes] = {}
 
-    # 1. Viewmodel (150 frames @ 24 FPS = every 2nd frame of 300 @ 48 FPS)
+    # 1. Viewmodel (150 frames @ 24 FPS)
     with open(VM_SRC_DIR / "manifest.json", "r", encoding="utf-8") as fh:
         vm_m = json.load(fh)
+    stride = 2 if vm_m.get("fps", 24) >= 48 else 1
 
     vm_list = (
-        vm_m["idle"][::2]      # 48 frames (skins   0..47)
-        + vm_m["lock"][::2]    # 24 frames (skins  48..71 — ground windup)
-        + vm_m["birdlock"][::2]# 24 frames (skins  72..95 — BRAND-NEW Superman anti-air bird lock-on!)
-        + vm_m["fire"][::2]    # 42 frames (skins  96..137 — BRAND-NEW 8-stage physical throwing hand!)
-        + vm_m["draw"][::2]    # 12 frames (skins 138..149)
+        vm_m["idle"][::stride]      # 48 frames (skins   0..47)
+        + vm_m["lock"][::stride]    # 24 frames (skins  48..71 — ground windup)
+        + vm_m["birdlock"][::stride]# 24 frames (skins  72..95 — Superman anti-air bird lock-on)
+        + vm_m["fire"][::stride]    # 42 frames (skins  96..137 — 8-stage physical throwing hand)
+        + vm_m["draw"][::stride]    # 12 frames (skins 138..149)
     )
     assert len(vm_list) == 150, f"Expected 150 viewmodel frames, got {len(vm_list)}"
 
@@ -252,7 +269,7 @@ def build_pk3(out_path: Path) -> str:
             f"{sh_name}\n{{\n\tcull none\n\tnomipmaps\n\t{{\n"
             f"\t\tclampmap {sh_name}\n\t\tblendfunc blend\n\t\trgbGen lightingDiffuse\n\t}}\n}}\n"
         )
-    # Add 3D bouncing chrome scissors + 3D spinning Superman-Torpedo Kyle shaders & models
+    # Add 3D bouncing chrome scissors + 3D Superman-Torpedo Kyle shaders & models
     shader_lines.append(
         "progs/kyle_scissors\n{\n\tcull none\n\t{\n\t\tmap progs/kyle_scissors.png\n\t\trgbGen lightingDiffuse\n\t}\n}\n"
     )
@@ -319,6 +336,7 @@ def build_pk3(out_path: Path) -> str:
         files[arc] = src_p.read_bytes()
 
     # 5. Write deterministic reproducible PK3 (sorted entries, fixed 1980-01-01 timestamp & attrs)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out_path, "w") as zf:
         for name in sorted(files):
             info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
@@ -338,13 +356,24 @@ def build_pk3(out_path: Path) -> str:
 
 
 def main():
-    sha1 = build_pk3(OUT_PK3)
-    # Verify byte-identical reproducibility per AGENTS.md!
-    tmp_check = ARTIFACT_ROOT / "scratch" / "_zz_kyle_repro_check.pk3"
-    sha2 = build_pk3(tmp_check)
-    tmp_check.unlink(missing_ok=True)
-    assert sha1 == sha2, f"Reproducibility check FAILED: {sha1} != {sha2}"
-    print(f"Reproducibility PASSED: byte-identical sha256 = {sha1}")
+    args = [a for a in sys.argv[1:] if a != "--check-repro"]
+    check_repro = "--check-repro" in sys.argv[1:]
+    if len(args) >= 2:
+        # Uniform CI signature: <base bakersfield.pk3> <out zz_kyle.pk3>
+        out_path = Path(args[1])
+    elif len(args) == 1:
+        out_path = Path(args[0])
+    else:
+        out_path = DEFAULT_OUT_PK3
+        check_repro = True
+
+    sha1 = build_pk3(out_path)
+    if check_repro:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_check = Path(td) / "zz_kyle_repro_check.pk3"
+            sha2 = build_pk3(tmp_check)
+        assert sha1 == sha2, f"Reproducibility check FAILED: {sha1} != {sha2}"
+        print(f"Reproducibility PASSED: byte-identical sha256 = {sha1}")
 
 
 if __name__ == "__main__":

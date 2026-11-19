@@ -17,14 +17,8 @@ import numpy as np
 SR = 22050
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_OUT_DIR = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\scratch\kyle_stage\sfx"
-)
-DEFAULT_VOICE_DIR = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\scratch\kyle_clips"
-)
+DEFAULT_OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "sfx")
+DEFAULT_VOICE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "clips")
 
 
 # ---------------------------------------------------------------------------

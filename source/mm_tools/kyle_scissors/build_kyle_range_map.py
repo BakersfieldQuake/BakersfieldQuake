@@ -20,7 +20,7 @@ from pathlib import Path
 REPO = Path(r"g:\Quake\Combat\BakersfieldQuake")
 ERICW = Path(r"g:\Quake\Combat\tools\ericw")
 WAD_PATH = REPO / "source" / "mm_tools" / "morro_rock" / "out" / "morrorock.wad"
-OUT_WORK = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\scratch\kyle_range")
+OUT_WORK = Path(__file__).resolve().parent / "assets" / "kyle_range_work"
 OUT_WORK.mkdir(parents=True, exist_ok=True)
 
 

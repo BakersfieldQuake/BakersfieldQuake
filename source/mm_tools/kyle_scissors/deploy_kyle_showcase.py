@@ -23,12 +23,10 @@ SHOWCASE_HTML = REPO / "docs" / "kyle_weapon_showcase.html"
 PROJ_HTML = REPO / "docs" / "kyle_projectile_showcase.html"
 SOUND_HTML = REPO / "docs" / "kyle_scissors_sound_preview.html"
 AUDIT_JPG = (
-    Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-    / "scratch" / "pocket_kyle_hd" / "_audit_ik_progression.jpg"
+    Path(__file__).resolve().parent / "assets" / "pocket_kyle_hd" / "_audit_ik_progression.jpg"
 )
 PROJ_AUDIT_JPG = (
-    Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-    / "scratch" / "kyle_stage" / "sprites" / "_audit_studio_final.jpg"
+    Path(__file__).resolve().parent / "assets" / "sprites" / "_audit_studio_final.jpg"
 )
 PREVIEW_JPG = AUDIT_JPG
 

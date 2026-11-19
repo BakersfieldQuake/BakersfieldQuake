@@ -24,10 +24,10 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent.parent
-ARTIFACT_ROOT = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-CLIPS_DIR = ARTIFACT_ROOT / "scratch" / "kyle_clips"
-SFX_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "sfx"
-VM_DIR = ARTIFACT_ROOT / "scratch" / "pocket_kyle_hd"
+ARTIFACT_ROOT = Path(__file__).resolve().parent / "assets"
+CLIPS_DIR = ARTIFACT_ROOT / "clips"
+SFX_DIR = ARTIFACT_ROOT / "sfx"
+VM_DIR = ARTIFACT_ROOT / "pocket_kyle_hd"
 OUT_HTML = REPO / "docs" / "kyle_sound_vote.html"
 
 WORK_SR = 44100

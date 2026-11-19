@@ -14,8 +14,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-PHOTO_HEAD = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\.user_uploaded\media_1795056507412_c9227b8c.jpg"
-PHOTO_BODY = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\.user_uploaded\media_1795056611778_b8a1f6c9.jpg"
+PHOTO_HEAD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "raw_photos", "media_1795056507412_c9227b8c.jpg")
+PHOTO_BODY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "raw_photos", "media_1795056611778_b8a1f6c9.jpg")
 
 # UV rects in kyle_cutout.png (u0, v0, u1, v1) with v=0 at top (standard Quake/WebGL image top-left UV)
 UV_CUT_BODY    = (0.01, 0.01, 0.49, 0.99)

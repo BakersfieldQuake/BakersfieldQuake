@@ -41,9 +41,9 @@ sys.path.insert(0, str(HERE))
 import md3lib
 import build_scissors_md3 as scis_mod
 
-ARTIFACT_ROOT = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-INSPO_FRAMES_DIR = ARTIFACT_ROOT / "scratch" / "inspo_frames"
-OUT_MODEL_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "models"
+ARTIFACT_ROOT = Path(__file__).resolve().parent / "assets"
+INSPO_FRAMES_DIR = ARTIFACT_ROOT / "inspo_frames"
+OUT_MODEL_DIR = ARTIFACT_ROOT / "models"
 
 
 def bleed_rgb_edges(rgba: np.ndarray, passes: int = 4) -> np.ndarray:

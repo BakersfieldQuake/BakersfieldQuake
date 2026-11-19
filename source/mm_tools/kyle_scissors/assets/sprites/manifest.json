@@ -1,0 +1,498 @@
+{
+  "version": 4,
+  "sprite_height": 300,
+  "directions": [
+    {
+      "dir": 0,
+      "angle_deg": 0,
+      "label": "0\u00b0 Front"
+    },
+    {
+      "dir": 1,
+      "angle_deg": 45,
+      "label": "45\u00b0 Front-Left"
+    },
+    {
+      "dir": 2,
+      "angle_deg": 90,
+      "label": "90\u00b0 Left Side"
+    },
+    {
+      "dir": 3,
+      "angle_deg": 135,
+      "label": "135\u00b0 Back-Left"
+    },
+    {
+      "dir": 4,
+      "angle_deg": 180,
+      "label": "180\u00b0 Back"
+    },
+    {
+      "dir": 5,
+      "angle_deg": 225,
+      "label": "225\u00b0 Back-Right"
+    },
+    {
+      "dir": 6,
+      "angle_deg": 270,
+      "label": "270\u00b0 Right Side"
+    },
+    {
+      "dir": 7,
+      "angle_deg": 315,
+      "label": "315\u00b0 Front-Right"
+    }
+  ],
+  "states": {
+    "running_scissors": {
+      "title": "Running + Chopping (Real Studio Photo)",
+      "fps": 12,
+      "frame_duration_ms": 83,
+      "num_dirs": 8,
+      "num_frames": 8,
+      "frame_size": [
+        268,
+        300
+      ],
+      "directions": {
+        "0": [
+          "running_scissors/d0_f0.png",
+          "running_scissors/d0_f1.png",
+          "running_scissors/d0_f2.png",
+          "running_scissors/d0_f3.png",
+          "running_scissors/d0_f4.png",
+          "running_scissors/d0_f5.png",
+          "running_scissors/d0_f6.png",
+          "running_scissors/d0_f7.png"
+        ],
+        "1": [
+          "running_scissors/d1_f0.png",
+          "running_scissors/d1_f1.png",
+          "running_scissors/d1_f2.png",
+          "running_scissors/d1_f3.png",
+          "running_scissors/d1_f4.png",
+          "running_scissors/d1_f5.png",
+          "running_scissors/d1_f6.png",
+          "running_scissors/d1_f7.png"
+        ],
+        "2": [
+          "running_scissors/d2_f0.png",
+          "running_scissors/d2_f1.png",
+          "running_scissors/d2_f2.png",
+          "running_scissors/d2_f3.png",
+          "running_scissors/d2_f4.png",
+          "running_scissors/d2_f5.png",
+          "running_scissors/d2_f6.png",
+          "running_scissors/d2_f7.png"
+        ],
+        "3": [
+          "running_scissors/d3_f0.png",
+          "running_scissors/d3_f1.png",
+          "running_scissors/d3_f2.png",
+          "running_scissors/d3_f3.png",
+          "running_scissors/d3_f4.png",
+          "running_scissors/d3_f5.png",
+          "running_scissors/d3_f6.png",
+          "running_scissors/d3_f7.png"
+        ],
+        "4": [
+          "running_scissors/d4_f0.png",
+          "running_scissors/d4_f1.png",
+          "running_scissors/d4_f2.png",
+          "running_scissors/d4_f3.png",
+          "running_scissors/d4_f4.png",
+          "running_scissors/d4_f5.png",
+          "running_scissors/d4_f6.png",
+          "running_scissors/d4_f7.png"
+        ],
+        "5": [
+          "running_scissors/d5_f0.png",
+          "running_scissors/d5_f1.png",
+          "running_scissors/d5_f2.png",
+          "running_scissors/d5_f3.png",
+          "running_scissors/d5_f4.png",
+          "running_scissors/d5_f5.png",
+          "running_scissors/d5_f6.png",
+          "running_scissors/d5_f7.png"
+        ],
+        "6": [
+          "running_scissors/d6_f0.png",
+          "running_scissors/d6_f1.png",
+          "running_scissors/d6_f2.png",
+          "running_scissors/d6_f3.png",
+          "running_scissors/d6_f4.png",
+          "running_scissors/d6_f5.png",
+          "running_scissors/d6_f6.png",
+          "running_scissors/d6_f7.png"
+        ],
+        "7": [
+          "running_scissors/d7_f0.png",
+          "running_scissors/d7_f1.png",
+          "running_scissors/d7_f2.png",
+          "running_scissors/d7_f3.png",
+          "running_scissors/d7_f4.png",
+          "running_scissors/d7_f5.png",
+          "running_scissors/d7_f6.png",
+          "running_scissors/d7_f7.png"
+        ]
+      }
+    },
+    "overhead_scissors": {
+      "title": "Overhead Jump-Chop (Real Studio Photo)",
+      "fps": 12,
+      "frame_duration_ms": 83,
+      "num_dirs": 8,
+      "num_frames": 8,
+      "frame_size": [
+        262,
+        300
+      ],
+      "directions": {
+        "0": [
+          "overhead_scissors/d0_f0.png",
+          "overhead_scissors/d0_f1.png",
+          "overhead_scissors/d0_f2.png",
+          "overhead_scissors/d0_f3.png",
+          "overhead_scissors/d0_f4.png",
+          "overhead_scissors/d0_f5.png",
+          "overhead_scissors/d0_f6.png",
+          "overhead_scissors/d0_f7.png"
+        ],
+        "1": [
+          "overhead_scissors/d1_f0.png",
+          "overhead_scissors/d1_f1.png",
+          "overhead_scissors/d1_f2.png",
+          "overhead_scissors/d1_f3.png",
+          "overhead_scissors/d1_f4.png",
+          "overhead_scissors/d1_f5.png",
+          "overhead_scissors/d1_f6.png",
+          "overhead_scissors/d1_f7.png"
+        ],
+        "2": [
+          "overhead_scissors/d2_f0.png",
+          "overhead_scissors/d2_f1.png",
+          "overhead_scissors/d2_f2.png",
+          "overhead_scissors/d2_f3.png",
+          "overhead_scissors/d2_f4.png",
+          "overhead_scissors/d2_f5.png",
+          "overhead_scissors/d2_f6.png",
+          "overhead_scissors/d2_f7.png"
+        ],
+        "3": [
+          "overhead_scissors/d3_f0.png",
+          "overhead_scissors/d3_f1.png",
+          "overhead_scissors/d3_f2.png",
+          "overhead_scissors/d3_f3.png",
+          "overhead_scissors/d3_f4.png",
+          "overhead_scissors/d3_f5.png",
+          "overhead_scissors/d3_f6.png",
+          "overhead_scissors/d3_f7.png"
+        ],
+        "4": [
+          "overhead_scissors/d4_f0.png",
+          "overhead_scissors/d4_f1.png",
+          "overhead_scissors/d4_f2.png",
+          "overhead_scissors/d4_f3.png",
+          "overhead_scissors/d4_f4.png",
+          "overhead_scissors/d4_f5.png",
+          "overhead_scissors/d4_f6.png",
+          "overhead_scissors/d4_f7.png"
+        ],
+        "5": [
+          "overhead_scissors/d5_f0.png",
+          "overhead_scissors/d5_f1.png",
+          "overhead_scissors/d5_f2.png",
+          "overhead_scissors/d5_f3.png",
+          "overhead_scissors/d5_f4.png",
+          "overhead_scissors/d5_f5.png",
+          "overhead_scissors/d5_f6.png",
+          "overhead_scissors/d5_f7.png"
+        ],
+        "6": [
+          "overhead_scissors/d6_f0.png",
+          "overhead_scissors/d6_f1.png",
+          "overhead_scissors/d6_f2.png",
+          "overhead_scissors/d6_f3.png",
+          "overhead_scissors/d6_f4.png",
+          "overhead_scissors/d6_f5.png",
+          "overhead_scissors/d6_f6.png",
+          "overhead_scissors/d6_f7.png"
+        ],
+        "7": [
+          "overhead_scissors/d7_f0.png",
+          "overhead_scissors/d7_f1.png",
+          "overhead_scissors/d7_f2.png",
+          "overhead_scissors/d7_f3.png",
+          "overhead_scissors/d7_f4.png",
+          "overhead_scissors/d7_f5.png",
+          "overhead_scissors/d7_f6.png",
+          "overhead_scissors/d7_f7.png"
+        ]
+      }
+    },
+    "front_scissors": {
+      "title": "Front & Side Lunge-Chop (Real Studio Photo)",
+      "fps": 13,
+      "frame_duration_ms": 77,
+      "num_dirs": 8,
+      "num_frames": 8,
+      "frame_size": [
+        304,
+        300
+      ],
+      "directions": {
+        "0": [
+          "front_scissors/d0_f0.png",
+          "front_scissors/d0_f1.png",
+          "front_scissors/d0_f2.png",
+          "front_scissors/d0_f3.png",
+          "front_scissors/d0_f4.png",
+          "front_scissors/d0_f5.png",
+          "front_scissors/d0_f6.png",
+          "front_scissors/d0_f7.png"
+        ],
+        "1": [
+          "front_scissors/d1_f0.png",
+          "front_scissors/d1_f1.png",
+          "front_scissors/d1_f2.png",
+          "front_scissors/d1_f3.png",
+          "front_scissors/d1_f4.png",
+          "front_scissors/d1_f5.png",
+          "front_scissors/d1_f6.png",
+          "front_scissors/d1_f7.png"
+        ],
+        "2": [
+          "front_scissors/d2_f0.png",
+          "front_scissors/d2_f1.png",
+          "front_scissors/d2_f2.png",
+          "front_scissors/d2_f3.png",
+          "front_scissors/d2_f4.png",
+          "front_scissors/d2_f5.png",
+          "front_scissors/d2_f6.png",
+          "front_scissors/d2_f7.png"
+        ],
+        "3": [
+          "front_scissors/d3_f0.png",
+          "front_scissors/d3_f1.png",
+          "front_scissors/d3_f2.png",
+          "front_scissors/d3_f3.png",
+          "front_scissors/d3_f4.png",
+          "front_scissors/d3_f5.png",
+          "front_scissors/d3_f6.png",
+          "front_scissors/d3_f7.png"
+        ],
+        "4": [
+          "front_scissors/d4_f0.png",
+          "front_scissors/d4_f1.png",
+          "front_scissors/d4_f2.png",
+          "front_scissors/d4_f3.png",
+          "front_scissors/d4_f4.png",
+          "front_scissors/d4_f5.png",
+          "front_scissors/d4_f6.png",
+          "front_scissors/d4_f7.png"
+        ],
+        "5": [
+          "front_scissors/d5_f0.png",
+          "front_scissors/d5_f1.png",
+          "front_scissors/d5_f2.png",
+          "front_scissors/d5_f3.png",
+          "front_scissors/d5_f4.png",
+          "front_scissors/d5_f5.png",
+          "front_scissors/d5_f6.png",
+          "front_scissors/d5_f7.png"
+        ],
+        "6": [
+          "front_scissors/d6_f0.png",
+          "front_scissors/d6_f1.png",
+          "front_scissors/d6_f2.png",
+          "front_scissors/d6_f3.png",
+          "front_scissors/d6_f4.png",
+          "front_scissors/d6_f5.png",
+          "front_scissors/d6_f6.png",
+          "front_scissors/d6_f7.png"
+        ],
+        "7": [
+          "front_scissors/d7_f0.png",
+          "front_scissors/d7_f1.png",
+          "front_scissors/d7_f2.png",
+          "front_scissors/d7_f3.png",
+          "front_scissors/d7_f4.png",
+          "front_scissors/d7_f5.png",
+          "front_scissors/d7_f6.png",
+          "front_scissors/d7_f7.png"
+        ]
+      }
+    },
+    "no_scissors": {
+      "title": "Funny Businessman Idle (No Scissors)",
+      "fps": 8,
+      "frame_duration_ms": 125,
+      "num_dirs": 8,
+      "num_frames": 8,
+      "frame_size": [
+        232,
+        300
+      ],
+      "directions": {
+        "0": [
+          "no_scissors/d0_f0.png",
+          "no_scissors/d0_f1.png",
+          "no_scissors/d0_f2.png",
+          "no_scissors/d0_f3.png",
+          "no_scissors/d0_f4.png",
+          "no_scissors/d0_f5.png",
+          "no_scissors/d0_f6.png",
+          "no_scissors/d0_f7.png"
+        ],
+        "1": [
+          "no_scissors/d1_f0.png",
+          "no_scissors/d1_f1.png",
+          "no_scissors/d1_f2.png",
+          "no_scissors/d1_f3.png",
+          "no_scissors/d1_f4.png",
+          "no_scissors/d1_f5.png",
+          "no_scissors/d1_f6.png",
+          "no_scissors/d1_f7.png"
+        ],
+        "2": [
+          "no_scissors/d2_f0.png",
+          "no_scissors/d2_f1.png",
+          "no_scissors/d2_f2.png",
+          "no_scissors/d2_f3.png",
+          "no_scissors/d2_f4.png",
+          "no_scissors/d2_f5.png",
+          "no_scissors/d2_f6.png",
+          "no_scissors/d2_f7.png"
+        ],
+        "3": [
+          "no_scissors/d3_f0.png",
+          "no_scissors/d3_f1.png",
+          "no_scissors/d3_f2.png",
+          "no_scissors/d3_f3.png",
+          "no_scissors/d3_f4.png",
+          "no_scissors/d3_f5.png",
+          "no_scissors/d3_f6.png",
+          "no_scissors/d3_f7.png"
+        ],
+        "4": [
+          "no_scissors/d4_f0.png",
+          "no_scissors/d4_f1.png",
+          "no_scissors/d4_f2.png",
+          "no_scissors/d4_f3.png",
+          "no_scissors/d4_f4.png",
+          "no_scissors/d4_f5.png",
+          "no_scissors/d4_f6.png",
+          "no_scissors/d4_f7.png"
+        ],
+        "5": [
+          "no_scissors/d5_f0.png",
+          "no_scissors/d5_f1.png",
+          "no_scissors/d5_f2.png",
+          "no_scissors/d5_f3.png",
+          "no_scissors/d5_f4.png",
+          "no_scissors/d5_f5.png",
+          "no_scissors/d5_f6.png",
+          "no_scissors/d5_f7.png"
+        ],
+        "6": [
+          "no_scissors/d6_f0.png",
+          "no_scissors/d6_f1.png",
+          "no_scissors/d6_f2.png",
+          "no_scissors/d6_f3.png",
+          "no_scissors/d6_f4.png",
+          "no_scissors/d6_f5.png",
+          "no_scissors/d6_f6.png",
+          "no_scissors/d6_f7.png"
+        ],
+        "7": [
+          "no_scissors/d7_f0.png",
+          "no_scissors/d7_f1.png",
+          "no_scissors/d7_f2.png",
+          "no_scissors/d7_f3.png",
+          "no_scissors/d7_f4.png",
+          "no_scissors/d7_f5.png",
+          "no_scissors/d7_f6.png",
+          "no_scissors/d7_f7.png"
+        ]
+      }
+    },
+    "from_below": {
+      "title": "From Below / Sky Overhead Chop (Real Studio Photo)",
+      "fps": 13,
+      "frame_duration_ms": 77,
+      "num_dirs": 1,
+      "num_frames": 8,
+      "frame_size": [
+        170,
+        300
+      ],
+      "directions": {
+        "0": [
+          "from_below/d0_f0.png",
+          "from_below/d0_f1.png",
+          "from_below/d0_f2.png",
+          "from_below/d0_f3.png",
+          "from_below/d0_f4.png",
+          "from_below/d0_f5.png",
+          "from_below/d0_f6.png",
+          "from_below/d0_f7.png"
+        ]
+      }
+    },
+    "from_above": {
+      "title": "From Above / Top-Down Chop (Real Studio Photo)",
+      "fps": 12,
+      "frame_duration_ms": 83,
+      "num_dirs": 1,
+      "num_frames": 8,
+      "frame_size": [
+        164,
+        300
+      ],
+      "directions": {
+        "0": [
+          "from_above/d0_f0.png",
+          "from_above/d0_f1.png",
+          "from_above/d0_f2.png",
+          "from_above/d0_f3.png",
+          "from_above/d0_f4.png",
+          "from_above/d0_f5.png",
+          "from_above/d0_f6.png",
+          "from_above/d0_f7.png"
+        ]
+      }
+    }
+  },
+  "cash_fx": {
+    "bills": [
+      "cash_fx/bill_0_front.png",
+      "cash_fx/bill_1_wave_a.png",
+      "cash_fx/bill_2_wave_b.png",
+      "cash_fx/bill_3_flip_a.png",
+      "cash_fx/bill_4_back.png",
+      "cash_fx/bill_5_back_w.png",
+      "cash_fx/bill_6_folded.png",
+      "cash_fx/bill_7_flip_b.png"
+    ],
+    "quarters": [
+      "cash_fx/quarter_0.png",
+      "cash_fx/quarter_1.png",
+      "cash_fx/quarter_2.png",
+      "cash_fx/quarter_3.png",
+      "cash_fx/quarter_4.png",
+      "cash_fx/quarter_5.png",
+      "cash_fx/quarter_6.png",
+      "cash_fx/quarter_7.png"
+    ],
+    "gold_dollars": [
+      "cash_fx/gold_dollar_0.png",
+      "cash_fx/gold_dollar_1.png",
+      "cash_fx/gold_dollar_2.png",
+      "cash_fx/gold_dollar_3.png",
+      "cash_fx/gold_dollar_4.png",
+      "cash_fx/gold_dollar_5.png",
+      "cash_fx/gold_dollar_6.png",
+      "cash_fx/gold_dollar_7.png"
+    ]
+  }
+}

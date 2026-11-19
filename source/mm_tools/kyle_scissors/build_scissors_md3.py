@@ -21,9 +21,9 @@ TOOLS_DIR = HERE.parent
 sys.path.insert(0, str(TOOLS_DIR))
 import md3lib
 
-ARTIFACT_ROOT = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-OUT_MODEL_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "models"
-OUT_SFX_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "sfx"
+ARTIFACT_ROOT = Path(__file__).resolve().parent / "assets"
+OUT_MODEL_DIR = ARTIFACT_ROOT / "models"
+OUT_SFX_DIR = ARTIFACT_ROOT / "sfx"
 
 
 def add_extruded_poly(verts, tris, st, pts_2d: List[Tuple[float, float]],

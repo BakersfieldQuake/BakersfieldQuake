@@ -1,7 +1,7 @@
 """Master builder for the 5 Kyle Tillet Scissor Weapon Viewmodels (.md3 + PNG skins + manifest.json).
 
 Outputs to:
-  C:\\Users\\qxdc\\.gemini\\antigravity\\brain\\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\\scratch\\kyle_stage\\weapons\\
+  source/mm_tools/kyle_scissors/assets/weapons/
 
 Models (36 frames each: Idle 0..15, Hold-to-Lock 16..27, Fire/Launch+Reload 28..35):
   1. v_kyle_v1_cannon.md3   — 'The Kyle Cannon'
@@ -27,7 +27,7 @@ import md3lib
 import kw_textures
 import kw_geometry
 
-OUT_DIR = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\scratch\kyle_stage\weapons"
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "weapons")
 
 MATERIAL_DEFS = {
     "metals": dict(

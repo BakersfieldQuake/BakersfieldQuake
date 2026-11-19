@@ -17,8 +17,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-ARTIFACT_ROOT = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-OUT_ROOT = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_2d_weapons_v2")
+ARTIFACT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+OUT_ROOT = os.path.join(ARTIFACT_ROOT, "kyle_2d_weapons_v2")
 
 PLATES = {
     "v1_open": os.path.join(ARTIFACT_ROOT, "kyle_v1_open_1795060128374.jpg"),

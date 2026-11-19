@@ -23,14 +23,8 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-DEFAULT_SRC = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\.user_uploaded\uploaded_media_1795056040429.mp3"
-)
-DEFAULT_OUT_DIR = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\scratch\kyle_clips"
-)
+DEFAULT_SRC = os.path.join(HERE, "assets", "raw_audio", "uploaded_media_1795056040429.mp3")
+DEFAULT_OUT_DIR = os.path.join(HERE, "assets", "clips")
 DEFAULT_HTML = os.path.join(REPO, "docs", "kyle_scissors_sound_preview.html")
 
 WORK_SR = 48000

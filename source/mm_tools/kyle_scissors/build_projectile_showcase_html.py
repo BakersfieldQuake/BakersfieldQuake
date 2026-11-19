@@ -22,10 +22,10 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-ARTIFACT_ROOT = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-SPRITES_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_stage", "sprites")
-SFX_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_stage", "sfx")
-CLIPS_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_clips")
+ARTIFACT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+SPRITES_DIR = os.path.join(ARTIFACT_ROOT, "sprites")
+SFX_DIR = os.path.join(ARTIFACT_ROOT, "sfx")
+CLIPS_DIR = os.path.join(ARTIFACT_ROOT, "clips")
 OUT_HTML = os.path.join(REPO, "docs", "kyle_projectile_showcase.html")
 
 

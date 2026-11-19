@@ -23,8 +23,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-ARTIFACT_ROOT = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-OUT_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "pocket_kyle_hd")
+ARTIFACT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+OUT_DIR = os.path.join(ARTIFACT_ROOT, "pocket_kyle_hd")
 
 P_OPEN = os.path.join(ARTIFACT_ROOT, "kyle_v1_open_1795060128374.jpg")
 P_YELL = os.path.join(ARTIFACT_ROOT, "kyle_v1_yell_1795061375591.jpg")
@@ -33,7 +33,7 @@ P_EMPTY = os.path.join(ARTIFACT_ROOT, "kyle_v1_empty_1795060251052.jpg")
 P_BIRDLOCK_SHEET = os.path.join(ARTIFACT_ROOT, "kyle_sheet_bird_lock_1795077601790.jpg")
 P_THROW_SHEET = os.path.join(ARTIFACT_ROOT, "kyle_sheet_throw_hand_1795077625820.jpg")
 FLY_KYLE_SHEET = os.path.join(ARTIFACT_ROOT, "kyle_sheet_chop_overhead_1795068381713.jpg")
-CASH_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_stage", "sprites", "cash_fx")
+CASH_DIR = os.path.join(ARTIFACT_ROOT, "sprites", "cash_fx")
 
 FPS = 48
 N_IDLE = 96      # 2.00 s @ 48 FPS (48 skins @ 24 FPS)

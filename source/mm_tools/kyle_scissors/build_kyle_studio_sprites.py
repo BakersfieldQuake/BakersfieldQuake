@@ -40,8 +40,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import build_kyle_sprites as base_mod
 
-ARTIFACT_ROOT = Path(r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671")
-OUT_DIR = ARTIFACT_ROOT / "scratch" / "kyle_stage" / "sprites"
+ARTIFACT_ROOT = Path(__file__).resolve().parent / "assets"
+OUT_DIR = ARTIFACT_ROOT / "sprites"
 
 SH_CHOP_FRONT = ARTIFACT_ROOT / "kyle_sheet_chop_front_1795068385494.jpg"
 SH_CHOP_SIDE = ARTIFACT_ROOT / "kyle_sheet_chop_side_v2_1795068523505.jpg"

@@ -33,8 +33,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import build_kyle_sprites as base_mod  # reuse proven key_studio_offwhite & video indices
 
-ARTIFACT_ROOT = r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-OUT_DIR = os.path.join(ARTIFACT_ROOT, "scratch", "kyle_stage", "sprites")
+ARTIFACT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+OUT_DIR = os.path.join(ARTIFACT_ROOT, "sprites")
 
 US_BILLS_PLATE = os.path.join(ARTIFACT_ROOT, "us_bills_plate_1795067254667.jpg")
 US_COINS_PLATE = os.path.join(ARTIFACT_ROOT, "us_coins_plate_1795067190686.jpg")

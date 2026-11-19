@@ -1,9 +1,9 @@
 """Builds the self-contained WebGL2 + Canvas Kyle Tillet Weapon & Sprite Design Studio.
 
 Reads generated staging assets from:
-  - C:\\Users\\qxdc\\.gemini\\antigravity\\brain\\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\\scratch\\kyle_stage\\weapons\\manifest.json
-  - C:\\Users\\qxdc\\.gemini\\antigravity\\brain\\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\\scratch\\kyle_stage\\sprites\\manifest.json
-  - C:\\Users\\qxdc\\.gemini\\antigravity\\brain\\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671\\scratch\\kyle_stage\\sfx\\manifest.json
+  - assets/weapons/manifest.json
+  - assets/sprites/manifest.json
+  - assets/sfx/manifest.json
 
 Packs all 5 animated 3D MD3 viewmodels, PNG skins, 4x8-dir Kyle sprites, cash FX,
 synthesized WAV SFX, and cleaned Kyle voice clips into a single offline HTML file:
@@ -25,10 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MM_TOOLS = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(MM_TOOLS))
 
-DEFAULT_STAGE = (
-    r"C:\Users\qxdc\.gemini\antigravity\brain\35ddac3e-c123-4eaf-9fc7-8fdfe6fb4671"
-    r"\scratch\kyle_stage"
-)
+DEFAULT_STAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 TEMPLATE_HTML = os.path.join(HERE, "kyle_weapon_showcase.template.html")
 DEFAULT_OUT_HTML = os.path.join(REPO, "docs", "kyle_weapon_showcase.html")
 
