@@ -506,15 +506,18 @@ jobs:
           - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE to Applications (macOS 13+). ${dmgnote}"
 
   # Signed, notarized BAKOQUAKE.app in a DMG, built from the macOS zip just published. The engine and every dylib
-  # it loads are built from pinned sources (see source/mac/build_app.sh); runner image and Xcode are pinned too.
+  # it loads are built from pinned sources (see source/mac/build_app.sh). Runs on the self-hosted Mac ozzy-2, a
+  # persistent machine: Xcode is asserted below, cmake is pinned through pip, and the signing keychain is removed
+  # after every run.
   macos:
     needs: build
     if: needs.build.outputs.mac == 'true'
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 90
     env:
       GH_TOKEN: ${{ github.token }}
-      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      XCODE_VERSION: "26.3"   # bump together with Xcode on ozzy-2; the deps cache key includes it
       WORK: ${{ github.workspace }}/.bq-mac   # inside the workspace: actions/cache rejects ".." paths
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -528,12 +531,22 @@ jobs:
         with:
           python-version: "3.12"
 
+      # ozzy-2 is a persistent machine: fail loudly if Xcode was updated under us, and take cmake (a build tool,
+      # nothing of it ends up in the bundle) from a pinned wheel instead of whatever is installed there.
+      - name: Check toolchain
+        run: |
+          v=$(xcodebuild -version | awk 'NR==1 {print $2}')
+          [ "$v" = "$XCODE_VERSION" ] || { echo "::error::Xcode is $v, the workflow pins $XCODE_VERSION"; exit 1; }
+          python -m pip install --quiet --disable-pip-version-check cmake==3.31.6
+          cmake --version | head -1
+          gh --version | head -1
+
       - name: Cache source-built dylibs
         # Keyed on the script, which holds every pinned version.
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.bq-mac/prefix-13.0
-          key: bq-mac-deps-${{ runner.os }}-xcode16.4-${{ hashFiles('source/mac/build_app.sh') }}
+          key: bq-mac-deps-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ hashFiles('source/mac/build_app.sh') }}
 
       - name: Import Developer ID certificate
         env:
