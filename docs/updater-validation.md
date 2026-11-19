@@ -10,7 +10,7 @@ The macOS app updater, plus the Windows and Linux updater and the shortcuts, whi
 - [ ] Push `main` (3 commits already waiting, plus these).
 - [ ] Run **Build A**:
   ```
-  gh workflow run build-zip.yml -R GiggleHacks/BakersfieldQuake -f base_tag=base-v1.10 -f draft=true
+  gh workflow run build-zip.yml -R BakersfieldQuake/BakersfieldQuake -f base_tag=base-v1.10 -f draft=true
   ```
 - [ ] All three jobs (`updater`, `build`, `macos`) are green.
 - [ ] The release has 4 manifests, including `manifest-macos-app.json`.
@@ -39,7 +39,7 @@ Download the DMG from the draft release in a browser, so it gets quarantined lik
 ## 2. Promote Build A to Latest
 
 ```
-gh release edit <tag A> -R GiggleHacks/BakersfieldQuake --draft=false --latest
+gh release edit <tag A> -R BakersfieldQuake/BakersfieldQuake --draft=false --latest
 ```
 
 - [ ] Relaunching the app does not download anything.

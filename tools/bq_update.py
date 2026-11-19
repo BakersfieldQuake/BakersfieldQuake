@@ -36,7 +36,7 @@ import zlib
 from pathlib import Path
 
 VERSION = 1
-REPO = "GiggleHacks/BakersfieldQuake"
+REPO = "BakersfieldQuake/BakersfieldQuake"
 LATEST = f"https://github.com/{REPO}/releases/latest/download/manifest-{{platform}}.json"
 UA = {"User-Agent": f"bq-update/{VERSION}"}
 TIMEOUT = 10        # seconds per request

@@ -27,7 +27,7 @@
 set -euo pipefail
 
 TAG="${1:?usage: $0 <release-tag>}"
-REPO=GiggleHacks/BakersfieldQuake
+REPO=BakersfieldQuake/BakersfieldQuake
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 WORK="${WORK:-$ROOT/build}"

@@ -95,8 +95,8 @@ Verified hosting facts:
   "published": "2026-11-25T03:10:00Z",
   "min_updater": 1,
   "platforms": {
-    "windows-x64": { "manifest": "https://github.com/GiggleHacks/BakersfieldQuake/releases/download/<tag>/manifest-windows-x64.json" },
-    "macos-arm64": { "manifest": "https://github.com/GiggleHacks/BakersfieldQuake/releases/download/<tag>/manifest-macos-arm64.json" }
+    "windows-x64": { "manifest": "https://github.com/BakersfieldQuake/BakersfieldQuake/releases/download/<tag>/manifest-windows-x64.json" },
+    "macos-arm64": { "manifest": "https://github.com/BakersfieldQuake/BakersfieldQuake/releases/download/<tag>/manifest-macos-arm64.json" }
   }
 }
 ```
@@ -109,7 +109,7 @@ Verified hosting facts:
 {
   "schema": 1,
   "build": 57,
-  "zip": "https://github.com/GiggleHacks/BakersfieldQuake/releases/download/<tag>/BAKOQUAKE.zip",
+  "zip": "https://github.com/BakersfieldQuake/BakersfieldQuake/releases/download/<tag>/BAKOQUAKE.zip",
   "root": "BAKOQUAKE/",
   "files": {
     "BakersfieldQuake/default.cfg": { "size": 9811, "sha256": "…" },
@@ -183,7 +183,7 @@ breaking its signature. Its game data has to move out of the bundle into `~/Libr
 3. Add `tools/make_manifest.py`, which reads each built zip and writes `manifest-<platform>.json`. Attach the
    manifests to the release.
 4. After a non-draft publish, write `release.json` to `main` as the last step, through the Contents API
-   (`gh api -X PUT repos/GiggleHacks/BakersfieldQuake/contents/release.json` with the file's current `sha`), not
+   (`gh api -X PUT repos/BakersfieldQuake/BakersfieldQuake/contents/release.json` with the file's current `sha`), not
    `git push`. People push to `main` while CI runs, and a plain push would fail as non-fast-forward. The API
    commit doesn't trigger `build-zip` (it is `workflow_dispatch` only).
 5. Add the content-rule check from decision 0.
@@ -191,7 +191,7 @@ breaking its signature. Its game data has to move out of the bundle into `~/Libr
 ## Security
 
 The updater writes executables (engine, launchers, itself). Today, anyone who can publish a release to
-`GiggleHacks/BakersfieldQuake` can put a bad zip in front of players who choose to download it. With auto-update,
+`BakersfieldQuake/BakersfieldQuake` can put a bad zip in front of players who choose to download it. With auto-update,
 that person's code runs on every player's next launch, with no human step in between. HTTPS plus sha256 protects
 against corruption and network tampering, but not against a compromised repo or token.
 
