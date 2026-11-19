@@ -18,7 +18,8 @@ void(vector pos, string pic, float alph, float scale) Sbar_DrawPic =
 {
 	local vector siz;
 
-	siz = drawgetimagesize(pic) * scale;
+	siz = drawgetimagesize(pic);
+	siz = siz * scale;
 	siz_z = 0;		// DarkPlaces warns "VM_drawpic: z value from size discarded" every frame if this is not 0
 	pos = sbar_align(pos);
 	drawpic(pos, pic, siz, VEC_1, alph, DRAWFLAG_NORMAL);
@@ -184,7 +185,7 @@ void() setHUDparms =
 
 void() fixIntermission =
 {
-	local float bm_i, sens;
+	local float bm_i, sens, sway;
 
 	bm_i = getstati(69);
 	if ((bm_i > 0))
@@ -208,7 +209,8 @@ void() fixIntermission =
 	viewpos = getentityvec(player_localentnum, E_ORIGINANDVECTORS);
 	viewang = vectoangles2(v_forward, v_up);
 	viewang_x = 0 - viewang_x;
-	viewang_x = viewang_x + (sin((time * 0.5)) * 0.75);
+	sway = sin((time * 0.5));
+	viewang_x = viewang_x + (sway * 0.75);
 	viewang_x = viewang_x + 1;
 	setproperty(VF_ORIGIN, viewpos);
 	setproperty(VF_ANGLES, viewang);

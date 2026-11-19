@@ -1410,6 +1410,7 @@ void() CTF_team_spawn =
 void() PutClientInServer =
 {
 	local entity spot;
+	local float bm_ct;
 
 	if (self.bm_obs)
 	{
@@ -1506,7 +1507,8 @@ void() PutClientInServer =
 					bm_dm_gun_seed = 1;
 				self.bm_dm_gun_alt = bm_dm_gun_seed;
 			}
-			if (clienttype(self) == FD_CLIENTTYPE_REAL)
+			bm_ct = clienttype(self);
+			if (bm_ct == FD_CLIENTTYPE_REAL)
 			{
 				if (self.bm_dm_gun_alt == 2 && m4_ok)
 				{

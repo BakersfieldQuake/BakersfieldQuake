@@ -825,7 +825,8 @@ void(float w, float h) BM_DrawHUD =
 
 		lp_x = getstati (BMST_LX);
 		lp_y = getstati (BMST_LY);
-		lp_z = getstati (BMST_LZ) + 44;
+		lp_z = getstati (BMST_LZ);
+		lp_z = lp_z + 44;
 		sp = cs_project (lp);
 		if (sp_z > 0 && sp_x > 0 && sp_x < w && sp_y > 0 && sp_y < h)
 		{
@@ -1089,7 +1090,8 @@ void() BM_UpdateMenuBgCam =
 	}
 	else
 	{
-		cpos = getpropertyvec (VF_ORIGIN) + '0 0 18';
+		cpos = getpropertyvec (VF_ORIGIN);
+		cpos = cpos + '0 0 18';
 		cang_x = -4 + 3 * BM_Sin (time * 0.25);
 		cang_y = time * 6;
 		cang_z = 0;

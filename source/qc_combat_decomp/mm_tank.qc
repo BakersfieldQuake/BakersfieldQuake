@@ -2732,6 +2732,7 @@ float() MMTank_TryEnterKey =
 void(entity p) MMTank_Reset =
 {
 	local entity tank;
+	local float ct;
 
 	tank = p.mmt_tank;
 	if (tank != world && !bm_wasfreed (tank) && tank.classname == "misc_mm_tank" && tank.mmt_driver == p)
@@ -2741,7 +2742,8 @@ void(entity p) MMTank_Reset =
 	p.mmt_tank = world;
 	p.mmt_btn = FALSE;
 	p.mmt_st_active = 0;
-	if (!p.mmt_alias_sent && clienttype (p) == FD_CLIENTTYPE_REAL)
+	ct = clienttype (p);
+	if (!p.mmt_alias_sent && ct == FD_CLIENTTYPE_REAL)
 	{
 		p.mmt_alias_sent = TRUE;
 		stuffcmd (p, "alias tank_variant \"cmd tank_variant $*\"\nalias tank_sound \"cmd tank_sound $*\"\nalias tank_boom_pool \"cmd tank_boom_pool $*\"\n");
