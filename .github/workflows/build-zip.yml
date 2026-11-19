@@ -525,20 +525,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Freezes tools/bq_update.py into the app (Contents/MacOS/bq-update). This Python's libraries end up inside
-      # the frozen binary, so build_app.sh checks they target macOS 13.0 like everything else in the bundle.
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
       # ozzy-2 is a persistent machine: fail loudly if Xcode was updated under us, and take cmake (a build tool,
       # nothing of it ends up in the bundle) from a pinned wheel instead of whatever is installed there.
+      # Python comes from uv (python-build-standalone, built for macOS 11.0), not actions/setup-python, which
+      # hard-codes /Users/runner/hostedtoolcache on macOS. It freezes tools/bq_update.py into the app, and
+      # build_app.sh checks its libraries target macOS 13.0 like everything else in the bundle.
       - name: Check toolchain
         run: |
           v=$(xcodebuild -version | awk 'NR==1 {print $2}')
           [ "$v" = "$XCODE_VERSION" ] || { echo "::error::Xcode is $v, the workflow pins $XCODE_VERSION"; exit 1; }
-          python -m pip install --quiet --disable-pip-version-check cmake==3.31.6
-          cmake --version | head -1
+          uv python install 3.12
+          echo "PYTHON=$(uv python find --managed-python 3.12)" >> "$GITHUB_ENV"
+          uv venv -q --python 3.12 --managed-python "$RUNNER_TEMP/tools"
+          uv pip install -q --python "$RUNNER_TEMP/tools/bin/python" cmake==3.31.6
+          echo "$RUNNER_TEMP/tools/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/tools/bin/cmake" --version | head -1
           gh --version | head -1
 
       - name: Cache source-built dylibs

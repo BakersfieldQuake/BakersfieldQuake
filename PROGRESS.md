@@ -196,3 +196,9 @@
 - Root cause (ditto `bakersfield.pk3: No such file or directory`): `gh release download` writes straight to the final zip name; my background test build and Rob's `make app` shared `~/build/bakoquake-mac`, and a 45 MB partial of the 1.13 GB zip got reused. `build_app.sh` now downloads into `<tag>.part` and moves the zip into place when complete. Partial zip deleted.
 - Verification: `bash -n`, `make -n`. Full local build not rerun after the fix (left for Rob, to avoid another shared-WORK race).
 - Follow-up: the `build_app.sh` change alters the DMG gate's input hash, so the next push builds a DMG on ozzy-2: the first real notarization test there.
+
+## 2026-11-19 — macOS job: uv instead of setup-python
+
+- Root cause: `actions/setup-python` sets `AGENT_TOOLSDIRECTORY=/Users/runner/hostedtoolcache` on every Mac (`src/setup-python.ts:98`), so on ozzy-2 it died with `mkdir: /Users/runner: Permission denied`.
+- Outcome: the `macos` job gets Python 3.12 from uv (python-build-standalone, macOS 11.0 target, the same as `make app`) and cmake 3.31.6 from a venv in `$RUNNER_TEMP`. This replaces the earlier note: no python.org framework or sudo install on ozzy anymore.
+- Verification: actionlint; on ozzy under the runner's PATH, `uv python install 3.12` gives 3.12.11 with deployment target 11.0, and the venv cmake reports 3.31.6. The CI run itself is not verified yet.
