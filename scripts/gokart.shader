@@ -393,39 +393,3 @@ progs/gk_driver
 		rgbGen lightingDiffuse
 	}
 }
-
-progs/gk_shell_green
-{
-	cull none
-	{
-		map progs/gk_shell_green
-		rgbGen lightingDiffuse
-	}
-}
-
-progs/gk_shell_red
-{
-	cull none
-	{
-		map progs/gk_shell_red
-		rgbGen lightingDiffuse
-	}
-}
-
-progs/gk_shell_blue
-{
-	cull none
-	{
-		map progs/gk_shell_blue
-		rgbGen lightingDiffuse
-	}
-}
-
-progs/gk_shell_trim
-{
-	cull none
-	{
-		map progs/gk_shell_trim
-		rgbGen lightingDiffuse
-	}
-}
