@@ -22,6 +22,8 @@ PK3_OUT = os.path.join(MOD, "bakersfield.pk3")
 
 ASSET_DIRS = ("progs", "textures", "sound", "gfx", "scripts", "models")  # models/: md3 skins (CS M4, DoD Thompson + Garand)
 STORE_EXTS = {".png", ".jpg", ".jpeg", ".ogg", ".pk3", ".zip"}
+FIXED_DATE = (1980, 1, 1, 0, 0, 0)
+FILE_ATTR = 0o100644 << 16
 SKIP_PATTERNS = (
     "*.bak*",
     "*.pre_*",
@@ -31,6 +33,21 @@ SKIP_PATTERNS = (
     "*.blend*",
     "*.xcf",
     "wheelman_actions.spr32",
+)
+# Overlay-only files (shipped in zz_*.pk3 overlays, never folded into base bakersfield.pk3)
+OVERLAY_ONLY_PATTERNS = (
+    "scripts/gokart.shader",
+    "progs/gokart_*.md3",
+    "progs/gokart_*.skin",
+    "progs/gk*.png",
+    "scripts/kylevm.shader",
+    "progs/v_kyle.md3",
+    "progs/v_kyle.md3_*.skin",
+    "progs/kvm_*.png",
+    "progs/kyle_*",
+    "sound/kyle/*",
+    "scripts/minimap.shader",
+    "gfx/minimap/*",
 )
 
 
@@ -42,10 +59,31 @@ def is_skipped(rel_posix: str) -> bool:
     for pat in SKIP_PATTERNS:
         if fnmatch.fnmatch(name, pat.lower()):
             return True
+    for pat in OVERLAY_ONLY_PATTERNS:
+        if fnmatch.fnmatch(rel_low, pat):
+            return True
     return False
 
 
-def collect_tree(base_dir: str) -> dict:
+def collect_overlay_entries(mod_dir: str) -> set:
+    """Return lowercase archive paths owned by any zz_*.pk3 overlay in mod_dir."""
+    owned = set()
+    if not os.path.isdir(mod_dir):
+        return owned
+    for fn in sorted(os.listdir(mod_dir)):
+        if not (fn.lower().startswith("zz_") and fn.lower().endswith(".pk3")):
+            continue
+        p = os.path.join(mod_dir, fn)
+        if not os.path.isfile(p):
+            continue
+        with zipfile.ZipFile(p, "r") as zf:
+            for name in zf.namelist():
+                if not name.endswith("/"):
+                    owned.add(name.replace("\\", "/").lstrip("/").lower())
+    return owned
+
+
+def collect_tree(base_dir: str, exclude_paths: set | None = None) -> dict:
     """Return {rel_posix: abs_path} for ASSET_DIRS under base_dir."""
     found = {}
     if not os.path.isdir(base_dir):
@@ -59,6 +97,8 @@ def collect_tree(base_dir: str) -> dict:
                 full = os.path.join(dirpath, fn)
                 rel = os.path.relpath(full, base_dir).replace("\\", "/")
                 if is_skipped(rel):
+                    continue
+                if exclude_paths and rel.lower() in exclude_paths:
                     continue
                 found[rel] = full
     return found
@@ -88,7 +128,7 @@ def unpack_staged() -> None:
     print(f"Restored {restored} loose asset files into {MOD}")
 
 
-def stage_loose_into_staged() -> int:
+def stage_loose_into_staged(exclude_paths: set | None = None) -> int:
     os.makedirs(STAGED, exist_ok=True)
     moved = 0
     for sub in ASSET_DIRS:
@@ -98,7 +138,7 @@ def stage_loose_into_staged() -> int:
             for fn in filenames:
                 src = os.path.join(dirpath, fn)
                 rel = os.path.relpath(src, MOD).replace("\\", "/")
-                if is_skipped(rel):
+                if is_skipped(rel) or (exclude_paths and rel.lower() in exclude_paths):
                     continue
                 dst = os.path.join(STAGED, rel.replace("/", os.sep))
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -118,14 +158,15 @@ def stage_loose_into_staged() -> int:
 
 def build_pk3(stage: bool = False) -> None:
     t0 = time.perf_counter()
+    overlay_entries = collect_overlay_entries(MOD)
     if stage:
-        moved = stage_loose_into_staged()
+        moved = stage_loose_into_staged(exclude_paths=overlay_entries)
         if moved:
             print(f"Staged {moved} loose asset files -> {STAGED}")
 
     entries = collect_tree(STAGED)
-    # Loose files currently in MOD override staged_assets
-    entries.update(collect_tree(MOD))
+    # Loose files currently in MOD override staged_assets, except files owned by zz_*.pk3 overlays
+    entries.update(collect_tree(MOD, exclude_paths=overlay_entries))
 
     if not entries:
         raise RuntimeError("No runtime assets found in staged_assets or BakersfieldQuake!")
@@ -138,12 +179,17 @@ def build_pk3(stage: bool = False) -> None:
     with zipfile.ZipFile(tmp_pk3, "w", allowZip64=True) as zf:
         for rel in sorted(entries.keys()):
             src = entries[rel]
-            raw_bytes += os.path.getsize(src)
+            with open(src, "rb") as fh:
+                data = fh.read()
+            raw_bytes += len(data)
             ext = os.path.splitext(rel)[1].lower()
+            zi = zipfile.ZipInfo(rel, date_time=FIXED_DATE)
+            zi.create_system = 3
+            zi.external_attr = FILE_ATTR
             if ext in STORE_EXTS:
-                zf.write(src, rel, compress_type=zipfile.ZIP_STORED)
+                zf.writestr(zi, data, compress_type=zipfile.ZIP_STORED)
             else:
-                zf.write(src, rel, compress_type=zipfile.ZIP_DEFLATED, compresslevel=1)
+                zf.writestr(zi, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=6)
 
     os.replace(tmp_pk3, PK3_OUT)
     pk3_bytes = os.path.getsize(PK3_OUT)

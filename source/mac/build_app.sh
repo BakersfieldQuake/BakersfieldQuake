@@ -234,8 +234,10 @@ step "check Mach-O files"
 bad=0
 while IFS= read -r -d '' f; do
     file -b "$f" | grep -q Mach-O || continue
-    minos="$(otool -l "$f" | awk '/LC_BUILD_VERSION/{b=1} b&&/minos/{print $2; exit}')"
-    if [ "$(printf '%s\n%s\n' "$minos" "$MINOS" | sort -V | tail -1)" != "$MINOS" ]; then
+    minos="$(otool -l "$f" | awk '/LC_BUILD_VERSION/{b=1} b&&/minos/{print $2; exit} /LC_VERSION_MIN_MACOSX/{v=1} v&&/version/{print $2; exit}')"
+    if [ -z "$minos" ]; then
+        echo "  ${f#"$APP"/}: missing LC_BUILD_VERSION/LC_VERSION_MIN_MACOSX minos"; bad=1
+    elif [ "$(printf '%s\n%s\n' "$minos" "$MINOS" | sort -V | tail -1)" != "$MINOS" ]; then
         echo "  ${f#"$APP"/}: minos $minos > $MINOS"; bad=1
     fi
     if otool -L "$f" | tail -n +2 | grep -E '/opt/homebrew|/usr/local|/Users/'; then

@@ -17,9 +17,15 @@ if not exist "%ENGINE%" goto :nogame
 
 rem First run: the package ships no id Software data, so find the player's own Quake pak0/pak1 (Steam, GOG, the usual
 rem folders, Downloads) and copy them into id1\. find-quake-paks.ps1 shows a message box when it can't find them.
-if not exist "%ROOT%\id1\pak0.pak" if exist "%ROOT%\tools\find-quake-paks.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\find-quake-paks.ps1" -Root "%ROOT%"
-if not exist "%ROOT%\id1\pak0.pak" (
-    echo id1\pak0.pak is missing. Copy pak0.pak and pak1.pak from your Quake install into "%ROOT%\id1\".
+set "HAVEPAKS=1"
+if not exist "%ROOT%\id1\pak0.pak" set "HAVEPAKS="
+if not exist "%ROOT%\id1\pak1.pak" set "HAVEPAKS="
+if not defined HAVEPAKS if exist "%ROOT%\tools\find-quake-paks.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\find-quake-paks.ps1" -Root "%ROOT%"
+set "HAVEPAKS=1"
+if not exist "%ROOT%\id1\pak0.pak" set "HAVEPAKS="
+if not exist "%ROOT%\id1\pak1.pak" set "HAVEPAKS="
+if not defined HAVEPAKS (
+    echo id1\pak0.pak or id1\pak1.pak is missing. Copy pak0.pak and pak1.pak from your Quake install into "%ROOT%\id1\".
     popd
     exit /b 1
 )

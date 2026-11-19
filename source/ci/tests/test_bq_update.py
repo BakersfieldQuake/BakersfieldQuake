@@ -191,6 +191,46 @@ class UpdaterTest(unittest.TestCase):
         finally:
             del os.environ["BQ_NO_UPDATE"]
 
+    def test_truncated_local_header_does_not_hang(self):
+        self.run_updater()
+        v2 = dict(V1, **{"BakersfieldQuake/progs.dat": b"progs v2" * 5000})
+        zb = make_zip(v2)
+        m = manifest_for(zb, f"{self.base}/2.zip", 2)
+        RangeHandler.files["/2.zip"] = zb
+        RangeHandler.files["/manifest.json"] = json.dumps(m).encode()
+
+        # Simulate a premature EOF right after the 30-byte local header (mid-filename/extra skip).
+        class TruncatedHeaderResponse:
+            def __init__(self, header_bytes):
+                self._buf = io.BytesIO(header_bytes)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self, n=-1):
+                return self._buf.read(n)
+
+        orig_ranged = bq.Updater.ranged
+        with zipfile.ZipFile(io.BytesIO(zb)) as z:
+            info = z.getinfo("BAKOQUAKE/BakersfieldQuake/progs.dat")
+        hdr30 = zb[info.header_offset:info.header_offset + 30]
+
+        def patched_ranged(up_self, start, end):
+            if start == info.header_offset:
+                return TruncatedHeaderResponse(hdr30)
+            return orig_ranged(up_self, start, end)
+
+        bq.Updater.ranged = patched_ranged
+        try:
+            self.assertEqual(self.run_updater(), 0)
+        finally:
+            bq.Updater.ranged = orig_ranged
+        self.assertEqual((self.root / "BakersfieldQuake/progs.dat").read_bytes(), V1["BakersfieldQuake/progs.dat"])
+        self.assertEqual(self.state()["build"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,17 +27,41 @@ EOF
 }
 
 run_in_terminal() {   # run_in_terminal <cmd...>: show the command's output in a Terminal window; returns its exit code
-    local d rc
+    local d rc pid ticks=0
     d="$(mktemp -d)" || { "$@" >/dev/null 2>&1; return; }
     {   # printf %q quotes each argument; the window closes itself when the shell exits cleanly
-        printf '#!/bin/bash\nexport SSL_CERT_FILE=%q\necho "BAKOQUAKE update"; echo\n' "${SSL_CERT_FILE:-}"   # `open` drops our env
+        printf '#!/bin/bash\nexport SSL_CERT_FILE=%q\nprintf "%%s\\n" "$$" >%q\nrc=130\ntrap '\''[ -s %q ] || printf "%%s\\n" "$rc" >%q'\'' EXIT\necho "BAKOQUAKE update"; echo\n' \
+            "${SSL_CERT_FILE:-}" "$d/pid" "$d/rc" "$d/rc"   # `open` drops our env
         printf '%q ' "$@"
-        printf '\necho $? >%q\nsleep 2\nexit 0\n' "$d/rc"
+        printf '\nrc=$?\nprintf "%%s\\n" "$rc" >%q\nsleep 2\nexit 0\n' "$d/rc"
     } >"$d/update.command"
     chmod +x "$d/update.command"
-    open -a Terminal "$d/update.command"
-    while [ ! -s "$d/rc" ]; do sleep 0.5; done   # ponytail: no timeout; Terminal closed by hand mid-update hangs the launch
-    rc="$(cat "$d/rc")"; rm -rf "$d"
+    if ! open -a Terminal "$d/update.command"; then
+        rm -rf "$d"
+        return 1
+    fi
+    # Wait up to 15 s for the Terminal shell to start, then monitor process liveness (30 min safety cap).
+    while [ ! -s "$d/rc" ]; do
+        if [ -s "$d/pid" ]; then
+            pid="$(cat "$d/pid" 2>/dev/null)"
+            if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+                break
+            fi
+        elif [ "$ticks" -ge 30 ]; then
+            break
+        fi
+        if [ "$ticks" -ge 3600 ]; then
+            break
+        fi
+        ticks=$((ticks + 1))
+        sleep 0.5
+    done
+    if [ -s "$d/rc" ]; then
+        rc="$(cat "$d/rc")"
+    else
+        rc=1
+    fi
+    rm -rf "$d"
     return "$rc"
 }
 
@@ -86,12 +110,12 @@ has_paks() {   # has_paks <dir>: prints the pak0/pak1 paths (any case) if both a
 }
 
 # 1. Quake paks: search the usual places (Steam, GOG, ~/Downloads...), then ask.
-if [ ! -f "$USERDIR/id1/pak0.pak" ]; then
+if [ ! -f "$USERDIR/id1/pak0.pak" ] || [ ! -f "$USERDIR/id1/pak1.pak" ]; then
     # shellcheck source=../../tools/find-quake-paks.sh
     . "$GAME/tools/find-quake-paks.sh"
     bq_install_paks "$USERDIR" >/dev/null 2>&1
 fi
-while [ ! -f "$USERDIR/id1/pak0.pak" ]; do
+while [ ! -f "$USERDIR/id1/pak0.pak" ] || [ ! -f "$USERDIR/id1/pak1.pak" ]; do
     DIR="$(osascript -e 'POSIX path of (choose folder with prompt "Locate your Quake id1 folder (it holds pak0.pak and pak1.pak)")' 2>/dev/null)" || {
         alert "BAKOQUAKE needs Quake" "BAKOQUAKE uses the data files from Quake (pak0.pak and pak1.pak), which you need to own. Copy them into:
 
@@ -107,7 +131,7 @@ or run BAKOQUAKE again and pick your Quake id1 folder."
     }
     { IFS= read -r P0; IFS= read -r P1; } <<<"$PAKS"
     cp "$P0" "$USERDIR/id1/pak0.pak" && cp "$P1" "$USERDIR/id1/pak1.pak" || {
-        rm -f "$USERDIR/id1/pak0.pak"
+        rm -f "$USERDIR/id1/pak0.pak" "$USERDIR/id1/pak1.pak"
         alert "Copy failed" "Could not copy the paks into $USERDIR/id1/"
         exit 1
     }

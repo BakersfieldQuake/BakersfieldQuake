@@ -173,7 +173,10 @@ class Updater:
             n, m = struct.unpack("<HH", hdr[26:30])
             skip = n + m
             while skip:
-                skip -= len(r.read(min(skip, 1 << 16)))
+                chunk = r.read(min(skip, 1 << 16))
+                if not chunk:
+                    raise IOError(f"{info.filename}: connection closed early")
+                skip -= len(chunk)
             left = info.compress_size
             while left:
                 chunk = r.read(min(left, 1 << 20))

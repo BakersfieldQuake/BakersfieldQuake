@@ -337,9 +337,13 @@ def build_pk3(out_path: Path) -> str:
 
     # 5. Write deterministic reproducible PK3 (sorted entries, fixed 1980-01-01 timestamp & attrs)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(out_path, "w") as zf:
+    tmp_path = out_path.with_suffix(".pk3.tmp")
+    if tmp_path.exists():
+        tmp_path.unlink()
+    with zipfile.ZipFile(tmp_path, "w") as zf:
         for name in sorted(files):
             info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.create_system = 3
             info.external_attr = 0o100644 << 16
             ext = os.path.splitext(name)[1].lower()
             if ext in (".png", ".jpg", ".ogg"):
@@ -348,6 +352,7 @@ def build_pk3(out_path: Path) -> str:
             else:
                 info.compress_type = zipfile.ZIP_DEFLATED
                 zf.writestr(info, files[name], compresslevel=6)
+    tmp_path.replace(out_path)
 
     sha = hashlib.sha256(out_path.read_bytes()).hexdigest()
     mb = out_path.stat().st_size / (1024 * 1024)

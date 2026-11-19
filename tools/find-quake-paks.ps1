@@ -11,7 +11,7 @@ $Pak0Md5 = '5906E5998FC3D896DDAF5E6A62E03ABB'   # Quake 1.06 pak0.pak
 $Pak1Md5 = 'D76B3E5678F0B64AC74CE5E340E6A685'   # Quake pak1.pak (registered)
 $Root = (Resolve-Path $Root).Path.TrimEnd('\')
 
-if (Test-Path "$Root\id1\pak0.pak") { exit 0 }
+if ((Test-Path "$Root\id1\pak0.pak") -and (Test-Path "$Root\id1\pak1.pak")) { exit 0 }
 
 function Get-CandidateDirs {
     # Steam: install path from the registry, plus every library folder in libraryfolders.vdf.

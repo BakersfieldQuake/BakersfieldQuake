@@ -429,11 +429,47 @@ def write_bounds_qc(qc_path: Path, bounds: dict):
     qc_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 
 
+def preserve_missing_maps(prev_pk3: Path, entries: dict, bounds: dict) -> int:
+    """Carry over pre-rendered minimap PNGs/bounds from an existing zz_minimap.pk3 for maps whose
+    BSPs are absent on the build host (e.g. id1/pak0.pak + pak1.pak dm1..dm6 on CI)."""
+    if not prev_pk3 or not prev_pk3.is_file():
+        return 0
+    helper_names = {"white", "heat", "rim"}
+    preserved = 0
+    with zipfile.ZipFile(prev_pk3) as z:
+        by_lower = {n.lower(): n for n in z.namelist()}
+        for low in sorted(by_lower):
+            if not (low.startswith("gfx/minimap/") and low.endswith(".png")):
+                continue
+            mname = low[len("gfx/minimap/"):-4]
+            if not mname or "/" in mname or mname in helper_names or mname in bounds:
+                continue
+            txt_low = f"gfx/minimap/{mname}.txt"
+            if txt_low not in by_lower:
+                continue
+            parts = z.read(by_lower[txt_low]).decode("ascii", "ignore").split()
+            if len(parts) < 3:
+                continue
+            try:
+                cx, cy, half = float(parts[0]), float(parts[1]), float(parts[2])
+            except ValueError:
+                continue
+            if half <= 0:
+                continue
+            entries[f"gfx/minimap/{mname}.png"] = z.read(by_lower[low])
+            entries[f"gfx/minimap/{mname}.txt"] = f"{cx:.2f} {cy:.2f} {half:.2f}\n".encode("ascii")
+            bounds[mname] = (cx, cy, half)
+            preserved += 1
+    return preserved
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("game_dir", type=Path, help="Path to BakersfieldQuake game directory")
     ap.add_argument("out_pk3", type=Path, nargs="?", help="Output zz_minimap.pk3 path")
     ap.add_argument("--qc-out", type=Path, default=None, help="Optional generated minimap_bounds.qc path")
+    ap.add_argument("--preserve-from", type=Path, default=None,
+                    help="Preserve pre-rendered minimaps from an existing zz_minimap.pk3 for maps not present locally (e.g. id1 maps in CI)")
     args = ap.parse_args()
 
     game_dir = args.game_dir.resolve()
@@ -451,10 +487,13 @@ def main():
         entries[f"gfx/minimap/{mname}.txt"] = f"{bnd[0]:.2f} {bnd[1]:.2f} {bnd[2]:.2f}\n".encode("ascii")
         bounds[mname] = bnd
 
+    preserved = preserve_missing_maps(args.preserve_from, entries, bounds) if args.preserve_from else 0
+
     entries["scripts/minimap.shader"] = make_shader_text(bounds.keys())
 
     write_pk3(out_path=out_pk3, entries=entries)
-    print(f"wrote {out_pk3} ({len(bounds)} maps, {out_pk3.stat().st_size} bytes)")
+    extra = f", {preserved} preserved" if preserved else ""
+    print(f"wrote {out_pk3} ({len(bounds)} maps{extra}, {out_pk3.stat().st_size} bytes)")
 
     if args.qc_out:
         write_bounds_qc(args.qc_out, bounds)

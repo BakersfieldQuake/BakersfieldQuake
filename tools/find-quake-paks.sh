@@ -63,7 +63,7 @@ _bq_pick() {   # case-insensitive file lookup inside a dir
 
 bq_install_paks() {
     local root="$1" found="" d id1
-    [ -f "$root/id1/pak0.pak" ] && return 0
+    [ -f "$root/id1/pak0.pak" ] && [ -f "$root/id1/pak1.pak" ] && return 0
 
     echo "Looking for your Quake pak0.pak / pak1.pak..."
     while IFS= read -r d; do

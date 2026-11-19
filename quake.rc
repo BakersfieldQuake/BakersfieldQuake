@@ -70,12 +70,13 @@ freelook 1
 exec personal_post.cfg
 
 // default keys and one-shot setting migrations, never touching a player's own binds afterwards. bm_defver is saved in
-// config.cfg. bm_up_N means "upgrade a player who is at version N". A brand new player (0) gets bm_binds.cfg; anyone
-// below 12 gets the folded v1-v12 history (bm_up_legacy.cfg) once.
-// To ship a new migration: write bm_up_14.cfg, change bm_up_13 to "exec bm_up_14.cfg; bm_up_14", and add
-// alias bm_up_14 "seta bm_defver 14". One line and one file per migration, the chain stays linear.
+// config.cfg. bm_up_N means "upgrade a player who is at version N". A brand new player (0) gets bm_binds.cfg and jumps
+// straight to the latest version (skipping legacy unbinds in bm_up_legacy.cfg); anyone at 1..11 gets the folded v1-v12
+// history (bm_up_legacy.cfg) once, then steps through bm_up_13/14.
+// To ship a new migration: write bm_up_15.cfg, change bm_up_14 to "exec bm_up_15.cfg; bm_up_15", and add
+// alias bm_up_15 "seta bm_defver 15" (plus update bm_binds.cfg for new players). One line and one file per migration.
 alias bm_old "exec bm_up_legacy.cfg; bm_up_12"
-alias bm_up_0 "exec bm_binds.cfg; bm_old"
+alias bm_up_0 "exec bm_binds.cfg; bm_up_14"
 alias bm_up_1 bm_old
 alias bm_up_2 bm_old
 alias bm_up_3 bm_old
@@ -88,7 +89,8 @@ alias bm_up_9 bm_old
 alias bm_up_10 bm_old
 alias bm_up_11 bm_old
 alias bm_up_12 "exec bm_up_13.cfg; bm_up_13"
-alias bm_up_13 "seta bm_defver 13"
+alias bm_up_13 "exec bm_up_14.cfg; bm_up_14"
+alias bm_up_14 "seta bm_defver 14"
 bm_up_$bm_defver
 
 // Build no unused unvised BSP portals, or spam debug prints unless overridden on command line

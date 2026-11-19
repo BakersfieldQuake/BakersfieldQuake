@@ -139,13 +139,16 @@ jobs:
           base_bakersfield=$(sha256sum out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | awk '{print $1}')
           base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
           base_maps=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/maps/*.bsp | sha256sum | awk '{print $1}')
+          base_minimap=$([ -f out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3 ] && sha256sum out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3 | awk '{print $1}' || echo none)
           echo "Base bakersfield.pk3 SHA-256: $base_bakersfield"
           echo "Base q15.pk3 SHA-256:         $base_q15"
           echo "Base maps/*.bsp SHA-256:      $base_maps"
+          echo "Base zz_minimap.pk3 SHA-256:  $base_minimap"
           {
             echo "BASE_BAKERSFIELD_SHA256=$base_bakersfield"
             echo "BASE_Q15_SHA256=$base_q15"
             echo "BASE_MAPS_SHA256=$base_maps"
+            echo "BASE_MINIMAP_SHA256=$base_minimap"
           } >> "$GITHUB_ENV"
 
       - name: Download engine binaries from public release
@@ -231,7 +234,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: pk3cache/zz_minimap.pk3
-          key: zz_minimap-${{ env.BASE_BAKERSFIELD_SHA256 }}-${{ env.BASE_Q15_SHA256 }}-${{ env.BASE_MAPS_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_minimap_pk3.py') }}
+          key: zz_minimap-${{ env.BASE_BAKERSFIELD_SHA256 }}-${{ env.BASE_Q15_SHA256 }}-${{ env.BASE_MAPS_SHA256 }}-${{ env.BASE_MINIMAP_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_minimap_pk3.py') }}
 
       - name: Cache zz_pinklady.pk3
         id: cache_pinklady
@@ -274,7 +277,9 @@ jobs:
         if: steps.cache_minimap.outputs.cache-hit != 'true'
         run: |
           mkdir -p pk3cache
-          python -I repo/source/mm_tools/build_minimap_pk3.py out/BAKOQUAKE/BakersfieldQuake pk3cache/zz_minimap.pk3
+          preserve=()
+          [ -f out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3 ] && preserve=(--preserve-from out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3)
+          python -I repo/source/mm_tools/build_minimap_pk3.py out/BAKOQUAKE/BakersfieldQuake pk3cache/zz_minimap.pk3 "${preserve[@]}"
 
       - name: Build zz_pinklady.pk3
         # Tone down the over-bright Pink Lady projectile textures for rgbGen identity + Zircon HDR/gamma.
@@ -444,8 +449,10 @@ jobs:
           make_os_zip() {
             local out_zip="$1" sdl="$2" ded="$3"
             cp BAKOQUAKE.zip "$out_zip"
-            # -ws: wildcards stop at '/', so only root-level Windows files go (subfolders are untouched).
-            zip -q -d -ws "$out_zip" 'BAKOQUAKE/engine/*' 'BAKOQUAKE/engine/' \
+            # Remove the Windows engine/ tree recursively (including engine/bin64/*.dll), then use -ws
+            # (wildcards stop at '/') so only root-level Windows files and tools/bq-update.exe go.
+            zip -q -d "$out_zip" 'BAKOQUAKE/engine/*' 'BAKOQUAKE/engine/' || true
+            zip -q -d -ws "$out_zip" \
               'BAKOQUAKE/*.exe' 'BAKOQUAKE/*.dll' 'BAKOQUAKE/*.cmd' 'BAKOQUAKE/*.bat' 'BAKOQUAKE/tools/bq-update.exe' || true
             rm -rf stage && mkdir -p stage/BAKOQUAKE
             cp "eng/$sdl" stage/BAKOQUAKE/darkplaces-sdl
