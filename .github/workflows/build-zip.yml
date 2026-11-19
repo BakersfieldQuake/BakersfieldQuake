@@ -116,6 +116,11 @@ jobs:
         with:
           path: repo
 
+      # The concurrency group lets one release build run at a time, so any incomplete draft is from a cancelled run.
+      - name: Remove incomplete releases from cancelled runs
+        continue-on-error: true
+        run: repo/source/ci/cleanup_releases.sh
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"

@@ -1,0 +1,22 @@
+# Backstop for build-zip.yml: removes draft releases that a cancelled or failed build left half-made (see
+# source/ci/cleanup_releases.sh). build-zip.yml also runs the script at the start of every build.
+name: Clean up incomplete releases
+
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      # Older than 2 hours, so a build that is still uploading is never touched.
+      - run: source/ci/cleanup_releases.sh 120
