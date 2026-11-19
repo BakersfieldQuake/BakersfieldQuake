@@ -1,0 +1,30 @@
+# Daily: delete Actions caches (not accessed for 5 days) and build artifacts (older than 5 days), keeping the newest
+# of each kind however old. See source/ci/cleanup_actions_storage.sh.
+name: Clean up caches and artifacts
+
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Delete entries older than this many days"
+        default: "5"
+      dry_run:
+        description: "List what would be deleted, delete nothing"
+        type: boolean
+        default: false
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: source/ci/cleanup_actions_storage.sh "${{ inputs.days || 5 }}"
