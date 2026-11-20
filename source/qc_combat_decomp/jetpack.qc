@@ -377,7 +377,7 @@ void() Jetpack_Fly =
 
 	// flying Winged John, driving a vehicle/tank or steering a Rob Dob head: SPACE is theirs (climb/brake/horn), and they clear
 	// FL_ONGROUND every frame, so it would light the pack (fuel, flames, voice) from inside the vehicle
-	if (self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || FD_Flying (self) || EricCannon_Active (self) || self.mmt_tank != world)
+	if (self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.veh_ride != world || FD_Flying (self) || EricCannon_Active (self) || self.mmt_tank != world)
 	{
 		if (self.jp_on)
 			Jetpack_Off ();

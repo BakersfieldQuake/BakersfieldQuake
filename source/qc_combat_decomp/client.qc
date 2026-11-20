@@ -778,6 +778,7 @@ void() execute_changelevel =
 		self = e;
 		Veh_ClientGone();
 		JohnBird_ClientGone();
+		RocketRider_ClientGone();
 		EricCannon_ClientGone();
 		MMTank_ClientGone();
 		FD_Reset(e);
@@ -1181,6 +1182,12 @@ void() ClientKill =
 		JB_Leave(v, JB_FindExitPos(v, self), '0 0 0', FALSE);
 	}
 	self.jb_vehicle = world;
+	v = self.rr_vehicle;
+	if (((v != world) && (v.rr_pilot == self)))
+	{
+		RR_Leave(v, RR_FindExitPos(v, self), '0 0 0', FALSE);
+	}
+	self.rr_vehicle = world;
 	if (EricCannon_Active(self))
 	{
 		EricCannon_Reset(self);	// also gives back takedamage, so the kill below lands
@@ -1548,6 +1555,7 @@ void() PutClientInServer =
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
 	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
+	RocketRider_Reset(self);	// restore camera/body if respawning after Rocket Rider death
 	Practice_OnPlayerSpawn(self);
 	Hammer_Spawn();	// no charge left over (hammer.qc)
 	LtGun_Spawn();	// not shocked, not typing (ltgun.qc)
@@ -2421,7 +2429,7 @@ void() autosave_timer =
 // CheckPowerups must not undo its EF_NODRAW / alpha
 float(entity p) CL_InVehicleHidden =
 {
-	return (Veh_Driving(p) || MMTank_Driving(p) || EricCannon_Active(p) || JohnBird_Flying(p));
+	return (Veh_Driving(p) || MMTank_Driving(p) || EricCannon_Active(p) || JohnBird_Flying(p) || RocketRider_Flying(p));
 };
 
 void() PlayerPreThink =
@@ -3873,6 +3881,7 @@ void() ClientDisconnect =
 	ClientDisconnected();
 	Veh_ClientGone();	// a driver who drops leaves the van parked (vehicle_drive.qc)
 	JohnBird_ClientGone();	// a flying Winged John pilot who drops leaves him perched (john_bird.qc)
+	RocketRider_ClientGone();	// a flying Rocket Rider pilot who drops leaves it parked (rocket_rider.qc)
 	EricCannon_ClientGone();	// a rider who drops leaves Eric Deason Cannon reset (eric_cannon.qc)
 	MMTank_ClientGone();	// a driver who drops leaves Mega Man Tank parked (mm_tank.qc)
 	Underdog_ClearFx(self);		// the leader's glow / beacon / x-ray would stay behind
@@ -4174,6 +4183,18 @@ void(entity targ, entity attacker) ClientObituary =
 						deathstring = " was blown away by ";
 						deathstring2 = "'s pressurized aerosol bomb\n";
 					}
+					if ((rr_inflicting == 1))
+					{
+						rnum = 999999;
+						deathstring = " was blown off their Classic Quake Rocket by ";
+						deathstring2 = "\n";
+					}
+					if ((rr_inflicting == 2))
+					{
+						rnum = 999999;
+						deathstring = " got supersonic-rammed by ";
+						deathstring2 = "'s Classic Quake Rocket\n";
+					}
 					if ((ec_inflicting == 2))
 					{
 						rnum = 999999;
@@ -4307,6 +4328,11 @@ void(entity targ, entity attacker) ClientObituary =
 					bprint(" was bonked by AI Winged John's hairspray bottle\n");
 				else
 					bprint(" went down in a storm of Winged John's feathers\n");
+				return;
+			}
+			if (rr_inflicting)
+			{
+				bprint(" rode a Classic Quake Rocket straight into glory\n");
 				return;
 			}
 			if (mmt_inflicting)

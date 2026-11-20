@@ -312,8 +312,8 @@ float(entity own, entity e) KY_IsValidTarget =
 			return FALSE;
 		if (own_ok && e == own)
 			return (autocvar_kyle_test != 0);
-		if (e.jb_vehicle != world)
-			return FALSE;		// target the Winged John Bird vehicle itself!
+		if (e.jb_vehicle != world || e.rr_vehicle != world)
+			return FALSE;		// target the sky vehicle itself, not the hidden SOLID_NOT pilot!
 		if (teamplay && own_ok && e.team > 0 && e.team == own.team)
 			return FALSE;
 		return TRUE;
@@ -716,7 +716,7 @@ void(entity p, entity k, entity targ) KY_CamAttach =
 	local entity cam;
 
 	if (p == world || p.ishuman != 1 || !autocvar_kyle_cam || intermission_running || p.health <= 0 || p.deadflag || p.clientcamera != p
-		|| FD_Flying (p) || Veh_Driving (p) || JohnBird_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
+		|| FD_Flying (p) || Veh_Driving (p) || JohnBird_Flying (p) || RocketRider_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
 		return;
 	KY_CamDetach (p);
 	cam = spawn ();
@@ -1531,7 +1531,7 @@ void() KY_Frame =
 	busy = (self.health <= 0 || self.deadflag || intermission_running
 		|| self.weapon != IT_FUNGUN || self.fg_sel != FG_KYLE
 		|| self.bm_rl_slot != 0 || self.meleeing == 1 || self.throwing == 1
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self));
 
 	if (self.ky_throw_at > 0)

@@ -341,7 +341,7 @@ float(entity hit, float is_ground) DK_GroundBoltFrac =
 	p = self.owner;
 	if (!p || p == world || p.classname != "player" || p.health <= 0 || p.deadflag != 0)
 		return 0;
-	if (p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.veh_ride != world || p.fd_head != world)
+	if (p.jb_vehicle != world || p.rr_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.veh_ride != world || p.fd_head != world)
 		return 0;
 	if (p.movetype != MOVETYPE_WALK && (p.ishuman == 1 || p.movetype != MOVETYPE_NONE))
 		return 0;
@@ -604,7 +604,7 @@ void() DK_Frame =
 		return;
 	if (self.health <= 0 || self.deadflag || intermission_running
 		|| self.weapon != IT_FUNGUN || self.fg_sel != FG_DOOKIE
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self))
 	{
 		sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);

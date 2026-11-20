@@ -27,6 +27,7 @@ jetpack_defs.qc
 milky_defs.qc
 vehicles_defs.qc
 john_bird_defs.qc
+rocket_rider_defs.qc
 lan_props_defs.qc
 bicycles_defs.qc
 eric_cannon_defs.qc
@@ -121,6 +122,7 @@ vehicles.qc
 vehicle_drive.qc
 gokart.qc
 john_bird.qc
+rocket_rider.qc
 bklan_tv_data.qc
 bklan_tv.qc
 bklan_movers.qc

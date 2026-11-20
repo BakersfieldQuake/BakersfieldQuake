@@ -1099,7 +1099,7 @@ void() Milky_PlayerFrame =
 	if (self.milky_wind && time >= self.milky_wind)
 	{
 		self.milky_wind = 0;
-		if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+		if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
 		{
 			self.ammo_nails = self.ammo_nails + 1;
 			if (self.weapon == IT_SUPER_NAILGUN)

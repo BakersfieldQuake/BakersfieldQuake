@@ -1471,7 +1471,7 @@ void() GK_SpawnAndEnter =
 	local vector fwd;
 	local float k;
 
-	if (self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.jb_vehicle != world || self.mmt_tank != world || self.health <= 0)
+	if (self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.jb_vehicle != world || self.rr_vehicle != world || self.mmt_tank != world || self.health <= 0)
 		return;
 	k = floor (cvar ("gokart_variant"));
 	if (k < 1 || k > 6)

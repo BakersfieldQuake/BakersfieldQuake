@@ -31,7 +31,7 @@ void() RH_BeginDroneLaunch =
 
 	if (self.health <= 0 || self.deadflag || intermission_running
 		|| self.veh_ride != world || FD_Flying (self) || Veh_Driving (self)
-		|| JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+		|| JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
 	{
 		self.rh_charging = 0;
 		self.rh_charge_gun = 0;
@@ -66,7 +66,7 @@ void() RH_DronePress =
 {
 	if (self.rh_charging > 0 || self.rh_throw_at > 0)
 		return;
-	if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+	if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
 		return;
 	if (self.veh_ride != world)
 	{
@@ -89,7 +89,7 @@ void() RH_Frame =
 
 	busy = (self.health <= 0 || self.deadflag || intermission_running
 		|| self.veh_ride != world || FD_Flying (self) || Veh_Driving (self)
-		|| JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
+		|| JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
 	if (busy)
 	{
 		if (self.rh_throw_at > 0 && self.health > 0 && !self.deadflag && !intermission_running)

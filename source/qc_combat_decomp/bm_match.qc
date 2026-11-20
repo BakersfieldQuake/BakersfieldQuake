@@ -80,6 +80,7 @@ void() BM_Precache =
 		Crowd_Precache ();
 	Soi6_Precache ();
 	JohnBird_Precache ();
+	RocketRider_Precache ();
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push
@@ -105,7 +106,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "eric_cannon_blast"
 				|| inflictor.classname == "mm_tank_bar" || inflictor.classname == "mm_tank_blast"
 				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
-				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.veh_kind > 0)
+				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.classname == "misc_vehicle_rocketrider" || inflictor.veh_kind > 0)
 			{
 				targ.bm_last_hit_explosive = TRUE;
 			}
@@ -337,7 +338,7 @@ void() BM_LifeFrame =
 	if (self.fg_ammo6 >= 1 && self.bm_rl_slot != BM_FG6)		tmask = tmask | 32;
 	if (time >= self.jb_cooldown_t)								tmask = tmask | 64;
 	if (self.ud_blueshell)										tmask = tmask | 128;
-	if (self.veh_van != world || self.veh_ride != world)		tmask = tmask | 256;
+	if (self.veh_van != world || self.veh_ride != world || RocketRider_Flying (self))		tmask = tmask | 256;
 	self.bm_st_toymask = tmask;
 	self.bm_st_toycd = max (0, ceil (self.jb_cooldown_t - time));
 
@@ -1018,6 +1019,7 @@ void() BM_StartFrame =
 	Underdog_Update ();
 	Crowd_Tick ();
 	Soi6_Tick ();
+	RocketRider_MapTick ();
 	MMTank_StartFrame ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
@@ -1329,6 +1331,7 @@ void(entity e) BM_ObsActivate =
 		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
 		Veh_ClientGone ();
 		JohnBird_ClientGone ();
+		RocketRider_ClientGone ();
 		EricCannon_ClientGone ();
 		MMTank_ClientGone ();
 		Underdog_ClearFx (e);

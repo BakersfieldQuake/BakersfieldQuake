@@ -964,7 +964,7 @@ void() GJ_Frame =
 	local float busy, ammo;
 
 	busy = (self.health <= 0 || self.deadflag || intermission_running
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self));
 	if (busy)
 	{

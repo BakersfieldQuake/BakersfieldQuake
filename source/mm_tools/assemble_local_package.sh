@@ -64,6 +64,7 @@ pk3 gunnomip -I "$M/build_gunnomip_pk3.py" "$B"
 pk3 minimap -I "$M/build_minimap_pk3.py" "$BASE/BakersfieldQuake"
 pk3 pinklady -I "$M/build_pinklady_pk3.py" "$B"
 pk3 kyle -I "$M/kyle_scissors/build_kyle_pk3.py" "$B"
+pk3 rocketrider -I "$M/rocket_rider/build_rocketrider_pk3.py" "$B"
 
 step "fteqcc ${FTEQW_REF:0:7}"
 FTE="$WORK/src/fteqw-${FTEQW_REF:0:7}"

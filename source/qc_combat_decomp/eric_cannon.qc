@@ -280,7 +280,7 @@ void(entity p, entity base) EC_Mount =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || MMTank_Driving (p) || FD_Flying (p))
+	if (p.health <= 0 || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.rr_vehicle != world || MMTank_Driving (p) || FD_Flying (p))
 		return;
 	if (base.ec_state != EC_STATE_IDLE || base.ec_pilot != world)
 		return;
@@ -1508,7 +1508,7 @@ void() EricCannon_NearPrompt =
 {
 	local entity c;
 
-	if (!ec_has_cannons || self.ishuman != 1 || self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.classname != "player")
+	if (!ec_has_cannons || self.ishuman != 1 || self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world || self.classname != "player")
 		return;
 	if (time < self.ec_prompt_scan_t)
 		return;
@@ -1531,10 +1531,10 @@ void() EricCannon_NearPrompt =
 // Called on H (impulse 86) on foot: mounts nearest Eric Deason Cannon if closer than any van/Winged John!
 float() EricCannon_TryEnterKey =
 {
-	local entity c, jb, van;
+	local entity c, jb, rr, van;
 	local float dc;
 
-	if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world)
+	if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world)
 		return FALSE;
 	c = EricCannon_NearIdle (self);
 	if (c == world)
@@ -1543,6 +1543,9 @@ float() EricCannon_TryEnterKey =
 	dc = vlen (c.origin - self.origin);
 	jb = JohnBird_NearPerched (self);
 	if (jb != world && vlen (jb.origin - self.origin) < dc)
+		return FALSE;
+	rr = RocketRider_NearParked (self);
+	if (rr != world && vlen (rr.origin - self.origin) < dc)
 		return FALSE;
 	van = Veh_SeatOf (self);
 	if (van != world && vlen (van.origin - self.origin) < dc)
@@ -1659,7 +1662,7 @@ void() EricCannon_Impulse =
 	if (self.impulse == 129)
 	{
 		self.impulse = 0;
-		if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || MMTank_Driving (self) || FD_Flying (self))
+		if (self.health <= 0 || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world || MMTank_Driving (self) || FD_Flying (self))
 			return;
 		c = EC_MyTemp (self);
 		if (c != world && c.ec_pilot == world)

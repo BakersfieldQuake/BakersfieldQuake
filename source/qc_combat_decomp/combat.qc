@@ -97,6 +97,15 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		T_Damage(targ.jb_vehicle, inflictor, attacker, damage);
 		return;
 	}
+	if ((targ.rr_vehicle != world))
+	{
+		if (((inflictor != world) && (targ.rr_vehicle.rr_last_inflictor == inflictor)) && (targ.rr_vehicle.rr_last_inflictor_t == time))
+		{
+			return;
+		}
+		T_Damage(targ.rr_vehicle, inflictor, attacker, damage);
+		return;
+	}
 	if (((targ.veh_van != world) && (targ.veh_van.veh_state != VEH_STATE_WRECK)))
 	{
 		// Vehicle cab shields the driver from hull-piercing splash: route external damage to the vehicle hull!
@@ -188,6 +197,19 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		}
 		targ.jb_last_inflictor = inflictor;
 		targ.jb_last_inflictor_t = time;
+	}
+	if ((targ.classname == "misc_vehicle_rocketrider"))
+	{
+		if (((attacker != world) && (attacker == targ.rr_pilot)))
+		{
+			return;
+		}
+		if ((((inflictor != world) && (inflictor != attacker)) && ((targ.rr_last_inflictor == inflictor) && (targ.rr_last_inflictor_t == time))))
+		{
+			return;
+		}
+		targ.rr_last_inflictor = inflictor;
+		targ.rr_last_inflictor_t = time;
 	}
 	damage_attacker = attacker;
 	if ((attacker.super_damage_finished > time))

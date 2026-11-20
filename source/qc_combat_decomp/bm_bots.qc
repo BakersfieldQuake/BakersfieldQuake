@@ -1663,7 +1663,7 @@ void() BM_BotPostAI =
 	if (!goal)
 		goal = self.target1;
 
-	if (self.jb_vehicle == world && self.veh_van == world && self.fd_head == world && self.waterlevel < 2)
+	if (self.jb_vehicle == world && self.rr_vehicle == world && self.veh_van == world && self.fd_head == world && self.waterlevel < 2)
 	{
 		if (self.jp_on)
 		{

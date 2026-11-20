@@ -1687,7 +1687,7 @@ void() MegaMan_ViewFrame =
 		self.mm_pending = FALSE;
 #ifdef COMBATPLUS
 		if (time - self.mm_launch_t < 0.3 && self.health > 0
-			&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self)
+			&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self) && !RocketRider_Flying (self)
 			&& !EricCannon_Active (self) && !MMTank_Driving (self))
 #else
 		if (time - self.mm_launch_t < 0.3 && self.health > 0)
@@ -1704,7 +1704,7 @@ void() MegaMan_ViewFrame =
 	}
 #ifdef COMBATPLUS
 	if (self.meleeing == 1 || self.throwing == 1
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self))
 		return;
 #endif

@@ -6700,6 +6700,10 @@ void() W_WeaponFrame =
 	{
 		return;	// flying Winged Breezy-Hair John (john_bird.qc)
 	}
+	if (RocketRider_Frame())
+	{
+		return;	// flying Classic Quake Rocket Rider (rocket_rider.qc)
+	}
 	if (EricCannon_Frame())
 	{
 		return;	// aiming, launching, sky-flying, or crater-watching THE ERIC DEASON CANNON (eric_cannon.qc)

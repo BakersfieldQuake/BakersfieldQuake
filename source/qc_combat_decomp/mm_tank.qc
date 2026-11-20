@@ -1748,7 +1748,7 @@ void(entity p, entity tank) MMT_Enter =
 	local entity cam, oldself;
 	local float pack;
 
-	if (p.health <= 0 || MMTank_Driving (p) || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || FD_Flying (p))
+	if (p.health <= 0 || MMTank_Driving (p) || EricCannon_Active (p) || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.rr_vehicle != world || FD_Flying (p))
 		return;
 	if (tank.mmt_state == MMT_STATE_WRECK || tank.mmt_driver != world)
 		return;
@@ -2706,7 +2706,7 @@ void() MMTank_NearPrompt =
 {
 	local entity t;
 
-	if (!mmt_has_tanks || self.ishuman != 1 || self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.classname != "player")
+	if (!mmt_has_tanks || self.ishuman != 1 || self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world || self.classname != "player")
 		return;
 	if (time < self.mmt_prompt_scan_t)
 		return;
@@ -2728,10 +2728,10 @@ void() MMTank_NearPrompt =
 
 float() MMTank_TryEnterKey =
 {
-	local entity t, ec, jb, van;
+	local entity t, ec, jb, rr, van;
 	local float dt;
 
-	if (self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world)
+	if (self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world)
 		return FALSE;
 	t = MMTank_NearFree (self);
 	if (t == world)
@@ -2743,6 +2743,9 @@ float() MMTank_TryEnterKey =
 		return FALSE;
 	jb = JohnBird_NearPerched (self);
 	if (jb != world && vlen (jb.origin - self.origin) < dt)
+		return FALSE;
+	rr = RocketRider_NearParked (self);
+	if (rr != world && vlen (rr.origin - self.origin) < dt)
 		return FALSE;
 	van = Veh_SeatOf (self);
 	if (van != world && vlen (van.origin - self.origin) < dt)
@@ -2862,7 +2865,7 @@ void() MMTank_Impulse =
 	if (self.impulse == 133)
 	{
 		self.impulse = 0;
-		if (self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world)
+		if (self.health <= 0 || MMTank_Driving (self) || EricCannon_Active (self) || self.veh_van != world || self.veh_ride != world || self.jb_vehicle != world || self.rr_vehicle != world)
 			return;
 		makevectors ('0 1 0' * self.v_angle_y);
 		org = self.origin + v_forward * 140 + '0 0 24';

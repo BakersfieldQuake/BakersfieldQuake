@@ -1454,7 +1454,7 @@ void(entity p, entity jb) JB_Enter =
 {
 	local entity cam, oldself;
 
-	if (p.health <= 0 || p.jb_vehicle != world || p.veh_van != world || p.veh_ride != world || FD_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
+	if (p.health <= 0 || p.jb_vehicle != world || p.rr_vehicle != world || p.veh_van != world || p.veh_ride != world || FD_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p))
 		return;
 	KY_CamDetach (p);
 	DK_ResetPlayer (p);
@@ -2428,7 +2428,7 @@ void() JohnBird_NearPrompt =
 {
 	local entity jb;
 
-	if (!jb_has_birds || self.ishuman != 1 || self.health <= 0 || self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world || self.classname != "player")
+	if (!jb_has_birds || self.ishuman != 1 || self.health <= 0 || self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.veh_ride != world || self.classname != "player")
 		return;
 	if (time < self.jb_prompt_scan_t)
 		return;
@@ -2454,14 +2454,17 @@ void() JohnBird_NearPrompt =
 
 float() JohnBird_TryEnterKey =
 {
-	local entity jb, van;
+	local entity jb, rr, van;
 
-	if (self.health <= 0 || self.jb_vehicle != world || self.veh_van != world || self.veh_ride != world)
+	if (self.health <= 0 || self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.veh_ride != world)
 		return FALSE;
 	jb = JohnBird_NearPerched (self);
 	if (jb == world)
 		return FALSE;
 
+	rr = RocketRider_NearParked (self);
+	if (rr != world && vlen (rr.origin - self.origin) < vlen (jb.origin - self.origin))
+		return FALSE;
 	van = Veh_SeatOf (self);
 	if (van != world && vlen (van.origin - self.origin) < vlen (jb.origin - self.origin))
 		return FALSE;
@@ -2534,7 +2537,7 @@ void() JohnBird_Impulse =
 	if (self.impulse == 98)
 	{
 		self.impulse = 0;
-		if (self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.fd_head != world)
+		if (self.health <= 0 || self.rr_vehicle != world || self.veh_van != world || self.veh_ride != world || self.fd_head != world)
 			return;
 		if (time < self.jb_cooldown_t)
 		{

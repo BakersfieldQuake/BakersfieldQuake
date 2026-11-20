@@ -88,6 +88,7 @@ void() teamchange_respawn =
 {
 	Veh_ClientGone();
 	JohnBird_ClientGone();
+	RocketRider_ClientGone();
 	EricCannon_ClientGone();
 	MMTank_ClientGone();
 	FD_Reset(self);

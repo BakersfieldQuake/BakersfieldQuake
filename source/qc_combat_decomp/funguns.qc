@@ -696,7 +696,7 @@ void() Binoc_Frame =
 	local vector eye;
 	local string s;
 
-	if (self.health <= 0 || !self.button3 || self.classname != "player" || self.jb_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self))
+	if (self.health <= 0 || !self.button3 || self.classname != "player" || self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self))
 	{
 		if (self.bn_on)
 		{
@@ -753,7 +753,7 @@ void() FunGun_ViewFrame =
 {
 	local float g, t, f, nt, in_veh;
 
-	in_veh = (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
+	in_veh = (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self));
 	if (in_veh)
 	{
 		self.ns_throw_at = 0;

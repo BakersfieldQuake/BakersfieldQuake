@@ -922,7 +922,7 @@ void() FD_Launch =
 	local vector	eye;
 
 	if (self.health <= 0 || self.deadflag || intermission_running || FD_Flying (self)
-		|| self.veh_ride != world || Veh_Driving (self) || JohnBird_Flying (self)
+		|| self.veh_ride != world || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self))
 		return;
 	KY_CamDetach (self);

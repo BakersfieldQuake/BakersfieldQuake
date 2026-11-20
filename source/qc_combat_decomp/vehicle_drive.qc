@@ -1113,7 +1113,7 @@ float(entity p, entity v) Veh_EnterPassenger =
 	local float s;
 	local entity oldself;
 
-	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.fd_head != world || p.mmt_tank != world)
+	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.rr_vehicle != world || p.fd_head != world || p.mmt_tank != world)
 		return FALSE;
 	s = Veh_FindFreeSeat (v);
 	if (s <= 0)
@@ -1728,7 +1728,7 @@ void() Veh_NearPrompt =
 {
 	local entity v;
 
-	if (!veh_has_vans || self.ishuman != 1 || self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.classname != "player")
+	if (!veh_has_vans || self.ishuman != 1 || self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.rr_vehicle != world || self.classname != "player")
 		return;
 	if (time < self.veh_prompt_scan_t)
 		return;
@@ -1756,7 +1756,7 @@ void() Veh_EnterKey =
 	local entity v;
 	local vector pos;
 
-	if (self.health <= 0 || self.veh_van != world || self.veh_ride != world)
+	if (self.health <= 0 || self.veh_van != world || self.veh_ride != world || self.rr_vehicle != world)
 		return;
 	v = Veh_SeatOf (self);
 	if (v == world)
@@ -1844,7 +1844,7 @@ void() Veh_SpawnAndEnter =
 	local entity v;
 	local vector fwd;
 
-	if (self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.jb_vehicle != world || self.mmt_tank != world || self.health <= 0)
+	if (self.veh_van != world || self.veh_ride != world || self.fd_head != world || self.jb_vehicle != world || self.rr_vehicle != world || self.mmt_tank != world || self.health <= 0)
 		return;
 	fwd = Veh_Fwd (self.v_angle_y);
 	v = Veh_SpawnDynamic (VEH_VAN, self.origin + fwd * 150 + '0 0 8', self.v_angle_y);
