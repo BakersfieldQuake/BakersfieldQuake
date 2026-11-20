@@ -5,24 +5,32 @@ sculpts 64 sleek, tangential wind-swept 3D hair locks (swept bangs, parted crown
 temple flicks, and nape locks) that ripple and flap naturally in the breeze, and attaches
 broad, lushly feathered articulated 3-joint 3D bird wings.
 
-100 seamless vertex-animated frames across 7 clips:
-  0..15   fly_breezy     Cruising bird wingbeat + breezy flapping hair
-  16..31  windy_soar     Outstretched soaring thermal glide + gusty billowing hair
-  32..47  hover_flutter  Energetic figure-8 bird hover + wild downdraft hair
-  48..59  swoop_dive     Swept-back falcon dive/swoop + high-speed streaming hair
-  60..71  perch_breeze   Articulated folded wings tucked at rest + gentle breeze in hair
-  72..87  combat_fly     Giant 3x shampoo-commercial waving bangs + energetic combat wingbeat
-  88..99  combat_whip    Mega-bangs pompadour puff & dramatic forward/sideways hair-whip slap
+164 seamless vertex-animated frames across 11 clips:
+  0..15    fly_breezy     Cruising bird wingbeat + breezy flapping hair
+  16..31   windy_soar     Outstretched soaring thermal glide + gusty billowing hair
+  32..47   hover_flutter  Energetic figure-8 bird hover + wild downdraft hair
+  48..59   swoop_dive     Swept-back falcon dive/swoop + high-speed streaming hair
+  60..71   perch_breeze   Articulated folded wings tucked at rest + gentle breeze in hair
+  72..87   combat_fly     Giant 3x shampoo-commercial waving bangs + energetic combat wingbeat
+  88..99   combat_whip    Mega-bangs pompadour puff & dramatic forward/sideways hair-whip slap
+  100..115 fast_fly       F1 Whip-Snap High-RPM Flap + wavy brow bangs (sleek top)
+  116..131 hit_flail      H1 Asymmetric Panic Roll & Cross-Flap (hurt/disoriented)
+  132..147 skypad_hyper   S3 Hyper-Flutter Afterburner (info_skypad supersonic launch)
+  148..163 crazy_flip     W3 Unhinged Somersault Flip-Chaos (R-key crazy flip)
 """
 import math
 import os
 import shutil
 import sys
 import zipfile
+from collections import deque
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
-from scipy import ndimage
+try:
+    from scipy import ndimage
+except ImportError:
+    ndimage = None
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -37,13 +45,14 @@ OUT_DIR = os.path.join(HERE, "out", "john_bird")
 PROGS_DIR = os.path.join(ROOT_DIR, "progs")
 
 DEFAULT_UPLOAD = r"C:\Users\qxdc\.gemini\antigravity\brain\f3bc66bf-35ae-4b35-915b-45b0c14f2ce6\.user_uploaded\media_1793536817679_085d79be.jpg"
+REPO_UPLOAD_ASSET = os.path.join(HERE, "john_bird_assets", "uploaded_head_greenscreen.jpg")
 LOCAL_UPLOAD_COPY = os.path.join(OUT_DIR, "uploaded_head_greenscreen.jpg")
 
 HEAD_HEIGHT = 36.0          # Quake units (chin to crown)
 BASE_Z = 48.0               # Hover altitude above ground shadow plane (z=0)
 NH, MH = 56, 60             # Head cylindrical rings (56 around x 60 vertical)
 HEAD_TEX_W, HEAD_TEX_H = 1024, 1024
-TOTAL_FRAMES = 100
+TOTAL_FRAMES = 164
 
 
 def smoothstep(a, b, x):
@@ -92,12 +101,115 @@ def compute_vertex_normals(verts, tris):
 # 1. CHROMA-KEY DESPILL & TEXTURE SYNTHESIS (HEAD, HAIR, BIRD FEATHERS)
 # ==============================================================================
 
-def load_and_despill_front():
-    os.makedirs(OUT_DIR, exist_ok=True)
-    if os.path.isfile(DEFAULT_UPLOAD):
-        shutil.copyfile(DEFAULT_UPLOAD, LOCAL_UPLOAD_COPY)
+def _erode4(m, iters=1):
+    cur = m.copy()
+    for _ in range(iters):
+        p = np.pad(cur, 1, mode="constant", constant_values=False)
+        cur = p[1:-1, 1:-1] & p[:-2, 1:-1] & p[2:, 1:-1] & p[1:-1, :-2] & p[1:-1, 2:]
+    return cur
+
+
+def _dilate4(m, iters=1):
+    cur = m.copy()
+    for _ in range(iters):
+        p = np.pad(cur, 1, mode="constant", constant_values=False)
+        cur = p[1:-1, 1:-1] | p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]
+    return cur
+
+
+def _largest_cc4(m):
+    h, w = m.shape
+    mv = m.tolist()
+    vis = [[False] * w for _ in range(h)]
+    ys, xs = np.nonzero(m)
+    best_cnt = 0
+    best_seed = None
+    for sy, sx in zip(ys.tolist(), xs.tolist()):
+        if vis[sy][sx]:
+            continue
+        q = deque([(sy, sx)])
+        vis[sy][sx] = True
+        cnt = 0
+        while q:
+            y, x = q.popleft()
+            cnt += 1
+            if y > 0 and mv[y - 1][x] and not vis[y - 1][x]:
+                vis[y - 1][x] = True; q.append((y - 1, x))
+            if y + 1 < h and mv[y + 1][x] and not vis[y + 1][x]:
+                vis[y + 1][x] = True; q.append((y + 1, x))
+            if x > 0 and mv[y][x - 1] and not vis[y][x - 1]:
+                vis[y][x - 1] = True; q.append((y, x - 1))
+            if x + 1 < w and mv[y][x + 1] and not vis[y][x + 1]:
+                vis[y][x + 1] = True; q.append((y, x + 1))
+        if cnt > best_cnt:
+            best_cnt = cnt
+            best_seed = (sy, sx)
+    out = np.zeros((h, w), dtype=bool)
+    if best_seed is not None:
+        q = deque([best_seed])
+        out[best_seed] = True
+        while q:
+            y, x = q.popleft()
+            if y > 0 and mv[y - 1][x] and not out[y - 1, x]:
+                out[y - 1, x] = True; q.append((y - 1, x))
+            if y + 1 < h and mv[y + 1][x] and not out[y + 1, x]:
+                out[y + 1, x] = True; q.append((y + 1, x))
+            if x > 0 and mv[y][x - 1] and not out[y, x - 1]:
+                out[y, x - 1] = True; q.append((y, x - 1))
+            if x + 1 < w and mv[y][x + 1] and not out[y, x + 1]:
+                out[y, x + 1] = True; q.append((y, x + 1))
+    return out
+
+
+def _fill_holes4(m):
+    h, w = m.shape
+    inv = (~m).tolist()
+    bg_out = [[False] * w for _ in range(h)]
+    q = deque()
+    for x in range(w):
+        if inv[0][x] and not bg_out[0][x]:
+            bg_out[0][x] = True; q.append((0, x))
+        if inv[h - 1][x] and not bg_out[h - 1][x]:
+            bg_out[h - 1][x] = True; q.append((h - 1, x))
+    for y in range(h):
+        if inv[y][0] and not bg_out[y][0]:
+            bg_out[y][0] = True; q.append((y, 0))
+        if inv[y][w - 1] and not bg_out[y][w - 1]:
+            bg_out[y][w - 1] = True; q.append((y, w - 1))
+    while q:
+        y, x = q.popleft()
+        if y > 0 and inv[y - 1][x] and not bg_out[y - 1][x]:
+            bg_out[y - 1][x] = True; q.append((y - 1, x))
+        if y + 1 < h and inv[y + 1][x] and not bg_out[y + 1][x]:
+            bg_out[y + 1][x] = True; q.append((y + 1, x))
+        if x > 0 and inv[y][x - 1] and not bg_out[y][x - 1]:
+            bg_out[y][x - 1] = True; q.append((y, x - 1))
+        if x + 1 < w and inv[y][x + 1] and not bg_out[y][x + 1]:
+            bg_out[y][x + 1] = True; q.append((y, x + 1))
+    return ~np.asarray(bg_out, dtype=bool)
+
+
+def _gaussian_filter1d_np(arr, sigma, truncate=4.0):
+    lw = int(truncate * sigma + 0.5)
+    ax = np.arange(-lw, lw + 1, dtype=np.float64)
+    k = np.exp(-0.5 * (ax / float(sigma)) ** 2)
+    k /= k.sum()
+    p = np.pad(arr.astype(np.float64), lw, mode="symmetric")
+    return np.convolve(p, k, mode="valid").astype(arr.dtype)
+
+
+def load_and_despill_front(mask_only=False):
     ref_fallback = os.path.join(B.REF, "johnwave_head_green.jpg") if B is not None else os.path.join(HERE, "out", "chars", "ref", "johnwave_head_green.jpg")
-    src_path = LOCAL_UPLOAD_COPY if os.path.isfile(LOCAL_UPLOAD_COPY) else ref_fallback
+    if os.path.isfile(REPO_UPLOAD_ASSET):
+        src_path = REPO_UPLOAD_ASSET
+    elif os.path.isfile(LOCAL_UPLOAD_COPY):
+        src_path = LOCAL_UPLOAD_COPY
+    elif os.path.isfile(DEFAULT_UPLOAD):
+        os.makedirs(OUT_DIR, exist_ok=True)
+        shutil.copyfile(DEFAULT_UPLOAD, LOCAL_UPLOAD_COPY)
+        src_path = LOCAL_UPLOAD_COPY
+    else:
+        src_path = ref_fallback
     im = Image.open(src_path).convert("RGB")
     if im.size != (1024, 566):
         im = im.resize((1024, 566), Image.Resampling.LANCZOS)
@@ -106,11 +218,16 @@ def load_and_despill_front():
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
 
     bg = (g > r + 24.0) & (g > b + 24.0) & (g > 70.0)
-    fg = ndimage.binary_opening(~bg, iterations=2)
-    lab, n = ndimage.label(fg)
-    mask = lab == (1 + int(np.argmax(ndimage.sum(fg, lab, range(1, n + 1)))))
-    mask = ndimage.binary_fill_holes(mask)
-    mask = ndimage.binary_erosion(mask, iterations=1)
+    fg = _dilate4(_erode4(~bg, 2), 2)
+    mask = _largest_cc4(fg)
+    mask = _fill_holes4(mask)
+    mask = _erode4(mask, 1)
+
+    if mask_only:
+        return None, mask
+
+    if ndimage is None:
+        raise RuntimeError("scipy is required for full texture synthesis (use md3_only=True without scipy)")
 
     # Edge-aware green despill: zero neon-green fringe on hair/beard/ears, 100% natural warm skin tones
     dist_in = ndimage.distance_transform_edt(mask)
@@ -268,8 +385,8 @@ def outline_stats(mask, y0, y1, n, sigma):
     hi = (mask.shape[1] - 1 - mask[:, ::-1].argmax(axis=1)).astype(np.float32)
     lo = np.interp(ys, ys[has], lo[has])
     hi = np.interp(ys, ys[has], hi[has])
-    lo = ndimage.gaussian_filter1d(lo, sigma)
-    hi = ndimage.gaussian_filter1d(hi, sigma)
+    lo = _gaussian_filter1d_np(lo, sigma)
+    hi = _gaussian_filter1d_np(hi, sigma)
     yt = y0 + (y1 - y0) * np.linspace(0.0, 1.0, n)
     return yt, np.interp(yt, ys, 0.5 * (lo + hi)), np.interp(yt, ys, 0.5 * (hi - lo))
 
@@ -283,7 +400,7 @@ def hair_median(rgb, mask, y0, y1):
     return np.median(dark if len(dark) else px, axis=0)
 
 
-def build_base_head(front_rgb, front_mask):
+def build_base_head(front_rgb, front_mask, md3_only=False):
     ys = np.nonzero(front_mask)[0]
     ybot, ytop = float(ys.max() - 2.0), float(ys.min() + 2.0)
     yt, cx, hw = outline_stats(front_mask, ybot, ytop, MH, sigma=3.8)
@@ -327,7 +444,9 @@ def build_base_head(front_rgb, front_mask):
     P[..., 0] += (8.5 * (g_chk_r + g_chk_l) + 9.5 * g_stache + 11.0 * g_beard) * face_w
 
     head_tex_im = None
-    if B is not None and os.path.isfile(os.path.join(B.REF, B.SUIT["back"]["img"])):
+    if md3_only:
+        pass
+    elif B is not None and os.path.isfile(os.path.join(B.REF, B.SUIT["back"]["img"])):
         bk = B.Photo(B.SUIT["back"], B.SUIT["key"])
         byt, bcx, bhw = outline_stats(bk.sil, 262.0, 58.0, MH, sigma=4.0)
         psi = np.angle(np.exp(1j * (th + math.pi / 2.0)))
@@ -1480,7 +1599,7 @@ def eval_clip_pose(fi):
         )
         return f"combat_fly_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
 
-    else:
+    elif fi < 100:
         # Clip 7 (88..99): MEGA-BANGS POMPADOUR WHIP / SLAP (12 frames: puff huge -> violent forward/side whip!)
         k = fi - 88
         u = k / 12.0
@@ -1533,6 +1652,30 @@ def eval_clip_pose(fi):
             bank_asym=0.22 * coil - 0.26 * slash,
         )
         return f"combat_whip_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
+
+    else:
+        # Clips 8..11 (100..163): Voted winners F1, H1, S3, W3 from build_john_bird_anim_candidates
+        JBC = _get_candidates_mod()
+        for f0, f1, cand_idx, prefix in FINAL_WINNER_CLIPS:
+            if f0 <= fi < f1:
+                k = fi - f0
+                _, head_pos, head_rot, wind_cfg, wing_pose = JBC.eval_candidate_pose(cand_idx, k)
+                return f"{prefix}_{k:02d}", head_pos, head_rot, wind_cfg, wing_pose
+        raise ValueError(f"Frame index out of range: {fi}")
+
+
+FINAL_WINNER_CLIPS = (
+    (100, 116, 0,  "fast_fly"),      # F1: Whip-Snap High-RPM Flap
+    (116, 132, 4,  "hit_flail"),     # H1: Asymmetric Panic Roll & Cross-Flap
+    (132, 148, 10, "skypad_hyper"),  # S3: Hyper-Flutter Afterburner
+    (148, 164, 14, "crazy_flip"),    # W3: Unhinged Somersault Flip-Chaos
+)
+
+
+def _get_candidates_mod():
+    sys.modules.setdefault("build_john_bird_head", sys.modules[__name__])
+    import build_john_bird_anim_candidates as JBC
+    return JBC
 
 
 # ==============================================================================
@@ -1627,33 +1770,27 @@ def render_preview_tile(surfaces_data, tex_map, fi, az_deg, el_deg, dist=138.0, 
     return Image.fromarray(img.astype(np.uint8))
 
 
-def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
-    os.makedirs(PROGS_DIR, exist_ok=True)
+def build_john_bird_model(out_dir=OUT_DIR, render_verify=True, md3_only=False):
+    os.makedirs(out_dir, exist_ok=True)
+    JBC = _get_candidates_mod()
 
-    print("1. Loading uploaded green-screen portrait & despilling...", flush=True)
-    front_rgb, front_mask = load_and_despill_front()
+    print("1. Loading greenscreen portrait...", flush=True)
+    front_rgb, front_mask = load_and_despill_front(mask_only=md3_only)
 
-    print("2. Reconstructing 3D anatomical head & baking 1024x1024 seamless skin...", flush=True)
-    head_data = build_base_head(front_rgb, front_mask)
-    head_tex_p = os.path.join(PROGS_DIR, "john_bird_head.png")
-    head_data["head_tex"].save(head_tex_p, optimize=True)
-    head_data["head_tex"].save(os.path.join(OUT_DIR, "john_bird_head.png"), optimize=True)
+    print("2. Reconstructing 3D anatomical head...", flush=True)
+    head_data = build_base_head(front_rgb, front_mask, md3_only=md3_only)
+    if not md3_only:
+        head_data["head_tex"].save(os.path.join(out_dir, "john_bird_head.png"), optimize=True)
 
-    print("3. Synthesizing real-photo 3D hair lock texture & avian feather atlases...", flush=True)
-    hair_tex = build_hair_strand_texture(front_rgb)
-    hair_tex_p = os.path.join(PROGS_DIR, "john_bird_hair.png")
-    hair_tex.save(hair_tex_p, optimize=True)
-    hair_tex.save(os.path.join(OUT_DIR, "john_bird_hair.png"), optimize=True)
+        print("3. Synthesizing real-photo 3D hair lock texture & avian feather atlases...", flush=True)
+        hair_tex = build_hair_strand_texture(front_rgb)
+        hair_tex.save(os.path.join(out_dir, "john_bird_hair.png"), optimize=True)
 
-    wing_hawk = build_feather_atlas(front_rgb, variant="hawk")
-    wing_hawk_p = os.path.join(PROGS_DIR, "john_bird_wings.png")
-    wing_hawk.save(wing_hawk_p, optimize=True)
-    wing_hawk.save(os.path.join(OUT_DIR, "john_bird_wings.png"), optimize=True)
+        wing_hawk = build_feather_atlas(front_rgb, variant="hawk")
+        wing_hawk.save(os.path.join(out_dir, "john_bird_wings.png"), optimize=True)
 
-    wing_white = build_feather_atlas(front_rgb, variant="white")
-    wing_white_p = os.path.join(OUT_DIR, "john_bird_wings_white.png")
-    wing_white.save(wing_white_p, optimize=True)
+        wing_white = build_feather_atlas(front_rgb, variant="white")
+        wing_white.save(os.path.join(out_dir, "john_bird_wings_white.png"), optimize=True)
 
     print("4. Sculpting 64 sleek breezy 3D hair locks & articulated 3-joint feathered bird wings...", flush=True)
     hair_locks, hair_uvs, hair_tris = build_hair_locks_spec(head_data["grid_pos"])
@@ -1668,7 +1805,7 @@ def main():
     wing_frames = []
     frame_names = []
 
-    print(f"5. Animating {TOTAL_FRAMES} seamless frames across 7 flight, breeze & combat clips...", flush=True)
+    print(f"5. Animating {TOTAL_FRAMES} seamless frames across 11 clips (0..99 + F1/H1/S3/W3)...", flush=True)
     for fi in range(TOTAL_FRAMES):
         fname, h_pos, h_rot, wind_cfg, wing_pose = eval_clip_pose(fi)
         frame_names.append(fname)
@@ -1676,21 +1813,33 @@ def main():
         tj = ring_meta[:, 0]
         th_k = ring_meta[:, 1]
         hw_rip = ring_meta[:, 2]
-        ph = wind_cfg["phase"] * wind_cfg["harm"]
-        rip = hw_rip * wind_cfg["flutter"] * 0.36 * np.sin(ph - 2.5 * tj + 2.0 * th_k)
+        if fi < 100:
+            ph = wind_cfg["phase"] * wind_cfg["harm"]
+            scalp_breeze = wind_cfg["breeze"]
+            scalp_flutter = wind_cfg["flutter"]
+        else:
+            ph = wind_cfg["ph1"] * wind_cfg["h1"]
+            scalp_breeze = min(1.85, wind_cfg["breeze"])
+            scalp_flutter = min(2.20, wind_cfg["flutter"])
+        rip = hw_rip * scalp_flutter * 0.36 * np.sin(ph - 2.5 * tj + 2.0 * th_k)
         hv = head_v0.copy()
-        hv[:, 0] -= hw_rip * wind_cfg["breeze"] * 0.48
+        hv[:, 0] -= hw_rip * scalp_breeze * 0.48
         hv[:, 1] += rip * np.cos(th_k)
         hv[:, 2] += np.abs(rip) * 0.55
         hv_world = (hv @ h_rot.T) + h_pos[None, :]
         hn_world = compute_vertex_normals(hv_world, head_tris)
         head_frames.append(([tuple(map(float, p)) for p in hv_world], [tuple(map(float, n)) for n in hn_world]))
 
-        hr_world = eval_hair_locks_frame(hair_locks, wind_cfg, h_rot, h_pos)
+        if fi < 100:
+            hr_world = eval_hair_locks_frame(hair_locks, wind_cfg, h_rot, h_pos)
+            wg_world = wing_builder.eval_frame(wing_pose, h_rot, h_pos)
+        else:
+            hr_world = JBC.eval_candidate_hair(hair_locks, wind_cfg, h_rot, h_pos)
+            wg_world = JBC.eval_candidate_wing(wing_builder, wing_pose, h_rot, h_pos)
+
         hr_norms = compute_vertex_normals(hr_world, hair_tris)
         hair_frames.append(([tuple(map(float, p)) for p in hr_world], [tuple(map(float, n)) for n in hr_norms]))
 
-        wg_world = wing_builder.eval_frame(wing_pose, h_rot, h_pos)
         wg_norms = compute_vertex_normals(wg_world, wing_builder.tris)
         wing_frames.append(([tuple(map(float, p)) for p in wg_world], [tuple(map(float, n)) for n in wg_norms]))
 
@@ -1700,24 +1849,8 @@ def main():
         dict(name="wings_bird", shader="progs/john_bird_wings", tris=wing_builder.tris, st=wing_builder.uvs, frames=wing_frames),
     ]
 
-    md3_path = os.path.join(PROGS_DIR, "john_bird_head.md3")
+    md3_path = os.path.join(out_dir, "john_bird_head.md3")
     md3lib.write(md3_path, dict(name="progs/john_bird_head.md3", surfaces=surfaces, frame_names=frame_names))
-    shutil.copyfile(md3_path, os.path.join(OUT_DIR, "john_bird_head.md3"))
-
-    skin_txt = (
-        "head,progs/john_bird_head.png\n"
-        "hair_breezy,progs/john_bird_hair.png\n"
-        "wings_bird,progs/john_bird_wings.png\n"
-    )
-    open(os.path.join(PROGS_DIR, "john_bird_head_0.skin"), "w", encoding="utf-8").write(skin_txt)
-    for sk_idx, w_sh in ((0, "progs/john_bird_wings"), (1, "progs/john_bird_wings_hurt"), (2, "progs/john_bird_wings_white")):
-        md3_skin = (
-            "head,progs/john_bird_head\n"
-            "hair_breezy,progs/john_bird_hair\n"
-            f"wings_bird,{w_sh}\n"
-        )
-        with open(os.path.join(PROGS_DIR, f"john_bird_head.md3_{sk_idx}.skin"), "w", encoding="ascii", newline="\n") as f:
-            f.write(md3_skin)
 
     tot_v = sum(len(s["st"]) for s in surfaces)
     tot_t = sum(len(s["tris"]) for s in surfaces)
@@ -1725,7 +1858,29 @@ def main():
     for s in surfaces:
         print(f"     - {s['name']:12s}: {len(s['st']):4d} verts, {len(s['tris']):4d} tris, shader={s['shader']}")
 
-    print("6. Rendering showcase angle tiles & verification sheet...", flush=True)
+    if md3_only:
+        return md3_path
+
+    skin_txt = (
+        "head,progs/john_bird_head.png\n"
+        "hair_breezy,progs/john_bird_hair.png\n"
+        "wings_bird,progs/john_bird_wings.png\n"
+    )
+    with open(os.path.join(out_dir, "john_bird_head_0.skin"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(skin_txt)
+    for sk_idx, w_sh in ((0, "progs/john_bird_wings"), (1, "progs/john_bird_wings_hurt"), (2, "progs/john_bird_wings_white")):
+        md3_skin = (
+            "head,progs/john_bird_head\n"
+            "hair_breezy,progs/john_bird_hair\n"
+            f"wings_bird,{w_sh}\n"
+        )
+        with open(os.path.join(out_dir, f"john_bird_head.md3_{sk_idx}.skin"), "w", encoding="ascii", newline="\n") as f:
+            f.write(md3_skin)
+
+    if not render_verify:
+        return md3_path
+
+    print("6. Rendering showcase angle tiles & verification sheets...", flush=True)
     tex_np = {
         "progs/john_bird_head": np.asarray(head_data["head_tex"], dtype=np.float32),
         "progs/john_bird_hair": np.asarray(hair_tex, dtype=np.float32),
@@ -1746,7 +1901,7 @@ def main():
     tiles = []
     for fn, lbl, fi_t, az_t, el_t, dist_t, tz_t in tile_specs:
         im_t = render_preview_tile(surfaces, tex_np, fi=fi_t, az_deg=az_t, el_deg=el_t, dist=dist_t, tgt_z=tz_t)
-        im_t.save(os.path.join(OUT_DIR, fn), optimize=True)
+        im_t.save(os.path.join(out_dir, fn), optimize=True)
         tiles.append((im_t, lbl))
 
     sheet = Image.new("RGB", (420 * 4, 340 * 2), (10, 15, 25))
@@ -1757,7 +1912,7 @@ def main():
         dr.rectangle([gx + 8, gy_p + 8, gx + 315, gy_p + 30], fill=(10, 16, 28))
         dr.text((gx + 14, gy_p + 13), lbl, fill=(255, 200, 90) if idx < 4 else (110, 231, 183))
 
-    verify_p = os.path.join(OUT_DIR, "john_bird_verify.png")
+    verify_p = os.path.join(out_dir, "john_bird_verify.png")
     sheet.save(verify_p)
     print(f"   Saved verification sheet: {verify_p}", flush=True)
 
@@ -1770,7 +1925,7 @@ def main():
     ctiles = []
     for fn, lbl, fi_t, az_t, el_t, dist_t, tz_t in combat_specs:
         im_t = render_preview_tile(surfaces, tex_np, fi=fi_t, az_deg=az_t, el_deg=el_t, dist=dist_t, tgt_z=tz_t)
-        im_t.save(os.path.join(OUT_DIR, fn), optimize=True)
+        im_t.save(os.path.join(out_dir, fn), optimize=True)
         ctiles.append((im_t, lbl))
     csheet = Image.new("RGB", (420 * 2, 340 * 2), (10, 15, 25))
     cdr = ImageDraw.Draw(csheet)
@@ -1779,9 +1934,36 @@ def main():
         csheet.paste(im_t, (gx, gy_p))
         cdr.rectangle([gx + 8, gy_p + 8, gx + 315, gy_p + 30], fill=(10, 16, 28))
         cdr.text((gx + 14, gy_p + 13), lbl, fill=(255, 200, 90))
-    cverify_p = os.path.join(OUT_DIR, "john_bird_combat_verify.png")
+    cverify_p = os.path.join(out_dir, "john_bird_combat_verify.png")
     csheet.save(cverify_p)
     print(f"   Saved combat verification sheet: {cverify_p}", flush=True)
+
+    # 4x4 Final Winner Verification Sheet (frames 100..163: F1, H1, S3, W3)
+    final_rows = [
+        (100, "F1 fast_fly",     ((2, 28, 14, 150.0, 50.0, "f102 3/4"), (6, 24, 14, 150.0, 50.0, "f106 Mid"), (10, -34, 15, 150.0, 50.0, "f110 Opp"), (13, -76, 14, 152.0, 50.0, "f113 Side"))),
+        (116, "H1 hit_flail",    ((2, 28, 15, 154.0, 50.0, "f118 3/4"), (6, -28, 16, 154.0, 50.0, "f122 Opp"), (10, 18, 22, 154.0, 50.0, "f126 High"), (13, -72, 16, 154.0, 50.0, "f129 Side"))),
+        (132, "S3 skypad_hyper", ((2, 30, 14, 168.0, 51.0, "f134 3/4"), (6, -68, 15, 174.0, 51.0, "f138 Side"), (10, -118, 18, 174.0, 51.0, "f142 Rear"), (14, 24, 16, 168.0, 51.0, "f146 Up"))),
+        (148, "W3 crazy_flip",   ((0, 28, 16, 166.0, 51.0, "f148 0deg"), (4, 28, 16, 166.0, 51.0, "f152 90deg"), (8, 28, 16, 166.0, 51.0, "f156 180deg"), (12, 28, 16, 166.0, 51.0, "f160 270deg"))),
+    ]
+    fw, fh = 360, 290
+    fsheet = Image.new("RGB", (fw * 4, fh * 4), (10, 15, 25))
+    fdr = ImageDraw.Draw(fsheet)
+    for r_i, (base_f, r_lbl, cols) in enumerate(final_rows):
+        for c_i, (kf, az, el, dist_t, tz_t, tag) in enumerate(cols):
+            im_t = render_preview_tile(surfaces, tex_np, fi=base_f + kf, az_deg=az, el_deg=el, dist=dist_t, tgt_z=tz_t, tile_w=fw, tile_h=fh)
+            gx, gy_p = c_i * fw, r_i * fh
+            fsheet.paste(im_t, (gx, gy_p))
+            fdr.rectangle([gx + 6, gy_p + 6, gx + fw - 8, gy_p + 26], fill=(10, 16, 28))
+            fdr.text((gx + 10, gy_p + 10), f"{r_lbl} | {tag}", fill=(125, 211, 252) if c_i == 0 else (253, 224, 71))
+    fverify_p = os.path.join(out_dir, "john_bird_final_verify.png")
+    fsheet.save(fverify_p, optimize=True)
+    print(f"   Saved final winner verification sheet: {fverify_p}", flush=True)
+    return md3_path
+
+
+def main():
+    render_verify = "--no-verify" not in sys.argv[1:]
+    build_john_bird_model(out_dir=OUT_DIR, render_verify=render_verify)
 
 
 if __name__ == "__main__":

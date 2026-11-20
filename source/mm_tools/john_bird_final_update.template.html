@@ -1,0 +1,1765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Winged Breezy-Hair John · Final Shipped Animations &amp; SkyPad Stunt Sandbox</title>
+<style>
+:root {
+  --bg: #070b14;
+  --bg-card: rgba(13, 19, 33, 0.90);
+  --panel: rgba(11, 17, 30, 0.93);
+  --panel-solid: #0f1626;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-hi: rgba(56, 189, 248, 0.65);
+  --mint: #34d399;
+  --text: #eef4fc;
+  --muted: #94a3b8;
+  --cyan: #38bdf8;
+  --amber: #fbbf24;
+  --pink: #fb7185;
+  --purple: #c084fc;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.48 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  scroll-behavior: smooth;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+main#page {
+  position: relative;
+  z-index: 1;
+  max-width: 1580px;
+  margin: 0 auto;
+  padding: 0 20px 64px;
+}
+body.detail-open main#page { visibility: hidden; }
+body.detail-open { overflow: hidden; }
+
+header.hero {
+  padding: 20px 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+}
+.kicker {
+  margin: 0 0 3px;
+  color: var(--mint);
+  font-size: 11.5px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 31px);
+  font-weight: 850;
+  letter-spacing: -0.018em;
+}
+.sub {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 98ch;
+}
+.hero-stats {
+  color: var(--muted);
+  font-size: 12.5px;
+  background: rgba(13, 19, 33, 0.88);
+  border: 1px solid rgba(52, 211, 153, 0.38);
+  border-radius: 11px;
+  padding: 8px 14px;
+}
+.hero-stats b { color: var(--text); }
+
+/* Interactive 3D Flight & Stunt Sandbox */
+.sandbox-wrap {
+  margin: 4px 0 18px;
+  border: 1.5px solid rgba(56, 189, 248, 0.42);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  background: transparent;
+}
+#sandbox-stage {
+  position: relative;
+  height: min(62vh, 540px);
+  min-height: 420px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  outline: none;
+}
+#sandbox-stage.drag { cursor: grabbing; }
+.sb-hud-top {
+  position: absolute;
+  top: 12px; left: 14px; right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.sb-hud-top > * { pointer-events: auto; }
+.sb-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sb-pill {
+  background: rgba(7, 11, 20, 0.85);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 750;
+}
+.sb-pill.speed-hi { border-color: var(--cyan); color: #bae6fd; }
+.sb-pill.speed-hyper { border-color: var(--amber); color: #fde68a; background: rgba(120, 53, 15, 0.58); }
+.sb-pill.state-hit { border-color: var(--pink); color: #fecdd3; background: rgba(136, 19, 55, 0.58); }
+.sb-pill.state-crazy { border-color: var(--purple); color: #f3e8ff; background: rgba(107, 33, 168, 0.58); }
+
+.voice-toast {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: rgba(10, 18, 34, 0.92);
+  border: 1.5px solid rgba(56, 189, 248, 0.65);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #e0f2fe;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  white-space: nowrap;
+  z-index: 6;
+}
+.voice-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.voice-toast b { color: var(--amber); }
+
+.sb-hud-btm {
+  position: absolute;
+  left: 14px; right: 14px; bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.sb-hud-btm > * { pointer-events: auto; }
+.sb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  background: rgba(7, 11, 20, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 7px 9px;
+  backdrop-filter: blur(12px);
+}
+.btn-boost { border-color: rgba(56, 189, 248, 0.60); background: rgba(14, 116, 144, 0.38); color: #e0f2fe; }
+.btn-hit { border-color: rgba(251, 113, 133, 0.60); background: rgba(159, 18, 57, 0.38); color: #ffe4e6; }
+.btn-skypad { border-color: rgba(251, 191, 36, 0.75); background: linear-gradient(135deg, rgba(245, 158, 11, 0.44), rgba(56, 189, 248, 0.34)); color: #fef3c7; font-weight: 800; }
+.btn-crazy { border-color: rgba(192, 132, 252, 0.75); background: linear-gradient(135deg, rgba(168, 85, 247, 0.44), rgba(236, 72, 153, 0.32)); color: #f5d0fe; font-weight: 800; }
+
+.sb-footer {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 9px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  font-size: 12px;
+}
+
+/* Sticky Toolbar */
+.toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 15px;
+  margin: 0 0 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.48);
+}
+.bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group-lbl {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+}
+button, .nav-pill {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+button:hover, .nav-pill:hover { background: rgba(255, 255, 255, 0.13); }
+button[aria-pressed="true"], button.active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: var(--cyan);
+  color: #e0f4ff;
+}
+button.warn-btn[aria-pressed="true"], button.warn-btn.active {
+  background: rgba(251, 146, 60, 0.24);
+  border-color: #fb923c;
+  color: #ffedd5;
+}
+.range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.range-wrap input[type="range"] { width: 92px; accent-color: var(--cyan); }
+
+/* 4 Shipped Winners Grid */
+.sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--mint);
+  border-radius: 13px;
+  scroll-margin-top: 118px;
+}
+.sec-head h2 { margin: 0; font-size: 20px; font-weight: 850; }
+.sec-head p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+@media (max-width: 1080px) { .grid { grid-template-columns: 1fr; } }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: 1px solid rgba(52, 211, 153, 0.38);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+}
+.stage {
+  position: relative;
+  height: 350px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-bottom: 1px solid var(--line);
+}
+.stage.drag { cursor: grabbing; }
+.stage-top {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.pill {
+  background: rgba(9, 13, 22, 0.82);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 750;
+}
+.pill.win { color: #bbf7d0; background: rgba(16, 185, 129, 0.28); border-color: var(--mint); }
+.stage-btm {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.mini-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+.mini-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 7px;
+  background: rgba(9, 13, 22, 0.82);
+  backdrop-filter: blur(8px);
+}
+.mini-btn.active { background: rgba(56, 189, 248, 0.28); border-color: var(--cyan); }
+
+.card-body {
+  background: var(--bg-card);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card h3 { margin: 0; font-size: 18px; font-weight: 850; }
+.subtitle { font-size: 12px; color: var(--cyan); font-weight: 700; }
+.trigger-line {
+  font-size: 12px;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.09);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 8px;
+  padding: 5px 9px;
+}
+.desc { margin: 0; color: #cbd5e1; font-size: 13px; }
+.parts-list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  display: grid;
+  gap: 3px;
+}
+.parts-list b { color: #e2e8f0; }
+
+/* Notes / Frame Table & QC Changelog */
+.notes-section {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  scroll-margin-top: 118px;
+}
+.notes-section h2 { margin: 0 0 6px; font-size: 20px; }
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 14px;
+  margin: 14px 0 18px;
+}
+.note-card {
+  background: rgba(7, 11, 20, 0.68);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.note-card h3 { margin: 0 0 8px; font-size: 14.5px; color: var(--cyan); }
+.note-card ul { margin: 0; padding-left: 16px; display: grid; gap: 5px; color: #cbd5e1; }
+.note-card code {
+  background: rgba(56, 189, 248, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font: 12px ui-monospace, Consolas, monospace;
+}
+.tbl-wrap { overflow-x: auto; margin-top: 10px; }
+table.ftable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: rgba(7, 11, 20, 0.72);
+}
+table.ftable th, table.ftable td {
+  border: 1px solid var(--line);
+  padding: 7px 10px;
+  text-align: left;
+}
+table.ftable th { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+table.ftable tr.new-row { background: rgba(52, 211, 153, 0.08); }
+
+/* Detail Modal */
+#detail {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  grid-template-columns: 1fr 370px;
+}
+#detail.open { display: grid; }
+@media (max-width: 960px) { #detail { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } }
+#detail-stage { position: relative; cursor: grab; touch-action: none; }
+#detail-stage.drag { cursor: grabbing; }
+.detail-top-hud {
+  position: absolute;
+  top: 14px; left: 14px; right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.detail-top-hud > * { pointer-events: auto; }
+.detail-cam-hud {
+  position: absolute;
+  bottom: 14px; left: 14px; right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.detail-side {
+  background: var(--panel-solid);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-side h2 { margin: 0; font-size: 20px; }
+.spec-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+</style>
+</head>
+<body>
+<div id="loading">Decompressing Final Shipped 164-Frame john_bird_head.md3 + WebAudio SFX + WebGL2 Studio…</div>
+<canvas id="gl"></canvas>
+
+<main id="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">BakersfieldQuake · Shipped Live Update (zz_johnbird.pk3 + progs.dat)</p>
+      <h1>Winged Breezy-Hair John — 4 Winning Animations &amp; SkyPad Stunt Sandbox</h1>
+      <p class="sub">
+        All 4 voted winners (<b>F1</b> Fast Flight, <b>H1</b> Hit/Disoriented, <b>S3</b> SkyPad Hyper-Speed, and <b>W3</b> Crazy Flip on <span class="mono">R</span>)
+        are now compiled into the live 164-frame <span class="mono">progs/john_bird_head.md3</span> (<span class="mono">zz_johnbird.pk3</span>) and <span class="mono">progs.dat</span>.
+      </p>
+    </div>
+    <div class="hero-stats" id="hero-stats">Loading stats…</div>
+  </header>
+
+  <!-- 1. Interactive 3D Flight & Stunt Sandbox -->
+  <section class="sandbox-wrap" id="sec-sandbox">
+    <div id="sandbox-stage" tabindex="0">
+      <div class="sb-hud-top">
+        <div class="sb-pills">
+          <span class="sb-pill" id="sb-state-pill">State: Cruise (780 u/s)</span>
+          <span class="sb-pill speed-hi mono" id="sb-speed-pill">780 u/s</span>
+          <span class="sb-pill mono" id="sb-clip-pill">Clip: fly_breezy (0..15)</span>
+          <span class="sb-pill mono" id="sb-alt-pill">Alt: 140u</span>
+        </div>
+        <div class="sb-pills">
+          <button id="sb-auto-btn" aria-pressed="true">Auto-Cruise Loop</button>
+          <button id="sb-reset-btn">↺ Reset Pos</button>
+          <button id="sb-voice-btn">🗣 John Voice (V)</button>
+        </div>
+      </div>
+
+      <div class="voice-toast" id="voice-toast"></div>
+
+      <div class="sb-hud-btm">
+        <div class="sb-actions">
+          <button class="btn-boost" id="sb-boost-btn">🚀 Boost · F1 Fast Flight (Shift)</button>
+          <button class="btn-hit" id="sb-hit-btn">💥 Hit! · H1 Disoriented (H)</button>
+          <button class="btn-skypad" id="sb-skypad-btn">⚡ SkyPad Launch · S3 Hyper (L)</button>
+          <button class="btn-crazy" id="sb-crazy-btn">🌀 Crazy Flip · W3 (R)</button>
+        </div>
+        <div class="sb-pill mono" style="font-size:11px;color:var(--muted)">
+          WASD / Arrows Steer · Space/C Climb/Dive · Drag Orbit · Scroll Zoom
+        </div>
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="group">
+        <span class="group-lbl">Shipped Stunt Pipeline:</span>
+        <span class="mono" style="color:#cbd5e1">0..15 Cruise → 100..115 F1 (&ge;950 u/s) → 116..131 H1 (JB_Pain) → 132..147 S3 (info_skypad) → 148..163 W3 (R / impulse 41)</span>
+      </div>
+      <div class="group">
+        <span class="group-lbl">Plumage:</span>
+        <button class="mini-btn active" id="sb-plum-0">Hawk</button>
+        <button class="mini-btn" id="sb-plum-1">White</button>
+        <button class="mini-btn" id="sb-plum-2">Hurt</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Sticky Global Controls Toolbar -->
+  <section class="toolbar">
+    <div class="bar-row">
+      <div class="group">
+        <span class="group-lbl">Jump:</span>
+        <a class="nav-pill" href="#sec-sandbox">3D Stunt Sandbox</a>
+        <a class="nav-pill" href="#sec-winners">4 Shipped Winners (F1 · H1 · S3 · W3)</a>
+        <a class="nav-pill" href="#sec-notes">Frame Table, QC &amp; PK3 Notes</a>
+      </div>
+      <div class="group">
+        <button id="btn-audio" aria-pressed="true">🔊 SFX: ON</button>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="group">
+        <button id="btn-play" aria-pressed="true">⏸ Playing</button>
+        <button id="btn-loop" aria-pressed="true">🔁 Loop</button>
+        <button id="btn-spin" aria-pressed="true">Auto-Orbit</button>
+        <button id="btn-bangs" aria-pressed="false">👀 Bangs Close-Up</button>
+        <button id="btn-reset-cams">↺ Reset Cameras</button>
+      </div>
+      <div class="group">
+        <button id="btn-hurt" class="warn-btn" aria-pressed="false">🔥 Hurt Skin</button>
+        <button id="btn-wire" aria-pressed="false">Wireframe</button>
+        <div class="range-wrap">
+          <span>Speed</span>
+          <input id="rng-speed" type="range" min="0.25" max="2.5" step="0.05" value="1.0">
+          <span class="mono" id="out-speed">1.00×</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 4 Winning Animation Inspector Cards -->
+  <section id="sec-winners">
+    <div class="sec-head">
+      <div>
+        <h2>4 Shipped Winning Animations (Frames 100..163 in <span class="mono">progs/john_bird_head.md3</span>)</h2>
+        <p>Every card below renders directly from the final 164-frame MD3 packed inside <span class="mono">zz_johnbird.pk3</span>. Drag to orbit, scroll to zoom, or double-click for Fullscreen.</p>
+      </div>
+    </div>
+    <div class="grid" id="winners-grid"></div>
+  </section>
+
+  <!-- 4. Detailed Notes on Everything Changed -->
+  <section class="notes-section" id="sec-notes">
+    <h2>Detailed Change Notes — Model, QuakeC &amp; Packaging</h2>
+    <p class="sub" style="margin-top:2px">
+      Complete summary of the live shipped update across <span class="mono">zz_johnbird.pk3</span>, <span class="mono">john_bird_defs.qc</span>, <span class="mono">john_bird.qc</span>, <span class="mono">skypad.qc</span>, and <span class="mono">progs.dat</span>.
+    </p>
+
+    <div class="notes-grid">
+      <div class="note-card">
+        <h3>1. QuakeC Mechanics (<code>john_bird_defs.qc</code>, <code>john_bird.qc</code>, <code>skypad.qc</code>)</h3>
+        <ul>
+          <li><b>Fast Flight (<code>fast_fly</code>, 100..115):</b> Triggers when <code>hspd &gt;= 950 u/s</code> (Shift boost <code>1,280 u/s</code> or mouse-carve up to <code>1,220 u/s</code>) and not steep-diving (<code>velocity_z &gt;= -420</code>). Scales <code>22..32 fps</code> with <code>0.14..0.24s</code> flap SFX at <code>108..126%</code> pitch.</li>
+          <li><b>Hit / Disoriented (<code>hit_flail</code>, 116..131):</b> <code>JB_Pain</code> sets <code>jb_hurt_until = time + 0.65</code> + <code>jb_hurt_skin_until = time + 0.18</code> (<code>skin = 1</code> hurt-wing flash), light roll/velocity jolt, pilot punch, <code>8×</code> <code>john_bird_feather.md3</code>, and <code>feather_hit.wav</code>. Plays at <code>28 fps</code> with <code>0.11s</code> erratic flaps in both flight &amp; perch idle.</li>
+          <li><b>Super Launch Pad (<code>skypad_hyper</code>, 132..147):</b> <code>SkyPad_Touch</code> + 20 Hz <code>JB_CheckSkyPads</code> call <code>SkyPad_LaunchJohnBird</code> &rarr; <code>SkyPad_CalcVel</code>, raise <code>sv_maxvelocity 6500</code>, play <code>skypad/launch.wav</code>, preserve ballistic arc (gravity 800 + light air-steering without cruise clamp), shed continuous <code>0.06s</code> feather trail, and play at <code>30..42 fps</code> while <code>jb_skypad_until &gt; time || hspd &gt;= 1500</code>.</li>
+          <li><b>Crazy Flip (<code>crazy_flip</code>, 148..163):</b> Press <b><code>R</code> (<code>impulse 41</code>)</b> while flying John Bird (<code>1.0s</code> cooldown) to set <code>jb_spin_until = time + 0.65</code>, fire a forward/upward flip surge + <code>6×</code> feathers + higher-pitch <code>swoop.wav</code>, and play W3 at <code>30 fps</code>!</li>
+        </ul>
+      </div>
+
+      <div class="note-card">
+        <h3>2. Priority Order &amp; Reproducible Artifacts</h3>
+        <ul>
+          <li><b>Animation Priority:</b> <code>hit_flail</code> &gt; <code>crazy_flip</code> &gt; <code>skypad_hyper</code> &gt; <code>combat_whip</code> &gt; <code>swoop_dive</code> &gt; <code>fast_fly</code> &gt; <code>hover_flutter</code> &gt; <code>windy_soar</code> &gt; <code>fly_breezy</code>.</li>
+          <li><b>Mount Hint:</b> Updated pilot sprint/controls HUD to mention <code>Press R for Crazy Flip!</code></li>
+          <li><b>Base PK3 Preservation:</b> <code>bakersfield.pk3</code> left untouched; updated 164-frame <code>progs/john_bird_head.md3</code> shipped cleanly in reproducible <code>zz_johnbird.pk3</code> (preserving all <code>jb_*</code> combat props/audio) alongside compiled <code>progs.dat</code> &amp; <code>progs.lno</code>.</li>
+        </ul>
+        <div class="spec-box mono" id="artifact-box" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="ftable">
+        <thead>
+          <tr><th>Frames</th><th>Count</th><th>Clip Name</th><th>Status / Winner</th><th>Runtime Trigger</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">0..15</td><td>16</td><td class="mono">fly_breezy</td><td>Legacy</td><td>Normal cruising wingbeat (780 u/s) + breezy hair</td></tr>
+          <tr><td class="mono">16..31</td><td>16</td><td class="mono">windy_soar</td><td>Legacy</td><td>Outstretched thermal glide</td></tr>
+          <tr><td class="mono">32..47</td><td>16</td><td class="mono">hover_flutter</td><td>Legacy</td><td>Hover scull / vigorous climb</td></tr>
+          <tr><td class="mono">48..59</td><td>12</td><td class="mono">swoop_dive</td><td>Legacy</td><td>Steep downward dive (<code>velocity_z &lt; -420</code>)</td></tr>
+          <tr><td class="mono">60..71</td><td>12</td><td class="mono">perch_breeze</td><td>Legacy</td><td>Folded wings perched idle</td></tr>
+          <tr><td class="mono">72..87</td><td>16</td><td class="mono">combat_fly</td><td>Legacy</td><td>Giant waving bangs combat flight</td></tr>
+          <tr><td class="mono">88..99</td><td>12</td><td class="mono">combat_whip</td><td>Legacy</td><td>Pompadour whip-slap (0.50s)</td></tr>
+          <tr class="new-row"><td class="mono">100..115</td><td>16</td><td class="mono">fast_fly</td><td><b>F1 · Whip-Snap High-RPM Flap</b></td><td><code>hspd &gt;= 950 u/s</code> (level/climb, 22..32 fps)</td></tr>
+          <tr class="new-row"><td class="mono">116..131</td><td>16</td><td class="mono">hit_flail</td><td><b>H1 · Asymmetric Panic Roll &amp; Cross-Flap</b></td><td><code>JB_Pain</code> (0.65s flail + 0.18s hurt skin flash, 28 fps)</td></tr>
+          <tr class="new-row"><td class="mono">132..147</td><td>16</td><td class="mono">skypad_hyper</td><td><b>S3 · Hyper-Flutter Afterburner</b></td><td><code>info_skypad</code> launch / <code>hspd &gt;= 1500 u/s</code> (30..42 fps)</td></tr>
+          <tr class="new-row"><td class="mono">148..163</td><td>16</td><td class="mono">crazy_flip</td><td><b>W3 · Unhinged Somersault Flip-Chaos</b></td><td>Press <code>R</code> (<code>impulse 41</code>, 1.0s cooldown, 30 fps)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Fullscreen Detail Modal -->
+<section id="detail">
+  <div id="detail-stage">
+    <div class="detail-top-hud">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="d-close">✕ Back to Grid</button>
+        <button id="d-prev">← Prev</button>
+        <button id="d-next">Next →</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button id="d-play" aria-pressed="true">⏸ Pause</button>
+        <input id="d-scrub" type="range" min="0" max="15" step="0.1" value="0" style="width:170px">
+        <span class="pill mono" id="d-frame-lbl">frame 0 / 15</span>
+      </div>
+    </div>
+    <div class="detail-cam-hud">
+      <div class="group">
+        <button data-cam="hero">3/4 Hero</button>
+        <button data-cam="bangs">Bangs Close-Up</button>
+        <button data-cam="side">Side Profile</button>
+        <button data-cam="rear">Rear Roots</button>
+        <button data-cam="top">Top Down</button>
+      </div>
+      <div class="group">
+        <button id="d-sfx">🔊 Play SFX</button>
+        <button id="d-sandbox">🚀 Test in Sandbox</button>
+        <button id="d-hurt" class="warn-btn" aria-pressed="false">Hurt Skin</button>
+        <button id="d-wire" aria-pressed="false">Wireframe</button>
+      </div>
+    </div>
+  </div>
+  <aside class="detail-side">
+    <span class="pill win" id="d-vtag" style="align-self:flex-start"></span>
+    <h2 id="d-title"></h2>
+    <div class="mono" id="d-sub" style="font-size:12px;color:var(--cyan)"></div>
+    <p class="desc" id="d-desc"></p>
+    <div class="spec-box mono" id="d-stats"></div>
+    <ul class="parts-list" id="d-highlights"></ul>
+  </aside>
+</section>
+
+<script>
+const DATA = /*__JBIRD_FINAL_DATA__*/null;
+</script>
+<script>
+(function() {
+'use strict';
+const $ = id => document.getElementById(id);
+
+async function gunzipBytes(b64) {
+  const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream !== 'undefined') {
+    const ds = new DecompressionStream('gzip');
+    const stream = new Blob([raw]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  throw new Error('DecompressionStream not supported in this browser.');
+}
+
+function mat4Identity(out) { out.fill(0); out[0] = out[5] = out[10] = out[15] = 1; return out; }
+function mat4Persp(out, fovY, asp, zn, zf) {
+  const f = 1.0 / Math.tan(fovY * 0.5);
+  out.fill(0);
+  out[0] = f / asp; out[5] = f;
+  out[10] = (zf + zn) / (zn - zf); out[11] = -1;
+  out[14] = (2 * zf * zn) / (zn - zf);
+}
+function mat4LookAt(out, eye, tgt, up) {
+  let zx = eye[0]-tgt[0], zy = eye[1]-tgt[1], zz = eye[2]-tgt[2];
+  let l = Math.hypot(zx, zy, zz) || 1; zx/=l; zy/=l; zz/=l;
+  let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+  l = Math.hypot(xx, xy, xz) || 1; xx/=l; xy/=l; xz/=l;
+  const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  out[15]=1;
+}
+function mat4Mul(out, a, b) {
+  const t = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      t[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+    }
+  }
+  out.set(t);
+}
+function buildTransform(out, tx, ty, tz, yaw, pitch, roll, scale) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const cp = Math.cos(-pitch), sp = Math.sin(-pitch);
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  out[0] = (cy * cp) * scale; out[1] = (sy * cp) * scale; out[2] = (-sp) * scale; out[3] = 0;
+  out[4] = (cy * sp * sr - sy * cr) * scale; out[5] = (sy * sp * sr + cy * cr) * scale; out[6] = (cp * sr) * scale; out[7] = 0;
+  out[8] = (cy * sp * cr + sy * sr) * scale; out[9] = (sy * sp * cr - cy * sr) * scale; out[10] = (cp * cr) * scale; out[11] = 0;
+  out[12] = tx; out[13] = ty; out[14] = tz; out[15] = 1;
+  return out;
+}
+
+async function boot() {
+  const arenaBytes = await gunzipBytes(DATA.binGz);
+  const AB = arenaBytes.buffer;
+  const f32 = ([o, l]) => new Float32Array(AB, o, l >> 2);
+  const i16 = ([o, l]) => new Int16Array(AB, o, l >> 1);
+  const i8  = ([o, l]) => new Int8Array(AB, o, l);
+  const u16 = ([o, l]) => new Uint16Array(AB, o, l >> 1);
+
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) throw new Error('WebGL2 unavailable');
+
+  // WebAudio SFX
+  let audioCtx = null, audioMuted = false, audioDecoded = false, audioDecoding = false;
+  const sfxBuffers = {}, voiceBuffers = [];
+  async function ensureAudio() {
+    if (audioMuted) return false;
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch (_) {} }
+    if (!audioDecoded && !audioDecoding && DATA.audio) {
+      audioDecoding = true;
+      try {
+        for (const [k, [off, len]] of Object.entries(DATA.audio.sfx)) {
+          sfxBuffers[k] = await audioCtx.decodeAudioData(AB.slice(off, off + len));
+        }
+        for (const v of DATA.audio.voices) {
+          const [off, len] = v.buf;
+          voiceBuffers.push({ quote: v.quote, buffer: await audioCtx.decodeAudioData(AB.slice(off, off + len)) });
+        }
+        audioDecoded = true;
+      } catch (e) { console.warn('Audio decode warning:', e); }
+      audioDecoding = false;
+    }
+    return audioDecoded && audioCtx.state === 'running';
+  }
+  function playBuf(buf, vol = 0.78, rate = 1.0) {
+    if (!buf || !audioCtx || audioMuted || audioCtx.state !== 'running') return;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf; src.playbackRate.value = rate;
+    const g = audioCtx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(audioCtx.destination);
+    src.start();
+  }
+  async function playSfx(name, vol = 0.78, rate = 1.0) {
+    if (audioMuted) return;
+    if (await ensureAudio()) {
+      let key = String(name || 'swoop').toLowerCase().replace(/^.*\//, '').replace(/\.wav$/, '');
+      if (name && String(name).includes('skypad')) key = 'skypad_launch';
+      if (key === 'launch' || key === 'skypad') key = 'skypad_launch';
+      const b = sfxBuffers[key] || sfxBuffers.swoop || sfxBuffers.flap1;
+      if (b) playBuf(b, vol, rate);
+    }
+  }
+  let flapCycle = 0;
+  function triggerWingFlap(vol = 0.42, rate = 1.0) {
+    flapCycle = (flapCycle + 1) & 3;
+    if (sfxBuffers['flap' + (flapCycle + 1)]) playBuf(sfxBuffers['flap' + (flapCycle + 1)], vol, rate);
+  }
+  let toastTimer = null, lastVoice = -1;
+  function showVoiceToast(quote) {
+    const el = $('voice-toast');
+    el.innerHTML = `🗣 John: <b>"${quote}"</b>`;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+  async function triggerJohnVoice() {
+    const list = DATA.audio ? DATA.audio.voices : [];
+    if (!list.length) return;
+    let pick = Math.floor(Math.random() * list.length);
+    if (list.length > 1 && pick === lastVoice) pick = (pick + 1) % list.length;
+    lastVoice = pick;
+    showVoiceToast(list[pick].quote);
+    if (await ensureAudio() && voiceBuffers[pick]) playBuf(voiceBuffers[pick].buffer, 0.88, 1.0);
+  }
+  const unlockOnce = () => { ensureAudio(); };
+  window.addEventListener('pointerdown', unlockOnce, { passive: true });
+  window.addEventListener('keydown', unlockOnce, { passive: true });
+
+  // WebGL2 Shaders
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    return sh;
+  }
+  function mkProg(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const uni = (p, names) => Object.fromEntries(names.map(n => [n, gl.getUniformLocation(p, n)]));
+
+  const pSky = mkProg(`#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main() { vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.999, 1.0); }`, `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform int uMode;
+uniform float uTime;
+out vec4 fragColor;
+void main() {
+  vec3 top = uMode == 2 ? vec3(0.14, 0.08, 0.22) : (uMode == 1 ? vec3(0.05, 0.14, 0.32) : vec3(0.05, 0.10, 0.21));
+  vec3 bot = uMode == 2 ? vec3(0.28, 0.16, 0.10) : (uMode == 1 ? vec3(0.10, 0.22, 0.36) : vec3(0.10, 0.15, 0.24));
+  float h = clamp(vUv.y, 0.0, 1.0);
+  vec3 col = mix(bot, top, pow(h, 0.78));
+  float wisp = sin(vUv.x * 7.5 + uTime * 0.7) * cos(vUv.y * 10.0 - uTime * 0.3);
+  col += vec3(0.03, 0.05, 0.08) * max(0.0, wisp) * smoothstep(0.2, 0.85, h);
+  fragColor = vec4(col, 1.0);
+}`);
+  const uSky = uni(pSky, ['uMode', 'uTime']);
+
+  const pGround = mkProg(`#version 300 es
+layout(location=0) in vec2 aPos;
+uniform mat4 uVP;
+uniform float uSize;
+uniform vec2 uCenter;
+out vec2 vW;
+out vec2 vLocal;
+void main() {
+  vLocal = aPos * uSize; vW = uCenter + vLocal;
+  gl_Position = uVP * vec4(vW.x, vW.y, 0.0, 1.0);
+}`, `#version 300 es
+precision highp float;
+in vec2 vW;
+in vec2 vLocal;
+uniform float uTime;
+uniform int uSimMode;
+out vec4 fragColor;
+void main() {
+  float r = length(vLocal);
+  float maxR = uSimMode == 1 ? 1500.0 : 280.0;
+  float fade = 1.0 - smoothstep(maxR * 0.35, maxR, r);
+  float cell = uSimMode == 1 ? 64.0 : 28.0;
+  float sx = vW.x + (uSimMode == 1 ? 0.0 : uTime * 78.0);
+  vec2 q = vec2(sx, vW.y) / cell;
+  vec2 g = abs(fract(q - 0.5) - 0.5) / max(fwidth(q), vec2(0.001));
+  float grid = 1.0 - min(min(g.x, g.y), 1.0);
+  if (uSimMode == 1) {
+    float roadX = smoothstep(26.0, 22.0, abs(mod(vW.x + 256.0, 512.0) - 256.0));
+    float roadY = smoothstep(26.0, 22.0, abs(mod(vW.y + 256.0, 512.0) - 256.0));
+    vec3 col = mix(vec3(0.08, 0.12, 0.19), vec3(0.05, 0.07, 0.11), max(roadX, roadY)) + vec3(0.20, 0.62, 0.88) * grid * 0.24;
+    fragColor = vec4(col, fade * 0.90);
+  } else {
+    float ring = smoothstep(2.2, 0.0, abs(length(vLocal) - 56.0)) * 0.42;
+    vec3 col = mix(vec3(0.08, 0.12, 0.19), vec3(0.24, 0.68, 0.92), grid * 0.42) + vec3(0.25, 0.78, 0.95) * ring;
+    fragColor = vec4(col, fade * (0.48 + grid * 0.25));
+  }
+}`);
+  const uGround = uni(pGround, ['uVP', 'uSize', 'uCenter', 'uTime', 'uSimMode']);
+
+  const pMesh = mkProg(`#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+layout(location=2) in vec3 aNrm0;
+layout(location=3) in vec3 aNrm1;
+layout(location=4) in vec2 aUv;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+uniform int uIsHair;
+uniform float uWindExtra;
+uniform float uTime;
+uniform int uShadowPass;
+out vec3 vW;
+out vec3 vN;
+out vec2 vUv;
+void main() {
+  vec3 pLocal = mix(aPos0, aPos1, uLerp) * uPosScale;
+  vec3 nLocal = normalize(mix(aNrm0, aNrm1, uLerp));
+  if (uIsHair == 1 && abs(uWindExtra) > 0.001) {
+    float tipW = pow(max(0.0, (aUv.y - 0.03) / 0.95), 1.55);
+    float wv1 = sin(uTime * 11.0 - aUv.y * 5.6 + aUv.x * 20.0);
+    float wv2 = cos(uTime * 15.0 - aUv.y * 7.8 + aUv.x * 32.0);
+    pLocal += vec3(-2.6 * max(0.0, uWindExtra) + 1.15 * uWindExtra * wv2, 1.65 * uWindExtra * wv1, 0.35 * uWindExtra + 1.35 * uWindExtra * wv1) * tipW;
+  }
+  vec4 wp = uModel * vec4(pLocal, 1.0);
+  vec3 wn = normalize(mat3(uModel) * nLocal);
+  vW = wp.xyz; vN = wn; vUv = aUv;
+  if (uShadowPass == 1) {
+    vec3 lDir = normalize(vec3(0.35, -0.32, 1.25));
+    float t = max(0.0, wp.z) / max(0.20, lDir.z);
+    gl_Position = uVP * vec4(wp.x - lDir.x * t, wp.y - lDir.y * t, 0.14, 1.0);
+  } else {
+    gl_Position = uVP * wp;
+  }
+}`, `#version 300 es
+precision highp float;
+precision highp int;
+in vec3 vW;
+in vec3 vN;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform vec3 uEye;
+uniform float uRoughness;
+uniform float uSpec;
+uniform int uShadowPass;
+uniform float uShadowAlpha;
+uniform float uHitFlash;
+out vec4 fragColor;
+void main() {
+  if (uShadowPass == 1) { fragColor = vec4(0.01, 0.02, 0.04, uShadowAlpha); return; }
+  vec4 tex = texture(uTex, vUv);
+  vec3 N = normalize(gl_FrontFacing ? vN : -vN);
+  vec3 V = normalize(uEye - vW);
+  vec3 L1 = normalize(vec3( 0.52, -0.38, 0.76));
+  vec3 L2 = normalize(vec3(-0.62,  0.54, 0.57));
+  vec3 L3 = normalize(vec3(-0.25, -0.78, 0.35));
+  vec3 hemi = mix(vec3(0.24, 0.26, 0.32), vec3(0.46, 0.52, 0.62), 0.5 + 0.5 * N.z);
+  vec3 diff = hemi + vec3(1.06, 1.03, 0.99) * max(dot(N, L1), 0.0) * 0.86
+                   + vec3(0.54, 0.68, 0.86) * max(dot(N, L2), 0.0) * 0.42
+                   + vec3(0.32, 0.44, 0.58) * max(dot(N, L3), 0.0) * 0.24;
+  float shin = mix(96.0, 14.0, clamp(uRoughness, 0.05, 1.0));
+  float sp1 = pow(max(dot(N, normalize(L1 + V)), 0.0), shin) * uSpec * 0.45;
+  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.2) * 0.18;
+  vec3 lit = tex.rgb * diff + vec3(1.06, 1.03, 0.99) * sp1 + vec3(0.54, 0.68, 0.86) * rim;
+  lit *= 1.05;
+  lit = mix(lit, vec3(1.45, 0.42, 0.15), uHitFlash);
+  lit = (lit * (2.51 * lit + 0.03)) / (lit * (2.43 * lit + 0.59) + 0.14);
+  fragColor = vec4(lit, 1.0);
+}`);
+  const uMesh = uni(pMesh, ['uVP','uModel','uLerp','uPosScale','uIsHair','uWindExtra','uTime','uShadowPass','uShadowAlpha','uTex','uEye','uRoughness','uSpec','uHitFlash']);
+
+  const pWire = mkProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos0;
+layout(location=1) in vec3 aPos1;
+uniform mat4 uVP;
+uniform mat4 uModel;
+uniform float uLerp;
+uniform float uPosScale;
+void main() { gl_Position = uVP * uModel * vec4(mix(aPos0, aPos1, uLerp) * uPosScale, 1.0); }`, `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 fragColor;
+void main() { fragColor = uColor; }`);
+  const uWire = uni(pWire, ['uVP','uModel','uLerp','uPosScale','uColor']);
+
+  const pSolid = mkProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNrm;
+layout(location=2) in vec4 aCol;
+uniform mat4 uVP;
+out vec3 vN;
+out vec4 vC;
+void main() { vN = aNrm; vC = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`, `#version 300 es
+precision highp float;
+in vec3 vN;
+in vec4 vC;
+out vec4 fragColor;
+void main() {
+  float lit = 0.46 + 0.54 * max(0.0, dot(normalize(vN), normalize(vec3(0.45, -0.35, 0.82))));
+  fragColor = vec4(vC.rgb * lit, vC.a);
+}`);
+  const uSolid = uni(pSolid, ['uVP']);
+
+  const pLine = mkProg(`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec4 aCol;
+uniform mat4 uVP;
+out vec4 vCol;
+void main() { vCol = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`, `#version 300 es
+precision highp float;
+in vec4 vCol;
+out vec4 fragColor;
+void main() { fragColor = vCol; }`);
+  const uLine = uni(pLine, ['uVP']);
+
+  function mkBuf(target, data, usage) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(target, b); gl.bufferData(target, data, usage);
+    return b;
+  }
+
+  const quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const lineVao = gl.createVertexArray();
+  const lineBuf = gl.createBuffer();
+  gl.bindVertexArray(lineVao); gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, 32768 * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
+  const lineData = new Float32Array(32768);
+
+  const cityVerts = [];
+  function pushBox(cx, cy, z0, z1, hx, hy, r, g, b, a = 1.0) {
+    const faces = [
+      [[cx-hx,cy-hy,z0],[cx+hx,cy-hy,z0],[cx+hx,cy-hy,z1],[cx-hx,cy-hy,z1],[0,-1,0]],
+      [[cx+hx,cy+hy,z0],[cx-hx,cy+hy,z0],[cx-hx,cy+hy,z1],[cx+hx,cy+hy,z1],[0,1,0]],
+      [[cx+hx,cy-hy,z0],[cx+hx,cy+hy,z0],[cx+hx,cy+hy,z1],[cx+hx,cy-hy,z1],[1,0,0]],
+      [[cx-hx,cy+hy,z0],[cx-hx,cy-hy,z0],[cx-hx,cy-hy,z1],[cx-hx,cy+hy,z1],[-1,0,0]],
+      [[cx-hx,cy-hy,z1],[cx+hx,cy-hy,z1],[cx+hx,cy+hy,z1],[cx-hx,cy+hy,z1],[0,0,1]],
+    ];
+    for (const [p0, p1, p2, p3, nm] of faces) {
+      for (const p of [p0, p1, p2, p0, p2, p3]) cityVerts.push(p[0], p[1], p[2], nm[0], nm[1], nm[2], r, g, b, a);
+    }
+  }
+  const bldSpecs = [
+    [ 380,  340, 290, 95, 85, 0.76, 0.68, 0.54],
+    [ 380,  340, 335, 22, 22, 0.95, 0.65, 0.20],
+    [-380,  320, 165, 95, 75, 0.72, 0.63, 0.52],
+    [-320,  260, 285, 26, 26, 0.92, 0.42, 0.56],
+    [-420, -360,  95, 145, 95, 0.34, 0.42, 0.54],
+    [ 420, -360, 140, 105, 85, 0.58, 0.46, 0.36],
+    [   0,  680, 195,  80, 70, 0.28, 0.38, 0.52],
+    [   0, -680, 175,  85, 70, 0.36, 0.44, 0.55],
+    [ 140,    0,  16, 46, 46, 0.14, 0.22, 0.34],
+    [ 140,    0,  22, 34, 34, 0.18, 0.80, 0.98],
+  ];
+  for (const [bx, by, bh, hx, hy, cr, cg, cb] of bldSpecs) pushBox(bx, by, 0, bh, hx, hy, cr, cg, cb, 1.0);
+  const cityVao = gl.createVertexArray();
+  gl.bindVertexArray(cityVao);
+  mkBuf(gl.ARRAY_BUFFER, new Float32Array(cityVerts), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+  const cityVertCount = cityVerts.length / 10;
+
+  const glTextures = DATA.textures.map(t => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([140,155,180,255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+    img.src = t.uri;
+    return tex;
+  });
+
+  function uploadModelSurfaces(srcModel) {
+    const md = Object.assign({}, srcModel);
+    md.surfaces = srcModel.surfaces.map(s0 => {
+      const s = Object.assign({}, s0);
+      const stride = s.nv * 4;
+      const pArr = new Int16Array(i16(s.pos));
+      for (let i = stride; i < pArr.length; i++) pArr[i] = pArr[i - stride] + pArr[i];
+      const nArr = new Int8Array(i8(s.nrm));
+      for (let i = stride; i < nArr.length; i++) nArr[i] = nArr[i - stride] + nArr[i];
+      s.vao = gl.createVertexArray();
+      gl.bindVertexArray(s.vao);
+      s.bufPos = mkBuf(gl.ARRAY_BUFFER, pArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, 0);
+      s.bufNrm = mkBuf(gl.ARRAY_BUFFER, nArr, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, 0);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, 0);
+      s.bufUv = mkBuf(gl.ARRAY_BUFFER, f32(s.uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 0, 0);
+      s.ibEdges = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.edges), gl.STATIC_DRAW);
+      s.ibTris  = mkBuf(gl.ELEMENT_ARRAY_BUFFER, u16(s.tris), gl.STATIC_DRAW);
+      s._lastKey = -1;
+      return s;
+    });
+    return md;
+  }
+
+  const M_FINAL = uploadModelSurfaces(DATA.model);
+  const M_FEATHER = uploadModelSurfaces(DATA.feather);
+  const winners = DATA.winners.map((w, idx) => Object.assign({}, w, { idx }));
+
+  $('hero-stats').innerHTML =
+    `<b>${M_FINAL.nf}</b> Shipped Frames (0..163) · <b>${M_FINAL.nv.toLocaleString()}</b> Verts / <b>${M_FINAL.nt.toLocaleString()}</b> Tris · ` +
+    `<b>4</b> Voted Winners (F1 · H1 · S3 · W3)`;
+
+  if (DATA.artifacts) {
+    const a = DATA.artifacts;
+    $('artifact-box').innerHTML =
+      `<b>${a.pk3Name}</b>: ${(a.pk3Size / 1e6).toFixed(2)} MB (${a.pk3Entries.length} entries) · SHA256 <span style="color:#93c5fd">${a.pk3Sha256.slice(0, 16)}…</span><br>` +
+      `<b>progs.dat</b>: ${(a.progsSize / 1e6).toFixed(2)} MB · SHA256 <span style="color:#93c5fd">${a.progsSha256.slice(0, 16)}…</span>` +
+      (a.lnoSize ? `<br><b>progs.lno</b>: ${(a.lnoSize / 1e6).toFixed(2)} MB · SHA256 <span style="color:#93c5fd">${a.lnoSha256.slice(0, 16)}…</span>` : '');
+  }
+
+  const state = { playing: true, loop: true, spin: true, bangs: false, hurt: false, wire: false, speed: 1.0 };
+
+  const sb = {
+    x: -140, y: -220, z: 140,
+    vx: 220, vy: 0, vz: 0,
+    yaw: 0.4, pitch: 0, roll: 0,
+    autopilot: true,
+    boostUntil: 0,
+    hitUntil: 0,
+    hyperUntil: 0,
+    flipUntil: 0,
+    hitFlash: 0,
+    shake: 0,
+    plumage: 0,
+    flapTimer: 0.2,
+    featherSpawnTimer: 0,
+    feathers: [],
+    view: { azOff: 0.0, el: 0.22, dist: 168.0, minDist: 75, maxDist: 360 },
+    padX: 140, padY: 0, padZ: 22,
+  };
+
+  function spawnFeathers(ox, oy, oz, count, boost = 1.0, streamBack = false) {
+    for (let i = 0; i < count; i++) {
+      sb.feathers.push({
+        x: ox + (Math.random() - 0.5) * 26,
+        y: oy + (Math.random() - 0.5) * 30,
+        z: oz + (Math.random() - 0.5) * 20,
+        vx: streamBack ? (-Math.cos(sb.yaw) * (240 + Math.random() * 140) + (Math.random() - 0.5) * 90) : (Math.random() - 0.5) * 240 * boost,
+        vy: streamBack ? (-Math.sin(sb.yaw) * (240 + Math.random() * 140) + (Math.random() - 0.5) * 90) : (Math.random() - 0.5) * 240 * boost,
+        vz: streamBack ? ((Math.random() - 0.5) * 110) : (70 + Math.random() * 170) * boost,
+        yaw: Math.random() * 6.28, pitch: (Math.random() - 0.5) * 2.0, roll: Math.random() * 6.28,
+        vyaw: (Math.random() - 0.5) * 8.0, vroll: (Math.random() - 0.5) * 9.0,
+        phase: Math.random() * 6.28, age: 0, life: 1.9 + Math.random() * 1.1, scale: 1.05 + Math.random() * 0.55,
+      });
+    }
+  }
+
+  function triggerBoost() {
+    const now = performance.now() * 0.001;
+    sb.boostUntil = now + 2.6;
+    sb.hitUntil = 0; sb.flipUntil = 0;
+    playSfx('swoop', 0.80, 1.08);
+  }
+  function triggerHit() {
+    const now = performance.now() * 0.001;
+    sb.hitUntil = now + 1.6;
+    sb.hyperUntil = 0; sb.flipUntil = 0;
+    sb.hitFlash = 1.0; sb.shake = 6.5;
+    spawnFeathers(sb.x, sb.y, sb.z + 36, 12, 1.15, false);
+    playSfx('feather_hit', 0.88, 0.98 + Math.random() * 0.08);
+    setTimeout(() => playSfx('jv_hurt', 0.72, 1.0), 120);
+  }
+  function triggerSkyPad(fromPadContact = false) {
+    const now = performance.now() * 0.001;
+    sb.hyperUntil = now + 3.2;
+    sb.hitUntil = 0; sb.flipUntil = 0;
+    sb.shake = 7.5;
+    if (!fromPadContact) { sb.x = sb.padX; sb.y = sb.padY; sb.z = sb.padZ + 12; }
+    sb.vz = 285.0; sb.vx = Math.cos(sb.yaw) * 430.0; sb.vy = Math.sin(sb.yaw) * 430.0;
+    spawnFeathers(sb.x, sb.y, sb.z + 32, 14, 1.35, true);
+    playSfx('skypad_launch', 0.90, 1.0);
+  }
+  function triggerCrazyFlip() {
+    const now = performance.now() * 0.001;
+    sb.flipUntil = now + 1.8;
+    sb.hitUntil = 0;
+    sb.shake = 5.5;
+    sb.vz = Math.max(sb.vz, 130.0);
+    spawnFeathers(sb.x, sb.y, sb.z + 34, 8, 1.25, true);
+    playSfx('swoop', 0.86, 1.26);
+  }
+
+  $('sb-boost-btn').onclick = triggerBoost;
+  $('sb-hit-btn').onclick = triggerHit;
+  $('sb-skypad-btn').onclick = () => triggerSkyPad(false);
+  $('sb-crazy-btn').onclick = triggerCrazyFlip;
+  $('sb-voice-btn').onclick = triggerJohnVoice;
+  $('sb-auto-btn').onclick = () => { sb.autopilot = !sb.autopilot; $('sb-auto-btn').setAttribute('aria-pressed', sb.autopilot); };
+  $('sb-reset-btn').onclick = () => {
+    sb.x = -140; sb.y = -220; sb.z = 140; sb.vx = 220; sb.vy = 0; sb.vz = 0;
+    sb.yaw = 0.4; sb.pitch = 0; sb.roll = 0;
+    sb.boostUntil = 0; sb.hitUntil = 0; sb.hyperUntil = 0; sb.flipUntil = 0;
+  };
+  [0, 1, 2].forEach(pm => {
+    $('sb-plum-' + pm).onclick = () => {
+      sb.plumage = pm;
+      [0, 1, 2].forEach(i => $('sb-plum-' + i).classList.toggle('active', i === pm));
+    };
+  });
+
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    keys[e.code] = true;
+    if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
+      if (document.activeElement === $('sandbox-stage')) {
+        sb.autopilot = false; $('sb-auto-btn').setAttribute('aria-pressed', 'false');
+        if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      }
+    }
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') triggerBoost();
+    else if (e.code === 'KeyH') triggerHit();
+    else if (e.code === 'KeyL') triggerSkyPad(false);
+    else if (e.code === 'KeyR') triggerCrazyFlip();
+    else if (e.code === 'KeyV') triggerJohnVoice();
+    else if (e.key === 'Escape' && $('detail').classList.contains('open')) closeDetail();
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  function attachOrbit(el, view, isSandbox, onInteract) {
+    let dragging = false, lx = 0, ly = 0;
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      if (isSandbox) el.focus({ preventScroll: true });
+      dragging = true; lx = e.clientX; ly = e.clientY;
+      el.classList.add('drag'); el.setPointerCapture(e.pointerId);
+      if (onInteract) onInteract();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      lx = e.clientX; ly = e.clientY;
+      if (isSandbox) {
+        view.azOff -= dx * 0.0085;
+        view.el = Math.max(-0.20, Math.min(1.25, view.el + dy * 0.0075));
+      } else {
+        view.az -= dx * 0.0085;
+        view.el = Math.max(-0.35, Math.min(1.38, view.el + dy * 0.0075));
+      }
+    });
+    const end = () => { dragging = false; el.classList.remove('drag'); };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      view.dist = Math.max(view.minDist, Math.min(view.maxDist, view.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+  attachOrbit($('sandbox-stage'), sb.view, true);
+
+  // Build 4 Winner Inspector Cards
+  const cards = [];
+  const gridEl = $('winners-grid');
+  for (const w of winners) {
+    const card = document.createElement('article');
+    card.className = 'card';
+    const defaultView = { az: 0.48, el: 0.22, dist: 132.0, tgtZ: 48.0, minDist: 44, maxDist: 320, userTouched: false };
+    const view = Object.assign({}, defaultView);
+    const hlHtml = (w.highlights || []).map(([k, v]) => `<li><b>${k}:</b> ${v}</li>`).join('');
+    card.innerHTML = `
+      <div class="stage">
+        <div class="stage-top">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill win">${w.badge}</span>
+            <span class="pill mono">f${w.startFrame}..${w.startFrame + w.frameCount - 1} · ${w.defaultFps}fps</span>
+          </div>
+          <span class="pill mono">${w.id}</span>
+        </div>
+        <div class="stage-btm">
+          <div class="mini-bar">
+            <button class="mini-btn active" data-role="play">⏸</button>
+            <button class="mini-btn" data-role="bangs">Bangs</button>
+            <button class="mini-btn" data-role="sfx">🔊</button>
+            <button class="mini-btn" data-role="sandbox">🚀 Sandbox</button>
+          </div>
+          <div class="mini-bar">
+            <button class="mini-btn" data-role="reset" title="Reset Camera">↺</button>
+            <button class="mini-btn" data-role="open">Fullscreen ⤢</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="title-row">
+          <h3>${w.title}</h3>
+          <span class="subtitle">${w.subtitle}</span>
+        </div>
+        <div class="trigger-line mono">${w.trigger}</div>
+        <p class="desc">${w.description}</p>
+        <ul class="parts-list">${hlHtml}</ul>
+      </div>
+    `;
+    gridEl.appendChild(card);
+
+    const stageEl = card.querySelector('.stage');
+    attachOrbit(stageEl, view, false, () => { view.userTouched = true; });
+    stageEl.addEventListener('dblclick', e => { if (!e.target.closest('button')) openDetail(w.idx); });
+
+    const cObj = { w, card, stageEl, view, defaultView, playing: true, localClock: 0 };
+    const playBtn = card.querySelector('[data-role="play"]');
+    playBtn.onclick = () => {
+      cObj.playing = !cObj.playing;
+      playBtn.classList.toggle('active', cObj.playing);
+      playBtn.textContent = cObj.playing ? '⏸' : '▶';
+    };
+    card.querySelector('[data-role="bangs"]').onclick = () => {
+      view.az = 0.22; view.el = 0.12; view.dist = 64.0; view.tgtZ = 51.0; view.userTouched = true;
+    };
+    card.querySelector('[data-role="sfx"]').onclick = () => playSfx(w.recommendedSound, 0.85, 1.0);
+    card.querySelector('[data-role="sandbox"]').onclick = () => {
+      if (w.id === 'fast_fly') triggerBoost();
+      else if (w.id === 'hit_flail') triggerHit();
+      else if (w.id === 'crazy_flip') triggerCrazyFlip();
+      else triggerSkyPad(false);
+      $('sec-sandbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    card.querySelector('[data-role="reset"]').onclick = () => Object.assign(view, defaultView);
+    card.querySelector('[data-role="open"]').onclick = () => openDetail(w.idx);
+    cards.push(cObj);
+  }
+
+  // Toolbar bindings
+  $('btn-audio').onclick = async () => {
+    audioMuted = !audioMuted;
+    $('btn-audio').setAttribute('aria-pressed', !audioMuted);
+    $('btn-audio').textContent = audioMuted ? '🔇 SFX: Muted' : '🔊 SFX: ON';
+    if (!audioMuted) await ensureAudio();
+  };
+  $('btn-play').onclick = () => {
+    state.playing = !state.playing;
+    $('btn-play').setAttribute('aria-pressed', state.playing);
+    $('btn-play').textContent = state.playing ? '⏸ Playing' : '▶ Paused';
+  };
+  $('btn-loop').onclick = () => { state.loop = !state.loop; $('btn-loop').setAttribute('aria-pressed', state.loop); };
+  $('btn-spin').onclick = () => { state.spin = !state.spin; $('btn-spin').setAttribute('aria-pressed', state.spin); };
+  $('btn-bangs').onclick = () => {
+    state.bangs = !state.bangs;
+    $('btn-bangs').setAttribute('aria-pressed', state.bangs);
+    for (const c of cards) {
+      if (state.bangs) { c.view.az = 0.22; c.view.el = 0.12; c.view.dist = 64.0; c.view.tgtZ = 51.0; c.view.userTouched = true; }
+      else Object.assign(c.view, c.defaultView);
+    }
+  };
+  $('btn-reset-cams').onclick = () => {
+    state.bangs = false; $('btn-bangs').setAttribute('aria-pressed', 'false');
+    for (const c of cards) Object.assign(c.view, c.defaultView);
+  };
+  $('btn-hurt').onclick = () => {
+    state.hurt = !state.hurt;
+    $('btn-hurt').setAttribute('aria-pressed', state.hurt);
+    $('d-hurt').setAttribute('aria-pressed', state.hurt);
+  };
+  $('d-hurt').onclick = $('btn-hurt').onclick;
+  $('btn-wire').onclick = () => {
+    state.wire = !state.wire;
+    $('btn-wire').setAttribute('aria-pressed', state.wire);
+    $('d-wire').setAttribute('aria-pressed', state.wire);
+  };
+  $('d-wire').onclick = $('btn-wire').onclick;
+  $('rng-speed').oninput = e => {
+    state.speed = parseFloat(e.target.value);
+    $('out-speed').textContent = state.speed.toFixed(2) + '×';
+  };
+
+  // Detail Modal
+  const detail = { w: null, idx: 0, playing: true, scrubLocal: 0, view: { az: 0.48, el: 0.22, dist: 128, tgtZ: 48, minDist: 40, maxDist: 340 } };
+  attachOrbit($('detail-stage'), detail.view, false);
+  function openDetail(idx) {
+    const w = winners[(idx + winners.length) % winners.length];
+    detail.w = w; detail.idx = w.idx; detail.playing = true; detail.scrubLocal = 0;
+    detail.view.dist = 128; detail.view.tgtZ = 48;
+    $('d-play').setAttribute('aria-pressed', 'true'); $('d-play').textContent = '⏸ Pause';
+    $('d-scrub').max = String(Math.max(1, w.frameCount - 1));
+    $('d-vtag').textContent = w.badge;
+    $('d-title').textContent = w.title;
+    $('d-sub').textContent = w.subtitle;
+    $('d-desc').textContent = w.description;
+    $('d-stats').innerHTML =
+      `Clip: ${w.id} · Frames ${w.startFrame}..${w.startFrame + w.frameCount - 1} (${w.frameCount}f @ ${w.defaultFps} fps)<br>` +
+      `Trigger: ${w.trigger}<br>Mesh: ${M_FINAL.nv.toLocaleString()} verts / ${M_FINAL.nt.toLocaleString()} tris`;
+    $('d-highlights').innerHTML = (w.highlights || []).map(([k, v]) => `<li><b>${k}:</b> ${v}</li>`).join('');
+    $('d-sfx').onclick = () => playSfx(w.recommendedSound, 0.85, 1.0);
+    $('d-sandbox').onclick = () => {
+      closeDetail();
+      if (w.id === 'fast_fly') triggerBoost();
+      else if (w.id === 'hit_flail') triggerHit();
+      else if (w.id === 'crazy_flip') triggerCrazyFlip();
+      else triggerSkyPad(false);
+      $('sec-sandbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.body.classList.add('detail-open'); $('detail').classList.add('open');
+  }
+  function closeDetail() { detail.w = null; document.body.classList.remove('detail-open'); $('detail').classList.remove('open'); }
+  $('d-close').onclick = closeDetail;
+  $('d-prev').onclick = () => openDetail(detail.idx - 1);
+  $('d-next').onclick = () => openDetail(detail.idx + 1);
+  $('d-play').onclick = () => {
+    detail.playing = !detail.playing;
+    $('d-play').setAttribute('aria-pressed', detail.playing);
+    $('d-play').textContent = detail.playing ? '⏸ Pause' : '▶ Play';
+  };
+  $('d-scrub').oninput = e => {
+    detail.playing = false; $('d-play').setAttribute('aria-pressed', 'false'); $('d-play').textContent = '▶ Play';
+    detail.scrubLocal = parseFloat(e.target.value);
+  };
+  document.querySelectorAll('[data-cam]').forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.dataset.cam; detail.view.tgtZ = 48.0;
+      if (k === 'hero') { detail.view.az = 0.48; detail.view.el = 0.22; detail.view.dist = 128; }
+      else if (k === 'bangs') { detail.view.az = 0.22; detail.view.el = 0.12; detail.view.dist = 64; detail.view.tgtZ = 51.0; }
+      else if (k === 'side') { detail.view.az = -1.45; detail.view.el = 0.15; detail.view.dist = 128; }
+      else if (k === 'rear') { detail.view.az = 2.66; detail.view.el = 0.28; detail.view.dist = 132; }
+      else if (k === 'top') { detail.view.az = 0.35; detail.view.el = 1.25; detail.view.dist = 148; }
+    };
+  });
+
+  // Render Helpers
+  const matP = new Float32Array(16), matV = new Float32Array(16), matVP = new Float32Array(16);
+  const matM = new Float32Array(16), matFeather = new Float32Array(16);
+  mat4Identity(matM);
+
+  function drawMd3(md, fa, fb, frac, modelMat, eye, shadowOnly, hurtSkin, plumage, windExtra, hitFlash, tSec) {
+    gl.useProgram(pMesh);
+    gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+    gl.uniformMatrix4fv(uMesh.uModel, false, modelMat);
+    gl.uniform1f(uMesh.uLerp, frac); gl.uniform1f(uMesh.uTime, tSec); gl.uniform1f(uMesh.uWindExtra, windExtra);
+    gl.uniform1i(uMesh.uShadowPass, shadowOnly ? 1 : 0); gl.uniform1f(uMesh.uShadowAlpha, 0.30);
+    gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]); gl.uniform1f(uMesh.uHitFlash, hitFlash);
+    for (const s of md.surfaces) {
+      gl.bindVertexArray(s.vao); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris);
+      const poseKey = fa * 65536 + fb;
+      if (s._lastKey !== poseKey) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufPos);
+        gl.vertexAttribPointer(0, 3, gl.SHORT, false, 8, fa * s.nv * 8);
+        gl.vertexAttribPointer(1, 3, gl.SHORT, false, 8, fb * s.nv * 8);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.bufNrm);
+        gl.vertexAttribPointer(2, 3, gl.BYTE, true, 4, fa * s.nv * 4);
+        gl.vertexAttribPointer(3, 3, gl.BYTE, true, 4, fb * s.nv * 4);
+        s._lastKey = poseKey;
+      }
+      gl.uniform1i(uMesh.uIsHair, s.name === 'hair_breezy' ? 1 : 0);
+      gl.uniform1f(uMesh.uPosScale, s.posScale);
+      if (!shadowOnly) {
+        let texIdx = s.tex;
+        if (s.name === 'wings_bird') texIdx = (hurtSkin || plumage === 2) ? s.hurtTex : (plumage === 1 ? s.altTex : s.tex);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, glTextures[texIdx]);
+        gl.uniform1i(uMesh.uTex, 0); gl.uniform1f(uMesh.uRoughness, s.roughness); gl.uniform1f(uMesh.uSpec, s.spec);
+      }
+      gl.drawElements(gl.TRIANGLES, s.nt * 3, gl.UNSIGNED_SHORT, 0);
+      if (!shadowOnly && state.wire) {
+        gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.useProgram(pWire); gl.uniformMatrix4fv(uWire.uVP, false, matVP); gl.uniformMatrix4fv(uWire.uModel, false, modelMat);
+        gl.uniform1f(uWire.uLerp, frac); gl.uniform1f(uWire.uPosScale, s.posScale);
+        gl.uniform4f(uWire.uColor, s.name === 'hair_breezy' ? 0.22 : 0.96, s.name === 'hair_breezy' ? 0.86 : 0.72, 1.0, 0.45);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibEdges); gl.drawElements(gl.LINES, s.ne * 2, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibTris); gl.disable(gl.BLEND); gl.useProgram(pMesh);
+      }
+    }
+  }
+
+  function renderWinnerViewport(w, view, aspect, localT, exactFrame, tSec) {
+    const isHyper = w.id === 'skypad_hyper', isCrazy = w.id === 'crazy_flip', isHit = w.id === 'hit_flail';
+    const skyMode = (isHyper || isCrazy) ? 2 : (w.id === 'fast_fly' ? 1 : 0);
+    gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+    gl.useProgram(pSky); gl.uniform1i(uSky.uMode, skyMode); gl.uniform1f(uSky.uTime, tSec);
+    gl.bindVertexArray(quadVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true); gl.enable(gl.DEPTH_TEST);
+
+    const tgt = [0.0, 0.0, view.tgtZ || 48.0];
+    const eye = [
+      tgt[0] + view.dist * Math.cos(view.el) * Math.cos(view.az),
+      tgt[1] + view.dist * Math.cos(view.el) * Math.sin(view.az),
+      tgt[2] + view.dist * Math.sin(view.el),
+    ];
+    mat4Persp(matP, 0.56, aspect, 2.0, 2200.0); mat4LookAt(matV, eye, tgt, [0, 0, 1]); mat4Mul(matVP, matP, matV);
+
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+    gl.useProgram(pGround); gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+    gl.uniform1f(uGround.uSize, 280.0); gl.uniform2f(uGround.uCenter, 0.0, 0.0);
+    gl.uniform1f(uGround.uTime, tSec * (isHyper ? 2.4 : 1.0)); gl.uniform1i(uGround.uSimMode, 0);
+    gl.bindVertexArray(quadVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    let ptr = 0;
+    const streakSpd = (isHyper || isCrazy) ? 340 : (w.id === 'fast_fly' ? 210 : 90);
+    const streakLen = (isHyper || isCrazy) ? 38 : (w.id === 'fast_fly' ? 24 : 10);
+    for (let i = 0; i < 12; i++) {
+      const seed = i * 17.3, cyc = ((tSec * streakSpd + seed * 31) % 200) - 100;
+      const ly = Math.sin(seed * 2.1) * 55, lz = 26 + ((i * 13) % 46);
+      const al = (1 - Math.abs(cyc) / 100) * ((isHyper || isCrazy) ? 0.55 : 0.28);
+      lineData[ptr++] = -cyc; lineData[ptr++] = ly; lineData[ptr++] = lz;
+      lineData[ptr++] = isHyper ? 1.0 : (isCrazy ? 0.88 : 0.65); lineData[ptr++] = isHyper ? 0.85 : (isCrazy ? 0.52 : 0.90); lineData[ptr++] = 1.0; lineData[ptr++] = al;
+      lineData[ptr++] = -cyc - streakLen; lineData[ptr++] = ly; lineData[ptr++] = lz;
+      lineData[ptr++] = isHyper ? 1.0 : (isCrazy ? 0.88 : 0.65); lineData[ptr++] = isHyper ? 0.85 : (isCrazy ? 0.52 : 0.90); lineData[ptr++] = 1.0; lineData[ptr++] = 0.0;
+    }
+    gl.useProgram(pLine); gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+    gl.bindVertexArray(lineVao); gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr)); gl.drawArrays(gl.LINES, 0, ptr / 7);
+
+    let fa, fb, frac;
+    const nF = w.frameCount;
+    if (exactFrame !== null) {
+      const clp = Math.max(0, Math.min(nF - 1, exactFrame)), i0 = Math.floor(clp), i1 = (i0 + 1) % nF;
+      fa = w.startFrame + i0; fb = w.startFrame + i1; frac = clp - i0;
+    } else {
+      const rawPos = localT * w.defaultFps;
+      const pos = state.loop ? ((rawPos % nF) + nF) % nF : Math.min(nF - 1.001, Math.max(0, rawPos));
+      const i0 = Math.floor(pos), i1 = state.loop ? ((i0 + 1) % nF) : Math.min(nF - 1, i0 + 1);
+      fa = w.startFrame + i0; fb = w.startFrame + i1; frac = pos - i0;
+    }
+    mat4Identity(matM);
+    const windExtra = isHyper ? 1.25 : (isCrazy ? 1.05 : (w.id === 'fast_fly' ? 0.65 : 0.25));
+    if (eye[2] > 2.0) {
+      gl.depthMask(true); gl.depthFunc(gl.LESS);
+      drawMd3(M_FINAL, fa, fb, frac, matM, eye, true, false, 0, windExtra, 0.0, tSec);
+      gl.depthFunc(gl.LEQUAL);
+    }
+    gl.depthMask(true); gl.disable(gl.BLEND);
+    drawMd3(M_FINAL, fa, fb, frac, matM, eye, false, state.hurt || isHit, 0, windExtra, isHit ? 0.08 : 0.0, tSec);
+    return (fa - w.startFrame) + frac;
+  }
+
+  function renderSandboxViewport(aspect, dt, nowSec) {
+    const isHyper = nowSec < sb.hyperUntil, isFlip = nowSec < sb.flipUntil, isHit = nowSec < sb.hitUntil, isBoost = nowSec < sb.boostUntil;
+    let turnIn = 0, fwdIn = 0, upIn = 0;
+    if (keys['KeyA'] || keys['ArrowLeft']) turnIn += 1;
+    if (keys['KeyD'] || keys['ArrowRight']) turnIn -= 1;
+    if (keys['KeyW'] || keys['ArrowUp']) fwdIn += 1;
+    if (keys['KeyS'] || keys['ArrowDown']) fwdIn -= 1;
+    if (keys['Space']) upIn += 1;
+    if (keys['KeyC']) upIn -= 1;
+
+    let quakeSpeed = 780;
+    if (sb.autopilot) {
+      const tOrb = nowSec * (isHyper ? 1.15 : (isFlip ? 0.92 : 0.64));
+      const rad = isHyper ? 420.0 : (isFlip ? 310.0 : 270.0);
+      const tz = isHyper ? (340.0 + Math.sin(tOrb * 2.0) * 65.0) : (isFlip ? (200.0 + Math.sin(tOrb * 3.0) * 40.0) : (145.0 + Math.sin(tOrb * 2.0) * 28.0));
+      const wantYaw = Math.atan2(Math.sin(tOrb) * rad - sb.y, Math.cos(tOrb) * rad - sb.x);
+      let dyaw = wantYaw - sb.yaw;
+      while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+      while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+      sb.yaw += dyaw * Math.min(1, dt * 4.5);
+      const spdWorld = isHyper ? 560.0 : (isFlip ? 400.0 : (isBoost ? 360.0 : 235.0));
+      sb.vx = Math.cos(sb.yaw) * spdWorld; sb.vy = Math.sin(sb.yaw) * spdWorld;
+      sb.vz += ((tz - sb.z) * 2.4 - sb.vz) * Math.min(1, dt * 4.5);
+      sb.roll += (Math.max(-0.55, Math.min(0.55, -dyaw * 0.9)) - sb.roll) * Math.min(1, dt * 6.0);
+      if (isHit) sb.roll += Math.sin(nowSec * 22.0) * 0.12;
+      sb.pitch = Math.max(-0.5, Math.min(0.5, sb.vz * 0.0022));
+      quakeSpeed = isHyper ? Math.round(4050 + Math.sin(nowSec * 6.0) * 180) : (isFlip ? 1850 : (isBoost ? 1280 : 780));
+    } else {
+      sb.yaw += turnIn * dt * 2.4;
+      const topWorld = isHyper ? 580.0 : (isFlip ? 420.0 : (isBoost ? 380.0 : 250.0));
+      const thrust = (isHyper || isFlip || isBoost) ? 1.0 : fwdIn;
+      sb.vx += (Math.cos(sb.yaw) * thrust * topWorld - sb.vx) * Math.min(1, dt * 4.5);
+      sb.vy += (Math.sin(sb.yaw) * thrust * topWorld - sb.vy) * Math.min(1, dt * 4.5);
+      sb.vz += ((upIn * 185.0 - (thrust === 0 && upIn === 0 && !isHyper ? 12.0 : 0.0)) - sb.vz) * Math.min(1, dt * 4.5);
+      sb.roll += ((-turnIn * 0.52) - sb.roll) * Math.min(1, dt * 7.5);
+      sb.pitch = Math.max(-0.55, Math.min(0.55, sb.vz * 0.0024));
+      quakeSpeed = isHyper ? 4180 : (isFlip ? 1850 : (isBoost ? 1280 : Math.round((Math.hypot(sb.vx, sb.vy, sb.vz) / 250.0) * 780)));
+    }
+    sb.x = Math.max(-850, Math.min(850, sb.x + sb.vx * dt));
+    sb.y = Math.max(-850, Math.min(850, sb.y + sb.vy * dt));
+    sb.z = Math.max(14, Math.min(540, sb.z + sb.vz * dt));
+    if (sb.hitFlash > 0) sb.hitFlash = Math.max(0, sb.hitFlash - dt * 3.2);
+    if (sb.shake > 0) sb.shake = Math.max(0, sb.shake - dt * 20.0);
+
+    if (!isHyper && Math.hypot(sb.x - sb.padX, sb.y - sb.padY) < 42 && sb.z < 75) triggerSkyPad(true);
+    if (isHyper || isFlip) {
+      sb.featherSpawnTimer -= dt;
+      if (sb.featherSpawnTimer <= 0) { sb.featherSpawnTimer = isHyper ? 0.06 : 0.10; spawnFeathers(sb.x, sb.y, sb.z + 32, 2, 1.0, true); }
+    }
+    for (let i = sb.feathers.length - 1; i >= 0; i--) {
+      const f = sb.feathers[i]; f.age += dt;
+      if (f.age >= f.life) { sb.feathers.splice(i, 1); continue; }
+      f.vx = f.vx * (1 - dt * 1.8) + Math.sin(nowSec * 6.5 + f.phase) * 24 * dt;
+      f.vy = f.vy * (1 - dt * 1.8) + Math.cos(nowSec * 5.8 + f.phase) * 24 * dt;
+      f.vz = Math.max(-72, f.vz - 140 * dt);
+      f.x += f.vx * dt; f.y += f.vy * dt; f.z = Math.max(1.5, f.z + f.vz * dt);
+      f.yaw += f.vyaw * dt; f.roll += f.vroll * dt;
+    }
+
+    // Priority: hit_flail (H1) > crazy_flip (W3) > skypad_hyper (S3) > fast_fly (F1) > fly_breezy (0..15)
+    let startF = 0, countF = 16, fps = 12, clipLabel = 'Clip: fly_breezy (0..15)';
+    let stateLabel = 'State: Cruise', pillClass = 'sb-pill', windExtra = 0.35;
+    if (isHit) {
+      startF = 116; countF = 16; fps = 28; clipLabel = 'Clip: hit_flail H1 (116..131)';
+      stateLabel = 'State: 💥 Hit! Disoriented'; pillClass = 'sb-pill state-hit'; windExtra = 0.70;
+    } else if (isFlip) {
+      startF = 148; countF = 16; fps = 30; clipLabel = 'Clip: crazy_flip W3 (148..163)';
+      stateLabel = 'State: 🌀 Crazy Flip! (R)'; pillClass = 'sb-pill state-crazy'; windExtra = 1.20;
+    } else if (isHyper) {
+      startF = 132; countF = 16; fps = 32; clipLabel = 'Clip: skypad_hyper S3 (132..147)';
+      stateLabel = 'State: ⚡ SkyPad Hyper!'; pillClass = 'sb-pill speed-hyper'; windExtra = 1.45;
+    } else if (isBoost || quakeSpeed >= 950) {
+      startF = 100; countF = 16; fps = 24; clipLabel = 'Clip: fast_fly F1 (100..115)';
+      stateLabel = 'State: 🚀 Fast Flight (>950 u/s)'; pillClass = 'sb-pill speed-hi'; windExtra = 0.85;
+    }
+    const pos = ((nowSec * fps) % countF + countF) % countF, i0 = Math.floor(pos);
+    const fa = startF + i0, fb = startF + ((i0 + 1) % countF), frac = pos - i0;
+
+    sb.flapTimer -= dt;
+    if (sb.flapTimer <= 0) {
+      sb.flapTimer = (isHyper || isFlip) ? 0.16 : (isHit ? 0.14 : (isBoost ? 0.20 : 0.34));
+      triggerWingFlap((isHyper || isFlip) ? 0.42 : 0.32, (isHyper || isFlip) ? 1.25 : 1.0);
+    }
+    $('sb-state-pill').textContent = stateLabel; $('sb-state-pill').className = pillClass;
+    $('sb-speed-pill').textContent = `${quakeSpeed.toLocaleString()} u/s`;
+    $('sb-clip-pill').textContent = clipLabel; $('sb-alt-pill').textContent = `Alt: ${Math.round(sb.z)}u`;
+
+    gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+    gl.useProgram(pSky); gl.uniform1i(uSky.uMode, (isHyper || isFlip) ? 2 : 1); gl.uniform1f(uSky.uTime, nowSec);
+    gl.bindVertexArray(quadVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true); gl.enable(gl.DEPTH_TEST);
+
+    const camYaw = sb.yaw + Math.PI + sb.view.azOff;
+    const sx = (Math.random() - 0.5) * sb.shake, sy = (Math.random() - 0.5) * sb.shake;
+    const tgt = [sb.x + sx, sb.y + sy, sb.z + 44.0];
+    const eye = [
+      tgt[0] + sb.view.dist * Math.cos(sb.view.el) * Math.cos(camYaw),
+      tgt[1] + sb.view.dist * Math.cos(sb.view.el) * Math.sin(camYaw),
+      Math.max(16.0, tgt[2] + sb.view.dist * Math.sin(sb.view.el)),
+    ];
+    mat4Persp(matP, 0.58, aspect, 2.0, 3200.0); mat4LookAt(matV, eye, tgt, [0, 0, 1]); mat4Mul(matVP, matP, matV);
+
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+    gl.useProgram(pGround); gl.uniformMatrix4fv(uGround.uVP, false, matVP);
+    gl.uniform1f(uGround.uSize, 1500.0); gl.uniform2f(uGround.uCenter, sb.x, sb.y);
+    gl.uniform1f(uGround.uTime, nowSec); gl.uniform1i(uGround.uSimMode, 1);
+    gl.bindVertexArray(quadVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.depthMask(true); gl.disable(gl.BLEND);
+
+    gl.useProgram(pSolid); gl.uniformMatrix4fv(uSolid.uVP, false, matVP);
+    gl.bindVertexArray(cityVao); gl.drawArrays(gl.TRIANGLES, 0, cityVertCount);
+
+    let ptr = 0;
+    for (let ringI = 0; ringI < 3; ringI++) {
+      const rz = sb.padZ + 6 + ((nowSec * 68 + ringI * 38) % 115), rad = 36 - ringI * 5, segs = 24;
+      const al = 0.88 - ((rz - sb.padZ) / 120) * 0.72;
+      for (let k = 0; k < segs; k++) {
+        const a0 = (k / segs) * Math.PI * 2, a1 = ((k + 1) / segs) * Math.PI * 2;
+        lineData[ptr++] = sb.padX + Math.cos(a0) * rad; lineData[ptr++] = sb.padY + Math.sin(a0) * rad; lineData[ptr++] = rz;
+        lineData[ptr++] = 0.20; lineData[ptr++] = 0.90; lineData[ptr++] = 1.0; lineData[ptr++] = al;
+        lineData[ptr++] = sb.padX + Math.cos(a1) * rad; lineData[ptr++] = sb.padY + Math.sin(a1) * rad; lineData[ptr++] = rz;
+        lineData[ptr++] = 0.20; lineData[ptr++] = 0.90; lineData[ptr++] = 1.0; lineData[ptr++] = al;
+      }
+    }
+    const cy = Math.cos(sb.yaw), syw = Math.sin(sb.yaw);
+    const nStreaks = (isHyper || isFlip) ? 24 : 12, sLen = (isHyper || isFlip) ? 56 : (isBoost ? 34 : 18);
+    for (let i = 0; i < nStreaks; i++) {
+      const seed = i * 19.7, cyc = ((nowSec * (isHyper ? 420 : 190) + seed * 31) % 240) - 120;
+      const ly = Math.sin(seed * 2.3) * 72, lz = 22 + ((i * 13) % 52);
+      const wx = sb.x - cyc * cy - ly * syw, wy = sb.y - cyc * syw + ly * cy, wz = sb.z + lz;
+      const al = (1 - Math.abs(cyc) / 120) * (isHyper ? 0.65 : 0.30);
+      lineData[ptr++] = wx; lineData[ptr++] = wy; lineData[ptr++] = wz;
+      lineData[ptr++] = isHyper ? 1.0 : 0.60; lineData[ptr++] = isHyper ? 0.84 : 0.92; lineData[ptr++] = 1.0; lineData[ptr++] = al;
+      lineData[ptr++] = wx - sLen * cy; lineData[ptr++] = wy - sLen * syw; lineData[ptr++] = wz;
+      lineData[ptr++] = isHyper ? 1.0 : 0.60; lineData[ptr++] = isHyper ? 0.84 : 0.92; lineData[ptr++] = 1.0; lineData[ptr++] = 0.0;
+    }
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.useProgram(pLine); gl.uniformMatrix4fv(uLine.uVP, false, matVP);
+    gl.bindVertexArray(lineVao); gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, lineData.subarray(0, ptr)); gl.drawArrays(gl.LINES, 0, ptr / 7);
+
+    buildTransform(matM, sb.x, sb.y, sb.z, sb.yaw, sb.pitch, sb.roll, 1.0);
+    if (eye[2] > 2.0) {
+      gl.depthMask(true); gl.depthFunc(gl.LESS);
+      drawMd3(M_FINAL, fa, fb, frac, matM, eye, true, false, sb.plumage, windExtra, 0.0, nowSec);
+      gl.depthFunc(gl.LEQUAL);
+    }
+    gl.depthMask(true); gl.disable(gl.BLEND);
+    drawMd3(M_FINAL, fa, fb, frac, matM, eye, false, isHit || state.hurt, sb.plumage, windExtra, sb.hitFlash, nowSec);
+
+    if (sb.feathers.length > 0) {
+      const fs = M_FEATHER.surfaces[0];
+      gl.useProgram(pMesh); gl.uniformMatrix4fv(uMesh.uVP, false, matVP);
+      gl.uniform1i(uMesh.uShadowPass, 0); gl.uniform1f(uMesh.uLerp, 0.0); gl.uniform1i(uMesh.uIsHair, 0);
+      gl.uniform1f(uMesh.uWindExtra, 0.0); gl.uniform1f(uMesh.uHitFlash, 0.0);
+      gl.uniform3f(uMesh.uEye, eye[0], eye[1], eye[2]);
+      gl.bindVertexArray(fs.vao); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, fs.ibTris);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, glTextures[fs.tex]);
+      gl.uniform1i(uMesh.uTex, 0); gl.uniform1f(uMesh.uPosScale, fs.posScale);
+      gl.uniform1f(uMesh.uRoughness, fs.roughness); gl.uniform1f(uMesh.uSpec, fs.spec);
+      for (const f of sb.feathers) {
+        buildTransform(matFeather, f.x, f.y, f.z, f.yaw, f.pitch, f.roll, f.scale);
+        gl.uniformMatrix4fv(uMesh.uModel, false, matFeather);
+        gl.drawElements(gl.TRIANGLES, fs.nt * 3, gl.UNSIGNED_SHORT, 0);
+      }
+    }
+  }
+
+  $('loading').style.display = 'none';
+  let lastNow = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, Math.max(0.0, (now - lastNow) * 0.001));
+    lastNow = now;
+    const tSec = now * 0.001;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr), ch = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+
+    gl.disable(gl.SCISSOR_TEST); gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.027, 0.043, 0.078, 1.0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (detail.w) {
+      const r = $('detail-stage').getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) {
+        const vx = Math.floor(r.left * dpr), vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr), vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh); gl.scissor(vx, vy, vw, vh); gl.clear(gl.DEPTH_BUFFER_BIT);
+        if (detail.playing) detail.scrubLocal += dt * state.speed * detail.w.defaultFps;
+        const shown = renderWinnerViewport(detail.w, detail.view, vw / vh, detail.playing ? detail.scrubLocal / detail.w.defaultFps : 0, detail.playing ? null : detail.scrubLocal, tSec);
+        if (detail.playing) $('d-scrub').value = (((detail.scrubLocal % detail.w.frameCount) + detail.w.frameCount) % detail.w.frameCount).toFixed(1);
+        $('d-frame-lbl').textContent = `frame ${Math.floor(shown)} / ${detail.w.frameCount - 1}`;
+      }
+    } else {
+      const sr = $('sandbox-stage').getBoundingClientRect();
+      if (sr.bottom > 0 && sr.top < window.innerHeight && sr.width > 4 && sr.height > 4) {
+        const vx = Math.floor(sr.left * dpr), vy = Math.floor((window.innerHeight - sr.bottom) * dpr);
+        const vw = Math.floor(sr.width * dpr), vh = Math.floor(sr.height * dpr);
+        gl.viewport(vx, vy, vw, vh); gl.scissor(vx, vy, vw, vh); gl.clear(gl.DEPTH_BUFFER_BIT);
+        renderSandboxViewport(vw / vh, dt, tSec);
+      }
+      for (const obj of cards) {
+        if (state.playing && obj.playing) obj.localClock += dt * state.speed;
+        if (state.spin && !obj.view.userTouched) obj.view.az += dt * 0.36 * state.speed;
+        const r = obj.stageEl.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight || r.width < 4 || r.height < 4) continue;
+        const vx = Math.floor(r.left * dpr), vy = Math.floor((window.innerHeight - r.bottom) * dpr);
+        const vw = Math.floor(r.width * dpr), vh = Math.floor(r.height * dpr);
+        gl.viewport(vx, vy, vw, vh); gl.scissor(vx, vy, vw, vh); gl.clear(gl.DEPTH_BUFFER_BIT);
+        renderWinnerViewport(obj.w, obj.view, vw / vh, obj.localClock, null, tSec);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+boot().catch(err => {
+  console.error(err);
+  $('loading').innerHTML = `<div style="color:#fb7185;max-width:640px;padding:20px"><b>Viewer Error:</b><br><pre style="white-space:pre-wrap">${err && err.stack ? err.stack : err}</pre></div>`;
+});
+})();
+</script>
+</body>
+</html>

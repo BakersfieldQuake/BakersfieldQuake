@@ -5,7 +5,7 @@
 ================
 WINGED BREEZY-HAIR JOHN - FLYABLE VEHICLE & COMBAT DOGFIGHTER (john_bird.qc)
 
-Model: progs/john_bird_head.md3 (100 frames: fly, soar, hover, swoop, perch, combat_fly, combat_whip)
+Model: progs/john_bird_head.md3 (164 frames: fly, soar, hover, swoop, perch, combat_fly, combat_whip, fast_fly, hit_flail, skypad_hyper, crazy_flip)
 Props: progs/jb_hairspray_can.md3, progs/jb_match.md3
 SFX:   sound/john_bird/flap1..4.wav, jv_fly00..13.wav, jb_*.wav
 FX:    effectinfo.txt jb_fx_*
@@ -1353,6 +1353,12 @@ void(entity jb) JB_Park =
 	jb.jb_carve_spd = 0;
 	jb.jb_match_on = FALSE;
 	jb.jb_whip_until = 0;
+	jb.jb_hurt_until = 0;
+	jb.jb_hurt_skin_until = 0;
+	jb.jb_skypad_until = 0;
+	jb.jb_skypad_feather_t = 0;
+	jb.jb_spin_until = 0;
+	jb.jb_spin_cd = 0;
 	JB_CleanupProps (jb);
 	jb.velocity = '0 0 0';
 	jb.angles_x = 0;
@@ -1377,6 +1383,12 @@ void(entity jb, vector exit_pos, vector exit_vel, float exploding) JB_Leave =
 	jb.jb_carve_spd = 0;
 	jb.jb_match_on = FALSE;
 	jb.jb_whip_until = 0;
+	jb.jb_hurt_until = 0;
+	jb.jb_hurt_skin_until = 0;
+	jb.jb_skypad_until = 0;
+	jb.jb_skypad_feather_t = 0;
+	jb.jb_spin_until = 0;
+	jb.jb_spin_cd = 0;
 	JB_CleanupProps (jb);
 	if (jb.jb_cam != world)
 	{
@@ -1492,6 +1504,13 @@ void(entity p, entity jb) JB_Enter =
 	jb.jb_match_on = FALSE;
 	jb.jb_dry_snd_t = 0;
 	jb.jb_whip_until = 0;
+	jb.jb_hurt_until = 0;
+	jb.jb_hurt_skin_until = 0;
+	jb.jb_skypad_until = 0;
+	jb.jb_skypad_feather_t = 0;
+	jb.jb_pad_scan_t = 0;
+	jb.jb_spin_until = 0;
+	jb.jb_spin_cd = 0;
 	jb.think = JB_IdleThink;
 	jb.nextthink = time + 0.1;
 	p.jb_vehicle = jb;
@@ -1542,6 +1561,8 @@ void(entity p, entity jb) JB_Enter =
 
 	sound (jb, CHAN_ITEM, "john_bird/takeoff.wav", 1, 0.6);
 	JB_SpawnFeathers (jb.origin + '0 0 28', 4, 0.7);
+	if (p.ishuman == 1 && !p.jb_hint_shown)
+		sprint (p, "Winged John: WASD+Mouse fly, SPACE climb, Press R for Crazy Flip!, CLICK hairspray, K cam, H/P dismount\n");
 	p.jb_hint_shown = TRUE;
 };
 
@@ -1620,6 +1641,8 @@ void(entity jb, entity pilot, float dt) JB_SlideMove =
 		JB_CheckSwoopRam (jb, pilot, trace_ent);
 
 	n1 = trace_plane_normal;
+	if (n1_z > 0.7 && jb.velocity_z <= 0 && time < jb.jb_skypad_until)
+		jb.jb_skypad_until = 0;
 	vn = jb.velocity * n1;
 	if (vn < 0)
 		jb.velocity = jb.velocity - n1 * vn;
@@ -1633,11 +1656,51 @@ void(entity jb, entity pilot, float dt) JB_SlideMove =
 			setorigin (jb, trace_endpos);
 			if (trace_fraction < 1)
 			{
+				if (trace_plane_normal_z > 0.7 && jb.velocity_z <= 0 && time < jb.jb_skypad_until)
+					jb.jb_skypad_until = 0;
 				vn = jb.velocity * trace_plane_normal;
 				if (vn < 0)
 					jb.velocity = jb.velocity - trace_plane_normal * vn;
 			}
 		}
+	}
+};
+
+// ---------------------------------------------------------------- SkyPad Hull Overlap (MOVETYPE_NONE + setorigin)
+
+float(vector bmin, vector bmax, entity pad) JB_OverlapPad =
+{
+	if (bmin_x > pad.absmax_x || bmax_x < pad.absmin_x)
+		return FALSE;
+	if (bmin_y > pad.absmax_y || bmax_y < pad.absmin_y)
+		return FALSE;
+	if (bmin_z > pad.absmax_z || bmax_z < pad.absmin_z)
+		return FALSE;
+	return TRUE;
+};
+
+void(entity jb, entity pilot) JB_CheckSkyPads =
+{
+	local entity e;
+	local vector bmin, bmax;
+
+	if (!skypad_present || jb.health <= 0 || jb.jb_dying)
+		return;
+	if (time < jb.skypad_cool_t || time < jb.jb_pad_scan_t)
+		return;
+	jb.jb_pad_scan_t = time + 0.05;
+
+	bmin = jb.origin + '-30 -38 -6';
+	bmax = jb.origin + '30 38 58';
+	e = find (world, classname, "info_skypad");
+	while (e != world)
+	{
+		if (JB_OverlapPad (bmin, bmax, e))
+		{
+			SkyPad_LaunchJohnBird (e, jb);
+			return;
+		}
+		e = find (e, classname, "info_skypad");
 	}
 };
 
@@ -1648,7 +1711,51 @@ void(entity jb, float dt, float thr_in, float climb_in, float swooping) JB_Updat
 	local float hspd, clip_start, clip_len, fps, flap_gap, flap_vol, flap_pitch, idx;
 
 	hspd = vlen (jb.velocity);
-	if (time < jb.jb_whip_until)
+	if (jb.health <= JB_LOW_HP || time < jb.jb_hurt_skin_until)
+		jb.skin = 1;
+	else
+		jb.skin = 0;
+
+	if ((time < jb.jb_skypad_until || hspd >= JB_SPEED_HYPER_ANIM) && time >= jb.jb_skypad_feather_t)
+	{
+		jb.jb_skypad_feather_t = time + 0.06;
+		if (hspd > 1)
+			JB_SpawnFeathers (jb.origin + '0 0 28' - normalize (jb.velocity) * 18, 2, 0.85);
+		else
+			JB_SpawnFeathers (jb.origin + '0 0 28', 2, 0.85);
+	}
+
+	if (time < jb.jb_hurt_until)
+	{
+		// Clip 9 (H1): Disoriented Hit Flail (frames 116..131)
+		clip_start = 116;
+		clip_len = 16;
+		fps = 28;
+		flap_gap = 0.11;
+		flap_vol = 0.95;
+		flap_pitch = 118 + crandom () * 18;
+	}
+	else if (time < jb.jb_spin_until)
+	{
+		// Clip 11 (W3): Unhinged Somersault Crazy Flip (frames 148..163)
+		clip_start = 148;
+		clip_len = 16;
+		fps = 30;
+		flap_gap = 0.16;
+		flap_vol = 0.88;
+		flap_pitch = 116 + crandom () * 8;
+	}
+	else if (time < jb.jb_skypad_until || hspd >= JB_SPEED_HYPER_ANIM)
+	{
+		// Clip 10 (S3): SkyPad Hyper-Flutter Afterburner (frames 132..147)
+		clip_start = 132;
+		clip_len = 16;
+		fps = 30 + bound (0, (hspd - 1500) / 180, 12);
+		flap_gap = 0.13;
+		flap_vol = 0.90;
+		flap_pitch = 122 + bound (0, (hspd - 1500) * 0.008, 16);
+	}
+	else if (time < jb.jb_whip_until)
 	{
 		// Clip 7: Mega-Bangs Pompadour Whip (frames 88..99)
 		idx = floor ((1 - (jb.jb_whip_until - time) / 0.50) * 12);
@@ -1657,50 +1764,61 @@ void(entity jb, float dt, float thr_in, float climb_in, float swooping) JB_Updat
 		flap_gap = 0.24;
 		flap_vol = 0.85;
 		flap_pitch = 112;
+		fps = 0;
+	}
+	else if (jb.velocity_z < -420)
+	{
+		// Clip 4: Peregrine Swoop / Steep Dive (frames 48..59)
+		clip_start = 48;
+		clip_len = 12;
+		fps = 16;
+		flap_gap = 0.52;
+		flap_vol = 0.55;
+		flap_pitch = 114;
+	}
+	else if (hspd >= JB_SPEED_FAST_ANIM)
+	{
+		// Clip 8 (F1): Fast Flight Whip-Snap Wingbeat (frames 100..115)
+		clip_start = 100;
+		clip_len = 16;
+		fps = 22 + bound (0, (hspd - 950) / 80, 10);
+		flap_gap = bound (0.14, 0.24 - (hspd - 950) * 0.00018, 0.24);
+		flap_vol = 0.92;
+		flap_pitch = 108 + bound (0, (hspd - 950) * 0.025, 18);
+	}
+	else if (climb_in > 0.2 || hspd < 230)
+	{
+		// Clip 3: Rapid Hover Flutter / Vigorous Climb (frames 32..47)
+		clip_start = 32;
+		clip_len = 16;
+		fps = 19;
+		flap_gap = 0.22;
+		flap_vol = 0.90;
+		flap_pitch = 108;
+	}
+	else if (thr_in <= 0.05 && climb_in <= 0 && hspd > 340)
+	{
+		// Clip 2: Windy Thermal Soar / Outstretched Glide (frames 16..31)
+		clip_start = 16;
+		clip_len = 16;
+		fps = 11;
+		flap_gap = 1.05;
+		flap_vol = 0.38;
+		flap_pitch = 92;
 	}
 	else
 	{
-		if (swooping || jb.velocity_z < -420)
-		{
-			// Clip 4: Peregrine Swoop / Dive (frames 48..59)
-			clip_start = 48;
-			clip_len = 12;
-			fps = 16;
-			flap_gap = 0.52;
-			flap_vol = 0.55;
-			flap_pitch = 114;
-		}
-		else if (climb_in > 0.2 || hspd < 230)
-		{
-			// Clip 3: Rapid Hover Flutter / Vigorous Climb (frames 32..47)
-			clip_start = 32;
-			clip_len = 16;
-			fps = 19;
-			flap_gap = 0.22;
-			flap_vol = 0.90;
-			flap_pitch = 108;
-		}
-		else if (thr_in <= 0.05 && climb_in <= 0 && hspd > 340)
-		{
-			// Clip 2: Windy Thermal Soar / Outstretched Glide (frames 16..31)
-			clip_start = 16;
-			clip_len = 16;
-			fps = 11;
-			flap_gap = 1.05;
-			flap_vol = 0.38;
-			flap_pitch = 92;
-		}
-		else
-		{
-			// Clip 1: Fast Cruising Wingbeat & Breezy Hair (frames 0..15)
-			clip_start = 0;
-			clip_len = 16;
-			fps = 14 + bound (0, hspd / 130, 8);
-			flap_gap = bound (0.23, 0.36 - hspd * 0.00010, 0.35);
-			flap_vol = 0.85;
-			flap_pitch = 96 + bound (0, hspd * 0.012, 14);
-		}
+		// Clip 1: Fast Cruising Wingbeat & Breezy Hair (frames 0..15)
+		clip_start = 0;
+		clip_len = 16;
+		fps = 14 + bound (0, hspd / 130, 8);
+		flap_gap = bound (0.23, 0.36 - hspd * 0.00010, 0.35);
+		flap_vol = 0.85;
+		flap_pitch = 96 + bound (0, hspd * 0.012, 14);
+	}
 
+	if (fps > 0)
+	{
 		jb.jb_anim_clock = jb.jb_anim_clock + dt * fps;
 		idx = floor (jb.jb_anim_clock);
 		idx = idx - clip_len * floor (idx / clip_len);
@@ -1709,7 +1827,7 @@ void(entity jb, float dt, float thr_in, float climb_in, float swooping) JB_Updat
 
 	if (time >= jb.jb_flap_t)
 	{
-		JB_PlayFlap (jb, flap_vol, flap_pitch + crandom () * 4);
+		JB_PlayFlap (jb, flap_vol, bound (65, flap_pitch + crandom () * 4, 150));
 		jb.jb_flap_t = time + flap_gap;
 	}
 
@@ -1729,7 +1847,7 @@ float() JohnBird_Frame =
 {
 	local entity jb, head, best_ram;
 	local float dt, fwd_in, str_in, up_in, swooping, max_spd, yaw_rate, target_roll, k, shot_spd, best_d, d;
-	local float yaw_delta, pitch_delta, ang_rate, carve_bonus, prev_carve;
+	local float yaw_delta, pitch_delta, ang_rate, carve_bonus, prev_carve, pull_tgt, grav, maxv;
 	local float slow_mult, combat_on, c_flags, s_flags;
 	local vector wish, dir_ang, muz, aim_dir;
 
@@ -1768,6 +1886,19 @@ float() JohnBird_Frame =
 	{
 		JB_PlayRandomVoice (jb, FALSE);
 		self.impulse = 0;
+	}
+	else if (self.impulse == 41)
+	{
+		self.impulse = 0;
+		if (time >= jb.jb_spin_cd && time >= jb.jb_hurt_until)
+		{
+			jb.jb_spin_until = time + JB_SPIN_ANIM_DUR;
+			jb.jb_spin_cd = time + JB_SPIN_COOLDOWN;
+			makevectors (self.v_angle);
+			jb.velocity = jb.velocity + v_forward * 240 + '0 0 180';
+			JB_SpawnFeathers (jb.origin + '0 0 28', 6, 1.15);
+			sound7 (jb, CHAN_ITEM, "john_bird/swoop.wav", 0.92, 0.6, 128 + crandom () * 6);
+		}
 	}
 	else if ((self.impulse == 97 || self.impulse == 99) && autocvar_sv_cheats)
 	{
@@ -1812,42 +1943,63 @@ float() JohnBird_Frame =
 	if (swooping)
 		jb.jb_swoop_until = time + 0.15;
 
+	JB_CheckSkyPads (jb, self);
+
 	slow_mult = (time < jb.jb_slow_t) ? JB_BIRD_SLOW_MULT : 1.0;
 
-	wish = '0 0 0';
-	if (fwd_in > 0)
-		wish = wish + v_forward * (fwd_in * (JB_SPEED_CRUISE + carve_bonus) * slow_mult);
-	else if (fwd_in < 0)
-		wish = wish + v_forward * (fwd_in * 300 * slow_mult);
-	else if (jb.jb_carve_spd > 15)
-		wish = wish + v_forward * (carve_bonus * 0.65 * slow_mult);
-
-	wish = wish + v_right * (str_in * JB_SPEED_STRAFE * slow_mult);
-	if (up_in > 0)
-		wish_z = wish_z + JB_SPEED_CLIMB * slow_mult;
-	else if (up_in < 0)
-		wish_z = wish_z - 460 * slow_mult;
-	max_spd = (JB_SPEED_CRUISE + 140 + carve_bonus) * slow_mult;
-
-	if (fwd_in < -0.2)
+	if (time < jb.jb_skypad_until)
 	{
-		k = bound (0, dt * 8.0, 1);
-		jb.velocity = jb.velocity + (wish - jb.velocity) * k;
-	}
-	else if (vlen (wish) > 10)
-	{
-		k = bound (0, dt * (swooping ? 8.2 : 6.2), 1);
-		jb.velocity = jb.velocity + (wish - jb.velocity) * k;
+		// Preserve high-speed SkyPad ballistic momentum with gravity + light air-steering
+		grav = cvar ("sv_gravity");
+		if (grav <= 10)
+			grav = 800;
+		jb.velocity_z = jb.velocity_z - grav * dt;
+		jb.velocity = jb.velocity + (v_forward * (fwd_in * 420) + v_right * (str_in * 460) + '0 0 1' * (up_in * 240)) * dt * slow_mult;
+		maxv = cvar ("sv_maxvelocity");
+		if (maxv < 6500)
+			maxv = 6500;
+		if (vlen (jb.velocity) > maxv)
+			jb.velocity = normalize (jb.velocity) * maxv;
 	}
 	else
 	{
-		jb.velocity_x = jb.velocity_x * bound (0, 1 - dt * 2.1, 1);
-		jb.velocity_y = jb.velocity_y * bound (0, 1 - dt * 2.1, 1);
-		jb.velocity_z = jb.velocity_z * bound (0, 1 - dt * 2.8, 1) - 38 * dt;
-	}
+		wish = '0 0 0';
+		if (fwd_in > 0)
+			wish = wish + v_forward * (fwd_in * (JB_SPEED_CRUISE + carve_bonus) * slow_mult);
+		else if (fwd_in < 0)
+			wish = wish + v_forward * (fwd_in * 300 * slow_mult);
+		else if (jb.jb_carve_spd > 15)
+			wish = wish + v_forward * (carve_bonus * 0.65 * slow_mult);
 
-	if (vlen (jb.velocity) > max_spd)
-		jb.velocity = normalize (jb.velocity) * max_spd;
+		wish = wish + v_right * (str_in * JB_SPEED_STRAFE * slow_mult);
+		if (up_in > 0)
+			wish_z = wish_z + JB_SPEED_CLIMB * slow_mult;
+		else if (up_in < 0)
+			wish_z = wish_z - 460 * slow_mult;
+		max_spd = (JB_SPEED_CRUISE + 140 + carve_bonus) * slow_mult;
+		if (time < jb.jb_spin_until)
+			max_spd = max (max_spd, 1280 * slow_mult);
+
+		if (fwd_in < -0.2)
+		{
+			k = bound (0, dt * 8.0, 1);
+			jb.velocity = jb.velocity + (wish - jb.velocity) * k;
+		}
+		else if (vlen (wish) > 10)
+		{
+			k = bound (0, dt * (swooping ? 8.2 : 6.2), 1);
+			jb.velocity = jb.velocity + (wish - jb.velocity) * k;
+		}
+		else
+		{
+			jb.velocity_x = jb.velocity_x * bound (0, 1 - dt * 2.1, 1);
+			jb.velocity_y = jb.velocity_y * bound (0, 1 - dt * 2.1, 1);
+			jb.velocity_z = jb.velocity_z * bound (0, 1 - dt * 2.8, 1) - 38 * dt;
+		}
+
+		if (vlen (jb.velocity) > max_spd)
+			jb.velocity = normalize (jb.velocity) * max_spd;
+	}
 
 	JB_SlideMove (jb, self, dt);
 
@@ -1894,7 +2046,8 @@ float() JohnBird_Frame =
 	jb.angles_y = self.v_angle_y;
 	jb.angles_z = jb.angles_z + (target_roll - jb.angles_z) * bound (0, dt * 11.0, 1);
 
-	jb.jb_cam_pull = jb.jb_cam_pull + ((jb.jb_carve_spd / 100 * 16) - jb.jb_cam_pull) * bound (0, dt * 6.0, 1);
+	pull_tgt = (time < jb.jb_skypad_until || vlen (jb.velocity) >= JB_SPEED_HYPER_ANIM) ? 34 : (jb.jb_carve_spd / 100 * 16);
+	jb.jb_cam_pull = jb.jb_cam_pull + (pull_tgt - jb.jb_cam_pull) * bound (0, dt * 6.0, 1);
 	setorigin (self, jb.origin + '0 0 20');
 	JB_UpdateCamera (self, jb);
 
@@ -1956,7 +2109,7 @@ float() JohnBird_Frame =
 	{
 		c_flags = 0;
 		if (combat_on) c_flags = c_flags | 3;
-		if (vlen (jb.velocity) >= 980) c_flags = c_flags | 16;
+		if (jb.jb_carve_spd >= 60 || vlen (jb.velocity) >= JB_SPEED_FAST_ANIM) c_flags = c_flags | 16;
 
 		s_flags = 0;
 		if (time < jb.jb_slow_t) s_flags = s_flags | 1;
@@ -1997,6 +2150,12 @@ void() JB_Respawn =
 	self.jb_ammo = JB_MAX_AMMO;
 	self.jb_ammo_regen_t = 0;
 	self.jb_dry_snd_t = 0;
+	self.jb_hurt_until = 0;
+	self.jb_hurt_skin_until = 0;
+	self.jb_skypad_until = 0;
+	self.jb_skypad_feather_t = 0;
+	self.jb_spin_until = 0;
+	self.jb_spin_cd = 0;
 	self.skin = 0;
 	self.alpha = 1;
 	self.effects = self.effects - (self.effects & EF_NODRAW);
@@ -2108,10 +2267,22 @@ void() JB_AutopilotThink =
 		target_pos = target_pos + trace_plane_normal * 220;
 
 	slow_mult = (time < self.jb_slow_t) ? JB_BIRD_SLOW_MULT : 1.0;
-	delta = target_pos - self.origin;
-	spd = 820 * slow_mult;
-	if (vlen (delta) > 8)
-		self.velocity = self.velocity + (normalize (delta) * spd - self.velocity) * bound (0, dt * 4.5, 1);
+	JB_CheckSkyPads (self, world);
+	if (time < self.jb_skypad_until)
+	{
+		local float grav;
+		grav = cvar ("sv_gravity");
+		if (grav <= 10)
+			grav = 800;
+		self.velocity_z = self.velocity_z - grav * dt;
+	}
+	else
+	{
+		delta = target_pos - self.origin;
+		spd = 820 * slow_mult;
+		if (vlen (delta) > 8)
+			self.velocity = self.velocity + (normalize (delta) * spd - self.velocity) * bound (0, dt * 4.5, 1);
+	}
 
 	JB_SlideMove (self, world, dt);
 
@@ -2187,9 +2358,28 @@ void() JB_IdleThink =
 		return;
 	}
 
-	idx = floor (time * 9.0);
-	idx = idx - 12 * floor (idx / 12);
-	self.frame = 60 + idx;
+	if (self.health <= JB_LOW_HP || time < self.jb_hurt_skin_until)
+		self.skin = 1;
+	else
+		self.skin = 0;
+
+	if (time < self.jb_hurt_until)
+	{
+		idx = floor (time * 28);
+		idx = idx - 16 * floor (idx / 16);
+		self.frame = 116 + idx;
+		if (time >= self.jb_flap_t)
+		{
+			JB_PlayFlap (self, 0.92, bound (65, 118 + crandom () * 18, 150));
+			self.jb_flap_t = time + 0.11;
+		}
+	}
+	else
+	{
+		idx = floor (time * 9.0);
+		idx = idx - 12 * floor (idx / 12);
+		self.frame = 60 + idx;
+	}
 
 	if (self.health <= JB_LOW_HP && veh_fx_smoke > 0 && time >= self.jb_smoke_t)
 	{
@@ -2205,6 +2395,21 @@ void(entity attacker, float take) JB_Pain =
 {
 	local float r_left, throttled;
 	local string msg;
+
+	if (take > 0)
+	{
+		self.jb_hurt_until = time + JB_HURT_ANIM_DUR;
+		self.jb_hurt_skin_until = time + JB_HURT_SKIN_FLASH;
+		self.skin = 1;
+		self.angles_z = bound (-32, self.angles_z + crandom () * 24, 32);
+		if (self.jb_pilot != world || self.jb_ai)
+			self.velocity = self.velocity + '1 0 0' * (crandom () * 90) + '0 1 0' * (crandom () * 90) + '0 0 1' * (random () * 55);
+		if (self.jb_pilot != world && self.jb_pilot.ishuman == 1)
+		{
+			self.jb_pilot.punchangle_x = crandom () * 4;
+			self.jb_pilot.punchangle_z = crandom () * 6;
+		}
+	}
 
 	throttled = FALSE;
 	if (time < self.jb_feather_t)
@@ -2381,6 +2586,13 @@ void(entity jb, float is_temp) JB_InitEntity =
 	jb.jb_slow_t = 0;
 	jb.jb_burn_t = 0;
 	jb.jb_burn_by = world;
+	jb.jb_hurt_until = 0;
+	jb.jb_hurt_skin_until = 0;
+	jb.jb_skypad_until = 0;
+	jb.jb_skypad_feather_t = 0;
+	jb.jb_pad_scan_t = 0;
+	jb.jb_spin_until = 0;
+	jb.jb_spin_cd = 0;
 	jb.health = JB_MAX_HP;
 	jb.max_health = JB_MAX_HP;
 	jb.skin = 0;

@@ -89,6 +89,53 @@ void() SkyPad_LandWave =
 	}
 };
 
+void(entity pad, entity jb) SkyPad_LaunchJohnBird =
+{
+	local entity pilot;
+	local vector v;
+	local float g, top, vz, tf;
+
+	if (jb == world || jb.health <= 0 || jb.jb_dying)
+		return;
+	if (time < jb.skypad_cool_t)
+		return;
+
+	SkyPad_RaiseMaxVel ();
+	pilot = jb.jb_pilot;
+	if (pilot != world && pilot.ishuman == 1 && !pilot.skypad_vel_sent)
+	{
+		pilot.skypad_vel_sent = TRUE;
+		stuffcmd (pilot, "sv_maxvelocity 6500\n");
+	}
+
+	jb.skypad_cool_t = time + 0.65;
+	jb.flags = jb.flags - (jb.flags & FL_ONGROUND);
+	setorigin (jb, jb.origin + '0 0 4');
+
+	v = SkyPad_CalcVel (jb.origin, pad.pos1, pad.height);
+	jb.velocity = v;
+
+	g = cvar ("sv_gravity");
+	if (g <= 10)
+		g = 800;
+	top = max (pad.height, max (jb.origin_z + 256, pad.pos1_z + 256));
+	vz = sqrt (2 * g * (top - jb.origin_z));
+	tf = (vz / g) + sqrt (2 * (top - pad.pos1_z) / g);
+	jb.jb_skypad_until = time + bound (1.2, tf * 0.90, 3.8);
+	jb.jb_swoop_until = time + 0.5;
+	jb.jb_flap_t = time + 0.14;
+
+	if (pilot != world)
+		pilot.skypad_safe_t = time + 10.0;
+
+	sound7 (jb, CHAN_AUTO, "skypad/launch.wav", 0.90, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
+	pointparticles (particleeffectnum ("TE_TELEPORT"), pad.origin + '0 0 12', '0 0 0', 1);
+	JB_SpawnFeathers (jb.origin + '0 0 28', 10, 1.35);
+
+	if (pad.message != "" && pilot != world && pilot.ishuman == 1)
+		sprint (pilot, strcat ("Sky Pad -> ", pad.message, "\n"));
+};
+
 void(entity pad, entity rr) SkyPad_LaunchRocketRider =
 {
 	local entity pilot;
@@ -141,6 +188,16 @@ void() SkyPad_Touch =
 {
 	local vector v;
 
+	if (other.classname == "misc_vehicle_johnbird")
+	{
+		SkyPad_LaunchJohnBird (self, other);
+		return;
+	}
+	if (other.classname == "player" && JohnBird_Flying (other))
+	{
+		SkyPad_LaunchJohnBird (self, other.jb_vehicle);
+		return;
+	}
 	if (other.classname == "misc_vehicle_rocketrider")
 	{
 		SkyPad_LaunchRocketRider (self, other);

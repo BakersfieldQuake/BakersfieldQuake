@@ -5,14 +5,18 @@
 ================
 WINGED BREEZY-HAIR JOHN - FLYABLE VEHICLE & COMBAT DOGFIGHTER (john_bird_defs.qc)
 
-Model: progs/john_bird_head.md3 (7,832 verts, 14,560 tris, 100 frames across 7 clips)
-  0..15  : fly_breezy    (cruising wingbeat + breezy hair)
-  16..31 : windy_soar    (outstretched thermal glide)
-  32..47 : hover_flutter (energetic hover scull + wild hair)
-  48..59 : swoop_dive    (high-speed falcon swoop / boost)
-  60..71 : perch_breeze  (folded wings perched idle)
-  72..87 : combat_fly    (giant waving bangs combat flight)
-  88..99 : combat_whip   (mega-bangs pompadour whip-slap)
+Model: progs/john_bird_head.md3 (7,832 verts, 14,560 tris, 164 frames across 11 clips)
+  0..15   : fly_breezy    (cruising wingbeat + breezy hair)
+  16..31  : windy_soar    (outstretched thermal glide)
+  32..47  : hover_flutter (energetic hover scull + wild hair)
+  48..59  : swoop_dive    (high-speed falcon swoop / boost)
+  60..71  : perch_breeze  (folded wings perched idle)
+  72..87  : combat_fly    (giant waving bangs combat flight)
+  88..99  : combat_whip   (mega-bangs pompadour whip-slap)
+  100..115: fast_fly      (F1 high-speed wingbeat + rippling bangs, >= 950 u/s)
+  116..131: hit_flail     (H1 disoriented multi-directional hurt flail)
+  132..147: skypad_hyper  (S3 supersonic SkyPad launch flutter, >= 1500 u/s)
+  148..163: crazy_flip    (W3 unhinged somersault flip-chaos on R / impulse 41)
 
 Props:
   progs/jb_hairspray_can.md3 ("JOHN'S MEGA HOLD" aerosol can)
@@ -22,6 +26,7 @@ Controls:
   H (impulse 86) : Mount perched Winged John / Dismount while flying
   P (impulse 98) : Summon & immediately fly Winged John anywhere (or dismount)
   K (impulse 87) : Toggle 3rd-person chase camera / 1st-person breezy-crown view
+  R (impulse 41) : Crazy Flip! (1.0s cooldown somersault stunt + feather burst)
   WASD + Mouse   : Fast 3D flight (780 u/s cruise); sweeping mouse L/R/U/D builds carve speed!
   SPACE          : Vigorous upward wing-climb (+460 u/s)
   CLICK (Fire)   : Rapid-fire hairspray cans (anti-bird dogfight)
@@ -41,6 +46,12 @@ float	JB_SPEED_CRUISE		= 780;		// fast cruising speed (~2.4x player run speed)
 float	JB_SPEED_CARVE_MAX	= 440;		// extra airspeed gained from sweeping/carving with the mouse
 float	JB_SPEED_STRAFE		= 500;
 float	JB_SPEED_CLIMB		= 460;
+float	JB_SPEED_FAST_ANIM	= 950;		// u/s threshold for fast_fly (frames 100..115)
+float	JB_SPEED_HYPER_ANIM	= 1500;		// u/s threshold keeping skypad_hyper active (frames 132..147)
+float	JB_HURT_ANIM_DUR	= 0.65;		// hit_flail override duration on JB_Pain
+float	JB_HURT_SKIN_FLASH	= 0.18;		// brief skin=1 flash duration when health > JB_LOW_HP
+float	JB_SPIN_ANIM_DUR	= 0.65;		// crazy_flip somersault duration (frames 148..163)
+float	JB_SPIN_COOLDOWN	= 1.0;		// cooldown between R (impulse 41) Crazy Flips
 float	JB_SLOW_SPEED		= 230;		// on-foot sticky slow horizontal cap (~72% of 320 u/s)
 float	JB_BIRD_SLOW_MULT	= 0.58;		// ~42% slower flight when sticky-slowed
 float	JB_VOICE_COUNT		= 14;
@@ -141,6 +152,18 @@ float	jb_fx_mist_cloud;
 .float	jb_first_shot_said;				// TRUE after playing "Do you have any hairspray?" on first shot
 .entity	jb_last_inflictor;				// deduplicates rocket direct + splash damage in same frame
 .float	jb_last_inflictor_t;
+.float	jb_hurt_until;					// hit_flail animation + erratic flap SFX expiry
+.float	jb_hurt_skin_until;				// brief hurt-skin flash expiry (restores skin 0 if > JB_LOW_HP)
+.float	jb_skypad_until;				// ballistic SkyPad arc expiry (preserves velocity without clamp)
+.float	jb_skypad_feather_t;			// continuous shedding john_bird_feather.md3 trail throttle
+.float	jb_pad_scan_t;					// 20 Hz hull-overlap scan throttle for JB_CheckSkyPads
+.float	jb_spin_until;					// crazy_flip animation expiry (R / impulse 41)
+.float	jb_spin_cd;						// crazy_flip cooldown timestamp
+
+// Forward declarations for SkyPad helpers (skypad.qc compiles after john_bird.qc)
+void() SkyPad_RaiseMaxVel;
+vector(vector org, vector dst, float apex_z) SkyPad_CalcVel;
+void(entity pad, entity jb) SkyPad_LaunchJohnBird;
 
 void() JohnBird_Precache;
 float(entity p) JohnBird_Flying;

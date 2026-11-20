@@ -4,7 +4,7 @@
 # The repo is text/source only, so this does not rebuild the big base pk3s/maps. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
-# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3 and zz_rocketrider.pk3
+# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3 and zz_johnbird.pk3
 # from the zip's own bakersfield.pk3 / repo sources, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
@@ -142,15 +142,18 @@ jobs:
           base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
           base_maps=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/maps/*.bsp | sha256sum | awk '{print $1}')
           base_minimap=$([ -f out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3 ] && sha256sum out/BAKOQUAKE/BakersfieldQuake/zz_minimap.pk3 | awk '{print $1}' || echo none)
+          base_johnbird=$([ -f out/BAKOQUAKE/BakersfieldQuake/zz_johnbird.pk3 ] && sha256sum out/BAKOQUAKE/BakersfieldQuake/zz_johnbird.pk3 | awk '{print $1}' || echo none)
           echo "Base bakersfield.pk3 SHA-256: $base_bakersfield"
           echo "Base q15.pk3 SHA-256:         $base_q15"
           echo "Base maps/*.bsp SHA-256:      $base_maps"
           echo "Base zz_minimap.pk3 SHA-256:  $base_minimap"
+          echo "Base zz_johnbird.pk3 SHA-256: $base_johnbird"
           {
             echo "BASE_BAKERSFIELD_SHA256=$base_bakersfield"
             echo "BASE_Q15_SHA256=$base_q15"
             echo "BASE_MAPS_SHA256=$base_maps"
             echo "BASE_MINIMAP_SHA256=$base_minimap"
+            echo "BASE_JOHNBIRD_SHA256=$base_johnbird"
           } >> "$GITHUB_ENV"
 
       - name: Download engine binaries from public release
@@ -259,8 +262,15 @@ jobs:
           path: pk3cache/zz_rocketrider.pk3
           key: zz_rocketrider-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/rocket_rider/build_rocketrider_pk3.py', 'repo/source/mm_tools/rocket_rider/build_v1_classic.py', 'repo/source/mm_tools/rocket_rider/common.py', 'repo/source/mm_tools/gokart_driver.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/id1/player.mdl') }}
 
+      - name: Cache zz_johnbird.pk3
+        id: cache_johnbird
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_johnbird.pk3
+          key: zz_johnbird-${{ env.BASE_JOHNBIRD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_john_bird_pk3.py', 'repo/source/mm_tools/build_john_bird_head.py', 'repo/source/mm_tools/build_john_bird_anim_candidates.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/john_bird_assets/**') }}
+
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -309,9 +319,15 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/rocket_rider/build_rocketrider_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_rocketrider.pk3
 
+      - name: Build zz_johnbird.pk3
+        if: steps.cache_johnbird.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/build_john_bird_pk3.py --base-pk3 out/BAKOQUAKE/BakersfieldQuake/zz_johnbird.pk3 --out-pk3 pk3cache/zz_johnbird.pk3
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_rocketrider.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -503,6 +519,19 @@ jobs:
                       if req not in rnames:
                           errors.append(f"zz_rocketrider.pk3 lacks {req}")
 
+          johnbird = os.path.join(root, "BakersfieldQuake", "zz_johnbird.pk3")
+          if not os.path.isfile(johnbird):
+              errors.append("missing BakersfieldQuake/zz_johnbird.pk3")
+          else:
+              with zipfile.ZipFile(johnbird) as z:
+                  if "progs/john_bird_head.md3" not in z.namelist():
+                      errors.append("zz_johnbird.pk3 lacks progs/john_bird_head.md3")
+                  else:
+                      hdr = z.read("progs/john_bird_head.md3")[:108]
+                      ident, ver, _, _, nf = struct.unpack("<4si64s2i", hdr[:80])
+                      if ident != b"IDP3" or ver != 15 or nf != 164:
+                          errors.append(f"zz_johnbird.pk3 progs/john_bird_head.md3 expected 164 frames, got ident={ident} ver={ver} nf={nf}")
+
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:
               print(f"::error::{e}")
@@ -621,7 +650,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3, zz_johnbird.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
 
