@@ -81,23 +81,46 @@ jobs:
         uses: actions/cache@v6
         with:
           path: dist/bq-update.exe
-          key: bq-update-win-py3.12-pyinstaller6.22.3-${{ hashFiles('tools/bq_update.py') }}
+          key: bq-update-win-v2-py3.12-pyinstaller6.22.3-${{ hashFiles('tools/bq_update.py', 'source/icons/bakoquake.ico') }}
 
       - name: Freeze tools/bq_update.py
         if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           python -m pip install --quiet pyinstaller==6.22.3
-          python -m PyInstaller --onefile --console --noupx --name bq-update tools/bq_update.py
+          python -m PyInstaller --onefile --noconsole --noupx --icon source/icons/bakoquake.ico --name bq-update tools/bq_update.py
+
+      - name: Cache Update.exe
+        id: cache_launcher
+        uses: actions/cache@v6
+        with:
+          path: dist/Update.exe
+          key: bq-update-launcher-win-${{ hashFiles('source/win/UpdateLauncher.cs', 'source/icons/bakoquake.ico') }}
+
+      - name: Build Update.exe
+        if: steps.cache_launcher.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p dist
+          /c/Windows/Microsoft.NET/Framework64/v4.0.30319/csc.exe /nologo /target:winexe \
+            /win32icon:source/icons/bakoquake.ico /optimize /out:dist/Update.exe source/win/UpdateLauncher.cs
 
       - name: Smoke test
         shell: bash
-        run: ./dist/bq-update.exe --help
+        run: |
+          ./dist/bq-update.exe --version
+          ./dist/bq-update.exe --help
+          test -f dist/Update.exe
 
       - uses: actions/upload-artifact@v7
         with:
           name: bq-update-windows
           path: dist/bq-update.exe
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bq-update-launcher-windows
+          path: dist/Update.exe
 
   build:
     needs: updater
@@ -106,6 +129,8 @@ jobs:
     outputs:
       tag: ${{ steps.publish.outputs.tag }}
       mac: ${{ steps.mac.outputs.build }}
+      mac_inputs: ${{ steps.mac.outputs.inputs }}
+      draft: ${{ inputs.draft == true }}
     env:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ inputs.base_tag }}
@@ -118,6 +143,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: repo
+          fetch-depth: 20
 
       # The concurrency group lets one release build run at a time, so any incomplete draft is from a cancelled run.
       - name: Remove incomplete releases from cancelled runs
@@ -208,6 +234,12 @@ jobs:
         with:
           name: bq-update-windows
           path: out/BAKOQUAKE/tools
+
+      - name: Add the Windows standalone Update launcher
+        uses: actions/download-artifact@v8
+        with:
+          name: bq-update-launcher-windows
+          path: out/BAKOQUAKE
 
       # Overlay pk3s are reproducible, so each is cached and only rebuilt when an input changes. The key holds the
       # base bakersfield.pk3 (all of them read it), the pinned numpy/pillow where used, and every source file the builder reads.
@@ -394,7 +426,8 @@ jobs:
           errors = []
 
           for rel in ("BakersfieldQuake/progs.dat", "BakersfieldQuake/menu.dat", "BakersfieldQuake/csprogs.dat",
-                      "engine/zircon_beta_gcc.exe", "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
+                      "engine/zircon_beta_gcc.exe", "Update.exe", "Update.sh",
+                      "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
                       "tools/bq_update.py", "tools/bq-update.exe", "tools/install-shortcuts.ps1",
                       "tools/install-shortcuts.sh", "tools/bakoquake.ico", "tools/bakoquake-256.png"):
               p = os.path.join(root, rel)
@@ -589,24 +622,6 @@ jobs:
           make_os_zip BAKOQUAKE-linux-x86_64.zip  zircon_beta_linux_sdl       zircon_beta_linux_dedicated_server
           make_os_zip BAKOQUAKE-macos-arm64.zip   zircon_beta_macos_arm64_sdl zircon_beta_macos_arm64_dedicated_server
 
-      - name: Write updater manifests
-        # One per platform zip: every file's size and sha256, plus the tag-specific zip URL. Players' updaters fetch
-        # releases/latest/download/manifest-<platform>.json (drafts are never "latest") and pull the changed files
-        # out of that zip with Range requests. build = run number, which only goes up (the updater refuses rollbacks).
-        run: |
-          dl="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
-          for pair in BAKOQUAKE.zip:windows-x64 BAKOQUAKE-linux-x86_64.zip:linux-x86_64 BAKOQUAKE-macos-arm64.zip:macos-arm64; do
-            z="${pair%%:*}" plat="${pair##*:}"
-            python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" > "manifest-$plat.json"
-            python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" "manifest-$plat.json"
-          done
-          # The macOS app has its own engine in the signed bundle and updates only a clone of its game data (see
-          # source/mac/launcher.sh), so its manifest lists just those folders.
-          z=BAKOQUAKE-macos-arm64.zip
-          python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
-            --only BakersfieldQuake/ --only quake15/ --only tools/ > manifest-macos-app.json
-          python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" manifest-macos-app.json
-
       # The signed app bundle holds the engine (pinned by ZIRCON_REF in build_app.sh), the launcher, the frozen updater
       # and the icon; game data reaches it through its own updater (manifest-macos-app.json). So a new DMG is only
       # built when one of those bundle inputs changed since the newest release that has a DMG. Every release records
@@ -616,22 +631,61 @@ jobs:
         run: |
           inputs=$(cd repo && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
           echo "MAC_INPUTS=$inputs" >> "$GITHUB_ENV"
+          echo "inputs=$inputs" >> "$GITHUB_OUTPUT"
           build=true why="started by hand"
+          prev_tag=""
+          prev_mac_inputs=""
+          for t in $(gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do
+            gh release view "$t" -R "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.dmg || continue
+            prev_tag="$t"
+            prev_mac_inputs=$(gh release view "$t" -R "$GITHUB_REPOSITORY" --json body -q .body | sed -n 's/.*<!-- mac-inputs: \(.*\) -->.*/\1/p' | head -1)
+            break
+          done
           if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
-            prev=""
-            for t in $(gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do
-              gh release view "$t" -R "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.dmg || continue
-              prev=$(gh release view "$t" -R "$GITHUB_REPOSITORY" --json body -q .body | sed -n 's/.*<!-- mac-inputs: \(.*\) -->.*/\1/p' | head -1)
-              break
-            done
-            if [ -n "$prev" ] && [ "$prev" = "$inputs" ]; then
+            if [ -n "$prev_mac_inputs" ] && [ "$prev_mac_inputs" = "$inputs" ]; then
               build=false why="app inputs unchanged since the newest release with a DMG"
             else
-              old=${prev:0:12}; why="app inputs ${inputs:0:12}, the newest DMG has ${old:-none recorded}"
+              old=${prev_mac_inputs:0:12}; why="app inputs ${inputs:0:12}, the newest DMG has ${old:-none recorded}"
             fi
           fi
           echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "PREV_DMG_TAG=$prev_tag" >> "$GITHUB_ENV"
+          echo "PREV_MAC_INPUTS=$prev_mac_inputs" >> "$GITHUB_ENV"
           echo "macOS app build: $build ($why)"
+
+      - name: Write updater manifests
+        # One per platform zip: every file's size and sha256, plus the tag-specific zip URL and VPS fallback base.
+        # Players' updaters fetch releases/latest/download/manifest-<platform>.json (falling back to the VPS) and pull
+        # changed/missing files via Range requests or VPS sha256 blobs. build = run number (never rolls back).
+        run: |
+          notes=$(cd repo && git log -n 5 --no-merges --pretty=format:"• %s" | head -c 320)
+          vps="https://bakersfield.larrywew.fun/updates"
+          dl="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          for pair in BAKOQUAKE.zip:windows-x64 BAKOQUAKE-linux-x86_64.zip:linux-x86_64 BAKOQUAKE-macos-arm64.zip:macos-arm64; do
+            z="${pair%%:*}" plat="${pair##*:}"
+            python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
+              --notes "$notes" --vps-base "$vps" > "manifest-$plat.json"
+            python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" "manifest-$plat.json"
+          done
+          # Carry forward the latest published DMG metadata into manifest-macos-app.json so Mac users are not blocked
+          # while a new DMG builds/notarizes; the macos job patches this manifest once notarization finishes.
+          dmg_args=()
+          if [ -n "${PREV_DMG_TAG:-}" ]; then
+            rm -f prev_mac_manifest.json
+            if gh release download "$PREV_DMG_TAG" -R "$GITHUB_REPOSITORY" -p manifest-macos-app.json -O prev_mac_manifest.json >/dev/null 2>&1; then
+              readarray -t prev_meta < <(python -c 'import json; m=json.load(open("prev_mac_manifest.json", encoding="utf-8")); print("\n".join(str(m.get(k, "") or "") for k in ("mac_inputs", "dmg_url", "dmg_vps_url", "dmg_size", "dmg_sha256")))')
+              [ -n "${prev_meta[0]}" ] && dmg_args+=(--mac-inputs "${prev_meta[0]}")
+              [ -n "${prev_meta[1]}" ] && dmg_args+=(--dmg-url "${prev_meta[1]}")
+              [ -n "${prev_meta[2]}" ] && dmg_args+=(--dmg-vps-url "${prev_meta[2]}")
+              [ -n "${prev_meta[3]}" ] && dmg_args+=(--dmg-size "${prev_meta[3]}")
+              [ -n "${prev_meta[4]}" ] && dmg_args+=(--dmg-sha256 "${prev_meta[4]}")
+            fi
+          fi
+          z=BAKOQUAKE-macos-arm64.zip
+          python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
+            --only BakersfieldQuake/ --only quake15/ --only tools/ \
+            --notes "$notes" --vps-base "$vps" "${dmg_args[@]}" > manifest-macos-app.json
+          python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" manifest-macos-app.json
 
       - name: Publish release
         id: publish
@@ -652,13 +706,26 @@ jobs:
             --title "$tag" \
             --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3, zz_johnbird.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
-          Already installed? Play and Start Server (Windows, Linux) and the macOS app update the game on launch, downloading only the files that changed. A new engine on macOS still needs the new DMG.
+          Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 
           You need your own copy of Quake (Steam or GOG). On first run the launcher finds its pak0.pak/pak1.pak and copies them into id1; if it can't, copy them there yourself.
 
-          - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe
-          - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh
-          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE to Applications (macOS 13+). ${dmgnote}"
+          - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe (or Update.exe to check/repair)
+          - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh (or ./Update.sh)
+          - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE and Update BAKOQUAKE to Applications (macOS 13+). ${dmgnote}"
+
+      - name: Sync fallback files to VPS
+        if: inputs.draft != true
+        env:
+          VPS_SYNC_HOST: ${{ secrets.VPS_SYNC_HOST }}
+          VPS_SYNC_USER: ${{ secrets.VPS_SYNC_USER }}
+          VPS_SYNC_KEY: ${{ secrets.VPS_SYNC_KEY }}
+          VPS_SYNC_PORT: ${{ secrets.VPS_SYNC_PORT }}
+          VPS_SYNC_DIR: ${{ secrets.VPS_SYNC_DIR }}
+        run: |
+          python -I repo/source/ci/sync_vps.py \
+            --manifests manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json \
+            --zips BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip
 
   # Signed, notarized BAKOQUAKE.app in a DMG, built from the macOS zip just published. The engine and every dylib
   # it loads are built from pinned sources (see source/mac/build_app.sh). Runs on the self-hosted Mac ozzy-2, a
@@ -722,7 +789,24 @@ jobs:
           security find-identity -v -p codesigning "$kc"
 
       - name: Build, sign, notarize, upload DMG
+        env:
+          MAC_INPUTS: ${{ needs.build.outputs.mac_inputs }}
         run: UPLOAD=1 source/mac/build_app.sh "${{ needs.build.outputs.tag }}"
+
+      - name: Sync macOS DMG and manifest to VPS
+        if: needs.build.outputs.draft != 'true'
+        env:
+          VPS_SYNC_HOST: ${{ secrets.VPS_SYNC_HOST }}
+          VPS_SYNC_USER: ${{ secrets.VPS_SYNC_USER }}
+          VPS_SYNC_KEY: ${{ secrets.VPS_SYNC_KEY }}
+          VPS_SYNC_PORT: ${{ secrets.VPS_SYNC_PORT }}
+          VPS_SYNC_DIR: ${{ secrets.VPS_SYNC_DIR }}
+        run: |
+          if [ -f "$WORK/out/manifest-macos-app.json" ] && [ -f "$WORK/out/BAKOQUAKE-macos-arm64.dmg" ]; then
+            "$PYTHON" -I source/ci/sync_vps.py \
+              --dmg "$WORK/out/BAKOQUAKE-macos-arm64.dmg" \
+              --manifest "$WORK/out/manifest-macos-app.json"
+          fi
 
       - name: Remove signing keychain
         if: always()

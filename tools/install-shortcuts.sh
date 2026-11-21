@@ -37,7 +37,7 @@ bq_install_shortcuts() (
     marker="$data/bakoquake/shortcut-root"
     old=""
     [ -f "$marker" ] && IFS= read -r old <"$marker"
-    [ "$old" = "$root" ] && exit 0
+    [ "$old" = "v2|$root" ] && exit 0
 
     apps="$data/applications"
     mkdir -p "$apps" "$data/bakoquake" || exit 1
@@ -45,6 +45,7 @@ bq_install_shortcuts() (
     # bash runs the scripts, so the shortcuts work even if Play.sh lost its exec bit (zips made on Windows).
     play="bash $(_bq_desktop_exec_arg "$root/Play.sh")"
     server="bash $(_bq_desktop_exec_arg "$root/Start-Server.sh")"
+    update="bash $(_bq_desktop_exec_arg "$root/Update.sh")"
     path="$(_bq_desktop_string "$root")"
     icon="$(_bq_desktop_string "$root/tools/bakoquake-256.png")"
 
@@ -86,24 +87,47 @@ Name=Stop server
 Exec=$server stop
 EOF
     mv -f "$tmp" "$apps/bakoquake-server.desktop" || { rm -f "$tmp"; exit 1; }
-    chmod +x "$apps/bakoquake.desktop" "$apps/bakoquake-server.desktop" 2>/dev/null
 
-    # Desktop copy of the Play entry. xdg-user-dir prints $HOME when no desktop folder is set: never write there.
+    tmp="$apps/.bakoquake-update.desktop.$$"
+    cat >"$tmp" <<EOF || { rm -f "$tmp"; exit 1; }
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Update BAKOQUAKE
+GenericName=Game updater
+Comment=Check for and install BAKOQUAKE updates
+Exec=$update
+Path=$path
+Icon=$icon
+Terminal=false
+Categories=Game;Utility;
+Keywords=quake;bakersfield;update;
+EOF
+    mv -f "$tmp" "$apps/bakoquake-update.desktop" || { rm -f "$tmp"; exit 1; }
+    chmod +x "$apps/bakoquake.desktop" "$apps/bakoquake-server.desktop" "$apps/bakoquake-update.desktop" 2>/dev/null
+
+    # Desktop copy of the Play and Update entries. xdg-user-dir prints $HOME when no desktop folder is set: never write there.
     desk=""
     command -v xdg-user-dir >/dev/null 2>&1 && desk="$(xdg-user-dir DESKTOP 2>/dev/null)"
     if [ -z "$desk" ] || [ "$desk" = "$HOME" ] || [ ! -d "$desk" ]; then
         desk=""
         [ -d "$HOME/Desktop" ] && desk="$HOME/Desktop"
     fi
-    if [ -n "$desk" ] && cp -f "$apps/bakoquake.desktop" "$desk/bakoquake.desktop" 2>/dev/null; then
-        chmod +x "$desk/bakoquake.desktop" 2>/dev/null
-        # GNOME (DING) launches desktop files only when trusted; needs the session bus, so it may fail outside one.
-        command -v gio >/dev/null 2>&1 && gio set "$desk/bakoquake.desktop" metadata::trusted true >/dev/null 2>&1
+    if [ -n "$desk" ]; then
+        if cp -f "$apps/bakoquake.desktop" "$desk/bakoquake.desktop" 2>/dev/null; then
+            chmod +x "$desk/bakoquake.desktop" 2>/dev/null
+            # GNOME (DING) launches desktop files only when trusted; needs the session bus, so it may fail outside one.
+            command -v gio >/dev/null 2>&1 && gio set "$desk/bakoquake.desktop" metadata::trusted true >/dev/null 2>&1
+        fi
+        if cp -f "$apps/bakoquake-update.desktop" "$desk/bakoquake-update.desktop" 2>/dev/null; then
+            chmod +x "$desk/bakoquake-update.desktop" 2>/dev/null
+            command -v gio >/dev/null 2>&1 && gio set "$desk/bakoquake-update.desktop" metadata::trusted true >/dev/null 2>&1
+        fi
     fi
 
     command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$apps" >/dev/null 2>&1
 
-    printf '%s\n' "$root" >"$marker"
+    printf 'v2|%s\n' "$root" >"$marker"
     exit 0
 )
 

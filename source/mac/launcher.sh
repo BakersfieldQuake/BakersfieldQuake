@@ -18,60 +18,15 @@ on run argv
 end run
 EOF
 }
-notify() {   # notify <title> <message>
-    osascript - "$1" "$2" <<'EOF' >/dev/null 2>&1
-on run argv
-    display notification (item 2 of argv) with title (item 1 of argv)
-end run
-EOF
-}
-
-run_in_terminal() {   # run_in_terminal <cmd...>: show the command's output in a Terminal window; returns its exit code
-    local d rc pid ticks=0
-    d="$(mktemp -d)" || { "$@" >/dev/null 2>&1; return; }
-    {   # printf %q quotes each argument; the window closes itself when the shell exits cleanly
-        printf '#!/bin/bash\nexport SSL_CERT_FILE=%q\nprintf "%%s\\n" "$$" >%q\nrc=130\ntrap '\''[ -s %q ] || printf "%%s\\n" "$rc" >%q'\'' EXIT\necho "BAKOQUAKE update"; echo\n' \
-            "${SSL_CERT_FILE:-}" "$d/pid" "$d/rc" "$d/rc"   # `open` drops our env
-        printf '%q ' "$@"
-        printf '\nrc=$?\nprintf "%%s\\n" "$rc" >%q\nsleep 2\nexit 0\n' "$d/rc"
-    } >"$d/update.command"
-    chmod +x "$d/update.command"
-    if ! open -a Terminal "$d/update.command"; then
-        rm -rf "$d"
-        return 1
-    fi
-    # Wait up to 15 s for the Terminal shell to start, then monitor process liveness (30 min safety cap).
-    while [ ! -s "$d/rc" ]; do
-        if [ -s "$d/pid" ]; then
-            pid="$(cat "$d/pid" 2>/dev/null)"
-            if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
-                break
-            fi
-        elif [ "$ticks" -ge 30 ]; then
-            break
-        fi
-        if [ "$ticks" -ge 3600 ]; then
-            break
-        fi
-        ticks=$((ticks + 1))
-        sleep 0.5
-    done
-    if [ -s "$d/rc" ]; then
-        rc="$(cat "$d/rc")"
-    else
-        rc=1
-    fi
-    rm -rf "$d"
-    return "$rc"
-}
 
 # 0. Game data updates. The signed bundle can't change, so the game runs from a clone of the bundle's game data in
 #    $USERDIR/game, and the updater (Contents/MacOS/bq-update: tools/bq_update.py, frozen) patches that clone with
 #    the files that changed in the latest release (manifest-macos-app.json). An APFS clone shares the bundle's
 #    blocks: it is instant and takes no disk until a file is replaced. A new DMG (new release-tag) gets a fresh clone.
 #    On another volume than the bundle (run from the DMG, App Translocation, an external drive) a clone would be a
-#    1.2 GB copy, so the game runs from the bundle without updates. Engine changes still need a new DMG.
-#    BQ_NO_UPDATE=1 skips the update check; BQ_MANIFEST_URL points it at another manifest (testing).
+#    1.2 GB copy, so the game runs from the bundle without updates. If a new DMG is required, the updater downloads
+#    and opens it and exits 4 so the old engine does not launch.
+#    BQ_NO_UPDATE=1 skips the update check; BQ_MANIFEST_URL / BQ_FALLBACK_URL override endpoints for testing.
 DATA="$USERDIR/game"
 TAG="$(cat "$APP/Resources/release-tag" 2>/dev/null)"
 if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")" ]; then
@@ -88,18 +43,13 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
         if [ "${BQ_NO_UPDATE:-0}" != 1 ]; then
             # The frozen Python carries no CA list of its own; every macOS has this one.
             export SSL_CERT_FILE=/etc/ssl/cert.pem
-            UPD=("$APP/MacOS/bq-update" --root "$DATA" --platform macos-app)
-            [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")   # testing
-            # --check prints "... N files (X MB) to download, M to remove" and exits 10 when there is an update.
-            SUMMARY="$("${UPD[@]}" --check 2>/dev/null)"
-            if [ $? = 10 ]; then
-                notify "Updating BAKOQUAKE" "${SUMMARY##*: }. The game starts when it is done."
-                run_in_terminal "${UPD[@]}"
-                case $? in
-                    3) notify "BAKOQUAKE updated" "Starting the game." ;;
-                    *) notify "BAKOQUAKE update failed" "Playing the installed version. Log: $DATA/.bq/update.log" ;;
-                esac
-            fi
+            UPD=("$APP/MacOS/bq-update" --launch --root "$DATA" --platform macos-app)
+            [ -f "$APP/Resources/mac-inputs" ] && UPD+=(--bundle-mac-inputs "$APP/Resources/mac-inputs")
+            [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")
+            [ -n "${BQ_FALLBACK_URL+x}" ] && UPD+=(--fallback-url "$BQ_FALLBACK_URL")
+            "${UPD[@]}"
+            _rc=$?
+            [ "$_rc" = 4 ] && exit 0
         fi
     fi
 fi

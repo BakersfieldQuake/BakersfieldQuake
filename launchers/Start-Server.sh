@@ -47,11 +47,13 @@ fi
 # Update: fetch only the files that changed in the newest release (BQ_NO_UPDATE=1 skips it, e.g. offline at a LAN).
 # macOS python3 is a stub that asks to install the developer tools, so only use a real one there.
 # One compound command: bash reads a running script from disk, so when files changed (exit 3) the updated launcher
-# restarts.
+# restarts; exit 4 cancels launch (user declined update or update failed).
 if [ -f "$ROOT/tools/bq_update.py" ] && command -v python3 >/dev/null 2>&1 \
         && { [ "$(uname)" != Darwin ] || xcode-select -p >/dev/null 2>&1; }; then
     python3 "$ROOT/tools/bq_update.py" --launch --root "$ROOT"
-    [ $? = 3 ] && exec "$ROOT/$(basename "${BASH_SOURCE[0]}")" "$@"
+    _bq_rc=$?
+    [ "$_bq_rc" = 3 ] && exec "$ROOT/$(basename "${BASH_SOURCE[0]}")" ${1+"$@"}
+    [ "$_bq_rc" = 4 ] && exit 0
 fi
 
 # Menu and desktop shortcuts (tools/install-shortcuts.sh). Only rewritten when this folder moved; never stops the game.

@@ -48,6 +48,7 @@ PREFIX="$WORK/prefix-$MINOS"
 SRC="$WORK/src"
 OUT="$WORK/out"
 APP="$OUT/BAKOQUAKE.app"
+UPD_APP="$OUT/Update BAKOQUAKE.app"
 DMG="$OUT/BAKOQUAKE-macos-arm64.dmg"
 NPROC="$(sysctl -n hw.ncpu)"
 export MACOSX_DEPLOYMENT_TARGET=$MINOS
@@ -150,6 +151,7 @@ rm -rf "$PYI/build" "$PYI/dist"
 "${PYTHON:-python3}" -m venv "$PYI/venv-$PYINSTALLER"
 "$PYI/venv-$PYINSTALLER/bin/python" -m pip install --quiet --disable-pip-version-check "pyinstaller==$PYINSTALLER"
 "$PYI/venv-$PYINSTALLER/bin/python" -m PyInstaller --onefile --console --noupx --name bq-update \
+    --hidden-import tkinter --hidden-import tkinter.ttk \
     --codesign-identity "$SIGN_ID" --distpath "$PYI/dist" --workpath "$PYI/build" --specpath "$PYI" \
     "$ROOT/tools/bq_update.py" >"$PYI/pyinstaller.log" 2>&1 || { tail -30 "$PYI/pyinstaller.log"; die "freeze failed"; }
 # The check-Mach-O gate below can't see inside the onefile archive: check what went into it here.
@@ -174,20 +176,26 @@ for name, src, kind in toc:
 sys.exit(bad)
 PY
 "$PYI/dist/bq-update" --help >/dev/null || die "frozen updater does not run"
+"$PYI/dist/bq-update" --version >/dev/null || die "frozen updater --version failed"
 
 # --- assemble ------------------------------------------------------------------------------------------------
 VERSION="$(echo "$TAG" | sed -n 's/^build-\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/p')"
 [ -n "$VERSION" ] || VERSION="$(date -u +%Y.%m.%d)"   # custom tag without a build date
 step "assemble BAKOQUAKE.app $VERSION"
-rm -rf "$APP" "$DMG"
+rm -rf "$APP" "$UPD_APP" "$DMG"
 C="$APP/Contents"
 mkdir -p "$C/MacOS" "$C/Frameworks" "$C/Resources/game/id1"
 install -m 755 "$HERE/launcher.sh" "$C/MacOS/BAKOQUAKE"
 install -m 755 "$ZD/zircon_beta_linux_sdl" "$C/MacOS/darkplaces-sdl"
 install -m 755 "$ZD/zircon_beta_linux_dedicated_server" "$C/MacOS/darkplaces-dedicated"
 install -m 755 "$PYI/dist/bq-update" "$C/MacOS/bq-update"
-# The launcher re-clones the game data into Application Support when this changes (a new DMG was installed).
+# The launcher re-clones the game data into Application Support when this changes (a new DMG was installed),
+# and mac-inputs lets bq-update detect when a newer release shipped a new engine/bundle requiring a DMG update.
 echo "$TAG" >"$C/Resources/release-tag"
+if [ -z "${MAC_INPUTS:-}" ] && command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    MAC_INPUTS="$(cd "$ROOT" && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
+fi
+echo "${MAC_INPUTS:-$TAG}" >"$C/Resources/mac-inputs"
 # Real files plus their relative symlinks (libvorbis.dylib -> libvorbis.0.dylib etc.), so the names the engine
 # dlopen()s and the @rpath install names both resolve to one file.
 cp -a "$PREFIX"/lib/*.dylib "$C/Frameworks/"
@@ -229,6 +237,32 @@ cat >"$C/Info.plist" <<EOF
 EOF
 plutil -lint "$C/Info.plist" >/dev/null
 
+# Assemble companion Update BAKOQUAKE.app (shares the signed updater inside BAKOQUAKE.app).
+UC="$UPD_APP/Contents"
+mkdir -p "$UC/MacOS" "$UC/Resources"
+install -m 755 "$HERE/update_launcher.sh" "$UC/MacOS/UpdateBAKOQUAKE"
+cp "$C/Resources/bakoquake.icns" "$UC/Resources/bakoquake.icns"
+cat >"$UC/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key><string>$BUNDLE_ID.updater</string>
+    <key>CFBundleName</key><string>Update BAKOQUAKE</string>
+    <key>CFBundleDisplayName</key><string>Update BAKOQUAKE</string>
+    <key>CFBundleExecutable</key><string>UpdateBAKOQUAKE</string>
+    <key>CFBundleIconFile</key><string>bakoquake</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>$VERSION</string>
+    <key>CFBundleVersion</key><string>$VERSION</string>
+    <key>LSMinimumSystemVersion</key><string>$MINOS</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+</dict>
+</plist>
+EOF
+plutil -lint "$UC/Info.plist" >/dev/null
+
 # --- gate: self-contained and macOS $MINOS ------------------------------------------------------------------
 step "check Mach-O files"
 bad=0
@@ -256,7 +290,9 @@ sign() { codesign --force --timestamp --options runtime -s "$SIGN_ID" "$@"; }
 find "$C/Frameworks" -type f -name '*.dylib' -print0 | while IFS= read -r -d '' f; do sign "$f"; done
 sign "$C/MacOS/darkplaces-sdl" "$C/MacOS/darkplaces-dedicated" "$C/MacOS/bq-update"
 sign "$APP"
+sign "$UPD_APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
+codesign --verify --deep --strict --verbose=2 "$UPD_APP"
 
 notarize() {   # notarize <file>
     step "notarize $(basename "$1")"
@@ -275,6 +311,12 @@ if [ "${SKIP_NOTARIZE:-0}" != 1 ]; then
     rm -f "$OUT/app.zip"
     xcrun stapler staple "$APP"
     spctl -a -vvv -t exec "$APP"
+
+    ditto -c -k --keepParent "$UPD_APP" "$OUT/upd_app.zip"
+    notarize "$OUT/upd_app.zip"
+    rm -f "$OUT/upd_app.zip"
+    xcrun stapler staple "$UPD_APP"
+    spctl -a -vvv -t exec "$UPD_APP"
 fi
 
 # --- DMG -----------------------------------------------------------------------------------------------------
@@ -286,6 +328,7 @@ step "DMG"
 STAGE="$WORK/dmg"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/BAKOQUAKE.app"
+ditto "$UPD_APP" "$STAGE/Update BAKOQUAKE.app"
 ln -s /Applications "$STAGE/Applications"
 # Mostly already-compressed pk3s, so ULFO (lzfse) rather than anything heavier.
 hdiutil create -volname BAKOQUAKE -srcfolder "$STAGE" -fs APFS -format ULFO "$DMG"
@@ -300,6 +343,20 @@ fi
 if [ "${UPLOAD:-0}" = 1 ]; then
     step "upload to $TAG"
     gh release upload "$TAG" "$DMG" -R "$REPO" --clobber
+    rm -f "$OUT/manifest-macos-app.json"
+    if gh release download "$TAG" -R "$REPO" -p manifest-macos-app.json -D "$OUT" >/dev/null 2>&1; then
+        DMG_SIZE="$("${PYTHON:-python3}" -c 'import os,sys; print(os.path.getsize(sys.argv[1]))' "$DMG")"
+        DMG_SHA256="$(shasum -a 256 "$DMG" | awk '{print $1}')"
+        "${PYTHON:-python3}" -I "$ROOT/source/ci/make_manifest.py" \
+            --patch-manifest "$OUT/manifest-macos-app.json" \
+            --output "$OUT/manifest-macos-app.json" \
+            --mac-inputs "$(cat "$C/Resources/mac-inputs")" \
+            --dmg-url "https://github.com/$REPO/releases/download/$TAG/BAKOQUAKE-macos-arm64.dmg" \
+            --dmg-vps-url "https://bakersfield.larrywew.fun/updates/BAKOQUAKE-macos-arm64.dmg" \
+            --dmg-size "$DMG_SIZE" \
+            --dmg-sha256 "$DMG_SHA256"
+        gh release upload "$TAG" "$OUT/manifest-macos-app.json" -R "$REPO" --clobber
+    fi
 fi
 step "done: $DMG"
 ls -lh "$DMG"
