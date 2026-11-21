@@ -4,7 +4,7 @@
 # The repo is text/source only, so this does not rebuild the big base pk3s/maps. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
-# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3 and zz_johnbird.pk3
+# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3 and zz_johnbird.pk3
 # from the zip's own bakersfield.pk3 / repo sources, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
@@ -277,6 +277,13 @@ jobs:
           path: pk3cache/zz_johnbird.pk3
           key: zz_johnbird-${{ env.BASE_JOHNBIRD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_john_bird_pk3.py', 'repo/source/mm_tools/build_john_bird_head.py', 'repo/source/mm_tools/build_john_bird_anim_candidates.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/john_bird_assets/**') }}
 
+      - name: Cache zz_wewcannon.pk3
+        id: cache_wewcannon
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_wewcannon.pk3
+          key: zz_wewcannon-${{ env.BASE_BAKERSFIELD_SHA256 }}-${{ hashFiles('repo/source/mm_tools/wew_cannon/build_wewcannon_pk3.py', 'repo/source/mm_tools/wew_cannon/assets/**', 'repo/source/mm_tools/md3lib.py') }}
+
       - name: Install pk3 build dependencies
         if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
@@ -333,9 +340,15 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/build_john_bird_pk3.py --base-pk3 out/BAKOQUAKE/BakersfieldQuake/zz_johnbird.pk3 --out-pk3 pk3cache/zz_johnbird.pk3
 
+      - name: Build zz_wewcannon.pk3
+        if: steps.cache_wewcannon.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/wew_cannon/build_wewcannon_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_wewcannon.pk3
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -542,6 +555,16 @@ jobs:
                       if ident != b"IDP3" or ver != 15 or nf != 164:
                           errors.append(f"zz_johnbird.pk3 progs/john_bird_head.md3 expected 164 frames, got ident={ident} ver={ver} nf={nf}")
 
+          wewcannon = os.path.join(root, "BakersfieldQuake", "zz_wewcannon.pk3")
+          if not os.path.isfile(wewcannon):
+              errors.append("missing BakersfieldQuake/zz_wewcannon.pk3")
+          else:
+              with zipfile.ZipFile(wewcannon) as z:
+                  wnames = set(z.namelist())
+                  for req in ("progs/v_wewcannon.md3", "sound/wcannon/wc_charge.wav", "sound/wcannon/wc_shoot.wav", "sound/wcannon/wc_scream.wav", "sound/wcannon/wc_lrun01.wav"):
+                      if req not in wnames:
+                          errors.append(f"zz_wewcannon.pk3 lacks {req}")
+
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:
               print(f"::error::{e}")
@@ -681,7 +704,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_rocketrider.pk3, zz_johnbird.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 
