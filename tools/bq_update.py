@@ -1665,6 +1665,9 @@ class TkUpdateUI(UpdateUI):
 
 
 def choose_ui(args):
+    if args.no_gui and args.launch and sys.stdin and sys.stdin.isatty():
+        # Launched in a visible terminal (the macOS app's iTerm/Terminal window): show progress and ask there.
+        return CliUpdateUI(interactive=True, quiet=False)
     if args.no_gui or args.check or (not args.launch and not args.standalone):
         return CliUpdateUI(interactive=False, quiet=args.launch)
     # Try tkinter GUI first

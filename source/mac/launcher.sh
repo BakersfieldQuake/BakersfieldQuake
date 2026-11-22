@@ -1,8 +1,9 @@
 #!/bin/bash
 # BAKOQUAKE.app main executable (Contents/MacOS/BAKOQUAKE). Installed by source/mac/build_app.sh.
-# Updates the game data, finds the player's Quake paks, then runs the engine (crash log + Safe Mode retry on abnormal exit). Everything the game writes goes to
+# Reopens itself in a visible iTerm/Terminal window, updates the game data, finds the player's Quake paks, then runs
+# the engine (crash log + Safe Mode retry on abnormal exit). Everything the game writes goes to
 # ~/Library/Application Support/BAKOQUAKE (-userdir), so the signed bundle stays read-only.
-# There is no terminal, so every message goes through a dialog or a notification.
+# Errors still go through dialogs, so they show even with BQ_NO_TERMINAL=1.
 set -u
 
 APP="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,6 +19,22 @@ on run argv
 end run
 EOF
 }
+
+# Visible terminal: double-clicking the app reopens this launcher in an iTerm window (Terminal.app if iTerm isn't
+# installed), so the update progress and the engine's console output show. BQ_NO_TERMINAL=1 keeps it hidden.
+# iTerm is driven by AppleScript (macOS asks once to allow BAKOQUAKE to control iTerm); Terminal runs .command files.
+if [ -z "${BQ_IN_TERMINAL:-}" ] && [ "${BQ_NO_TERMINAL:-0}" != 1 ]; then
+    RUN="${TMPDIR:-/tmp}/bakoquake-run.command"   # TMPDIR has no spaces, which iTerm's command string needs
+    { echo '#!/bin/bash'; printf 'BQ_IN_TERMINAL=1 exec %q' "$0"; [ $# -gt 0 ] && printf ' %q' "$@"; echo; } >"$RUN" \
+        && chmod 755 "$RUN" || RUN=""
+    if [ -n "$RUN" ]; then
+        if open -Ra iTerm >/dev/null 2>&1 \
+                && osascript -e "tell application \"iTerm\" to create window with default profile command \"$RUN\"" >/dev/null 2>&1; then
+            exit 0
+        fi
+        open -a Terminal "$RUN" && exit 0
+    fi
+fi
 
 # 0. Game data updates. The signed bundle can't change, so the game runs from a clone of the bundle's game data in
 #    $USERDIR/game, and the updater (Contents/MacOS/bq-update: tools/bq_update.py, frozen) patches that clone with
@@ -44,6 +61,7 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
             # The frozen Python carries no CA list of its own; every macOS has this one.
             export SSL_CERT_FILE=/etc/ssl/cert.pem
             UPD=("$APP/MacOS/bq-update" --launch --root "$DATA" --platform macos-app)
+            [ -n "${BQ_IN_TERMINAL:-}" ] && UPD+=(--no-gui)   # text progress and prompts in the terminal window
             [ -f "$APP/Resources/mac-inputs" ] && UPD+=(--bundle-mac-inputs "$APP/Resources/mac-inputs")
             [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")
             [ -n "${BQ_FALLBACK_URL+x}" ] && UPD+=(--fallback-url "$BQ_FALLBACK_URL")

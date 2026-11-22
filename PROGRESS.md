@@ -232,10 +232,20 @@
 - Follow-up: GiggleHacks to commit the Kyle source assets and the builders for zz_johnbird/mmtank/gfuel/conback/tone1, and to say which fteqcc builds the CSQC.
 - Later, after GiggleHacks's `004bce2`/`9439f1e`/`5afa94f`: the local build also compiles `csprogs.dat` (header CRC stamped from `quake15/csprogs.dat`: 23147) and builds `zz_kyle.pk3`; `-Wno-F313` is no longer needed. `make build` exit 0; a headless server on `start` loads the progs with no missing Kyle models.
 
-## 2026-11-22 — macOS app: crash log + Safe Mode retry
+## 2026-11-22 — macOS app: visible terminal, crash log + Safe Mode retry
 
-- Outcome: `source/mac/launcher.sh` no longer `exec`s the engine. It waits on it; a non-zero exit copies
-  `bq_game.log` to `bq_game_crash.log` and shows a "Retry in Safe Mode" dialog (relaunch with `+exec safemode.cfg`).
-  The background `lanscan.py --pid` watcher now tracks the engine PID instead of `$$`.
-- Verification: `bash -n` passes; the dialog AppleScript compiles (`osacompile`). Not run in a built .app yet.
-- Follow-up: check in a CI-built DMG that the engine as a child process (not exec) still shows one Dock icon and quits cleanly.
+- Outcome:
+  - `source/mac/launcher.sh` reopens itself in a visible iTerm window (AppleScript `create window ... command`;
+    Terminal.app via `open -a` when iTerm isn't installed). `BQ_NO_TERMINAL=1` keeps it hidden. In the terminal
+    the updater runs with `--no-gui`, and `tools/bq_update.py` now treats `--no-gui --launch` on a tty as interactive
+    (text progress, Y/n prompts, DMG download when the app binaries changed).
+  - The launcher waits on the engine instead of `exec`. A non-zero exit copies `bq_game.log` to `bq_game_crash.log`
+    and offers "Retry in Safe Mode" (`+exec safemode.cfg`). `lanscan.py --pid` now watches the engine PID.
+  - Decided: keep the DMG flow for signed-binary updates (no Sparkle, no in-place app swap). Game assets keep
+    updating through `manifest-macos-app.json`. The abandoned swap code is in `git stash`.
+- Verification: `bash -n`; the AppleScript dialog compiles; the relaunch block was tested in a fake bundle with spaces
+  in the path and args (iTerm and Terminal both ran it with `BQ_IN_TERMINAL=1` and the args intact); a frozen
+  PyInstaller 6.22.3 build includes Tk; `bq_update.py --no-gui --launch` under a pty works; unit tests pass (24).
+  Not run in a signed CI build yet.
+- Follow-up: in the next DMG, check the one-time "BAKOQUAKE wants to control iTerm" prompt, the Dock icon with the
+  engine as a child process, and that Cmd-Q exits 0 (otherwise the crash dialog shows on every quit).
