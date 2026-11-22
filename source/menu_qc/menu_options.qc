@@ -80,8 +80,22 @@ void(string msg) BM_Opt_SetStatus =
 	g_opt_status_t = gettime() + 2.5;
 };
 
+void() BM_Opt_ApplyVideoAndSave =
+{
+	g_opt_vid_dirty = FALSE;
+	// Zircon's saveconfig syncs vid_fullscreen/vid_width/vid_height back to the live window
+	// before writing config.cfg, so vid_restart must apply the new mode first.
+	localcmd("vid_restart; saveconfig\n");
+	BM_Opt_SetStatus("VIDEO APPLIED & SAVED TO CONFIG.CFG");
+};
+
 void() BM_Opt_SaveConfig =
 {
+	if (g_opt_vid_dirty)
+	{
+		BM_Opt_ApplyVideoAndSave();
+		return;
+	}
 	localcmd("saveconfig\n");
 	BM_Opt_SetStatus("SETTINGS SAVED TO CONFIG.CFG");
 };
@@ -1384,9 +1398,8 @@ void(float clicked) BM_Options_Draw =
 		if (clicked && hov)
 		{
 			g_click_consumed = TRUE;
-			g_opt_vid_dirty = FALSE;
 			BM_PlaySound("sound/misc/menu2.wav");
-			localcmd("saveconfig; vid_restart\n");
+			BM_Opt_ApplyVideoAndSave();
 			return;
 		}
 	}
