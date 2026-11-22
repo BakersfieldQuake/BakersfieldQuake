@@ -1717,6 +1717,14 @@ void(entity v, float kind) Veh_InitEntity =
 	v.veh_flinch_end = 0;
 	v.veh_chain_t = 0;
 	v.veh_coast_until = 0;
+	v.veh_pad_cool = 0;
+	v.veh_pad_scan_t = 0;
+	v.veh_pad_spin = FALSE;
+	v.veh_pad_launch_t = 0;
+	v.veh_pad_horn_t = 0;
+	v.veh_spin_yaw = 0;
+	v.veh_spin_pitch = 0;
+	v.veh_spin_roll = 0;
 	v.veh_igniter = world;
 	v.veh_snd_t = time + random () * 0.8;
 

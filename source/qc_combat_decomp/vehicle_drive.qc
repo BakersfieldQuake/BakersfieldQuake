@@ -194,6 +194,214 @@ float(entity e, vector org) Veh_FreeSpot =
 	return TRUE;
 };
 
+// ---------------------------------------------------------------- jump pads & SkyPad stunts
+
+void(entity v) Veh_ResetPadStunt =
+{
+	v.veh_pad_spin = FALSE;
+	v.veh_pad_launch_t = 0;
+	v.veh_pad_horn_t = 0;
+	v.veh_spin_yaw = 0;
+	v.veh_spin_pitch = 0;
+	v.veh_spin_roll = 0;
+};
+
+float(entity v, vector org, float dt) Veh_StepAirRise =
+{
+	local float grav;
+
+	grav = cvar ("sv_gravity");
+	if (grav <= 10)
+		grav = VD_GRAVITY;
+	v.veh_vz = v.veh_vz - grav * dt;
+	if (v.veh_vz > 0)
+	{
+		tracebox (org + '0 0 8', '-24 -24 0', '24 24 0' + '0 0 1' * max (36, Veh_BodyHeight (v.veh_kind) - 8), org + '0 0 1' * (8 + v.veh_vz * dt + 4), TRUE, v);
+		if (trace_fraction < 1 && trace_plane_normal_z < -0.5)
+			v.veh_vz = 0;
+	}
+	return org_z + v.veh_vz * dt;
+};
+
+void(entity v, float pitch) Veh_PadHonk =
+{
+	if (v.veh_kind == VEH_TUKTUK)
+		sound7 (v, CHAN_WEAPON, "vehicles/horn_tuktuk.wav", 1, ATTN_NORM, pitch);
+	else
+		sound7 (v, CHAN_WEAPON, "vehicles/horn.wav", 1, ATTN_NORM, pitch);
+};
+
+void(entity v) Veh_PadHornTick =
+{
+	if (!v.veh_pad_spin || !v.veh_air || time < v.veh_pad_horn_t)
+		return;
+	Veh_PadHonk (v, 76 + random () * 54);
+	v.veh_pad_horn_t = time + 0.34 + random () * 0.30;
+};
+
+void(entity v) Veh_StartPadStunt =
+{
+	local float sy, sr;
+
+	v.veh_pad_spin = TRUE;
+	v.veh_pad_launch_t = time + 0.12;
+	sy = (random () < 0.5) ? 1 : -1;
+	sr = (random () < 0.5) ? 1 : -1;
+
+	// Weight-based comedy spin: tiny carts spin like tops, midweights barrel-roll, buses/rigs flip end-over-end
+	if (v.veh_kind == VEH_GOLFCART || v.veh_kind == VEH_TUKTUK)
+	{
+		v.veh_spin_yaw = sy * (700 + random () * 240);
+		v.veh_spin_pitch = (random () - 0.5) * 110;
+		v.veh_spin_roll = sr * (150 + random () * 120);
+	}
+	else if (v.veh_kind == VEH_SCHOOLBUS || v.veh_kind == VEH_HDTRUCK)
+	{
+		v.veh_spin_pitch = sy * (215 + random () * 95);
+		v.veh_spin_roll = sr * (60 + random () * 60);
+		v.veh_spin_yaw = sr * (75 + random () * 70);
+	}
+	else
+	{
+		v.veh_spin_roll = sy * (370 + random () * 170);
+		v.veh_spin_yaw = sr * (210 + random () * 130);
+		v.veh_spin_pitch = 45 + random () * 65;
+	}
+
+	Veh_PadHonk (v, 90 + random () * 34);
+	v.veh_pad_horn_t = time + 0.38 + random () * 0.28;
+};
+
+void(entity v, float dt, float steer_in, float pitch_in) Veh_StepPadSpin =
+{
+	if (steer_in != 0)
+	{
+		v.veh_spin_yaw = bound (-1100, v.veh_spin_yaw - steer_in * 420 * dt, 1100);
+		v.veh_spin_roll = bound (-720, v.veh_spin_roll + steer_in * 360 * dt, 720);
+	}
+	if (pitch_in != 0)
+		v.veh_spin_pitch = bound (-520, v.veh_spin_pitch + pitch_in * 320 * dt, 520);
+
+	v.angles_x = Veh_AngDelta (v.angles_x + v.veh_spin_pitch * dt, 0);
+	v.angles_z = Veh_AngDelta (v.angles_z + v.veh_spin_roll * dt, 0);
+	Veh_PadHornTick (v);
+};
+
+float(vector bmin, vector bmax, entity pad) Veh_OverlapPad =
+{
+	if (bmin_x > pad.absmax_x || bmax_x < pad.absmin_x)
+		return FALSE;
+	if (bmin_y > pad.absmax_y || bmax_y < pad.absmin_y)
+		return FALSE;
+	if (bmin_z > pad.absmax_z || bmax_z < pad.absmin_z)
+		return FALSE;
+	return TRUE;
+};
+
+float(entity v, entity driver) Veh_CheckPads =
+{
+	local entity e;
+	local vector bmin, bmax, vel;
+	local float c, s, hl, hw, hx, hy, ht, spd, maxv;
+
+	if (time < v.veh_pad_cool)
+		return FALSE;
+	if (time < v.veh_pad_scan_t)
+		return FALSE;
+	v.veh_pad_scan_t = time + 0.05;
+
+	c = fabs (Veh_Cos (v.angles_y));
+	s = fabs (Veh_Sin (v.angles_y));
+	hl = Veh_HalfLen (v.veh_kind);
+	hw = Veh_HalfWid (v.veh_kind);
+	ht = Veh_BodyHeight (v.veh_kind);
+	hx = c * hl + s * hw;
+	hy = s * hl + c * hw;
+	bmin = v.origin;
+	bmin_x = bmin_x - hx;
+	bmin_y = bmin_y - hy;
+	bmin_z = bmin_z - 4;
+	bmax = v.origin;
+	bmax_x = bmax_x + hx;
+	bmax_y = bmax_y + hy;
+	bmax_z = bmax_z + ht;
+
+	e = find (world, classname, "info_skypad");
+	while (e != world)
+	{
+		if (Veh_OverlapPad (bmin, bmax, e))
+		{
+			SkyPad_RaiseMaxVel ();
+			if (driver != world && driver.ishuman == 1 && !driver.skypad_vel_sent)
+			{
+				driver.skypad_vel_sent = TRUE;
+				stuffcmd (driver, "sv_maxvelocity 6500\n");
+			}
+			vel = SkyPad_CalcVel (v.origin + '0 0 2', e.pos1, e.height);
+			v.veh_pad_cool = time + 0.65;
+			v.veh_air = TRUE;
+			v.veh_vz = vel_z;
+			v.velocity = vel;
+			setorigin (v, v.origin + '0 0 12');
+			Veh_StartPadStunt (v);
+			sound7 (v, CHAN_AUTO, "skypad/launch.wav", 0.90, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
+			pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 12', '0 0 0', 1);
+			if (e.message != "" && driver != world && driver.ishuman == 1)
+				sprint (driver, strcat ("Sky Pad -> ", e.message, "\n"));
+			return TRUE;
+		}
+		e = find (e, classname, "info_skypad");
+	}
+
+	e = find (world, classname, "trigger_push");
+	while (e != world)
+	{
+		if (Veh_OverlapPad (bmin, bmax, e))
+		{
+			spd = e.speed;
+			if (!spd)
+				spd = 1000;
+			if (e.spawnflags & ADD_VEL)
+				vel = v.velocity + spd * e.movedir * 5;
+			else
+				vel = spd * e.movedir * 10;
+			if (vlen (vel) > 1800)
+			{
+				SkyPad_RaiseMaxVel ();
+				if (driver != world && driver.ishuman == 1 && !driver.skypad_vel_sent)
+				{
+					driver.skypad_vel_sent = TRUE;
+					stuffcmd (driver, "sv_maxvelocity 6500\n");
+				}
+			}
+			maxv = cvar ("sv_maxvelocity");
+			if (maxv <= 0)
+				maxv = 2000;
+			vel_x = bound (0 - maxv, vel_x, maxv);
+			vel_y = bound (0 - maxv, vel_y, maxv);
+			vel_z = bound (0 - maxv, vel_z, maxv);
+
+			v.veh_pad_cool = time + 0.40;
+			v.velocity = vel;
+			if (vel_z > 10)
+			{
+				v.veh_air = TRUE;
+				v.veh_vz = vel_z;
+				setorigin (v, v.origin + '0 0 12');
+				if (vel_z >= 140)
+					Veh_StartPadStunt (v);
+			}
+			if (!(e.spawnflags & NO_SOUND))
+				sound7 (v, CHAN_AUTO, "ambience/windfly.wav", 0.80, ATTN_NORM, SNDSPD * (0.95 + random () * 0.12));
+			if (e.spawnflags & PUSH_ONCE)
+				remove (e);
+			return TRUE;
+		}
+		e = find (e, classname, "trigger_push");
+	}
+	return FALSE;
+};
+
 // ---------------------------------------------------------------- per-vehicle driving characteristics
 
 float(float kind) Veh_TopSpeed =
@@ -569,6 +777,7 @@ void(entity v) Veh_Park =
 	v.veh_land_dip = 0;
 	v.veh_drift_t = 0;
 	v.veh_air = FALSE;
+	Veh_ResetPadStunt (v);
 	v.gk_boosting = FALSE;
 	v.gk_boost_t = 0;
 	v.gk_boost_pwr = 0;
@@ -730,7 +939,7 @@ float() Veh_VanCustomize =
 	k = 0;
 	if (self.veh_state == VEH_STATE_FIRE)
 		k = 1;
-	if (self.veh_state != VEH_STATE_WRECK && other.veh_van == self && other.veh_camera == 0)
+	if (self.veh_state != VEH_STATE_WRECK && other.veh_van == self && other.veh_camera == 0 && !self.veh_pad_spin)
 		k = k + 2;
 	self.skin = k;
 	return TRUE;			// FALSE would mean: do not send the van to this client
@@ -758,7 +967,7 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	hl = Veh_HalfLen (v.veh_kind);
 	ht = Veh_BodyHeight (v.veh_kind);
 
-	if (p.veh_camera == 0)
+	if (p.veh_camera == 0 && !v.veh_pad_spin)
 	{
 		if (v.veh_kind == VEH_VAN)
 			pos = v.origin + fwd * VD_EYE_X + lft * VD_EYE_Y + '0 0 1' * VD_EYE_Z;
@@ -787,23 +996,45 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 			p.veh_cam_dist = want_dist;
 		p.veh_cam_dist = p.veh_cam_dist + (want_dist - p.veh_cam_dist) * min (1, dt * 4.5);
 
-		vf_cam = v.velocity * fwd;
-		look_fwd = 18 + 24 * bound (0, vf_cam / 900, 1);
-		tgt_yaw = v.angles_y;
-		if (spd > 180 && vf_cam > 80)
+		if (v.veh_pad_spin)
 		{
-			vel_d = Veh_AngDelta (vectoyaw (v.velocity), v.angles_y);
-			tgt_yaw = Veh_NormYaw (v.angles_y + bound (-26, vel_d * 0.35, 26));
+			local vector vel_xy;
+			vel_xy = v.velocity;
+			vel_xy_z = 0;
+			tgt_yaw = p.veh_cam_yaw;
+			if (vlen (vel_xy) > 60)
+				tgt_yaw = vectoyaw (vel_xy);
+			d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
+			p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 6.0));
+			yaw = p.veh_cam_yaw;
+
+			want_pitch = VD_CAM_PITCH + bound (-18, 0 - v.veh_vz * 0.015, 18);
+			p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 6);
+			pitch = p.veh_cam_pitch;
+
+			look_fwd = 18 + 24 * bound (0, vlen (vel_xy) / 900, 1);
+			tgt = v.origin + Veh_Fwd (yaw) * look_fwd + '0 0 1' * cup;
 		}
-		d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
-		p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 5.2));
-		yaw = p.veh_cam_yaw;
+		else
+		{
+			vf_cam = v.velocity * fwd;
+			look_fwd = 18 + 24 * bound (0, vf_cam / 900, 1);
+			tgt_yaw = v.angles_y;
+			if (spd > 180 && vf_cam > 80)
+			{
+				vel_d = Veh_AngDelta (vectoyaw (v.velocity), v.angles_y);
+				tgt_yaw = Veh_NormYaw (v.angles_y + bound (-26, vel_d * 0.35, 26));
+			}
+			d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
+			p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 5.2));
+			yaw = p.veh_cam_yaw;
 
-		want_pitch = VD_CAM_PITCH - v.angles_x * 0.35;
-		p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 6);
-		pitch = p.veh_cam_pitch;
+			want_pitch = VD_CAM_PITCH - v.angles_x * 0.35;
+			p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 6);
+			pitch = p.veh_cam_pitch;
 
-		tgt = v.origin + fwd * look_fwd + '0 0 1' * cup;
+			tgt = v.origin + fwd * look_fwd + '0 0 1' * cup;
+		}
 		traceline (v.origin + '0 0 36', tgt, 3, v);
 		if (trace_fraction < 1)
 			tgt = trace_endpos + trace_plane_normal * 6;
@@ -1228,7 +1459,7 @@ void(entity v, vector pos, vector vel, float forced) Veh_Leave =
 	if (p != world && p.classname == "player")
 	{
 		yaw = p.veh_cam_yaw;
-		if (p.veh_camera == 0)
+		if (p.veh_camera == 0 && !v.veh_pad_spin)
 			yaw = v.angles_y;
 		Veh_ReleasePlayer (p, pos, vel, yaw);
 	}
@@ -1354,23 +1585,33 @@ float(entity v, entity p) Veh_ExitSpot =
 void(entity v, float dt) Veh_CoastStep =
 {
 	local vector org0, org1, n, vel;
-	local float yaw0, vn, imp, living, z, d;
+	local float yaw0, yaw1, vn, imp, living, z, d, grav, air_rising;
 
 	if (v.veh_driver != world || v.veh_state == VEH_STATE_WRECK)
 	{
 		v.veh_coast_until = 0;
 		return;
 	}
+	if (!Veh_IsKart (v.veh_kind) && Veh_CheckPads (v, world))
+		v.veh_coast_until = max (v.veh_coast_until, time + 5.0);
 	vel = v.velocity;
 	vel_z = 0;
-	if (time >= v.veh_coast_until || vlen (vel) < 35)
+	if (!v.veh_air && (time >= v.veh_coast_until || vlen (vel) < 35))
 	{
 		Veh_Park (v);
 		return;
 	}
+	if (v.veh_air)
+		v.veh_coast_until = max (v.veh_coast_until, time + 0.5);
 	yaw0 = v.angles_y;
+	yaw1 = yaw0;
+	if (v.veh_air && v.veh_pad_spin)
+		yaw1 = Veh_NormYaw (yaw0 + v.veh_spin_yaw * dt);
 	org0 = v.origin;
 	org1 = org0 + vel * dt;
+	air_rising = (!Veh_IsKart (v.veh_kind) && v.veh_air && v.veh_vz > 0);
+	if (air_rising)
+		org1_z = Veh_StepAirRise (v, org0, dt);
 	if (Veh_IsKart (v.veh_kind))
 	{
 		GK_CheckPads (v, world);
@@ -1402,7 +1643,7 @@ void(entity v, float dt) Veh_CoastStep =
 				org1 = org0;
 		}
 	}
-	else if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+	else if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw1))
 	{
 		n = vd_hitnorm;
 		vn = vel * n;
@@ -1440,24 +1681,64 @@ void(entity v, float dt) Veh_CoastStep =
 			else
 				vel = vel * 0.85;
 			org1 = org0 + vel * dt;
-			if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+			if (air_rising)
+				org1_z = org0_z + v.veh_vz * dt;
+			if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw1))
 			{
-				Veh_Park (v);
-				return;
+				if (v.veh_air && Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+					yaw1 = yaw0;
+				else if (v.veh_air)
+				{
+					org1 = org0;
+					if (air_rising)
+						org1_z = org0_z + v.veh_vz * dt;
+				}
+				else
+				{
+					Veh_Park (v);
+					return;
+				}
 			}
 		}
+		else if (v.veh_pad_spin && Veh_DriveSweep (v, org0, yaw0, org1, yaw0))
+			yaw1 = yaw0;
 	}
-	Veh_GroundSample (v, org1, yaw0);
+	Veh_GroundSample (v, org1, yaw1);
 	z = org1_z;
 	if (v.veh_air)
 	{
-		v.veh_vz = v.veh_vz - VD_GRAVITY * dt;
-		z = z + v.veh_vz * dt;
-		if (vd_found && v.veh_vz <= 0 && z <= vd_gh + 1)
+		if (!air_rising)
 		{
+			grav = cvar ("sv_gravity");
+			if (grav <= 10)
+				grav = VD_GRAVITY;
+			v.veh_vz = v.veh_vz - grav * dt;
+			z = z + v.veh_vz * dt;
+		}
+		if (vd_found && v.veh_vz <= 0 && z <= vd_gh + 1 && time >= v.veh_pad_launch_t)
+		{
+			imp = 0 - v.veh_vz;
 			z = vd_gh;
 			v.veh_vz = 0;
 			v.veh_air = FALSE;
+			if (v.veh_pad_spin)
+			{
+				Veh_ResetPadStunt (v);
+				v.angles_x = 0;
+				v.angles_z = 0;
+			}
+			if (imp > 580)
+			{
+				Veh_Crash (v, imp * 0.65, org1);
+				if (v.veh_state == VEH_STATE_WRECK)
+					return;
+			}
+			else if (imp > 110)
+			{
+				sound7 (v, CHAN_BODY, "vehicles/tire_thud2.wav", 0.95, ATTN_NORM, 78 + random () * 14);
+				if (veh_fx_smoke > 0)
+					pointparticles (veh_fx_smoke, org1 + '0 0 6', '0 0 0', 1);
+			}
 		}
 	}
 	else if (!vd_found)
@@ -1470,10 +1751,17 @@ void(entity v, float dt) Veh_CoastStep =
 		else
 			z = vd_gh;
 	}
+	if (v.veh_air && v.veh_pad_spin)
+		Veh_StepPadSpin (v, dt, 0, 0);
+	v.angles_y = yaw1;
 	org1_z = z;
-	v.velocity = vel * 0.96;
 	if (v.veh_air)
+	{
+		v.velocity = vel;
 		v.velocity_z = v.veh_vz;
+	}
+	else
+		v.velocity = vel * 0.96;
 	setorigin (v, org1);
 	Veh_DriveBounds (v);
 	Veh_SyncPassengers (v);
@@ -1515,7 +1803,7 @@ void(entity p, entity v) Veh_TryExit =
 			v.veh_cament = world;
 		}
 		yaw = p.veh_cam_yaw;
-		if (p.veh_camera == 0)
+		if (p.veh_camera == 0 && !v.veh_pad_spin)
 			yaw = v.angles_y;
 		Veh_ReleasePlayer (p, vd_exit, vel, yaw);
 		v.veh_coast_until = time + 2.2;
@@ -1617,6 +1905,7 @@ void(entity p, entity v) Veh_Enter =
 	v.veh_fx_boost_t = 0;
 	v.veh_land_dip = 0;
 	v.veh_drift_t = 0;
+	Veh_ResetPadStunt (v);
 	v.gk_nitro = 100;
 	v.gk_boosting = FALSE;
 	v.gk_boost_t = 0;
@@ -1880,7 +2169,7 @@ float() Veh_DriveFrame =
 	local entity v;
 	local float dt, thr, brk, steer_in, hb, vf, vl, spd, acc, brake_a, grip, lock, delta, yr, yr_geo, yr_cap;
 	local float yaw0, yaw1, imp, vn, power, k, rate, slip, rpm_t, top, lo, gear, z, d;
-	local float started, living, ctop, launch, pitch_tgt, roll_tgt, brk_fac;
+	local float started, living, ctop, launch, pitch_tgt, roll_tgt, brk_fac, grav, air_pitch_in, air_rising;
 	local vector vel, org0, org1, org2, fwd, lft, n, ex_pos;
 
 	v = self.veh_van;
@@ -1964,6 +2253,17 @@ float() Veh_DriveFrame =
 	vl = vel * lft;
 	spd = fabs (vf);
 	slip = fabs (vl);
+
+	if (Veh_CheckPads (v, self))
+	{
+		vel = v.velocity;
+		vel_z = 0;
+		vf = vel * fwd;
+		vl = vel * lft;
+		spd = fabs (vf);
+		slip = fabs (vl);
+	}
+
 	Veh_GroundSample (v, v.origin, yaw0);
 
 	power = 1;
@@ -2011,6 +2311,7 @@ float() Veh_DriveFrame =
 	// ---- pedals. Forward key: drive, or brake if still rolling backward. Back key: brake, or reverse once stopped
 	acc = 0;
 	brake_a = 0;
+	air_pitch_in = thr - brk;
 	if (v.veh_air)
 	{
 		thr = 0;
@@ -2092,9 +2393,22 @@ float() Veh_DriveFrame =
 			yr = yr * 0.45;
 	}
 	if (v.veh_air)
-		yr = v.veh_yawrate * 0.992;		// in the air nothing steers
-	v.veh_yawrate = v.veh_yawrate + (yr - v.veh_yawrate) * min (1, dt * 8);
-	yaw1 = Veh_NormYaw (yaw0 + v.veh_yawrate * dt);
+	{
+		if (v.veh_pad_spin)
+			yr = v.veh_spin_yaw;
+		else
+			yr = v.veh_yawrate * 0.992;		// in the air nothing steers
+	}
+	if (v.veh_air && v.veh_pad_spin)
+	{
+		v.veh_yawrate = v.veh_spin_yaw;
+		yaw1 = Veh_NormYaw (yaw0 + v.veh_spin_yaw * dt);
+	}
+	else
+	{
+		v.veh_yawrate = v.veh_yawrate + (yr - v.veh_yawrate) * min (1, dt * 8);
+		yaw1 = Veh_NormYaw (yaw0 + v.veh_yawrate * dt);
+	}
 
 	vel = fwd * vf + lft * vl;
 
@@ -2103,6 +2417,9 @@ float() Veh_DriveFrame =
 	org1 = org0;
 	org1_x = org0_x + vel_x * dt;
 	org1_y = org0_y + vel_y * dt;
+	air_rising = (v.veh_air && v.veh_vz > 0);
+	if (air_rising)
+		org1_z = Veh_StepAirRise (v, org0, dt);
 	if (!Veh_DriveSweep (v, org0, yaw0, org1, yaw1))
 	{
 		n = vd_hitnorm;
@@ -2153,19 +2470,26 @@ float() Veh_DriveFrame =
 		org2 = org0;
 		org2_x = org0_x + vel_x * dt;
 		org2_y = org0_y + vel_y * dt;
+		org2_z = org1_z;
 		if (Veh_DriveSweep (v, org0, yaw0, org2, yaw1))
 			org1 = org2;
-		else if (yaw1 != yaw0 && Veh_DriveSweep (v, org0, yaw0, org0, yaw1))
+		else if (v.veh_pad_spin && Veh_DriveSweep (v, org0, yaw0, org2, yaw0))
 		{
-			org1 = org0;
+			org1 = org2;
+			yaw1 = yaw0;
+		}
+		else if (yaw1 != yaw0 && Veh_DriveSweep (v, org0, yaw0, org0_x * '1 0 0' + org0_y * '0 1 0' + org1_z * '0 0 1', yaw1))
+		{
+			org1 = org0_x * '1 0 0' + org0_y * '0 1 0' + org1_z * '0 0 1';
 			vel = vel * 0.7;
 		}
 		else
 		{
-			org1 = org0;
+			org1 = org0_x * '1 0 0' + org0_y * '0 1 0' + org1_z * '0 0 1';
 			yaw1 = yaw0;
 			vel = vel * 0.65;
-			v.veh_yawrate = 0;
+			if (!v.veh_pad_spin)
+				v.veh_yawrate = 0;
 		}
 	}
 
@@ -2174,14 +2498,27 @@ float() Veh_DriveFrame =
 	z = org1_z;
 	if (v.veh_air)
 	{
-		v.veh_vz = v.veh_vz - VD_GRAVITY * dt;
-		z = z + v.veh_vz * dt;
-		if (vd_found && v.veh_vz <= 0 && z <= vd_gh + 1)
+		if (!air_rising)
+		{
+			grav = cvar ("sv_gravity");
+			if (grav <= 10)
+				grav = VD_GRAVITY;
+			v.veh_vz = v.veh_vz - grav * dt;
+			z = z + v.veh_vz * dt;
+		}
+		if (vd_found && v.veh_vz <= 0 && z <= vd_gh + 1 && time >= v.veh_pad_launch_t)
 		{
 			imp = 0 - v.veh_vz;
 			z = vd_gh;
 			v.veh_vz = 0;
 			v.veh_air = FALSE;
+			if (v.veh_pad_spin)
+			{
+				Veh_ResetPadStunt (v);
+				v.angles_x = Veh_AngDelta (v.angles_x, 0) * 0.35;
+				v.angles_z = Veh_AngDelta (v.angles_z, 0) * 0.35;
+				v.veh_yawrate = 0;
+			}
 			if (imp > 580)
 				Veh_Crash (v, imp * 0.65, org1);		// only massive drops hurt
 			else if (imp > 110)
@@ -2217,9 +2554,14 @@ float() Veh_DriveFrame =
 	v.veh_land_dip = Veh_Approach (v.veh_land_dip, 0, dt * 18);
 	if (v.veh_air)
 	{
-		pitch_tgt = bound (-22, v.veh_vz * 0.03, 22);
-		v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 4);
-		v.angles_z = v.angles_z + (0 - v.angles_z) * min (1, dt * 3);
+		if (v.veh_pad_spin)
+			Veh_StepPadSpin (v, dt, steer_in, air_pitch_in);
+		else
+		{
+			pitch_tgt = bound (-22, v.veh_vz * 0.03, 22);
+			v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 4);
+			v.angles_z = v.angles_z + (0 - v.angles_z) * min (1, dt * 3);
+		}
 	}
 	else if (vd_found)
 	{
@@ -2227,9 +2569,9 @@ float() Veh_DriveFrame =
 		if (vf > 20)
 			brk_fac = bound (0, brake_a / VD_BRAKE, 1);
 		pitch_tgt = vd_pitch + 3.5 * thr * (1 + 0.6 * v.veh_boost) * (1 - bound (0, vf / ctop, 1) * 0.4) - 4.5 * brk_fac + v.veh_land_dip;
-		v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 10);
+		v.angles_x = v.angles_x + Veh_AngDelta (pitch_tgt, v.angles_x) * min (1, dt * 12);
 		roll_tgt = bound (-8, v.veh_yawrate * bound (0, spd / 500, 1) * 0.065 + vd_slope_l * 35, 8);
-		v.angles_z = v.angles_z + (roll_tgt - v.angles_z) * min (1, dt * 9);
+		v.angles_z = v.angles_z + Veh_AngDelta (roll_tgt, v.angles_z) * min (1, dt * 12);
 	}
 
 	v.angles_y = yaw1;
@@ -2238,6 +2580,16 @@ float() Veh_DriveFrame =
 		v.velocity_z = v.veh_vz;
 	setorigin (v, org1);
 	Veh_DriveBounds (v);
+
+	// Out of the world: setorigin movement never touches trigger_hurt/teleporters, so blow it up cleanly if launched into sky/void
+	if (v.veh_chain_t == 0 && ((world.maxs_z > world.mins_z && v.origin_z < world.mins_z - 64) || pointcontents (v.origin + '0 0 8') == CONTENT_SKY || pointcontents (v.origin - '0 0 4') == CONTENT_SKY))
+	{
+		v.health = 1;
+		v.takedamage = DAMAGE_NO;
+		v.veh_chain_t = time;
+		v.think = Veh_Think;
+		v.nextthink = time;
+	}
 
 	// ---- engine revs: 5 gears picked by road speed; the revs fall at each upshift. Standing still the throttle revs it
 	spd = fabs (vf);
@@ -2279,13 +2631,18 @@ float() Veh_DriveFrame =
 	if (!started)
 		rpm_t = 0;
 	if (v.veh_air)
-		rpm_t = 0.35 + 0.65 * thr;
+	{
+		if (v.veh_pad_spin)
+			rpm_t = 0.86 + 0.14 * random ();
+		else
+			rpm_t = 0.35 + 0.65 * thr;
+	}
 	if (rpm_t > v.veh_rpm)
 		v.veh_rpm = min (rpm_t, v.veh_rpm + 3.2 * dt);
 	else
 		v.veh_rpm = max (rpm_t, v.veh_rpm - 2.2 * dt);
 	if (started)
-		Veh_EngineSound (v, thr);
+		Veh_EngineSound (v, (v.veh_air && v.veh_pad_spin) ? 1 : thr);
 
 	// ---- turbo exhaust flames / sparks during hard launch & boost
 	if (started && thr > 0 && !v.veh_air && veh_fx_boost > 0 && (v.veh_boost > 0.35 || (vf < 240 && thr > 0.8)) && time >= v.veh_fx_boost_t)
