@@ -1252,7 +1252,7 @@ def build_gokart_5(progs_dir=PROGS, meta_dir=OUT_DIR):
 
     rear_pivot = (REAR_WHEEL_X, 0.0, REAR_WHEEL_R)
 
-    print("3. Computing 64 animation frames (idle, fast 4*pi, super 8*pi + flames, explosion)...", flush=True)
+    print("3. Computing 64 animation frames (idle, fast 2*pi, super 4*pi + flames, explosion)...", flush=True)
     for fi in range(64):
         if fi < 12:
             # Idle: subtle engine / T-collar gimbal micro-hum; wheels static at Z=0
@@ -1269,10 +1269,10 @@ def build_gokart_5(progs_dir=PROGS, meta_dir=OUT_DIR):
             surf_frames["flame_core"].append(_animate_flame_frame(meta_flame_core, fi, True, ry, dz))
 
         elif fi < 28:
-            # Fast: 4*pi forward wheel spin across 16 frames + subtle aero chatter
+            # Fast: 2*pi forward wheel spin across 16 frames + subtle aero chatter
             sf = fi - 12
             ph = 2.0 * math.pi * (sf / 16.0)
-            spin_deg = -720.0 * (sf / 16.0)  # 4*pi forward roll
+            spin_deg = -360.0 * (sf / 16.0)  # 2*pi forward roll (22.5 deg/frame, matches gokart_1..4,6)
             dz = 0.22 * math.sin(ph * 2.0)
             ry = 0.35 * math.sin(ph * 2.0)
             rx = 0.28 * math.sin(ph)
@@ -1285,10 +1285,10 @@ def build_gokart_5(progs_dir=PROGS, meta_dir=OUT_DIR):
             surf_frames["flame_core"].append(_animate_flame_frame(meta_flame_core, fi, True, ry, dz))
 
         elif fi < 44:
-            # Super Speed + Flames: 2x wheel spin (8*pi across 16 frames), ~2 deg rear squat, roaring flames!
+            # Super Speed + Flames: 2x wheel spin (4*pi across 16 frames), ~2 deg rear squat, roaring flames!
             sf = fi - 28
             ph = 2.0 * math.pi * (sf / 16.0)
-            spin_deg = -1440.0 * (sf / 16.0)  # 8*pi forward roll (2x fast!)
+            spin_deg = -720.0 * (sf / 16.0)  # 4*pi forward roll (45 deg/frame, prevents r_lerpmodels 180-deg collapse)
             dz = 0.24 * math.sin(ph * 3.0)
             ry = +2.0 + 0.32 * math.sin(ph * 3.0)
             rx = 0.36 * math.sin(ph * 2.0)

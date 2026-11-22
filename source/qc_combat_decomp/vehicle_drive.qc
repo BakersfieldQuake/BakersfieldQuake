@@ -1176,8 +1176,20 @@ void() Veh_PassengerFrame =
 // give the player back to himself
 void(entity p, vector pos, vector vel, float yaw) Veh_ReleasePlayer =
 {
-	if (p.veh_van != world && Veh_IsKart (p.veh_van.veh_kind) && p.ishuman == 1)
-		centerprint (p, "");
+	if (p.veh_van != world && Veh_IsKart (p.veh_van.veh_kind))
+	{
+		p.veh_van.gk_m1_prev = FALSE;
+		p.veh_van.gk_m1_hold_t = 0;
+		p.veh_van.gk_rkt_aim = FALSE;
+		p.veh_van.gk_aim_enter = FALSE;
+		p.veh_van.gk_rkt_charge = 0;
+		p.veh_van.gk_rkt_armed = FALSE;
+		if (p.ishuman == 1)
+			centerprint (p, "");
+	}
+	p.gk_st_mode = 0;
+	p.gk_st_prog = 0;
+	p.gk_st_nitro = 0;
 	p.veh_van = world;
 	p.clientcamera = p;
 	msg_entity = p;
@@ -1617,6 +1629,15 @@ void(entity p, entity v) Veh_Enter =
 	v.gk_hud_t = 0;
 	v.gk_smoke_t = 0;
 	v.gk_hop_prev = TRUE;
+	v.gk_m1_prev = FALSE;
+	v.gk_m1_hold_t = (p.button0 != 0) ? -1 : 0;
+	v.gk_rkt_aim = FALSE;
+	v.gk_aim_enter = FALSE;
+	v.gk_rkt_charge = 0;
+	v.gk_rkt_armed = FALSE;
+	p.gk_st_mode = 0;
+	p.gk_st_prog = 0;
+	p.gk_st_nitro = 0;
 	v.movetype = MOVETYPE_NONE;
 	v.solid = SOLID_BBOX;
 	v.takedamage = DAMAGE_AIM;

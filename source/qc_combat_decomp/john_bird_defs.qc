@@ -29,6 +29,7 @@ Controls:
   R (impulse 41) : Crazy Flip! (1.0s cooldown somersault stunt + feather burst)
   WASD + Mouse   : Fast 3D flight (780 u/s cruise); sweeping mouse L/R/U/D builds carve speed!
   SPACE          : Vigorous upward wing-climb (+460 u/s)
+  SHIFT (+button4): Peregrine Swoop Boost (1,280 u/s) + aerial dive-ram
   CLICK (Fire)   : Rapid-fire hairspray cans (anti-bird dogfight)
   V (impulse 20) : Speak random "John" voice line on demand
   impulse 97     : (sv_cheats) Spawn perched Winged John ahead of player
@@ -43,6 +44,7 @@ float	JB_MAX_HP			= 140;		// easy-to-shoot-down traversal mount (~1-2 rockets or
 float	JB_LOW_HP			= 60;		// smoking / low-HP warning threshold
 float	JB_ROCKET_DMG		= 100;		// 100 per direct rocket (1-2 rockets to shoot down)
 float	JB_SPEED_CRUISE		= 780;		// fast cruising speed (~2.4x player run speed)
+float	JB_SPEED_SWOOP		= 1280;		// SHIFT (+button4) high-speed falcon swoop boost
 float	JB_SPEED_CARVE_MAX	= 440;		// extra airspeed gained from sweeping/carving with the mouse
 float	JB_SPEED_STRAFE		= 500;
 float	JB_SPEED_CLIMB		= 460;
@@ -99,9 +101,9 @@ float	jb_fx_mist_cloud;
 // CSQC HUD clientstats (slots 93..102)
 .float	jb_st_active;					// 93: 0=off, 1=3rd-person, 2=1st-person
 .float	jb_st_variant;					// 94: 1..3
-.float	jb_st_combat;					// 95: bitmask (1=combat, 2=M1, 4=M3/R)
+.float	jb_st_combat;					// 95: bitmask (1=combat, 2=M1, 4=M3/R, 16=Shift boost)
 .float	jb_st_status;					// 96: bitmask (1=slowed, 2=burning, 4=low HP <=60)
-.float	jb_st_boost;					// 97: unused (kept for stat slot compatibility)
+.float	jb_st_boost;					// 97: 0..100 boost energy
 .float	jb_st_hp;						// 98: 0..500 bird HP
 .float	jb_st_hit;						// 99: hit-confirm counter
 .float	jb_st_ammo;						// 100: remaining hairspray cans 0..JB_MAX_AMMO
@@ -130,6 +132,9 @@ float	jb_fx_mist_cloud;
 .float	jb_ai_phase;
 .float	jb_carve_spd;					// 0..100 mouse-carve speed bonus
 .float	jb_carve_snd_t;
+.float	jb_boost_energy;				// 0..100 continuous Shift boost gauge
+.float	jb_boosting;					// TRUE while Shift boost engaged
+.float	jb_boost_snd_t;
 .float	jb_ammo;						// remaining hairspray cans on this bird
 .float	jb_ammo_regen_t;				// timestamp when next can restocks
 .float	jb_dry_snd_t;					// dry-fire click sound throttle

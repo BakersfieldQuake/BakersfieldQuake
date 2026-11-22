@@ -31,6 +31,11 @@ float	GK_TURN_HI		= 132;		// deg/s at cruise/boost (crisp cornering at all speed
 float	GK_GRIP			= 3400;		// lateral grip when not drifting
 float	GK_GRAVITY		= 800;		// matches sv_gravity & SkyPad_CalcVel ballistic arcs
 
+float	GK_RKT_TAP_MAX		= 0.18;		// M1 tap <= 0.18s honks horn; holding longer opens rocket aim
+float	GK_RKT_CHARGE_T		= 0.80;		// hold duration in aim mode to arm the rocket
+float	GK_RKT_NITRO_COST	= 40;		// Nitro spent per rocket shot
+float	GK_RKT_COOLDOWN		= 2.50;		// reload cooldown after firing
+
 .float	gk_fx_side;		// tire FX alternate rear wheels (one particle message per tick instead of two)
 .float	gk_ex_side;		// exhaust FX alternate the two pipes
 .float	gk_hud_key;		// last centerprinted HUD state (resend only when it changes)
@@ -54,6 +59,13 @@ void(entity v) GK_InitKart =
 	v.gk_hud_t = 0;
 	v.gk_speed = 0;
 	v.gk_smoke_t = 0;
+	v.gk_m1_prev = FALSE;
+	v.gk_m1_hold_t = 0;
+	v.gk_rkt_aim = FALSE;
+	v.gk_aim_enter = FALSE;
+	v.gk_rkt_charge = 0;
+	v.gk_rkt_armed = FALSE;
+	v.gk_rkt_cd = 0;
 };
 
 // Keep attached seated Quake Ranger driver entity synced to kart origin, angles & animation frame
@@ -82,9 +94,10 @@ void(entity v) GK_SyncDriverEnt =
 };
 
 // Frame ranges on gokart_1..6.md3: 0..11 idle, 12..27 fast drive, 28..43 super boost, 44..63 explode
+// Keep rate <= 1.0 so MD3 vertex interpolation (r_lerpmodels) never skips frames and collapses spinning wheels.
 void(entity v) GK_ThinkAnim =
 {
-	local float f, rate, spd, boosted;
+	local float rate, spd, boosted;
 
 	if (v.veh_state == VEH_STATE_WRECK)
 		return;
@@ -92,20 +105,28 @@ void(entity v) GK_ThinkAnim =
 	spd = v.gk_speed;
 	boosted = (v.gk_boosting || time < v.gk_boost_t);
 	if (v.veh_driver != world && boosted)
-		rate = 1.95;
+		rate = 1.0;
 	else if ((v.veh_driver != world || v.veh_coast_until > 0) && spd > 35)
-		rate = 0.70 + 1.10 * bound (0, spd / GK_TOP_CRUISE, 1);
+		rate = 0.45 + 0.55 * bound (0, spd / GK_TOP_CRUISE, 1);
 	else
 		rate = 0.55;
 
 	v.veh_anim = v.veh_anim + rate;
-	f = floor (v.veh_anim);
 	if (v.veh_driver != world && boosted)
-		v.frame = 28 + (f - 16 * floor (f / 16));
+	{
+		v.veh_anim = v.veh_anim - 16 * floor (v.veh_anim / 16);
+		v.frame = 28 + floor (v.veh_anim);
+	}
 	else if ((v.veh_driver != world || v.veh_coast_until > 0) && spd > 35)
-		v.frame = 12 + (f - 16 * floor (f / 16));
+	{
+		v.veh_anim = v.veh_anim - 16 * floor (v.veh_anim / 16);
+		v.frame = 12 + floor (v.veh_anim);
+	}
 	else
-		v.frame = f - 12 * floor (f / 12);
+	{
+		v.veh_anim = v.veh_anim - 12 * floor (v.veh_anim / 12);
+		v.frame = floor (v.veh_anim);
+	}
 
 	GK_SyncDriverEnt (v);
 };
@@ -284,7 +305,7 @@ void(entity p, entity v, float dirty) GK_UpdateHUD =
 
 	line1 = strcat ("^3NITRO ^7[", ncolor, bar, "^7] ", ncolor, ftos (segs * 10));
 	line1 = strcat (line1, "%", tag);
-	line2 = "^7WASD Drive  ^3SPACE^7 Hop/Drift  ^3SHIFT^7 Nitro  ^3M1^7 Horn  ^3K^7 Cam  ^3H^7 Exit";
+	line2 = "^7WASD Drive  ^3SPACE^7 Drift  ^3SHIFT^7 Nitro  ^3M1^7 Horn / Hold Rocket  ^3K^7 Cam  ^3H^7 Exit";
 	centerprint (p, strcat (line1, "\n", line2));
 };
 
@@ -677,11 +698,106 @@ void(entity v, entity hit, float imp) GK_RamVehicle =
 	veh_runover = FALSE;
 };
 
+void() GK_RocketThink =
+{
+	local float rem;
+
+	// Wait up to 0.28s total if still right on top of the firing kart (e.g. cruising downward shots),
+	// then hand ownership back to the driver so frag credit and high-speed Nitro rear-ends work cleanly.
+	if (self.gk_kart != world && !bm_wasfreed (self.gk_kart))
+	{
+		if (time < self.gk_safe_t + 0.14 && vlen (self.origin - self.gk_kart.origin) < 58)
+		{
+			self.nextthink = time + 0.04;
+			return;
+		}
+	}
+	if (self.gk_shooter != world && !bm_wasfreed (self.gk_shooter))
+		self.owner = self.gk_shooter;
+	rem = max (0.10, (self.gk_safe_t + 4.86) - time);
+	self.think = SUB_Remove;
+	self.nextthink = time + rem;
+};
+
+void() GK_RocketTouch =
+{
+	if (other != world && self.gk_shooter != world && other == self.gk_shooter)
+		return;
+	if (other != world && self.gk_kart != world && !bm_wasfreed (self.gk_kart) && other == self.gk_kart.veh_driverent)
+		return;
+	if (other == self.gk_kart && time < self.gk_safe_t)
+		return;
+	if (self.gk_shooter != world && !bm_wasfreed (self.gk_shooter))
+		self.owner = self.gk_shooter;
+	T_MissileTouch ();
+};
+
+void(entity p, entity v) GK_FireRocket =
+{
+	local entity missile, cam;
+	local vector cam_org, aim_ang, launch_org, dir, aim_pt;
+	local float cam_dist;
+
+	cam = v.veh_cament;
+	aim_ang = '0 0 0';
+	aim_ang_x = p.veh_cam_pitch;
+	aim_ang_y = p.veh_cam_yaw;
+	makevectors (aim_ang);
+
+	if (cam != world)
+		cam_org = cam.origin;
+	else
+		cam_org = v.origin + '0 0 44';
+
+	// Launch cleanly above the 34u kart hull and stop before nearby walls
+	launch_org = v.origin + '0 0 44';
+	if (v_forward_z > -0.15)
+	{
+		traceline (launch_org, launch_org + v_forward * 24, FALSE, v);
+		if (trace_fraction > 0.25)
+			launch_org = trace_endpos - v_forward * 4;
+	}
+
+	// 3rd-person crosshair convergence: trace from chase camera onto target/wall
+	dir = v_forward;
+	if (p.veh_camera != 0)
+	{
+		traceline (cam_org, cam_org + v_forward * 4096, FALSE, v);
+		aim_pt = trace_endpos;
+		cam_dist = vlen (aim_pt - cam_org);
+		if (cam_dist > max (80, p.veh_cam_dist + 24) && vlen (aim_pt - launch_org) > 24)
+			dir = normalize (aim_pt - launch_org);
+	}
+
+	sound7 (v, CHAN_WEAPON, "weapons/sgun1.wav", 1, ATTN_NORM, SNDSPD);
+	sound7 (v, CHAN_AUTO, "weapons/rocket2i.wav", 0.9, ATTN_NORM, SNDSPD);
+
+	missile = spawn ();
+	missile.cansplash = TRUE;
+	// Own to the kart briefly so engine physics pass cleanly through the kart hull,
+	// then GK_RocketThink / GK_RocketTouch switches .owner to the driver p for frag credit & self-collision.
+	missile.owner = v;
+	missile.gk_shooter = p;
+	missile.gk_kart = v;
+	missile.gk_safe_t = time + 0.14;
+	missile.movetype = MOVETYPE_FLYMISSILE;
+	missile.solid = SOLID_BBOX;
+	missile.classname = "missile";
+	missile.velocity = dir * 1000;
+	missile.angles = vectoangles (missile.velocity);
+	missile.touch = GK_RocketTouch;
+	missile.nextthink = time + 0.14;
+	missile.think = GK_RocketThink;
+	setmodel (missile, "progs/missile.mdl");
+	setsize (missile, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (missile, launch_org);
+};
+
 void(entity p, entity v, float dt) GK_DriveCamera =
 {
 	local entity cam;
 	local vector fwd, pos, tgt, ang, vel_xy;
-	local float yaw, pitch, d, spd, lead, cdist, cup;
+	local float yaw, pitch, d, spd, lead, cdist, cup, lock_view;
 	local float want_dist, spd_frac, vf_cam, look_fwd, tgt_yaw, vel_d, want_pitch, boosted;
 
 	cam = v.veh_cament;
@@ -690,16 +806,36 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 	vel_xy_z = 0;
 	spd = vlen (vel_xy);
 	boosted = (v.gk_boosting || time < v.gk_boost_t);
+	lock_view = (!v.gk_rkt_aim || v.gk_aim_enter);
 
 	if (p.veh_camera == 0)
 	{
 		pos = v.origin + fwd * 14 + '0 0 28';
-		lead = 0 - v.veh_steer * 10 * bound (0, spd / 240, 1);
-		p.veh_cam_look = p.veh_cam_look + (lead - p.veh_cam_look) * min (1, dt * 6);
-		yaw = Veh_NormYaw (v.angles_y + p.veh_cam_look);
-		pitch = 0 - v.angles_x;
-		p.veh_cam_yaw = v.angles_y;
-		p.veh_cam_pitch = pitch;
+		if (v.gk_rkt_aim)
+		{
+			if (v.gk_aim_enter)
+			{
+				v.gk_aim_enter = FALSE;
+				yaw = p.veh_cam_yaw;
+				pitch = p.veh_cam_pitch;
+			}
+			else
+			{
+				yaw = Veh_NormYaw (p.v_angle_y);
+				pitch = bound (-70, p.v_angle_x, 75);
+				p.veh_cam_yaw = yaw;
+				p.veh_cam_pitch = pitch;
+			}
+		}
+		else
+		{
+			lead = 0 - v.veh_steer * 10 * bound (0, spd / 240, 1);
+			p.veh_cam_look = p.veh_cam_look + (lead - p.veh_cam_look) * min (1, dt * 6);
+			yaw = Veh_NormYaw (v.angles_y + p.veh_cam_look);
+			pitch = 0 - v.angles_x;
+			p.veh_cam_yaw = yaw;
+			p.veh_cam_pitch = pitch;
+		}
 	}
 	else
 	{
@@ -713,23 +849,43 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 			p.veh_cam_dist = want_dist;
 		p.veh_cam_dist = p.veh_cam_dist + (want_dist - p.veh_cam_dist) * min (1, dt * 6.0);
 
-		vf_cam = vel_xy * fwd;
-		look_fwd = 14 + 18 * bound (0, vf_cam / GK_TOP_CRUISE, 1);
-		tgt_yaw = v.angles_y;
-		if (spd > 180 && vf_cam > 80)
+		if (v.gk_rkt_aim)
 		{
-			vel_d = Veh_AngDelta (vectoyaw (vel_xy), v.angles_y);
-			tgt_yaw = Veh_NormYaw (v.angles_y + bound (-22, vel_d * 0.45, 22));
+			if (v.gk_aim_enter)
+			{
+				v.gk_aim_enter = FALSE;
+				yaw = p.veh_cam_yaw;
+				pitch = p.veh_cam_pitch;
+			}
+			else
+			{
+				yaw = Veh_NormYaw (p.v_angle_y);
+				pitch = bound (-70, p.v_angle_x, 75);
+				p.veh_cam_yaw = yaw;
+				p.veh_cam_pitch = pitch;
+			}
+			tgt = v.origin + '0 0 1' * cup;
 		}
-		d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
-		p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 7.2));
-		yaw = p.veh_cam_yaw;
+		else
+		{
+			vf_cam = vel_xy * fwd;
+			look_fwd = 14 + 18 * bound (0, vf_cam / GK_TOP_CRUISE, 1);
+			tgt_yaw = v.angles_y;
+			if (spd > 180 && vf_cam > 80)
+			{
+				vel_d = Veh_AngDelta (vectoyaw (vel_xy), v.angles_y);
+				tgt_yaw = Veh_NormYaw (v.angles_y + bound (-22, vel_d * 0.45, 22));
+			}
+			d = Veh_AngDelta (tgt_yaw, p.veh_cam_yaw);
+			p.veh_cam_yaw = Veh_NormYaw (p.veh_cam_yaw + d * min (1, dt * 7.2));
+			yaw = p.veh_cam_yaw;
 
-		want_pitch = 12 - v.angles_x * 0.35;
-		p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 7.0);
-		pitch = p.veh_cam_pitch;
+			want_pitch = 12 - v.angles_x * 0.35;
+			p.veh_cam_pitch = p.veh_cam_pitch + (want_pitch - p.veh_cam_pitch) * min (1, dt * 7.0);
+			pitch = p.veh_cam_pitch;
 
-		tgt = v.origin + fwd * look_fwd + '0 0 1' * cup;
+			tgt = v.origin + fwd * look_fwd + '0 0 1' * cup;
+		}
 		traceline (v.origin + '0 0 24', tgt, 3, v);
 		if (trace_fraction < 1)
 			tgt = trace_endpos + trace_plane_normal * 6;
@@ -754,7 +910,8 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 	p.angles = '0 0 0';
 	p.angles_x = pitch;
 	p.angles_y = yaw;
-	p.fixangle = TRUE;
+	if (lock_view)
+		p.fixangle = TRUE;
 };
 
 float(entity p, entity v, float dt) GK_DriveFrame =
@@ -763,7 +920,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	local float yaw0, yaw1, vf, vl, spd, acc, brake_a, turn_rate, yr, yr_in;
 	local float ctop, k, launch, power, d, z, imp, vn, new_tier, mt_dur, mt_pwr, mt_nitro, grav;
 	local float pitch_tgt, roll_tgt, hud_dirty, pass, old_solid, climbed, is_boosted;
-	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag;
+	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag, m1, rkt_ready;
 	local vector fwd, lft, fwd1, lft1, vel, vel_world, org0, org1, org2, n, tang;
 	local entity hit, restore1, restore2, restore3, restore4;
 	local float rsol1, rsol2, rsol3, rsol4, rcnt, gone, is_living, is_prop, is_veh;
@@ -781,13 +938,6 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	{
 		thr = 0;
 		brk = 0;
-	}
-
-	// Horn on Mouse1 (+button0)
-	if (p.button0 && time >= v.veh_horn_t && started)
-	{
-		v.veh_horn_t = time + 0.55;
-		sound7 (v, CHAN_WEAPON, "vehicles/horn.wav", 0.9, ATTN_NORM, 125 + random () * 8);
 	}
 
 	// Snappy arcade steering input easing
@@ -980,6 +1130,131 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.gk_drift_dir = 0;
 		v.gk_drift_charge = 0;
 		v.gk_drift_tier = 0;
+	}
+
+	// ---- M1 (+button0): Tap (<0.18s) = Horn | Hold (>=0.18s) = Rocket Crosshair & Free-Aim | Release = Fire
+	m1 = (started && p.button0 != 0);
+	if (v.gk_m1_hold_t < 0)
+	{
+		// Entered the kart while M1 was already held: ignore until released once
+		if (!m1)
+			v.gk_m1_hold_t = 0;
+		v.gk_m1_prev = FALSE;
+	}
+	else if (m1)
+	{
+		if (!v.gk_m1_prev)
+		{
+			v.gk_m1_hold_t = 0;
+			v.gk_rkt_aim = FALSE;
+			v.gk_aim_enter = FALSE;
+			v.gk_rkt_charge = 0;
+			v.gk_rkt_armed = FALSE;
+		}
+		else
+		{
+			v.gk_m1_hold_t = v.gk_m1_hold_t + dt;
+			if (!v.gk_rkt_aim && v.gk_m1_hold_t >= GK_RKT_TAP_MAX)
+			{
+				v.gk_rkt_aim = TRUE;
+				v.gk_aim_enter = TRUE;
+				v.gk_rkt_charge = 0;
+				v.gk_rkt_armed = FALSE;
+				if (v.gk_nitro >= GK_RKT_NITRO_COST && time >= v.gk_rkt_cd)
+					sound7 (v, CHAN_AUTO, "weapons/rockload.wav", 0.65, ATTN_NORM, 118);
+				else
+					sound7 (v, CHAN_AUTO, "weapons/guncock.wav", 0.50, ATTN_NORM, 92);
+			}
+			if (v.gk_rkt_aim)
+			{
+				rkt_ready = (v.gk_nitro >= GK_RKT_NITRO_COST && time >= v.gk_rkt_cd);
+				if (rkt_ready)
+				{
+					if (!v.gk_rkt_armed)
+					{
+						v.gk_rkt_charge = min (GK_RKT_CHARGE_T, v.gk_rkt_charge + dt);
+						if (v.gk_rkt_charge >= GK_RKT_CHARGE_T)
+						{
+							v.gk_rkt_armed = TRUE;
+							sound7 (v, CHAN_AUTO, "bikes/spoke_ping.wav", 0.78, ATTN_NORM, 148);
+						}
+					}
+				}
+				else
+				{
+					v.gk_rkt_armed = FALSE;
+					v.gk_rkt_charge = 0;
+				}
+			}
+		}
+		v.gk_m1_prev = TRUE;
+	}
+	else if (v.gk_m1_prev)
+	{
+		if (!v.gk_rkt_aim)
+		{
+			if (started && time >= v.veh_horn_t)
+			{
+				v.veh_horn_t = time + 0.55;
+				sound7 (v, CHAN_WEAPON, "vehicles/horn.wav", 0.9, ATTN_NORM, 125 + random () * 8);
+			}
+		}
+		else
+		{
+			if (v.gk_rkt_armed && v.gk_nitro >= GK_RKT_NITRO_COST && time >= v.gk_rkt_cd)
+			{
+				v.gk_nitro = max (0, v.gk_nitro - GK_RKT_NITRO_COST);
+				if (v.gk_nitro <= 0)
+					v.gk_boosting = FALSE;
+				v.gk_rkt_cd = time + GK_RKT_COOLDOWN;
+				hud_dirty = TRUE;
+				GK_FireRocket (p, v);
+			}
+			else if (v.gk_nitro < GK_RKT_NITRO_COST || time < v.gk_rkt_cd)
+			{
+				sound7 (v, CHAN_AUTO, "weapons/guncock.wav", 0.45, ATTN_NORM, 85);
+			}
+		}
+		v.gk_m1_hold_t = 0;
+		v.gk_rkt_aim = FALSE;
+		v.gk_aim_enter = FALSE;
+		v.gk_rkt_charge = 0;
+		v.gk_rkt_armed = FALSE;
+		v.gk_m1_prev = FALSE;
+	}
+
+	if (p.ishuman == 1)
+	{
+		if (v.gk_rkt_aim)
+		{
+			if (time < v.gk_rkt_cd)
+			{
+				p.gk_st_mode = 4;
+				p.gk_st_prog = floor (bound (0, ((v.gk_rkt_cd - time) / GK_RKT_COOLDOWN) * 100, 100) + 0.5);
+			}
+			else if (v.gk_nitro < GK_RKT_NITRO_COST)
+			{
+				p.gk_st_mode = 3;
+				p.gk_st_prog = floor (bound (0, v.gk_nitro, 100) + 0.5);
+			}
+			else if (v.gk_rkt_armed)
+			{
+				p.gk_st_mode = 2;
+				p.gk_st_prog = 100;
+			}
+			else
+			{
+				p.gk_st_mode = 1;
+				p.gk_st_prog = floor (bound (0, (v.gk_rkt_charge / GK_RKT_CHARGE_T) * 100, 100) + 0.5);
+			}
+			p.gk_st_nitro = floor (bound (0, v.gk_nitro, 100) + 0.5);
+		}
+		else
+		{
+			p.gk_st_mode = 0;
+			p.gk_st_prog = 0;
+			p.gk_st_nitro = 0;
+		}
 	}
 
 	is_boosted = (v.gk_boosting || time < v.gk_boost_t);
@@ -1440,16 +1715,26 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		GK_BoostExhaust (v);
 	}
 
-	// Keep MD3 super-boost / drive frames locked responsively every client frame
+	// Keep MD3 super-boost / drive frames locked responsively every client frame while preserving wheel phase
 	if (is_boosted && (v.frame < 28 || v.frame > 43))
 	{
-		v.frame = 28;
-		v.veh_anim = 28;
+		if (v.frame >= 12 && v.frame <= 27)
+			v.veh_anim = floor ((v.frame - 12) * 0.5);
+		else
+			v.veh_anim = 0;
+		v.frame = 28 + v.veh_anim;
 	}
 	else if (!is_boosted && spd > 35 && (v.frame < 12 || v.frame > 27))
 	{
-		v.frame = 12;
-		v.veh_anim = 12;
+		if (v.frame >= 28 && v.frame <= 43)
+		{
+			local float kf;
+			kf = (v.frame - 28) * 2;
+			v.veh_anim = kf - 16 * floor (kf / 16);
+		}
+		else
+			v.veh_anim = 0;
+		v.frame = 12 + v.veh_anim;
 	}
 
 	// ---- Nitro / Drift HUD: at most 2 Hz, and only when its text changes (GK_UpdateHUD sets gk_hud_t)

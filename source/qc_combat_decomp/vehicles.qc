@@ -1553,14 +1553,17 @@ void() Veh_Think =
 	if (self.veh_state == VEH_STATE_FIRE)
 	{
 		self.nextthink = time + 0.05;
-		self.veh_anim = self.veh_anim + 0.95;
-		f = floor (self.veh_anim);
 		if (Veh_IsKart (self.veh_kind))
 			GK_ThinkAnim (self);
-		else if (self.veh_kind == VEH_GOLFCART)
-			self.frame = 0;
 		else
-			self.frame = 22 + (f - 14 * floor (f / 14));
+		{
+			self.veh_anim = self.veh_anim + 0.95;
+			f = floor (self.veh_anim);
+			if (self.veh_kind == VEH_GOLFCART)
+				self.frame = 0;
+			else
+				self.frame = 22 + (f - 14 * floor (f / 14));
+		}
 
 		makevectors ('0 1 0' * self.angles_y);
 		hofs = Veh_HoodFireOfs (self.veh_kind);
@@ -1618,7 +1621,7 @@ void() Veh_Think =
 			return;
 		}
 	}
-	if (self.veh_coast_until > 0)
+	if (self.veh_coast_until > 0 || (Veh_IsKart (self.veh_kind) && self.veh_driver != world))
 		self.nextthink = time + 0.05;
 	else
 		self.nextthink = time + 0.06;

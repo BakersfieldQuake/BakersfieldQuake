@@ -125,6 +125,16 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, ve
 .float	gk_hud_t;			// centerprint nitro/drift meter refresh timer
 .float	gk_speed;			// latest horizontal speed u/s (for idle/drive/super anim selection)
 .float	gk_smoke_t;			// rear tire peel-out / skid smoke particle throttle
+.float	gk_m1_prev;			// previous frame button0 state (tap horn vs hold rocket)
+.float	gk_m1_hold_t;		// continuous M1 hold duration
+.float	gk_rkt_aim;			// TRUE while holding M1 past tap threshold to aim rocket
+.float	gk_aim_enter;		// 1-frame flag to seed client v_angle when entering aim mode
+.float	gk_rkt_charge;		// rocket arming charge timer (0..GK_RKT_CHARGE_T)
+.float	gk_rkt_armed;		// TRUE once rocket is charged and ready to fire on release
+.float	gk_rkt_cd;			// earliest time next rocket can fire
+.entity	gk_kart;			// on fired kart rocket: firing kart entity
+.entity	gk_shooter;			// on fired kart rocket: driver entity (attacker credit)
+.float	gk_safe_t;			// on fired kart rocket: brief spawn hull-clear grace time
 float	gokart_spawn_cycle;	// cycles 1..6 for misc_gokart / impulse 136/138
 // ... on the player:
 .entity	veh_van;			// the vehicle he is driving (world = on foot)

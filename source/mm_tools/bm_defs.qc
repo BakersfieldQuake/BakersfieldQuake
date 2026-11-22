@@ -136,6 +136,9 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	fd_st_speed;		// Rob Dob drone velocity u/s (stat 83)
 .float	fd_st_arm;			// Rob Dob dash armed flag (stat 84)
 .float	fd_st_seq;			// Rob Dob hacking terminal sequence 1..14 (stat 85)
+.float	gk_st_mode;			// Go-Kart rocket HUD: 0=off, 1=charging, 2=armed, 3=low nitro, 4=reloading (stat 109)
+.float	gk_st_prog;			// Go-Kart rocket HUD: 0..100 charge/nitro/cooldown % (stat 110)
+.float	gk_st_nitro;		// Go-Kart rocket HUD: 0..100 current nitro % (stat 111)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
