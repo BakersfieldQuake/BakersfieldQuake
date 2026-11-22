@@ -231,3 +231,11 @@
   - Not tested in game: menu.dat and gameplay.
 - Follow-up: GiggleHacks to commit the Kyle source assets and the builders for zz_johnbird/mmtank/gfuel/conback/tone1, and to say which fteqcc builds the CSQC.
 - Later, after GiggleHacks's `004bce2`/`9439f1e`/`5afa94f`: the local build also compiles `csprogs.dat` (header CRC stamped from `quake15/csprogs.dat`: 23147) and builds `zz_kyle.pk3`; `-Wno-F313` is no longer needed. `make build` exit 0; a headless server on `start` loads the progs with no missing Kyle models.
+
+## 2026-11-22 — macOS app: crash log + Safe Mode retry
+
+- Outcome: `source/mac/launcher.sh` no longer `exec`s the engine. It waits on it; a non-zero exit copies
+  `bq_game.log` to `bq_game_crash.log` and shows a "Retry in Safe Mode" dialog (relaunch with `+exec safemode.cfg`).
+  The background `lanscan.py --pid` watcher now tracks the engine PID instead of `$$`.
+- Verification: `bash -n` passes; the dialog AppleScript compiles (`osacompile`). Not run in a built .app yet.
+- Follow-up: check in a CI-built DMG that the engine as a child process (not exec) still shows one Dock icon and quits cleanly.

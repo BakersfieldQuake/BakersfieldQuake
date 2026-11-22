@@ -1,6 +1,6 @@
 #!/bin/bash
 # BAKOQUAKE.app main executable (Contents/MacOS/BAKOQUAKE). Installed by source/mac/build_app.sh.
-# Updates the game data, finds the player's Quake paks, then execs the engine. Everything the game writes goes to
+# Updates the game data, finds the player's Quake paks, then runs the engine (crash log + Safe Mode retry on abnormal exit). Everything the game writes goes to
 # ~/Library/Application Support/BAKOQUAKE (-userdir), so the signed bundle stays read-only.
 # There is no terminal, so every message goes through a dialog or a notification.
 set -u
@@ -137,8 +137,35 @@ if [ -f "$SCAN" ] && xcode-select -p >/dev/null 2>&1; then
     mkdir -p "$USERDIR/BakersfieldQuake"
     FOUND="$(python3 "$SCAN" --gamedir "$USERDIR/BakersfieldQuake" --once --timeout-ms 1500 2>/dev/null | head -1)"
     case "$FOUND" in FOUND\ *) ARGS+=(+connect "${FOUND#FOUND }") ;; esac
-    # Keep lan_server.cfg fresh until the game exits (exec below keeps this PID), so F3 works.
-    python3 "$SCAN" --gamedir "$USERDIR/BakersfieldQuake" --pid $$ >/dev/null 2>&1 &
 fi
 
-exec "$APP/MacOS/darkplaces-sdl" "${ARGS[@]}" "$@"
+# 4. Run the engine and wait (no exec), so an abnormal exit keeps its log and offers Safe Mode.
+run_engine() {   # run_engine <extra engine args...>
+    "$APP/MacOS/darkplaces-sdl" "${ARGS[@]}" "$@" &
+    local pid=$!
+    # Keep lan_server.cfg fresh until the game exits, so F3 works.
+    if [ -f "$SCAN" ] && xcode-select -p >/dev/null 2>&1; then
+        python3 "$SCAN" --gamedir "$USERDIR/BakersfieldQuake" --pid "$pid" >/dev/null 2>&1 &
+    fi
+    wait "$pid"
+}
+
+run_engine "$@"
+RC=$?
+LOG="$USERDIR/BakersfieldQuake/bq_game.log"
+if [ "$RC" -ne 0 ] && [ -f "$LOG" ]; then
+    cp -f "$LOG" "$USERDIR/BakersfieldQuake/bq_game_crash.log" 2>/dev/null
+    [ "$TIER" = safemode ] && { alert "BAKOQUAKE crashed" "Exit code $RC, in Safe Mode. Log: $USERDIR/BakersfieldQuake/bq_game_crash.log"; exit "$RC"; }
+    BTN="$(osascript - "$RC" "$USERDIR/BakersfieldQuake/bq_game_crash.log" <<'EOF2' 2>/dev/null
+on run argv
+    button returned of (display alert "BAKOQUAKE exited abnormally" message "Exit code " & (item 1 of argv) & ". Crash log saved to " & (item 2 of argv) as critical buttons {"Close", "Retry in Safe Mode"} default button 2)
+end run
+EOF2
+)"
+    if [ "$BTN" = "Retry in Safe Mode" ]; then
+        mv -f "$LOG" "$USERDIR/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
+        run_engine "$@" +exec safemode.cfg
+        RC=$?
+    fi
+fi
+exit "$RC"
