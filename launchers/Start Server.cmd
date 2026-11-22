@@ -32,7 +32,7 @@ if not defined HAVEPAKS (
 
 rem Update: fetch only the files that changed in the newest release (set BQ_NO_UPDATE=1 to skip, e.g. offline at a LAN).
 rem All on one line: cmd reads a running script from disk, so when files changed (exit 3) the updated launcher restarts; exit 4 cancels launch.
-if exist "%ROOT%\tools\bq-update.exe" ( "%ROOT%\tools\bq-update.exe" --launch --root "%ROOT%" & (if errorlevel 4 (if not errorlevel 5 (popd & exit /b 0)) else if errorlevel 3 (popd & "%~f0" %*)) )
+if exist "%ROOT%\Update.exe" ( "%ROOT%\Update.exe" --launch --root "%ROOT%" & (if errorlevel 4 (if not errorlevel 5 (popd & exit /b 0)) else if errorlevel 3 (popd & "%~f0" %*)) ) else if exist "%ROOT%\tools\bq-update.exe" ( "%ROOT%\tools\bq-update.exe" --launch --root "%ROOT%" & (if errorlevel 4 (if not errorlevel 5 (popd & exit /b 0)) else if errorlevel 3 (popd & "%~f0" %*)) )
 
 rem Start Menu and Desktop shortcuts (tools\install-shortcuts.ps1). The folder they point at is kept in shortcut-root.txt,
 rem so PowerShell only runs on first launch or after the package moved (or after v2 shortcut migration). A failure never stops the launch.

@@ -30,16 +30,18 @@ try {
     }
     $ico = Join-Path $Root 'tools\bakoquake.ico'
     $icon = if (Test-Path -LiteralPath $ico) { "$ico,0" } else { "$playTarget,0" }
+    $updIco = Join-Path $Root 'tools\bakoquake-update.ico'
+    $updIcon = if (Test-Path -LiteralPath $updIco) { "$updIco,0" } elseif (Test-Path -LiteralPath $updateExe) { "$updateExe,0" } else { $icon }
 
     $wsh = New-Object -ComObject WScript.Shell
     $shell = New-Object -ComObject Shell.Application
-    function New-Shortcut([string]$Path, [string]$Target, [int]$Style, [string]$Description, [string]$Arguments = '') {
+    function New-Shortcut([string]$Path, [string]$Target, [int]$Style, [string]$Description, [string]$Arguments = '', [string]$IconLoc = $icon) {
         $lnk = $wsh.CreateShortcut($Path)
         $lnk.TargetPath = $Target
         $lnk.Arguments = $Arguments
         $lnk.WorkingDirectory = $Root
         $lnk.WindowStyle = $Style
-        $lnk.IconLocation = $icon
+        $lnk.IconLocation = $IconLoc
         $lnk.Description = $Description
         $lnk.Save()
         # WScript.Shell squeezes paths through the ANSI code page (an L-stroke in a folder name becomes a plain L and the
@@ -48,7 +50,7 @@ try {
         $link.Path = $Target
         $link.Arguments = $Arguments
         $link.WorkingDirectory = $Root
-        $link.SetIconLocation(($icon -replace ',0$', ''), 0)
+        $link.SetIconLocation(($IconLoc -replace ',0$', ''), 0)
         $link.Save()
     }
 
@@ -70,12 +72,12 @@ try {
         $updArgs = "--standalone --root `"$Root`""
     }
     if ($updTarget) {
-        New-Shortcut (Join-Path $menu 'Update BAKOQUAKE.lnk') $updTarget 1 'Check for and install BAKOQUAKE updates' $updArgs
+        New-Shortcut (Join-Path $menu 'Update BAKOQUAKE.lnk') $updTarget 1 'Check for and install BAKOQUAKE updates' $updArgs $updIcon
     }
     if ($desktop) {
         New-Shortcut (Join-Path $desktop 'BAKOQUAKE.lnk') $playTarget $playStyle 'Play BAKOQUAKE'
         if ($updTarget) {
-            New-Shortcut (Join-Path $desktop 'Update BAKOQUAKE.lnk') $updTarget 1 'Check for and install BAKOQUAKE updates' $updArgs
+            New-Shortcut (Join-Path $desktop 'Update BAKOQUAKE.lnk') $updTarget 1 'Check for and install BAKOQUAKE updates' $updArgs $updIcon
         }
     }
 

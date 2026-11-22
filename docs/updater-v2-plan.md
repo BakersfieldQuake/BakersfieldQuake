@@ -36,9 +36,9 @@ Builds on v1 (`docs/auto-update-plan.md`).
 
 ## Standalone "Update" Entry Points
 
-- **Windows:** Tiny root `Update.exe` (compiled in CI from `source/win/UpdateLauncher.cs` with `source/icons/bakoquake.ico`, no console window) spawning `tools\bq-update.exe --standalone --root <ROOT>`. `tools/install-shortcuts.ps1` adds **Update BAKOQUAKE** to Start Menu (`Programs\BAKOQUAKE`) and Desktop.
-- **Linux:** Root `launchers/Update.sh` running `python3 "$ROOT/tools/bq_update.py" --standalone --root "$ROOT"`. `tools/install-shortcuts.sh` installs `bakoquake-update.desktop` to `~/.local/share/applications/` and the Desktop.
-- **macOS:** Signed & notarized `Update BAKOQUAKE.app` next to `BAKOQUAKE.app` inside `BAKOQUAKE-macos-arm64.dmg` (`source/mac/update_launcher.sh` -> invokes `BAKOQUAKE.app/Contents/MacOS/bq-update --standalone`).
+- **Windows:** Dedicated `Update.exe` directly in the `BAKOQUAKE/` package root (PyInstaller freeze of `tools/bq_update.py` with dedicated green sync icon `source/icons/bakoquake-update.ico`, `--noconsole`). Double-clicking runs `--standalone` automatically; `Play.cmd` / `Start Server.cmd` call `Update.exe --launch`. `tools/install-shortcuts.ps1` adds **Update BAKOQUAKE** (using `bakoquake-update.ico`) to Start Menu (`Programs\BAKOQUAKE`) and Desktop.
+- **Linux:** Root `launchers/Update.sh` running `python3 "$ROOT/tools/bq_update.py" --standalone --root "$ROOT"`. `tools/install-shortcuts.sh` installs `bakoquake-update.desktop` (with `bakoquake-update-256.png`) to `~/.local/share/applications/` and the Desktop.
+- **macOS:** Signed & notarized `Update BAKOQUAKE.app` (with dedicated `bakoquake-update.icns`) right next to `BAKOQUAKE.app` inside `BAKOQUAKE-macos-arm64.dmg` (`source/mac/update_launcher.sh` -> invokes `BAKOQUAKE.app/Contents/MacOS/bq-update --standalone`).
 
 *(Shortcut migration marker in Windows `Play.cmd` / `Start Server.cmd` and Linux `install-shortcuts.sh` is bumped to `v2|<ROOT>` so existing installs receive the new **Update BAKOQUAKE** shortcuts automatically on their first launch after updating.)*
 

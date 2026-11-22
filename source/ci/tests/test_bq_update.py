@@ -426,6 +426,14 @@ class UpdaterTest(unittest.TestCase):
         cached = self.state()["cache"]["BakersfieldQuake/progs.dat"]
         self.assertEqual(cached[2], hashlib.sha256(V1["BakersfieldQuake/progs.dat"]).hexdigest())
 
+    def test_legacy_tools_updater_cleaned_up_on_windows(self):
+        legacy = self.root / "tools" / "bq-update.exe"
+        legacy.parent.mkdir(parents=True, exist_ok=True)
+        legacy.write_bytes(b"old v1 updater")
+        self.run_updater()
+        if os.name == "nt":
+            self.assertFalse(legacy.exists())
+
     def test_no_update_env(self):
         os.environ["BQ_NO_UPDATE"] = "1"
         try:

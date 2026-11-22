@@ -193,7 +193,7 @@ install -m 755 "$PYI/dist/bq-update" "$C/MacOS/bq-update"
 # and mac-inputs lets bq-update detect when a newer release shipped a new engine/bundle requiring a DMG update.
 echo "$TAG" >"$C/Resources/release-tag"
 if [ -z "${MAC_INPUTS:-}" ] && command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    MAC_INPUTS="$(cd "$ROOT" && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
+    MAC_INPUTS="$(cd "$ROOT" && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png source/icons/bakoquake-update-256.png | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
 fi
 echo "${MAC_INPUTS:-$TAG}" >"$C/Resources/mac-inputs"
 # Real files plus their relative symlinks (libvorbis.dylib -> libvorbis.0.dylib etc.), so the names the engine
@@ -237,11 +237,19 @@ cat >"$C/Info.plist" <<EOF
 EOF
 plutil -lint "$C/Info.plist" >/dev/null
 
-# Assemble companion Update BAKOQUAKE.app (shares the signed updater inside BAKOQUAKE.app).
+# Assemble companion Update BAKOQUAKE.app (shares the signed updater inside BAKOQUAKE.app, with its own icon).
 UC="$UPD_APP/Contents"
 mkdir -p "$UC/MacOS" "$UC/Resources"
 install -m 755 "$HERE/update_launcher.sh" "$UC/MacOS/UpdateBAKOQUAKE"
-cp "$C/Resources/bakoquake.icns" "$UC/Resources/bakoquake.icns"
+UPD_ICONSET="$WORK/bakoquake-update.iconset"
+rm -rf "$UPD_ICONSET"; mkdir -p "$UPD_ICONSET"
+UPD_PNG="$ROOT/source/icons/bakoquake-update-256.png"
+[ -f "$UPD_PNG" ] || UPD_PNG="$ROOT/source/icons/bakoquake-256.png"
+for s in 16 32 128 256 512; do
+    sips -z $s $s "$UPD_PNG" --out "$UPD_ICONSET/icon_${s}x${s}.png" >/dev/null
+    sips -z $((s*2)) $((s*2)) "$UPD_PNG" --out "$UPD_ICONSET/icon_${s}x${s}@2x.png" >/dev/null
+done
+iconutil -c icns "$UPD_ICONSET" -o "$UC/Resources/bakoquake-update.icns"
 cat >"$UC/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -251,7 +259,7 @@ cat >"$UC/Info.plist" <<EOF
     <key>CFBundleName</key><string>Update BAKOQUAKE</string>
     <key>CFBundleDisplayName</key><string>Update BAKOQUAKE</string>
     <key>CFBundleExecutable</key><string>UpdateBAKOQUAKE</string>
-    <key>CFBundleIconFile</key><string>bakoquake</string>
+    <key>CFBundleIconFile</key><string>bakoquake-update</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
     <key>CFBundleVersion</key><string>$VERSION</string>

@@ -15,19 +15,19 @@ Steps to follow:
 1. Find my existing BAKOQUAKE folder on this machine (check Desktop, Downloads, C:\Games, ~/Games, or on macOS /Applications/BAKOQUAKE.app whose game data clone lives at "~/Library/Application Support/BAKOQUAKE/game"). Confirm BakersfieldQuake/bakersfield.pk3 and quake15/q15.pk3 exist there so we don't accidentally do a full download into an empty folder.
 
 2. Check which updater is currently installed:
-   - Windows: "<ROOT>\tools\bq-update.exe" --version (or check "<ROOT>\tools\bq_update.py").
+   - Windows: "<ROOT>\Update.exe" --version (or legacy "<ROOT>\tools\bq-update.exe" --version, or "<ROOT>\tools\bq_update.py").
    - Linux / Python available: python3 "<ROOT>/tools/bq_update.py" --version.
    - If the installed updater is still v1 (or missing), grab ONLY the updater script from main first:
      https://raw.githubusercontent.com/BakersfieldQuake/BakersfieldQuake/main/tools/bq_update.py
-     (If you're on Windows without Python, you can instead run the existing "<ROOT>\tools\bq-update.exe" --root "<ROOT>" first — it will fetch only the changed files from the latest GitHub release, including the new bq-update.exe, Update.exe, and updated launchers.)
+     (If you're on Windows without Python, you can instead run the existing "<ROOT>\Update.exe" --root "<ROOT>" --no-gui or legacy "<ROOT>\tools\bq-update.exe" --root "<ROOT>" first — it will fetch only the changed files from the latest GitHub release, including the new root Update.exe and updated launchers.)
 
 3. Run the differential updater in-place against <ROOT>:
    - Windows/Linux (with Python 3):
      python3 "<ROOT>/tools/bq_update.py" --root "<ROOT>" --no-gui
      (If GitHub fails/throttles, pass --manifest-url https://bakersfield.larrywew.fun/updates/manifest-<platform>.json.)
    - Windows (no Python, using frozen exe):
-     "<ROOT>\tools\bq-update.exe" --root "<ROOT>" --no-gui
-     (Note: exit code 3 means files were updated cleanly; exit code 0 means already up to date. Wait for self-replacement if bq-update.exe itself was updated, then run once more with --check.)
+     "<ROOT>\Update.exe" --root "<ROOT>" --no-gui
+     (Note: exit code 3 means files were updated cleanly; exit code 0 means already up to date. Wait for self-replacement if Update.exe itself was updated, then run once more with --check.)
    - macOS (.app):
      Run /Applications/BAKOQUAKE.app (or `Update BAKOQUAKE.app` once installed). If a new engine/DMG is required, the v2 updater will prompt to download and open the DMG; otherwise it patches "~/Library/Application Support/BAKOQUAKE/game" in-place using manifest-macos-app.json. If running from CLI before the new DMG is installed, pass:
      --root "$HOME/Library/Application Support/BAKOQUAKE/game" --platform macos-app --no-gui

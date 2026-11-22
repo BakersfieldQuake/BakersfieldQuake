@@ -48,6 +48,11 @@ bq_install_shortcuts() (
     update="bash $(_bq_desktop_exec_arg "$root/Update.sh")"
     path="$(_bq_desktop_string "$root")"
     icon="$(_bq_desktop_string "$root/tools/bakoquake-256.png")"
+    if [ -f "$root/tools/bakoquake-update-256.png" ]; then
+        update_icon="$(_bq_desktop_string "$root/tools/bakoquake-update-256.png")"
+    else
+        update_icon="$icon"
+    fi
 
     tmp="$apps/.bakoquake.desktop.$$"
     cat >"$tmp" <<EOF || { rm -f "$tmp"; exit 1; }
@@ -98,7 +103,7 @@ GenericName=Game updater
 Comment=Check for and install BAKOQUAKE updates
 Exec=$update
 Path=$path
-Icon=$icon
+Icon=$update_icon
 Terminal=false
 Categories=Game;Utility;
 Keywords=quake;bakersfield;update;

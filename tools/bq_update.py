@@ -74,9 +74,12 @@ def default_platform():
 
 
 def default_root():
-    # tools/bq_update.py or tools/bq-update[.exe] -> package root is one folder up.
+    # Update.exe in package root -> its parent is the package root.
+    # tools/bq_update.py (or legacy tools/bq-update.exe) -> package root is one folder up.
     me = Path(sys.executable if getattr(sys, "frozen", False) else __file__).resolve()
-    return me.parent.parent
+    if me.parent.name.lower() == "tools":
+        return me.parent.parent
+    return me.parent
 
 
 def _ensure_streams(attach_console=False):
@@ -572,6 +575,14 @@ class Updater:
             "cache": {p: cache[p] for p in m["files"] if p in cache},
             "updater": VERSION,
         })
+        # Clean up legacy v1 tools/bq-update.exe after migrating to root Update.exe (v1 couldn't unlink itself while running).
+        if os.name == "nt" and "tools/bq-update.exe" not in m["files"]:
+            legacy = self.root / "tools" / "bq-update.exe"
+            if legacy.is_file():
+                try:
+                    legacy.unlink()
+                except OSError:
+                    pass
 
     # ---- apply -------------------------------------------------------------------------------------------------
     def _download_single(self, rel, dest, f, completed_bytes, progress_cb, prefer_vps, vps_base):
@@ -1425,13 +1436,19 @@ class TkUpdateUI(UpdateUI):
     @staticmethod
     def _load_icon(root, pkg_root):
         try:
-            ico = Path(pkg_root) / "tools" / "bakoquake.ico"
-            png = Path(pkg_root) / "tools" / "bakoquake-256.png"
-            if os.name == "nt" and ico.is_file():
-                root.iconbitmap(str(ico))
-            elif png.is_file():
-                img = root.tk.call("image", "create", "photo", "-file", str(png))
-                root.iconphoto(True, img)
+            tools_dir = Path(pkg_root) / "tools"
+            if os.name == "nt":
+                for name in ("bakoquake-update.ico", "bakoquake.ico"):
+                    ico = tools_dir / name
+                    if ico.is_file():
+                        root.iconbitmap(str(ico))
+                        return
+            for name in ("bakoquake-update-256.png", "bakoquake-256.png"):
+                png = tools_dir / name
+                if png.is_file():
+                    img = root.tk.call("image", "create", "photo", "-file", str(png))
+                    root.iconphoto(True, img)
+                    return
         except Exception:
             pass
 
@@ -1480,6 +1497,9 @@ def main(argv=None):
     if a.version:
         print(f"bq-update {VERSION}")
         return 0
+    # Double-clicking frozen Update.exe with no flags opens the standalone updater GUI.
+    if getattr(sys, "frozen", False) and not any((a.check, a.launch, a.standalone, a.no_gui, a.manifest_url)):
+        a.standalone = True
     if os.environ.get("BQ_NO_UPDATE") and not a.standalone:
         return 0
 
