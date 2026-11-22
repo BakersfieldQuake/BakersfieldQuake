@@ -1492,6 +1492,7 @@ void() PutClientInServer =
 	self.items = (self.items | IT_LASER_CANNON);		// the CCC gun (key 8): every player has it, it is in no deathmatch map
 	self.skypad_safe_t = 0;
 	self.skypad_cool_t = 0;
+	PC_ResetPlayer(self);
 	// BM: skypad_vel_sent is NOT cleared here any more (ClientConnect does it once per map): clearing it on every spawn re-sent sv_maxvelocity each respawn
 	if (deathmatch)
 	{
@@ -3837,6 +3838,7 @@ void() ClientConnect =
 	self.bm_dm_gun_alt = 0;
 	self.skypad_safe_t = 0;
 	self.skypad_cool_t = 0;
+	PC_ResetPlayer(self);
 	self.skypad_vel_sent = FALSE;
 	ClientInRankings();
 	// an observer stays one across map changes: parm11 is set by SetChangeParms (the engine loads
@@ -3886,6 +3888,7 @@ void() ClientDisconnect =
 	MMTank_ClientGone();	// a driver who drops leaves Mega Man Tank parked (mm_tank.qc)
 	Underdog_ClearFx(self);		// the leader's glow / beacon / x-ray would stay behind
 	Underdog_Reset(self);		// bots reuse their slot: the next one must not inherit this streak
+	PC_ResetPlayer(self);
 	FD_Reset(self);				// a Rob Dob pilot's head would hum on, orphaned
 	BM_ClientGone(self);		// NetSend PCs, armed pickles, Mega Men: they must not shoot on in an empty (or reused) slot's name
 	BM_Radar_ClientGone(self);

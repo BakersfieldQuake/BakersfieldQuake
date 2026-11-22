@@ -889,6 +889,7 @@ void() StartFrame =
 {
 	BotFrame();
 	BM_StartFrame();
+	PC_Frame();
 	CheckSplash();
 	teamplay = autocvar_teamplay;
 	skill = autocvar_skill;

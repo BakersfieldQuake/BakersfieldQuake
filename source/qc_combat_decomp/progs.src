@@ -33,6 +33,7 @@ bicycles_defs.qc
 eric_cannon_defs.qc
 mm_tank_defs.qc
 bm_minimap_defs.qc
+proj_collide_defs.qc
 waypoints.map_dm1.qc
 waypoints.map_dm2.qc
 waypoints.map_dm3.qc
@@ -140,6 +141,7 @@ bm_fun.qc
 skypad.qc
 lol_props.qc
 bm_bots.qc
+proj_collide.qc
 world.qc
 gibs_precache.qc
 splash.qc

@@ -339,6 +339,7 @@ void() BM_LifeFrame =
 	if (time >= self.jb_cooldown_t)								tmask = tmask | 64;
 	if (self.ud_blueshell)										tmask = tmask | 128;
 	if (self.veh_van != world || self.veh_ride != world || RocketRider_Flying (self))		tmask = tmask | 256;
+	if (Veh_Driving (self) || RocketRider_Flying (self))									tmask = tmask | 512;
 	self.bm_st_toymask = tmask;
 	self.bm_st_toycd = max (0, ceil (self.jb_cooldown_t - time));
 
@@ -594,6 +595,9 @@ void() BM_Stats =
 	clientstat (106, 2, ky_st_tx);			// Pocket Kyle HUD: targeted bird world X
 	clientstat (107, 2, ky_st_ty);			// Pocket Kyle HUD: targeted bird world Y
 	clientstat (108, 2, ky_st_tz);			// Pocket Kyle HUD: targeted bird world Z
+	clientstat (109, 2, gk_st_mode);		// Go-Kart rocket HUD: 0=off, 1=charging, 2=armed, 3=low nitro, 4=reloading
+	clientstat (110, 2, gk_st_prog);		// Go-Kart rocket HUD: 0..100 progress
+	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
 };
 
 float() BM_CountPlayers =
@@ -1209,7 +1213,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -1557,6 +1561,9 @@ void() BM_ObsFrame =
 	self.mmt_st_active = 0;
 	self.jb_st_active = 0;
 	self.ky_st_mode = 0;
+	self.gk_st_mode = 0;
+	self.gk_st_prog = 0;
+	self.gk_st_nitro = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;
 	self.bm_st_playermask = bm_playermask_cache;

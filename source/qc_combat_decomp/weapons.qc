@@ -1760,9 +1760,12 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 	{
 		direction = (dir + ((crandom() * spread_x) * v_right)) + ((crandom() * spread_y) * v_up);
 		traceline(src, (src + (direction * 2048)), FALSE, self);
-		if ((trace_fraction != 1))
+		if (!PC_TraceIntercept(self, src, trace_endpos, (pdmg + crit)))
 		{
-			TraceAttack((pdmg + crit), direction);
+			if ((trace_fraction != 1))
+			{
+				TraceAttack((pdmg + crit), direction);
+			}
 		}
 		shotcount = shotcount - 1;
 		if ((trace_ent.classname == "monster_reiver"))
@@ -2322,6 +2325,11 @@ void() T_MissileTouch =
 	{
 		return;
 	}
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair(self, other);
+		return;
+	}
 	if ((pointcontents(self.origin) == CONTENT_SKY))
 	{
 		remove(self);
@@ -2387,6 +2395,8 @@ void() T_MissileTouch =
 		}
 	}
 	damg = 135 + (random() * 20);
+	if (self.gk_kart != world)
+		damg = 90 + (random() * 15);
 	if ((autocvar_explosiondebris == 0))
 	{
 		if ((other.health > 0))
@@ -2480,6 +2490,10 @@ void() T_MissileTouch =
 	{
 		T_RadiusDamage(self, self.owner, 49, world);
 	}
+	else if (self.gk_kart != world)
+	{
+		T_RadiusDamage(self, self.owner, 100, other);
+	}
 	else
 	{
 		T_RadiusDamage(self, self.owner, (autocvar_player_rocket_radius + 15), other);
@@ -2521,6 +2535,11 @@ void() T_MissileTouch_chton =
 
 	if ((other == self.owner))
 	{
+		return;
+	}
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair(self, other);
 		return;
 	}
 	if ((pointcontents(self.origin) == CONTENT_SKY))
@@ -2680,6 +2699,7 @@ void() W_FireRocket =
 			}
 		}
 	}
+	PC_Register(missile, PC_KIND_LIGHT, 20);
 };
 
 void(vector p1, vector p2, entity from, float damage) LightningDamage =
@@ -2705,6 +2725,8 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 	e2 = world;
 	e1 = world;
 	traceline(p1, p2, FALSE, self);
+	if (PC_TraceIntercept(from, p1, trace_endpos, damage))
+		return;
 	if (trace_ent.takedamage)
 	{
 		if ((autocvar_shootablebuttonsandsecrets != 0))
@@ -3095,6 +3117,11 @@ void() GrenadeTouch =
 	{
 		return;
 	}
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair(self, other);
+		return;
+	}
 	if ((other.inflamed == 1))
 	{
 		other.health = -100;
@@ -3242,6 +3269,7 @@ void() W_FireGrenade =
 			}
 		}
 	}
+	PC_Register(missile, PC_KIND_LIGHT, 20);
 };
 
 void() ProximityExplode =
@@ -3666,6 +3694,8 @@ void(vector org, vector dir) launch_spike =
 			newmis.velocity = ((dir * self.bulletspeed) * 0.666667);
 		}
 	}
+	if (self.classname == "player")
+		PC_RegisterSpike(newmis);
 };
 
 void() W_FireSuperSpikes =
@@ -6678,8 +6708,10 @@ void() W_WeaponFrame =
 	LtGun_PlayerFrame();	// the laptop's held model and the shock (ltgun.qc)
 	if (self.deadflag || (self.health <= 0))
 	{
+		PC_PlayerFrame();
 		return;	// BM: a hook above killed us (the laptop zap, goo, milk): a shot from here replaced the death animation's think, PlayerDead never ran and the player stayed dead for good
 	}
+	PC_PlayerFrame();
 	if (FD_Frame())
 	{
 		self.jb_st_status = 0;	// JohnBird_DebuffFrame does not run here: don't leave SLOWED/BURNING frozen on the HUD

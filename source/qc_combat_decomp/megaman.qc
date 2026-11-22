@@ -1386,6 +1386,11 @@ void() MegaMan_Touch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
@@ -1418,6 +1423,7 @@ void() MegaMan_ShotPop =
 
 void() MegaMan_Shot =
 {
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.think = MegaMan_ShotPop;
@@ -1505,6 +1511,7 @@ void() MegaMan_Launch =
 	// start in front of the player, but not inside a wall
 	traceline (self.origin + '0 0 12', self.origin + '0 0 8' + v_forward * 38 + v_right * 8, TRUE, self);
 	setorigin (mm, trace_endpos);
+	PC_Register (mm, PC_KIND_HEAVY, 28);
 #ifdef COMBATPLUS
 	Underdog_BlueShell (mm);
 #endif

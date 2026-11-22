@@ -87,6 +87,10 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	{
 		return;
 	}
+	if ((inflictor != world) && (inflictor.pc_blast_ignore == targ))
+	{
+		return;
+	}
 	if ((targ.jb_vehicle != world))
 	{
 		if (((inflictor != world) && (targ.jb_vehicle.jb_last_inflictor == inflictor)) && (targ.jb_vehicle.jb_last_inflictor_t == time))

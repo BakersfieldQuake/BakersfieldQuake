@@ -700,6 +700,7 @@ void() WC_DieNow =
 void() WC_Die =
 {
 	dprint ("wcannon: shot down\n");
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.velocity = '0 0 0';
@@ -712,6 +713,11 @@ void() WC_Touch =
 {
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (other.takedamage)
 		WC_Crash (other);
 };
@@ -795,7 +801,12 @@ void() WC_Think =
 		if (trace_fraction == 1)
 			break;
 		frac = trace_fraction;
-		if (trace_ent != world && trace_ent.takedamage)
+		if (trace_ent != world && trace_ent.pc_kind > PC_KIND_NONE)
+		{
+			if (PC_HandlePair (self, trace_ent))
+				return;
+		}
+		else if (trace_ent != world && trace_ent.takedamage)
 		{
 			WC_Crash (trace_ent);
 			return;
@@ -928,6 +939,7 @@ void(float c) WC_Fire =
 	p.think = WC_Think;
 	p.nextthink = time + 0.02;
 	p.wc_snd = time + WC_SCREAM_GAP;
+	PC_Register (p, PC_KIND_HEAVY, 32);
 	sound (p, CHAN_VOICE, "wcannon/wc_scream.wav", WC_SCREAM_VOL, ATTN_NORM);
 	FG_Snd (self, CHAN_WEAPON, "wcannon/wc_shoot.wav", 0.8, 1);
 	dprint (strcat ("wcannon: fire tier ", strcat (ftos (tier), strcat (" speed ", strcat (ftos (spd), "\n")))));

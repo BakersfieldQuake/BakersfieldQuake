@@ -758,6 +758,7 @@ void() KY_ProjDie =
 {
 	if (self.ky_done || self.ky_mode == KY_MODE_DYING)
 		return;
+	PC_NoteKilled (self, damage_attacker);
 	if (self.model != "progs/kyle_proj.spr32")
 	{
 		setmodel (self, "progs/kyle_proj.spr32");
@@ -882,6 +883,11 @@ void() KY_ProjTouch =
 		return;
 	if (other == self.owner && !autocvar_kyle_test)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		KY_Pop ();
@@ -1451,6 +1457,7 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 	k.touch = KY_ProjTouch;
 	k.think = KY_ProjThink;
 	k.nextthink = time + 0.03;
+	PC_Register (k, PC_KIND_HEAVY, 30);
 };
 
 // ---------------------------------------------------------------- player weapon controls

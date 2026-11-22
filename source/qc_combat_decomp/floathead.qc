@@ -536,6 +536,7 @@ void() FD_Pop =
 // shot down: Killed() calls this from inside T_Damage, maybe inside somebody's T_RadiusDamage, so go a moment later
 void() FD_Die =
 {
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.velocity = '0 0 0';
 	self.movetype = MOVETYPE_NONE;
@@ -658,6 +659,11 @@ void(entity p, entity h) FD_Touched =
 	local float		boom;
 
 	e = h.fd_hitent;
+	if (e && e != p && e.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (h, e);
+		return;
+	}
 	boom = FALSE;
 	if (e && e != p && e.health > 0 && e.takedamage && (e.classname == "player" || (e.flags & FL_MONSTER)))
 	{
@@ -961,6 +967,7 @@ void() FD_Launch =
 	h.traileffectnum = particleeffectnum ("fd_trail");
 	h.think = FD_HeadThink;
 	h.nextthink = time + 0.1;
+	PC_Register (h, PC_KIND_ROB, 30);
 	sound (h, CHAN_VOICE, "robhead/launch.wav", 0.85, ATTN_NORM);	// a little computer booting up, not a voice
 
 	self.fd_head = h;

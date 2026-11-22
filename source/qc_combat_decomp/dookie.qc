@@ -431,7 +431,9 @@ void(entity hit, vector norm, float is_ground) DK_Detonate =
 
 	blast_org = self.origin + norm * 6;
 	DK_SpawnSplatFX (self.origin, norm);
-	DK_Splatter (blast_org, norm, self.dk_charge);
+	DK_Splatter (blast_org, norm, self.pc_pinata ? 1.35 : self.dk_charge);
+	if (self.pc_pinata)
+		PC_DookiePinata (self, blast_org, self.pc_killer);
 	pointparticles (particleeffectnum ("dookie_boom"), blast_org, '0 0 0', 1);
 	FG_Snd (self, CHAN_VOICE, "dookie/dk_splat.wav", 1.0, 0.96 + random () * 0.08);
 	FG_Snd (self, CHAN_BODY, "dookie/dk_flies.wav", 0.78, 0.98 + random () * 0.06);
@@ -461,6 +463,8 @@ void() DK_ProjDie =
 {
 	// this runs inside the T_RadiusDamage loop of whatever shot it: blowing up here ran a second findradius, which rewrote
 	// .chain under that loop (players skipped or hit twice). Go off a moment later instead, as pickle.qc / megaman.qc do.
+	self.pc_pinata = TRUE;
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.think = DK_ProjDieThink;
@@ -474,6 +478,11 @@ void() DK_ProjTouch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);
@@ -586,6 +595,7 @@ void(float c) DK_Launch =
 	p.think = DK_ProjThink;
 	p.nextthink = time + 0.05;
 	p.dk_yell_t = time + 1.35;
+	PC_Register (p, PC_KIND_DOOKIE, 32);
 
 	FG_Snd (self, CHAN_WEAPON, "dookie/dk_fire.wav", 1.0, 1.0);
 	FG_Snd (p, CHAN_BODY, "dookie/dk_music.wav", 0.85, 1.0);

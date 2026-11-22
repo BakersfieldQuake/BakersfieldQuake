@@ -127,6 +127,8 @@ void() Sniper_Fire =
 	src = self.origin + v_forward * 10;
 	src_z = self.absmin_z + self.size_z * 0.7;
 	traceline (src, src + v_forward * SN_RANGE, FALSE, self);
+	if (PC_TraceIntercept (self, src, trace_endpos, self.sn_heat))
+		return;
 	if (trace_fraction == 1)
 		return;
 

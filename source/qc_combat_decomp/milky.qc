@@ -487,6 +487,11 @@ void() Milky_Vanish =
 
 void() Milky_Touch =
 {
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (Milky_IsEnemy (other))
 		Milky_Burst ();
 };
@@ -846,6 +851,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) Milky_Damage
 		bprint ("milky: hit for ", ftos (floor (damage)), ", ", ftos (floor (targ.milky_hp)), " left\n");
 	if (targ.milky_hp <= 0)
 	{
+		PC_NoteKilled (targ, attacker);
 		targ.enemy = attacker;
 		targ.takedamage = DAMAGE_NO;
 		targ.think = Milky_Burst;
@@ -1059,6 +1065,7 @@ void() Milky_Launch =
 	// quieter single-channel song, only audible when kinda close (MILKY_SONG_ATTN)
 	Milky_Snd (m, CHAN_VOICE, "milky/song.ogg", MILKY_SONG_VOL, MILKY_SONG_ATTN);
 	milky_count = milky_count + 1;
+	PC_Register (m, PC_KIND_HEAVY, 36);
 };
 
 // ---------------------------------------------------------------- every player, every frame

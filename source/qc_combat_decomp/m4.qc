@@ -297,16 +297,14 @@ void() M4_Press =
 	src = self.origin + self.view_ofs + (v_forward * 10);
 	ClearMultiDamage ();
 	traceline (src, src + dir * M4_RANGE, FALSE, self);
-	if (trace_fraction != 1)
+	dist = trace_fraction * M4_RANGE;
+	dmg = M4_DAMAGE;
+	if (dist > 1400)
+		dmg = max (M4_DAMAGE * 0.55, M4_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
+	if (!PC_TraceIntercept (self, src, trace_endpos, dmg) && trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-		{
-			dist = trace_fraction * M4_RANGE;
-			dmg = M4_DAMAGE;
-			if (dist > 1400)
-				dmg = max (M4_DAMAGE * 0.55, M4_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
 			TraceAttack (dmg, dir);
-		}
 		else
 			M4_WallImpact (dir);
 	}
