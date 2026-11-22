@@ -630,6 +630,9 @@ jobs:
               n_qdesk = l0_txt.count('"mdl" "progs/qdesk_b.md3"')
               if n_qdesk != 18:
                   errors.append(f"bakersfielddowntown.bsp expected 18 progs/qdesk_b.md3 LAN desks, found {n_qdesk}")
+              n_qdesk_cls = l0_txt.count('"classname" "misc_lan_quakedesk"')
+              if n_qdesk_cls != 18:
+                  errors.append(f"bakersfielddowntown.bsp expected 18 misc_lan_quakedesk LAN desks, found {n_qdesk_cls}")
 
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:

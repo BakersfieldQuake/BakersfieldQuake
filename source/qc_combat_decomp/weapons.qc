@@ -725,6 +725,13 @@ void() W_FireAxe =
 				return;
 			}
 		}
+		if (trace_ent.lan_kind)
+		{
+			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+			sound(self, CHAN_WEAPON, SOUND_AXE_WOOD, 1, ATTN_NORM);
+			T_Damage(trace_ent, self, self, (autocvar_player_axe * (autocvar_berserkmode - berserkrand)));
+			return;
+		}
 		trace_ent.axhitme = 1;
 		SpawnBlood(org, VEC_ORIGIN, 20);
 		SpawnMeatSpray(((self.origin + (v_forward * 30)) + (v_up * -10)), ((v_right * -75) + (v_up * -10)));
@@ -1014,6 +1021,11 @@ void(vector org, vector vel, float damage) SpawnBlood =
 		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 		return;
 	}
+	if (trace_ent.lan_kind || other.lan_kind)
+	{
+		sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+		return;
+	}
 	if (trace_ent.classname == "npc_beach_uncle")
 	{
 		pointparticles (particleeffectnum ("mud_hit"), org, vel * 0.1, 1);
@@ -1078,7 +1090,7 @@ void() W_FireSaw =
 			self.chsaw_dir_z = 0;
 			self.chsaw_dir = normalize (self.chsaw_dir);
 		}
-		if (((trace_ent.classname == "func_breakable") || (trace_ent.classname == "light_fluoropost")))
+		if (((trace_ent.classname == "func_breakable") || (trace_ent.classname == "light_fluoropost") || (trace_ent.lan_kind > 0)))
 		{
 			sendParticle("TE_SUPERSPIKE", org, VEC_ORIGIN, 1, 0);
 		}
@@ -1138,7 +1150,7 @@ void() W_FireSaw =
 		{
 			trace_ent.velocity = (trace_ent.velocity * 0.5);
 		}
-		if (((trace_ent.classname != "func_breakable") && (trace_ent.classname != "light_fluoropost")))
+		if (((trace_ent.classname != "func_breakable") && (trace_ent.classname != "light_fluoropost") && !trace_ent.lan_kind))
 		{
 			sound7(self, CHAN_WEAPON, "weapons/sawguts.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
 		}
@@ -1277,6 +1289,12 @@ void(float damage, vector dir) TraceAttack =
 		{
 			trace_ent.bike_hit_pos = trace_endpos;
 			trace_ent.bike_hit_t = time;
+			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+			AddMultiDamage(trace_ent, damage);
+			return;
+		}
+		if (trace_ent.lan_kind)
+		{
 			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
 			AddMultiDamage(trace_ent, damage);
 			return;
@@ -2757,7 +2775,14 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 		}
 		if (((trace_ent.classname != "ShalrathMissile") && (trace_ent.dodge_finished < time)))
 		{
-			particle(trace_endpos, '0 0 100', 225, damage);
+			if (trace_ent.lan_kind)
+			{
+				sendParticle("Lightning_gun_impact", trace_endpos, VEC_ORIGIN, 1, 0);
+			}
+			else
+			{
+				particle(trace_endpos, '0 0 100', 225, damage);
+			}
 		}
 		T_Damage(trace_ent, from, from, damage);
 		if ((self.classname == "player"))
@@ -2829,14 +2854,28 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 	traceline((p1 + f), (p2 + f), FALSE, self);
 	if (((trace_ent != e1) && trace_ent.takedamage))
 	{
-		particle(trace_endpos, '0 0 100', 225, (damage * 2));
+		if (trace_ent.lan_kind)
+		{
+			sendParticle("Lightning_gun_impact", trace_endpos, VEC_ORIGIN, 1, 0);
+		}
+		else
+		{
+			particle(trace_endpos, '0 0 100', 225, (damage * 2));
+		}
 		T_Damage(trace_ent, from, from, damage);
 	}
 	e2 = trace_ent;
 	traceline((p1 - f), (p2 - f), FALSE, self);
 	if ((((trace_ent != e1) && (trace_ent != e2)) && trace_ent.takedamage))
 	{
-		particle(trace_endpos, '0 0 100', 225, (damage * 2));
+		if (trace_ent.lan_kind)
+		{
+			sendParticle("Lightning_gun_impact", trace_endpos, VEC_ORIGIN, 1, 0);
+		}
+		else
+		{
+			particle(trace_endpos, '0 0 100', 225, (damage * 2));
+		}
 		T_Damage(trace_ent, from, from, damage);
 	}
 };
@@ -4242,6 +4281,13 @@ void() spike_touch =
 				T_Damage(other, self, self.owner, ((autocvar_player_nailgun * 2.2) + random()));
 			}
 		}
+		if (other.lan_kind)
+		{
+			sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
+			T_Damage(other, self, self.owner, autocvar_player_nailgun);
+			remove(self);
+			return;
+		}
 		if ((other.classname == "monster_spider"))
 		{
 			resist = autocvar_spider_attack_resistance * 0.01;
@@ -4616,6 +4662,13 @@ void() superspike_touch =
 				remove(self);
 				return;
 			}
+		}
+		if (other.lan_kind)
+		{
+			sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
+			T_Damage(other, self, self.owner, autocvar_player_supernailgun);
+			remove(self);
+			return;
 		}
 		if ((other.classname == "monster_spider"))
 		{

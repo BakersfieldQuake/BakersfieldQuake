@@ -26,10 +26,12 @@ float	LAN_KIND_MONITOR	= 1;
 float	LAN_KIND_PC			= 2;
 float	LAN_KIND_CHAIR		= 3;
 float	LAN_KIND_TABLE		= 4;
+float	LAN_KIND_QUAKEDESK	= 5;
 
 var float	autocvar_lan_prop_respawn	= 45;	// > 0: seconds before destroyed map LAN prop respawns in DM (0 = stay destroyed)
 
 float	lan_precached;
+float	lan_debris_precached;
 float	lan_inflicting;
 float	lan_debris_count;
 
@@ -44,3 +46,4 @@ float	lan_debris_count;
 
 void() LanProps_Precache;
 void() LanProps_Impulse;
+void() misc_lan_quakedesk;

@@ -135,7 +135,10 @@ void(entity hitent, vector org, vector dir, float tier, float hitfloor) Hammer_H
 		// a monster one hit from death takes double: it gibs (Bonk's overkill)
 		if ((hitent.flags & FL_MONSTER) && hitent.health <= dmg)
 		{
-			SpawnBlood (org, dir, dmg * 2);
+			if (hitent.lan_kind)
+				sendParticle ("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+			else
+				SpawnBlood (org, dir, dmg * 2);
 			T_Damage (hitent, self, self, dmg * 2);
 			if (random () < 0.5)
 				Hammer_Snd ("hammer/axhit1.wav", 0.65);
@@ -180,7 +183,10 @@ void(entity hitent, vector org, vector dir, float tier, float hitfloor) Hammer_H
 			hitent.velocity = toss;
 			hitent.flags = hitent.flags - (hitent.flags & FL_ONGROUND);
 		}
-		SpawnBlood (org, dir, dmg);
+		if (hitent.lan_kind)
+			sendParticle ("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+		else
+			SpawnBlood (org, dir, dmg);
 		T_Damage (hitent, self, self, dmg);
 		self.hm_result = Hammer_FrameHit (tier);
 		Hammer_HitSound ();

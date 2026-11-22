@@ -6,11 +6,11 @@ Preserves 100% of world/brush models, baked lightmaps (.lit), PVS, and all other
 entities. Uses only the Python standard library and writes atomically so it is safe
 for local patching, CI (`build-zip.yml`), and in-place VPS updates.
 
-Note on `misc_model` skin selection (`source/qc_combat_decomp/misc_soc.qc`):
-  `misc_model` sets `self.skin = self.pos2_z` (ignoring any `"skin"` key).
+Note on `misc_lan_quakedesk` (`source/qc_combat_decomp/lan_props.qc`):
   Passing `"pos2" "0 0 0"` / `"0 0 1"` / `"0 0 2"` selects `qdesk_b.md3_0.skin`
-  (E2M1 SSG), `_1.skin` (Start Hall SG), and `_2.skin` (DM3 RL) cleanly on one MD3.
-  `"spawnflags" "2"` (`MISC_COLLISION`) enables `SOLID_BBOX` matching frame-0 bounds.
+  (E2M1 SSG), `_1.skin` (Start Hall SG), and `_2.skin` (DM3 RL) cleanly on one MD3,
+  and `"classname" "misc_lan_quakedesk"` wires `SOLID_BBOX` + `DAMAGE_AIM` + sparks +
+  flying CRT/PC/keyboard/oak debris + domino explosions + 45s DM respawn.
 
 Usage:
   python -I source/mm_tools/patch_dagnys_lan_bsp.py [path/to/bakersfielddowntown.bsp] [--check-idempotent]
@@ -29,6 +29,7 @@ HERE = Path(__file__).resolve().parent
 MOD = HERE.parent.parent
 DEFAULT_BSP = MOD / "maps" / "bakersfielddowntown.bsp"
 
+QDESK_CLASSNAME = "misc_lan_quakedesk"
 QDESK_MDL = "progs/qdesk_b.md3"
 QDESK_PREFIX = "progs/qdesk_"
 FLOOR_Z = "174.2"  # +0.2 QU above Z=174 floor plane so DarkPlaces lightpoint samples cleanly above floor
@@ -67,11 +68,10 @@ def build_lan_entities() -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     for _label, x, y, yaw, skin in LAN_DESKS:
         ent: dict[str, str] = {
-            "classname": "misc_model",
+            "classname": QDESK_CLASSNAME,
             "origin": f"{x} {y} {FLOOR_Z}",
             "angles": f"0 {yaw} 0",
             "mdl": QDESK_MDL,
-            "spawnflags": "2",
         }
         if skin > 0:
             ent["pos2"] = f"0 0 {skin}"
@@ -98,7 +98,7 @@ def patch_bsp(bsp_path: Path) -> tuple[str, int, int]:
     removed = 0
     for m in re.finditer(r"\{([^}]*)\}", ent_txt):
         kv = dict(pat.findall(m.group(1)))
-        if kv.get("classname") == "misc_model" and kv.get("mdl", "").startswith(QDESK_PREFIX):
+        if kv.get("classname") in ("misc_model", QDESK_CLASSNAME) and kv.get("mdl", "").startswith(QDESK_PREFIX):
             removed += 1
             continue
         kept.append(m.group(0))
