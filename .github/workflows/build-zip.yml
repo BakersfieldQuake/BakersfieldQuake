@@ -34,7 +34,7 @@ on:
         required: false
         default: ""
       tag:
-        description: "Tag for the new release (empty = build-YYYYMMDD-<short sha>)"
+        description: "Tag for the new release (empty = v1.<run number>)"
         required: false
         default: ""
       engine_tag:
@@ -620,12 +620,12 @@ jobs:
 
       - name: Release tag
         run: |
-          tag="${NEW_TAG:-build-$(date -u +%Y%m%d)-${GITHUB_SHA::7}}"
+          tag="${NEW_TAG:-v1.${GITHUB_RUN_NUMBER}}"
           [ "$DRAFT" = true ] && tag="${tag}-draft"
           echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "Release tag: $tag"
           # Shown in game, bottom right (quake.rc: showdate + exec version.cfg), so a player can see an update landed.
-          # Kept short (date-sha): it is right-aligned and a longer string runs over the status bar.
+          # Kept short (v1.<run>): it is right-aligned and a longer string runs over the status bar.
           printf '// Written by build-zip.yml: the release this game data comes from.\nset showdate_format "%s"\n' "${tag#build-}" \
               > out/BAKOQUAKE/BakersfieldQuake/version.cfg
           cat out/BAKOQUAKE/BakersfieldQuake/version.cfg

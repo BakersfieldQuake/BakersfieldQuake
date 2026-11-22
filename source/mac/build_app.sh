@@ -179,8 +179,8 @@ PY
 "$PYI/dist/bq-update" --version >/dev/null || die "frozen updater --version failed"
 
 # --- assemble ------------------------------------------------------------------------------------------------
-VERSION="$(echo "$TAG" | sed -n 's/^build-\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/p')"
-[ -n "$VERSION" ] || VERSION="$(date -u +%Y.%m.%d)"   # custom tag without a build date
+VERSION="$(echo "$TAG" | sed -n 's/^v\([0-9][0-9.]*\).*/\1/p; s/^build-\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/p' | head -1)"
+[ -n "$VERSION" ] || VERSION="$(date -u +%Y.%m.%d)"   # custom tag without a version or build date
 step "assemble BAKOQUAKE.app $VERSION"
 rm -rf "$APP" "$UPD_APP" "$DMG"
 C="$APP/Contents"
