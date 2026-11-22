@@ -1,0 +1,12 @@
+desk_wood,progs/qdb_desk
+chair_leather,progs/qdb_chair_leather
+chair_frame,progs/qdb_chair_hw
+chair_casters,progs/qdb_chair_hw
+pc_crt_beige,progs/qdb_beige_hw
+speakers_mouse,progs/qdb_beige_hw
+keyboard,progs/qdb_keyboard
+desk_props,progs/qdb_props
+cables,progs/qdb_props
+crt_screen,progs/qdb_crt_screen_c
+status_leds,progs/qdb_leds
+ranger,progs/qdb_ranger
