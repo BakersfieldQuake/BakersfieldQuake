@@ -481,6 +481,226 @@ class UpdaterTest(unittest.TestCase):
         self.assertEqual((self.root / "BakersfieldQuake/progs.dat").read_bytes(), V1["BakersfieldQuake/progs.dat"])
         self.assertEqual(self.state()["build"], 1)
 
+    def test_lock_held_waits_and_blocks_launch_with_exit_4(self):
+        self.assertEqual(self.run_updater("--launch"), 0)
+        lock = self.root / ".bq" / "update.lock"
+        lock.write_text("99999\n", encoding="ascii")
+
+        orig_wait, orig_poll = bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS
+        bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = 0.2, 0.05
+        try:
+            # Lock stays held past wait window -> MUST return 4 (never 0) and preserve lock file.
+            self.assertEqual(self.run_updater("--launch"), 4)
+            self.assertTrue(lock.exists())
+
+            # Lock cleared mid-wait -> acquires lock and finishes cleanly with 0.
+            bq.LOCK_WAIT_SECS = 1.5
+
+            def release_later():
+                import time
+                time.sleep(0.12)
+                lock.unlink(missing_ok=True)
+
+            t = threading.Thread(target=release_later, daemon=True)
+            t.start()
+            self.assertEqual(self.run_updater("--launch"), 0)
+            t.join(timeout=2)
+            self.assertFalse(lock.exists())
+        finally:
+            bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = orig_wait, orig_poll
+            lock.unlink(missing_ok=True)
+
+    def test_unexpected_error_in_launch_returns_exit_4(self):
+        orig_plan = bq.Updater.plan_update
+
+        def boom(_self, **_kw):
+            raise RuntimeError("simulated unexpected failure")
+
+        bq.Updater.plan_update = boom
+        try:
+            self.assertEqual(self.run_updater("--launch"), 4)
+        finally:
+            bq.Updater.plan_update = orig_plan
+
+    def test_fsync_called_for_staged_downloads_and_state(self):
+        self.assertEqual(self.run_updater("--launch"), 0)
+        v2 = dict(V1)
+        v2["BakersfieldQuake/progs.dat"] = b"progs fsync test" * 100
+        v2["BakersfieldQuake/maps/testmap.bsp"] = b"BSP2" + b"x" * 4096
+        self.publish(v2, 2, populate_vps=True)
+
+        fsync_calls = []
+        orig_fsync = bq.os.fsync
+
+        def spy_fsync(fd):
+            fsync_calls.append(fd)
+            return orig_fsync(fd)
+
+        bq.os.fsync = spy_fsync
+        try:
+            self.assertEqual(self.run_updater("--launch"), 3)
+        finally:
+            bq.os.fsync = orig_fsync
+        # lock file + 2 staged files + state.json.tmp => at least 4 fsync calls
+        self.assertGreaterEqual(len(fsync_calls), 4)
+
+    def test_post_replace_verification_rehashes_critical_assets_and_rolls_back(self):
+        v1 = dict(V1)
+        v1["BakersfieldQuake/maps/downtown.bsp"] = b"BSP_V1" * 512
+        v1["BakersfieldQuake/maps/downtown.lit"] = b"QLIT_V1" * 256
+        self.publish(v1, 1)
+        for rel in ("BakersfieldQuake/maps/downtown.bsp", "BakersfieldQuake/maps/downtown.lit"):
+            p = self.root / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(v1[rel])
+        self.assertEqual(self.run_updater("--launch"), 0)
+
+        v2 = dict(v1)
+        v2["BakersfieldQuake/maps/downtown.bsp"] = b"BSP_V2" * 512
+        v2["BakersfieldQuake/maps/downtown.lit"] = b"QLIT_V2" * 256
+        v2["BakersfieldQuake/zz_overlay.pk3"] = b"PK\x03\x04overlay" * 256
+        self.publish(v2, 2)
+
+        verified_paths = []
+        orig_hash_file = bq.hash_file
+
+        def spy_hash(path, check_cancel=None):
+            verified_paths.append(Path(path).name)
+            return orig_hash_file(path, check_cancel)
+
+        bq.hash_file = spy_hash
+        try:
+            self.assertEqual(self.run_updater("--launch"), 3)
+        finally:
+            bq.hash_file = orig_hash_file
+        self.assertIn("downtown.bsp", verified_paths)
+        self.assertIn("downtown.lit", verified_paths)
+        self.assertIn("zz_overlay.pk3", verified_paths)
+
+        # Now simulate post-replace hash corruption on a critical .bsp -> MUST fail (exit 4) and roll back.
+        v3 = dict(v2)
+        v3["BakersfieldQuake/maps/downtown.bsp"] = b"BSP_V3" * 512
+        v3["BakersfieldQuake/maps/downtown.lit"] = b"QLIT_V3" * 256
+        self.publish(v3, 3)
+
+        def corrupt_verify(path, check_cancel=None):
+            sz, digest = orig_hash_file(path, check_cancel)
+            if Path(path).name == "downtown.bsp":
+                return sz, "0" * 64
+            return sz, digest
+
+        bq.hash_file = corrupt_verify
+        try:
+            self.assertEqual(self.run_updater("--launch"), 4)
+        finally:
+            bq.hash_file = orig_hash_file
+        self.assertEqual((self.root / "BakersfieldQuake/maps/downtown.bsp").read_bytes(),
+                         v2["BakersfieldQuake/maps/downtown.bsp"])
+        self.assertEqual((self.root / "BakersfieldQuake/maps/downtown.lit").read_bytes(),
+                         v2["BakersfieldQuake/maps/downtown.lit"])
+        self.assertEqual(self.state()["build"], 2)
+
+    def test_older_fallback_manifest_repairs_unchanged_and_blocks_corrupt_newer(self):
+        v5 = dict(V1, **{"BakersfieldQuake/progs.dat": b"new build 5"})
+        self.publish(v5, 5)
+        self.assertEqual(self.run_updater("--launch"), 3)
+        self.assertEqual(self.state()["build"], 5)
+
+        # Lagging mirror serves build 3 (older progs.dat, identical bakersfield.pk3)
+        self.publish(V1, 3)
+
+        # Subcase A: delete unchanged bakersfield.pk3 -> repaired cleanly without downgrading progs.dat or build!
+        (self.root / "BakersfieldQuake/bakersfield.pk3").unlink()
+        self.assertEqual(self.run_updater("--launch"), 3)
+        self.assertEqual((self.root / "BakersfieldQuake/bakersfield.pk3").read_bytes(),
+                         V1["BakersfieldQuake/bakersfield.pk3"])
+        self.assertEqual((self.root / "BakersfieldQuake/progs.dat").read_bytes(), b"new build 5")
+        self.assertEqual(self.state()["build"], 5)
+
+        # Subcase B: corrupt progs.dat (changed in build 5, not in build 3) -> MUST block with exit 4!
+        (self.root / "BakersfieldQuake/progs.dat").write_bytes(b"corrupted!!!")
+        self.assertEqual(self.run_updater("--launch"), 4)
+
+    def test_fetch_url_enforces_size_and_sha256(self):
+        up = bq.Updater(self.root, "windows-x64", f"{self.base}/manifest.json", lambda _m: None)
+        RangeHandler.files["/blob_nonempty"] = b"hello"
+        RangeHandler.files["/blob_empty"] = b""
+        empty_sha = hashlib.sha256(b"").hexdigest()
+        dest = self.root / "tmp_fetch.bin"
+
+        with self.assertRaises(IOError):
+            up.fetch_url(f"{self.base}/blob_nonempty", dest, "", 5, lambda _n: None)
+        with self.assertRaises(IOError):
+            up.fetch_url(f"{self.base}/blob_nonempty", dest, "abc", 5, lambda _n: None)
+        with self.assertRaises(IOError):
+            up.fetch_url(f"{self.base}/blob_nonempty", dest, empty_sha, None, lambda _n: None)
+        # want_size=0 must still fail if response is non-empty!
+        with self.assertRaises(IOError):
+            up.fetch_url(f"{self.base}/blob_nonempty", dest, empty_sha, 0, lambda _n: None)
+        # want_size=0 with matching empty blob succeeds
+        up.fetch_url(f"{self.base}/blob_empty", dest, empty_sha, 0, lambda _n: None)
+        self.assertEqual(dest.read_bytes(), b"")
+
+    def test_unmanaged_strays_detected_and_logged(self):
+        self.assertEqual(self.run_updater("--launch"), 0)
+        stray_pk3 = self.root / "BakersfieldQuake/zz_stray_downtown.pk3"
+        stray_bsp = self.root / "BakersfieldQuake/maps/straymap.bsp"
+        stray_lit = self.root / "BakersfieldQuake/maps/straymap.lit"
+        stray_bsp.parent.mkdir(parents=True, exist_ok=True)
+        stray_pk3.write_bytes(b"PKstray")
+        stray_bsp.write_bytes(b"BSPstray")
+        stray_lit.write_bytes(b"LITstray")
+
+        logged = []
+        up = bq.Updater(self.root, "windows-x64", f"{self.base}/manifest.json", logged.append)
+        plan = up.plan_update()
+        self.assertEqual(plan.kind, "up_to_date")
+        self.assertEqual(plan.strays, [
+            "BakersfieldQuake/maps/straymap.bsp",
+            "BakersfieldQuake/maps/straymap.lit",
+            "BakersfieldQuake/zz_stray_downtown.pk3",
+        ])
+        self.assertTrue(any("WARNING: unmanaged stray file" in m and "zz_stray_downtown.pk3" in m for m in logged))
+        # Must NOT auto-delete user stray files
+        self.assertTrue(stray_pk3.exists())
+        self.assertTrue(stray_bsp.exists())
+
+    def test_cancel_during_post_replace_verify_rolls_back(self):
+        v1 = dict(V1)
+        v1["BakersfieldQuake/maps/downtown.bsp"] = b"BSP_V1" * 512
+        v1["BakersfieldQuake/maps/downtown.lit"] = b"QLIT_V1" * 256
+        self.publish(v1, 1)
+        for rel in ("BakersfieldQuake/maps/downtown.bsp", "BakersfieldQuake/maps/downtown.lit"):
+            p = self.root / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(v1[rel])
+        self.assertEqual(self.run_updater("--launch"), 0)
+
+        v2 = dict(v1)
+        v2["BakersfieldQuake/maps/downtown.bsp"] = b"BSP_V2" * 512
+        v2["BakersfieldQuake/maps/downtown.lit"] = b"QLIT_V2" * 256
+        self.publish(v2, 2)
+
+        orig_hash_file = bq.hash_file
+
+        def cancel_on_lit(path, check_cancel=None):
+            if Path(path).name == "downtown.lit":
+                raise bq.UpdateCancelled()
+            return orig_hash_file(path, check_cancel)
+
+        bq.hash_file = cancel_on_lit
+        try:
+            self.assertEqual(self.run_updater("--launch"), 4)
+        finally:
+            bq.hash_file = orig_hash_file
+
+        # Both already-replaced downtown.bsp AND downtown.lit MUST be rolled back to V1
+        self.assertEqual((self.root / "BakersfieldQuake/maps/downtown.bsp").read_bytes(),
+                         v1["BakersfieldQuake/maps/downtown.bsp"])
+        self.assertEqual((self.root / "BakersfieldQuake/maps/downtown.lit").read_bytes(),
+                         v1["BakersfieldQuake/maps/downtown.lit"])
+        self.assertEqual(self.state()["build"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

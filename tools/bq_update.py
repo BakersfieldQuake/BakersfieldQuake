@@ -55,6 +55,63 @@ TIMEOUT = 12            # seconds per file/range request
 CHECK_TIMEOUT = 4       # GitHub manifest check timeout
 FALLBACK_TIMEOUT = 5    # VPS manifest fallback timeout
 LOCK_STALE = 30 * 60
+LOCK_WAIT_SECS = 20.0   # wait briefly if another updater holds update.lock before blocking launch
+LOCK_POLL_SECS = 0.25
+CRITICAL_VERIFY_SUFFIXES = (".bsp", ".lit", ".pk3", ".exe")
+
+
+def _fsync_file(f):
+    """Flushes Python buffers and forces OS write-through to disk before atomic rename."""
+    f.flush()
+    os.fsync(f.fileno())
+
+
+def hash_file(path, check_cancel=None):
+    """Streams a file from disk and returns (byte_size, sha256_hex)."""
+    h = hashlib.sha256()
+    total = 0
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            if check_cancel:
+                check_cancel()
+            h.update(chunk)
+            total += len(chunk)
+    return total, h.hexdigest()
+
+
+def acquire_lock(lock_path, log, wait_secs=None, poll_secs=None):
+    """Acquires update.lock exclusively, waiting up to wait_secs if held by another active updater."""
+    if wait_secs is None:
+        wait_secs = LOCK_WAIT_SECS
+    if poll_secs is None:
+        poll_secs = LOCK_POLL_SECS
+    deadline = time.monotonic() + max(0.0, float(wait_secs))
+    waited = False
+    while True:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            try:
+                os.write(fd, f"{os.getpid()}\n".encode("ascii"))
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                stale = time.time() - lock_path.stat().st_mtime > LOCK_STALE
+            except OSError:
+                stale = True
+            if stale:
+                lock_path.unlink(missing_ok=True)
+                continue
+            now = time.monotonic()
+            if now >= deadline:
+                log(f"another update is still running after waiting {wait_secs:.1f}s; blocking launch")
+                return False
+            if not waited:
+                log("another update is running; waiting for update.lock to clear...")
+                waited = True
+            time.sleep(min(poll_secs, max(0.01, deadline - now)))
 
 
 class OfflineError(IOError):
@@ -208,6 +265,8 @@ class UpdatePlan:
     dmg_vps_url: str = ""
     dmg_size: int = 0
     dmg_sha256: str = ""
+    strays: list = field(default_factory=list)
+    preserve_build: int = 0
 
     @property
     def needs_action(self):
@@ -283,7 +342,10 @@ class Updater:
     def save_state(self, state):
         self.bq.mkdir(parents=True, exist_ok=True)
         tmp = self.bq / "state.json.tmp"
-        tmp.write_text(json.dumps(state, indent=1, sort_keys=True), "utf-8")
+        payload = json.dumps(state, indent=1, sort_keys=True)
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(payload)
+            _fsync_file(f)
         os.replace(tmp, self.bq / "state.json")
 
     def local_sha(self, rel, cache, force):
@@ -447,11 +509,18 @@ class Updater:
                     out.write(tail)
                     written += len(tail)
                     progress(len(tail))
-        if written != want_size or h.hexdigest() != want_sha:
+            _fsync_file(out)
+        if want_size is None or written != int(want_size) or not want_sha or h.hexdigest().lower() != want_sha.lower():
             raise IOError(f"{info.filename}: downloaded file does not match the manifest")
 
     def fetch_url(self, url, dest, want_sha, want_size, progress):
-        """Plain HTTPS GET for content-addressed VPS blobs or DMG files. Verifies size and sha256."""
+        """Plain HTTPS GET for content-addressed VPS blobs or DMG files. Strictly verifies size and sha256."""
+        if want_size is None or int(want_size) < 0:
+            raise IOError(f"{url}: missing expected size for integrity verification")
+        if not want_sha or len(str(want_sha).strip()) != 64:
+            raise IOError(f"{url}: missing or invalid expected sha256 for integrity verification")
+        expected_size = int(want_size)
+        expected_sha = str(want_sha).strip().lower()
         req = urllib.request.Request(url, headers=UA)
         h = hashlib.sha256()
         written = 0
@@ -465,10 +534,46 @@ class Updater:
                 out.write(chunk)
                 written += len(chunk)
                 progress(len(chunk))
-        if want_size and written != want_size:
-            raise IOError(f"{url}: size mismatch (got {written}, expected {want_size})")
-        if want_sha and h.hexdigest() != want_sha:
+            _fsync_file(out)
+        if written != expected_size:
+            raise IOError(f"{url}: size mismatch (got {written}, expected {expected_size})")
+        if h.hexdigest().lower() != expected_sha:
             raise IOError(f"{url}: sha256 mismatch")
+
+    def find_unmanaged_strays(self, manifest):
+        """Detects unmanaged BakersfieldQuake/zz_*.pk3 and loose maps/*.bsp/.lit not in the manifest."""
+        managed_lower = {rel.replace("\\", "/").lower() for rel in manifest.get("files", {})}
+        strays = []
+        bq_game = self.root / "BakersfieldQuake"
+        if bq_game.is_dir():
+            try:
+                for p in bq_game.iterdir():
+                    if not p.is_file():
+                        continue
+                    nl = p.name.lower()
+                    if nl.startswith("zz_") and nl.endswith(".pk3"):
+                        rel = f"BakersfieldQuake/{p.name}"
+                        if rel.lower() not in managed_lower:
+                            strays.append(rel)
+            except OSError:
+                pass
+            maps_dir = bq_game / "maps"
+            if maps_dir.is_dir():
+                try:
+                    for p in maps_dir.iterdir():
+                        if not p.is_file():
+                            continue
+                        nl = p.name.lower()
+                        if nl.endswith((".bsp", ".lit")):
+                            rel = f"BakersfieldQuake/maps/{p.name}"
+                            if rel.lower() not in managed_lower:
+                                strays.append(rel)
+                except OSError:
+                    pass
+        strays.sort()
+        for rel in strays:
+            self.log(f"WARNING: unmanaged stray file not in manifest (may override game assets): {rel}")
+        return strays
 
     # ---- planning & verification -------------------------------------------------------------------------------
     def plan_update(self, force=False, verify_progress=None):
@@ -483,10 +588,77 @@ class Updater:
             self.log(f"update skipped: manifest schema {m.get('schema')} is newer than this updater")
             return UpdatePlan("up_to_date", m, source, installed, installed_version,
                               total_managed=len(m.get("files", {})), cache=(state or {}).get("cache", {}))
+
+        strays = self.find_unmanaged_strays(m)
+
         if m["build"] < installed:
-            self.log(f"update skipped: release build {m['build']} is older than installed {installed}")
+            # Never downgrade an intact newer build, but STILL verify local managed files so missing/corrupt
+            # assets are never silently ignored when failing over to a lagging mirror.
+            orig_cache = dict((state or {}).get("cache", {}))
+            cache = dict(orig_cache)
+            install_only = set(m.get("install_only", []))
+            managed_local = sorted(set((state or {}).get("managed", [])) | set(m.get("files", {})))
+            fetch = []
+            missing_count = 0
+            corrupt_count = 0
+            unrepairable = []
+            total_check = len(managed_local)
+            for idx, rel in enumerate(managed_local, 1):
+                self._check_cancel()
+                if verify_progress:
+                    verify_progress(idx, total_check, rel)
+                if rel in install_only and (self.root / rel).exists():
+                    continue
+                if rel not in (state or {}).get("managed", []):
+                    continue
+                sha = self.local_sha(rel, cache, force)
+                orig_entry = orig_cache.get(rel)
+                expected_installed_sha = orig_entry[2] if (orig_entry and len(orig_entry) >= 3) else None
+                mf_entry = m["files"].get(rel)
+                if sha is None:
+                    missing_count += 1
+                    if mf_entry and (expected_installed_sha is None or mf_entry["sha256"] == expected_installed_sha):
+                        fetch.append(rel)
+                    else:
+                        unrepairable.append(f"{rel} (missing)")
+                elif expected_installed_sha and sha != expected_installed_sha:
+                    corrupt_count += 1
+                    if mf_entry and mf_entry["sha256"] == expected_installed_sha:
+                        fetch.append(rel)
+                    else:
+                        unrepairable.append(f"{rel} (corrupted/modified)")
+
+            if unrepairable:
+                detail = ", ".join(unrepairable[:5])
+                if len(unrepairable) > 5:
+                    detail += f" (+{len(unrepairable) - 5} more)"
+                raise IOError(
+                    f"local integrity failure ({detail}) and manifest build {m['build']} is older than "
+                    f"installed build {installed}; cannot repair without the latest release"
+                )
+            if fetch:
+                total_bytes = sum(m["files"][p]["size"] for p in fetch)
+                self.log(f"fallback manifest build {m['build']} < installed {installed}: repairing {len(fetch)} missing/corrupt unchanged file(s)")
+                return UpdatePlan(
+                    kind="repair",
+                    manifest=m,
+                    source=source,
+                    installed_build=installed,
+                    installed_version=installed_version,
+                    fetch=fetch,
+                    delete=[],
+                    total_bytes=total_bytes,
+                    missing_count=missing_count,
+                    corrupt_count=corrupt_count,
+                    total_managed=len(m.get("files", {})),
+                    notes=_summarize_files(fetch, [], "repair"),
+                    cache=cache,
+                    strays=strays,
+                    preserve_build=installed,
+                )
+            self.log(f"update skipped: release build {m['build']} is older than installed {installed} (local files verified intact)")
             return UpdatePlan("up_to_date", m, source, installed, installed_version,
-                              total_managed=len(m.get("files", {})), cache=(state or {}).get("cache", {}))
+                              total_managed=len(m.get("files", {})), cache=cache, strays=strays)
 
         # macOS app bundle check: new engine/launcher requires downloading a new signed DMG.
         if self.bundle_mac_inputs and self.bundle_mac_inputs.is_file():
@@ -507,6 +679,7 @@ class Updater:
                     dmg_vps_url=m.get("dmg_vps_url", ""),
                     dmg_size=int(m.get("dmg_size") or 0),
                     dmg_sha256=m.get("dmg_sha256", ""),
+                    strays=strays,
                 )
 
         # Always check every managed file on disk (even if m["build"] == installed) so missing/damaged assets repair.
@@ -565,9 +738,22 @@ class Updater:
             total_managed=total_managed,
             notes=notes,
             cache=cache,
+            strays=strays,
         )
 
-    def _commit_state(self, m, cache):
+    def _commit_state(self, m, cache, preserve_build=0):
+        if preserve_build and preserve_build > m["build"]:
+            prev = self.load_state() or {}
+            merged_cache = dict(prev.get("cache", {}))
+            merged_cache.update({p: cache[p] for p in cache if p in prev.get("managed", []) or p in m["files"]})
+            self.save_state({
+                "build": preserve_build,
+                "version": prev.get("version", ""),
+                "managed": prev.get("managed", sorted(m["files"])),
+                "cache": merged_cache,
+                "updater": VERSION,
+            })
+            return
         self.save_state({
             "build": m["build"],
             "version": m.get("version", ""),
@@ -680,7 +866,8 @@ class Updater:
                         progress_cb(completed_bytes, plan.total_bytes, rel, plan.source)
 
             if status_cb:
-                status_cb("Installing files...")
+                status_cb("Installing & verifying files...")
+            exec_set = set(m.get("exec", []))
             moved, rel = [], "?"
             try:
                 for rel in fetch:
@@ -691,20 +878,41 @@ class Updater:
                         replace_running(target, backup / rel)
                     moved.append(rel)
                     os.replace(staging / rel, target)
+                    f_info = m["files"][rel]
+                    want_size = int(f_info["size"])
+                    want_sha = str(f_info["sha256"]).lower()
                     st = target.stat()
-                    cache[rel] = [st.st_size, st.st_mtime_ns, m["files"][rel]["sha256"]]
-            except OSError as e:
+                    if st.st_size != want_size:
+                        raise IOError(
+                            f"post-replace size mismatch for {rel} (got {st.st_size}, expected {want_size})"
+                        )
+                    if rel.lower().endswith(CRITICAL_VERIFY_SUFFIXES) or rel in exec_set:
+                        if status_cb:
+                            status_cb(f"Verifying {Path(rel).name}...")
+                        actual_size, actual_sha = hash_file(target, self._check_cancel)
+                        if actual_size != want_size or actual_sha.lower() != want_sha:
+                            raise IOError(
+                                f"post-replace sha256 mismatch for {rel} (got {actual_sha[:12]}, expected {want_sha[:12]})"
+                            )
+                        st = target.stat()
+                        cache[rel] = [st.st_size, st.st_mtime_ns, actual_sha]
+                    else:
+                        cache[rel] = [st.st_size, st.st_mtime_ns, want_sha]
+            except (OSError, UpdateCancelled) as e:
                 failed = rel
-                for rel in reversed(moved):
+                for r_rel in reversed(moved):
                     try:
-                        if (backup / rel).exists():
-                            os.replace(backup / rel, self.root / rel)
+                        if (backup / r_rel).exists():
+                            os.replace(backup / r_rel, self.root / r_rel)
                         else:
-                            (self.root / rel).unlink()
-                    except OSError:
-                        pass
-                    cache.pop(rel, None)
-                raise IOError(f"could not replace {failed} ({e}); is the game or a server running "
+                            (self.root / r_rel).unlink()
+                    except OSError as rb_err:
+                        self.log(f"rollback failed for {r_rel}: {rb_err}")
+                    cache.pop(r_rel, None)
+                if isinstance(e, UpdateCancelled):
+                    self.log(f"update cancelled during replace/verify of {failed}; rolled back cleanly")
+                    raise
+                raise IOError(f"could not replace/verify {failed} ({e}); is the game or a server running "
                               f"from this folder? The update was rolled back.") from e
 
             if os.name != "nt":
@@ -719,8 +927,8 @@ class Updater:
                 except OSError as e:
                     self.log(f"could not remove {rel}: {e}")
 
-            self._commit_state(m, cache)
-            self.log(f"updated to build {m['build']} ({len(fetch)} fetched, {len(delete)} removed)")
+            self._commit_state(m, cache, preserve_build=plan.preserve_build)
+            self.log(f"updated to build {plan.preserve_build or m['build']} ({len(fetch)} fetched, {len(delete)} removed)")
             return True
         finally:
             shutil.rmtree(staging, ignore_errors=True)
@@ -826,6 +1034,9 @@ class CliUpdateUI(UpdateUI):
             return 0
 
         if not plan.needs_action:
+            if plan.strays and not self.quiet:
+                print(f"Warning: {len(plan.strays)} unmanaged stray file(s) not in manifest: "
+                      f"{', '.join(plan.strays[:5])}")
             if standalone or not self.quiet:
                 print(f"BAKOQUAKE is up to date ({plan.manifest.get('version') or plan.manifest['build']} — "
                       f"{plan.total_managed} files verified).")
@@ -1515,19 +1726,10 @@ def main(argv=None):
             print(msg)
 
     lock = bq / "update.lock"
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError:
-        try:
-            stale = time.time() - lock.stat().st_mtime > LOCK_STALE
-        except OSError:
-            stale = True
-        if not stale:
-            log("another update is running; skipping")
-            return 0
-        lock.unlink(missing_ok=True)
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    os.close(fd)
+    if not acquire_lock(lock, log):
+        print("Another BAKOQUAKE update is already running; please wait for it to finish.", file=sys.stderr, flush=True)
+        logf.close()
+        return 4
 
     try:
         url = a.manifest_url or os.environ.get("BQ_MANIFEST_URL") or LATEST.format(platform=a.platform)
@@ -1557,10 +1759,13 @@ def main(argv=None):
             standalone=a.standalone,
             ui=ui,
         )
+    except OfflineError as e:
+        log(f"offline: update check skipped ({e})")
+        return 0 if (a.launch and not a.standalone) else 4
     except Exception as e:
         log(f"unexpected updater error: {e}")
         print(f"Update error: {e}", file=sys.stderr, flush=True)
-        return 0 if (a.launch and not a.standalone) else 4
+        return 4
     finally:
         lock.unlink(missing_ok=True)
         logf.close()

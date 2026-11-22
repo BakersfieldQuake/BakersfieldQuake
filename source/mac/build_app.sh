@@ -36,8 +36,8 @@ WORK="${WORK:-$ROOT/build}"
 MINOS=13.0
 BUNDLE_ID=com.gigglehacks.bakoquake
 
-ZIRCON_REPO=https://github.com/rgr4y/zircon-darkplaces
-ZIRCON_REF=e19de67085f6c1602a43f4cf68ccc210a1033fad
+ZIRCON_REPO=https://github.com/GiggleHacks/zircon-darkplaces
+ZIRCON_REF=66bcfa232e3ee6782a5aad3f713748829929b16c
 SDL_TAG=release-2.32.10
 OGG_TAG=v1.3.6
 VORBIS_TAG=v1.3.7

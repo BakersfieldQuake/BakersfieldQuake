@@ -50,6 +50,7 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
             "${UPD[@]}"
             _rc=$?
             [ "$_rc" = 4 ] && exit 0
+            [ "$_rc" -ne 0 ] && [ "$_rc" -ne 3 ] && exit "$_rc"
         fi
     fi
 fi
@@ -98,12 +99,36 @@ if [ ! -f "$CFG" ] || grep -q BAKERSFIELD_SEED "$CFG" 2>/dev/null; then
     ARGS+=(+_cl_name "${USER:-player}" +_cl_color $(( (RANDOM % 14) * 17 )))
 fi
 
-# 2b. Low-memory mode (lowmem.cfg): under 10 GB of memory start with half-size model textures, or a big map can end in
-#     "Mem_Alloc: out of memory". BQ_LOWMEM=1 forces it on, BQ_LOWMEM=0 off.
-RAM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))
-if [ "${BQ_LOWMEM:-}" = 1 ] || { [ "${BQ_LOWMEM:-}" != 0 ] && [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; }; then
-    ARGS+=(+exec lowmem.cfg)
-fi
+# 2b. Live memory tiering (normal / lowmem / ultralow / safemode): checks total unified RAM and vm_stat available RAM.
+#     Apple Silicon shares unified memory between CPU & GPU, so <=8 GB Macs or low free RAM start in ultralow.cfg.
+RAM_GB=$(( ( $(sysctl -n hw.memsize 2>/dev/null || echo 0) + 536870912 ) / 1073741824 ))
+_ps="$(sysctl -n hw.pagesize 2>/dev/null || echo 4096)"
+_free_pages="$(vm_stat 2>/dev/null | awk '/Pages (free|inactive|speculative|purgeable):/ { gsub(/\./, "", $NF); s += $NF } END { print s + 0 }')"
+FREE_MB=$(( (${_free_pages:-0} * ${_ps:-4096}) / 1048576 ))
+
+TIER="normal"
+case "${BQ_TIER:-}" in
+    normal|lowmem|ultralow|safemode) TIER="$BQ_TIER" ;;
+    *)
+        if [ "${BQ_SAFEMODE:-}" = 1 ]; then
+            TIER="safemode"
+        elif [ "${BQ_ULTRALOW:-}" = 1 ]; then
+            TIER="ultralow"
+        elif { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 2048 ]; } || { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -le 8 ]; }; then
+            TIER="ultralow"
+        elif { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; } || { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 3584 ]; }; then
+            TIER="lowmem"
+        fi
+        if [ "${BQ_LOWMEM:-}" = 1 ] && [ "$TIER" = normal ]; then TIER="lowmem"; fi
+        if [ "${BQ_LOWMEM:-}" = 0 ] && [ "$TIER" = lowmem ]; then TIER="normal"; fi
+        ;;
+esac
+
+case "$TIER" in
+    safemode) ARGS+=(+exec safemode.cfg) ;;
+    ultralow) ARGS+=(+exec ultralow.cfg) ;;
+    lowmem)   ARGS+=(+exec lowmem.cfg) ;;
+esac
 
 # 3. LAN autoscan only with a real python3: without the Command Line Tools, /usr/bin/python3 is a stub that pops
 #    an install dialog.
@@ -112,7 +137,7 @@ if [ -f "$SCAN" ] && xcode-select -p >/dev/null 2>&1; then
     mkdir -p "$USERDIR/BakersfieldQuake"
     FOUND="$(python3 "$SCAN" --gamedir "$USERDIR/BakersfieldQuake" --once --timeout-ms 1500 2>/dev/null | head -1)"
     case "$FOUND" in FOUND\ *) ARGS+=(+connect "${FOUND#FOUND }") ;; esac
-    # Keep lan_server.cfg fresh until the game exits (exec below keeps this PID), so F2 works.
+    # Keep lan_server.cfg fresh until the game exits (exec below keeps this PID), so F3 works.
     python3 "$SCAN" --gamedir "$USERDIR/BakersfieldQuake" --pid $$ >/dev/null 2>&1 &
 fi
 

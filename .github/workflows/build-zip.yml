@@ -7,7 +7,7 @@
 # zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3 and zz_quakedesk.pk3
 # from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), then publishes three per-OS packages:
 #
-#   BAKOQUAKE.zip                 Windows. Engine as carried by the base zip (engine/zircon_beta_gcc.exe).
+#   BAKOQUAKE.zip                 Windows. engine/zircon_beta_gcc.exe from the public engine release.
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
 #   BAKOQUAKE-macos-arm64.dmg     macOS app: signed + notarized, built from that zip by the macos job
@@ -17,7 +17,7 @@
 # and quake.rc are only overlaid onto such a base, and "Check the package" fails the run (nothing is published) when
 # progs.dat/menu.dat/the engine/a map named in server.cfg is missing, or when id1/pak0.pak or pak1.pak would ship.
 #
-# Linux and macOS engine binaries come from the public engine CI repo (rgr4y/zircon-darkplaces). On first run every
+# Windows, Linux and macOS engine binaries come from the public engine CI repo (GiggleHacks/zircon-darkplaces). On first run every
 # launcher looks for the player's own Quake pak0/pak1 (Steam, GOG, usual folders, then Downloads) and copies them into
 # id1/ (tools/find-quake-paks.sh / .ps1). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
 # keeps its exact name and tree so the next run can still take it as the base.
@@ -38,7 +38,7 @@ on:
         required: false
         default: ""
       engine_tag:
-        description: "Engine release in rgr4y/zircon-darkplaces for Linux/mac binaries (empty = latest)"
+        description: "Engine release in GiggleHacks/zircon-darkplaces (empty = latest)"
         required: false
         default: ""
       draft:
@@ -114,7 +114,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ inputs.base_tag }}
       NEW_TAG: ${{ inputs.tag }}
-      ENGINE_REPO: rgr4y/zircon-darkplaces
+      ENGINE_REPO: GiggleHacks/zircon-darkplaces
       ENGINE_TAG: ${{ inputs.engine_tag }}
       FTEQW_REF: c781d13255ce72fcd24e47567244f970e1ba7c50
       DRAFT: ${{ inputs.draft }}
@@ -143,6 +143,12 @@ jobs:
           rm BAKOQUAKE.zip
           test -f out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
           test -f out/BAKOQUAKE/quake15/q15.pk3
+          if [ ! -f out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown_lite.bsp ] || [ ! -f out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown_lite.lit ]; then
+            echo "Seeding bakersfielddowntown_lite map assets from base-assets-downtown-lite..."
+            gh release download base-assets-downtown-lite -R "$GITHUB_REPOSITORY" -p downtown-lite-maps.zip
+            unzip -o -q downtown-lite-maps.zip -d out/BAKOQUAKE
+            rm downtown-lite-maps.zip
+          fi
           base_bakersfield=$(sha256sum out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | awk '{print $1}')
           base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
           base_maps=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/maps/*.bsp | sha256sum | awk '{print $1}')
@@ -171,10 +177,19 @@ jobs:
           echo "ENGINE=$etag" >> "$GITHUB_ENV"
           mkdir -p eng
           # GITHUB_TOKEN can read public releases; if this ever fails, a PAT is needed.
-          args=(-p 'zircon-*-linux-x86_64.zip' -p 'zircon-*-macos-arm64.zip')
+          args=(-p 'zircon-*-linux-x86_64.zip' -p 'zircon-*-macos-arm64.zip' -p 'zircon-*-windows-x86_64.zip')
           gh release download "$etag" -R "$ENGINE_REPO" -D eng "${args[@]}"
           (cd eng && for z in zircon-*.zip; do echo "unzip $z"; unzip -o -q "$z"; done)
           ls -l eng
+          test -f eng/zircon_beta_gcc.exe
+          win_sz=$(wc -c < eng/zircon_beta_gcc.exe)
+          echo "Windows engine eng/zircon_beta_gcc.exe: ${win_sz} bytes"
+          if [ "$win_sz" -le 6000000 ]; then
+            echo "::error::eng/zircon_beta_gcc.exe is too small (${win_sz} B <= 6000000 B); refusing non-selfpack Windows engine"
+            exit 1
+          fi
+          cp eng/zircon_beta_gcc.exe out/BAKOQUAKE/engine/zircon_beta_gcc.exe
+          sha256sum out/BAKOQUAKE/engine/zircon_beta_gcc.exe
 
       - name: Overlay repo configs
         # lan_server.cfg is written at run time by tools/lanscan.ps1, so the repo copy is not shipped.
@@ -431,8 +446,12 @@ jobs:
           errors = []
 
           for rel in ("BakersfieldQuake/progs.dat", "BakersfieldQuake/menu.dat", "BakersfieldQuake/csprogs.dat",
-                      "engine/zircon_beta_gcc.exe", "Update.exe", "Update.sh",
+                      "BakersfieldQuake/ultralow.cfg", "BakersfieldQuake/safemode.cfg",
+                      "BakersfieldQuake/maps/bakersfielddowntown_lite.bsp", "BakersfieldQuake/maps/bakersfielddowntown_lite.lit",
+                      "BakersfieldQuake/levelshots/bakersfielddowntown_lite.jpg",
+                      "engine/zircon_beta_gcc.exe", "Update.exe", "Update.sh", "Report a Problem.cmd",
                       "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
+                      "tools/bq-preflight.ps1", "tools/bq-report.ps1",
                       "tools/bq_update.py", "tools/install-shortcuts.ps1",
                       "tools/install-shortcuts.sh", "tools/bakoquake.ico", "tools/bakoquake-256.png",
                       "tools/bakoquake-update.ico", "tools/bakoquake-update-256.png"):
@@ -751,7 +770,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, bakersfielddowntown.bsp). Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 

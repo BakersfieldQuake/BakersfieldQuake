@@ -1,0 +1,1576 @@
+diff --git a/cl_parse_download.c.h b/cl_parse_download.c.h
+index 9aee201..055d009 100644
+--- a/cl_parse_download.c.h
++++ b/cl_parse_download.c.h
+@@ -26,6 +26,7 @@ RELATED_ (CL_SignonReply SIGNON_1 sends us here)
+ // Baker: Might as well be "next download"
+ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ {
++	static double precache_start_time = 0;
+ 	char vabuf[1024];
+ 	// quakeworld works differently
+ 	if (cls.protocol == PROTOCOL_QUAKEWORLD)
+@@ -40,7 +41,10 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 	// if we got here...
+ 	// curl is done, so let's start with the business
+ 	if (!cl.loadbegun)
++	{
++		precache_start_time = Sys_DirtyTime();
+ 		SCR_PushLoadingScreen("Loading precaches", 1);
++	}
+ 	cl.loadbegun = true;
+ 
+ 	// if already downloading something from the previous level, don't stop it
+@@ -91,7 +95,10 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 			);
+ 		}
+ 		for (; cl.loadmodel_current < cl.loadmodel_total;cl.loadmodel_current++) {
+-			SCR_PushLoadingScreen(cl.model_name[cl.loadmodel_current],
++			char loadmsg[MAX_QPATH_128];
++			Sys_PumpLoadingEvents();
++			dpsnprintf(loadmsg, sizeof(loadmsg), "Loading models (%d/%d): %s", cl.loadmodel_current, cl.loadmodel_total, cl.model_name[cl.loadmodel_current]);
++			SCR_PushLoadingScreen(loadmsg,
+ 				(
+ 					(cl.loadmodel_current == 1) ? LOADPROGRESSWEIGHT_WORLDMODEL : LOADPROGRESSWEIGHT_MODEL
+ 				) / (
+@@ -166,7 +173,10 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 			);
+ 		for (;cl.loadsound_current < cl.loadsound_total;cl.loadsound_current++)
+ 		{
+-			SCR_PushLoadingScreen(cl.sound_name[cl.loadsound_current], 1.0 / cl.loadsound_total);
++			char loadmsg[MAX_QPATH_128];
++			Sys_PumpLoadingEvents();
++			dpsnprintf(loadmsg, sizeof(loadmsg), "Loading sounds (%d/%d): %s", cl.loadsound_current, cl.loadsound_total, cl.sound_name[cl.loadsound_current]);
++			SCR_PushLoadingScreen(loadmsg, 1.0 / cl.loadsound_total);
+ 			if (cl.sound_precache[cl.loadsound_current] && S_IsSoundPrecached(cl.sound_precache[cl.loadsound_current]))
+ 			{
+ 				SCR_PopLoadingScreen(false);
+@@ -197,6 +207,7 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 		// loading models
+ 
+ 		for (;cl.downloadmodel_current < cl.loadmodel_total;cl.downloadmodel_current++) {
++			Sys_PumpLoadingEvents();
+ 			if (aborteddownload) {
+ 				if (cl.downloadmodel_current == 1) {
+ 					// the worldmodel failed, but we need to set up anyway
+@@ -259,6 +270,7 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 
+ 		for (;cl.downloadsound_current < cl.loadsound_total;cl.downloadsound_current++) {
+ 			char soundname[MAX_QPATH_128];
++			Sys_PumpLoadingEvents();
+ 			if (aborteddownload) {
+ 				aborteddownload = false;
+ 				continue;
+@@ -287,6 +299,16 @@ static void CL_BeginDownloads_DP (qbool aborteddownload)
+ 
+ 	SCR_PopLoadingScreen(false);
+ 
++	if (precache_start_time > 0)
++	{
++		double dt = Sys_DirtyTime() - precache_start_time;
++		precache_start_time = 0;
++		if (dt >= 5.0)
++			Con_PrintLinef ("CL_BeginDownloads_DP: precache finished in %.2fs (%d models, %d sounds)", dt, cl.loadmodel_total, cl.loadsound_total);
++		else
++			Con_DPrintLinef ("CL_BeginDownloads_DP: precache finished in %.2fs (%d models, %d sounds)", dt, cl.loadmodel_total, cl.loadsound_total);
++	}
++
+ 	if (!cl.loadfinished) {
+ 		cl.loadfinished = true;
+ 
+diff --git a/cl_screen.c b/cl_screen.c
+index 28fefed..80fed6e 100644
+--- a/cl_screen.c
++++ b/cl_screen.c
+@@ -1665,6 +1665,7 @@ void CL_UpdateScreen(void)
+ 
+ 	if (scr_loading_ex)
+ 	{
++		Sys_PumpLoadingEvents();
+ 		if (!loadingscreenstack && !cls.connect_trying && (cls.state != ca_connected || cls.signon == SIGNONS_4))
+ 			SCR_EndLoadingPlaque(); // SCR_ClearLoadingScreenTexture
+ 		else if (scr_loadingscreen_maxfps.value)
+diff --git a/cl_screen_utils.c.h b/cl_screen_utils.c.h
+index 5025e59..5edf915 100644
+--- a/cl_screen_utils.c.h
++++ b/cl_screen_utils.c.h
+@@ -1823,6 +1823,7 @@ void SCR_PushLoadingScreen (const char *msg, float len_in_parent)
+ 		s->absolute_loading_amount_len = 1;
+ 	}
+ 
++	Sys_PumpLoadingEvents();
+ 	if (scr_loading_ex)
+ 		CL_UpdateScreen();
+ }
+@@ -1846,6 +1847,7 @@ void SCR_PopLoadingScreen (qbool redraw)
+ 	}
+ 	Z_Free(s);
+ 
++	Sys_PumpLoadingEvents();
+ 	if (scr_loading_ex && redraw)
+ 		CL_UpdateScreen();
+ }
+@@ -1856,6 +1858,17 @@ void SCR_ClearLoadingScreen (qbool redraw)
+ 		SCR_PopLoadingScreen(redraw && !loadingscreenstack->prev);
+ }
+ 
++void SCR_UpdateLoadingScreenMsg (const char *msg)
++{
++	Sys_PumpLoadingEvents();
++	if (!loadingscreenstack)
++		return;
++	if (msg)
++		c_strlcpy(loadingscreenstack->msg, msg);
++	if (scr_loading_ex)
++		CL_UpdateScreen();
++}
++
+ static float SCR_DrawLoadingStack_r(loadingscreenstack_t *s, float y, float size)
+ {
+ 	float x;
+diff --git a/console.c b/console.c
+index 69fd7b2..03bf2b3 100644
+--- a/console.c
++++ b/console.c
+@@ -563,8 +563,13 @@ Log_Close
+ */
+ void Log_Close (void)
+ {
+-	qfile_t *logfilecopy = logfile;
++	qfile_t *logfilecopy;
+ 
++	// If an error occurred before Log_Start() ran, flush the queued startup log to disk first
++	if (logfile == NULL && logqueue != NULL && log_file.string[0] != '\0' && fs_gamedir[0] != '\0')
++		Log_Start ();
++
++	logfilecopy = logfile;
+ 	if (logfile == NULL)
+ 		return;
+ 
+@@ -627,12 +632,32 @@ Log_ConPrint
+ void Log_ConPrint (const char *msg)
+ {
+ 	static qbool inprogress = false;
++	static char log_early_attempted[MAX_OSPATH] = "";
+ 
+ 	// don't allow feedback loops with memory error reports
+ 	if (inprogress)
+ 		return;
+ 	inprogress = true;
+ 
++	// Once fs_gamedir is ready and log_file is set (e.g. +log_file during Host_AddConfigText before +map/video),
++	// start logging immediately so startup +map OOMs/errors are never lost in logqueue.
++	if (logqueue != NULL && log_file.string[0] != '\0' && fs_gamedir[0] != '\0'
++		&& strcmp(log_early_attempted, log_file.string) != 0)
++	{
++		strlcpy(log_early_attempted, log_file.string, sizeof(log_early_attempted));
++		Log_Open ();
++		if (logfile != NULL)
++		{
++			unsigned char *temp = logqueue;
++			logqueue = NULL;
++			if (logq_ind != 0)
++				FS_Write (logfile, temp, logq_ind);
++			Mem_Free (temp);
++			logq_ind = 0;
++			logq_size = 0;
++		}
++	}
++
+ 	// Until the host is completely initialized, we maintain a log queue
+ 	// to store the messages, since the log can't be started before
+ 	if (logqueue != NULL)
+@@ -672,13 +697,23 @@ void Log_ConPrint (const char *msg)
+ 	{
+ 		if (log_file_stripcolors.integer)
+ 		{
+-			// sanitize msg
++			// sanitize msg on the stack when possible so logging during OOM never calls Mem_Alloc
++			char stackbuf[4096];
+ 			size_t len = strlen(msg);
+-			char *sanitizedmsg = (char *)Mem_Alloc(tempmempool, len + 1);
+-			memcpy (sanitizedmsg, msg, len);
+-			SanitizeString(sanitizedmsg, sanitizedmsg); // SanitizeString's in pointer is always ahead of the out pointer, so this should work.
+-			FS_Print (logfile, sanitizedmsg);
+-			Mem_Free(sanitizedmsg);
++			if (len < sizeof(stackbuf))
++			{
++				memcpy (stackbuf, msg, len + 1);
++				SanitizeString(stackbuf, stackbuf); // SanitizeString's in pointer is always ahead of the out pointer, so this should work.
++				FS_Print (logfile, stackbuf);
++			}
++			else
++			{
++				char *sanitizedmsg = (char *)Mem_Alloc(tempmempool, len + 1);
++				memcpy (sanitizedmsg, msg, len + 1);
++				SanitizeString(sanitizedmsg, sanitizedmsg);
++				FS_Print (logfile, sanitizedmsg);
++				Mem_Free(sanitizedmsg);
++			}
+ 		}
+ 		else
+ 		{
+diff --git a/console.h b/console.h
+index 24e5d3a..3bdbf44 100644
+--- a/console.h
++++ b/console.h
+@@ -126,6 +126,7 @@ void Log_Init (void);
+ void Log_Close (void);
+ void Log_Start (void);
+ void Log_DestBuffer_Flush (void); ///< call this once per frame to send out replies to rcon streaming clients
++extern char crt_log_file [MAX_OSPATH];
+ 
+ void Log_Printf(const char *logfilename, const char *fmt, ...) DP_FUNC_PRINTF(2);
+ //@}
+diff --git a/gl_rmain.c b/gl_rmain.c
+index 1920854..0dca8c7 100644
+--- a/gl_rmain.c
++++ b/gl_rmain.c
+@@ -336,6 +336,8 @@ cvar_t gl_skyclip = {CF_CLIENT, "gl_skyclip", "4608", "nehahra farclip distance
+ cvar_t r_q1bsp_lightmap_updates_enabled = {CF_CLIENT, "r_q1bsp_lightmap_updates_enabled", "1", "allow lightmaps to be updated on Q1BSP maps (don't turn this off except for debugging)"};
+ cvar_t r_q1bsp_lightmap_updates_combine = {CF_CLIENT | CF_ARCHIVE, "r_q1bsp_lightmap_updates_combine", "2", "combine lightmap texture updates to make fewer glTexSubImage2D calls, modes: 0 = immediately upload lightmaps (may be thousands of small 3x3 updates), 1 = combine to one call, 2 = combine to one full texture update (glTexImage2D) which tells the driver it does not need to lock the resource (faster on most drivers)"};
+ cvar_t r_q1bsp_lightmap_updates_hidden_surfaces = {CF_CLIENT | CF_ARCHIVE, "r_q1bsp_lightmap_updates_hidden_surfaces", "0", "update lightmaps on surfaces that are not visible, so that updates only occur on frames where lightstyles changed value (animation or light switches), only makes sense with combine = 2"};
++cvar_t r_load_normalmap = {CF_CLIENT | CF_ARCHIVE, "r_load_normalmap", "1", "load _norm/_bump textures: 0 = never, 1 = auto (skip when gloss, offsetmapping, and realtime lights are all 0), 2 = always"};
++cvar_t r_load_gloss = {CF_CLIENT | CF_ARCHIVE, "r_load_gloss", "1", "load _gloss specular textures: 0 = never, 1 = auto (skip when r_shadow_gloss is 0), 2 = always"};
+ 
+ extern cvar_t v_glslgamma_2d;
+ 
+@@ -1326,7 +1328,15 @@ static void R_GLSL_CompilePermutation(r_glsl_permutation_t *p, unsigned int mode
+ 
+ 	// compile the shader program
+ 	if (vertstrings_count + geomstrings_count + fragstrings_count) {
++		double t0 = Sys_DirtyTime();
++		Sys_PumpLoadingEvents();
+ 		p->program = GL_Backend_CompileProgram(vertstrings_count, vertstrings_list, geomstrings_count, geomstrings_list, fragstrings_count, fragstrings_list);
++		Sys_PumpLoadingEvents();
++		{
++			double dt = Sys_DirtyTime() - t0;
++			if (dt >= 5.0 || developer.integer >= 2)
++				Con_PrintLinef ("GLSL compile %s took %.2fs", permutationname, dt);
++		}
+ 	}
+ 	if (p->program)
+ 	{
+@@ -2727,13 +2737,23 @@ skinframe_t *R_SkinFrame_LoadExternal_SkinFrame(skinframe_t *skinframe, const ch
+ #endif
+ 	}
+ 
++	qbool want_normalmap = r_loadnormalmap && r_load_normalmap.integer && (r_load_normalmap.integer >= 2 || r_shadow_gloss.integer != 0 || r_glsl_offsetmapping.integer != 0 || r_glsl_deluxemapping.integer != 0 || r_shadow_realtime_dlight.integer != 0 || r_shadow_realtime_world.integer != 0);
++	qbool want_gloss = r_loadgloss && r_load_gloss.integer && (r_load_gloss.integer >= 2 || r_shadow_gloss.integer != 0);
++
++	// Free basepixels as soon as base/fog/avgcolor are done unless needed for bumpscale_basetexture synthesis
++	if (basepixels && !(want_normalmap && r_shadow_bumpscale_basetexture.value > 0))
++	{
++		Mem_Free(basepixels);
++		basepixels = NULL;
++	}
++
+ 	if (r_loaddds)
+ 	{
+ 		mymiplevel = savemiplevel;
+-		if (r_loadnormalmap)
++		if (want_normalmap)
+ 			skinframe->nmap = R_LoadTextureDDSFile(r_main_texturepool, va(vabuf, sizeof(vabuf), "dds/%s_norm.dds", skinframe->basename), false, (TEXF_ALPHA | textureflags) & (r_mipnormalmaps.integer ? ~0 : ~TEXF_MIPMAP), NULL, NULL, mymiplevel, true);
+ 		skinframe->glow = R_LoadTextureDDSFile(r_main_texturepool, va(vabuf, sizeof(vabuf), "dds/%s_glow.dds", skinframe->basename), vid.sRGB3D, textureflags, NULL, NULL, mymiplevel, true);
+-		if (r_loadgloss)
++		if (want_gloss)
+ 			skinframe->gloss = R_LoadTextureDDSFile(r_main_texturepool, va(vabuf, sizeof(vabuf), "dds/%s_gloss.dds", skinframe->basename), vid.sRGB3D, textureflags, NULL, NULL, mymiplevel, true);
+ 		skinframe->pants = R_LoadTextureDDSFile(r_main_texturepool, va(vabuf, sizeof(vabuf), "dds/%s_pants.dds", skinframe->basename), vid.sRGB3D, textureflags, NULL, NULL, mymiplevel, true);
+ 		skinframe->shirt = R_LoadTextureDDSFile(r_main_texturepool, va(vabuf, sizeof(vabuf), "dds/%s_shirt.dds", skinframe->basename), vid.sRGB3D, textureflags, NULL, NULL, mymiplevel, true);
+@@ -2741,7 +2761,7 @@ skinframe_t *R_SkinFrame_LoadExternal_SkinFrame(skinframe_t *skinframe, const ch
+ 	}
+ 
+ 	// _norm is the name used by tenebrae and has been adopted as standard
+-	if (r_loadnormalmap && skinframe->nmap == NULL)
++	if (want_normalmap && skinframe->nmap == NULL)
+ 	{
+ 		mymiplevel = savemiplevel;
+ 		if ((pixels = loadimagepixelsbgra(va(vabuf, sizeof(vabuf), "%s_norm", skinframe->basename), q_tx_complain_false, q_tx_allowfixtrans_false, q_tx_convertsrgb_false, &mymiplevel)) != NULL)
+@@ -2758,11 +2778,11 @@ skinframe_t *R_SkinFrame_LoadExternal_SkinFrame(skinframe_t *skinframe, const ch
+ 			Mem_Free(pixels);
+ 			Mem_Free(bumppixels);
+ 		}
+-		else if (r_shadow_bumpscale_basetexture.value > 0)
++		else if (basepixels && r_shadow_bumpscale_basetexture.value > 0)
+ 		{
+ 			pixels = (unsigned char *)Mem_Alloc(tempmempool, basepixels_width * basepixels_height * 4);
+ 			Image_HeightmapToNormalmap_BGRA(basepixels, pixels, basepixels_width, basepixels_height, false, r_shadow_bumpscale_basetexture.value);
+-			skinframe->nmap = R_LoadTexture2D (r_main_texturepool, va(vabuf, sizeof(vabuf), "%s_nmap", skinframe->basename), basepixels_width, basepixels_height, pixels, TEXTYPE_BGRA, (TEXF_ALPHA | textureflags) & (r_mipnormalmaps.integer ? ~0 : ~TEXF_MIPMAP) & (gl_texturecompression_normal.integer && gl_texturecompression.integer ? ~0 : ~TEXF_COMPRESS), mymiplevel, NULL);
++			skinframe->nmap = R_LoadTexture2D (r_main_texturepool, va(vabuf, sizeof(vabuf), "%s_nmap", skinframe->basename), basepixels_width, basepixels_height, pixels, TEXTYPE_BGRA, (TEXF_ALPHA | textureflags) & (r_mipnormalmaps.integer ? ~0 : ~TEXF_MIPMAP) & (gl_texturecompression_normal.integer && gl_texturecompression.integer ? ~0 : ~TEXF_COMPRESS), miplevel, NULL);
+ 			Mem_Free(pixels);
+ 		}
+ #ifndef USE_GLES2
+@@ -2771,6 +2791,12 @@ skinframe_t *R_SkinFrame_LoadExternal_SkinFrame(skinframe_t *skinframe, const ch
+ #endif
+ 	}
+ 
++	if (basepixels)
++	{
++		Mem_Free(basepixels);
++		basepixels = NULL;
++	}
++
+ 	// _luma is supported only for tenebrae compatibility
+ 	// _blend and .blend are supported only for Q3 & QL compatibility, this hack can be removed if better Q3 shader support is implemented
+ 	// _glow is the preferred name
+@@ -2789,7 +2815,7 @@ skinframe_t *R_SkinFrame_LoadExternal_SkinFrame(skinframe_t *skinframe, const ch
+ 	}
+ 
+ 	mymiplevel = savemiplevel;
+-	if (skinframe->gloss == NULL && r_loadgloss && (pixels = loadimagepixelsbgra(va(vabuf, sizeof(vabuf), "%s_gloss", skinframe->basename), q_tx_complain_false, q_tx_allowfixtrans_false, q_tx_convertsrgb_false, &mymiplevel))) {
++	if (skinframe->gloss == NULL && want_gloss && (pixels = loadimagepixelsbgra(va(vabuf, sizeof(vabuf), "%s_gloss", skinframe->basename), q_tx_complain_false, q_tx_allowfixtrans_false, q_tx_convertsrgb_false, &mymiplevel))) {
+ 		skinframe->gloss = R_LoadTexture2D (r_main_texturepool, va(vabuf, sizeof(vabuf), "%s_gloss", skinframe->basename), image_width, image_height, pixels, vid.sRGB3D ? TEXTYPE_SRGB_BGRA : TEXTYPE_BGRA, (TEXF_ALPHA | textureflags) & (gl_texturecompression_gloss.integer && gl_texturecompression.integer ? ~0 : ~TEXF_COMPRESS), mymiplevel, NULL);
+ #ifndef USE_GLES2
+ 		if (r_savedds && skinframe->gloss) {
+@@ -10610,6 +10636,8 @@ void GL_Main_Init(void)
+ 	Cvar_RegisterVariable(&r_q1bsp_lightmap_updates_enabled);
+ 	Cvar_RegisterVariable(&r_q1bsp_lightmap_updates_combine);
+ 	Cvar_RegisterVariable(&r_q1bsp_lightmap_updates_hidden_surfaces);
++	Cvar_RegisterVariable(&r_load_normalmap);
++	Cvar_RegisterVariable(&r_load_gloss);
+ 	if (gamemode == GAME_NEHAHRA || gamemode == GAME_TENEBRAE)
+ 		Cvar_SetValue(&cvars_all, "r_fullbrights", 0);
+ #ifdef DP_MOBILETOUCH
+diff --git a/gl_rmain_decals.c.h b/gl_rmain_decals.c.h
+index c549107..3a8949c 100644
+--- a/gl_rmain_decals.c.h
++++ b/gl_rmain_decals.c.h
+@@ -283,6 +283,8 @@ static void R_DecalSystem_SplatEntity(entity_render_t *ent, const vec3_t worldor
+ 	bih_triangles_count = -1;
+ 	if (!dynamic)
+ 	{
++		if (!model->render_bih.numleafs && !model->collision_bih.numleafs && model->type == mod_brushq1 && !model->brushq1.render_bih_tried)
++			Mod_Q1BSP_EnsureRenderBIH(model);
+ 		if (model->render_bih.numleafs)
+ 			bih = &model->render_bih;
+ 		else if (model->collision_bih.numleafs)
+diff --git a/gl_rsurf.c b/gl_rsurf.c
+index 4e8eb81..8df84df 100644
+--- a/gl_rsurf.c
++++ b/gl_rsurf.c
+@@ -57,6 +57,7 @@ Combine and scale multiple lightmaps into the 8.8 format in blocklights
+ // Reason is no model->brushq1.num_lightstyles
+ void R_BuildLightMap (const entity_render_t *ent, msurface_t *surface, int combine)
+ {
++	static unsigned int r_buildlightmap_pump = 0;
+ 	int smax, tmax, i, size, size3, maps, l;
+ 	int *bl, scale;
+ 	unsigned char *lightmap, *out, *stain;
+@@ -64,6 +65,10 @@ void R_BuildLightMap (const entity_render_t *ent, msurface_t *surface, int combi
+ 	int *intblocklights;
+ 	unsigned char *templight;
+ 
++	if ((scr_loading_ex || host.state != host_active || r_refdef.stats[r_stat_lightmapupdates] > 256)
++		&& (++r_buildlightmap_pump & 255) == 0)
++		Sys_PumpLoadingEvents();
++
+ 	smax = (surface->lightmapinfo->extents[0]>>4)+1;
+ 	tmax = (surface->lightmapinfo->extents[1]>>4)+1;
+ 	size = smax*tmax;
+@@ -1237,6 +1242,11 @@ static void R_Q1BSP_CallRecursiveGetLightInfo(r_q1bsp_getlightinfo_t *info, qboo
+ 
+ 	info->svbsp_insertoccluder = false;
+ 	// use BIH culling on single leaf maps (generally this only happens if running a model as a map), otherwise use BSP culling to make use of vis data
++	if (r_shadow_usebihculling.integer > 0 && (r_shadow_usebihculling.integer == 2 || info->model->brush.num_leafs == 1))
++	{
++		if (info->model->render_bih.leafs == NULL && info->model->type == mod_brushq1)
++			Mod_Q1BSP_EnsureRenderBIH(info->model);
++	}
+ 	if (r_shadow_usebihculling.integer > 0 && (r_shadow_usebihculling.integer == 2 || info->model->brush.num_leafs == 1) && info->model->render_bih.leafs != NULL)
+ 	{
+ 		R_Q1BSP_RecursiveGetLightInfo_BSP(info, true);
+diff --git a/gl_textures.c b/gl_textures.c
+index de53707..31cbc79 100644
+--- a/gl_textures.c
++++ b/gl_textures.c
+@@ -35,6 +35,7 @@ cvar_t r_picmipworld = {CF_CLIENT | CF_ARCHIVE, "r_picmipworld", "1", "whether g
+ cvar_t gl_picmip_sprites = {CF_CLIENT | CF_ARCHIVE, "gl_picmip_sprites", "0", "extra picmip level for sprite textures (may be negative, which will then reduce gl_picmip for these)"};
+ cvar_t r_picmipsprites = {CF_CLIENT | CF_ARCHIVE, "r_picmipsprites", "1", "make gl_picmip affect sprites too (saves some graphics memory in sprite heavy games) (setting this to 0 is a shorthand for gl_picmip_sprites -9999999)"};
+ cvar_t gl_picmip_other = {CF_CLIENT | CF_ARCHIVE, "gl_picmip_other", "0", "extra picmip level for other textures (may be negative, which will then reduce gl_picmip for these)"};
++cvar_t gl_picmip_force = {CF_CLIENT | CF_ARCHIVE, "gl_picmip_force", "0", "when 1, ignore nopicmip on 3D world/model shaders and also apply picmip/gl_max_size to skyboxes (never affects 2D HUD, fonts, lightmaps, or render targets)"};
+ cvar_t r_lerpimages = {CF_CLIENT | CF_ARCHIVE, "r_lerpimages", "1", "bilinear filters images when scaling them up to power of 2 size (mode 1), looks better than glquake (mode 0)"};
+ cvar_t gl_texture_anisotropy = {CF_CLIENT | CF_ARCHIVE, "gl_texture_anisotropy", "1", "anisotropic filtering quality (if supported by hardware), 1 sample (no anisotropy) and 8 sample (8 tap anisotropy) are recommended values"};
+ cvar_t gl_texturecompression = {CF_CLIENT | CF_ARCHIVE, "gl_texturecompression", "0", "whether to compress textures, a value of 0 disables compression (even if the individual cvars are 1), 1 enables fast (low quality) compression at startup, 2 enables slow (high quality) compression at startup"};
+@@ -252,8 +253,8 @@ gltexturepool_t;
+ 
+ static gltexturepool_t *gltexturepoolchain = NULL;
+ 
+-static unsigned char *resizebuffer = NULL, *colorconvertbuffer;
+-static int resizebuffersize = 0;
++static unsigned char *resizebuffer = NULL, *colorconvertbuffer = NULL;
++static int resizebuffersize = 0, colorconvertbuffersize = 0;
+ static const unsigned char *texturebuffer;
+ 
+ static textypeinfo_t *R_GetTexTypeInfo(textype_t textype, int flags)
+@@ -830,6 +831,7 @@ static void r_textures_shutdown(void)
+ 	}
+ 
+ 	resizebuffersize = 0;
++	colorconvertbuffersize = 0;
+ 	resizebuffer = NULL;
+ 	colorconvertbuffer = NULL;
+ 	texturebuffer = NULL;
+@@ -883,6 +885,7 @@ void R_Textures_Init (void)
+ 	Cvar_RegisterVariable (&gl_picmip_sprites);
+ 	Cvar_RegisterVariable (&r_picmipsprites);
+ 	Cvar_RegisterVariable (&gl_picmip_other);
++	Cvar_RegisterVariable (&gl_picmip_force);
+ 	Cvar_RegisterVariable (&gl_max_lightmapsize);
+ 	Cvar_RegisterVariable (&r_lerpimages);
+ 	Cvar_RegisterVariable (&gl_texture_anisotropy);
+@@ -917,6 +920,7 @@ void R_Textures_Frame (void)
+ 
+ 	// free the resize buffers
+ 	resizebuffersize = 0;
++	colorconvertbuffersize = 0;
+ 	if (resizebuffer)
+ 	{
+ 		Mem_Free(resizebuffer);
+@@ -979,15 +983,42 @@ static void R_MakeResizeBufferBigger(int size)
+ 		resizebuffersize = size;
+ 		if (resizebuffer)
+ 			Mem_Free(resizebuffer);
++		resizebuffer = (unsigned char *)Mem_Alloc(texturemempool, resizebuffersize);
++		if (!resizebuffer)
++			Host_Error_Line ("R_Upload: out of memory");
++	}
++}
++
++static void R_MakeColorConvertBufferBigger(int size)
++{
++	if (colorconvertbuffersize < size)
++	{
++		colorconvertbuffersize = size;
+ 		if (colorconvertbuffer)
+ 			Mem_Free(colorconvertbuffer);
+-		resizebuffer = (unsigned char *)Mem_Alloc(texturemempool, resizebuffersize);
+-		colorconvertbuffer = (unsigned char *)Mem_Alloc(texturemempool, resizebuffersize);
+-		if (!resizebuffer || !colorconvertbuffer)
++		colorconvertbuffer = (unsigned char *)Mem_Alloc(texturemempool, colorconvertbuffersize);
++		if (!colorconvertbuffer)
+ 			Host_Error_Line ("R_Upload: out of memory");
+ 	}
+ }
+ 
++static void R_ReleaseLargeUploadBuffers(void)
++{
++	// Release >4 MB staging buffers immediately after upload instead of holding them until the first rendered frame
++	if (resizebuffersize > 4 * 1024 * 1024 && resizebuffer)
++	{
++		Mem_Free(resizebuffer);
++		resizebuffer = NULL;
++		resizebuffersize = 0;
++	}
++	if (colorconvertbuffersize > 4 * 1024 * 1024 && colorconvertbuffer)
++	{
++		Mem_Free(colorconvertbuffer);
++		colorconvertbuffer = NULL;
++		colorconvertbuffersize = 0;
++	}
++}
++
+ static void GL_SetupTextureParameters(int flags, textype_t textype, int texturetype)
+ {
+ 	int textureenum = gltexturetypeenums[texturetype];
+@@ -1154,7 +1185,7 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 		if (glt->textype->textype == TEXTYPE_PALETTE)
+ 		{
+ 			// promote paletted to BGRA, so we only have to worry about BGRA in the rest of this code
+-			R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++			R_MakeColorConvertBufferBigger(glt->inputwidth * glt->inputheight * glt->inputdepth * glt->sides * glt->bytesperpixel);
+ 			Image_Copy8bitBGRA(prevbuffer, colorconvertbuffer, glt->inputwidth * glt->inputheight * glt->inputdepth * glt->sides, glt->palette);
+ 			prevbuffer = colorconvertbuffer;
+ 		}
+@@ -1162,7 +1193,7 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 		{
+ 			// multiply RGB channels by A channel before uploading
+ 			int alpha;
+-			R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++			R_MakeColorConvertBufferBigger(glt->inputwidth * glt->inputheight * glt->inputdepth * glt->sides * glt->bytesperpixel);
+ 			for (i = 0;i < glt->inputwidth*glt->inputheight*glt->inputdepth*4;i += 4)
+ 			{
+ 				alpha = prevbuffer[i+3];
+@@ -1183,7 +1214,10 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 		// apply mipmap reduction algorithm to get down to picmip/max_size
+ 		while (width > glt->tilewidth || height > glt->tileheight || depth > glt->tiledepth)
+ 		{
+-			R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++			int nextw = width > glt->tilewidth ? (width >> 1) : width;
++			int nexth = height > glt->tileheight ? (height >> 1) : height;
++			int nextd = depth > glt->tiledepth ? (depth >> 1) : depth;
++			R_MakeResizeBufferBigger(nextw * nexth * nextd * glt->sides * glt->bytesperpixel);
+ 			Image_MipReduce32(prevbuffer, resizebuffer, &width, &height, &depth, glt->tilewidth, glt->tileheight, glt->tiledepth);
+ 			prevbuffer = resizebuffer;
+ 		}
+@@ -1218,7 +1252,10 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 				{
+ 					while (width > 1 || height > 1 || depth > 1)
+ 					{
+-						R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++						int nextw = width > 1 ? (width >> 1) : 1;
++						int nexth = height > 1 ? (height >> 1) : 1;
++						int nextd = depth > 1 ? (depth >> 1) : 1;
++						R_MakeResizeBufferBigger(nextw * nexth * nextd * glt->sides * glt->bytesperpixel);
+ 						Image_MipReduce32(prevbuffer, resizebuffer, &width, &height, &depth, 1, 1, 1);
+ 						prevbuffer = resizebuffer;
+ 						/*2D mip*/ qglTexImage2D(GL_TEXTURE_2D, mip++, glt->glinternalformat, width, height, 0, glt->glformat, glt->gltype, prevbuffer);CHECKGLERROR
+@@ -1232,7 +1269,10 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 				{
+ 					while (width > 1 || height > 1 || depth > 1)
+ 					{
+-						R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++						int nextw = width > 1 ? (width >> 1) : 1;
++						int nexth = height > 1 ? (height >> 1) : 1;
++						int nextd = depth > 1 ? (depth >> 1) : 1;
++						R_MakeResizeBufferBigger(nextw * nexth * nextd * glt->sides * glt->bytesperpixel);
+ 						Image_MipReduce32(prevbuffer, resizebuffer, &width, &height, &depth, 1, 1, 1);
+ 						prevbuffer = resizebuffer;
+ 						qglTexImage3D(GL_TEXTURE_3D, mip++, glt->glinternalformat, width, height, depth, 0, glt->glformat, glt->gltype, prevbuffer);CHECKGLERROR
+@@ -1257,7 +1297,10 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 					// picmip/max_size
+ 					while (width > glt->tilewidth || height > glt->tileheight || depth > glt->tiledepth)
+ 					{
+-						R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++						int nextw = width > glt->tilewidth ? (width >> 1) : width;
++						int nexth = height > glt->tileheight ? (height >> 1) : height;
++						int nextd = depth > glt->tiledepth ? (depth >> 1) : depth;
++						R_MakeResizeBufferBigger(nextw * nexth * nextd * glt->sides * glt->bytesperpixel);
+ 						Image_MipReduce32(prevbuffer, resizebuffer, &width, &height, &depth, glt->tilewidth, glt->tileheight, glt->tiledepth);
+ 						prevbuffer = resizebuffer;
+ 					}
+@@ -1267,7 +1310,10 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 					{
+ 						while (width > 1 || height > 1 || depth > 1)
+ 						{
+-							R_MakeResizeBufferBigger(width * height * depth * glt->sides * glt->bytesperpixel);
++							int nextw = width > 1 ? (width >> 1) : 1;
++							int nexth = height > 1 ? (height >> 1) : 1;
++							int nextd = depth > 1 ? (depth >> 1) : 1;
++							R_MakeResizeBufferBigger(nextw * nexth * nextd * glt->sides * glt->bytesperpixel);
+ 							Image_MipReduce32(prevbuffer, resizebuffer, &width, &height, &depth, 1, 1, 1);
+ 							prevbuffer = resizebuffer;
+ 							qglTexImage2D(cubemapside[i], mip++, glt->glinternalformat, width, height, 0, glt->glformat, glt->gltype, prevbuffer);CHECKGLERROR
+@@ -1282,6 +1328,8 @@ static void R_UploadFullTexture(gltexture_t *glt, const unsigned char *data)
+ 		}
+ 		break;
+ 	} // switch
++
++	R_ReleaseLargeUploadBuffers();
+ }
+ 
+ CALLERS_		(R_LoadTexture2D)
+diff --git a/host.c b/host.c
+index 31bae39..8cb643e 100644
+--- a/host.c
++++ b/host.c
+@@ -1194,10 +1194,11 @@ static void Host_InitOnce (void)
+ 
+ 	host.state = host_active;
+ 
+-	CL_StartVideo();
+-
++	// Start logging before CL_StartVideo() so OpenGL/SDL initialization failures are captured in the log file
+ 	Log_Start();
+ 
++	CL_StartVideo();
++
+ 	// October 30 2026
+ 	if (cl_csg_run) {
+ 		// We need file path and shaders.
+diff --git a/image_png.c b/image_png.c
+index 7e13dc3..81b0bc7 100644
+--- a/image_png.c
++++ b/image_png.c
+@@ -59,7 +59,7 @@
+ 
+ 	#include "lodepng.h"
+ 
+-	unsigned char *PNG_LoadImage_BGRA (const unsigned char *pbytes, int data_size, int *miplevel_unused)
++	unsigned char *PNG_LoadImage_BGRA (const unsigned char *pbytes, int data_size, int *miplevel)
+ 	{
+ 		byte *lodepng_data = NULL;
+ 		unsigned uwidth, uheight, lodepng_error, numpels;
+@@ -67,38 +67,60 @@
+ 		lodepng_error = lodepng_decode32 (&lodepng_data, &uwidth, &uheight, pbytes, (size_t) data_size);
+ 
+ 		if (lodepng_error) {
++			if (lodepng_data)
++				free (lodepng_data);
++			Con_PrintLinef (CON_WARN "PNG_LoadImage_BGRA: decode failed (error %u: %s)", lodepng_error, lodepng_error_text(lodepng_error));
++			return NULL;
++		}
++
++		if (uwidth == 0 || uheight == 0 || uwidth > 32768 || uheight > 32768) {
++			free (lodepng_data);
++			Con_PrintLinef (CON_WARN "PNG_LoadImage_BGRA: invalid image dimensions %ux%u", uwidth, uheight);
+ 			return NULL;
+-			//log_fatal("error %u: %s", error, lodepng_error_text(error)); return NULL;
+ 		}
+ 
+ 		// Baker: we have some globals here
+ 		image_width = (int)uwidth;
+ 		image_height = (int)uheight;
+-		numpels = image_width * image_height;
+-
+-		unsigned char *image_data = NULL;
+ 
+-		image_data = (unsigned char *)Mem_Alloc(tempmempool, numpels * 4);
+-
+-		if (image_data) {
+-			memcpy (image_data, lodepng_data, numpels * 4);
++		// Early in-place picmip downscale before allocating tempmempool buffer (matches JPEG_LoadImage_BGRA)
++		// Cuts peak RAM on 2048x2048 PNGs from 16+16 MB down to 16+4 MB (picmip 1) or 16+1 MB (picmip 2)
++		if (miplevel && *miplevel > 0) {
++			int depth = 1;
++			while (*miplevel > 0 && (image_width > 1 || image_height > 1)
++				&& ((image_width & 1) == 0 || image_width == 1)
++				&& ((image_height & 1) == 0 || image_height == 1))
++			{
++				int destw = image_width > 1 ? (image_width >> 1) : 1;
++				int desth = image_height > 1 ? (image_height >> 1) : 1;
++				Image_MipReduce32(lodepng_data, lodepng_data, &image_width, &image_height, &depth, destw, desth, 1);
++				(*miplevel)--;
++			}
+ 		}
+ 
+-		free (lodepng_data);
++		numpels = (unsigned)(image_width * image_height);
++
++		unsigned char *image_data = (unsigned char *)Mem_Alloc(tempmempool, (size_t)numpels * 4);
+ 
+ 		if (!image_data) {
++			free (lodepng_data);
+ 			Con_PrintLinef ("PNG_LoadImage : not enough memory");
+ 			return NULL;
+ 		}
+ 
+-		// swizzle RGBA to BGRA
+-		unsigned y, c;
+-		for (y = 0; y < (unsigned int)(image_width * image_height * 4); y += 4) {
+-			c = image_data[y+0];
+-			image_data[y+0] = image_data[y+2];
+-			image_data[y+2] = c;
++		// Copy and swizzle RGBA -> BGRA in one pass, then release lodepng's C-heap buffer immediately
++		{
++			size_t y, nbytes = (size_t)numpels * 4;
++			for (y = 0; y < nbytes; y += 4) {
++				image_data[y+0] = lodepng_data[y+2];
++				image_data[y+1] = lodepng_data[y+1];
++				image_data[y+2] = lodepng_data[y+0];
++				image_data[y+3] = lodepng_data[y+3];
++			}
+ 		}
+ 
++		free (lodepng_data);
++
+ 		return image_data;
+ 	}
+ 
+diff --git a/model_brush.c b/model_brush.c
+index 08294a0..a5e7c36 100644
+--- a/model_brush.c
++++ b/model_brush.c
+@@ -64,6 +64,11 @@ cvar_t mod_q2bsp_littransparentsurfaces = {CF_CLIENT, "mod_q2bsp_littransparents
+ 
+ cvar_t mod_q1bsp_polygoncollisions = {CF_CLIENT | CF_SERVER, "mod_q1bsp_polygoncollisions", "0", "disables use of precomputed cliphulls and instead collides with polygons (uses Bounding Interval Hierarchy optimizations)"};
+ cvar_t mod_q1bsp_zero_hullsize_cutoff = {CF_CLIENT | CF_SERVER, "mod_q1bsp_zero_hullsize_cutoff", "3", "bboxes with an X dimension smaller than this will use the smallest cliphull (0x0x0) instead of being rounded up to the player cliphull (32x32x56) in Q1BSP, or crouching player (32x32x36) in HLBSP"};
++cvar_t mod_q1bsp_pvs_ondemand = {CF_CLIENT | CF_SERVER, "mod_q1bsp_pvs_ondemand", "1", "decompress Q1BSP PVS rows on demand using a small LRU cache instead of pre-expanding all clusters (0 = always pre-expand, 1 = on-demand when uncompressed PVS > 16 MB, 2 = always on-demand)"};
++cvar_t mod_q1bsp_lazy_render_bih = {CF_CLIENT | CF_SERVER, "mod_q1bsp_lazy_render_bih", "0", "defer building Q1BSP render_bih until first realtime-light or decal BIH query when realtime lighting and polygon collisions are disabled"};
++
++extern cvar_t sv_threaded;
++static void *mod_pvscache_mutex = NULL;
+ 
+ RELATED_ (r_useportalculling)
+ cvar_t mod_bsp_portalize = {CF_CLIENT, "mod_bsp_portalize", "1", "enables portal generation from BSP tree (may take several seconds per map), used by r_drawportals, r_useportalculling, r_shadow_realtime_dlight_portalculling, r_shadow_realtime_world_compileportalculling, Baker: set to 2 to always generate this data [Zircon]"}; // Baker r0100
+@@ -1546,15 +1551,16 @@ static void Mod_Q1BSP_TraceLineAgainstSurfaces(struct model_s *model, const fram
+ 	VectorMA(rhc.start, rhc.trace->fraction, rhc.dist, rhc.trace->endpos);
+ }
+ 
+-static void Mod_BSP_DecompressVis(const unsigned char *in, const unsigned char *inend, unsigned char *out, unsigned char *outend)
++static void Mod_BSP_DecompressVisEx(const char *modelname, const unsigned char *in, const unsigned char *inend, unsigned char *out, unsigned char *outend)
+ {
+ 	int c;
++	const char *name = modelname ? modelname : "<unknown>";
+ 
+ 	unsigned char *outstart = out;
+ 	while (out < outend)
+ 	{
+ 		if (in == inend) {
+-			Con_PrintLinef ("Mod_BSP_DecompressVis: input underrun on model " QUOTED_S " (decompressed %d of %d output bytes)", loadmodel->model_name, (int)(out - outstart), (int)(outend - outstart));
++			Con_PrintLinef ("Mod_BSP_DecompressVis: input underrun on model " QUOTED_S " (decompressed %d of %d output bytes)", name, (int)(out - outstart), (int)(outend - outstart));
+ 			return;
+ 		}
+ 		c = *in++;
+@@ -1563,12 +1569,12 @@ static void Mod_BSP_DecompressVis(const unsigned char *in, const unsigned char *
+ 		else
+ 		{
+ 			if (in == inend) {
+-				Con_PrintLinef ("Mod_BSP_DecompressVis: input underrun (during zero-run) on model " QUOTED_S " (decompressed %d of %d output bytes)", loadmodel->model_name, (int)(out - outstart), (int)(outend - outstart));
++				Con_PrintLinef ("Mod_BSP_DecompressVis: input underrun (during zero-run) on model " QUOTED_S " (decompressed %d of %d output bytes)", name, (int)(out - outstart), (int)(outend - outstart));
+ 				return;
+ 			}
+ 			for (c = *in++;c > 0;c--) {
+ 				if (out == outend) {
+-					Con_PrintLinef ("Mod_BSP_DecompressVis: output overrun on model " QUOTED_S " (decompressed %d of %d output bytes)", loadmodel->model_name, (int)(out - outstart), (int)(outend - outstart));
++					Con_PrintLinef ("Mod_BSP_DecompressVis: output overrun on model " QUOTED_S " (decompressed %d of %d output bytes)", name, (int)(out - outstart), (int)(outend - outstart));
+ 					return;
+ 				}
+ 				*out++ = 0;
+@@ -1577,6 +1583,140 @@ static void Mod_BSP_DecompressVis(const unsigned char *in, const unsigned char *
+ 	}
+ }
+ 
++static void Mod_BSP_DecompressVis(const unsigned char *in, const unsigned char *inend, unsigned char *out, unsigned char *outend)
++{
++	Mod_BSP_DecompressVisEx(loadmodel ? loadmodel->model_name : "<unknown>", in, inend, out, outend);
++}
++
++#define MOD_PVSCACHE_SETS 32
++#define MOD_PVSCACHE_WAYS 4
++#define MOD_PVSCACHE_SLOTS (MOD_PVSCACHE_SETS * MOD_PVSCACHE_WAYS)
++
++typedef struct mod_pvscache_s
++{
++	int rowbytes;
++	int clusters[MOD_PVSCACHE_SLOTS];
++	unsigned int stamp[MOD_PVSCACHE_SLOTS];
++	unsigned int clock;
++	unsigned char *allvis;
++	unsigned char *rows;
++}
++mod_pvscache_t;
++
++static unsigned char *Mod_Q1BSP_GetCachedPVSRowLocked(model_t *model, int clusterindex)
++{
++	mod_pvscache_t *cache = model->brushq1.pvscache;
++	int visofs, set, base, way, victim, i;
++	unsigned int beststamp;
++	unsigned char *row;
++
++	if (!cache || !model->brushq1.data_cluster_visofs)
++		return NULL;
++
++	visofs = model->brushq1.data_cluster_visofs[clusterindex];
++	if (visofs < 0 || !model->brushq1.data_compressedpvs || visofs >= model->brushq1.num_compressedpvs)
++		return cache->allvis;
++
++	set = clusterindex & (MOD_PVSCACHE_SETS - 1);
++	base = set * MOD_PVSCACHE_WAYS;
++	cache->clock++;
++	if (cache->clock == 0)
++	{
++		memset(cache->stamp, 0, sizeof(cache->stamp));
++		cache->clock = 1;
++	}
++
++	for (i = 0; i < MOD_PVSCACHE_WAYS; i++)
++	{
++		way = base + i;
++		if (cache->clusters[way] == clusterindex)
++		{
++			cache->stamp[way] = cache->clock;
++			return cache->rows + (size_t)way * (size_t)cache->rowbytes;
++		}
++	}
++
++	victim = base;
++	beststamp = cache->stamp[base];
++	for (i = 1; i < MOD_PVSCACHE_WAYS; i++)
++	{
++		way = base + i;
++		if (cache->clusters[way] < 0)
++		{
++			victim = way;
++			break;
++		}
++		if (cache->stamp[way] < beststamp)
++		{
++			beststamp = cache->stamp[way];
++			victim = way;
++		}
++	}
++
++	cache->clusters[victim] = clusterindex;
++	cache->stamp[victim] = cache->clock;
++	row = cache->rows + (size_t)victim * (size_t)cache->rowbytes;
++	memset(row, 0xFF, (size_t)cache->rowbytes);
++	Mod_BSP_DecompressVisEx(
++		model->model_name,
++		model->brushq1.data_compressedpvs + visofs,
++		model->brushq1.data_compressedpvs + model->brushq1.num_compressedpvs,
++		row,
++		row + cache->rowbytes
++	);
++	return row;
++}
++
++static unsigned char *Mod_Q1BSP_GetCachedPVSRow(model_t *model, int clusterindex)
++{
++	unsigned char *row;
++	if (svs.threaded && mod_pvscache_mutex)
++		Thread_LockMutex(mod_pvscache_mutex);
++	row = Mod_Q1BSP_GetCachedPVSRowLocked(model, clusterindex);
++	if (svs.threaded && mod_pvscache_mutex)
++		Thread_UnlockMutex(mod_pvscache_mutex);
++	return row;
++}
++
++static void Mod_BSP_OrClusterPVS(model_t *model, int clusterindex, unsigned char *pvsbuffer, int pvsbytes)
++{
++	int i;
++	unsigned char *pvs;
++	if (clusterindex < 0 || clusterindex >= model->brush.num_pvsclusters)
++		return;
++	if (model->brush.data_pvsclustersx)
++	{
++		pvs = model->brush.data_pvsclustersx + (size_t)clusterindex * (size_t)model->brush.num_pvsclusterbytes;
++		for (i = 0; i < pvsbytes; i++)
++			pvsbuffer[i] |= pvs[i];
++		return;
++	}
++	if (model->brushq1.pvscache)
++	{
++		if (svs.threaded && mod_pvscache_mutex)
++			Thread_LockMutex(mod_pvscache_mutex);
++		pvs = Mod_Q1BSP_GetCachedPVSRowLocked(model, clusterindex);
++		if (pvs)
++		{
++			for (i = 0; i < pvsbytes; i++)
++				pvsbuffer[i] |= pvs[i];
++		}
++		if (svs.threaded && mod_pvscache_mutex)
++			Thread_UnlockMutex(mod_pvscache_mutex);
++	}
++}
++
++static unsigned char *Mod_BSP_GetClusterPVS(model_t *model, int clusterindex)
++{
++	if (clusterindex < 0 || clusterindex >= model->brush.num_pvsclusters)
++		return NULL;
++	if (model->brush.data_pvsclustersx)
++		return model->brush.data_pvsclustersx + (size_t)clusterindex * (size_t)model->brush.num_pvsclusterbytes;
++	if (model->brushq1.pvscache)
++		return Mod_Q1BSP_GetCachedPVSRow(model, clusterindex);
++	return NULL;
++}
++
+ /*
+ =============
+ Mod_Q1BSP_LoadSplitSky
+@@ -1788,7 +1928,20 @@ static void Mod_Q1BSP_LoadTextures(sizebuf_t *sb)
+ 	FS_StripExtension (s, mapname, sizeof(mapname));
+ 
+ 	// LadyHavoc: mostly rewritten map texture loader
++	double last_tex_ui = Sys_DirtyTime();
+ 	for (i = 0; i < nummiptex; i++) {
++		Sys_PumpLoadingEvents();
++		if (cls.state != ca_dedicated && nummiptex > 16)
++		{
++			double now_t = Sys_DirtyTime();
++			if (now_t - last_tex_ui >= 0.25)
++			{
++				char msg[MAX_QPATH_128];
++				last_tex_ui = now_t;
++				dpsnprintf(msg, sizeof(msg), "Loading textures (%d/%d)...", i + 1, nummiptex);
++				SCR_UpdateLoadingScreenMsg(msg);
++			}
++		}
+ 		doffset = MSG_ReadLittleLong(sb);
+ 		if (r_nosurftextures.integer)
+ 			continue;
+@@ -2689,6 +2842,8 @@ static void Mod_Q1BSP_LoadFaces(sizebuf_t *sb)
+ 	totaltris = 0;
+ 	for (surfacenum = 0, surface = loadmodel->data_surfaces;surfacenum < count;surfacenum++, surface++)
+ 	{
++		if ((surfacenum & 4095) == 0)
++			Sys_PumpLoadingEvents();
+ 		surface->lightmapinfo = loadmodel->data_surfaces_lightmapinfo + surfacenum;
+ 		// the struct on disk is the same in BSP29 (Q1), BSP30 (HL1), and IBSP38 (Q2)
+ 		planenum = loadmodel->brush.isbsp2 ? MSG_ReadLittleLong(sb) : (unsigned short)MSG_ReadLittleShort(sb);
+@@ -2852,6 +3007,9 @@ static void Mod_Q1BSP_LoadFaces(sizebuf_t *sb)
+ 			int iu, iv, lightmapx = 0, lightmapy = 0;
+ 			float u, v, ubase, vbase, uscale, vscale;
+ 
++			if ((surfacenum & 4095) == 0)
++				Sys_PumpLoadingEvents();
++
+ 			if (!loadmodel->brushq1.lightmapupdateflags[surfacenum])
+ 				continue;
+ 
+@@ -3082,36 +3240,50 @@ static void Mod_Q1BSP_LoadLeafs(sizebuf_t *sb)
+ 	// get visleafs from the submodel data
+ 	loadmodel->brush.num_pvsclusters = loadmodel->brushq1.submodels[0].visleafs;
+ 	loadmodel->brush.num_pvsclusterbytes = (loadmodel->brush.num_pvsclusters+7)>>3; // Baker: div 8 after rounding up to nearest 8
+-	// Jan 4 2026 related to Jun 2 2024
+-#if 1
+-	// Baker: size_t is unsigned integer
+ 	size_t pvs_alloc_size = (size_t)loadmodel->brush.num_pvsclusters * (size_t)loadmodel->brush.num_pvsclusterbytes;
+-	loadmodel->brush.data_pvsclustersx = (byte *)Mem_Alloc(
+-		loadmodel->mempool,
+-		pvs_alloc_size /*loadmodel->brush.num_pvsclusters * loadmodel->brush.num_pvsclusterbytes*/
+-	);
+-
+-#else
+-	loadmodel->brush.data_pvsclusters = (byte *)Mem_Alloc(
+-		loadmodel->mempool,
+-		loadmodel->brush.num_pvsclusters * loadmodel->brush.num_pvsclusterbytes
+-	);
+-#endif
+-#if 1
+-	memset(
+-		loadmodel->brush.data_pvsclustersx,
+-		0xFF,
+-		pvs_alloc_size
+-	);
+-#else
+-	memset(
+-		loadmodel->brush.data_pvsclusters,
+-		0xFF, loadmodel->brush.num_pvsclusters * loadmodel->brush.num_pvsclusterbytes);
+-#endif
++	qbool use_ondemand_pvs = !svs.threaded && !sv_threaded.integer &&
++		(loadmodel->brush.num_pvsclusters > 0 && loadmodel->brush.num_pvsclusterbytes > 0) &&
++		(mod_q1bsp_pvs_ondemand.integer >= 2 || (mod_q1bsp_pvs_ondemand.integer == 1 && pvs_alloc_size > (size_t)16 * 1024 * 1024));
++	loadmodel->brush.data_pvsclustersx = NULL;
++	loadmodel->brushq1.data_cluster_visofs = NULL;
++	loadmodel->brushq1.pvscache = NULL;
++	if (use_ondemand_pvs)
++	{
++		mod_pvscache_t *pvscache = (mod_pvscache_t *)Mem_Alloc(loadmodel->mempool, sizeof(mod_pvscache_t));
++		loadmodel->brushq1.data_cluster_visofs = (int *)Mem_Alloc(loadmodel->mempool, (size_t)loadmodel->brush.num_pvsclusters * sizeof(int));
++		for (j = 0; j < loadmodel->brush.num_pvsclusters; j++)
++			loadmodel->brushq1.data_cluster_visofs[j] = -1;
++		pvscache->rowbytes = loadmodel->brush.num_pvsclusterbytes;
++		for (j = 0; j < MOD_PVSCACHE_SLOTS; j++)
++			pvscache->clusters[j] = -1;
++		pvscache->allvis = (unsigned char *)Mem_Alloc(loadmodel->mempool, (size_t)pvscache->rowbytes);
++		memset(pvscache->allvis, 0xFF, (size_t)pvscache->rowbytes);
++		pvscache->rows = (unsigned char *)Mem_Alloc(loadmodel->mempool, (size_t)MOD_PVSCACHE_SLOTS * (size_t)pvscache->rowbytes);
++		loadmodel->brushq1.pvscache = pvscache;
++		Con_DPrintLinef ("Mod_Q1BSP_LoadLeafs: %s using on-demand PVS cache (%.1f MB uncompressed -> %.2f MB compressed + %.2f MB cache)",
++			loadmodel->model_name,
++			pvs_alloc_size / (1024.0 * 1024.0),
++			loadmodel->brushq1.num_compressedpvs / (1024.0 * 1024.0),
++			((size_t)(MOD_PVSCACHE_SLOTS + 1) * (size_t)pvscache->rowbytes + (size_t)loadmodel->brush.num_pvsclusters * sizeof(int)) / (1024.0 * 1024.0));
++	}
++	else if (pvs_alloc_size > 0)
++	{
++		loadmodel->brush.data_pvsclustersx = (byte *)Mem_Alloc(
++			loadmodel->mempool,
++			pvs_alloc_size
++		);
++		memset(
++			loadmodel->brush.data_pvsclustersx,
++			0xFF,
++			pvs_alloc_size
++		);
++	}
+ 
+ 	// FIXME: this function could really benefit from some error checking
+ 	for ( i=0 ; i<count ; i++, out++)
+ 	{
++		if ((i & 4095) == 0)
++			Sys_PumpLoadingEvents();
+ 		out->contents = MSG_ReadLittleLong(sb);
+ 
+ 		out->clusterindex = i - 1;
+@@ -3124,8 +3296,9 @@ static void Mod_Q1BSP_LoadLeafs(sizebuf_t *sb)
+ 		{
+ 			if (p >= loadmodel->brushq1.num_compressedpvs)
+ 				Con_PrintLinef ("Mod_Q1BSP_LoadLeafs: invalid visofs");
++			else if (loadmodel->brushq1.pvscache)
++				loadmodel->brushq1.data_cluster_visofs[out->clusterindex] = p;
+ 			else {
+-#if 1
+ 				size_t cluster_offset0 = (size_t)out->clusterindex * (size_t)loadmodel->brush.num_pvsclusterbytes;
+ 				size_t cluster_offset1 = (size_t)(out->clusterindex + 1) * (size_t)loadmodel->brush.num_pvsclusterbytes;
+ 				Mod_BSP_DecompressVis(
+@@ -3134,14 +3307,6 @@ static void Mod_Q1BSP_LoadLeafs(sizebuf_t *sb)
+ 					loadmodel->brush.data_pvsclustersx + cluster_offset0,
+ 					loadmodel->brush.data_pvsclustersx + cluster_offset1
+ 				);
+-#else
+-				Mod_BSP_DecompressVis(
+-					loadmodel->brushq1.data_compressedpvs + p,
+-					loadmodel->brushq1.data_compressedpvs + loadmodel->brushq1.num_compressedpvs,
+-					loadmodel->brush.data_pvsclustersx + out->clusterindex * loadmodel->brush.num_pvsclusterbytes,
+-					loadmodel->brush.data_pvsclustersx + (out->clusterindex + 1) * loadmodel->brush.num_pvsclusterbytes
+-				);
+-#endif
+ 			}
+ 		}
+ 
+@@ -3205,7 +3370,7 @@ static qbool Mod_Q1BSP_CheckWaterAlphaSupport(void)
+ 	mleaf_t *leaf;
+ 	const unsigned char *pvs;
+ 	// if there's no vis data, assume supported (because everything is visible all the time)
+-	if (!loadmodel->brush.data_pvsclustersx)
++	if (!loadmodel->brush.data_pvsclustersx && !loadmodel->brushq1.pvscache)
+ 		return true;
+ 	// check all liquid leafs to see if they can see into empty leafs, if any
+ 	// can we can assume this map supports r_wateralpha
+@@ -3213,15 +3378,11 @@ static qbool Mod_Q1BSP_CheckWaterAlphaSupport(void)
+ 	{
+ 		if ((leaf->contents == CONTENTS_WATER_NEG3 || leaf->contents == CONTENTS_SLIME_NEG4) && leaf->clusterindex >= 0)
+ 		{
+-#if 1 // Baker: Jan 4 2026 related to Jun 2 2024
+-			// Baker: clusterindex can be -1, but above if statement prevents us from coming here.
+-			size_t cluster_offset = (size_t)leaf->clusterindex * (size_t)loadmodel->brush.num_pvsclusterbytes;
+-			pvs = loadmodel->brush.data_pvsclustersx + cluster_offset;
+-#else
+-			pvs = loadmodel->brush.data_pvsclustersx + leaf->clusterindex * loadmodel->brush.num_pvsclusterbytes;
+-#endif
++			pvs = Mod_BSP_GetClusterPVS(loadmodel, leaf->clusterindex);
++			if (!pvs)
++				return true;
+ 			for (j = 0;j < loadmodel->brush.num_leafs;j++)
+-				if (CHECKPVSBIT(pvs, loadmodel->brush.data_leafs[j].clusterindex) && loadmodel->brush.data_leafs[j].contents == CONTENTS_EMPTY_NEG1)
++				if (loadmodel->brush.data_leafs[j].clusterindex >= 0 && CHECKPVSBIT(pvs, loadmodel->brush.data_leafs[j].clusterindex) && loadmodel->brush.data_leafs[j].contents == CONTENTS_EMPTY_NEG1)
+ 					return true;
+ 		}
+ 	}
+@@ -3915,15 +4076,8 @@ static unsigned char *Mod_BSP_GetPVS(model_t *model, const vec3_t p)
+ #if 0
+ 	int clusterindex = ((mleaf_t *)node)->clusterindex;
+ #endif
+-	if (((mleaf_t *)node)->clusterindex >= 0) {
+-#if 1 // Jan 4 2026 related to Jun 2 2024
+-		// Baker: clusterindex can be -1, but above if statement prevents us from coming here.
+-		size_t cluster_offset = (size_t)((mleaf_t *)node)->clusterindex * (size_t)model->brush.num_pvsclusterbytes;
+-		return model->brush.data_pvsclustersx + cluster_offset;
+-#else
+-		return model->brush.data_pvsclusters + ((mleaf_t *)node)->clusterindex * model->brush.num_pvsclusterbytes;
+-#endif
+-	}
++	if (((mleaf_t *)node)->clusterindex >= 0)
++		return Mod_BSP_GetClusterPVS(model, ((mleaf_t *)node)->clusterindex);
+ 	else
+ 		return NULL;
+ }
+@@ -3946,18 +4100,7 @@ static void Mod_BSP_FatPVS_RecursiveBSPNode(model_t *model, const vec3_t org, ve
+ 	}
+ 	// if this leaf is in a cluster, accumulate the pvs bits
+ 	if (((mleaf_t *)node)->clusterindex >= 0)
+-	{
+-		int i;
+-#if 1 // Jan 4 2026 related to Jun 2 2024
+-		// Baker: clusterindex can be -1, but above if statement prevents us from coming here.
+-		size_t cluster_offset = (size_t)((mleaf_t *)node)->clusterindex * (size_t)model->brush.num_pvsclusterbytes;
+-		unsigned char *pvs = model->brush.data_pvsclustersx + cluster_offset;
+-#else
+-		unsigned char *pvs = model->brush.data_pvsclusters + ((mleaf_t *)node)->clusterindex * model->brush.num_pvsclusterbytes;
+-#endif
+-		for (i = 0;i < pvsbytes;i++)
+-			pvsbuffer[i] |= pvs[i];
+-	}
++		Mod_BSP_OrClusterPVS(model, ((mleaf_t *)node)->clusterindex, pvsbuffer, pvsbytes);
+ }
+ 
+ //Calculates a PVS that is the inclusive or of all leafs within radius pixels
+@@ -4233,16 +4376,32 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 		mod->brush.qw_md4sum2 ^= LittleLong(temp);
+ 	}
+ 
++	double t_load_start = Sys_DirtyTime(), t_stage, t_tex_s = 0, t_faces_s = 0, t_leafs_s = 0, t_sub_s = 0, t_vbo_s = 0;
++	qbool is_large_bsp = (lumpsb[LUMP_FACES].cursize > 65536);
++
+ 	Mod_Q1BSP_LoadEntities(&lumpsb[LUMP_ENTITIES]);
+ 	Mod_Q1BSP_LoadVertexes(&lumpsb[LUMP_VERTEXES]);
+ 	Mod_Q1BSP_LoadEdges(&lumpsb[LUMP_EDGES]);
+ 	Mod_Q1BSP_LoadSurfedges(&lumpsb[LUMP_SURFEDGES]);
++	if (is_large_bsp)
++		SCR_UpdateLoadingScreenMsg("Loading world textures...");
++	t_stage = Sys_DirtyTime();
+ 	Mod_Q1BSP_LoadTextures(&lumpsb[LUMP_TEXTURES]);
++	t_tex_s = Sys_DirtyTime() - t_stage;
++	Sys_PumpLoadingEvents();
++	if (is_large_bsp)
++		SCR_UpdateLoadingScreenMsg("Loading world lighting & geometry...");
++	t_stage = Sys_DirtyTime();
+ 	Mod_Q1BSP_LoadLighting(&lumpsb[LUMP_LIGHTING]);
+ 	Mod_Q1BSP_LoadPlanes(&lumpsb[LUMP_PLANES]);
+ 	Mod_Q1BSP_LoadTexinfo(&lumpsb[LUMP_TEXINFO]);
+ 	Mod_Q1BSP_LoadFaces(&lumpsb[LUMP_FACES]);
+ 	Mod_Q1BSP_LoadLeaffaces(&lumpsb[LUMP_MARKSURFACES]);
++	t_faces_s = Sys_DirtyTime() - t_stage;
++	Sys_PumpLoadingEvents();
++	if (is_large_bsp)
++		SCR_UpdateLoadingScreenMsg("Loading world visibility...");
++	t_stage = Sys_DirtyTime();
+ 
+ 	qbool did_load_external_vis = false;
+ 	do {
+@@ -4340,6 +4499,8 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 
+ 	Mod_Q1BSP_LoadNodes(&lumpsb[LUMP_NODES]);
+ 	Mod_Q1BSP_LoadClipnodes(&lumpsb[LUMP_CLIPNODES], &hullinfo);
++	t_leafs_s = Sys_DirtyTime() - t_stage;
++	Sys_PumpLoadingEvents();
+ 
+ 	for (i = 0; i < HEADER_LUMPS_15; i++) {
+ 		if (did_load_external_vis && isin2 (i, LUMP_VISIBILITY_4, LUMP_LEAFS_10))
+@@ -4351,11 +4512,15 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 	// check if the map supports transparent water rendering
+ 	loadmodel->brush.supportwateralpha = Mod_Q1BSP_CheckWaterAlphaSupport();
+ 
+-	// we don't need the compressed pvs data anymore
+-	if (mod->brushq1.data_compressedpvs)
+-		Mem_Free(mod->brushq1.data_compressedpvs);
+-	mod->brushq1.data_compressedpvs = NULL;
+-	mod->brushq1.num_compressedpvs = 0;
++	// we don't need the compressed pvs data anymore (unless using on-demand PVS decompression)
++	if (!mod->brushq1.pvscache)
++	{
++		if (mod->brushq1.data_compressedpvs)
++			Mem_Free(mod->brushq1.data_compressedpvs);
++		mod->brushq1.data_compressedpvs = NULL;
++		mod->brushq1.num_compressedpvs = 0;
++	}
++	Sys_PumpLoadingEvents();
+ 
+ 	// Baker r0100
+ 	Mod_Q1BSP_MakeHull0();
+@@ -4420,11 +4585,17 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 	}
+ 	datapointer = (unsigned char *)Mem_Alloc(mod->mempool, mod->num_surfaces * sizeof(int) + totalstyles * sizeof(model_brush_lightstyleinfo_t) + totalstylesurfaces * sizeof(int *));
+ 	mod->modelsurfaces_sorted = (int*)datapointer;datapointer += mod->num_surfaces * sizeof(int);
++	if (is_large_bsp)
++		SCR_UpdateLoadingScreenMsg("Building world meshes...");
++	t_stage = Sys_DirtyTime();
+ 	for (i = 0;i < mod->brush.numsubmodels;i++)
+ 	{
+ 		// LadyHavoc: this code was originally at the end of this loop, but
+ 		// has been transformed to something more readable at the start here.
+ 
++		if ((i & 31) == 0)
++			Sys_PumpLoadingEvents();
++
+ 		if (i > 0)
+ 		{
+ 			char name[10];
+@@ -4433,6 +4604,9 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 			mod = Mod_FindName(name, loadmodel->model_name);
+ 			// copy the base model to this one
+ 			*mod = *loadmodel;
++			memset(&mod->render_bih, 0, sizeof(mod->render_bih));
++			memset(&mod->collision_bih, 0, sizeof(mod->collision_bih));
++			mod->brushq1.render_bih_tried = false;
+ 			// rename the clone back to its proper name
+ 			c_strlcpy (mod->model_name, name);
+ 			mod->brush.parentmodel = loadmodel;
+@@ -4542,7 +4716,14 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 		//mod->brushq1.num_visleafs = bm->visleafs;
+ 
+ 		// build a Bounding Interval Hierarchy for culling triangles in light rendering
+-		Mod_MakeCollisionBIH(mod, true, &mod->render_bih);
++		if (!mod_q1bsp_lazy_render_bih.integer || mod_q1bsp_polygoncollisions.integer || r_shadow_realtime_dlight.integer || r_shadow_realtime_world.integer)
++		{
++			Mod_MakeCollisionBIH(mod, true, &mod->render_bih);
++		}
++		else if (i == 0 && is_large_bsp)
++		{
++			Con_DPrintLinef ("Mod_Q1BSP_Load: deferring render_bih for %s (mod_q1bsp_lazy_render_bih)", mod->model_name);
++		}
+ 
+ 		if (mod_q1bsp_polygoncollisions.integer /*d:0*/)
+ 		{
+@@ -4557,17 +4738,29 @@ int Mod_Q1BSP_Load(model_t *mod, void *buffer, void *bufferend)
+ 		// generate VBOs and other shared data before cloning submodels
+ 		if (i == 0)
+ 		{
++			double t_vbo_start = Sys_DirtyTime();
++			Sys_PumpLoadingEvents();
+ 			Mod_BuildVBOs();
++			t_vbo_s = Sys_DirtyTime() - t_vbo_start;
++			Sys_PumpLoadingEvents();
+ 			Mod_Q1BSP_LoadMapBrushes();
+ 			//Mod_Q1BSP_ProcessLightList();
+ 		}
+ 	}
++	t_sub_s = (Sys_DirtyTime() - t_stage) - t_vbo_s;
+ 	mod = loadmodel;
+ 
+ 	// make the model surface list (used by shadowing/lighting)
+ 	Mod_MakeSortedSurfaces(loadmodel);
+ 
+ 	Con_DPrintLinef ("Stats for q1bsp model " QUOTED_S ": %d faces, %d nodes, %d leafs, %d visleafs, %d visleafportals, mesh: %d vertices, %d triangles, %d surfaces", loadmodel->model_name, loadmodel->num_surfaces, loadmodel->brush.num_nodes, loadmodel->brush.num_leafs, mod->brush.num_pvsclusters, loadmodel->brush.num_portals, loadmodel->surfmesh.num_vertices, loadmodel->surfmesh.num_triangles, loadmodel->num_surfaces);
++	{
++		double t_total = Sys_DirtyTime() - t_load_start;
++		if (t_total >= 5.0)
++			Con_PrintLinef ("Mod_Q1BSP_Load(%s): total %.2fs (tex %.2fs, faces %.2fs, leafs %.2fs, submodels/bih %.2fs, vbo %.2fs)", loadmodel->model_name, t_total, t_tex_s, t_faces_s, t_leafs_s, t_sub_s, t_vbo_s);
++		else if (is_large_bsp)
++			Con_DPrintLinef ("Mod_Q1BSP_Load(%s): total %.2fs (tex %.2fs, faces %.2fs, leafs %.2fs, submodels/bih %.2fs, vbo %.2fs)", loadmodel->model_name, t_total, t_tex_s, t_faces_s, t_leafs_s, t_sub_s, t_vbo_s);
++	}
+ 	return true;
+ }
+ 
+@@ -7753,6 +7946,24 @@ bih_t *Mod_MakeCollisionBIH(model_t *model, qbool userendersurfaces, bih_t *out)
+ 	return out;
+ }
+ 
++void Mod_Q1BSP_EnsureRenderBIH(model_t *mod)
++{
++	model_t *saved_loadmodel;
++	model_t *owner;
++	if (!mod || mod->render_bih.leafs != NULL || mod->brushq1.render_bih_tried)
++		return;
++	mod->brushq1.render_bih_tried = true;
++	if (mod->submodelsurfaces_start >= mod->submodelsurfaces_end)
++		return;
++	owner = mod->brush.parentmodel ? mod->brush.parentmodel : mod;
++	if (!owner->mempool)
++		return;
++	saved_loadmodel = loadmodel;
++	loadmodel = owner;
++	Mod_MakeCollisionBIH(mod, true, &mod->render_bih);
++	loadmodel = saved_loadmodel;
++}
++
+ static int Mod_Q3BSP_SuperContentsFromNativeContents(int nativecontents)
+ {
+ 	int supercontents = 0;
+@@ -8805,10 +9016,15 @@ void Mod_BrushInit(void)
+ 	Cvar_RegisterVariable(&mod_q3shader_force_addalpha);
+ 	Cvar_RegisterVariable(&mod_q3shader_force_terrain_alphaflag);
+ 	Cvar_RegisterVariable(&mod_q1bsp_polygoncollisions);
++	Cvar_RegisterVariable(&mod_q1bsp_pvs_ondemand);
++	Cvar_RegisterVariable(&mod_q1bsp_lazy_render_bih);
+ 	Cvar_RegisterVariable(&mod_bsp_lightpointcache);
+ 	Cvar_RegisterVariable(&mod_q1bsp_zero_hullsize_cutoff);
+ 	Cvar_RegisterVariable(&mod_recalculatenodeboxes);
+ 
++	if (!mod_pvscache_mutex && Thread_HasThreads())
++		mod_pvscache_mutex = Thread_CreateMutex();
++
+ 	// these games were made for older DP engines and are no longer
+ 	// maintained; use this hack to show their textures properly
+ 	if (gamemode == GAME_NEXUIZ)
+diff --git a/model_q1bsp.h b/model_q1bsp.h
+index e327ba4..b9d9f5c 100644
+--- a/model_q1bsp.h
++++ b/model_q1bsp.h
+@@ -4,6 +4,8 @@
+ #include "qtypes.h"
+ #include "model_brush.h"
+ 
++struct mod_pvscache_s;
++
+ typedef struct model_brushq1_s
+ {
+ 	mmodel_t		*submodels;
+@@ -27,6 +29,8 @@ typedef struct model_brushq1_s
+ 
+ 	int				num_compressedpvs;
+ 	unsigned char			*data_compressedpvs;
++	int				*data_cluster_visofs;
++	struct mod_pvscache_s	*pvscache;
+ 
+ 	int				num_lightdata;
+ 	unsigned char			*lightdata;
+@@ -39,6 +43,7 @@ typedef struct model_brushq1_s
+ 	// this contains bytes that are 1 if a surface needs its lightmap rebuilt
+ 	unsigned char *lightmapupdateflags;
+ 	qbool firstrender; // causes all surface lightmaps to be loaded in first frame
++	qbool render_bih_tried; // avoids repeated lazy BIH attempts on 0-triangle submodels
+ }
+ model_brushq1_t;
+ 
+diff --git a/model_shared.c b/model_shared.c
+index 7af630a..ccd1227 100644
+--- a/model_shared.c
++++ b/model_shared.c
+@@ -507,7 +507,9 @@ model_t *Mod_LoadModel(model_t *mod, qbool crash, qbool checkdisk)
+ 
+ 				// Matched. Load it.
+ 				RELATED_ (Mod_IDP0_Load)
++				Sys_PumpLoadingEvents();
+ 				int res = loader[i].Load(mod, buf, bufend);
++				Sys_PumpLoadingEvents();
+ 				Mem_Free(buf);
+ 
+ 				if (res == false) {
+@@ -1913,6 +1915,14 @@ qbool Mod_LoadTextureFromQ3Shader(mempool_t *mempool, const char *modelname, tex
+ 		texflagsor |= TEXF_ISWORLD;
+ 	if (defaulttexflags & TEXF_ISSPRITE)
+ 		texflagsor |= TEXF_ISSPRITE;
++	// gl_picmip_force 1: override shader nopicmip on 3D world/model textures (never affects 2D HUD/fonts/lightmaps/rendertargets)
++	if (gl_picmip_force.integer)
++	{
++		if (defaulttexflags & TEXF_PICMIP)
++			texflagsor |= TEXF_PICMIP;
++		if (defaulttexflags & TEXF_COMPRESS)
++			texflagsor |= TEXF_COMPRESS;
++	}
+ 	// unless later loaded from the shader
+ 	texture->offsetmapping = (mod_noshader_default_offsetmapping.value) /*defaults 1*/ ? OFFSETMAPPING_DEFAULT : OFFSETMAPPING_OFF;
+ 	texture->offsetscale = 1;
+diff --git a/model_shared.h b/model_shared.h
+index e9090d8..1cc282f 100644
+--- a/model_shared.h
++++ b/model_shared.h
+@@ -703,6 +703,7 @@ qbool Mod_AllocLightmap_Block(mod_alloclightmap_state_t *state, int blockwidth,
+ 
+ // bsp models
+ void Mod_BrushInit(void);
++void Mod_Q1BSP_EnsureRenderBIH(model_t *mod);
+ // used for talking to the QuakeC mainly
+ int Mod_Q1BSP_NativeContentsFromSuperContents(int supercontents);
+ int Mod_Q1BSP_SuperContentsFromNativeContents(int nativecontents);
+diff --git a/r_sky.c b/r_sky.c
+index d18936f..7a5d6f0 100644
+--- a/r_sky.c
++++ b/r_sky.c
+@@ -120,7 +120,12 @@ static int R_LoadSkyBox(void)
+ 			} // if
+ 			temp = (unsigned char *)Mem_Alloc(tempmempool, image_width*image_height*4);
+ 			Image_CopyMux (temp, image_buffer, image_width, image_height, suffix[j][i].flipx, suffix[j][i].flipy, suffix[j][i].flipdiagonal, 4, 4, indices);
+-			skyboxskinframe[i] = R_SkinFrame_LoadInternalBGRA(va(vabuf, sizeof(vabuf), "skyboxside%d", i), TEXF_CLAMP | (gl_texturecompression_sky.integer ? TEXF_COMPRESS : 0), temp, image_width, image_height, 0, 0, 0, vid.sRGB3D, q_is_sky_load_false);
++			{
++				int skyflags = TEXF_CLAMP | (gl_texturecompression_sky.integer ? TEXF_COMPRESS : 0);
++				if (gl_picmip_force.integer || gl_picmip_world.integer > 0)
++					skyflags |= TEXF_PICMIP | TEXF_ISWORLD;
++				skyboxskinframe[i] = R_SkinFrame_LoadInternalBGRA(va(vabuf, sizeof(vabuf), "skyboxside%d", i), skyflags, temp, image_width, image_height, 0, 0, 0, vid.sRGB3D, q_is_sky_load_false);
++			}
+ 			Mem_Free(image_buffer);
+ 			Mem_Free(temp);
+ 			success++;
+diff --git a/r_textures.h b/r_textures.h
+index ba99ed0..d21d6dc 100644
+--- a/r_textures.h
++++ b/r_textures.h
+@@ -267,6 +267,8 @@ void R_Nearest_Conchars_Callback(cvar_t *var);
+ extern cvar_t r_nearest_conchars; 
+ 
+ extern cvar_t gl_texturemode_cvar;
++extern cvar_t gl_picmip_force;
++extern cvar_t gl_picmip_world;
+ const char *TexFilterNameForNum (int num);
+ 
+ #endif
+diff --git a/screen.h b/screen.h
+index 3978870..90547a4 100644
+--- a/screen.h
++++ b/screen.h
+@@ -38,6 +38,7 @@ void SCR_EndLoadingPlaque (void);
+ void SCR_PushLoadingScreen (const char *msg, float len_in_parent);
+ void SCR_PopLoadingScreen (qbool redraw);
+ void SCR_ClearLoadingScreen (qbool redraw);
++void SCR_UpdateLoadingScreenMsg (const char *msg);
+ 
+ void SCR_CaptureVideo_SoundFrame(const struct portable_samplepair_s *paintbuffer, size_t length);
+ 
+diff --git a/sv_main.c b/sv_main.c
+index d4f180c..dc93bc6 100644
+--- a/sv_main.c
++++ b/sv_main.c
+@@ -1185,7 +1185,9 @@ int SV_ModelIndex(const char *s, int precachemode)
+ 				if (sv.state == ss_loading)
+ 				{
+ 					// running from SV_SpawnServer which is launched from the client console command interpreter
++					Sys_PumpLoadingEvents();
+ 					sv.models[i] = Mod_ForName (sv.model_precache[i], /*crash?*/ true, /*checkdisk?*/ false, s[0] == '*' ? sv.worldname : NULL);
++					Sys_PumpLoadingEvents();
+ 				}
+ 				else
+ 				{
+diff --git a/sys.h b/sys.h
+index b885b57..a0da541 100644
+--- a/sys.h
++++ b/sys.h
+@@ -273,6 +273,8 @@ void Sys_Sleep(int microseconds);
+ 
+ /// Perform Key_Event () callbacks until the input que is empty
+ void Sys_SendKeyEvents (void);
++/// Pump OS window messages during long synchronous loads to prevent Windows "Not Responding" hangs
++void Sys_PumpLoadingEvents (void);
+ 
+ 
+ extern qbool sys_supportsdlgetticks;
+diff --git a/sys_sdl.c b/sys_sdl.c
+index a430d9d..7a45ebb 100644
+--- a/sys_sdl.c
++++ b/sys_sdl.c
+@@ -77,6 +77,8 @@ void Sys_Error (const char *error, ...) // Baker: This is really SysErrorLinef
+ 	va_end (argptr);
+ 
+ 	Con_PrintLinef (CON_ERROR "Engine Error: %s", text);
++	// Flush and close log file before showing a modal dialog or exiting so crash/OOM details are preserved on disk
++	Log_Close ();
+ 
+ 	if (!nocrashdialog)
+ 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Error", text, NULL);
+diff --git a/sys_unix.c b/sys_unix.c
+index 259f3cd..f7bac95 100644
+--- a/sys_unix.c
++++ b/sys_unix.c
+@@ -42,6 +42,7 @@ void Sys_Error (const char *error, ...)
+ 	va_end (argptr);
+ 
+ 	Con_PrintLinef (CON_ERROR "Engine Error: %s", text);
++	Log_Close ();
+ 
+ 	//Host_Shutdown ();
+ 	exit (1);
+diff --git a/sys_win.c b/sys_win.c
+index 9fa66a3..4f39d72 100644
+--- a/sys_win.c
++++ b/sys_win.c
+@@ -71,6 +71,7 @@ void Sys_Error (const char *error, ...)
+ 	va_end (argptr);
+ 
+ 	Con_PrintLinef (CON_ERROR "Engine Error: %s", text);
++	Log_Close ();
+ 
+ 	// close video so the message box is visible, unless we already tried that
+ 	if (!in_sys_error0) 
+diff --git a/vid_null.c b/vid_null.c
+index da9c609..b90bce9 100644
+--- a/vid_null.c
++++ b/vid_null.c
+@@ -83,6 +83,10 @@ void Sys_SendKeyEvents(void)
+ {
+ }
+ 
++void Sys_PumpLoadingEvents(void)
++{
++}
++
+ void VID_BuildJoyState(vid_joystate_t *joystate)
+ {
+ }
+diff --git a/vid_sdl.c b/vid_sdl.c
+index 13d6f8a..8a57e0b 100644
+--- a/vid_sdl.c
++++ b/vid_sdl.c
+@@ -1259,6 +1259,31 @@ void IN_Keyboard_Acquire(void)
+ 
+ #endif // !_WIN32
+ 
++// Pump OS window messages during long synchronous loads so Windows does not mark the window "Not Responding" (Event 1002).
++// Throttled to ~10 Hz and avoids dispatching gameplay key/mouse bindings mid-load while still honoring window close (SDL_QUIT).
++void Sys_PumpLoadingEvents( void )
++{
++	static double last_pump = 0;
++	double now;
++
++	if (cls.state == ca_dedicated || !window)
++		return;
++
++	now = Sys_DirtyTime();
++	if (now >= last_pump && now - last_pump < 0.08)
++		return;
++	last_pump = now;
++
++	SDL_PumpEvents();
++	if ((scr_loading_ex || host.state != host_active) && SDL_HasEvent(SDL_QUIT))
++	{
++		Con_PrintLinef ("Quit requested during loading; exiting cleanly.");
++		Log_Close ();
++		SDL_Quit ();
++		exit (0);
++	}
++}
++
+ // SDL2
+ void Sys_SendKeyEvents( void )
+ {
+diff --git a/vid_wgl.c b/vid_wgl.c
+index 89399b3..848e85d 100644
+--- a/vid_wgl.c
++++ b/vid_wgl.c
+@@ -437,6 +437,36 @@ void Sys_SendKeyEvents (void)
+ 	}
+ }
+ 
++void Sys_PumpLoadingEvents (void)
++{
++	static double last_pump = 0;
++	double now = Sys_DirtyTime();
++	MSG msg;
++
++	if (now >= last_pump && now - last_pump < 0.08)
++		return;
++	last_pump = now;
++
++	if (!scr_loading_ex && host.state == host_active)
++		return;
++
++	while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
++	{
++		if (msg.message == WM_QUIT)
++		{
++			Log_Close ();
++			exit (0);
++		}
++		// Skip keyboard/mouse input dispatch mid-load to avoid re-entrant Key_Event() calls
++		if ((msg.message >= WM_KEYFIRST && msg.message <= WM_KEYLAST)
++			|| (msg.message >= WM_MOUSEFIRST && msg.message <= WM_MOUSELAST)
++			|| msg.message == WM_INPUT)
++			continue;
++		TranslateMessage (&msg);
++		DispatchMessage (&msg);
++	}
++}
++
+ LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+ 
+ 
+diff --git a/zone.c b/zone.c
+index a4328c3..c715119 100644
+--- a/zone.c
++++ b/zone.c
+@@ -156,19 +156,24 @@ void Mem_PrintList(size_t minallocationsize, ccs *mempool_name_wanted);
+ 	#ifndef _WIN32
+ 		return malloc(size);
+ 	#else
+-		void *base;
+-		// try for half a second or so
++		void *base = (void *)malloc(size);
++		if (base)
++			return base;
++		// Cap total retry wall-clock wait to 500 ms (Sleep(1) rounds up to the 15.6 ms timer tick, so 500 blind sleeps took ~7.8 s)
++		double deadline = Sys_DirtyTime() + 0.5;
+ 		unsigned int attempts = 500;
+ 		while (attempts--)
+ 		{
++			Sys_Sleep(1000);
+ 			base = (void *)malloc(size);
+ 			if (base)
+ 				return base;
+-			Sys_Sleep(1000);
++			if (Sys_DirtyTime() >= deadline)
++				break;
+ 		}
+ 		return NULL;
+ 	#endif
+-}
++	}
+ #endif // #if MEMCLUMPING != 2
+ 
+ #if MEMCLUMPING
+@@ -413,11 +418,21 @@ void *_Mem_Alloc(mempool_t *pool, void *olddata, size_t size, size_t alignment,
+ 	base = (unsigned char *)Clump_AllocBlock(realsize);
+ 
+ 	if (base == NULL) {
+-		Mem_PrintList(0, MEM_DETAIL_0);
+-		Mem_PrintStats();
+-		Mem_PrintList(1<<30, MEM_DETAIL_0);
+-		Mem_PrintStats();
+-		Sys_Error ("Mem_Alloc: out of memory (alloc of size %f (%.3fMB) at %s:%d)", (double)realsize, (double)realsize / (1 << 20), filename, fileline);
++		static qbool mem_oom_inprogress = false;
++		pool->totalsize -= size;
++		pool->realsize -= realsize;
++		if (mem_mutex)
++			Thread_UnlockMutex(mem_mutex);
++		if (!mem_oom_inprogress) {
++			mem_oom_inprogress = true;
++			Mem_PrintList(0, MEM_DETAIL_0);
++			Mem_PrintStats();
++			Mem_PrintList(1<<30, MEM_DETAIL_0);
++			Mem_PrintStats();
++		}
++		Sys_Error ("Mem_Alloc: out of memory (alloc of size %f (%.3fMB) at %s:%d).\nClose background apps (such as browser tabs), try Low-Memory or Safe Mode, or run 'Report a Problem'.\nLog file: %s",
++			(double)realsize, (double)realsize / (1 << 20), filename, fileline,
++			crt_log_file[0] ? crt_log_file : "(none)");
+ 	}
+ 	// calculate address that aligns the end of the memheader_t to the specified alignment
+ 	mem = (memheader_t*)((((size_t)base + sizeof(memheader_t) + (alignment-1)) & ~(alignment-1)) - sizeof(memheader_t));
