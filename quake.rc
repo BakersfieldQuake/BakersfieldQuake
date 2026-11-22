@@ -9,6 +9,7 @@ exec hook.cfg
 // mod defaults and clean modern binds/settings for a brand new player. AFTER q15_config_coop.cfg so the mod's own values
 // win over Combat+'s (it set r_coronas 0.4 and enforcer_defender_prox 1 over ours); still before config.cfg.
 exec default.cfg
+loadfont menu engine/fonts/Roboto-Medium.ttf 8 12 16 24 32
 
 // client look/feel defaults (also before config.cfg, so the player's own choices win)
 sbar_alpha_bg "0"
@@ -92,6 +93,10 @@ alias bm_up_12 "exec bm_up_13.cfg; bm_up_13"
 alias bm_up_13 "exec bm_up_14.cfg; bm_up_14"
 alias bm_up_14 "seta bm_defver 14"
 bm_up_$bm_defver
+
+// Always start in FPS bindmap 0, and re-apply user vehicle_binds.cfg if present (survives bm_binds.cfg unbindall)
+in_bindmap 0 0
+exec vehicle_binds.cfg
 
 // Build no unused unvised BSP portals, or spam debug prints unless overridden on command line
 mod_bsp_portalize "0"

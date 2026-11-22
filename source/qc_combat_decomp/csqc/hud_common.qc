@@ -229,25 +229,29 @@ Plain drawstring alignment helpers using stringwidth.
 void(vector right_pos, string s, vector sc, vector rgb, float a) HUD_DrawRightText =
 {
 	local float wd;
-	local vector p;
+	local vector p, usc;
 
-	wd = stringwidth(s, FALSE, sc);
+	usc = BM_UIScaleVec(sc);
+	wd = stringwidth(s, FALSE, usc);
 	p_x = right_pos_x - wd;
 	p_y = right_pos_y;
 	p_z = 0;
-	drawstring(p, s, sc, rgb, a, 0);
+	drawstring(p, s, usc, rgb, a, 0);
 };
 
 void(vector center_pos, string s, vector sc, vector rgb, float a) HUD_DrawCenterText =
 {
 	local float wd;
-	local vector p;
+	local vector p, usc;
 
-	wd = stringwidth(s, FALSE, sc);
+	usc = BM_UIScaleVec(sc);
+	wd = stringwidth(s, FALSE, usc);
 	p_x = center_pos_x - wd * 0.5;
 	p_y = center_pos_y;
 	p_z = 0;
-	drawstring(p, s, sc, rgb, a, 0);
+	if (BM_GetUIFont() > 0)
+		drawstring(p + '0.7 0.7 0', s, usc, '0 0 0', 0.78 * a, 0);
+	drawstring(p, s, usc, rgb, a, 0);
 };
 
 /*
@@ -259,25 +263,39 @@ Color-coded (^1..^9, ^xRGB) drawstring alignment helpers.
 void(vector right_pos, string s, vector sc, float a) HUD_DrawRightColorText =
 {
 	local float wd;
-	local vector p;
+	local vector p, usc;
+	local string plain;
 
-	wd = stringwidth(s, TRUE, sc);
+	usc = BM_UIScaleVec(sc);
+	wd = stringwidth(s, TRUE, usc);
 	p_x = right_pos_x - wd;
 	p_y = right_pos_y;
 	p_z = 0;
-	drawcolorcodedstring(p, s, sc, a, 0);
+	if (BM_GetUIFont() > 0)
+	{
+		plain = strdecolorize(s);
+		drawstring(p + '0.7 0.7 0', plain, usc, '0 0 0', 0.80 * a, 0);
+	}
+	drawcolorcodedstring(p, s, usc, a, 0);
 };
 
 void(vector center_pos, string s, vector sc, float a) HUD_DrawCenterColorText =
 {
 	local float wd;
-	local vector p;
+	local vector p, usc;
+	local string plain;
 
-	wd = stringwidth(s, TRUE, sc);
+	usc = BM_UIScaleVec(sc);
+	wd = stringwidth(s, TRUE, usc);
 	p_x = center_pos_x - wd * 0.5;
 	p_y = center_pos_y;
 	p_z = 0;
-	drawcolorcodedstring(p, s, sc, a, 0);
+	if (BM_GetUIFont() > 0)
+	{
+		plain = strdecolorize(s);
+		drawstring(p + '0.7 0.7 0', plain, usc, '0 0 0', 0.80 * a, 0);
+	}
+	drawcolorcodedstring(p, s, usc, a, 0);
 };
 
 /*

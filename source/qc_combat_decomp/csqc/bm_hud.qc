@@ -160,7 +160,7 @@ float(float h) BM_CornerBottomY =
 	return h - 56;
 };
 
-void(float x, float y, string s, float sz, float a) BM_DrawColorShadow =
+void(float x, float y, string s, float sz, float a) BM_DrawColorShadowRaw =
 {
 	local vector sc;
 	local string plain;
@@ -171,11 +171,16 @@ void(float x, float y, string s, float sz, float a) BM_DrawColorShadow =
 	drawcolorcodedstring (x * '1 0 0' + y * '0 1 0', s, sc, a, 0);
 };
 
+void(float x, float y, string s, float sz, float a) BM_DrawColorShadow =
+{
+	BM_DrawColorShadowRaw (x, y, s, BM_UIScale (sz), a);
+};
+
 void(float rx, float y, string s, float sz, float a) BM_ShadowColorRight =
 {
 	local float wd;
 
-	wd = stringwidth (s, TRUE, sz * '1 1 0');
+	wd = BM_UIStringWidth (s, TRUE, sz * '1 1 0');
 	BM_DrawColorShadow (rx - wd, y, s, sz, a);
 };
 
@@ -184,7 +189,7 @@ void(float x, float y, string s, float sz, vector rgb, float a) BM_Centered =
 {
 	local float wd;
 
-	wd = stringwidth (s, TRUE, sz * '1 1 0');	// variants: keep builtin results in locals
+	wd = BM_UIStringWidth (s, TRUE, sz * '1 1 0');	// variants: keep builtin results in locals
 	BM_DrawColorShadow (x - wd * 0.5, y, s, sz, a);
 };
 
@@ -317,6 +322,7 @@ void(float w, float h) BM_DrawCenterPrint =
 		sz = 5;
 	if (sz > 7)
 		sz = 7;
+	sz = BM_UIScale (sz);
 
 	maxw = stringwidth (bm_cp_l1, TRUE, sz * '1 1 0');
 	if (bm_cp_n >= 2)
@@ -369,19 +375,19 @@ void(float w, float h) BM_DrawCenterPrint =
 	y0 = base - ph;
 	bm_cp_top_y = y0;
 
-	BM_DrawColorShadow (x0, y0, bm_cp_l1, sz, a);
+	BM_DrawColorShadowRaw (x0, y0, bm_cp_l1, sz, a);
 	if (bm_cp_n >= 2)
-		BM_DrawColorShadow (x0, y0 + step, bm_cp_l2, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step, bm_cp_l2, sz, a);
 	if (bm_cp_n >= 3)
-		BM_DrawColorShadow (x0, y0 + step * 2, bm_cp_l3, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step * 2, bm_cp_l3, sz, a);
 	if (bm_cp_n >= 4)
-		BM_DrawColorShadow (x0, y0 + step * 3, bm_cp_l4, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step * 3, bm_cp_l4, sz, a);
 	if (bm_cp_n >= 5)
-		BM_DrawColorShadow (x0, y0 + step * 4, bm_cp_l5, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step * 4, bm_cp_l5, sz, a);
 	if (bm_cp_n >= 6)
-		BM_DrawColorShadow (x0, y0 + step * 5, bm_cp_l6, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step * 5, bm_cp_l6, sz, a);
 	if (bm_cp_n >= 7)
-		BM_DrawColorShadow (x0, y0 + step * 6, bm_cp_l7, sz, a);
+		BM_DrawColorShadowRaw (x0, y0 + step * 6, bm_cp_l7, sz, a);
 };
 
 // Resolve a player's display name by 0-based slot index and 1-based entity number.
@@ -530,11 +536,59 @@ void(float w, float h) BM_DrawPlayerTags =
 	}
 };
 
+// Resolves the first bound key label for a command on the active bindmap (bindmap 1 while driving with bm_veh_config 1)
+string(string cmd, string fallback) BM_ActiveBindLabel =
+{
+	local float bmap, n, i, kn, tmask, mmt_on, jb_on;
+	local string raw, kname, kb;
+
+	bmap = 0;
+	if (cvar ("bm_veh_config") != 0)
+	{
+		tmask = getstati (BMST_TOYMASK);
+		mmt_on = getstati (86);
+		jb_on = getstati (93);
+		if ((tmask & 512) != 0 || mmt_on > 0 || jb_on > 0)
+			bmap = 1;
+	}
+	if (bmap != 0)
+	{
+		for (i = 1; i < 768; i = i + 1)
+		{
+			kb = getkeybind_bindmap (i, bmap);
+			if (kb == cmd)
+			{
+				kname = keynumtostring (i);
+				kname = strtoupper (kname);
+				if (kname != "")
+					return kname;
+			}
+		}
+		return fallback;
+	}
+	raw = findkeysforcommand (cmd, 0);
+	if (raw == "")
+		return fallback;
+	n = tokenize (raw);
+	for (i = 0; i < n; i = i + 1)
+	{
+		kn = stof (argv (i));
+		if (kn > 0)
+		{
+			kname = keynumtostring (kn);
+			kname = strtoupper (kname);
+			if (kname != "")
+				return kname;
+		}
+	}
+	return fallback;
+};
+
 // top-right Flying Blue Shell ready banner & bottom-right vehicle Bail/Camera prompt (fun-gun toy dock bar removed)
 void(float w, float h, float hp, float y0) BM_DrawToyDock =
 {
 	local float tmask, sn, hide_veh_hint, hit_nitro, jb_on;
-	local string bs;
+	local string bs, exit_k, cam_k;
 
 	if (hp <= 0 || showscores || cvar ("bm_hud_toys") == 0)
 		return;
@@ -545,7 +599,7 @@ void(float w, float h, float hp, float y0) BM_DrawToyDock =
 		sn = sin (time * 9);
 		bs = "^5[9] FLYING BLUE SHELL READY!";
 		BM_ShadowColorRight (w - 8, y0, bs, 5, 0.75 + 0.25 * sn);
-		bm_topright_y = y0 + 9;
+		bm_topright_y = y0 + ((BM_GetUIFont () > 0) ? 10.5 : 9);
 	}
 	hide_veh_hint = FALSE;
 	jb_on = getstati (93);
@@ -558,7 +612,11 @@ void(float w, float h, float hp, float y0) BM_DrawToyDock =
 			hide_veh_hint = TRUE;
 	}
 	if ((tmask & 256) && !hide_veh_hint)
-		BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - 7, "^3[H]^7 Bail / Dive   ^3[K]^7 Camera", 5, 0.90);
+	{
+		exit_k = BM_ActiveBindLabel ("impulse 86", "H");
+		cam_k = BM_ActiveBindLabel ("impulse 87", "K");
+		BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - 7, strcat ("^3[", exit_k, "]^7 Bail / Dive   ^3[", cam_k, "]^7 Camera"), 5, 0.90);
+	}
 };
 
 // 2-line LAN Keybind Cheat-Sheet drawn at bottom of screen while holding TAB (+showscores)
@@ -572,7 +630,7 @@ void() BM_DrawScoreKeys =
 	w = cvar ("vid_conwidth");
 	h = cvar ("vid_conheight");
 	cx = w * 0.5;
-	sz = 5;
+	sz = BM_UIScale (5);
 	l1 = "^3GUNS: ^7C^8:M4  ^7M^8:Garand  ^79^8:MegaMan  ^75^8:Milky  ^74^8:Laptop  ^71^8:Hammer  ^7R^8:Reload/Twirl";
 	l2 = "^3TOYS: ^7F^8:RobDob  ^7I^8:Jar  ^7X^8:Pickle  ^7B^8:NetSend  ^7U^8:Dookie  ^7G^8:Wheelman  ^7Z^8:Kyle  ^7H^8:Drive/Ride  ^7P^8:JohnBird  ^7J^8/2xSpace:Jetpack";
 	w1 = stringwidth (l1, TRUE, sz * '1 1 0');
@@ -585,8 +643,10 @@ void() BM_DrawScoreKeys =
 		sz = sz * ((w - 12) / pw);
 	}
 	y0 = h - 65;
-	BM_Centered (cx, y0, l1, sz, '1 1 1', 0.95);
-	BM_Centered (cx, y0 + 7, l2, sz, '1 1 1', 0.95);
+	w1 = stringwidth (l1, TRUE, sz * '1 1 0');
+	w2 = stringwidth (l2, TRUE, sz * '1 1 0');
+	BM_DrawColorShadowRaw (cx - w1 * 0.5, y0, l1, sz, 0.95);
+	BM_DrawColorShadowRaw (cx - w2 * 0.5, y0 + sz + 2, l2, sz, 0.95);
 };
 
 void(float raw_w, float raw_h) KY_DrawHUD =
@@ -719,9 +779,118 @@ void(float raw_w, float raw_h) KY_DrawHUD =
 	}
 };
 
+void(float raw_w, float raw_h) GK_DrawHUD =
+{
+	local float w, h, hp, mode, prog, nitro, cx, cy, gap, arm, th, pulse, r, brk;
+	local float tick_h, tick_f, base, mtop, bw, bh, x0, y0, fill_f;
+	local vector col, shd;
+	local string lbl;
+
+	hp = getstati (STAT_HEALTH);
+	if (hp <= 0)
+		return;
+	mode = getstati (109);
+	if (mode <= 0)
+		return;
+	w = vid_conwidth;
+	h = vid_conheight;
+	if (w <= 0)
+		w = raw_w;
+	if (h <= 0)
+		h = raw_h;
+	if (w <= 0 || h <= 0)
+		return;
+
+	prog = bound (0, getstati (110), 100);
+	nitro = bound (0, getstati (111), 100);
+	cx = w * 0.5;
+	cy = h * 0.5;
+	pulse = sin (time * 16);		// sin is a __variant: assign to a float local first
+	pulse = 0.5 + 0.5 * pulse;
+	shd = '0 0 0';
+
+	if (mode == 2)
+	{
+		col = '0.24 1 0.44';
+		gap = 2.6;
+		arm = 4.0;
+		th = 1.0;
+		r = 7.5 + 0.8 * pulse;
+		brk = 2.8;
+		drawfill ([cx - r, cy - r, 0], [brk, 1.0, 0], col, 0.90, 0);
+		drawfill ([cx - r, cy - r, 0], [1.0, brk, 0], col, 0.90, 0);
+		drawfill ([cx + r - brk, cy - r, 0], [brk, 1.0, 0], col, 0.90, 0);
+		drawfill ([cx + r - 1.0, cy - r, 0], [1.0, brk, 0], col, 0.90, 0);
+		drawfill ([cx - r, cy + r - 1.0, 0], [brk, 1.0, 0], col, 0.90, 0);
+		drawfill ([cx - r, cy + r - brk, 0], [1.0, brk, 0], col, 0.90, 0);
+		drawfill ([cx + r - brk, cy + r - 1.0, 0], [brk, 1.0, 0], col, 0.90, 0);
+		drawfill ([cx + r - 1.0, cy + r - brk, 0], [1.0, brk, 0], col, 0.90, 0);
+	}
+	else if (mode == 1)
+	{
+		col = (prog >= 55) ? '1 0.84 0.20' : '0.35 0.88 1';
+		gap = 5.2 - 2.4 * (prog / 100);
+		arm = 3.8;
+		th = 1.0;
+		// Micro side charge ticks right beside the reticle (no center bar or text clutter)
+		tick_h = 7.0;
+		tick_f = tick_h * (prog / 100);
+		drawfill ([cx - 10.0, cy - tick_h * 0.5, 0], [1.2, tick_h, 0], shd, 0.55, 0);
+		drawfill ([cx + 8.8, cy - tick_h * 0.5, 0], [1.2, tick_h, 0], shd, 0.55, 0);
+		if (tick_f > 0.2)
+		{
+			drawfill ([cx - 10.0, cy + tick_h * 0.5 - tick_f, 0], [1.2, tick_f, 0], col, 0.92, 0);
+			drawfill ([cx + 8.8, cy + tick_h * 0.5 - tick_f, 0], [1.2, tick_f, 0], col, 0.92, 0);
+		}
+	}
+	else
+	{
+		col = (pulse > 0.45) ? '1 0.24 0.20' : '0.72 0.16 0.14';
+		gap = 4.4;
+		arm = 3.5;
+		th = 1.0;
+	}
+
+	// Ultra-compact open-center 4-arm reticle (~12px footprint, center view stays clear)
+	drawfill ([cx - gap - arm - 0.5, cy - th * 0.5 - 0.5, 0], [arm + 1.0, th + 1.0, 0], shd, 0.68, 0);
+	drawfill ([cx + gap - 0.5, cy - th * 0.5 - 0.5, 0], [arm + 1.0, th + 1.0, 0], shd, 0.68, 0);
+	drawfill ([cx - th * 0.5 - 0.5, cy - gap - arm - 0.5, 0], [th + 1.0, arm + 1.0, 0], shd, 0.68, 0);
+	drawfill ([cx - th * 0.5 - 0.5, cy + gap - 0.5, 0], [th + 1.0, arm + 1.0, 0], shd, 0.68, 0);
+
+	drawfill ([cx - gap - arm, cy - th * 0.5, 0], [arm, th, 0], col, 0.95, 0);
+	drawfill ([cx + gap, cy - th * 0.5, 0], [arm, th, 0], col, 0.95, 0);
+	drawfill ([cx - th * 0.5, cy - gap - arm, 0], [th, arm, 0], col, 0.95, 0);
+	drawfill ([cx - th * 0.5, cy + gap, 0], [th, arm, 0], col, 0.95, 0);
+
+	// Compact bottom-right status badge (keeps center driving view unobstructed)
+	base = BM_CornerBottomY (h);
+	mtop = BM_MinimapTopY (w, h);
+	if (mtop > 0 && mtop < base)
+		base = mtop;
+	bw = 74;
+	bh = 3;
+	x0 = w - bw - 8;
+	y0 = base - 8;
+	drawfill ([x0 - 1, y0 - 1, 0], [bw + 2, bh + 2, 0], shd, 0.68, 0);
+	fill_f = (mode == 3) ? (nitro / 100) : (prog / 100);
+	drawfill ([x0, y0, 0], [bw * bound (0, fill_f, 1), bh, 0], col, 0.92, 0);
+	if (mode == 3)
+		drawfill ([x0 + bw * 0.40 - 0.5, y0 - 1, 0], [1, bh + 2, 0], '1 1 1', 0.85, 0);
+
+	if (mode == 2)
+		lbl = "^2ROCKET READY";
+	else if (mode == 1)
+		lbl = strcat ("^3ROCKET ", ftos (prog), "%");
+	else if (mode == 3)
+		lbl = strcat ("^1LOW NITRO ", ftos (nitro), "/40%");
+	else
+		lbl = "^1RELOAD";
+	BM_ShadowColorRight (w - 8, y0 - 7, lbl, 5.0, 0.94);
+};
+
 void(float w, float h) BM_DrawHUD =
 {
-	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, ty;
+	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, ty, row_step, rlp_step;
 	local string leader, s, hpic, hkey;
 	local vector col;
 
@@ -729,6 +898,8 @@ void(float w, float h) BM_DrawHUD =
 	h = cvar ("vid_conheight");
 	cx = w * 0.5;
 	cy = h * 0.5;
+	row_step = (BM_GetUIFont () > 0) ? 10.5 : 9;
+	rlp_step = (BM_GetUIFont () > 0) ? 13.5 : 12;
 	mag = getstati (BMST_MAG);
 	magmax = getstati (BMST_MAGMAX);
 	rlp = getstati (BMST_RELOAD);
@@ -757,7 +928,7 @@ void(float w, float h) BM_DrawHUD =
 			else
 				s = "^8Press ^3F1^8 +Bot  ^3F2^8 -Bot";
 			BM_ShadowColorRight (w - 8, 8, s, 5, 0.88);
-			ty = 17;
+			ty = 8 + row_step;
 		}
 		bm_topright_y = ty;
 		if (deathmatch)
@@ -791,8 +962,8 @@ void(float w, float h) BM_DrawHUD =
 		drawfill (px * '1 0 0' + (h - 42) * '0 1 0', '1 0 0' + '0 18 0', col, 0.88, 0);
 		drawfill ((px + pw - 1) * '1 0 0' + (h - 42) * '0 1 0', '1 0 0' + '0 18 0', col, 0.55, 0);
 		drawpic ((px + 9) * '1 0 0' + (h - 41) * '0 1 0', hpic, '47 16 0', col, 0.98, 0);
-		drawcolorcodedstring ((px + 2) * '1 0 0' + (h - 31) * '0 1 0', hkey, '6 6 0', 0.95, 0);
-		BM_Centered (px + pw * 0.5, h - 50, strcat ("^xfc5", ftos (mag)), 7, '1 1 1', 0.92);
+		BM_DrawColorShadow (px + 2, h - 32, hkey, 6, 0.95);
+		BM_Centered (px + pw * 0.5, h - 51, strcat ("^xfc5", ftos (mag)), 7, '1 1 1', 0.92);
 	}
 
 	// reloading: drop-shadowed label on the top-right stack with a thin bright fill line under it (no dark bar), only while a gun reloads
@@ -801,9 +972,9 @@ void(float w, float h) BM_DrawHUD =
 		f = sin (time * 9);
 		BM_ShadowColorRight (w - 8, bm_topright_y, "^xfe4RELOADING", 5, 0.80 + 0.15 * f);
 		pw = 42;
-		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + 7) * '0 1 0', pw * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.22, 0);
-		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + 7) * '0 1 0', (pw * rlp / 100) * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.95, 0);
-		bm_topright_y = bm_topright_y + 12;
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + row_step - 1) * '0 1 0', pw * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.22, 0);
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + row_step - 1) * '0 1 0', (pw * rlp / 100) * '1 0 0' + '0 1 0', '1 0.85 0.3', 0.95, 0);
+		bm_topright_y = bm_topright_y + rlp_step;
 	}
 
 	// Top-right corner text stack for match/status overlays (never slapped across center screen)
@@ -814,7 +985,7 @@ void(float w, float h) BM_DrawHUD =
 		if (time > 15)
 			a = 0.65;
 		BM_ShadowColorRight (w - 8, bm_topright_y, "^xfd0WARMUP^7 - ^3F1^7 +Bot  ^3F2^7 -Bot  ^3F3^7 LAN", 5, a);
-		bm_topright_y = bm_topright_y + 9;
+		bm_topright_y = bm_topright_y + row_step;
 	}
 
 	if (leader != "" && lheat >= 4)
@@ -824,7 +995,7 @@ void(float w, float h) BM_DrawHUD =
 		else
 			s = strcat ("^3Leader: ", leader, "^3 (+", ftos (lheat), ")");
 		BM_ShadowColorRight (w - 8, bm_topright_y, s, 5, 0.88);
-		bm_topright_y = bm_topright_y + 9;
+		bm_topright_y = bm_topright_y + row_step;
 	}
 
 	// a marker on the leader, wherever they are (only once they show through walls)
@@ -848,20 +1019,20 @@ void(float w, float h) BM_DrawHUD =
 	if (boost >= 15 && hp > 0)
 	{
 		BM_ShadowColorRight (w - 8, bm_topright_y, strcat ("^2boost +", ftos (boost), "%"), 5, 0.86);
-		bm_topright_y = bm_topright_y + 9;
+		bm_topright_y = bm_topright_y + row_step;
 	}
 
 	if (prot > 0 && hp > 0)
 	{
 		BM_ShadowColorRight (w - 8, bm_topright_y, strcat ("^5SHIELD ", ftos (ceil (prot / 10))), 5, 0.88);
-		bm_topright_y = bm_topright_y + 9;
+		bm_topright_y = bm_topright_y + row_step;
 	}
 
 	if (regen && hp > 0)
 	{
 		f = sin (time * 5);
 		BM_ShadowColorRight (w - 8, bm_topright_y, "^2+ regen", 5, 0.65 + 0.25 * f);
-		bm_topright_y = bm_topright_y + 9;
+		bm_topright_y = bm_topright_y + row_step;
 	}
 };
 
@@ -1552,7 +1723,7 @@ void(float x, float y, string s, float sz, vector rgb, float a) BM_ShadowCentere
 	local float wd;
 	local vector sv, pv, off;
 
-	sv = sz * '1 1 0';
+	sv = BM_UIScale (sz) * '1 1 0';
 	wd = stringwidth (s, FALSE, sv);
 	pv = (x - wd * 0.5) * '1 0 0' + y * '0 1 0';
 	off = (sz * 0.13) * '1 1 0';
@@ -1942,8 +2113,8 @@ void(float w, float h) BM_DrawIntroHUD =
 
 	if (hero)
 	{
-		sv1 = '17 17 0';
-		sv2 = '8 8 0';
+		sv1 = BM_UIScaleVec ('17 17 0');
+		sv2 = BM_UIScaleVec ('8 8 0');
 		wt = stringwidth (title, FALSE, sv1);
 		ws = stringwidth (sub, FALSE, sv2);
 		pw = wt;
@@ -1962,8 +2133,8 @@ void(float w, float h) BM_DrawIntroHUD =
 	}
 	else
 	{
-		sv1 = '11 11 0';
-		sv2 = '7 7 0';
+		sv1 = BM_UIScaleVec ('11 11 0');
+		sv2 = BM_UIScaleVec ('7 7 0');
 		wt = stringwidth (title, FALSE, sv1);
 		ws = stringwidth (sub, FALSE, sv2);
 		pw = wt;

@@ -32,8 +32,11 @@ Crisp drop-shadowed text helpers for large frosted-glass numerals.
 */
 void(vector pos, string s, vector sc, vector rgb, float a) S1_DrawShadowText =
 {
-	drawstring(pos + '1 1 0', s, sc, '0 0 0', 0.72 * a, 0);
-	drawstring(pos, s, sc, rgb, a, 0);
+	local vector usc;
+
+	usc = BM_UIScaleVec(sc);
+	drawstring(pos + '1 1 0', s, usc, '0 0 0', 0.72 * a, 0);
+	drawstring(pos, s, usc, rgb, a, 0);
 };
 
 void(vector right_pos, string s, vector sc, vector rgb, float a) S1_DrawRightShadowText =
@@ -191,7 +194,7 @@ void(float x, float y, float val, vector dot_col, float sc_sz, float a) S1_DrawR
 
 	s = ftos(val);
 	sc = S1_Vec2(sc_sz, sc_sz);
-	drawstring(S1_Vec2(x + 4.5, y + 0.5), s, sc, '0.90 0.95 1.0', num_a, 0);
+	S1_DrawShadowText(S1_Vec2(x + 4.5, y), s, sc, '0.90 0.95 1.0', num_a);
 };
 
 /*
@@ -210,7 +213,7 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	local float hp_disp, hp_frac, over_frac, arm_disp, arm_max, arm_frac;
 	local float disp_ammo, mood_ammo, num_sc, ammo_sc;
 	local float pulse, pulse_spd, bd_a, head_sz, face_x, face_y;
-	local float has_quad_pent, wd, w_sc, mag_frac, mag_low, rlp_frac, step_x, res_sc, show_prx;
+	local float has_quad_pent, wd, w_sc, mag_frac, mag_low, rlp_frac, step_x, res_sc;
 	local string face_pic, mood, wname, hp_str, arm_str, ammo_str, mag_str;
 	local vector glass_bg, top_hi, glass_bd, hp_col, hp_bar_col, arm_col, tier_col, head_bd, mood_col, ammo_col, bar_col;
 
@@ -294,11 +297,11 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	hp_col = HUD_GetStatColor(hp, 35, 75);
 	hp_str = ftos(hp_disp);
 	num_sc = 19;
-	wd = stringwidth(hp_str, FALSE, S1_Vec2(num_sc, num_sc));
+	wd = BM_UIStringWidth(hp_str, FALSE, S1_Vec2(num_sc, num_sc));
 	if (wd > col_w && wd > 0)
 		num_sc = num_sc * (col_w / wd);
 
-	drawstring(S1_Vec2(lx, pill_y + 6), "HP", '5.5 5.5 0', '0.62 0.82 0.96', 0.88 * a, 0);
+	S1_DrawShadowText(S1_Vec2(lx, pill_y + 5.5), "HP", '5.5 5.5 0', '0.62 0.82 0.96', 0.88 * a);
 	S1_DrawShadowText(S1_Vec2(lx, pill_y + 15), hp_str, S1_Vec2(num_sc, num_sc), hp_col, 0.99 * a);
 
 	hp_frac = 0;
@@ -336,12 +339,12 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 
 	arm_str = ftos(arm_disp);
 	num_sc = 19;
-	wd = stringwidth(arm_str, FALSE, S1_Vec2(num_sc, num_sc));
+	wd = BM_UIStringWidth(arm_str, FALSE, S1_Vec2(num_sc, num_sc));
 	if (wd > col_w && wd > 0)
 		num_sc = num_sc * (col_w / wd);
 
 	drawfill(S1_Vec2(ax, pill_y + 6), S1_Vec2(3, 5.5), tier_col, 0.95 * a, 0);
-	drawstring(S1_Vec2(ax + 5, pill_y + 6), "ARMOR", '5.5 5.5 0', '0.62 0.82 0.96', 0.86 * a, 0);
+	S1_DrawShadowText(S1_Vec2(ax + 5, pill_y + 5.5), "ARMOR", '5.5 5.5 0', '0.62 0.82 0.96', 0.86 * a);
 	S1_DrawShadowText(S1_Vec2(ax, pill_y + 15), arm_str, S1_Vec2(num_sc, num_sc), arm_col, 0.99 * a);
 	HUD_Bar(S1_Vec2(ax, pill_y + 40), S1_Vec2(col_w, 4), arm_frac, tier_col, 0.95 * a, '0.14 0.20 0.30', 0.75 * a);
 
@@ -349,14 +352,14 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	info_w = wing_w - 66;
 	wname = S1_ShortWeaponName(slot, currentweap);
 	w_sc = 5.2;
-	wd = stringwidth(wname, FALSE, S1_Vec2(w_sc, w_sc));
+	wd = BM_UIStringWidth(wname, FALSE, S1_Vec2(w_sc, w_sc));
 	if (wd > info_w && wd > 0)
 	{
 		w_sc = w_sc * (info_w / wd);
 		if (w_sc < 3.5)
 			w_sc = 3.5;
 	}
-	drawstring(S1_Vec2(rx, pill_y + 6), wname, S1_Vec2(w_sc, w_sc), '0.66 0.90 1.0', 0.94 * a, 0);
+	S1_DrawShadowText(S1_Vec2(rx, pill_y + 5.5), wname, S1_Vec2(w_sc, w_sc), '0.66 0.90 1.0', 0.94 * a);
 
 	if (is_melee)
 	{
@@ -374,7 +377,7 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 		ammo_col = HUD_GetAmmoColor(disp_ammo, currentweap, magmax);
 	}
 	ammo_sc = 20;
-	wd = stringwidth(ammo_str, FALSE, S1_Vec2(ammo_sc, ammo_sc));
+	wd = BM_UIStringWidth(ammo_str, FALSE, S1_Vec2(ammo_sc, ammo_sc));
 	if (wd > 62 && wd > 0)
 		ammo_sc = ammo_sc * (62 / wd);
 	S1_DrawRightShadowText(S1_Vec2(rx + wing_w, pill_y + 5), ammo_str, S1_Vec2(ammo_sc, ammo_sc), ammo_col, 0.99 * a);
@@ -383,8 +386,8 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	if (rlp > 0 && hp > 0)
 	{
 		rlp_frac = rlp / 100;
-		drawstring(S1_Vec2(rx, pill_y + 14.5), "RELOAD", '4.5 4.5 0', '1.0 0.82 0.28', 0.95 * a, 0);
-		HUD_DrawRightText(S1_Vec2(rx + info_w - 2, pill_y + 14.5), strcat(ftos(rlp), "%"), '4.5 4.5 0', '1.0 0.88 0.48', 0.95 * a);
+		S1_DrawShadowText(S1_Vec2(rx, pill_y + 14), "RELOAD", '4.5 4.5 0', '1.0 0.82 0.28', 0.95 * a);
+		HUD_DrawRightText(S1_Vec2(rx + info_w - 2, pill_y + 14), strcat(ftos(rlp), "%"), '4.5 4.5 0', '1.0 0.88 0.48', 0.95 * a);
 		HUD_Bar(S1_Vec2(rx, pill_y + 21.5), S1_Vec2(info_w - 2, 3.5), rlp_frac, '1.0 0.80 0.24', 0.96 * a, '0.14 0.20 0.30', 0.80 * a);
 	}
 	else if (magmax > 0)
@@ -397,8 +400,8 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 		if (mag <= mag_low)
 			bar_col = '1.0 0.34 0.36';
 		mag_str = strcat(ftos(mag), "/", ftos(magmax));
-		drawstring(S1_Vec2(rx, pill_y + 14.5), strcat("RES ", ftos(active_ammo)), '4.5 4.5 0', '0.62 0.82 0.96', 0.88 * a, 0);
-		HUD_DrawRightText(S1_Vec2(rx + info_w - 2, pill_y + 14.5), mag_str, '4.5 4.5 0', '0.94 0.98 1.0', 0.92 * a);
+		S1_DrawShadowText(S1_Vec2(rx, pill_y + 14), strcat("RES ", ftos(active_ammo)), '4.5 4.5 0', '0.62 0.82 0.96', 0.88 * a);
+		HUD_DrawRightText(S1_Vec2(rx + info_w - 2, pill_y + 14), mag_str, '4.5 4.5 0', '0.94 0.98 1.0', 0.92 * a);
 		HUD_Bar(S1_Vec2(rx, pill_y + 21.5), S1_Vec2(info_w - 2, 3.5), mag_frac, bar_col, 0.95 * a, '0.14 0.20 0.30', 0.80 * a);
 	}
 	else
@@ -409,25 +412,14 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	// Subtle horizontal separator above reserve chips
 	drawfill(S1_Vec2(rx, pill_y + 31), S1_Vec2(wing_w, 1), '0.72 0.90 1.0', 0.10 * a, 0);
 
-	// Compact tiny color-coded reserve dots (S N R C + PRX if > 0)
-	show_prx = (grenade_ammo > 0);
-	if (show_prx)
-	{
-		step_x = wing_w / 5;
-		res_sc = 4.6;
-	}
-	else
-	{
-		step_x = wing_w / 4;
-		res_sc = 5.0;
-	}
+	// Compact tiny color-coded reserve dots (S N R C)
+	step_x = wing_w / 4;
+	res_sc = 5.0;
 
 	S1_DrawReserveChip(rx, pill_y + 38, shell_ammo, '1.0 0.78 0.26', res_sc, a);
 	S1_DrawReserveChip(rx + step_x, pill_y + 38, nail_ammo, '0.24 0.88 1.0', res_sc, a);
 	S1_DrawReserveChip(rx + step_x * 2, pill_y + 38, rocket_ammo, '1.0 0.36 0.38', res_sc, a);
 	S1_DrawReserveChip(rx + step_x * 3, pill_y + 38, cell_ammo, '0.26 0.96 0.68', res_sc, a);
-	if (show_prx)
-		S1_DrawReserveChip(rx + step_x * 4, pill_y + 38, grenade_ammo, '0.78 0.44 1.0', res_sc, a);
 };
 
 /*
@@ -527,7 +519,7 @@ void(float w, float h, float hp, float a) S1_DrawTopIsland =
 	if (has_status)
 	{
 		txt_sc = 5;
-		wd = stringwidth(s, TRUE, S1_Vec2(txt_sc, txt_sc));
+		wd = BM_UIStringWidth(s, TRUE, S1_Vec2(txt_sc, txt_sc));
 		max_iw = w - 120;
 		if (max_iw < 140)
 			max_iw = w - 20;
@@ -536,12 +528,12 @@ void(float w, float h, float hp, float a) S1_DrawTopIsland =
 			txt_sc = txt_sc * ((max_iw - 16) / wd);
 			if (txt_sc < 3.8)
 				txt_sc = 3.8;
-			wd = stringwidth(s, TRUE, S1_Vec2(txt_sc, txt_sc));
+			wd = BM_UIStringWidth(s, TRUE, S1_Vec2(txt_sc, txt_sc));
 		}
 		iw = wd + 18;
 		ix = cx - iw * 0.5;
 		S1_DrawGlassPill(S1_Vec2(ix, 5), S1_Vec2(iw, 13), '0.05 0.08 0.14', 0.80 * a, hi_col, 0.72 * a, bd_col, 0.36 * a);
-		HUD_DrawCenterColorText(S1_Vec2(cx, 9.2 - txt_sc * 0.1), s, S1_Vec2(txt_sc, txt_sc), 0.96 * a);
+		HUD_DrawCenterColorText(S1_Vec2(cx, (BM_GetUIFont() > 0) ? (5 + (13 - BM_UIScale(txt_sc)) * 0.5) : (9.2 - txt_sc * 0.1)), s, S1_Vec2(txt_sc, txt_sc), 0.96 * a);
 	}
 
 	// Frags / Mode / Keys pill tucked cleanly beside the Dynamic Island (or centered when idle)
@@ -560,7 +552,7 @@ void(float w, float h, float hp, float a) S1_DrawTopIsland =
 		if (items & IT_KEY2)
 			fstr = strcat(fstr, " ^3[K2]");
 
-		wd = stringwidth(fstr, TRUE, '5 5 0');
+		wd = BM_UIStringWidth(fstr, TRUE, '5 5 0');
 		fw = wd + 14;
 		if (has_status)
 		{
@@ -571,7 +563,7 @@ void(float w, float h, float hp, float a) S1_DrawTopIsland =
 			if (fx + fw > ix - 2)
 			{
 				S1_DrawGlassPill(S1_Vec2(6, 21), S1_Vec2(fw, 13), '0.06 0.09 0.15', 0.76 * a, '0.70 0.94 1.0', 0.58 * a, '0.40 0.72 0.92', 0.32 * a);
-				HUD_DrawCenterColorText(S1_Vec2(6 + fw * 0.5, 25), fstr, '5 5 0', 0.95 * a);
+				HUD_DrawCenterColorText(S1_Vec2(6 + fw * 0.5, (BM_GetUIFont() > 0) ? 24.1 : 25), fstr, '5 5 0', 0.95 * a);
 				return;
 			}
 		}

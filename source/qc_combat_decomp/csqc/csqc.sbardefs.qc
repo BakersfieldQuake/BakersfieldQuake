@@ -27,14 +27,69 @@ void(vector pos, string pic, float alph, float scale) Sbar_DrawPic =
 
 void(vector pos, float char, float alph) Sbar_DrawCharacter =
 {
+	local float old_font;
+
 	pos = sbar_align(pos);
+	old_font = drawfont;
+	drawfont = 0;
 	drawcharacter(pos, char, '8 8 0', VEC_1, alph, DRAWFLAG_NORMAL);
+	drawfont = old_font;
+};
+
+float() BM_GetUIFont =
+{
+	if (cvar("bm_ui_font") == 0)
+		return 0;
+	if (!bm_ui_font_checked)
+	{
+		bm_ui_font_checked = TRUE;
+		bm_ui_font_idx = loadfont("user1", "engine/fonts/Roboto-Medium.ttf", "8 12 16 24 32");
+		if (bm_ui_font_idx <= 0)
+			bm_ui_font_idx = findfont("Roboto");
+		if (bm_ui_font_idx < 0)
+			bm_ui_font_idx = 0;
+	}
+	return bm_ui_font_idx;
+};
+
+float(float sz) BM_UIScale =
+{
+	if (bm_ui_skip_scale || BM_GetUIFont() <= 0)
+		return sz;
+	if (sz <= 5.5)
+		return sz * 1.36;
+	if (sz <= 8.5)
+		return sz * 1.28;
+	if (sz <= 12)
+		return sz * 1.18;
+	return sz * 1.10;
+};
+
+vector(vector sc) BM_UIScaleVec =
+{
+	local vector out;
+
+	out_x = BM_UIScale(sc_x);
+	out_y = BM_UIScale(sc_y);
+	out_z = 0;
+	return out;
+};
+
+float(string s, float useColors, vector sc) BM_UIStringWidth =
+{
+	return stringwidth(s, useColors, BM_UIScaleVec(sc));
 };
 
 void(vector pos, string str, float alph, vector med, vector color) Sbar_DrawString =
 {
+	local vector sc;
+
+	sc = BM_UIScaleVec(med);
 	pos = sbar_align(pos);
-	drawstring(pos, str, med, color, alph, DRAWFLAG_NORMAL);
+	pos_y = pos_y - (sc_y - med_y) * 0.45;
+	if (BM_GetUIFont() > 0)
+		drawstring(pos + '0.7 0.7 0', str, sc, '0 0 0', alph * 0.80, DRAWFLAG_NORMAL);
+	drawstring(pos, str, sc, color, alph, DRAWFLAG_NORMAL);
 };
 
 void(vector pos, float num, float digits, float color, float alpha) Sbar_DrawNum =
@@ -498,6 +553,7 @@ void(vector color) DrawLevelName =
 	if (sz > 8)
 		sz = 8;
 
+	sz = BM_UIScale(sz);
 	sv = sz * '1 1 0';
 	wd = stringwidth(world.message, FALSE, sv);
 	maxw = w * 0.84;
@@ -590,37 +646,6 @@ void() DrawHUD =
 		Sbar_DrawNum(('-91 351 0' + ctfbar_offset), RED_CAPS, 2, 1, sbar_alpha);
 	}
 	wepFlash();
-	if (cvar("hud_proxcount_big"))
-	{
-		if ((grenade_ammo > 0))
-		{
-			Sbar_DrawPic('170 23 0', "textures/HUD/HUD_prox.png", sbar_alpha, 0.98);
-		}
-		else
-		{
-			Sbar_DrawPic('170 23 0', "textures/HUD/HUD_prox_empty.png", sbar_alpha, 0.98);
-		}
-		if ((grenade_ammo > 1))
-		{
-			Sbar_DrawNum('204 24 0', grenade_ammo, 2, 0, sbar_alpha);
-		}
-		else
-		{
-			Sbar_DrawNum('203 24 0', grenade_ammo, 2, 2, sbar_alpha);
-		}
-	}
-	else
-	{
-		if ((grenade_ammo > 0))
-		{
-			Sbar_DrawPic('-171 48 0', "textures/HUD/HUD_prox.png", 1, 0.4);
-		}
-		else
-		{
-			Sbar_DrawPic('-171 48 0', "textures/HUD/HUD_prox_empty.png", 1, 0.4);
-		}
-		Sbar_DrawString('-184 48 0', ftos(grenade_ammo), 1, '8 8 0', '1 0.5 0.2');
-	}
 	getItems();
 	if ((showHUD == 1))
 	{

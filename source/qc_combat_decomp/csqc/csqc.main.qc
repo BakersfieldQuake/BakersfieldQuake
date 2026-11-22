@@ -1,5 +1,123 @@
 //Decompiled code. Please respect the original copyright.
 
+void() BM_Veh_ClearBindmap2 =
+{
+	local float k;
+	local string b;
+
+	for (k = 1; k < 768; k = k + 1)
+	{
+		b = getkeybind_bindmap(k, 2);
+		if (b != "")
+			setkeybind_bindmap(k, "", 2);
+	}
+};
+
+void(string cmd) BM_Veh_BlockFpsCmd =
+{
+	local string raw;
+	local float n, i, kn;
+
+	raw = findkeysforcommand(cmd, 0);
+	if (raw == "")
+		return;
+	n = tokenize(raw);
+	for (i = 0; i < n; i = i + 1)
+	{
+		kn = stof(argv(i));
+		if (kn > 0 && kn < 768)
+			setkeybind_bindmap(kn, "_bm_nop", 2);
+	}
+};
+
+void() BM_Veh_EnsureDefaults =
+{
+	local float k, has_any;
+	local string b;
+
+	has_any = FALSE;
+	for (k = 1; k < 768; k = k + 1)
+	{
+		b = getkeybind_bindmap(k, 1);
+		if (b != "")
+		{
+			has_any = TRUE;
+			break;
+		}
+	}
+	if (!has_any)
+	{
+		k = stringtokeynum("w"); if (k > 0) setkeybind_bindmap(k, "+forward", 1);
+		k = stringtokeynum("s"); if (k > 0) setkeybind_bindmap(k, "+back", 1);
+		k = stringtokeynum("a"); if (k > 0) setkeybind_bindmap(k, "+moveleft", 1);
+		k = stringtokeynum("d"); if (k > 0) setkeybind_bindmap(k, "+moveright", 1);
+		k = stringtokeynum("SPACE"); if (k > 0) setkeybind_bindmap(k, "+jump", 1);
+		k = stringtokeynum("SHIFT"); if (k > 0) setkeybind_bindmap(k, "+button4", 1);
+		k = stringtokeynum("MOUSE1"); if (k > 0) setkeybind_bindmap(k, "+attack", 1);
+		k = stringtokeynum("h"); if (k > 0) setkeybind_bindmap(k, "impulse 86", 1);
+		k = stringtokeynum("k"); if (k > 0) setkeybind_bindmap(k, "impulse 87", 1);
+	}
+	cvar_set("bm_veh_init", "1");
+};
+
+void(float enable) BM_Veh_ApplyBindMode =
+{
+	local float k;
+	local string b;
+
+	localcmd("-forward; -back; -moveleft; -moveright; -jump; -attack; -button4\n");
+	BM_Veh_ClearBindmap2();
+	if (!enable)
+	{
+		localcmd("in_bindmap 0 0\n");
+		return;
+	}
+
+	// Block FPS keys for the 9 vehicle actions so old on-foot binds never bleed through
+	BM_Veh_BlockFpsCmd("+forward");
+	BM_Veh_BlockFpsCmd("+back");
+	BM_Veh_BlockFpsCmd("+moveleft");
+	BM_Veh_BlockFpsCmd("+moveright");
+	BM_Veh_BlockFpsCmd("+jump");
+	BM_Veh_BlockFpsCmd("+button4");
+	BM_Veh_BlockFpsCmd("+attack");
+	BM_Veh_BlockFpsCmd("impulse 86");
+	BM_Veh_BlockFpsCmd("impulse 87");
+
+	// Apply Vehicle Config (bindmap 1) on top
+	for (k = 1; k < 768; k = k + 1)
+	{
+		b = getkeybind_bindmap(k, 1);
+		if (b != "")
+			setkeybind_bindmap(k, b, 2);
+	}
+	localcmd("in_bindmap 2 0\n");
+};
+
+void(float bm_intro) BM_Veh_UpdateBindMode =
+{
+	local float veh_cfg, hp, tmask, mmt_on, jb_on, want_veh, rev;
+
+	veh_cfg = (cvar("bm_veh_config") != 0);
+	if (veh_cfg && cvar("bm_veh_init") == 0)
+	{
+		BM_Veh_EnsureDefaults();
+		return;
+	}
+	hp = getstati(STAT_HEALTH);
+	tmask = getstati(BMST_TOYMASK);
+	mmt_on = getstati(86);
+	jb_on = getstati(93);
+	want_veh = (veh_cfg && !bm_intro && hp > 0 && !intermission && (((tmask & 512) != 0) || mmt_on > 0 || jb_on > 0));
+	rev = cvar("bm_veh_rev");
+	if (want_veh != bm_veh_active || (want_veh && rev != bm_veh_last_rev))
+	{
+		bm_veh_active = want_veh;
+		bm_veh_last_rev = rev;
+		BM_Veh_ApplyBindMode(want_veh);
+	}
+};
+
 void() CSQC_Init =
 {
 
@@ -15,6 +133,7 @@ void() CSQC_Init =
 	clonemonsters = cvar("clonemonsters");
 	registercvar("hud_showtitle", "1");
 	registercvar("bm_hud_style", "0");
+	registercvar("bm_ui_font", "1");
 	registercvar("bm_minimap", "1");
 	registercvar("bm_minimap_range", "1400");
 	registercvar("bm_minimap_size", "39");
@@ -25,6 +144,13 @@ void() CSQC_Init =
 	registercvar("bm_minimap_rotate", "1");
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
+	registercvar("bm_veh_config", "0");
+	registercvar("bm_veh_init", "0");
+	registercvar("bm_veh_rev", "0");
+	bm_veh_active = FALSE;
+	bm_veh_last_rev = cvar("bm_veh_rev");
+	BM_Veh_ClearBindmap2();
+	localcmd("in_bindmap 0 0\n");
 	init_servercmds();
 	BM_TraceCullSetup ();
 	stGtype = gametype;
@@ -111,6 +237,16 @@ void() CSQC_Shutdown =
 {
 	local float j;
 
+	if (bm_veh_active)
+	{
+		bm_veh_active = FALSE;
+		BM_Veh_ApplyBindMode(FALSE);
+	}
+	else
+	{
+		BM_Veh_ClearBindmap2();
+		localcmd("in_bindmap 0 0\n");
+	}
 	if ((menu_was_open && (mouse > 0)))
 		cvar_set("sensitivity", ftos(mouse));
 	if (maplist_loaded)
@@ -244,6 +380,7 @@ void(float w, float h) CSQC_UpdateView =
 		BM_UpdateIntroCam();
 	}
 	fixIntermission();
+	BM_Veh_UpdateBindMode(bm_intro);
 	setproperty(VF_DRAWWORLD, TRUE);
 	if (!inMenu && !bm_intro)
 	{
@@ -275,6 +412,8 @@ void(float w, float h) CSQC_UpdateView =
 	if (!inMenu && !bm_intro)
 		MMT_DrawAimLine3D();
 	renderscene();
+	bm_ui_skip_scale = FALSE;
+	drawfont = BM_GetUIFont();
 	if (bm_intro)
 	{
 		if (!inMenu)
@@ -338,6 +477,7 @@ void(float w, float h) CSQC_UpdateView =
 				if (!intermission && !finale && !inMenu)
 				{
 					KY_DrawHUD(cw, ch);
+					GK_DrawHUD(cw, ch);
 					JB_DrawHUD(w, h);
 					BM_DrawMinimap(w, h);
 				}
@@ -352,6 +492,7 @@ void(float w, float h) CSQC_UpdateView =
 	ShowMenu();
 	ShowMapList();
 	TogglePause();
+	drawfont = 0;
 };
 
 void(float isnew) CSQC_Ent_Update =

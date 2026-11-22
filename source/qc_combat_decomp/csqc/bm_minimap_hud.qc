@@ -754,10 +754,12 @@ void(float cx, float cy, float rad, float yaw_deg) MM_DrawCompass =
 			else if (step_deg == 180) lbl = "W";
 			if (lbl != "")
 			{
-				tx = cx + ux * (rad + 5.6) - 2.0;
-				ty = cy + uy * (rad + 5.6) - 2.2;
-				drawstring (MM_Vec2 (tx + 0.6, ty + 0.6), lbl, '4.5 4.5 0', '0 0 0', 0.88 * mm_alpha_cur, 0);
-				drawstring (MM_Vec2 (tx, ty), lbl, '4.5 4.5 0', col, 0.96 * mm_alpha_cur, 0);
+				local vector lsc;
+				lsc = BM_UIScaleVec ('4.5 4.5 0');
+				tx = cx + ux * (rad + 5.6) - stringwidth (lbl, FALSE, lsc) * 0.5;
+				ty = cy + uy * (rad + 5.6) - lsc_y * 0.5;
+				drawstring (MM_Vec2 (tx + 0.6, ty + 0.6), lbl, lsc, '0 0 0', 0.88 * mm_alpha_cur, 0);
+				drawstring (MM_Vec2 (tx, ty), lbl, lsc, col, 0.96 * mm_alpha_cur, 0);
 			}
 		}
 		step_deg = step_deg + 30;

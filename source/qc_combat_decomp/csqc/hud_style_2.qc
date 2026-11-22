@@ -30,10 +30,11 @@ Crisp drop-shadowed strings so bright diner colors pop on any background.
 void(vector pos, string s, vector sc, vector rgb, float a) HUD2_Text =
 {
 	local float off;
-	local vector p, sh;
+	local vector p, sh, usc;
 
+	usc = BM_UIScaleVec(sc);
 	off = 0.8;
-	if (sc_x >= 14)
+	if (usc_x >= 14)
 		off = 1.2;
 	p_x = pos_x;
 	p_y = pos_y;
@@ -41,8 +42,8 @@ void(vector pos, string s, vector sc, vector rgb, float a) HUD2_Text =
 	sh_x = pos_x + off;
 	sh_y = pos_y + off;
 	sh_z = 0;
-	drawstring(sh, s, sc, '0 0 0', a * 0.88, 0);
-	drawstring(p, s, sc, rgb, a, 0);
+	drawstring(sh, s, usc, '0 0 0', a * 0.88, 0);
+	drawstring(p, s, usc, rgb, a, 0);
 };
 
 void(vector right_pos, string s, vector sc, vector rgb, float a) HUD2_RightText =
@@ -353,8 +354,6 @@ void(float w, float h, float hp, float active_ammo, float is_melee, float a_mul)
 	HUD2_Text((x0 + 48) * '1 0 0' + (y0 + 40) * '0 1 0', strcat("N:", ftos(nail_ammo)), '5 5 0', c_n, 0.95 * a_mul);
 	HUD2_Text((x0 + 90) * '1 0 0' + (y0 + 40) * '0 1 0', strcat("R:", ftos(rocket_ammo)), '5 5 0', c_r, 0.95 * a_mul);
 	HUD2_Text((x0 + 132) * '1 0 0' + (y0 + 40) * '0 1 0', strcat("C:", ftos(cell_ammo)), '5 5 0', c_c, 0.95 * a_mul);
-	if (grenade_ammo > 0)
-		HUD2_RightText((x0 + cw - 6) * '1 0 0' + (y0 + 40) * '0 1 0', strcat("P:", ftos(grenade_ammo)), '5 5 0', HUD2_AMBER, 0.98 * a_mul);
 };
 
 /*
@@ -393,7 +392,7 @@ void(float hp, float is_leader, float a_mul) HUD2_DrawTopPill =
 	has_keys = ((items & IT_KEY1) || (items & IT_KEY2));
 	has_runes = ((items2 & RUNE_EP1) || (items2 & RUNE_EP2) || (items2 & RUNE_EP3) || (items2 & RUNE_EP4));
 
-	pw = stringwidth(main_s, FALSE, '5.5 5.5 0') + 14;
+	pw = BM_UIStringWidth(main_s, FALSE, '5.5 5.5 0') + 14;
 	if (has_keys)
 	{
 		if (items & IT_KEY1) pw = pw + 12;
@@ -403,9 +402,9 @@ void(float hp, float is_leader, float a_mul) HUD2_DrawTopPill =
 		pw = pw + 26;
 
 	HUD2_Card('10 8 0', pw * '1 0 0' + '0 16 0', HUD2_AMBER, 0, a_mul);
-	HUD2_Text('17 13 0', main_s, '5.5 5.5 0', HUD2_CREAM, 0.98 * a_mul);
+	HUD2_Text('17 12.3 0', main_s, '5.5 5.5 0', HUD2_CREAM, 0.98 * a_mul);
 
-	px = 17 + stringwidth(main_s, FALSE, '5.5 5.5 0') + 4;
+	px = 17 + BM_UIStringWidth(main_s, FALSE, '5.5 5.5 0') + 4;
 	if (items & IT_KEY1)
 	{
 		if (ctf)
@@ -489,20 +488,20 @@ void(float hp, float is_leader, float a_mul) HUD2_DrawTopPill =
 	ny = 28;
 	if (has_status)
 	{
-		bw = stringwidth(status_s, TRUE, '5 5 0');
+		bw = BM_UIStringWidth(status_s, TRUE, '5 5 0');
 		bx = bw + 14;
 		HUD2_Card('10 28 0', bx * '1 0 0' + '0 14 0', accent, 0, a_mul);
-		drawcolorcodedstring('17 32 0', status_s, '5 5 0', 0.96 * a_mul, 0);
+		BM_DrawColorShadow(17, 31.5, status_s, 5, 0.96 * a_mul);
 		ny = 45;
 	}
 
 	if (warm)
 	{
 		warm_s = "^xfb2WARMUP  ^7F1^8+Bot  ^7F2^8-Bot  ^7F3^8LAN";
-		bw = stringwidth(warm_s, TRUE, '5 5 0');
+		bw = BM_UIStringWidth(warm_s, TRUE, '5 5 0');
 		bx = bw + 14;
 		HUD2_Card('10 0 0' + ny * '0 1 0', bx * '1 0 0' + '0 14 0', HUD2_AMBER, 0, a_mul);
-		drawcolorcodedstring('17 0 0' + (ny + 4) * '0 1 0', warm_s, '5 5 0', 0.94 * a_mul, 0);
+		BM_DrawColorShadow(17, ny + 3.5, warm_s, 5, 0.94 * a_mul);
 	}
 };
 

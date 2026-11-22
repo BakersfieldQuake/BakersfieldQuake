@@ -35,7 +35,7 @@ void(vector pos, string s, vector sc, vector rgb, float a) S4_TextShadow =
 	if (a <= 0 || s == "")
 		return;
 	p = pos_x * '1 0 0' + pos_y * '0 1 0';
-	sv = sc_x * '1 0 0' + sc_y * '0 1 0';
+	sv = BM_UIScaleVec(sc);
 	drawstring(p + '-0.5 -0.5 0', s, sv, '0 0 0', 0.45 * a, 0);
 	drawstring(p + '0.9 0.9 0', s, sv, '0 0 0', 0.88 * a, 0);
 	drawstring(p, s, sv, rgb, a, 0);
@@ -47,7 +47,7 @@ void(vector cpos, string s, vector sc, vector rgb, float a) S4_CenterShadow =
 
 	if (a <= 0 || s == "")
 		return;
-	wd = stringwidth(s, FALSE, sc);
+	wd = BM_UIStringWidth(s, FALSE, sc);
 	S4_TextShadow((cpos_x - wd * 0.5) * '1 0 0' + cpos_y * '0 1 0', s, sc, rgb, a);
 };
 
@@ -57,7 +57,7 @@ void(vector rpos, string s, vector sc, vector rgb, float a) S4_RightShadow =
 
 	if (a <= 0 || s == "")
 		return;
-	wd = stringwidth(s, FALSE, sc);
+	wd = BM_UIStringWidth(s, FALSE, sc);
 	S4_TextShadow((rpos_x - wd) * '1 0 0' + rpos_y * '0 1 0', s, sc, rgb, a);
 };
 
@@ -521,9 +521,6 @@ void(float w, float h) HUD_DrawStyle4 =
 	if (rlp > 0)
 		S4_TextShadow((right_x + 44) * '1 0 0' + (h - 46) * '0 1 0', "RLD", '6 6 0', c_gold, low_pulse * a);
 
-	if (grenade_ammo > 0)
-		S4_RightShadow((right_x + bar_w) * '1 0 0' + (h - 45.5) * '0 1 0', strcat("P:", ftos(grenade_ammo)), '5.5 5.5 0', c_gold, 0.94 * a);
-
 	// Primary Ammo readout + 2.5px Mag/Reload/Ammo bar
 	if (is_melee)
 	{
@@ -572,7 +569,7 @@ void(float w, float h) HUD_DrawStyle4 =
 		S4_GlowBar(right_x * '1 0 0' + bar_y * '0 1 0', bar_w, 2.5, ammo_frac, ammo_bar_col, 0.96 * a, 0);
 
 	// Ultra-minimal reserve numbers (S N R C, muted when 0; offset safely past large active ammo)
-	ammo_w = stringwidth(ammo_s, FALSE, '22 22 0');
+	ammo_w = BM_UIStringWidth(ammo_s, FALSE, '22 22 0');
 	res_x = right_x + 68;
 	if (right_x + ammo_w + 6 > res_x)
 		res_x = right_x + ammo_w + 6;

@@ -7,8 +7,9 @@ float OPT_TAB_WEAPONS  = 3;
 float OPT_TAB_COUNT    = 4;
 
 float OPT_VID_COUNT    = 15;
-float OPT_GFX_COUNT    = 26;
+float OPT_GFX_COUNT    = 27;
 float OPT_CTRL_COUNT   = 21;
+float OPT_VEH_COUNT    = 9;
 float OPT_WEP_COUNT    = 20;
 
 float SL_HDR      = 1;
@@ -31,6 +32,7 @@ void() BM_Options_Open =
 	g_focus_input = INPUT_NONE;
 	g_bind_listen_idx = -1;
 	g_opt_scroll = 0;
+	g_opt_ctrl_veh = 0;
 	g_active_slider = 0;
 
 	w = stof(cvar_string("vid_width"));
@@ -207,11 +209,38 @@ void() BM_Opt_ApplyGraphicsDefaults =
 	cvar_set("cl_rollangle", "0");
 	cvar_set("crosshair", "5");
 	cvar_set("bm_hud_style", "0");
+	cvar_set("bm_ui_font", "1");
 	cvar_set("bm_bot_tags", "1");
 	cvar_set("bm_player_tags", "1");
 	cvar_set("showfps", "1");
 	localcmd("saveconfig\n");
 	BM_Opt_SetStatus("CLEAN GRAPHICS DEFAULTS APPLIED");
+};
+
+string(float idx) BM_Opt_VehLabel =
+{
+	if (idx == 0) return "Accelerate";
+	if (idx == 1) return "Brake / Reverse";
+	if (idx == 2) return "Steer Left";
+	if (idx == 3) return "Steer Right";
+	if (idx == 4) return "Handbrake / Hop";
+	if (idx == 5) return "Nitro Boost / Swoop";
+	if (idx == 6) return "Horn / Fire";
+	if (idx == 7) return "Vehicle Exit";
+	return "Vehicle Camera";
+};
+
+string(float idx) BM_Opt_VehCmd =
+{
+	if (idx == 0) return "+forward";
+	if (idx == 1) return "+back";
+	if (idx == 2) return "+moveleft";
+	if (idx == 3) return "+moveright";
+	if (idx == 4) return "+jump";
+	if (idx == 5) return "+button4";
+	if (idx == 6) return "+attack";
+	if (idx == 7) return "impulse 86";
+	return "impulse 87";
 };
 
 string(float tab, float idx) BM_Opt_BindLabel =
@@ -312,16 +341,39 @@ string(float tab, float idx) BM_Opt_BindCmd =
 	return "impulse 68";
 };
 
-string(string cmd) BM_Opt_GetBoundKeys =
+string(string cmd, float bmap) BM_Opt_GetBoundKeys =
 {
-	local string raw, out, kname;
+	local string raw, out, kname, kb;
 	local float n, i, kn;
+
+	if (bmap != 0)
+	{
+		out = "";
+		for (i = 1; i < 768; i = i + 1)
+		{
+			kb = getkeybind(i, bmap);
+			if (kb == cmd)
+			{
+				kname = strtoupper(keynumtostring(i));
+				if (kname != "")
+				{
+					if (out == "")
+						out = kname;
+					else
+						out = strcat(out, " / ", kname);
+				}
+			}
+		}
+		if (out == "")
+			return "UNBOUND";
+		return out;
+	}
 
 	raw = findkeysforcommand(cmd, 0);
 	if (raw == "")
 	{
 		if (cmd == "impulse 41")
-			return BM_Opt_GetBoundKeys("reload");
+			return BM_Opt_GetBoundKeys("reload", 0);
 		return "UNBOUND";
 	}
 	n = tokenize(raw);
@@ -339,16 +391,26 @@ string(string cmd) BM_Opt_GetBoundKeys =
 		}
 	}
 	if (out == "" && cmd == "impulse 41")
-		return BM_Opt_GetBoundKeys("reload");
+		return BM_Opt_GetBoundKeys("reload", 0);
 	if (out == "")
 		return "UNBOUND";
 	return out;
 };
 
-void(string cmd) BM_Opt_ClearCmdBinds =
+void(string cmd, float bmap) BM_Opt_ClearCmdBinds =
 {
 	local string raw;
 	local float n, i, kn, keys_to_clear[8], cnt;
+
+	if (bmap != 0)
+	{
+		for (i = 1; i < 768; i = i + 1)
+		{
+			if (getkeybind(i, bmap) == cmd)
+				setkeybind(i, "", bmap);
+		}
+		return;
+	}
 
 	raw = findkeysforcommand(cmd, 0);
 	if (raw != "")
@@ -368,7 +430,71 @@ void(string cmd) BM_Opt_ClearCmdBinds =
 			setkeybind(keys_to_clear[i], "", 0);
 	}
 	if (cmd == "impulse 41")
-		BM_Opt_ClearCmdBinds("reload");
+		BM_Opt_ClearCmdBinds("reload", 0);
+};
+
+void() BM_Opt_BumpVehRev =
+{
+	cvar_set("bm_veh_rev", ftos(cvar("bm_veh_rev") + 1));
+};
+
+void() BM_Opt_SaveVehConfig =
+{
+	local float fh, k;
+	local string cmd, kn;
+
+	fh = fopen("vehicle_binds.cfg", FILE_WRITE);
+	if (fh >= 0)
+	{
+		fputs(fh, "// BakersfieldQuake Vehicle Config (bindmap 1) - managed by Options > Controls\n");
+		for (k = 1; k < 768; k = k + 1)
+		{
+			cmd = getkeybind(k, 1);
+			if (cmd != "")
+			{
+				kn = keynumtostring(k);
+				if (kn != "" && kn != "\"")
+					fputs(fh, strcat("in_bind 1 \"", kn, "\" \"", cmd, "\"\n"));
+			}
+		}
+		fclose(fh);
+	}
+	BM_Opt_BumpVehRev();
+	localcmd("saveconfig\n");
+};
+
+float() BM_Opt_HasAnyVehBind =
+{
+	local float k;
+
+	for (k = 1; k < 768; k = k + 1)
+	{
+		if (getkeybind(k, 1) != "")
+			return TRUE;
+	}
+	return FALSE;
+};
+
+void() BM_Opt_SeedVehicleDefaults =
+{
+	local float k;
+
+	for (k = 1; k < 768; k = k + 1)
+	{
+		if (getkeybind(k, 1) != "")
+			setkeybind(k, "", 1);
+	}
+	k = stringtokeynum("w"); if (k > 0) setkeybind(k, "+forward", 1);
+	k = stringtokeynum("s"); if (k > 0) setkeybind(k, "+back", 1);
+	k = stringtokeynum("a"); if (k > 0) setkeybind(k, "+moveleft", 1);
+	k = stringtokeynum("d"); if (k > 0) setkeybind(k, "+moveright", 1);
+	setkeybind(K_SPACE, "+jump", 1);
+	setkeybind(K_SHIFT, "+button4", 1);
+	setkeybind(K_MOUSE1, "+attack", 1);
+	k = stringtokeynum("h"); if (k > 0) setkeybind(k, "impulse 86", 1);
+	k = stringtokeynum("k"); if (k > 0) setkeybind(k, "impulse 87", 1);
+	cvar_set("bm_veh_init", "1");
+	BM_Opt_SaveVehConfig();
 };
 
 float() BM_Opt_IsLiveColorDrag =
@@ -663,6 +789,20 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 		}
 	}
 	else if (idx == 3)
+	{
+		on = (stof(cvar_string("bm_ui_font")) != 0);
+		st = BM_DrawStepper(ix, ry, iw, rh, "UI FONT", on ? "Roboto" : "Classic", FALSE, clicked);
+		if (st != 0)
+		{
+			g_click_consumed = TRUE;
+			cvar_set("bm_ui_font", on ? "0" : "1");
+			BM_PlaySound("sound/misc/menu1.wav");
+		}
+		return;
+	}
+	if (idx > 3)
+		idx = idx - 1;
+	if (idx == 3)
 	{
 		on = (stof(cvar_string("r_shadow_realtime_dlight")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "DYNAMIC LIGHTS", on ? "On" : "Off", FALSE, clicked);
@@ -1057,15 +1197,79 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindList =
 {
 	local float ix, iy, iw, ih, rh, gap, vis, total, max_scroll, i, r, ry, hov, listening;
-	local float sb_h, sb_y;
+	local float sb_h, sb_y, veh_on, bmap;
 	local string lbl, cmd, kstr;
 	local vector bg, brd, kcol;
 
-	total = (g_opt_tab == OPT_TAB_CONTROLS) ? OPT_CTRL_COUNT : OPT_WEP_COUNT;
 	ix = px + 14;
-	iy = py + 58;
 	iw = pw - 36;
+	iy = py + 58;
 	ih = ph - 94;
+	veh_on = (cvar("bm_veh_config") != 0);
+
+	if (g_opt_tab == OPT_TAB_CONTROLS)
+	{
+		if (!veh_on)
+			g_opt_ctrl_veh = 0;
+
+		hov = BM_DrawButton(ix, py + 56, 214, 18, veh_on ? "SEPARATE VEHICLE CONFIG: ON" : "SEPARATE VEHICLE CONFIG: OFF", veh_on, veh_on);
+		if (clicked && hov)
+		{
+			g_click_consumed = TRUE;
+			g_bind_listen_idx = -1;
+			g_opt_scroll = 0;
+			BM_PlaySound("sound/misc/menu2.wav");
+			if (!veh_on)
+			{
+				cvar_set("bm_veh_config", "1");
+				veh_on = TRUE;
+				if (cvar("bm_veh_init") == 0 || !BM_Opt_HasAnyVehBind())
+					BM_Opt_SeedVehicleDefaults();
+				else
+				{
+					BM_Opt_BumpVehRev();
+					localcmd("saveconfig\n");
+				}
+				g_opt_ctrl_veh = 1;
+			}
+			else
+			{
+				cvar_set("bm_veh_config", "0");
+				veh_on = FALSE;
+				g_opt_ctrl_veh = 0;
+				BM_Opt_BumpVehRev();
+				localcmd("saveconfig\n");
+			}
+		}
+
+		if (veh_on)
+		{
+			hov = BM_DrawTab(ix + iw - 144, py + 56, 70, 18, "ON FOOT", (g_opt_ctrl_veh == 0));
+			if (clicked && hov)
+			{
+				g_click_consumed = TRUE;
+				g_bind_listen_idx = -1;
+				g_opt_scroll = 0;
+				g_opt_ctrl_veh = 0;
+				BM_PlaySound("sound/misc/menu1.wav");
+			}
+			hov = BM_DrawTab(ix + iw - 70, py + 56, 70, 18, "VEHICLE", (g_opt_ctrl_veh == 1));
+			if (clicked && hov)
+			{
+				g_click_consumed = TRUE;
+				g_bind_listen_idx = -1;
+				g_opt_scroll = 0;
+				g_opt_ctrl_veh = 1;
+				BM_PlaySound("sound/misc/menu1.wav");
+			}
+		}
+
+		iy = py + 79;
+		ih = ph - 115;
+	}
+
+	bmap = (g_opt_tab == OPT_TAB_CONTROLS && g_opt_ctrl_veh) ? 1 : 0;
+	total = (g_opt_tab == OPT_TAB_CONTROLS) ? (bmap ? OPT_VEH_COUNT : OPT_CTRL_COUNT) : OPT_WEP_COUNT;
 	rh = 19;
 	gap = 3;
 
@@ -1080,8 +1284,8 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		if (r >= 0 && r < vis)
 		{
 			ry = iy + r * (rh + gap);
-			lbl = BM_Opt_BindLabel(g_opt_tab, i);
-			cmd = BM_Opt_BindCmd(g_opt_tab, i);
+			lbl = bmap ? BM_Opt_VehLabel(i) : BM_Opt_BindLabel(g_opt_tab, i);
+			cmd = bmap ? BM_Opt_VehCmd(i) : BM_Opt_BindCmd(g_opt_tab, i);
 			listening = (g_bind_listen_idx == i);
 			hov = BM_MouseIn(ix, ry, iw, rh);
 
@@ -1099,7 +1303,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 			}
 			else
 			{
-				kstr = BM_Opt_GetBoundKeys(cmd);
+				kstr = BM_Opt_GetBoundKeys(cmd, bmap);
 				kcol = (kstr == "UNBOUND") ? COL_BAD : COL_ACCENT;
 			}
 			BM_DrawTextRight(ix + iw - 8, ry + 5, kstr, 8, kcol, 0.96);
@@ -1136,7 +1340,16 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		g_click_consumed = TRUE;
 		g_bind_listen_idx = -1;
 		BM_PlaySound("sound/misc/menu2.wav");
-		localcmd("exec bm_binds.cfg\n");
+		if (bmap == 1)
+			BM_Opt_SeedVehicleDefaults();
+		else
+		{
+			if (cvar("bm_veh_init") != 0)
+				localcmd("exec bm_binds.cfg; exec vehicle_binds.cfg\n");
+			else
+				localcmd("exec bm_binds.cfg\n");
+			BM_Opt_BumpVehRev();
+		}
 	}
 };
 
@@ -1242,10 +1455,12 @@ void(float clicked) BM_Options_Draw =
 void(float key, float ascii) BM_Options_KeyDown =
 {
 	local string cmd, kname;
+	local float bmap;
 
 	if (g_bind_listen_idx >= 0)
 	{
-		cmd = BM_Opt_BindCmd(g_opt_tab, g_bind_listen_idx);
+		bmap = (g_opt_tab == OPT_TAB_CONTROLS && g_opt_ctrl_veh && cvar("bm_veh_config") != 0) ? 1 : 0;
+		cmd = bmap ? BM_Opt_VehCmd(g_bind_listen_idx) : BM_Opt_BindCmd(g_opt_tab, g_bind_listen_idx);
 		if (key == K_ESCAPE)
 		{
 			g_bind_listen_idx = -1;
@@ -1254,17 +1469,25 @@ void(float key, float ascii) BM_Options_KeyDown =
 		}
 		if (key == K_DEL || key == K_BACKSPACE)
 		{
-			BM_Opt_ClearCmdBinds(cmd);
+			BM_Opt_ClearCmdBinds(cmd, bmap);
 			g_bind_listen_idx = -1;
+			if (bmap == 1)
+				BM_Opt_SaveVehConfig();
+			else
+				BM_Opt_BumpVehRev();
 			BM_PlaySound("sound/misc/menu3.wav");
 			return;
 		}
 		kname = keynumtostring(key);
 		if (kname != "")
 		{
-			BM_Opt_ClearCmdBinds(cmd);
-			setkeybind(key, cmd, 0);
+			BM_Opt_ClearCmdBinds(cmd, bmap);
+			setkeybind(key, cmd, bmap);
 			g_bind_listen_idx = -1;
+			if (bmap == 1)
+				BM_Opt_SaveVehConfig();
+			else
+				BM_Opt_BumpVehRev();
 			BM_PlaySound("sound/misc/menu2.wav");
 		}
 		return;

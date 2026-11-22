@@ -74,26 +74,83 @@ void(float x, float y, float w, float h, float bg_alpha, vector border_rgb, floa
 		BM_Fill(x, y, w, accent_top, COL_ACCENT_HOT, 0.85);
 };
 
+float() BM_MenuFont =
+{
+	local float f, old_font, wi, ww;
+
+	if (stof(cvar_string("bm_ui_font")) == 0)
+		return 0;
+	if (g_menu_font_checked)
+		return g_menu_font_idx;
+
+	old_font = drawfont;
+	for (f = 7; f <= 25; f = f + 1)
+	{
+		drawfont = f;
+		wi = stringwidth("iiii", FALSE, '10 10 0');
+		ww = stringwidth("WWWW", FALSE, '10 10 0');
+		if (wi > 0 && ww > wi + 4)
+		{
+			drawfont = old_font;
+			g_menu_font_idx = f;
+			g_menu_font_checked = TRUE;
+			return f;
+		}
+	}
+	drawfont = old_font;
+	g_menu_font_probes = g_menu_font_probes + 1;
+	if (g_menu_font_probes > 10)
+		g_menu_font_checked = TRUE;
+	return 0;
+};
+
+float(float sz) BM_MenuScaleSz =
+{
+	if (BM_MenuFont() <= 0)
+		return sz;
+	if (sz <= 8)
+		return sz * 1.30;
+	if (sz <= 11)
+		return sz * 1.20;
+	return sz * 1.10;
+};
+
 void(float x, float y, string s, float sz, vector rgb, float a) BM_DrawText =
 {
+	local float f, old_font, use_sz, dy;
 	local vector pos, sc;
 
-	pos = x * '1 0 0' + y * '0 1 0';
-	sc = sz * '1 1 0';
+	f = BM_MenuFont();
+	use_sz = BM_MenuScaleSz(sz);
+	dy = (use_sz - sz) * 0.45;
+	old_font = drawfont;
+	if (f > 0)
+		drawfont = f;
+	pos = x * '1 0 0' + (y - dy) * '0 1 0';
+	sc = use_sz * '1 1 0';
 	drawstring(pos + '0.8 0.8 0', s, sc, '0 0 0', a * 0.78, 0);
 	drawstring(pos, s, sc, rgb, a, 0);
+	drawfont = old_font;
 };
 
 void(float x, float y, string s, float sz, float a) BM_DrawColorText =
 {
+	local float f, old_font, use_sz, dy;
 	local vector pos, sc;
 	local string plain;
 
-	pos = x * '1 0 0' + y * '0 1 0';
-	sc = sz * '1 1 0';
+	f = BM_MenuFont();
+	use_sz = BM_MenuScaleSz(sz);
+	dy = (use_sz - sz) * 0.45;
+	old_font = drawfont;
+	if (f > 0)
+		drawfont = f;
+	pos = x * '1 0 0' + (y - dy) * '0 1 0';
+	sc = use_sz * '1 1 0';
 	plain = strdecolorize(s);
 	drawstring(pos + '0.8 0.8 0', plain, sc, '0 0 0', a * 0.78, 0);
 	drawcolorcodedstring(pos, s, sc, a, 0);
+	drawfont = old_font;
 };
 
 void(float x, float y, float w, float h) BM_BeginClip =
@@ -114,12 +171,14 @@ void() BM_EndClip =
 
 void(float x, float y, float w, string s, float sz, vector rgb, float a, float use_colors) BM_DrawTextClipped =
 {
-	local float cx0, cy0, cx1, cy1;
+	local float cx0, cy0, cx1, cy1, use_sz, dy;
 
+	use_sz = BM_MenuScaleSz(sz);
+	dy = (use_sz - sz) * 0.45;
 	cx0 = x;
-	cy0 = y - 1;
+	cy0 = (y - dy) - 1;
 	cx1 = x + w;
-	cy1 = cy0 + sz + 3;
+	cy1 = cy0 + use_sz + 3;
 	if (g_clip_active)
 	{
 		if (cx0 < g_clip_x) cx0 = g_clip_x;
@@ -142,17 +201,29 @@ void(float x, float y, float w, string s, float sz, vector rgb, float a, float u
 
 void(float cx, float y, string s, float sz, vector rgb, float a) BM_DrawTextCentered =
 {
-	local float wd;
+	local float f, old_font, use_sz, wd;
 
-	wd = stringwidth(s, FALSE, sz * '1 1 0');
+	f = BM_MenuFont();
+	use_sz = BM_MenuScaleSz(sz);
+	old_font = drawfont;
+	if (f > 0)
+		drawfont = f;
+	wd = stringwidth(s, FALSE, use_sz * '1 1 0');
+	drawfont = old_font;
 	BM_DrawText(cx - wd * 0.5, y, s, sz, rgb, a);
 };
 
 void(float rx, float y, string s, float sz, vector rgb, float a) BM_DrawTextRight =
 {
-	local float wd;
+	local float f, old_font, use_sz, wd;
 
-	wd = stringwidth(s, FALSE, sz * '1 1 0');
+	f = BM_MenuFont();
+	use_sz = BM_MenuScaleSz(sz);
+	old_font = drawfont;
+	if (f > 0)
+		drawfont = f;
+	wd = stringwidth(s, FALSE, use_sz * '1 1 0');
+	drawfont = old_font;
 	BM_DrawText(rx - wd, y, s, sz, rgb, a);
 };
 

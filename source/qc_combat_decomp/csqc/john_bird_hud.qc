@@ -87,10 +87,12 @@ float() JBH_TopLeftY =
 
 void(float x, float y, string s, float sz, float a) JBH_ShadowLeft =
 {
+	local float usz;
 	local vector sc;
 	local string plain;
 
-	sc = JBH_Vec2(sz, sz);
+	usz = BM_UIScale(sz);
+	sc = JBH_Vec2(usz, usz);
 	plain = strdecolorize(s);
 	drawstring(JBH_Vec2(x + 0.7, y + 0.7), plain, sc, '0 0 0', 0.85 * a, 0);
 	drawcolorcodedstring(JBH_Vec2(x, y), s, sc, a, 0);
@@ -100,7 +102,7 @@ void(float rx, float y, string s, float sz, float a) JBH_ShadowRight =
 {
 	local float wd;
 
-	wd = stringwidth(s, TRUE, JBH_Vec2(sz, sz));
+	wd = BM_UIStringWidth(s, TRUE, JBH_Vec2(sz, sz));
 	JBH_ShadowLeft(rx - wd, y, s, sz, a);
 };
 
@@ -108,16 +110,17 @@ void(float cx, float y, string s, float sz, float a) JBH_Centered =
 {
 	local float wd;
 
-	wd = stringwidth(s, TRUE, JBH_Vec2(sz, sz));
+	wd = BM_UIStringWidth(s, TRUE, JBH_Vec2(sz, sz));
 	JBH_ShadowLeft(cx - wd * 0.5, y, s, sz, a);
 };
 
 void(float cx, float y, string s, float sz, vector rgb, float a) JBH_PlainCentered =
 {
-	local float wd;
+	local float wd, usz;
 	local vector sc;
 
-	sc = JBH_Vec2(sz, sz);
+	usz = BM_UIScale(sz);
+	sc = JBH_Vec2(usz, usz);
 	wd = stringwidth(s, FALSE, sc);
 	drawstring(JBH_Vec2(cx - wd * 0.5 + 0.6, y + 0.6), s, sc, '0 0 0', 0.72 * a, 0);
 	drawstring(JBH_Vec2(cx - wd * 0.5, y), s, sc, rgb, a, 0);
@@ -292,13 +295,13 @@ JBH_DrawFirstPersonJohnHUD
 Minimal, clean 1st-person aviation readout tucked in bottom-left with drop shadow (no dark box).
 ================
 */
-void(float w, float h, float combat, float status, float jb_hp, float ammo, float spd) JBH_DrawFirstPersonJohnHUD =
+void(float w, float h, float combat, float status, float boost, float jb_hp, float ammo, float spd) JBH_DrawFirstPersonJohnHUD =
 {
-	local float px, py, bw, hp_frac;
-	local vector hp_col;
-	local string hp_lbl;
+	local float px, py, bw, hp_frac, bst_frac;
+	local vector hp_col, bst_col;
+	local string hp_lbl, bst_tag;
 
-	bw = 96;
+	bw = 45;
 	px = JP_IsVisible() ? 36 : 10;
 	py = BM_CornerBottomY(h) - 16;
 
@@ -310,24 +313,38 @@ void(float w, float h, float combat, float status, float jb_hp, float ammo, floa
 	else
 		hp_col = '0.34 0.96 0.54';
 
-	hp_lbl = strcat("^7BIRD ", ftos(jb_hp), "   ^5", ftos(spd), "u/s");
+	bst_frac = bound(0, boost / 100, 1);
+	bst_col = (combat & 16) ? '0.68 0.98 1.0' : '0.22 0.82 1.0';
+	if (boost < 15)
+	{
+		bst_col = '1.0 0.60 0.20';
+		bst_tag = "^3";
+	}
+	else
+		bst_tag = "^5";
+
+	hp_lbl = strcat("^7BIRD ", ftos(jb_hp), "  ", bst_tag, (combat & 16) ? "TURBO! " : strcat("BOOST ", ftos(boost), "% "));
+	hp_lbl = strcat(hp_lbl, "^5", ftos(spd), "u/s");
 	JBH_ShadowLeft(px, py, hp_lbl, 4.8, 0.98);
 	drawfill(JBH_Vec2(px, py + 8), JBH_Vec2(bw, 2.5), '0 0 0', 0.45, 0);
 	if (hp_frac > 0)
 		drawfill(JBH_Vec2(px, py + 8), JBH_Vec2(bw * hp_frac, 2.5), hp_col, 0.96, 0);
+	drawfill(JBH_Vec2(px + 51, py + 8), JBH_Vec2(bw, 2.5), '0 0 0', 0.45, 0);
+	if (bst_frac > 0)
+		drawfill(JBH_Vec2(px + 51, py + 8), JBH_Vec2(bw * bst_frac, 2.5), bst_col, 0.96, 0);
 };
 
 /*
 ================
 JBH_DrawTopSwitcher
-Compact top-left text overlay showing bird HP, airspeed, can ammo, and smoking warning (no dark box).
+Compact top-left text overlay showing bird HP, boost gauge, airspeed, can ammo, and smoking warning (no dark box).
 ================
 */
-void(float w, float h, float jb_active, float jb_var, float combat, float status, float jb_hp, float ammo, float spd) JBH_DrawTopSwitcher =
+void(float w, float h, float jb_active, float jb_var, float combat, float status, float boost, float jb_hp, float ammo, float spd) JBH_DrawTopSwitcher =
 {
-	local float x0, y0, hp_frac, sn;
-	local string s, hp_tag;
-	local vector hp_col;
+	local float x0, y0, hp_frac, bst_frac, sn;
+	local string s, hp_tag, bst_tag;
+	local vector hp_col, bst_col;
 
 	x0 = 10;
 	y0 = JBH_TopLeftY() + 11;
@@ -349,15 +366,29 @@ void(float w, float h, float jb_active, float jb_var, float combat, float status
 		hp_tag = "^2";
 	}
 
-	s = strcat(hp_tag, "JOHN ", ftos(jb_hp), "  ^5", ftos(spd), "u/s");
+	bst_frac = bound(0, boost / 100, 1);
+	bst_col = (combat & 16) ? '0.68 0.98 1.0' : '0.22 0.82 1.0';
+	if (boost < 15)
+	{
+		bst_col = '1.0 0.60 0.20';
+		bst_tag = "^3";
+	}
+	else
+		bst_tag = "^5";
+
+	s = strcat(hp_tag, "JOHN ", ftos(jb_hp), "  ", bst_tag, (combat & 16) ? "TURBO! " : strcat("BOOST ", ftos(boost), "% "));
+	s = strcat(s, "^5", ftos(spd), "u/s");
 	s = strcat(s, "  ", (ammo <= 0) ? "^10/12" : ((ammo <= 2) ? strcat("^3", ftos(ammo), "/12") : strcat("^5", ftos(ammo), "/12")));
 	if (combat & 7)
 		s = strcat(s, " ^1ATK");
 	JBH_ShadowLeft(x0, y0, s, 5, 0.96);
 
-	drawfill(JBH_Vec2(x0, y0 + 8), JBH_Vec2(72, 2), '0 0 0', 0.45, 0);
+	drawfill(JBH_Vec2(x0, y0 + 8), JBH_Vec2(48, 2), '0 0 0', 0.45, 0);
 	if (hp_frac > 0)
-		drawfill(JBH_Vec2(x0, y0 + 8), JBH_Vec2(72 * hp_frac, 2), hp_col, 0.94, 0);
+		drawfill(JBH_Vec2(x0, y0 + 8), JBH_Vec2(48 * hp_frac, 2), hp_col, 0.94, 0);
+	drawfill(JBH_Vec2(x0 + 54, y0 + 8), JBH_Vec2(48, 2), '0 0 0', 0.45, 0);
+	if (bst_frac > 0)
+		drawfill(JBH_Vec2(x0 + 54, y0 + 8), JBH_Vec2(48 * bst_frac, 2), bst_col, 0.94, 0);
 
 	// Low-HP smoking alert directly under top-left telemetry
 	if (jb_hp > 0 && (jb_hp <= JB_HUD_LOW_HP || (status & 4)))
@@ -377,7 +408,7 @@ Bright drop-shadowed keybind reference in the top-left corner, auto-fading after
 void(float w, float h, float jb_active) JBH_DrawControlsStrip =
 {
 	local float px, py, age, a;
-	local string s;
+	local string s, cam_k, exit_k, atk_k, bst_k, view_lbl;
 
 	if (showscores)
 		return;
@@ -389,10 +420,15 @@ void(float w, float h, float jb_active) JBH_DrawControlsStrip =
 
 	px = 10;
 	py = JBH_TopLeftY();
-	if (jb_active == 2)
-		s = "^3CLICK^7 Shoot  ^3MOUSE^7 Carve Speed  ^3K^7 Cam(^51P^7)  ^3P/H^7 Exit";
-	else
-		s = "^3CLICK^7 Shoot  ^3MOUSE^7 Carve Speed  ^3K^7 Cam(^53P^7)  ^3P/H^7 Exit";
+	atk_k = BM_ActiveBindLabel("+attack", "CLICK");
+	if (atk_k == "MOUSE1")
+		atk_k = "CLICK";
+	bst_k = BM_ActiveBindLabel("+button4", "SHIFT");
+	cam_k = BM_ActiveBindLabel("impulse 87", "K");
+	exit_k = BM_ActiveBindLabel("impulse 86", "H");
+	view_lbl = (jb_active == 2) ? "1P" : "3P";
+	s = strcat("^3", atk_k, "^7 Shoot  ^3", bst_k, "^7 Boost  ^3", cam_k, "^7 Cam(^5", view_lbl);
+	s = strcat(s, "^7)  ^3", exit_k, "^7 Exit");
 
 	JBH_ShadowLeft(px, py, s, 6, a);
 };
@@ -457,7 +493,7 @@ Entry point called every frame from CSQC_UpdateView when not in menu/intro/inter
 */
 void(float raw_w, float raw_h) JB_DrawHUD =
 {
-	local float w, h, jb_active, jb_var, combat, status, jb_hp, hit_cnt, ammo, ammoprog, spd, hp;
+	local float w, h, jb_active, jb_var, combat, status, boost, jb_hp, hit_cnt, ammo, ammoprog, spd, hp;
 
 	w = vid_conwidth;
 	h = vid_conheight;
@@ -479,6 +515,7 @@ void(float raw_w, float raw_h) JB_DrawHUD =
 	jb_var = getstati(BMST_JB_VARIANT);
 	combat = getstati(BMST_JB_COMBAT);
 	status = getstati(BMST_JB_STATUS);
+	boost = getstati(BMST_JB_BOOST);
 	jb_hp = getstati(BMST_JB_HP);
 	hit_cnt = getstati(BMST_JB_HIT);
 	ammo = getstati(BMST_JB_AMMO);
@@ -504,9 +541,9 @@ void(float raw_w, float raw_h) JB_DrawHUD =
 			jb_var = 1;
 
 		if (jb_active == 2)
-			JBH_DrawFirstPersonJohnHUD(w, h, combat, status, jb_hp, ammo, spd);
+			JBH_DrawFirstPersonJohnHUD(w, h, combat, status, boost, jb_hp, ammo, spd);
 		else
-			JBH_DrawTopSwitcher(w, h, jb_active, jb_var, combat, status, jb_hp, ammo, spd);
+			JBH_DrawTopSwitcher(w, h, jb_active, jb_var, combat, status, boost, jb_hp, ammo, spd);
 
 		JBH_DrawCrosshair(w, h, jb_var, combat, ammo);
 		JBH_DrawCanRack(w, h, ammo, ammoprog, (jb_active == 2));

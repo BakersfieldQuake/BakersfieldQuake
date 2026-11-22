@@ -1260,6 +1260,7 @@ void(float w, float h) RH_DrawXRayHUD =
 	old_font = drawfont;
 	if (rh_term_font > 0)
 		drawfont = rh_term_font;
+	bm_ui_skip_scale = TRUE;
 
 	pulse = RH_Sin (time * 7);
 	sz = (rh_term_font > 0) ? 7.2 : 5;
@@ -1434,6 +1435,7 @@ void(float w, float h) RH_DrawXRayHUD =
 	BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - lh - 7, "^5[MOUSE]^7 Steer   ^xF66[LMB]^7 Dash / Detonate", sz, 1.0);
 	BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - 7, "^3[H]^7 Recall", sz, 1.0);
 
+	bm_ui_skip_scale = FALSE;
 	drawfont = old_font;
 
 	// 7. Centerprint toast (bottom-left) + post-blast SIGNAL LOST line stacked above it

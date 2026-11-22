@@ -7,11 +7,22 @@ void() m_init =
 	registercvar("bm_menu_bg", "0", 0);
 	cvar_set("bm_menu_bg", "0");
 	registercvar("bm_hud_style", "0", 1);
+	registercvar("bm_ui_font", "1", 1);
+	localcmd("loadfont menu engine/fonts/Roboto-Medium.ttf 8 12 16 24 32\n");
 	registercvar("bm_bot_tags", "1", 1);
 	registercvar("bm_player_tags", "1", 1);
 	registercvar("lowspec", "0", 1);
 	registercvar("bright_skins", "1", 1);
 	registercvar("centered_weapons", "0", 1);
+	registercvar("bm_veh_config", "0", 1);
+	registercvar("bm_veh_init", "0", 1);
+	registercvar("bm_veh_rev", "0", 0);
+	localcmd("in_bindmap 0 0\n");
+	for (i = 1; i < 768; i = i + 1)
+	{
+		if (getkeybind(i, 2) != "")
+			setkeybind(i, "", 2);
+	}
 
 	precache_pic("gfx/conback.lmp");
 	precache_pic("gfx/conback.png");

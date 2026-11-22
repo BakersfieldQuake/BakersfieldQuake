@@ -17,9 +17,7 @@ void(vector pos, string s, vector sc, vector rgb, float a) HUD3_DrawShadowText =
 
 	if (a <= 0)
 		return;
-	sz_x = sc_x;
-	sz_y = sc_y;
-	sz_z = 0;
+	sz = BM_UIScaleVec(sc);
 	p_x = pos_x;
 	p_y = pos_y;
 	p_z = 0;
@@ -34,18 +32,15 @@ void(vector pos, string s, vector sc, vector rgb, float a) HUD3_DrawShadowText =
 void(vector right_pos, string s, vector sc, vector rgb, float a) HUD3_DrawRightShadowText =
 {
 	local float wd;
-	local vector p, sz;
+	local vector p;
 
 	if (a <= 0)
 		return;
-	sz_x = sc_x;
-	sz_y = sc_y;
-	sz_z = 0;
-	wd = stringwidth(s, FALSE, sz);
+	wd = BM_UIStringWidth(s, FALSE, sc);
 	p_x = right_pos_x - wd;
 	p_y = right_pos_y;
 	p_z = 0;
-	HUD3_DrawShadowText(p, s, sz, rgb, a);
+	HUD3_DrawShadowText(p, s, sc, rgb, a);
 };
 
 // Chamfered obsidian-blue sci-fi panel using stepped drawfill bevels + neon edge trim.
@@ -399,10 +394,6 @@ void(float w, float h, float slot, float active_weap, float active_ammo, float i
 		else
 			HUD3_DrawShadowText((ix + 4) * '1 0 0' + (ry + 5.5) * '0 1 0', mag_str, '4.5 4.5 0', c_lime, 0.95 * a);
 	}
-	else if (grenade_ammo > 0)
-	{
-		HUD3_DrawShadowText((ix + 4) * '1 0 0' + (ry + 5.5) * '0 1 0', strcat("PRX:", ftos(grenade_ammo)), '4.5 4.5 0', c_amber, 0.92 * a);
-	}
 
 	// Row 2: Giant colorized active ammo readout ('22 22 0')
 	sn = sin(time * 9);
@@ -552,9 +543,9 @@ void(float w, float h, float hp, float it_flags, float is_leader, float a) HUD3_
 
 	if (has_mode)
 	{
-		sw = stringwidth(mode_s, TRUE, '5 5 0') + 14;
+		sw = BM_UIStringWidth(mode_s, TRUE, '5 5 0') + 14;
 		HUD3_BevelPanel(10, 6, sw, 13, 3, 1, c_bg, 0.70, c_cyan, c_mag, a);
-		drawcolorcodedstring('16 10 0', mode_s, '5 5 0', 0.95 * a, 0);
+		BM_DrawColorShadow(16, (BM_GetUIFont() > 0) ? 9.1 : 10, mode_s, 5, 0.95 * a);
 		kx = 10 + sw + 4;
 	}
 	else
@@ -643,20 +634,20 @@ void(float w, float h, float hp, float it_flags, float is_leader, float a) HUD3_
 		// Trim leading 2 spaces
 		if (strlen(strip) > 2)
 			strip = substring(strip, 2, strlen(strip) - 2);
-		sw = stringwidth(strip, TRUE, '5 5 0') + 18;
+		sw = BM_UIStringWidth(strip, TRUE, '5 5 0') + 18;
 		sx = cx - sw * 0.5;
 		HUD3_BevelPanel(sx, sy, sw, 14, 3, 1, c_bg, 0.76, c_mag, c_cyan, (0.85 + 0.15 * pulse) * a);
-		HUD_DrawCenterColorText(cx * '1 0 0' + (sy + 4.5) * '0 1 0', strip, '5 5 0', 0.98 * a);
+		HUD_DrawCenterColorText(cx * '1 0 0' + (sy + ((BM_GetUIFont() > 0) ? 3.6 : 4.5)) * '0 1 0', strip, '5 5 0', 0.98 * a);
 		sy = sy + 16;
 	}
 
 	if (warm)
 	{
 		strip = "^6WARMUP^7  //  ^5F1^7 +Bot  ^5F2^7 -Bot  ^5F3^7 Join LAN";
-		sw = stringwidth(strip, TRUE, '5 5 0') + 18;
+		sw = BM_UIStringWidth(strip, TRUE, '5 5 0') + 18;
 		sx = cx - sw * 0.5;
 		HUD3_BevelPanel(sx, sy, sw, 13, 3, 0, c_bg, 0.72, c_cyan, c_mag, (0.70 + 0.25 * pulse) * a);
-		HUD_DrawCenterColorText(cx * '1 0 0' + (sy + 4) * '0 1 0', strip, '5 5 0', 0.95 * a);
+		HUD_DrawCenterColorText(cx * '1 0 0' + (sy + ((BM_GetUIFont() > 0) ? 3.1 : 4)) * '0 1 0', strip, '5 5 0', 0.95 * a);
 	}
 };
 
