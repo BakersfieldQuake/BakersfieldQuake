@@ -7,7 +7,7 @@
 // pogo-bonking the perforated lid, and tornado-spinning).
 //   * Hold Fire (`+attack`) to cocktail-shake the jar; release to whip-throw (`progs/greenjar_proj.spr32`)!
 //   * Shatters on impact into glittering glass & igniting neon-green smoke (`progs/greenjar_burst.spr32`), unleashing
-//     12 bigger, high-pitched giggling/screaming Wheel-Driving Green Men (`progs/greenguy_mini.spr32`, scale 0.9333)!
+//     6 bigger, high-pitched giggling/screaming Wheel-Driving Green Men (`progs/greenguy_mini.spr32`, scale 0.9333)!
 //   * They wheel/drive fast across floors on spinning pneumatic tires, curb-hop steps, and drive up building walls!
 //   * On reaching an enemy, they DO NOT attack right away — they swarm and wheel/drive 3 full laps (`1080 deg`)
 //     around the enemy first while giggling & revving, and ONLY THEN lunge in to attack with 1%-2% non-lethal hits
@@ -441,11 +441,11 @@ void() GJ_MiniThink =
 	if (time > self.fg_born + 0.38)
 		self.bouncefactor = 0.12;
 
-	// Continuous overlapping helium laughing, screaming & giggling!
+	// Continuous overlapping helium laughing, screaming & giggling (spaced to avoid audio spam)
 	if (time >= self.gj_next_voice)
 	{
 		GJ_PlayRandomLaugh (self);
-		self.gj_next_voice = time + 0.75 + random () * 0.95;
+		self.gj_next_voice = time + 0.95 + random () * 1.15;
 	}
 
 	if (time < self.skypad_steer_t)
@@ -772,8 +772,8 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 	m.gj_orbit_rad = 72 + (idx - 4 * floor (idx / 4)) * 12;	// 72..108u 4-lane go-kart circle around victim!
 	m.gj_orbit_deg = 0;
 	m.gj_attack_end = 0;
-	m.gj_die_at = time + 18.5 + random () * 3.0;
-	m.gj_next_voice = time + 0.08 * idx + random () * 0.25;
+	m.gj_die_at = time + 14.0 + random () * 2.5;
+	m.gj_next_voice = time + 0.12 * idx + random () * 0.30;
 	m.gj_next_boing = time + 0.35;
 	m.gj_next_poke = time + 0.2;
 

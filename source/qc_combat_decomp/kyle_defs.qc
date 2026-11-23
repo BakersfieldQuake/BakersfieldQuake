@@ -62,9 +62,9 @@ float	KY_LATCH_TIME		= 5.0;		// max latch duration before popping
 float	KY_CHOP_INTERVAL	= 0.45;		// seconds between scissor chops while latched
 float	KY_CHOP_DMG			= 12;		// damage per chop (24 vs Winged John Bird!)
 float	KY_SCALE			= 0.50;		// bold, crystal-clear ~80u tall in world
-float	KY_LIFE				= 12.0;		// max lifetime for ground-runner / wander Kyle
-float	KY_MAX_ACTIVE		= 4;		// max simultaneous Kyles per owner
-float	KY_CASH_MAX			= 42;		// global FIFO cap on fluttering US bills & coins
+float	KY_LIFE				= 10.0;		// max lifetime for ground-runner / wander Kyle
+float	KY_MAX_ACTIVE		= 2;		// max simultaneous Kyles per owner
+float	KY_CASH_MAX			= 24;		// global FIFO cap on fluttering US bills & coins
 
 // Sound attenuation: tighter than ATTN_NORM (1.0 = 1000u) so distant/off-screen Kyles never spam the map
 float	KY_ATTN_DEATH		= 1.5;		// ~665u: latch & death pop

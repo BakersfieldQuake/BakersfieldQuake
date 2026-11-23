@@ -56,10 +56,10 @@ float	MILKY_SONG_ATTN		= 1.6;		// 1 is gone at 1000 units; 1.6 is gone past ~625
 
 float	MILK_LIFE			= 12;
 float	MILK_FADE			= 3;
-float	MILK_MAX			= 120;
-float	MILK_TRACES			= 70;		// splats thrown straight out of the burst ("cover everything with milk")
+float	MILK_MAX			= 80;
+float	MILK_TRACES			= 42;		// splats thrown straight out of the burst ("cover everything with milk")
 float	MILK_RANGE			= 1150;
-float	MILK_GLOBS			= 45;		// globs flung out that splat where they land
+float	MILK_GLOBS			= 24;		// globs flung out that splat where they land
 float	MILK_GRIP			= 0.08;		// slippery skating while still letting you steer out of trouble
 float	MILK_DRAG			= 0.1;		// fraction of your slide lost a second
 float	MILK_PASS			= 260;		// a kick bigger than this in one frame (a blast, a jump pad) is left alone

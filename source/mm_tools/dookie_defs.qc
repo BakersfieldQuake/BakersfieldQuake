@@ -49,12 +49,12 @@ float	DK_BOLT_VZ_BASE		= 1350;		// ~3x rocket-jump vertical launch straight into
 float	DK_BOLT_VZ_CHARGE	= 210;		// bonus vertical boost at 100% windup (1560 max, < sv_maxvelocity 2000)
 float	DK_BOLT_SELF_DMG	= 18;		// light RJ-sized self-damage (bm_selfdamage 0.6 -> ~11 HP)
 
-float	DK_SPLAT_LIFE		= 20;		// seconds wall/floor poop splats stay before fading
+float	DK_SPLAT_LIFE		= 16;		// seconds wall/floor poop splats stay before fading
 float	DK_SPLAT_FADE		= 3;		// fade-out duration
-float	DK_SPLAT_MAX		= 160;		// max active poop wall/floor splats in map (FIFO cap)
-float	DK_SPLAT_TRACES		= 76;		// radial rays splattering walls/floors/ceilings on blast
-float	DK_SPLAT_RANGE		= 1150;		// spray reach in units
-float	DK_SPLAT_GLOBS		= 44;		// physical flying poop globs arcing out to distant walls
+float	DK_SPLAT_MAX		= 96;		// max active poop wall/floor splats in map (FIFO cap)
+float	DK_SPLAT_TRACES		= 40;		// radial rays splattering walls/floors/ceilings on blast
+float	DK_SPLAT_RANGE		= 1050;		// spray reach in units
+float	DK_SPLAT_GLOBS		= 20;		// physical flying poop globs arcing out to distant walls
 
 float	dk_splat_count;
 entity	dk_splat_qhead;

@@ -484,13 +484,13 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 9)	w = 16;		// CCC Laser
 				else if (id == 6)	w = 7;		// Grenade Launcher
 				else if (id == 11)	w = 2;		// Mega Man Gun (rare)
-				else if (id == 62)	w = 4;		// Jar o' Green Guys (reduced)
-				else if (id == 63)	w = 5;		// Pickle Surprise
-				else if (id == 64)	w = 9;		// NetSend PC
-				else if (id == 65)	w = 13;		// Dookie Bazooka
-				else if (id == 66)	w = 12;		// Wheelman Cannon
-				else if (id == 4)	w = 12;		// Laptop Gun
-				else if (id == 69)	w = 14;		// M1 Garand
+				else if (id == 62)	w = 2;		// Jar o' Green Guys (reduced)
+				else if (id == 63)	w = 3;		// Pickle Surprise
+				else if (id == 64)	w = 5;		// NetSend PC
+				else if (id == 65)	w = 8;		// Dookie Bazooka
+				else if (id == 66)	w = 9;		// Wheelman Cannon
+				else if (id == 4)	w = 10;		// Laptop Gun
+				else if (id == 69)	w = 16;		// M1 Garand
 			}
 			else if (brange < 1050)
 			{
@@ -499,17 +499,17 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 67)	w = 22;		// M4A1
 				else if (id == 69)	w = 20;		// M1 Garand
 				else if (id == 9)	w = 17;		// CCC Laser
-				else if (id == 4)	w = 16;		// Laptop Gun
-				else if (id == 5)	w = 14;		// Milky Gun
+				else if (id == 4)	w = 12;		// Laptop Gun
+				else if (id == 5)	w = 11;		// Milky Gun
 				else if (id == 6)	w = 6;		// Grenade Launcher
 				else if (id == 2)	w = 11;		// Shotgun
-				else if (id == 11)	w = 2;		// Mega Man Gun (rare)
-				else if (id == 62)	w = 4;		// Jar o' Green Guys (reduced)
-				else if (id == 65)	w = 14;		// Dookie Bazooka
-				else if (id == 66)	w = 16;		// Wheelman Cannon
-				else if (id == 64)	w = 9;		// NetSend PC
-				else if (id == 63)	w = 4;		// Pickle Surprise
-				else if (id == 61)	w = 14;		// Rob Dob flying head
+				else if (id == 11)	w = 1;		// Mega Man Gun (rare)
+				else if (id == 62)	w = 2;		// Jar o' Green Guys (reduced)
+				else if (id == 65)	w = 8;		// Dookie Bazooka
+				else if (id == 66)	w = 11;		// Wheelman Cannon
+				else if (id == 64)	w = 5;		// NetSend PC
+				else if (id == 63)	w = 3;		// Pickle Surprise
+				else if (id == 61)	w = 10;		// Rob Dob flying head
 			}
 			else
 			{

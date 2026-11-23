@@ -88,7 +88,7 @@ void() MegaMan_ViewFrame;
 
 float	MM_DRIVE_STEP	= 19.25;	// units per 0.05s tick (385 u/s — faster than 320 u/s players!)
 float	MM_WHEEL_FRAME	= 4.7;		// units rolled per frame (wheel radius 12, 16 frames)
-float	MM_LIFETIME		= 30;		// seconds before it gives up and falls apart
+float	MM_LIFETIME		= 20;		// seconds before it gives up and falls apart
 float	MM_MAX_BOUNCES	= 8;		// head-on wall hits before it falls apart
 float	MM_LOOK			= 160;		// how far ahead it looks for walls
 float	MM_TURN_CRUISE	= 4;		// degrees per tick when nothing is in the way

@@ -19,7 +19,7 @@ of the head, a card that turns to face each client), ltg_aura.md3 (cables and wi
 
 float	LTG_TYPE_TIME	= 0.22;		// snappy initial typing windup before packet #1 is ready
 float	LTG_QUEUE_STEP	= 0.18;		// seconds per additional queued DDoS packet while holding fire
-float	LTG_MAX_QUEUE	= 5;		// maximum packets queued in one DDoS Flood salvo
+float	LTG_MAX_QUEUE	= 3;		// maximum packets queued in one DDoS Flood salvo
 float	LTG_SALVO_GAP	= 0.06;		// rapid-fire stagger between heads in a burst salvo
 float	LTG_REFIRE		= 0.22;		// cooldown after the last head in a salvo launches
 float	LTG_ANIM_FPS	= 42;		// the typing film: frames a second ...

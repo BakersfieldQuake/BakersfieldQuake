@@ -4,7 +4,7 @@
 /*
 greenjar_defs.qc — "Jar o' Green Guys" (Fun Gun Slot 2, FG_PONG = 2, impulse 62)
 A clear specimen glass jar filled with swirling neon-green mist and a spazzing live-action Green-Suit Guy.
-Hold Fire to cocktail-shake; release to whip-throw. Shatters into igniting neon-green smoke and 12 bigger
+Hold Fire to cocktail-shake; release to whip-throw. Shatters into igniting neon-green smoke and 6 bigger
 wheel-driving, helium-giggling Green-Suit Men that motor across the map on spinning pneumatic tires, swarm and
 drive 3 full circles around enemies BEFORE lunging in to attack (non-lethal 1%-2% chip hits, clamped >= 1 HP),
 and spin like punctured balloons into rainbow confetti when shot!
@@ -26,8 +26,8 @@ float	GJ_FOLLOW_TIME			= 0.22;		// splayed open-claw follow-through
 float	GJ_RAISE_TIME			= 0.25;		// belt-snatch fresh jar raise
 float	GJ_MAX_SHAKE			= 1.35;		// max hold-to-shake windup before auto-hurling
 
-float	GJ_MINI_COUNT			= 12;		// 12 unleashed wheel-driving Green Men per shattered jar
-float	GJ_MAX_MINIS			= 24;		// safety cap per player
+float	GJ_MINI_COUNT			= 6;		// 6 unleashed wheel-driving Green Men per shattered jar
+float	GJ_MAX_MINIS			= 12;		// safety cap per player
 float	GJ_ORBITS_BEFORE_ATK	= 600;		// ~1.67 comical orbit laps around victim BEFORE swarming in!
 
 .float	gj_shaking;			// player: timestamp when cocktail-shaker hold started (0 = not shaking)

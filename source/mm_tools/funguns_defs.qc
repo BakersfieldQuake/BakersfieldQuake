@@ -8,7 +8,7 @@ recharges by itself. Combat+ only (COMBATPLUS).
   1 Rob Dob        impulse 61  (or 17)  DJI Drone Remote (progs/v_robhead_drone.md3): press button and steer your flying head, then blow it up
                                like a rocket (floathead.qc). One head per FG_DOB_REGEN seconds. Replaced the Whack-a-Mole hammer.
   2 Jar o' Green Guys impulse 62 (key I) clear glass jar filled with swirling neon-green mist and a spazzing Green-Suit Guy;
-                               shatters into green smoke and 12 wheel-driving green men that circle enemies 3x before attacking (greenjar.qc)
+                               shatters into green smoke and 6 wheel-driving green men that circle enemies 3x before attacking (greenjar.qc)
   3 Pickle Surprise impulse 63 a pickle you throw: it sticks to whatever it hits and sits there about the size of a
                                grenade. When someone comes close it goes erect, twice the height of a man, waves
                                about like a roadside inflatable, shouts "pickle surprise" and blows up green,
@@ -122,10 +122,10 @@ float	BN_ZOOM_START	= 5;
 float	FG_DOB_MAX		= 1;	float	FG_DOB_REGEN	= 12;
 float	FG_PONG_MAX		= 2;	float	FG_PONG_REGEN	= 10;	// two Jars o' Green Guys; 10 s per jar recharge (greenjar.qc)
 float	FG_PICKLE_MAX	= 3;	float	FG_PICKLE_REGEN	= 4;
-float	FG_DOOKIE_MAX	= 5;	float	FG_DOOKIE_REGEN	= 3;	// five canisters (5 heads in the tank); 3 s reload (dookie.qc)
+float	FG_DOOKIE_MAX	= 3;	float	FG_DOOKIE_REGEN	= 6;	// three canisters; 6 s reload (dookie.qc)
 float	FG_WCANNON_MAX	= 1;	float	FG_WCANNON_REGEN	= 12;	// one Wheelman, 12 s to reload the next (wcannon_defs.qc)
 float	FG_M4_MAX	= 30;	float	FG_M4_REGEN	= 0.2;	// the M4's magazine; REGEN is only used with bm_reload 0 (m4_defs.qc)
-float	FG_KYLE_MAX	= 3;	float	FG_KYLE_REGEN	= 5;	// 3 Pocket Kyles; 5 s recharge per Kyle (kyle.qc)
+float	FG_KYLE_MAX	= 2;	float	FG_KYLE_REGEN	= 6;	// 2 Pocket Kyles; 6 s recharge per Kyle (kyle.qc)
 float	FG_TOMMY_MAX	= 3;	float	FG_TOMMY_REGEN	= 5;
 float	FG_GARAND_MAX	= 8;	float	FG_GARAND_REGEN	= 0.35;	// M1 Garand 8-round en-bloc clip (garand_defs.qc)
 float	FG_NETSEND_MAX		= 1;	float	FG_NETSEND_REGEN		= 5;	// one disk; 5 s to write the next LOL.BAT (netsend_defs.qc)
