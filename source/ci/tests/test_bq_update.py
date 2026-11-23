@@ -484,7 +484,9 @@ class UpdaterTest(unittest.TestCase):
     def test_lock_held_waits_and_blocks_launch_with_exit_4(self):
         self.assertEqual(self.run_updater("--launch"), 0)
         lock = self.root / ".bq" / "update.lock"
-        lock.write_text("99999\n", encoding="ascii")
+        # A lock is only "held" while its updater process is alive. The updater runs inside this test process,
+        # so this process's own id stands in for a live competing updater.
+        lock.write_text("%d\n" % os.getpid(), encoding="ascii")
 
         orig_wait, orig_poll = bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS
         bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = 0.2, 0.05
@@ -505,6 +507,23 @@ class UpdaterTest(unittest.TestCase):
             t.start()
             self.assertEqual(self.run_updater("--launch"), 0)
             t.join(timeout=2)
+            self.assertFalse(lock.exists())
+        finally:
+            bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = orig_wait, orig_poll
+            lock.unlink(missing_ok=True)
+
+    def test_lock_left_by_dead_updater_is_removed_and_launch_continues(self):
+        self.assertEqual(self.run_updater("--launch"), 0)
+        lock = self.root / ".bq" / "update.lock"
+        # Start and finish a child process: its id is now guaranteed to belong to no running process.
+        child = subprocess.Popen([sys.executable, "-c", "pass"])
+        child.wait()
+        lock.write_text("%d\n" % child.pid, encoding="ascii")
+
+        orig_wait, orig_poll = bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS
+        bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = 0.2, 0.05
+        try:
+            self.assertEqual(self.run_updater("--launch"), 0)
             self.assertFalse(lock.exists())
         finally:
             bq.LOCK_WAIT_SECS, bq.LOCK_POLL_SECS = orig_wait, orig_poll
