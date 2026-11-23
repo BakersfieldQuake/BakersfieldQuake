@@ -307,12 +307,17 @@ float	ltg_vid_precached;
 float	bm_dm_gun_seed;
 float	skypad_precached;
 float	skypad_present;
+entity	skypad_head;
+.entity	skypad_next;
 .float	skypad_cool_t;
+.float	skypad_steer_t;
+.float	skypad_fx_t;
 .float	skypad_safe_t;
 .float	skypad_vel_sent;
 void() SkyPad_Precache;
 void() SkyPad_LandWave;
 void() SkyPad_Report;
+void() SkyPad_Frame;
 void() info_skypad;
 
 // ---------------------------------------------------------------- downtown bots & full-arsenal AI (bm_bots.qc)

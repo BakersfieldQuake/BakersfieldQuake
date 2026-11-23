@@ -215,6 +215,14 @@ void() homing_spikes_think =
 	{
 		remove(self);
 	}
+	if ((time < self.skypad_steer_t))
+	{
+		self.ltime = time;
+		self.angles = vectoangles(self.velocity);
+		self.think = homing_spikes_think;
+		self.nextthink = (time + 0.2);
+		return;
+	}
 	self.velocity = normalize(self.velocity);
 	newdirection = (self.enemy.origin + '0 0 12') - self.origin;
 	newdirection = normalize(newdirection);

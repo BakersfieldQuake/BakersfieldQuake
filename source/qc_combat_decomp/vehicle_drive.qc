@@ -301,7 +301,7 @@ float(vector bmin, vector bmax, entity pad) Veh_OverlapPad =
 float(entity v, entity driver) Veh_CheckPads =
 {
 	local entity e;
-	local vector bmin, bmax, vel;
+	local vector bmin, bmax, vel, hvel;
 	local float c, s, hl, hw, hx, hy, ht, spd, maxv;
 
 	if (time < v.veh_pad_cool)
@@ -342,8 +342,14 @@ float(entity v, entity driver) Veh_CheckPads =
 			v.veh_air = TRUE;
 			v.veh_vz = vel_z;
 			v.velocity = vel;
+			Veh_ResetPadStunt (v);
+			hvel = vel;
+			hvel_z = 0;
+			if (vlen (hvel) > 120)
+				v.angles_y = vectoyaw (hvel);
+			v.veh_yawrate = 0;
+			dprint (strcat ("veh skypad: kind=", ftos (v.veh_kind), " pad_spin=", ftos (v.veh_pad_spin), " yaw=", ftos (v.angles_y), " vel=", vtos (v.velocity), "\n"));
 			setorigin (v, v.origin + '0 0 12');
-			Veh_StartPadStunt (v);
 			sound7 (v, CHAN_AUTO, "skypad/launch.wav", 0.90, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
 			pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 12', '0 0 0', 1);
 			if (e.message != "" && driver != world && driver.ishuman == 1)
@@ -387,9 +393,13 @@ float(entity v, entity driver) Veh_CheckPads =
 			{
 				v.veh_air = TRUE;
 				v.veh_vz = vel_z;
+				Veh_ResetPadStunt (v);
+				hvel = vel;
+				hvel_z = 0;
+				if (vlen (hvel) > 200)
+					v.angles_y = vectoyaw (hvel);
+				v.veh_yawrate = 0;
 				setorigin (v, v.origin + '0 0 12');
-				if (vel_z >= 140)
-					Veh_StartPadStunt (v);
 			}
 			if (!(e.spawnflags & NO_SOUND))
 				sound7 (v, CHAN_AUTO, "ambience/windfly.wav", 0.80, ATTN_NORM, SNDSPD * (0.95 + random () * 0.12));
@@ -1751,8 +1761,18 @@ void(entity v, float dt) Veh_CoastStep =
 		else
 			z = vd_gh;
 	}
-	if (v.veh_air && v.veh_pad_spin)
-		Veh_StepPadSpin (v, dt, 0, 0);
+	if (v.veh_air)
+	{
+		if (v.veh_pad_spin)
+			Veh_StepPadSpin (v, dt, 0, 0);
+		else
+		{
+			local float coast_pitch;
+			coast_pitch = bound (-22, v.veh_vz * 0.03, 22);
+			v.angles_x = v.angles_x + Veh_AngDelta (coast_pitch, v.angles_x) * min (1, dt * 4);
+			v.angles_z = v.angles_z + Veh_AngDelta (0, v.angles_z) * min (1, dt * 3);
+		}
+	}
 	v.angles_y = yaw1;
 	org1_z = z;
 	if (v.veh_air)
@@ -2559,8 +2579,8 @@ float() Veh_DriveFrame =
 		else
 		{
 			pitch_tgt = bound (-22, v.veh_vz * 0.03, 22);
-			v.angles_x = v.angles_x + (pitch_tgt - v.angles_x) * min (1, dt * 4);
-			v.angles_z = v.angles_z + (0 - v.angles_z) * min (1, dt * 3);
+			v.angles_x = v.angles_x + Veh_AngDelta (pitch_tgt, v.angles_x) * min (1, dt * 4);
+			v.angles_z = v.angles_z + Veh_AngDelta (0, v.angles_z) * min (1, dt * 3);
 		}
 	}
 	else if (vd_found)

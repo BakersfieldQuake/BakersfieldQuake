@@ -1114,17 +1114,20 @@ void() KY_ProjThink =
 				self.nextthink = time + 0.03;
 				return;
 			}
-			// Dynamic Bird-Counter Speed: ONLY a little bit faster than the bird (+85 u/s closing speed!)
-			// Slow, tense, hilarious torpedo chase vs diving/cruising birds; full-carve fleeing birds can juke!
-			spd = vlen (targ.velocity) + 85;
-			if (is_bird)
-				spd = bound (410, spd, 920);
-			else
-				spd = bound (320, spd, 620);
-			desired = self.velocity * 0.72 + normalize (aim) * spd * 0.28;
-			if (vlen (desired) < 10)
-				desired = normalize (aim);
-			self.velocity = normalize (desired) * spd;
+			if (time >= self.skypad_steer_t)
+			{
+				// Dynamic Bird-Counter Speed: ONLY a little bit faster than the bird (+85 u/s closing speed!)
+				// Slow, tense, hilarious torpedo chase vs diving/cruising birds; full-carve fleeing birds can juke!
+				spd = vlen (targ.velocity) + 85;
+				if (is_bird)
+					spd = bound (410, spd, 920);
+				else
+					spd = bound (320, spd, 620);
+				desired = self.velocity * 0.72 + normalize (aim) * spd * 0.28;
+				if (vlen (desired) < 10)
+					desired = normalize (aim);
+				self.velocity = normalize (desired) * spd;
+			}
 
 			// Fly nose-first with giant 3D chrome scissors ALWAYS straight out in front (NO spinning!), chopping vigorously!
 			desired = vectoangles (self.velocity);
@@ -1207,7 +1210,7 @@ void() KY_ProjThink =
 					return;
 				}
 				// Anti-air intercept! If lobbed up near a flying Winged John Bird or enemy, transform into Superman Torpedo & hunt it!
-				if (self.ky_sky_throw && dist <= 460)
+				if (time >= self.skypad_steer_t && self.ky_sky_throw && dist <= 460)
 				{
 					setmodel (self, "progs/kyle_torpedo.md3");
 					setsize (self, '-16 -16 -14', '16 16 14');

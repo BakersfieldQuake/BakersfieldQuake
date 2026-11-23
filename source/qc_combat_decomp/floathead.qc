@@ -1117,6 +1117,14 @@ float() FD_Frame =
 	{
 		// ordered to go off: it hangs still until its think fires, a few frames
 	}
+	else if (time < h.skypad_steer_t)
+	{
+		h.fd_charging = FALSE;
+		if (!FD_Move (h, h.velocity, frametime))
+			FD_Touched (self, h);
+		if (vlen (h.velocity) > 10)
+			h.angles = vectoangles (h.velocity);
+	}
 	else if (h.fd_charging)
 	{
 		if (self.button0 && !self.fd_btn && time > h.fd_dashed + FD_DASH_BOOM)

@@ -233,6 +233,19 @@ void() LtGun_Think =
 		self.nextthink = time + 0.1;
 		return;
 	}
+	if (time < self.skypad_steer_t)
+	{
+		if (vlen (self.velocity) > 10)
+		{
+			self.angles = vectoangles (self.velocity);
+			self.ltg_head = vectoyaw (self.velocity);
+		}
+		if (self.ltg_aura)
+			setorigin (self.ltg_aura, self.origin);
+		self.nextthink = time + 0.03;
+		return;
+	}
+
 	// lock-on: tracks a visible enemy until he stays out of sight for LTG_LOSE seconds
 	e = self.ltg_lock;
 	if (e && (e.health <= 0 || e.classname != "player" || vlen (e.origin - self.origin) > LTG_SEEK * 2))

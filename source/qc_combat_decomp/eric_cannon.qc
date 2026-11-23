@@ -1210,83 +1210,92 @@ float() EricCannon_Frame =
 		fwd_in = bound (-1, self.movement_x / 160, 1);
 		str_in = bound (-1, self.movement_y / 160, 1);
 
-		// Guided yaw steering toward player's mouse look (`~82 deg/s`) + A/D bank/strafe trim (`~42 deg/s`)
-		yaw_err = EC_AngDelta (self.v_angle_y, tube.ec_fly_yaw);
-		max_turn = 82.0 * dt;
-		turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 3.8, 1), max_turn) + (0 - str_in) * 42.0 * dt;
-		tube.ec_fly_yaw = EC_NormAng (tube.ec_fly_yaw + turn_step);
-
-		makevectors ('0 1 0' * tube.ec_fly_yaw);
-		fwd_v = v_forward;
-		rgt_v = v_right;
-
-		// Horizontal & vertical ballistic ICBM arc:
-		//   - Climb / rocket burn (`velocity_z > 0 && el < 2.65`): fast steep climb, smoothly arcing over apex
-		//   - Terminal dive (`velocity_z <= 0 || el >= 2.65`): gravity accelerates nose-down (`-1320 u/s` neutral,
-		//     `-1650 u/s` power-dive on W, `-740 u/s` extended-range glide on S — still descending, never floating!)
-		if (tube.velocity_z > 0 && el < 2.65)
+		if (time < tube.skypad_steer_t)
 		{
-			if (fwd_in > 0.2)
-				hspd_t = 760;
-			else if (fwd_in < -0.2)
-				hspd_t = 940;
-			else
-				hspd_t = 820;
-
-			if (el < 0.85)
-				grav = 240;
-			else if (fwd_in < -0.2)
-				grav = 580;
-			else
-				grav = 760;
-
-			tube.velocity_z = tube.velocity_z - grav * dt;
-			if (fwd_in > 0.35 && el > 0.55)
-				tube.velocity_z = tube.velocity_z - 720 * dt;		// W noses over early into steep dive
+			// Flung off-course by a SkyPad: fly ballistic for ~0.75s before steering resumes
+			tube.velocity_z = tube.velocity_z - 800 * dt;
+			turn_step = 0;
 		}
 		else
 		{
-			if (!base.ec_screamed && el > 1.0)
-			{
-				base.ec_screamed = TRUE;
-				sound (tube, CHAN_VOICE, "eric_cannon/doppler_scream.wav", 0.68, 0.45);
-			}
-			if (fwd_in > 0.2 || self.v_angle_x > 52)
-			{
-				grav = 1650;
-				term_vz = -1650;
-				hspd_t = 740;
-			}
-			else if (fwd_in < -0.2)
-			{
-				grav = 560;
-				term_vz = -740;
-				hspd_t = 1120;
-			}
-			else
-			{
-				grav = 980;
-				term_vz = -1320;
-				hspd_t = 840;
-			}
+			// Guided yaw steering toward player's mouse look (`~82 deg/s`) + A/D bank/strafe trim (`~42 deg/s`)
+			yaw_err = EC_AngDelta (self.v_angle_y, tube.ec_fly_yaw);
+			max_turn = 82.0 * dt;
+			turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 3.8, 1), max_turn) + (0 - str_in) * 42.0 * dt;
+			tube.ec_fly_yaw = EC_NormAng (tube.ec_fly_yaw + turn_step);
 
-			if (tube.velocity_z > term_vz)
+			makevectors ('0 1 0' * tube.ec_fly_yaw);
+			fwd_v = v_forward;
+			rgt_v = v_right;
+
+			// Horizontal & vertical ballistic ICBM arc:
+			//   - Climb / rocket burn (`velocity_z > 0 && el < 2.65`): fast steep climb, smoothly arcing over apex
+			//   - Terminal dive (`velocity_z <= 0 || el >= 2.65`): gravity accelerates nose-down (`-1320 u/s` neutral,
+			//     `-1650 u/s` power-dive on W, `-740 u/s` extended-range glide on S — still descending, never floating!)
+			if (tube.velocity_z > 0 && el < 2.65)
 			{
+				if (fwd_in > 0.2)
+					hspd_t = 760;
+				else if (fwd_in < -0.2)
+					hspd_t = 940;
+				else
+					hspd_t = 820;
+
+				if (el < 0.85)
+					grav = 240;
+				else if (fwd_in < -0.2)
+					grav = 580;
+				else
+					grav = 760;
+
 				tube.velocity_z = tube.velocity_z - grav * dt;
-				if (tube.velocity_z < term_vz)
-					tube.velocity_z = term_vz;
+				if (fwd_in > 0.35 && el > 0.55)
+					tube.velocity_z = tube.velocity_z - 720 * dt;		// W noses over early into steep dive
 			}
 			else
-				tube.velocity_z = tube.velocity_z + (term_vz - tube.velocity_z) * bound (0, dt * 2.4, 1);
-		}
+			{
+				if (!base.ec_screamed && el > 1.0)
+				{
+					base.ec_screamed = TRUE;
+					sound (tube, CHAN_VOICE, "eric_cannon/doppler_scream.wav", 0.68, 0.45);
+				}
+				if (fwd_in > 0.2 || self.v_angle_x > 52)
+				{
+					grav = 1650;
+					term_vz = -1650;
+					hspd_t = 740;
+				}
+				else if (fwd_in < -0.2)
+				{
+					grav = 560;
+					term_vz = -740;
+					hspd_t = 1120;
+				}
+				else
+				{
+					grav = 980;
+					term_vz = -1320;
+					hspd_t = 840;
+				}
 
-		vel_xy = tube.velocity;
-		vel_xy_z = 0;
-		cur_h = vlen (vel_xy);
-		cur_h = cur_h + (hspd_t - cur_h) * bound (0, dt * 3.0, 1);
-		vel_xy = fwd_v * cur_h + rgt_v * (str_in * 180);
-		tube.velocity_x = vel_xy_x;
-		tube.velocity_y = vel_xy_y;
+				if (tube.velocity_z > term_vz)
+				{
+					tube.velocity_z = tube.velocity_z - grav * dt;
+					if (tube.velocity_z < term_vz)
+						tube.velocity_z = term_vz;
+				}
+				else
+					tube.velocity_z = tube.velocity_z + (term_vz - tube.velocity_z) * bound (0, dt * 2.4, 1);
+			}
+
+			vel_xy = tube.velocity;
+			vel_xy_z = 0;
+			cur_h = vlen (vel_xy);
+			cur_h = cur_h + (hspd_t - cur_h) * bound (0, dt * 3.0, 1);
+			vel_xy = fwd_v * cur_h + rgt_v * (str_in * 180);
+			tube.velocity_x = vel_xy_x;
+			tube.velocity_y = vel_xy_y;
+		}
 
 		// Step airborne collision & check impact
 		if (EC_StepFlight (tube, self, dt, el) || el > 24.0)

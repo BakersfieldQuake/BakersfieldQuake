@@ -738,6 +738,13 @@ void() Milky_Think =
 		e = e.bm_player_next;
 	}
 
+	if (time < self.skypad_steer_t)
+	{
+		if (vlen (self.velocity) > 10)
+			self.milky_dir = normalize (self.velocity);
+		return;
+	}
+
 	if (time > self.milky_scan)
 	{
 		self.milky_scan = time + 0.3;

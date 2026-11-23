@@ -166,7 +166,10 @@ void() ghost_follower_think =
 			}
 		}
 	}
-	self.velocity = (dir * 200);
+	if (time >= self.skypad_steer_t)
+		self.velocity = (dir * 200);
+	else
+		self.angles = vectoangles(self.velocity);
 	self.nextthink = (time + 0.25);
 	self.think = ghost_follower_think;
 };

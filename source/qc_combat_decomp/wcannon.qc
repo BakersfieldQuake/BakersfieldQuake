@@ -765,12 +765,15 @@ void() WC_Think =
 	// is there a floor under him that he is not moving away from?
 	grounded = FALSE;
 	n = '0 0 1';		// only read when grounded; set so it is never uninitialised
-	traceline (self.origin + '0 0 6', self.origin - '0 0 6', TRUE, self);
-	if (trace_fraction < 1 && !trace_startsolid && trace_plane_normal_z >= 0.7)
+	if (time >= self.skypad_steer_t)
 	{
-		n = trace_plane_normal;
-		if (self.velocity * n < 40)
-			grounded = TRUE;
+		traceline (self.origin + '0 0 6', self.origin - '0 0 6', TRUE, self);
+		if (trace_fraction < 1 && !trace_startsolid && trace_plane_normal_z >= 0.7)
+		{
+			n = trace_plane_normal;
+			if (self.velocity * n < 40)
+				grounded = TRUE;
+		}
 	}
 	if (grounded)
 	{

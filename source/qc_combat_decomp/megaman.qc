@@ -1164,7 +1164,7 @@ void() MegaMan_BlueShellThink =
 		self.angles_y = vectoyaw (diff);
 		self.angles_x = 16;
 		self.angles_z = sw * 14;
-		if (d > 1)
+		if (d > 1 && time >= self.skypad_steer_t)
 			self.velocity = normalize (diff) * 960;
 		if (d < 105 || time >= self.ud_shell_t)
 		{

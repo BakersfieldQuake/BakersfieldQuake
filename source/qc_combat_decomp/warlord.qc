@@ -1898,10 +1898,14 @@ void() hknight2_homing_think =
 		self.frame = 0;
 	}
 	self.touch = hknight2_homing_touch;
-	if ((self.has_fired < 30))
+	if (((self.has_fired < 30) && (time >= self.skypad_steer_t)))
 	{
 		self.velocity = (self.velocity * 0.75);
 		self.velocity = (self.velocity + (dir * 100));
+	}
+	else if ((time < self.skypad_steer_t))
+	{
+		self.angles = vectoangles(self.velocity);
 	}
 	self.nextthink = (time + 0.1);
 	self.think = hknight2_homing_think;

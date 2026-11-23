@@ -93,15 +93,18 @@ void() carniv_projectile_rock_homing =
 	{
 		self.frame = 0;
 	}
-	vtemp = self.enemy.origin + '0 0 10';
-	dir = normalize((vtemp - self.origin));
-	if ((skill == 3))
+	if ((time >= self.skypad_steer_t))
 	{
-		self.velocity = (dir * 350);
-	}
-	else
-	{
-		self.velocity = (dir * 300);
+		vtemp = self.enemy.origin + '0 0 10';
+		dir = normalize((vtemp - self.origin));
+		if ((skill == 3))
+		{
+			self.velocity = (dir * 350);
+		}
+		else
+		{
+			self.velocity = (dir * 300);
+		}
 	}
 	self.nextthink = (time + 0.06);
 	self.think = carniv_projectile_rock_homing;

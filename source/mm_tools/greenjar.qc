@@ -445,6 +445,13 @@ void() GJ_MiniThink =
 		self.gj_next_voice = time + 0.75 + random () * 0.95;
 	}
 
+	if (time < self.skypad_steer_t)
+	{
+		self.think = GJ_MiniThink;
+		self.nextthink = time + 0.05;
+		return;
+	}
+
 	// Refresh target if none or dead
 	if (!GJ_IsValidTarget (self, self.enemy))
 	{

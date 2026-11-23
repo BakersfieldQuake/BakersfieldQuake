@@ -1730,6 +1730,12 @@ void() ShalHome =
 		return;
 	}
 	self.old_origin = self.origin;
+	if (time < self.skypad_steer_t)
+	{
+		self.nextthink = (time + 0.2);
+		self.think = ShalHome;
+		return;
+	}
 	dir = normalize((vtemp - self.origin));
 	if ((skill == 3))
 	{

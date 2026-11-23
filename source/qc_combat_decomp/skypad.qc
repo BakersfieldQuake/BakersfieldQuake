@@ -184,6 +184,259 @@ void(entity pad, entity rr) SkyPad_LaunchRocketRider =
 		sprint (pilot, strcat ("Sky Pad -> ", pad.message, "\n"));
 };
 
+float(entity e) SkyPad_IsProjectile =
+{
+	local string c;
+
+	if (!e || e == world || bm_wasfreed (e))
+		return FALSE;
+	c = e.classname;
+	if (c == "ec_tube")
+		return (e.ec_base != world && !bm_wasfreed (e.ec_base) && e.ec_base.ec_state == EC_STATE_FLYING);
+	if (e.solid == SOLID_NOT)
+		return FALSE;
+	if (c == "fh_dead" || c == "mmdead")
+		return FALSE;
+
+	// Player / vehicle weapon projectiles
+	if (c == "missile" || c == "grenade" || c == "spike" || c == "hiplaser" || c == "playershot" || c == "mm_tank_bar")
+		return TRUE;
+	if (c == "proximity_grenade")
+		return (e.movetype != MOVETYPE_NONE && e.state == 0);
+	if (c == "jb_bottle_proj" || c == "jb_aerosol_bomb" || c == "jb_whip_proj" || c == "jb_spray_glob")
+		return TRUE;
+
+	// Fun Guns & custom-steered projectiles / drones
+	if (c == "megaman" || c == "wc_shot" || c == "netsend_disk" || c == "ltg_head")
+		return TRUE;
+	if (c == "kyle_proj")
+		return (!e.ky_done && e.ky_mode != KY_MODE_DYING && e.ky_mode != KY_MODE_LATCHED);
+	if (c == "milky")
+		return (e.milky_hp > 0 && e.milky_emerged);
+	if (c == "robdob")
+		return (!e.fd_boom && !e.fd_blowing && e.health > 0);
+	if (c == "dookie_shot")
+		return (!e.dk_done);
+	if (c == "dookie_glob" || c == "bigbanana" || c == "minibanana" || c == "greenjar_proj")
+		return TRUE;
+	if (c == "pickle")
+		return (e.movetype != MOVETYPE_NONE);
+	if (c == "greenguy_mini")
+		return (e.gj_state != 4 && e.gj_state != 5 && e.health > 0);
+
+	// Monster projectiles
+	if (c == "wizspike" || c == "knightspike" || c == "knight2spike" || c == "gruntspike"
+		|| c == "afritspike" || c == "furyspike" || c == "jimrocket" || c == "carniv_projectile"
+		|| c == "slimeball" || c == "ShalrathMissile" || c == "Reiver_fireball"
+		|| c == "ghost_follower" || c == "shamblerbeam" || c == "MiniGrenade"
+		|| c == "hknight2_homing" || c == "yakman_projectile" || c == "skull"
+		|| c == "skull_fly" || c == "face")
+		return TRUE;
+
+	return FALSE;
+};
+
+void(entity pad, entity e) SkyPad_LaunchProjectile =
+{
+	local vector v, hvel, ang;
+	local string c;
+
+	if (time < e.skypad_cool_t)
+		return;
+
+	SkyPad_RaiseMaxVel ();
+	e.skypad_cool_t = time + 0.65;
+	e.skypad_steer_t = time + 0.75;
+
+	c = e.classname;
+	if (c == "megaman" && e.mm_state != 0)
+	{
+		e.mm_state = 0;
+		e.movetype = MOVETYPE_TOSS;
+	}
+	else if (c == "kyle_proj" && e.movetype == MOVETYPE_STEP)
+	{
+		e.movetype = MOVETYPE_TOSS;
+		e.gravity = 0.48;
+		e.ky_mode = KY_MODE_RUNNER;
+	}
+
+	if ((e.flags & FL_ONGROUND) || e.movetype == MOVETYPE_STEP || c == "wc_shot" || c == "greenguy_mini")
+	{
+		e.flags = e.flags - (e.flags & FL_ONGROUND);
+		setorigin (e, e.origin + '0 0 4');
+	}
+
+	v = SkyPad_CalcVel (e.origin, pad.pos1, pad.height);
+	e.velocity = v;
+	hvel = v;
+	hvel_z = 0;
+	dprint (strcat ("skypad proj: ", c, " vel=", vtos (v), "\n"));
+
+	if (c == "wc_shot")
+	{
+		if (vlen (hvel) > 20)
+		{
+			e.wc_dir = normalize (hvel);
+			e.angles_y = vectoyaw (hvel);
+		}
+	}
+	else if (c == "ec_tube")
+	{
+		if (vlen (hvel) > 20)
+			e.ec_fly_yaw = vectoyaw (hvel);
+		ang = vectoangles (v);
+		if (ang_x > 180)
+			ang_x = ang_x - 360;
+		e.angles_x = bound (-82, ang_x, 76);
+		e.angles_y = e.ec_fly_yaw;
+	}
+	else if (c == "milky")
+	{
+		e.milky_dir = normalize (v);
+	}
+	else if (c == "robdob")
+	{
+		e.movedir = normalize (v);
+		e.angles = vectoangles (v);
+	}
+	else if (c == "megaman" || c == "dookie_shot" || c == "greenguy_mini" || (c == "kyle_proj" && e.ky_mode != KY_MODE_HOMING))
+	{
+		if (vlen (hvel) > 20)
+			e.angles_y = vectoyaw (hvel);
+	}
+	else if ((c == "kyle_proj" && e.ky_mode == KY_MODE_HOMING) || c == "mm_tank_bar")
+	{
+		ang = vectoangles (v);
+		if (ang_x > 180)
+			ang_x = ang_x - 360;
+		e.angles_x = bound (-45, ang_x, 45);
+		e.angles_y = ang_y;
+		e.angles_z = 0;
+	}
+	else if (c == "ltg_head")
+	{
+		e.angles = vectoangles (v);
+		e.ltg_head = vectoyaw (v);
+	}
+	else if (e.avelocity == '0 0 0')
+	{
+		e.angles = vectoangles (v);
+	}
+
+	if (time >= pad.skypad_fx_t)
+	{
+		pad.skypad_fx_t = time + 0.15;
+		sound7 (pad, CHAN_AUTO, "skypad/launch.wav", 0.68, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
+		pointparticles (particleeffectnum ("TE_TELEPORT"), pad.origin + '0 0 12', '0 0 0', 1);
+	}
+};
+
+float(entity pad, vector pt) SkyPad_PointInPad =
+{
+	if (pt_x < pad.absmin_x || pt_x > pad.absmax_x)
+		return FALSE;
+	if (pt_y < pad.absmin_y || pt_y > pad.absmax_y)
+		return FALSE;
+	if (pt_z < pad.absmin_z || pt_z > pad.absmax_z)
+		return FALSE;
+	return TRUE;
+};
+
+float(entity pad, entity e) SkyPad_OverlapEnt =
+{
+	if (e.absmin_x > pad.absmax_x || e.absmax_x < pad.absmin_x)
+		return FALSE;
+	if (e.absmin_y > pad.absmax_y || e.absmax_y < pad.absmin_y)
+		return FALSE;
+	if (e.absmin_z > pad.absmax_z || e.absmax_z < pad.absmin_z)
+		return FALSE;
+	return TRUE;
+};
+
+void(entity pad, entity e, vector prev_org) SkyPad_TrySweep =
+{
+	local vector mid;
+
+	if (time < e.skypad_cool_t || !SkyPad_IsProjectile (e))
+		return;
+	mid = (prev_org + e.origin) * 0.5;
+	if (SkyPad_OverlapEnt (pad, e) || SkyPad_PointInPad (pad, e.origin) || SkyPad_PointInPad (pad, mid))
+		SkyPad_LaunchProjectile (pad, e);
+};
+
+void(string cls) SkyPad_CheckClass =
+{
+	local entity e, pad;
+
+	e = find (world, classname, cls);
+	while (e != world)
+	{
+		if (time >= e.skypad_cool_t && SkyPad_IsProjectile (e))
+		{
+			pad = skypad_head;
+			while (pad != world)
+			{
+				if (SkyPad_OverlapEnt (pad, e))
+				{
+					SkyPad_LaunchProjectile (pad, e);
+					break;
+				}
+				pad = pad.skypad_next;
+			}
+		}
+		e = find (e, classname, cls);
+	}
+};
+
+void() SkyPad_Frame =
+{
+	local entity e, pad;
+
+	if (!skypad_present || skypad_head == world)
+		return;
+
+	// Catch fast projectiles before they can tunnel past SV_TouchLinks, plus MOVETYPE_NONE/NOCLIP customs
+	e = pc_head;
+	while (e != world)
+	{
+		if (time >= e.skypad_cool_t && SkyPad_IsProjectile (e))
+		{
+			pad = skypad_head;
+			while (pad != world)
+			{
+				SkyPad_TrySweep (pad, e, e.pc_prev_org);
+				if (time < e.skypad_cool_t)
+					break;
+				pad = pad.skypad_next;
+			}
+		}
+		e = e.pc_next;
+	}
+
+	e = pc_spike_head;
+	while (e != world)
+	{
+		if (!bm_wasfreed (e) && e.solid != SOLID_NOT && time >= e.skypad_cool_t)
+		{
+			pad = skypad_head;
+			while (pad != world)
+			{
+				SkyPad_TrySweep (pad, e, e.pc_prev_org);
+				if (time < e.skypad_cool_t)
+					break;
+				pad = pad.skypad_next;
+			}
+		}
+		e = e.pc_spike_next;
+	}
+
+	// Non-pc_head custom projectiles using MOVETYPE_NONE / MOVETYPE_NOCLIP
+	SkyPad_CheckClass ("ec_tube");
+	SkyPad_CheckClass ("ghost_follower");
+	SkyPad_CheckClass ("face");
+};
+
 void() SkyPad_Touch =
 {
 	local vector v;
@@ -206,6 +459,11 @@ void() SkyPad_Touch =
 	if (other.classname == "player" && RocketRider_Flying (other))
 	{
 		SkyPad_LaunchRocketRider (self, other.rr_vehicle);
+		return;
+	}
+	if (SkyPad_IsProjectile (other))
+	{
+		SkyPad_LaunchProjectile (self, other);
 		return;
 	}
 
@@ -344,6 +602,8 @@ void() info_skypad =
 	setorigin (self, self.origin);
 	setsize (self, '-40 -40 -26', '40 40 36');
 	self.touch = SkyPad_Touch;
+	self.skypad_next = skypad_head;
+	skypad_head = self;
 
 	v_nom = SkyPad_CalcVel (self.origin, self.pos1, self.height);
 	SkyPad_SpawnVisuals (self.origin, v_nom);
