@@ -866,6 +866,8 @@ void(entity v, entity hit, float imp) Veh_RamHit =
 	}
 	else if (is_veh && veh_fx_sparks > 0)
 		pointparticles (veh_fx_sparks, vd_hitpos, '0 0 0', 1);
+	if (v.veh_driver != world && imp > 140)
+		Veh_AddShake (v.veh_driver, bound (1.5, imp / 190, 6.0), bound (0.14, imp / 1800, 0.30));
 	veh_runover = TRUE;
 	T_Damage (hit, v, driver, dmg);
 	veh_runover = FALSE;
@@ -912,22 +914,32 @@ void(entity v, float imp, vector at) Veh_Crash =
 		dprint ("\n");
 	}
 	if (veh_fx_sparks > 0)
+	{
 		pointparticles (veh_fx_sparks, at, '0 0 0', 1);
+		if (imp > 450)
+			pointparticles (veh_fx_sparks, at + '0 0 18', '0 0 0', 1);
+	}
+	if (imp > 450 && veh_fx_smoke > 0)
+		pointparticles (veh_fx_smoke, at + '0 0 14', '0 0 0', 1);
 	if (random () < 0.5)
-		sound7 (v, CHAN_BODY, "vehicles/clang1.wav", bound (0.5, imp / 500, 1), ATTN_NORM, 78 + random () * 16);
+		sound7 (v, CHAN_BODY, "vehicles/clang1.wav", bound (0.55, imp / 420, 1), ATTN_NORM, 78 + random () * 16);
 	else
-		sound7 (v, CHAN_BODY, "vehicles/clang2.wav", bound (0.5, imp / 500, 1), ATTN_NORM, 78 + random () * 16);
+		sound7 (v, CHAN_BODY, "vehicles/clang2.wav", bound (0.55, imp / 420, 1), ATTN_NORM, 78 + random () * 16);
+	if (imp > 450)
+		sound7 (v, CHAN_AUTO, "vehicles/hit_metal2.wav", bound (0.55, imp / 550, 1), ATTN_NORM, 74 + random () * 14);
 	driver = v.veh_driver;
+	if (driver != world)
+		Veh_AddShake (driver, bound (2.2, imp / 145, 9.5), bound (0.20, imp / 1200, 0.52));
 	if (v.veh_kind == VEH_VAN)
 	{
 		if (imp > 650 && driver != world)
-			Veh_JoltDriver (v, driver, (imp - 650) * 0.07);
+			Veh_JoltDriver (v, driver, min (45, (imp - 650) * 0.055));
 		dmg = (imp - 300) * 0.10;
 	}
 	else
 	{
 		if (imp > 420 && driver != world)
-			Veh_JoltDriver (v, driver, (imp - 420) * 0.12);
+			Veh_JoltDriver (v, driver, min (45, (imp - 420) * 0.09));
 		dmg = (imp - 210) * 0.16;
 	}
 	if (dmg > 0)
@@ -944,12 +956,26 @@ progs/veh_van_nodraw). Everyone else, and the driver in the chase view, get the 
 */
 float() Veh_VanCustomize =
 {
-	local float k;
+	local float k, cam_inside;
+	local vector rel;
+	local float lx, ly;
 
 	k = 0;
 	if (self.veh_state == VEH_STATE_FIRE)
 		k = 1;
-	if (self.veh_state != VEH_STATE_WRECK && other.veh_van == self && other.veh_camera == 0 && !self.veh_pad_spin)
+	cam_inside = FALSE;
+	if (other.veh_van == self && other.veh_camera == 0 && !self.veh_pad_spin)
+		cam_inside = TRUE;
+	else if (other.veh_van == self && self.veh_cament != world)
+	{
+		// If a tight wall crash forced the 3rd-person camera inside the white van shell, hide body_a so it never flashes white
+		rel = self.veh_cament.origin - self.origin;
+		lx = rel * Veh_Fwd (self.angles_y);
+		ly = rel * Veh_Lft (self.angles_y);
+		if (fabs (lx) < 120 && fabs (ly) < 52 && rel_z > -10 && rel_z < 102)
+			cam_inside = TRUE;
+	}
+	if (self.veh_state != VEH_STATE_WRECK && cam_inside)
 		k = k + 2;
 	self.skin = k;
 	return TRUE;			// FALSE would mean: do not send the van to this client
@@ -1078,6 +1104,7 @@ void(entity p, entity v, float dt) Veh_DriveCamera =
 	p.angles_x = pitch;
 	p.angles_y = yaw;
 	p.fixangle = TRUE;
+	Veh_ApplyCamShake (p, cam, v);
 };
 
 // ---------------------------------------------------------------- sound
@@ -1493,19 +1520,25 @@ void(entity v, vector pos, vector vel, float forced) Veh_Leave =
 	}
 };
 
-// the van is exploding (vehicles.qc): the driver goes out at the seat, with the van's speed, into the blast
+// the van is exploding (vehicles.qc): the driver is thrown clear into the air so he sees the fireball & shake
 void(entity v) Veh_DriverBail =
 {
-	local vector seat, vel;
+	local vector seat, vel, out_dir;
 
 	if (v.veh_driver == world)
 		return;
 	seat = v.origin + Veh_Fwd (v.angles_y) * 40 + Veh_Lft (v.angles_y) * 19.8;
 	seat_z = v.origin_z + 40;
 	if (Veh_ExitSpot (v, v.veh_driver))
-		seat = vd_exit;		// the seat is inside the wreck's solid box: a survivor (armor, pent) was stuck in it
-	vel = v.velocity * 0.6;
-	vel_z = 160;
+		seat = vd_exit;		// clear side/rear/roof exit spot outside the wreck
+	out_dir = seat - v.origin;
+	out_dir_z = 0;
+	if (vlen (out_dir) > 1)
+		out_dir = normalize (out_dir);
+	else
+		out_dir = Veh_Lft (v.angles_y);
+	vel = v.velocity * 0.35 + out_dir * 190;
+	vel_z = max (260, v.velocity_z * 0.25 + 260);
 	Veh_Leave (v, seat, vel, TRUE);
 };
 
@@ -2276,6 +2309,9 @@ float() Veh_DriveFrame =
 
 	if (Veh_CheckPads (v, self))
 	{
+		yaw0 = v.angles_y;
+		fwd = Veh_Fwd (yaw0);
+		lft = Veh_Lft (yaw0);
 		vel = v.velocity;
 		vel_z = 0;
 		vf = vel * fwd;
@@ -2468,6 +2504,21 @@ float() Veh_DriveFrame =
 					living = TRUE;
 				Veh_RamHit (v, vd_hitent, imp);
 			}
+			if (!living && (imp >= 1150 || (imp >= 520 && v.veh_state == VEH_STATE_FIRE)))
+			{
+				// Catastrophic high-speed wall crash fireball!
+				Veh_Crash (v, imp, vd_hitpos);
+				if (v.veh_state != VEH_STATE_WRECK)
+				{
+					local entity oldself;
+					v.veh_igniter = self;
+					oldself = self;
+					self = v;
+					Veh_ExplodeNow ();
+					self = oldself;
+				}
+				return TRUE;
+			}
 			if (!living && imp > 180)
 				Veh_Crash (v, imp, vd_hitpos);
 			if (self.veh_van != v)
@@ -2505,6 +2556,24 @@ float() Veh_DriveFrame =
 		}
 		else
 		{
+			local float jam_spd;
+			jam_spd = vlen (vel);
+			if (jam_spd > 280)
+			{
+				Veh_Crash (v, jam_spd * 0.85, v.origin + '0 0 28');
+				if (self.veh_van != v)
+					return TRUE;
+				if (jam_spd >= 1000 || (jam_spd >= 480 && v.veh_state == VEH_STATE_FIRE))
+				{
+					local entity oldself3;
+					v.veh_igniter = self;
+					oldself3 = self;
+					self = v;
+					Veh_ExplodeNow ();
+					self = oldself3;
+					return TRUE;
+				}
+			}
 			org1 = org0_x * '1 0 0' + org0_y * '0 1 0' + org1_z * '0 0 1';
 			yaw1 = yaw0;
 			vel = vel * 0.65;
@@ -2540,7 +2609,19 @@ float() Veh_DriveFrame =
 				v.veh_yawrate = 0;
 			}
 			if (imp > 580)
+			{
 				Veh_Crash (v, imp * 0.65, org1);		// only massive drops hurt
+				if (v.veh_state != VEH_STATE_WRECK && (imp > 1550 || (imp > 850 && v.veh_state == VEH_STATE_FIRE)))
+				{
+					local entity oldself2;
+					v.veh_igniter = self;
+					oldself2 = self;
+					self = v;
+					Veh_ExplodeNow ();
+					self = oldself2;
+					return TRUE;
+				}
+			}
 			else if (imp > 110)
 			{
 				sound7 (v, CHAN_BODY, "vehicles/tire_thud2.wav", 0.95, ATTN_NORM, 78 + random () * 14);

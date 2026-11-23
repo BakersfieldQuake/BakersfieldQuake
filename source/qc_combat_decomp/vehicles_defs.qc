@@ -54,7 +54,7 @@ var float	autocvar_veh_respawn	= 30;	// > 0: seconds after wreck settles before 
 var float	autocvar_veh_debug		= 0;	// 1: log the driven van's speed / heading / steering / revs 4x a second (needs developer 1)
 
 float	veh_inflicting;						// TRUE while an exploding vehicle deals T_RadiusDamage (for ClientObituary & chain stagger)
-float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_wreck, veh_fx_sparks, veh_fx_boost, veh_fx_drift, gk_fx_smoke;
+float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_explode_sec, veh_fx_wreck, veh_fx_sparks, veh_fx_boost, veh_fx_drift, gk_fx_smoke;
 
 .float	veh_kind;			// 1..7 on shootable vehicles, 0 on everything else
 .float	veh_state;			// VEH_STATE_IDLE, VEH_STATE_FIRE, VEH_STATE_WRECK
@@ -159,6 +159,9 @@ float	gokart_spawn_cycle;	// cycles 1..6 for misc_gokart / impulse 136/138
 .float	veh_cam_look;		// smoothed steering lead of the cockpit camera
 .float	veh_prompt_scan_t;	// throttle Veh_NearPrompt spatial scan to 10 Hz
 .float	veh_hint_shown;		// controls hint shown once per player
+.float	veh_shake_amp;		// driver camera shake peak amplitude (degrees)
+.float	veh_shake_t0;		// driver camera shake start time
+.float	veh_shake_end;		// driver camera shake end time
 // ... on anything a van can hit:
 float	veh_boom_t, veh_boom_n;	// recent vehicle explosions (Veh_ExplodeNow): a chain reaction scatters less shrapnel per car
 .entity	veh_blast_infl;		// vehicle: the explosion (inflictor) that last hit it, and when: one blast hits it once,
@@ -171,6 +174,9 @@ float	veh_runover;		// TRUE while a van deals ram damage (for ClientObituary)
 
 void() Vehicles_Precache;
 void() Veh_PrecacheEffects;
+void(entity p, float amp, float dur) Veh_AddShake;
+void(vector boom_org, float max_rad, float max_amp, float dur) Veh_ShakeNearby;
+void(entity p, entity cam, entity veh) Veh_ApplyCamShake;
 void() Vehicles_Impulse;
 string(float kind) Veh_DisplayName;
 float(float kind) Veh_HalfLen;

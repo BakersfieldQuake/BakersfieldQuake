@@ -27,6 +27,7 @@ void() Veh_PrecacheEffects =
 	veh_fx_fire = particleeffectnum ("veh_fire");
 	veh_fx_smoke = particleeffectnum ("veh_smoke");
 	veh_fx_explode = particleeffectnum ("veh_explode");
+	veh_fx_explode_sec = particleeffectnum ("veh_explode_sec");
 	veh_fx_wreck = particleeffectnum ("veh_wreck_fire");
 	veh_fx_sparks = particleeffectnum ("veh_sparks");
 	veh_fx_boost = particleeffectnum ("veh_boost");
@@ -49,6 +50,8 @@ void() Vehicles_Precache =
 	precache_model ("progs/veh_shrap3.md3");
 	precache_model ("progs/veh_shrap4.md3");
 	precache_model ("progs/veh_blast.md3");
+	precache_model ("progs/s_explodbig.spr");
+	precache_sound ("weapons/explodedist.wav");
 
 	precache_sound ("vehicles/idle_truck.wav");
 	precache_sound ("vehicles/idle_sedan.wav");
@@ -730,6 +733,13 @@ void() Veh_DebrisThink =
 	if (age < 2.2 && random () < (0.45 - age * 0.16))
 		if (veh_fx_sparks > 0)
 		pointparticles (veh_fx_sparks, self.origin, '0 0 0', 1);
+	if (self.dmg > 0 && age < 3.5)
+	{
+		if (self.dmg >= 2 && veh_fx_fire > 0)
+			pointparticles (veh_fx_fire, self.origin, '0 0 0', 1);
+		else if (veh_fx_smoke > 0)
+			pointparticles (veh_fx_smoke, self.origin, '0 0 0', 1);
+	}
 };
 
 entity(string mdl, vector org, vector vel, vector ang, float life) Veh_SpawnDebris =
@@ -985,6 +995,169 @@ void() Veh_BlastThink =
 	self.nextthink = time + 0.035;
 };
 
+// ---------------------------------------------------------------- Camera & On-Foot Screen Shake
+
+void(entity p, float amp, float dur) Veh_AddShake =
+{
+	local float rem, span, cur_amp;
+
+	if (autocvar_effects_explosion_shake == 0)
+		return;
+	if (p == world || p.classname != "player" || dur <= 0 || amp <= 0)
+		return;
+
+	cur_amp = 0;
+	if (time < p.veh_shake_end)
+	{
+		span = p.veh_shake_end - p.veh_shake_t0;
+		if (span > 0.01)
+		{
+			rem = (p.veh_shake_end - time) / span;
+			cur_amp = p.veh_shake_amp * rem;
+		}
+	}
+	if (amp >= cur_amp)
+		p.veh_shake_amp = amp;
+	else
+		p.veh_shake_amp = cur_amp;
+	p.veh_shake_t0 = time;
+	p.veh_shake_end = max (p.veh_shake_end, time + dur);
+};
+
+void(entity p, entity cam, entity veh) Veh_ApplyCamShake =
+{
+	local float span, frac, mag, jx, jy, jz;
+	local vector base_pos, shake_pos;
+
+	if (autocvar_effects_explosion_shake == 0 || time >= p.veh_shake_end)
+		return;
+	span = p.veh_shake_end - p.veh_shake_t0;
+	if (span <= 0.01)
+		return;
+	frac = bound (0, (p.veh_shake_end - time) / span, 1);
+	mag = p.veh_shake_amp * frac * frac;
+	if (mag <= 0.05)
+		return;
+
+	jx = crandom () * mag;
+	jy = crandom () * mag * 0.75;
+	jz = crandom () * mag * 1.15;
+
+	cam.angles_x = cam.angles_x + jx;
+	cam.angles_y = cam.angles_y + jy;
+	cam.angles_z = cam.angles_z + jz;
+
+	base_pos = cam.origin;
+	shake_pos = base_pos + randomvec () * min (8, mag * 0.85);
+	traceline (base_pos, shake_pos, 3, veh);
+	if (trace_fraction < 1)
+		shake_pos = trace_endpos + trace_plane_normal * 4;
+	setorigin (cam, shake_pos);
+
+	p.punchangle_x = p.punchangle_x + jx * 0.65;
+	p.punchangle_y = p.punchangle_y + jy * 0.5;
+	p.punchangle_z = p.punchangle_z + jz * 0.75;
+};
+
+void() Veh_OnFootShakeThink =
+{
+	local entity plyr;
+	local float span, frac, dist, sh;
+
+	if (autocvar_effects_explosion_shake == 0 || time >= self.veh_wreck_t)
+	{
+		remove (self);
+		return;
+	}
+	span = self.veh_wreck_t - self.mm_born;
+	if (span <= 0.01)
+	{
+		remove (self);
+		return;
+	}
+	frac = bound (0, (self.veh_wreck_t - time) / span, 1);
+	frac = frac * frac;
+
+	plyr = bm_player_head;
+	while (plyr != world)
+	{
+		if (plyr.health > 0 && plyr.veh_van == world && !JohnBird_Flying (plyr) && !RocketRider_Flying (plyr))
+		{
+			dist = vlen (self.origin - plyr.origin);
+			if (dist < self.dmg)
+			{
+				sh = self.veh_shake_amp * frac * (1.0 - dist / self.dmg);
+				plyr.punchangle_x = plyr.punchangle_x + crandom () * sh;
+				plyr.punchangle_y = plyr.punchangle_y + crandom () * (sh * 0.7);
+				plyr.punchangle_z = plyr.punchangle_z + crandom () * (sh * 1.1);
+			}
+		}
+		plyr = plyr.bm_player_next;
+	}
+	self.nextthink = time + 0.04;
+};
+
+void(vector boom_org, float max_rad, float max_amp, float dur) Veh_ShakeNearby =
+{
+	local entity plyr, qk;
+	local float dist, sh;
+
+	if (autocvar_effects_explosion_shake == 0)
+		return;
+
+	plyr = bm_player_head;
+	while (plyr != world)
+	{
+		dist = vlen (boom_org - plyr.origin);
+		if (dist < max_rad)
+		{
+			sh = max_amp * (1.0 - dist / max_rad);
+			if (plyr.veh_van != world)
+				Veh_AddShake (plyr, sh, dur);
+			else
+			{
+				plyr.punchangle_x = plyr.punchangle_x + crandom () * sh;
+				plyr.punchangle_y = plyr.punchangle_y + crandom () * (sh * 0.7);
+				plyr.punchangle_z = plyr.punchangle_z + crandom () * (sh * 1.1);
+			}
+		}
+		plyr = plyr.bm_player_next;
+	}
+
+	qk = spawn ();
+	qk.classname = "veh_quake";
+	qk.movetype = MOVETYPE_NONE;
+	qk.solid = SOLID_NOT;
+	setorigin (qk, boom_org);
+	qk.mm_born = time;
+	qk.veh_wreck_t = time + dur;
+	qk.veh_shake_amp = max_amp;
+	qk.dmg = max_rad;
+	qk.think = Veh_OnFootShakeThink;
+	qk.nextthink = time + 0.04;
+};
+
+void() Veh_SecBlastThink =
+{
+	local entity fb;
+
+	if (veh_fx_explode_sec > 0)
+		pointparticles (veh_fx_explode_sec, self.origin, '0 0 0', 1);
+	fb = spawn ();
+	fb.classname = "veh_fireball";
+	fb.movetype = MOVETYPE_NONE;
+	fb.solid = SOLID_NOT;
+	fb.scale = self.scale;
+	setmodel (fb, "progs/s_explodbig.spr");
+	setsize (fb, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (fb, self.origin);
+	fb.frame = 0;
+	fb.think = exploderun;
+	fb.nextthink = time + 0.055;
+	sound7 (self, CHAN_AUTO, "weapons/r_exp3.wav", 0.92, ATTN_NORM, 68 + random () * 10);
+	remove (self);
+};
+
 // ---------------------------------------------------------------- State Transitions: Pain, Catch Fire, Explode, Wreck
 
 void(entity v) Veh_StartFire =
@@ -1049,9 +1222,9 @@ void(entity attacker, float take) Veh_Pain =
 
 void() Veh_ExplodeNow =
 {
-	local float kind, fx, rx, wy, wz, dx, dy, dz, ex, ez, bfx, brx, bz, i;
-	local vector fwd, lft, upv, wpos, wvel, ang_opp, blast_org;
-	local entity atk, inf, b;
+	local float kind, fx, rx, wy, wz, dx, dy, dz, ex, ez, bfx, brx, bz, i, cspd;
+	local vector fwd, lft, upv, wpos, wvel, ang_opp, blast_org, crash_vel;
+	local entity atk, inf, b, fb, deb, drv;
 
 	if (self.veh_state == VEH_STATE_WRECK)
 		return;
@@ -1063,6 +1236,22 @@ void() Veh_ExplodeNow =
 	self.takedamage = DAMAGE_NO;
 	self.skin = 0;
 	self.colormod = '0 0 0';
+
+	// Preserve moving crash momentum for flying debris & secondary blast before bailing clears state
+	crash_vel = self.velocity * 0.42;
+	cspd = vlen (crash_vel);
+	if (cspd > 650)
+		crash_vel = normalize (crash_vel) * 650;
+
+	atk = self.veh_igniter;
+	if (atk == world)
+		atk = self;
+	drv = self.veh_driver;
+	if (drv != world && (atk == drv || atk == self || atk == world))
+	{
+		drv.veh_last_van = self;
+		drv.veh_bail_safe_t = time + 1.0;		// self-crash blasts fling the driver clear instead of 195-dmg instakill
+	}
 
 	// Whoever is driving / riding goes out at the seat, with the vehicle's speed, into the blast
 	Veh_AllPassengersBail (self, TRUE);
@@ -1084,39 +1273,50 @@ void() Veh_ExplodeNow =
 	}
 	self.veh_clip_head = world;
 
-	// Stop burning loop on CHAN_ITEM, fire huge fuel-tank detonation sound!
+	// Stop burning loop on CHAN_ITEM, fire huge layered fuel-tank detonation sound!
 	sound (self, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);
 	if (random () < 0.5)
-		sound7 (self, CHAN_VOICE, "vehicles/car_boom1.wav", 0.8, ATTN_NORM, 95 + random () * 10);
+		sound7 (self, CHAN_VOICE, "vehicles/car_boom1.wav", 1.0, 0.55, 92 + random () * 12);
 	else
-		sound7 (self, CHAN_VOICE, "vehicles/car_boom2.wav", 0.8, ATTN_NORM, 95 + random () * 10);
-	sound7 (self, CHAN_BODY, "weapons/r_exp3.wav", 0.85, ATTN_NORM, 82 + random () * 12);
+		sound7 (self, CHAN_VOICE, "vehicles/car_boom2.wav", 1.0, 0.55, 92 + random () * 12);
+	sound7 (self, CHAN_BODY, "weapons/r_exp3.wav", 1.0, 0.55, 72 + random () * 10);
+	sound7 (self, CHAN_AUTO, "weapons/explodedist.wav", 0.95, 0.22, 92 + random () * 10);
 
 	makevectors ('0 1 0' * self.angles_y);
 	fwd = v_forward;
 	lft = '0 0 0' - v_right;		// +Y in model space = left / driver side!
 	upv = '0 0 1';
 
-	blast_org = self.origin + '0 0 36';
+	blast_org = self.origin + '0 0 38';
 	if (veh_fx_explode > 0)
-	{
 		pointparticles (veh_fx_explode, blast_org, '0 0 0', 1);
-		pointparticles (veh_fx_explode, blast_org + fwd * 32, '0 0 0', 1);
-	}
 
-	// 20-frame 3D core shatter-burst + shock starburst
+	// Fiery non-whiteout explosion fireball (replaces the blinding additive veh_blast_flash polygon dome)
+	fb = spawn ();
+	fb.classname = "veh_fireball";
+	fb.movetype = MOVETYPE_NONE;
+	fb.solid = SOLID_NOT;
+	fb.scale = Veh_IsKart (kind) ? 1.55 : 2.15;
+	setmodel (fb, "progs/s_explodbig.spr");
+	setsize (fb, VEC_ORIGIN, VEC_ORIGIN);
+	setorigin (fb, blast_org + '0 0 12');
+	fb.frame = 0;
+	fb.think = exploderun;
+	fb.nextthink = time + 0.055;
+
+	// Staggered secondary fuel-tank blast 0.14s later along crash momentum
 	b = spawn ();
-	b.classname = "veh_blast";
+	b.classname = "veh_sec_blast";
 	b.movetype = MOVETYPE_NONE;
 	b.solid = SOLID_NOT;
-	b.angles = self.angles;
-	b.frame = 0;
-	b.alpha = 1;
-	b.think = Veh_BlastThink;
-	b.nextthink = time + 0.035;
-	setmodel (b, "progs/veh_blast.md3");
+	b.scale = Veh_IsKart (kind) ? 1.2 : 1.75;
 	setsize (b, VEC_ORIGIN, VEC_ORIGIN);
-	setorigin (b, self.origin + '0 0 6');
+	setorigin (b, blast_org + crash_vel * 0.10 + '0 0 28');
+	b.think = Veh_SecBlastThink;
+	b.nextthink = time + 0.14;
+
+	// Seismic camera & on-foot screen shake across the street
+	Veh_ShakeNearby (blast_org, 1050, 10.5, 0.65);
 
 	// Per-vehicle exact sub-part coordinates (matching blender_build_vehicles.py & blender_build_wild_vehicles.py)
 	local float wy_in, wild_mul, shrap_cnt, rad_dmg;
@@ -1218,73 +1418,75 @@ void() Veh_ExplodeNow =
 	{
 		// Single Front Center Wheel (+X, 0)
 		wpos = self.origin + fwd * fx + upv * wz;
-		wvel = (fwd * (215 + random () * 115) + lft * (crandom () * 125) + upv * (340 + random () * 145)) * wild_mul;
+		wvel = (fwd * (215 + random () * 115) + lft * (crandom () * 125) + upv * (340 + random () * 145)) * wild_mul + crash_vel;
 		Veh_SpawnWheel (kind, wpos, wvel, 1);
 	}
 	else
 	{
 		// Front-Left (+X, +Y)
 		wpos = self.origin + fwd * fx + lft * wy + upv * wz;
-		wvel = (fwd * (145 + random () * 110) + lft * (215 + random () * 120) + upv * (350 + random () * 150)) * wild_mul;
+		wvel = (fwd * (145 + random () * 110) + lft * (215 + random () * 120) + upv * (350 + random () * 150)) * wild_mul + crash_vel;
 		Veh_SpawnWheel (kind, wpos, wvel, 1);
 
 		// Front-Right (+X, -Y)
 		wpos = self.origin + fwd * fx - lft * wy + upv * wz;
-		wvel = (fwd * (135 + random () * 115) - lft * (215 + random () * 120) + upv * (340 + random () * 155)) * wild_mul;
+		wvel = (fwd * (135 + random () * 115) - lft * (215 + random () * 120) + upv * (340 + random () * 155)) * wild_mul + crash_vel;
 		Veh_SpawnWheel (kind, wpos, wvel, -1);
 	}
 
 	// Rear-Left (-X, +Y)
 	wpos = self.origin + fwd * rx + lft * wy + upv * wz;
-	wvel = (fwd * (-145 - random () * 110) + lft * (210 + random () * 125) + upv * (330 + random () * 160)) * wild_mul;
+	wvel = (fwd * (-145 - random () * 110) + lft * (210 + random () * 125) + upv * (330 + random () * 160)) * wild_mul + crash_vel;
 	Veh_SpawnWheel (kind, wpos, wvel, -1);
 
 	// Rear-Right (-X, -Y)
 	wpos = self.origin + fwd * rx - lft * wy + upv * wz;
-	wvel = (fwd * (-135 - random () * 115) - lft * (210 + random () * 125) + upv * (360 + random () * 150)) * wild_mul;
+	wvel = (fwd * (-135 - random () * 115) - lft * (210 + random () * 125) + upv * (360 + random () * 150)) * wild_mul + crash_vel;
 	Veh_SpawnWheel (kind, wpos, wvel, 1);
 
 	// Extra Dually Inner Rear Wheels (6-wheel Heavy-Duty Diesel Rig & School Bus!)
 	if (wy_in > 0)
 	{
 		wpos = self.origin + fwd * rx + lft * wy_in + upv * wz;
-		wvel = (fwd * (-95 - random () * 95) + lft * (265 + random () * 130) + upv * (385 + random () * 155)) * wild_mul;
+		wvel = (fwd * (-95 - random () * 95) + lft * (265 + random () * 130) + upv * (385 + random () * 155)) * wild_mul + crash_vel;
 		Veh_SpawnWheel (kind, wpos, wvel, 1);
 
 		wpos = self.origin + fwd * rx - lft * wy_in + upv * wz;
-		wvel = (fwd * (85 + random () * 95) - lft * (265 + random () * 130) + upv * (395 + random () * 155)) * wild_mul;
+		wvel = (fwd * (85 + random () * 95) - lft * (265 + random () * 130) + upv * (395 + random () * 155)) * wild_mul + crash_vel;
 		Veh_SpawnWheel (kind, wpos, wvel, -1);
 	}
 
-	// 2. Launch Blown-Off Scorched Hood (high spinning flip!)
+	// 2. Launch Blown-Off Scorched Hood (high spinning flip with fire trail!)
 	wpos = self.origin + fwd * (fx + 10) + upv * (dz + 4);
-	wvel = (fwd * (110 + crandom () * 90) + lft * (crandom () * 120) + upv * (510 + random () * 150)) * wild_mul;
-	Veh_SpawnDebris (Veh_HoodModel (kind), wpos, wvel, self.angles, 11.5);
+	wvel = (fwd * (110 + crandom () * 90) + lft * (crandom () * 120) + upv * (510 + random () * 150)) * wild_mul + crash_vel;
+	deb = Veh_SpawnDebris (Veh_HoodModel (kind), wpos, wvel, self.angles, 11.5);
+	deb.dmg = 2;
 
 	// 3. Launch Left & Right Doors + Mirrors (or STOP Sign / Bi-Fold Bus Doors) sideways!
 	ang_opp = self.angles;
 	ang_opp_y = Veh_NormYaw (self.angles_y + 180);
 
 	wpos = self.origin + fwd * dx + lft * dy + upv * dz;
-	wvel = (fwd * (crandom () * 95) + lft * (290 + random () * 130) + upv * (295 + random () * 130)) * wild_mul;
+	wvel = (fwd * (crandom () * 95) + lft * (290 + random () * 130) + upv * (295 + random () * 130)) * wild_mul + crash_vel;
 	Veh_SpawnDebris (Veh_DoorModel (kind), wpos, wvel, self.angles, 11.0);
 
 	wpos = self.origin + fwd * dx - lft * dy + upv * dz;
-	wvel = (fwd * (crandom () * 95) - lft * (290 + random () * 130) + upv * (295 + random () * 130)) * wild_mul;
+	wvel = (fwd * (crandom () * 95) - lft * (290 + random () * 130) + upv * (295 + random () * 130)) * wild_mul + crash_vel;
 	Veh_SpawnDebris (Veh_DoorModel (kind), wpos, wvel, ang_opp, 11.0);
 
-	// 4. Launch Signature Extra Part (Stacks+HeadacheRack / EmergencyDoor+Hatches / Trunk+Wing)
+	// 4. Launch Signature Extra Part (Stacks+HeadacheRack / EmergencyDoor+Hatches / Trunk+Wing) with smoke trail
 	wpos = self.origin + fwd * ex + upv * ez;
-	wvel = (fwd * (-175 + crandom () * 80) + lft * (crandom () * 130) + upv * (420 + random () * 140)) * wild_mul;
-	Veh_SpawnDebris (Veh_ExtraModel (kind), wpos, wvel, self.angles, 11.5);
+	wvel = (fwd * (-175 + crandom () * 80) + lft * (crandom () * 130) + upv * (420 + random () * 140)) * wild_mul + crash_vel;
+	deb = Veh_SpawnDebris (Veh_ExtraModel (kind), wpos, wvel, self.angles, 11.5);
+	deb.dmg = 1;
 
 	// 5. Launch Front & Rear Bumpers
 	wpos = self.origin + fwd * bfx + upv * bz;
-	wvel = (fwd * (310 + random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul;
+	wvel = (fwd * (310 + random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul + crash_vel;
 	Veh_SpawnDebris (Veh_BumperModel (kind), wpos, wvel, self.angles, 10.5);
 
 	wpos = self.origin + fwd * brx + upv * bz;
-	wvel = (fwd * (-310 - random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul;
+	wvel = (fwd * (-310 - random () * 110) + lft * (crandom () * 95) + upv * (230 + random () * 110)) * wild_mul + crash_vel;
 	Veh_SpawnDebris (Veh_BumperModel (kind), wpos, wvel, ang_opp, 10.5);
 	}
 
@@ -1300,15 +1502,17 @@ void() Veh_ExplodeNow =
 	while (i < shrap_cnt)
 	{
 		wpos = blast_org + fwd * (crandom () * 38) + lft * (crandom () * 28);
-		wvel = (fwd * (crandom () * 390) + lft * (crandom () * 390) + upv * (280 + random () * 260)) * wild_mul;
+		wvel = (fwd * (crandom () * 390) + lft * (crandom () * 390) + upv * (280 + random () * 260)) * wild_mul + crash_vel;
 		if ((i & 3) == 0)
-			Veh_SpawnDebris ("progs/veh_shrap1.md3", wpos, wvel, '0 0 0', 8.5);
+			deb = Veh_SpawnDebris ("progs/veh_shrap1.md3", wpos, wvel, '0 0 0', 8.5);
 		else if ((i & 3) == 1)
-			Veh_SpawnDebris ("progs/veh_shrap2.md3", wpos, wvel, '0 0 0', 8.5);
+			deb = Veh_SpawnDebris ("progs/veh_shrap2.md3", wpos, wvel, '0 0 0', 8.5);
 		else if ((i & 3) == 2)
-			Veh_SpawnDebris ("progs/veh_shrap3.md3", wpos, wvel, '0 0 0', 8.5);
+			deb = Veh_SpawnDebris ("progs/veh_shrap3.md3", wpos, wvel, '0 0 0', 8.5);
 		else
-			Veh_SpawnDebris ("progs/veh_shrap4.md3", wpos, wvel, '0 0 0', 8.5);
+			deb = Veh_SpawnDebris ("progs/veh_shrap4.md3", wpos, wvel, '0 0 0', 8.5);
+		if (i < 2)
+			deb.dmg = 2;
 		i = i + 1;
 	}
 
@@ -1338,6 +1542,13 @@ void() Veh_ExplodeNow =
 			self.scale = 0.65;
 		Veh_SetRotatedBounds (self, kind, TRUE);
 		setorigin (self, self.origin);
+		if (self.veh_air)
+		{
+			self.movetype = MOVETYPE_TOSS;
+			self.flags = self.flags - (self.flags & FL_ONGROUND);
+			self.velocity = crash_vel * 0.55 + '0 0 140';
+			self.veh_air = FALSE;
+		}
 		self.frame = 0;
 		self.veh_anim = 0;
 		self.veh_wreck_t = time + 15.0;
@@ -1347,9 +1558,6 @@ void() Veh_ExplodeNow =
 	}
 
 	// 8. Deal explosion radius damage (triggers chain reactions on neighboring parked cars!)
-	atk = self.veh_igniter;
-	if (atk == world)
-		atk = self;
 	inf = spawn ();
 	inf.classname = "veh_blast_inflictor";
 	setorigin (inf, blast_org);
@@ -1454,6 +1662,14 @@ void() Veh_Think =
 	// ---- STATE 2: Crumpled Charred Wreck (frames 0..19 or 0..39 wild airborne-flip -> ground barrel-roll -> smolder)
 	if (self.veh_state == VEH_STATE_WRECK)
 	{
+		if (self.movetype == MOVETYPE_TOSS && (self.flags & FL_ONGROUND))
+		{
+			self.movetype = MOVETYPE_NONE;
+			self.velocity = '0 0 0';
+			sound7 (self, CHAN_BODY, "vehicles/clang2.wav", 0.95, ATTN_NORM, 74 + random () * 12);
+			if (veh_fx_sparks > 0)
+				pointparticles (veh_fx_sparks, self.origin + '0 0 10', '0 0 0', 1);
+		}
 		if (Veh_IsKart (self.veh_kind))
 		{
 			if (self.frame < 63)

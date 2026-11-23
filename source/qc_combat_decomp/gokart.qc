@@ -912,6 +912,7 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 	p.angles_y = yaw;
 	if (lock_view)
 		p.fixangle = TRUE;
+	Veh_ApplyCamShake (p, cam, v);
 };
 
 float(entity p, entity v, float dt) GK_DriveFrame =
@@ -1537,11 +1538,12 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			}
 			else
 			{
-				// Near-head-on impact against flat wall or vehicle: controlled rebound
+				// Near-head-on impact against flat wall or vehicle: controlled rebound + shake
 				vel = (vel - n * (1.45 * vn)) * 0.72;
 				if (time >= v.veh_crash_t)
 				{
 					v.veh_crash_t = time + 0.16;
+					Veh_AddShake (p, bound (1.5, imp / 210, 6.5), bound (0.14, imp / 1500, 0.36));
 					sound7 (v, CHAN_BODY, "bikes/tire_bounce.wav", bound (0.4, imp / 450, 0.95), ATTN_NORM, 92 + random () * 18);
 					if (veh_fx_sparks > 0)
 						pointparticles (veh_fx_sparks, vd_hitpos, '0 0 0', 1);
