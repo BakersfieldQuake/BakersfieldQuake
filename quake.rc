@@ -61,6 +61,19 @@ sv_autodemo_perclient 0
 // personal_post.cfg (or in the console after start).
 gyroset 0
 
+// Zircon's own autosave ("Automatic save game every 90 seconds") also runs during deathmatch and froze listen hosts for
+// 60-130 ms every 90 s (audit 2026-11-23, "Auto-saved." on the worst frame of 13 of 19 bot matches). Combat+ keeps its own
+// single-player autosave (QuakeC auto_save), so the engine one is redundant. After config.cfg so a saved 1 can't undo it.
+sv_autosave 0
+
+// free the old map before loading the next one. Without it one session grew from 2.1 GB to 4.1 GB committed over 19 map
+// changes (audit 2026-11-23); the low-memory tiers already set it.
+mod_freebeforeload 1
+
+// load the Wheelman Cannon sprites with the map: the first charge otherwise froze the host ~170 ms (audit 2026-11-23).
+// lowmem.cfg / lowgpu.cfg (passed by the launchers on small PCs, after this file) set it back to 0. server.cfg sets 1.
+set bm_preload 1
+
 // always start with mouse look on: test runs can save vid_mouse 0 / freelook 0 / -mlook into config.cfg.
 // Command-line overrides (+vid_mouse 0, +freelook 0, -window...) still win (stuffcmds / engine -window below).
 vid_mouse 1
