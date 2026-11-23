@@ -323,7 +323,7 @@ void(vector org, vector norm, float charge) DK_Splatter =
 		g.nextthink = time + 4;
 		setmodel (g, "progs/dookie_wall.md3");
 		setsize (g, VEC_ORIGIN, VEC_ORIGIN);
-		setorigin (g, org + randomvec () * 10);
+		setorigin (g, org + norm * 8 + randomvec () * 4);	// start outside the wall (was half inside: "Unstuck entity" spam)
 	}
 };
 

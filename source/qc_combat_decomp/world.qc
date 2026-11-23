@@ -181,7 +181,7 @@ void() worldspawn =
 	precache_sound("player/click.wav");
 	precache_sound("player/personal_player_teleport.wav");
 	// Precache runtime-used assets unconditionally in worldspawn (no post-spawn precache_* calls)
-	precache_sound("ambience/lavasplash_shotgun.wav");
+	precache_sound("ambience/lavasplash.wav");	// was lavasplash_shotgun.wav, missing from every pack
 	precache_model("progs/backpack1.mdl");
 	precache_sound("zombie/penttouch.wav");
 	precache_sound("items/suit.wav");

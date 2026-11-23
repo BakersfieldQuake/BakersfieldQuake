@@ -81,6 +81,7 @@ void() BM_Precache =
 	Soi6_Precache ();
 	JohnBird_Precache ();
 	RocketRider_Precache ();
+	precache_sound ("items/r_item1.wav");	// skeet reward sound (proj_collide.qc); maps without health items never precached it
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push

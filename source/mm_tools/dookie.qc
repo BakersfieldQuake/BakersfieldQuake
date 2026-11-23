@@ -320,7 +320,7 @@ void(vector org, vector norm, float charge) DK_Splatter =
 		g.nextthink = time + 4;
 		setmodel (g, "progs/dookie_wall.md3");
 		setsize (g, VEC_ORIGIN, VEC_ORIGIN);
-		setorigin (g, org + randomvec () * 10);
+		setorigin (g, org + norm * 8 + randomvec () * 4);	// start outside the wall (was half inside: "Unstuck entity" spam)
 	}
 };
 
@@ -338,7 +338,7 @@ float(entity hit, float is_ground) DK_GroundBoltFrac =
 	p = self.owner;
 	if (!p || p == world || p.classname != "player" || p.health <= 0 || p.deadflag != 0)
 		return 0;
-	if (p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.veh_ride != world || p.fd_head != world)
+	if (p.jb_vehicle != world || p.rr_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.veh_ride != world || p.fd_head != world)
 		return 0;
 	if (p.movetype != MOVETYPE_WALK && (p.ishuman == 1 || p.movetype != MOVETYPE_NONE))
 		return 0;
@@ -428,7 +428,9 @@ void(entity hit, vector norm, float is_ground) DK_Detonate =
 
 	blast_org = self.origin + norm * 6;
 	DK_SpawnSplatFX (self.origin, norm);
-	DK_Splatter (blast_org, norm, self.dk_charge);
+	DK_Splatter (blast_org, norm, self.pc_pinata ? 1.35 : self.dk_charge);
+	if (self.pc_pinata)
+		PC_DookiePinata (self, blast_org, self.pc_killer);
 	pointparticles (particleeffectnum ("dookie_boom"), blast_org, '0 0 0', 1);
 	FG_Snd (self, CHAN_VOICE, "dookie/dk_splat.wav", 1.0, 0.96 + random () * 0.08);
 	FG_Snd (self, CHAN_BODY, "dookie/dk_flies.wav", 0.78, 0.98 + random () * 0.06);
@@ -458,6 +460,8 @@ void() DK_ProjDie =
 {
 	// this runs inside the T_RadiusDamage loop of whatever shot it: blowing up here ran a second findradius, which rewrote
 	// .chain under that loop (players skipped or hit twice). Go off a moment later instead, as pickle.qc / megaman.qc do.
+	self.pc_pinata = TRUE;
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.think = DK_ProjDieThink;
@@ -471,6 +475,11 @@ void() DK_ProjTouch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);
@@ -583,6 +592,7 @@ void(float c) DK_Launch =
 	p.think = DK_ProjThink;
 	p.nextthink = time + 0.05;
 	p.dk_yell_t = time + 1.35;
+	PC_Register (p, PC_KIND_DOOKIE, 32);
 
 	FG_Snd (self, CHAN_WEAPON, "dookie/dk_fire.wav", 1.0, 1.0);
 	FG_Snd (p, CHAN_BODY, "dookie/dk_music.wav", 0.85, 1.0);
@@ -601,7 +611,7 @@ void() DK_Frame =
 		return;
 	if (self.health <= 0 || self.deadflag || intermission_running
 		|| self.weapon != IT_FUNGUN || self.fg_sel != FG_DOOKIE
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self))
 	{
 		sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);

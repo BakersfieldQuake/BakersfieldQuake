@@ -1603,7 +1603,7 @@ void(vector org) spawn_lavasplash =
 	en.nextthink = (time + 1);
 	en.think = SUB_Remove;
 	sendParticle("lavasplash", org, VEC_ORIGIN, 1, 0);
-	sound(en, CHAN_VOICE, "ambience/lavasplash_shotgun.wav", 0.8, ATTN_IDLE);
+	sound(en, CHAN_VOICE, "ambience/lavasplash.wav", 0.8, ATTN_IDLE);	// lavasplash_shotgun.wav exists in no pack (audit 2026-11-23)
 };
 
 void(vector dir) W_BulletSplash =
@@ -6639,11 +6639,12 @@ void() ImpulseCommands =
 			player_teleport();
 		}
 	}
-	if ((self.impulse == 204))
+	// Combat+ debug monster menu and Genocide: cheats only, like impulses 13 and 40 above (audit 2026-11-23, SC-01)
+	if (((self.impulse == 204) && cvar("sv_cheats")))
 	{
 		self.dmenu = TRUE;
 	}
-	if ((self.impulse == 205))
+	if (((self.impulse == 205) && cvar("sv_cheats")))
 	{
 		Genocide();
 	}

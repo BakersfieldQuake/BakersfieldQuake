@@ -1051,10 +1051,12 @@ void() PC_Frame =
 {
 	local entity e;
 
+	// Prune even while collisions are off: freed edicts are reused after 0.5 s, and re-registering one that an older
+	// node still points at would close a loop that hangs the walks below once the cvar is back on (audit SC-06).
+	PC_PruneLists ();
 	if (!autocvar_bm_proj_collide)
 		return;
 
-	PC_PruneLists ();
 	PC_SweepSpikes ();
 	PC_SweepPairs ();
 
