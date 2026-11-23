@@ -1690,7 +1690,7 @@ def choose_ui(args):
 def main(argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     wants_console = any(f in raw_argv for f in ("-h", "--help", "--version", "--check", "--no-gui")) or (
-        "--launch" not in raw_argv and "--standalone" not in raw_argv
+        "--launch" not in raw_argv and "--standalone" not in raw_argv and "--picker" not in raw_argv
     )
     _ensure_streams(attach_console=wants_console)
 
@@ -1699,6 +1699,11 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true", help="only report; exit 10 if an update or repair is available")
     ap.add_argument("--launch", action="store_true", help="run from a launcher (invisible unless slow or updating)")
     ap.add_argument("--standalone", action="store_true", help="standalone updater GUI (never launches the game)")
+    ap.add_argument("--picker", action="store_true", help="run pre-launch Display & Graphics Picker (no lock/network)")
+    ap.add_argument("--userdir", type=Path, default=None, help="user data directory for --picker (default: --root)")
+    ap.add_argument("--out-env", type=Path, default=None, help="output env file path for --picker")
+    ap.add_argument("--env-format", choices=("cmd", "sh"), default=None, help="output env file format for --picker")
+    ap.add_argument("--setup", action="store_true", help="force opening the Display & Graphics Picker UI")
     ap.add_argument("--force-rehash", action="store_true", help="ignore the hash cache and re-check every file")
     ap.add_argument("--no-gui", action="store_true", help="force terminal/headless mode")
     ap.add_argument("--platform", default=default_platform())
@@ -1711,8 +1716,26 @@ def main(argv=None):
     if a.version:
         print(f"bq-update {VERSION}")
         return 0
+    if a.picker:
+        try:
+            import bq_display
+        except ImportError:
+            tools_dir = str(Path(__file__).resolve().parent)
+            if tools_dir not in sys.path:
+                sys.path.insert(0, tools_dir)
+            import bq_display
+        root = (a.root or default_root()).resolve()
+        userdir = a.userdir.resolve() if a.userdir else root
+        return bq_display.run_picker(
+            root=root,
+            userdir=userdir,
+            out_env=a.out_env,
+            env_format=a.env_format,
+            setup=a.setup,
+            no_gui=a.no_gui,
+        )
     # Double-clicking frozen Update.exe with no flags opens the standalone updater GUI.
-    if getattr(sys, "frozen", False) and not any((a.check, a.launch, a.standalone, a.no_gui, a.manifest_url)):
+    if getattr(sys, "frozen", False) and not any((a.check, a.launch, a.standalone, a.picker, a.no_gui, a.manifest_url)):
         a.standalone = True
     if os.environ.get("BQ_NO_UPDATE") and not a.standalone:
         return 0

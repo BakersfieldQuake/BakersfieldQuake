@@ -151,6 +151,7 @@ rm -rf "$PYI/build" "$PYI/dist"
 "${PYTHON:-python3}" -m venv "$PYI/venv-$PYINSTALLER"
 "$PYI/venv-$PYINSTALLER/bin/python" -m pip install --quiet --disable-pip-version-check "pyinstaller==$PYINSTALLER"
 "$PYI/venv-$PYINSTALLER/bin/python" -m PyInstaller --onefile --console --noupx --name bq-update \
+    --paths "$ROOT/tools" --hidden-import bq_display \
     --hidden-import tkinter --hidden-import tkinter.ttk \
     --codesign-identity "$SIGN_ID" --distpath "$PYI/dist" --workpath "$PYI/build" --specpath "$PYI" \
     "$ROOT/tools/bq_update.py" >"$PYI/pyinstaller.log" 2>&1 || { tail -30 "$PYI/pyinstaller.log"; die "freeze failed"; }
@@ -193,7 +194,7 @@ install -m 755 "$PYI/dist/bq-update" "$C/MacOS/bq-update"
 # and mac-inputs lets bq-update detect when a newer release shipped a new engine/bundle requiring a DMG update.
 echo "$TAG" >"$C/Resources/release-tag"
 if [ -z "${MAC_INPUTS:-}" ] && command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    MAC_INPUTS="$(cd "$ROOT" && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png source/icons/bakoquake-update-256.png | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
+    MAC_INPUTS="$(cd "$ROOT" && git ls-files -z source/mac tools/bq_update.py tools/bq_display.py source/icons/bakoquake-256.png source/icons/bakoquake-update-256.png | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
 fi
 echo "${MAC_INPUTS:-$TAG}" >"$C/Resources/mac-inputs"
 # Real files plus their relative symlinks (libvorbis.dylib -> libvorbis.0.dylib etc.), so the names the engine

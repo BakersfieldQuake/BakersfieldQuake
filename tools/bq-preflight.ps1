@@ -2,12 +2,13 @@
 #
 # Preflight mode (called by Play.cmd and Start Server.cmd):
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\bq-preflight.ps1 -Root <dir> [-OutEnvFile <cmd>]
-#     [-DryRun] [-SimulateTotalRamGB N] [-SimulateFreeRamMB N] [-SimulateVramMB N] [-SimulateIGPU] [-SimulateUnclean]
-#     [-StateDir <dir>]
+#     [-UserPreset simple|normal|high] [-DryRun] [-SimulateTotalRamGB N] [-SimulateFreeRamMB N]
+#     [-SimulateVramMB N] [-SimulateIGPU] [-SimulateUnclean] [-StateDir <dir>]
 #
 # Watchdog mode (launched detached after starting engine):
 #   powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File tools\bq-preflight.ps1
 #     -Root <dir> (-WatchPid <pid> | -WatchExe <exePath>) [-WatchTier <tier>] [-WatchMarkLowGpu] [-HangThresholdSec 60]
+#     [-TargetMonitorRect x,y,w,h] [-TargetDisplayMode borderless|fullscreen|windowed] [-TargetSize w,h] [-TargetMonitorPrimary 0|1]
 #
 # Env overrides:
 #   BQ_TIER=normal|lowmem|ultralow|safemode  BQ_SAFEMODE=1  BQ_ULTRALOW=1  BQ_LOWMEM=1|0  BQ_LOWGPU=1|0
@@ -16,6 +17,7 @@ param(
     [string]$Root = (Split-Path -Parent $PSScriptRoot),
     [string]$StateDir = '',
     [string]$OutEnvFile = '',
+    [string]$UserPreset = '',
     [switch]$DryRun,
     [double]$SimulateTotalRamGB = -1,
     [double]$SimulateFreeRamMB = -1,
@@ -28,7 +30,11 @@ param(
     [string]$WatchTier = '',
     [switch]$WatchMarkLowGpu,
     [switch]$WatchRestoreConfig,
-    [int]$HangThresholdSec = 60
+    [int]$HangThresholdSec = 60,
+    [string]$TargetMonitorRect = '',
+    [string]$TargetDisplayMode = '',
+    [string]$TargetSize = '',
+    [string]$TargetMonitorPrimary = ''
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -214,17 +220,53 @@ if ($WatchPid -gt 0 -or $WatchExe) {
     $cachedHandle = [IntPtr]::Zero
     try { $cachedHandle = $targetProc.Handle } catch {}
 
-    # P/Invoke SendMessageTimeoutW (hang probe) + GetExitCodeProcess (reliable exit code on attached processes)
+    # P/Invoke SendMessageTimeoutW (hang probe), GetExitCodeProcess (reliable exit code), and Win32 window placement
     $win32Type = @'
 using System;
 using System.Runtime.InteropServices;
 public static class BqWin32Probe {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MONITORINFO {
+        public uint cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern IntPtr SendMessageTimeoutW(
         IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam,
         uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPos(
+        IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDPIAware();
+
+    public static void EnableDpiAwareness() {
+        try {
+            if (SetProcessDpiAwarenessContext(new IntPtr(-4))) return;
+        } catch {}
+        try { SetProcessDPIAware(); } catch {}
+    }
     public static bool IsWindowResponding(IntPtr hWnd, uint timeoutMs) {
         if (hWnd == IntPtr.Zero) return true;
         UIntPtr res;
@@ -239,9 +281,104 @@ public static class BqWin32Probe {
         }
         return -1;
     }
+    public static bool PlaceWindow(IntPtr hWnd, string mode, int monX, int monY, int monW, int monH, int reqW, int reqH) {
+        if (hWnd == IntPtr.Zero || monW <= 0 || monH <= 0) return false;
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOZORDER = 0x0004;
+        const uint SWP_FRAMECHANGED = 0x0020;
+        const uint SWP_SHOWWINDOW = 0x0040;
+        const uint SWP_NOOWNERZORDER = 0x0200;
+        IntPtr HWND_TOP = IntPtr.Zero;
+
+        if (mode == "borderless") {
+            return SetWindowPos(hWnd, HWND_TOP, monX, monY, monW, monH, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        }
+        if (mode == "windowed") {
+            int workLeft = monX, workTop = monY, workRight = monX + monW, workBottom = monY + monH;
+            RECT targetRect = new RECT { Left = monX, Top = monY, Right = monX + monW, Bottom = monY + monH };
+            IntPtr hMon = MonitorFromRect(ref targetRect, 2);
+            if (hMon != IntPtr.Zero) {
+                MONITORINFO mi = new MONITORINFO();
+                mi.cbSize = (uint)Marshal.SizeOf(typeof(MONITORINFO));
+                if (GetMonitorInfoW(hMon, ref mi)) {
+                    workLeft = mi.rcWork.Left;
+                    workTop = mi.rcWork.Top;
+                    workRight = mi.rcWork.Right;
+                    workBottom = mi.rcWork.Bottom;
+                }
+            }
+            int winW = reqW > 0 ? reqW : 1280;
+            int winH = reqH > 0 ? reqH : 720;
+            RECT cur;
+            if (GetWindowRect(hWnd, out cur)) {
+                int cw = cur.Right - cur.Left;
+                int ch = cur.Bottom - cur.Top;
+                if (cw > 100 && ch > 100) { winW = cw; winH = ch; }
+            }
+            int dstX = workLeft + Math.Max(0, ((workRight - workLeft) - winW) / 2);
+            int dstY = workTop + Math.Max(0, ((workBottom - workTop) - winH) / 2);
+            return SetWindowPos(hWnd, HWND_TOP, dstX, dstY, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_SHOWWINDOW);
+        }
+        if (mode == "fullscreen") {
+            return SetWindowPos(hWnd, HWND_TOP, monX, monY, monW, monH, SWP_NOOWNERZORDER | SWP_SHOWWINDOW);
+        }
+        return false;
+    }
 }
 '@
     try { Add-Type -TypeDefinition $win32Type -ErrorAction SilentlyContinue } catch {}
+
+    # One-shot multi-monitor window placement right after startup (never fights user drag or Alt+Enter later).
+    $normMode = if ($TargetDisplayMode) { $TargetDisplayMode.Trim().ToLowerInvariant() } else { '' }
+    $shouldPlace = ($WatchTier -ne 'safemode') -and $TargetMonitorRect -and (
+        ($normMode -eq 'borderless') -or
+        ($normMode -eq 'windowed') -or
+        ($normMode -eq 'fullscreen' -and $TargetMonitorPrimary -eq '0')
+    )
+    if ($shouldPlace) {
+        $rectParts = $TargetMonitorRect.Trim() -split ','
+        if ($rectParts.Count -eq 4) {
+            [int]$monX = 0; [int]$monY = 0; [int]$monW = 0; [int]$monH = 0
+            $okRect = [int]::TryParse($rectParts[0].Trim(), [ref]$monX) -and
+                      [int]::TryParse($rectParts[1].Trim(), [ref]$monY) -and
+                      [int]::TryParse($rectParts[2].Trim(), [ref]$monW) -and
+                      [int]::TryParse($rectParts[3].Trim(), [ref]$monH) -and
+                      ($monW -gt 0) -and ($monH -gt 0)
+            if ($okRect) {
+                [int]$reqW = 0; [int]$reqH = 0
+                if ($TargetSize) {
+                    $szParts = $TargetSize.Trim() -split ','
+                    if ($szParts.Count -eq 2) {
+                        [void][int]::TryParse($szParts[0].Trim(), [ref]$reqW)
+                        [void][int]::TryParse($szParts[1].Trim(), [ref]$reqH)
+                    }
+                }
+                try { [BqWin32Probe]::EnableDpiAwareness() } catch {}
+                $placeHwnd = [IntPtr]::Zero
+                for ($poll = 0; $poll -lt 67 -and -not $targetProc.HasExited; $poll++) {
+                    try { $targetProc.Refresh() } catch { break }
+                    if ($targetProc.HasExited) { break }
+                    $h = $targetProc.MainWindowHandle
+                    if ($h -ne [IntPtr]::Zero) {
+                        $vis = $true
+                        try { $vis = [BqWin32Probe]::IsWindowVisible($h) } catch { $vis = $true }
+                        if ($vis) {
+                            $placeHwnd = $h
+                            break
+                        }
+                    }
+                    Start-Sleep -Milliseconds 150
+                }
+                if ($placeHwnd -ne [IntPtr]::Zero -and -not $targetProc.HasExited) {
+                    Start-Sleep -Milliseconds 250
+                    try {
+                        $placed = [BqWin32Probe]::PlaceWindow($placeHwnd, $normMode, $monX, $monY, $monW, $monH, $reqW, $reqH)
+                        Append-LastLaunch ("window_placed=$placed mode=$normMode rect=$monX,$monY,$monW,$monH size=$reqW,$reqH at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+                    } catch {}
+                }
+            }
+        }
+    }
 
     $hungSince = $null
     $userKilled = $false
@@ -490,6 +627,10 @@ if ($uncleanDetected) {
 $tier = 'normal'
 $reason = 'high-spec hardware and sufficient free RAM'
 $weakGpu = $isIGPU -or ($bestVramMB -gt 0 -and $bestVramMB -lt 3000)
+$normPreset = ''
+if ($UserPreset -and ($UserPreset.Trim() -match '^(simple|normal|high)$')) {
+    $normPreset = $UserPreset.Trim().ToLowerInvariant()
+}
 
 if ($env:BQ_TIER -match '^(normal|lowmem|ultralow|safemode)$') {
     $tier = $env:BQ_TIER.ToLowerInvariant()
@@ -503,6 +644,9 @@ if ($env:BQ_TIER -match '^(normal|lowmem|ultralow|safemode)$') {
 } elseif ($uncleanSafeMode) {
     $tier = 'safemode'
     $reason = 'unclean previous session recovery (session-active.flag)'
+} elseif ($normPreset) {
+    $tier = "preset-$normPreset"
+    $reason = "user selected graphics preset '$normPreset' in Display Setup"
 } elseif ($freeRamMB -lt 2048) {
     $tier = 'ultralow'
     $reason = ("live free RAM {0:N0} MB under 2048 MB" -f $freeRamMB)
@@ -546,11 +690,17 @@ if (-not $cancelLaunch -and $freeRamMB -lt 1536 -and $interactive) {
     $freeGbStr = "{0:N2}" -f ($freeRamMB / 1024.0)
     $totGbStr = "{0:N1}" -f $totalRamGB
     $hasLite = (-not $ServerMode) -and (Test-Path -LiteralPath (Join-Path $gameDir 'maps\bakersfielddowntown_lite.bsp'))
-    $btns = if ($hasLite) { @('Continue Ultra-Low', 'Launch Lite Downtown', 'Cancel') } else { @('Continue Ultra-Low', 'Cancel') }
+    $contLabel = if ($normPreset) { 'Continue Anyway' } else { 'Continue Ultra-Low' }
+    $warnTail = if ($normPreset) {
+        'Close Chrome/browser tabs or other apps for best results before continuing, or launch Lite Downtown to cut map memory.'
+    } else {
+        'Close Chrome/browser tabs or other apps for best results, or continue in Ultra-Low Mode (cuts map memory by ~70%).'
+    }
+    $btns = if ($hasLite) { @($contLabel, 'Launch Lite Downtown', 'Cancel') } else { @($contLabel, 'Cancel') }
     $choice = Show-ChoiceDialog `
         'BAKOQUAKE - Low Free RAM Warning' `
         "Only $freeGbStr GB RAM free (of $totGbStr GB total)" `
-        "Your PC is very low on free memory right now. Top RAM apps:`n  $topStr`n`nClose Chrome/browser tabs or other apps for best results, or continue in Ultra-Low Mode (cuts map memory by ~70%)." `
+        "Your PC is very low on free memory right now. Top RAM apps:`n  $topStr`n`n$warnTail" `
         $btns
     if ($choice -eq 'Cancel') {
         $cancelLaunch = $true
@@ -622,6 +772,7 @@ if (-not $DryRun -and -not $cancelLaunch) {
             "timestamp=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
             "root=$Root"
             "tier=$tier"
+            "user_preset=$normPreset"
             "temporary_tier=$isTemporaryTier"
             "reason=$reason"
             "ram_total_gb=$([math]::Round($totalRamGB, 2))"

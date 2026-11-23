@@ -45,6 +45,68 @@ if /i not "%BQOLD%"=="v2|%ROOT%" if exist "%ROOT%\tools\install-shortcuts.ps1" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\install-shortcuts.ps1" -Root "%ROOT%" >nul 2>&1 && <nul set /p "=v2|%ROOT%">"%BQMARK%"
 )
 
+rem Display & Graphics Picker (monitor, display mode, resolution, graphics preset).
+rem Runs Update.exe --picker (or tools\bq_update.py --picker in dev trees); writes bq_launch_video.cfg and env vars.
+set "BQPICKENV=%TEMP%\bq-pick-%RANDOM%-%RANDOM%.cmd"
+set "PICKFLAGS="
+if "%BQ_SETUP%"=="1" set "PICKFLAGS=--setup"
+if not "%BQ_SETUP%"=="1" if "%BQ_NO_PROMPT%"=="1" set "PICKFLAGS=--no-gui"
+set "BQ_PICK_CANCEL=0"
+set "BQ_PICK_PRESET="
+set "BQ_PICK_MODE="
+set "BQ_PICK_WIDTH="
+set "BQ_PICK_HEIGHT="
+set "BQ_PICK_HZ="
+set "BQ_PICK_MON_X="
+set "BQ_PICK_MON_Y="
+set "BQ_PICK_MON_W="
+set "BQ_PICK_MON_H="
+set "BQ_PICK_MON_PRIMARY="
+set "BQ_PICK_CFG="
+set "PICKPY=%ROOT%\tools\bq_update.py"
+if not exist "%PICKPY%" set "PICKPY=%ROOT%\BakersfieldQuake\tools\bq_update.py"
+
+if exist "%ROOT%\Update.exe" goto :pick_exe
+if exist "%ROOT%\tools\bq-update.exe" goto :pick_legacy_exe
+if not exist "%PICKPY%" goto :pickerdone
+where python >nul 2>&1
+if not errorlevel 1 goto :pick_py
+where py >nul 2>&1
+if not errorlevel 1 goto :pick_py3
+goto :pickerdone
+
+:pick_exe
+"%ROOT%\Update.exe" --picker --root "%ROOT%" --userdir "%ROOT%" --out-env "%BQPICKENV%" --env-format cmd %PICKFLAGS%
+goto :afterpicker
+
+:pick_legacy_exe
+"%ROOT%\tools\bq-update.exe" --picker --root "%ROOT%" --userdir "%ROOT%" --out-env "%BQPICKENV%" --env-format cmd %PICKFLAGS%
+goto :afterpicker
+
+:pick_py
+python "%PICKPY%" --picker --root "%ROOT%" --userdir "%ROOT%" --out-env "%BQPICKENV%" --env-format cmd %PICKFLAGS%
+goto :afterpicker
+
+:pick_py3
+py -3 "%PICKPY%" --picker --root "%ROOT%" --userdir "%ROOT%" --out-env "%BQPICKENV%" --env-format cmd %PICKFLAGS%
+goto :afterpicker
+
+:afterpicker
+set "PICKRC=%ERRORLEVEL%"
+if exist "%BQPICKENV%" (
+    call "%BQPICKENV%"
+    del /q "%BQPICKENV%" >nul 2>&1
+)
+if "%PICKRC%"=="4" (
+    popd
+    exit /b 0
+)
+if "%BQ_PICK_CANCEL%"=="1" (
+    popd
+    exit /b 0
+)
+:pickerdone
+
 set "SCAN=%~dp0tools\lanscan.ps1"
 if not exist "%SCAN%" set "SCAN=%~dp0lanscan.ps1"
 set "PS=powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden"
@@ -62,7 +124,13 @@ set "USED_PREFLIGHT="
 set "TIERARGS="
 set "BQENV=%TEMP%\bq-pre-%RANDOM%-%RANDOM%.cmd"
 
-if exist "%PREFLIGHT%" powershell -NoProfile -ExecutionPolicy Bypass -File "%PREFLIGHT%" -Root "%ROOT%" -OutEnvFile "%BQENV%" >nul 2>&1
+if exist "%PREFLIGHT%" (
+    if defined BQ_PICK_PRESET (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%PREFLIGHT%" -Root "%ROOT%" -OutEnvFile "%BQENV%" -UserPreset "%BQ_PICK_PRESET%" >nul 2>&1
+    ) else (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%PREFLIGHT%" -Root "%ROOT%" -OutEnvFile "%BQENV%" >nul 2>&1
+    )
+)
 if exist "%BQENV%" (
     call "%BQENV%"
     del /q "%BQENV%" >nul 2>&1
@@ -78,12 +146,15 @@ if defined USED_PREFLIGHT (
 )
 
 rem Fallback batch tiering if PowerShell / bq-preflight.ps1 is unavailable.
+set "LOWMEM="
+set "LOWGPU="
+set "WEAKGPU="
+if defined BQ_PICK_PRESET goto :fallback_overrides
 set "BQRAMF=%LOCALAPPDATA%\BAKOQUAKE\ram-gb.txt"
 set "BQRAM="
 if exist "%BQRAMF%" set /p BQRAM=<"%BQRAMF%"
 if defined BQRAM echo %BQRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQRAM="
 if not defined BQRAM call :readram
-set "LOWMEM="
 if defined BQRAM if 1%BQRAM% LSS 110 set "LOWMEM=+exec lowmem.cfg"
 
 set "BQVRAMF=%LOCALAPPDATA%\BAKOQUAKE\vram-mb.txt"
@@ -93,11 +164,10 @@ if exist "%BQVRAMF%" set /p BQVRAM=<"%BQVRAMF%"
 if defined BQVRAM echo %BQVRAM%| findstr /r "^[0-9][0-9]*$" >nul || set "BQVRAM="
 if not defined BQVRAM call :readvram
 if "%BQVRAM%"=="0" set "BQVRAM="
-set "WEAKGPU="
 if defined BQVRAM if 1%BQVRAM% LSS 13000 set "WEAKGPU=1"
 if defined WEAKGPU set "LOWMEM=+exec lowmem.cfg"
-set "LOWGPU="
 if defined WEAKGPU if not exist "%BQGPUDONE%" set "LOWGPU=+exec lowgpu.cfg"
+:fallback_overrides
 if "%BQ_LOWGPU%"=="1" set "LOWGPU=+exec lowgpu.cfg"
 if "%BQ_LOWGPU%"=="0" set "LOWGPU="
 if "%BQ_LOWMEM%"=="1" set "LOWMEM=+exec lowmem.cfg"
@@ -110,6 +180,9 @@ if "%BQ_SAFEMODE%"=="1" set "TIERARGS=+exec safemode.cfg"
 if /i "%BQ_TIER%"=="normal" set "TIERARGS="
 
 :tierdone
+
+set "PICKARGS="
+if defined BQ_PICK_CFG set "PICKARGS=+exec %BQ_PICK_CFG%"
 
 rem First run (no saved config yet, or only the placeholder from the zip): use the Windows user name and a random colour.
 set "FIRST="
@@ -127,17 +200,26 @@ if not "%BQ_PRE_LOG_ROTATED%"=="1" if exist "%ROOT%\BakersfieldQuake\bq_game.log
 )
 
 rem Keys (F1 = add bot, F2 = remove bot, F3 = LAN) are defaults in default.cfg/bm_binds.cfg, not forced here.
-start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake +log_file bq_game.log %FIRST% %TIERARGS% %COMBAT_ARGS%
+rem PICKARGS (+exec bq_launch_video.cfg) runs before TIERARGS so crash-recovery safemode.cfg cleanly overrides it.
+start "" /D "%ROOT%\engine" "%ENGINE%" -basedir "%ROOT%" -userdir "%ROOT%" -game quake15 -game BakersfieldQuake +log_file bq_game.log %FIRST% %PICKARGS% %TIERARGS% %COMBAT_ARGS%
 
-rem Background watchdog: clears session-active.flag and writes lowgpu-applied.txt ONLY after clean exit,
-rem restores config.cfg after temporary Safe Mode/Ultra-Low sessions, preserves bq_game_crash.log on crash/hang,
-rem and offers Safe Mode / Report a Problem if frozen >60s.
+rem Background watchdog: places window on chosen monitor on startup, clears session-active.flag and writes
+rem lowgpu-applied.txt ONLY after clean exit, restores config.cfg after temporary Safe Mode/Ultra-Low sessions,
+rem preserves bq_game_crash.log on crash/hang, and offers Safe Mode / Report a Problem if frozen >60s.
 set "WATCHMARK="
 if "%BQ_PRE_MARK_LOWGPU%"=="1" set "WATCHMARK=-WatchMarkLowGpu"
 set "WATCHRESTORE="
 if "%BQ_PRE_RESTORE_CONFIG%"=="1" set "WATCHRESTORE=-WatchRestoreConfig"
+set "WATCHMON="
+if defined BQ_PICK_MON_W if defined BQ_PICK_MON_H if defined BQ_PICK_MON_X if defined BQ_PICK_MON_Y set "WATCHMON=-TargetMonitorRect "%BQ_PICK_MON_X%,%BQ_PICK_MON_Y%,%BQ_PICK_MON_W%,%BQ_PICK_MON_H%""
+set "WATCHMODE="
+if defined BQ_PICK_MODE set "WATCHMODE=-TargetDisplayMode "%BQ_PICK_MODE%""
+set "WATCHSIZE="
+if defined BQ_PICK_WIDTH if defined BQ_PICK_HEIGHT set "WATCHSIZE=-TargetSize "%BQ_PICK_WIDTH%,%BQ_PICK_HEIGHT%""
+set "WATCHPRIM="
+if defined BQ_PICK_MON_PRIMARY set "WATCHPRIM=-TargetMonitorPrimary "%BQ_PICK_MON_PRIMARY%""
 if defined USED_PREFLIGHT (
-    if not "%BQ_WATCHDOG%"=="0" start "" /min %PS% -File "%PREFLIGHT%" -Root "%ROOT%" -WatchExe "%ENGINE%" -WatchTier "%BQ_PRE_TIER%" %WATCHMARK% %WATCHRESTORE%
+    if not "%BQ_WATCHDOG%"=="0" start "" /min %PS% -File "%PREFLIGHT%" -Root "%ROOT%" -WatchExe "%ENGINE%" -WatchTier "%BQ_PRE_TIER%" %WATCHMARK% %WATCHRESTORE% %WATCHMON% %WATCHMODE% %WATCHSIZE% %WATCHPRIM%
 ) else (
     if defined LOWGPU if defined WEAKGPU <nul set /p "=1">"%BQGPUDONE%"
 )

@@ -106,6 +106,37 @@ or run BAKOQUAKE again and pick your Quake id1 folder."
     }
 done
 
+# 1b. Display & Graphics Picker: run the frozen GUI picker (without --no-gui so the native picker window opens).
+BQ_PICK_CANCEL=0
+BQ_PICK_PRESET=""
+BQ_PICK_MODE=""
+BQ_PICK_WIDTH=""
+BQ_PICK_HEIGHT=""
+BQ_PICK_HZ=""
+BQ_PICK_MON_X=""
+BQ_PICK_MON_Y=""
+BQ_PICK_MON_W=""
+BQ_PICK_MON_H=""
+BQ_PICK_MON_PRIMARY=""
+BQ_PICK_CFG=""
+if [ -x "$APP/MacOS/bq-update" ]; then
+    _bq_tmp="${TMPDIR:-/tmp}"
+    _bq_tmp="${_bq_tmp%/}"
+    _bq_pick_env="$(mktemp "$_bq_tmp/bq-pick.XXXXXX")"
+    _bq_pick_cmd=("$APP/MacOS/bq-update" --picker --root "$GAME" --userdir "$USERDIR" --out-env "$_bq_pick_env" --env-format sh)
+    [ "${BQ_SETUP:-0}" = 1 ] && _bq_pick_cmd+=(--setup)
+    "${_bq_pick_cmd[@]}"
+    _bq_pick_rc=$?
+    if [ -f "$_bq_pick_env" ]; then
+        # shellcheck source=/dev/null
+        . "$_bq_pick_env"
+        rm -f "$_bq_pick_env"
+    fi
+    if [ "$_bq_pick_rc" = 4 ] || [ "${BQ_PICK_CANCEL:-0}" = 1 ]; then
+        exit 0
+    fi
+fi
+
 ARGS=(-basedir "$GAME" -userdir "$USERDIR" -game quake15 -game BakersfieldQuake)
 # Game log in the user folder. The engine appends, so the previous one is moved aside first (bq_game_prev.log).
 [ -f "$USERDIR/BakersfieldQuake/bq_game.log" ] && mv -f "$USERDIR/BakersfieldQuake/bq_game.log" "$USERDIR/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
@@ -118,7 +149,8 @@ if [ ! -f "$CFG" ] || grep -q BAKERSFIELD_SEED "$CFG" 2>/dev/null; then
 fi
 
 # 2b. Live memory tiering (normal / lowmem / ultralow / safemode): checks total unified RAM and vm_stat available RAM.
-#     Apple Silicon shares unified memory between CPU & GPU, so <=8 GB Macs or low free RAM start in ultralow.cfg.
+#     Apple Silicon shares unified memory between CPU & GPU, so <=8 GB Macs or low free RAM start in ultralow.cfg
+#     unless the player picked an explicit graphics preset in Display Setup.
 RAM_GB=$(( ( $(sysctl -n hw.memsize 2>/dev/null || echo 0) + 536870912 ) / 1073741824 ))
 _ps="$(sysctl -n hw.pagesize 2>/dev/null || echo 4096)"
 _free_pages="$(vm_stat 2>/dev/null | awk '/Pages (free|inactive|speculative|purgeable):/ { gsub(/\./, "", $NF); s += $NF } END { print s + 0 }')"
@@ -132,6 +164,8 @@ case "${BQ_TIER:-}" in
             TIER="safemode"
         elif [ "${BQ_ULTRALOW:-}" = 1 ]; then
             TIER="ultralow"
+        elif [ -n "${BQ_PICK_PRESET:-}" ]; then
+            TIER="preset-${BQ_PICK_PRESET}"
         elif { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 2048 ]; } || { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -le 8 ]; }; then
             TIER="ultralow"
         elif { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; } || { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 3584 ]; }; then
@@ -142,6 +176,9 @@ case "${BQ_TIER:-}" in
         ;;
 esac
 
+if [ -n "${BQ_PICK_CFG:-}" ]; then
+    ARGS+=(+exec "$BQ_PICK_CFG")
+fi
 case "$TIER" in
     safemode) ARGS+=(+exec safemode.cfg) ;;
     ultralow) ARGS+=(+exec ultralow.cfg) ;;

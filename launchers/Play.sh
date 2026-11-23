@@ -60,6 +60,39 @@ if [ "$(uname)" = Linux ] && [ -f "$ROOT/tools/install-shortcuts.sh" ]; then
     . "$ROOT/tools/install-shortcuts.sh" && bq_install_shortcuts "$ROOT"
 fi
 
+# Display & Graphics Picker (monitor, display mode, resolution, graphics preset).
+BQ_PICK_CANCEL=0
+BQ_PICK_PRESET=""
+BQ_PICK_MODE=""
+BQ_PICK_WIDTH=""
+BQ_PICK_HEIGHT=""
+BQ_PICK_HZ=""
+BQ_PICK_MON_X=""
+BQ_PICK_MON_Y=""
+BQ_PICK_MON_W=""
+BQ_PICK_MON_H=""
+BQ_PICK_MON_PRIMARY=""
+BQ_PICK_CFG=""
+if [ -f "$ROOT/tools/bq_update.py" ] && command -v python3 >/dev/null 2>&1 \
+        && { [ "$(uname)" != Darwin ] || xcode-select -p >/dev/null 2>&1; }; then
+    _bq_tmp="${TMPDIR:-/tmp}"
+    _bq_tmp="${_bq_tmp%/}"
+    _bq_pick_env="$(mktemp "$_bq_tmp/bq-pick.XXXXXX")"
+    _bq_pick_cmd=(python3 "$ROOT/tools/bq_update.py" --picker --root "$ROOT" --userdir "$ROOT" --out-env "$_bq_pick_env" --env-format sh)
+    [ "${BQ_SETUP:-0}" = 1 ] && _bq_pick_cmd+=(--setup)
+    [ "${BQ_NO_GUI:-0}" = 1 ] && [ "${BQ_SETUP:-0}" != 1 ] && _bq_pick_cmd+=(--no-gui)
+    "${_bq_pick_cmd[@]}"
+    _bq_pick_rc=$?
+    if [ -f "$_bq_pick_env" ]; then
+        # shellcheck source=/dev/null
+        . "$_bq_pick_env"
+        rm -f "$_bq_pick_env"
+    fi
+    if [ "$_bq_pick_rc" = 4 ] || [ "${BQ_PICK_CANCEL:-0}" = 1 ]; then
+        exit 0
+    fi
+fi
+
 # Saved settings live in this folder (BakersfieldQuake/config.cfg), same as on Windows, not in ~/.darkplaces.
 COMMON=(-basedir "$ROOT" -userdir "$ROOT" -game quake15 -game BakersfieldQuake)
 
@@ -94,6 +127,8 @@ case "${BQ_TIER:-}" in
             TIER="safemode"
         elif [ "${BQ_ULTRALOW:-}" = 1 ]; then
             TIER="ultralow"
+        elif [ -n "${BQ_PICK_PRESET:-}" ]; then
+            TIER="preset-${BQ_PICK_PRESET}"
         elif { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 2048 ]; } || { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -le 8 ]; }; then
             TIER="ultralow"
         elif { [ "$RAM_GB" -gt 0 ] && [ "$RAM_GB" -lt 10 ]; } || { [ "$FREE_MB" -gt 0 ] && [ "$FREE_MB" -lt 3584 ]; }; then
@@ -103,6 +138,11 @@ case "${BQ_TIER:-}" in
         if [ "${BQ_LOWMEM:-}" = 0 ] && [ "$TIER" = lowmem ]; then TIER="normal"; fi
         ;;
 esac
+
+PICKARGS=()
+if [ -n "${BQ_PICK_CFG:-}" ]; then
+    PICKARGS=(+exec "$BQ_PICK_CFG")
+fi
 
 TIERARGS=()
 case "$TIER" in
@@ -125,7 +165,7 @@ fi
 # this session, bq_game_prev.log the one before, and bq_game_crash.log is preserved if the engine exits abnormally.
 [ -f "$ROOT/BakersfieldQuake/bq_game.log" ] && mv -f "$ROOT/BakersfieldQuake/bq_game.log" "$ROOT/BakersfieldQuake/bq_game_prev.log" 2>/dev/null
 # shellcheck disable=SC2086
-"$ENGINE" "${COMMON[@]}" +log_file bq_game.log ${FIRST[@]+"${FIRST[@]}"} ${TIERARGS[@]+"${TIERARGS[@]}"} ${COMBAT_ARGS:-} ${JOIN[@]+"${JOIN[@]}"} &
+"$ENGINE" "${COMMON[@]}" +log_file bq_game.log ${FIRST[@]+"${FIRST[@]}"} ${PICKARGS[@]+"${PICKARGS[@]}"} ${TIERARGS[@]+"${TIERARGS[@]}"} ${COMBAT_ARGS:-} ${JOIN[@]+"${JOIN[@]}"} &
 GAME=$!
 
 # Keep lan_server.cfg fresh until the game exits, so F3 works.

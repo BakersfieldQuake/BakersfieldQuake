@@ -701,6 +701,24 @@ class UpdaterTest(unittest.TestCase):
                          v1["BakersfieldQuake/maps/downtown.lit"])
         self.assertEqual(self.state()["build"], 1)
 
+    def test_picker_mode_skips_lock_and_network(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            out_env = td / "picker.cmd"
+            RangeHandler.hits = []
+            rc = bq.main([
+                "--picker", "--no-gui",
+                "--root", str(td),
+                "--userdir", str(td),
+                "--out-env", str(out_env),
+                "--env-format", "cmd",
+            ])
+            self.assertEqual(rc, 0)
+            self.assertFalse((td / ".bq").exists())
+            self.assertEqual(RangeHandler.hits, [])
+            self.assertTrue((td / "BakersfieldQuake" / "bq_launch_video.cfg").is_file())
+            self.assertIn('set "BQ_PICK_CFG=bq_launch_video.cfg"', out_env.read_text("utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

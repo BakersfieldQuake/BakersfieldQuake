@@ -6,11 +6,13 @@ float OPT_TAB_CONTROLS = 2;
 float OPT_TAB_WEAPONS  = 3;
 float OPT_TAB_COUNT    = 4;
 
-float OPT_VID_COUNT    = 15;
+float OPT_VID_COUNT    = 16;
 float OPT_GFX_COUNT    = 27;
 float OPT_CTRL_COUNT   = 21;
 float OPT_VEH_COUNT    = 9;
 float OPT_WEP_COUNT    = 20;
+
+float OPT_RES_MAX      = 64;
 
 float SL_HDR      = 1;
 float SL_GAMMA    = 2;
@@ -23,11 +25,193 @@ float SL_BGM      = 8;
 
 float g_opt_vid_dirty;
 float g_opt_res_idx;
+float g_opt_res_count;
+float g_opt_res_w[64];
+float g_opt_res_h[64];
+
+void(float w, float h) BM_Opt_AddRes =
+{
+	local float i;
+
+	w = rint(w);
+	h = rint(h);
+	if (w < 800 || h < 600)
+		return;
+	for (i = 0; i < g_opt_res_count; i = i + 1)
+	{
+		if (g_opt_res_w[i] == w && g_opt_res_h[i] == h)
+			return;
+	}
+	if (g_opt_res_count >= OPT_RES_MAX)
+		return;
+	g_opt_res_w[g_opt_res_count] = w;
+	g_opt_res_h[g_opt_res_count] = h;
+	g_opt_res_count = g_opt_res_count + 1;
+};
+
+void() BM_Opt_BuildResList =
+{
+	local float m, i, j, tw, th, cur_w, cur_h, best_i, best_d, d;
+	local vector res;
+
+	g_opt_res_count = 0;
+	for (m = 0; m < 256; m = m + 1)
+	{
+		res = getresolution(m);
+		if (res_x <= 0 || res_y <= 0)
+			break;
+		BM_Opt_AddRes(res_x, res_y);
+	}
+
+	// Clean fallback list if getresolution() returned nothing
+	if (g_opt_res_count <= 0)
+	{
+		BM_Opt_AddRes(1280, 720);
+		BM_Opt_AddRes(1280, 800);
+		BM_Opt_AddRes(1366, 768);
+		BM_Opt_AddRes(1600, 900);
+		BM_Opt_AddRes(1680, 1050);
+		BM_Opt_AddRes(1920, 1080);
+		BM_Opt_AddRes(1920, 1200);
+		BM_Opt_AddRes(2560, 1080);
+		BM_Opt_AddRes(2560, 1440);
+		BM_Opt_AddRes(2560, 1600);
+		BM_Opt_AddRes(3440, 1440);
+		BM_Opt_AddRes(3840, 1600);
+		BM_Opt_AddRes(3840, 2160);
+		BM_Opt_AddRes(5120, 1440);
+	}
+
+	cur_w = rint(stof(cvar_string("vid_width")));
+	cur_h = rint(stof(cvar_string("vid_height")));
+	if (cur_w >= 800 && cur_h >= 600)
+		BM_Opt_AddRes(cur_w, cur_h);
+	else
+	{
+		cur_w = 1920;
+		cur_h = 1080;
+	}
+
+	// Sort ascending by (width, height)
+	for (i = 0; i < g_opt_res_count - 1; i = i + 1)
+	{
+		for (j = i + 1; j < g_opt_res_count; j = j + 1)
+		{
+			if (g_opt_res_w[j] < g_opt_res_w[i] || (g_opt_res_w[j] == g_opt_res_w[i] && g_opt_res_h[j] < g_opt_res_h[i]))
+			{
+				tw = g_opt_res_w[i];
+				th = g_opt_res_h[i];
+				g_opt_res_w[i] = g_opt_res_w[j];
+				g_opt_res_h[i] = g_opt_res_h[j];
+				g_opt_res_w[j] = tw;
+				g_opt_res_h[j] = th;
+			}
+		}
+	}
+
+	best_i = 0;
+	best_d = 999999;
+	for (i = 0; i < g_opt_res_count; i = i + 1)
+	{
+		d = fabs(g_opt_res_w[i] - cur_w) + fabs(g_opt_res_h[i] - cur_h);
+		if (d < best_d)
+		{
+			best_d = d;
+			best_i = i;
+		}
+	}
+	g_opt_res_idx = best_i;
+};
+
+void(float w, float h) BM_Opt_SyncVideoDims =
+{
+	local float cw;
+	local string ws, hs;
+
+	w = rint(w);
+	h = rint(h);
+	if (w < 800 || h < 600)
+	{
+		w = 1920;
+		h = 1080;
+	}
+	ws = ftos(w);
+	hs = ftos(h);
+	cw = bound(480, rint(360 * w / h), 1280);
+
+	cvar_set("vid_width", ws);
+	cvar_set("vid_height", hs);
+	cvar_set("_vid_fullscreen_width", ws);
+	cvar_set("_vid_fullscreen_height", hs);
+	cvar_set("_vid_window_width", ws);
+	cvar_set("_vid_window_height", hs);
+	cvar_set("vid_conwidth", ftos(cw));
+	cvar_set("vid_conheight", "360");
+};
+
+// 0 = Borderless, 1 = Fullscreen, 2 = Windowed
+float() BM_Opt_GetDisplayMode =
+{
+	local float fs, dfs, bl;
+
+	fs = (stof(cvar_string("vid_fullscreen")) != 0);
+	dfs = (stof(cvar_string("vid_desktopfullscreen")) != 0);
+	bl = (stof(cvar_string("vid_borderless")) != 0);
+
+	if ((fs && dfs) || (!fs && bl))
+		return 0;
+	if (fs)
+		return 1;
+	return 2;
+};
+
+string(float mode) BM_Opt_DisplayModeLabel =
+{
+	if (mode == 0) return "Borderless";
+	if (mode == 1) return "Fullscreen";
+	return "Windowed";
+};
+
+void(float mode) BM_Opt_ApplyDisplayMode =
+{
+	local float w, h;
+
+	if (mode == 0)
+	{
+		cvar_set("vid_fullscreen", "1");
+		cvar_set("vid_desktopfullscreen", "1");
+		cvar_set("vid_borderless", "0");
+	}
+	else if (mode == 1)
+	{
+		cvar_set("vid_fullscreen", "1");
+		cvar_set("vid_desktopfullscreen", "0");
+		cvar_set("vid_borderless", "0");
+	}
+	else
+	{
+		cvar_set("vid_fullscreen", "0");
+		cvar_set("vid_desktopfullscreen", "0");
+		cvar_set("vid_borderless", "0");
+	}
+
+	if (g_opt_res_count > 0)
+	{
+		g_opt_res_idx = bound(0, g_opt_res_idx, g_opt_res_count - 1);
+		w = g_opt_res_w[g_opt_res_idx];
+		h = g_opt_res_h[g_opt_res_idx];
+	}
+	else
+	{
+		w = stof(cvar_string("vid_width"));
+		h = stof(cvar_string("vid_height"));
+	}
+	BM_Opt_SyncVideoDims(w, h);
+	g_opt_vid_dirty = TRUE;
+};
 
 void() BM_Options_Open =
 {
-	local float w;
-
 	g_page = PAGE_OPTIONS;
 	g_focus_input = INPUT_NONE;
 	g_bind_listen_idx = -1;
@@ -35,42 +219,24 @@ void() BM_Options_Open =
 	g_opt_ctrl_veh = 0;
 	g_active_slider = 0;
 
-	w = stof(cvar_string("vid_width"));
-	if (stof(cvar_string("vid_desktopfullscreen")) != 0)
-		g_opt_res_idx = 0;
-	else if (w <= 1280)
-		g_opt_res_idx = 1;
-	else if (w <= 1600)
-		g_opt_res_idx = 2;
-	else if (w <= 1920)
-		g_opt_res_idx = 3;
-	else
-		g_opt_res_idx = 4;
+	BM_Opt_BuildResList();
 };
 
 string(float idx) BM_Opt_ResLabel =
 {
-	if (idx <= 0) return "Desktop";
-	if (idx == 1) return "1280x720";
-	if (idx == 2) return "1600x900";
-	if (idx == 3) return "1920x1080";
-	return "2560x1440";
+	if (g_opt_res_count <= 0)
+		return "1920x1080";
+	idx = bound(0, rint(idx), g_opt_res_count - 1);
+	return strcat(ftos(g_opt_res_w[idx]), "x", ftos(g_opt_res_h[idx]));
 };
 
 void(float idx) BM_Opt_ApplyRes =
 {
-	if (idx <= 0)
-	{
-		cvar_set("vid_desktopfullscreen", "1");
-	}
-	else
-	{
-		cvar_set("vid_desktopfullscreen", "0");
-		if (idx == 1)      { cvar_set("vid_width", "1280"); cvar_set("vid_height", "720"); }
-		else if (idx == 2) { cvar_set("vid_width", "1600"); cvar_set("vid_height", "900"); }
-		else if (idx == 3) { cvar_set("vid_width", "1920"); cvar_set("vid_height", "1080"); }
-		else               { cvar_set("vid_width", "2560"); cvar_set("vid_height", "1440"); }
-	}
+	if (g_opt_res_count <= 0)
+		return;
+	idx = bound(0, rint(idx), g_opt_res_count - 1);
+	g_opt_res_idx = idx;
+	BM_Opt_SyncVideoDims(g_opt_res_w[idx], g_opt_res_h[idx]);
 	g_opt_vid_dirty = TRUE;
 };
 
@@ -122,8 +288,36 @@ void() BM_Opt_ApplyVideoDefaults =
 	BM_Opt_SetStatus("CLEAN VIDEO & AUDIO DEFAULTS APPLIED");
 };
 
+void(string cname, float target_v, string val_str) BM_Opt_SetVidFloatCvar =
+{
+	local string cur;
+
+	cur = cvar_string(cname);
+	if (cur != "" && fabs(stof(cur) - target_v) > 0.001)
+		g_opt_vid_dirty = TRUE;
+	cvar_set(cname, val_str);
+};
+
+void() BM_Opt_ResetDietCvars =
+{
+	BM_Opt_SetVidFloatCvar("gl_picmip", 0, "0");
+	BM_Opt_SetVidFloatCvar("gl_picmip_world", 0, "0");
+	BM_Opt_SetVidFloatCvar("gl_picmip_other", 0, "0");
+	BM_Opt_SetVidFloatCvar("gl_picmip_sprites", 0, "0");
+	BM_Opt_SetVidFloatCvar("gl_picmip_force", 0, "0");
+	BM_Opt_SetVidFloatCvar("gl_max_size", 2048, "2048");
+	BM_Opt_SetVidFloatCvar("gl_texturecompression", 0, "0");
+	cvar_set("r_dynamic", "1");
+	cvar_set("menu_background", "1");
+	cvar_set("r_lerpmodels", "1");
+	cvar_set("r_lerplightstyles", "1");
+	cvar_set("r_lerpsprites", "0");
+	cvar_set("v_glslgamma_2d", "1");
+};
+
 void(float enable_simple) BM_Opt_ApplySimpleMode =
 {
+	BM_Opt_ResetDietCvars();
 	if (enable_simple)
 	{
 		cvar_set("lowspec", "1");
@@ -133,8 +327,12 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("r_shadow_gloss", "0");
 		cvar_set("r_shadow_glossexact", "0");
 		cvar_set("r_shadow_shadowmapping", "0");
+		cvar_set("r_shadow_usenormalmap", "0");
+		BM_Opt_SetVidFloatCvar("r_load_normalmap", 0, "0");
+		BM_Opt_SetVidFloatCvar("r_load_gloss", 0, "0");
 		cvar_set("r_glsl_offsetmapping", "0");
 		cvar_set("r_glsl_offsetmapping_reliefmapping", "0");
+		cvar_set("r_glsl_deluxemapping", "0");
 		cvar_set("r_water", "0");
 		cvar_set("r_coronas", "0");
 		cvar_set("r_glsl_saturation", "1");
@@ -145,6 +343,9 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("cl_decals_fadetime", "4");
 		cvar_set("cl_decals_models", "0");
 		cvar_set("cl_stainmaps", "0");
+		BM_Opt_SetVidFloatCvar("vid_samples", 1, "1");
+		cvar_set("gl_texture_anisotropy", "4");
+		cvar_set("gl_texturemode", "GL_LINEAR_MIPMAP_LINEAR");
 		cvar_set("r_minlight", "3");
 		cvar_set("gl_overbright_models", "0");
 	}
@@ -159,8 +360,13 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("r_shadow_gloss", "1");
 		cvar_set("r_shadow_glossexact", "0");
 		cvar_set("r_shadow_shadowmapping", "0");
+		cvar_set("r_shadow_shadowmapping_texturesize", "4096");
+		cvar_set("r_shadow_usenormalmap", "1");
+		BM_Opt_SetVidFloatCvar("r_load_normalmap", 1, "1");
+		BM_Opt_SetVidFloatCvar("r_load_gloss", 1, "1");
 		cvar_set("r_glsl_offsetmapping", "1");
 		cvar_set("r_glsl_offsetmapping_reliefmapping", "0");
+		cvar_set("r_glsl_deluxemapping", "1");
 		cvar_set("r_water", "0");
 		cvar_set("r_coronas", "0.6");
 		cvar_set("r_glsl_saturation", "1");
@@ -171,6 +377,9 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("cl_decals_fadetime", "4");
 		cvar_set("cl_decals_models", "0");
 		cvar_set("cl_stainmaps", "0");
+		BM_Opt_SetVidFloatCvar("vid_samples", 4, "4");
+		cvar_set("gl_texture_anisotropy", "16");
+		cvar_set("gl_texturemode", "GL_LINEAR_MIPMAP_LINEAR");
 		cvar_set("r_minlight", "3");
 		cvar_set("gl_overbright_models", "0");
 	}
@@ -184,38 +393,16 @@ void() BM_Opt_ApplyPrettyPreset =
 	cvar_set("r_shadow_shadowmapping", "1");
 	cvar_set("r_shadow_shadowmapping_maxsize", "1024");
 	cvar_set("r_shadow_glossexact", "1");
-	cvar_set("r_shadow_usenormalmap", "1");
 	cvar_set("r_water", "1");
 	cvar_set("r_water_lowquality", "0");
 	cvar_set("r_water_resolutionmultiplier", "0.75");
 	cvar_set("r_wateralpha", "0.5");
 	cvar_set("r_glsl_saturation", "1.1");
-	cvar_set("cl_stainmaps", "0");
-	cvar_set("cl_decals_max", "256");
-	cvar_set("cl_decals_time", "16");
-	cvar_set("cl_decals_fadetime", "4");
-	cvar_set("cl_decals_models", "0");
 };
 
 void() BM_Opt_ApplyGraphicsDefaults =
 {
 	BM_Opt_ApplySimpleMode(FALSE);
-	if (stof(cvar_string("gl_picmip")) != 0)
-	{
-		cvar_set("gl_picmip", "0");
-		g_opt_vid_dirty = TRUE;
-	}
-	if (stof(cvar_string("vid_samples")) != 4)
-	{
-		cvar_set("vid_samples", "4");
-		g_opt_vid_dirty = TRUE;
-	}
-	cvar_set("gl_texturemode", "GL_LINEAR_MIPMAP_LINEAR");
-	cvar_set("gl_texture_anisotropy", "16");
-	cvar_set("gl_texturecompression", "0");
-	cvar_set("r_lerpsprites", "0");
-	cvar_set("r_lerpmodels", "1");
-	cvar_set("r_lerplightstyles", "1");
 	cvar_set("r_nearest_conchars", "0");
 	cvar_set("bright_skins", "1");
 	cvar_set("centered_weapons", "0");
@@ -518,8 +705,8 @@ float() BM_Opt_IsLiveColorDrag =
 
 void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Options_DrawVideoRow =
 {
-	local float st, nv, sens, mpitch, fv, gam, con, br, hdr, vol, bgm, fs_on, vs_on;
-	local float fps_v, fps_i, filt_on, run_on;
+	local float st, nv, sens, mpitch, fv, gam, con, br, hdr, vol, bgm, dmode, vs_on;
+	local float fps_v, fps_i, filt_on, run_on, lnch_on, next_idx;
 	local string lbl;
 
 	if (idx == 0)
@@ -648,24 +835,50 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 	}
 	else if (idx == 13)
 	{
-		fs_on = (stof(cvar_string("vid_fullscreen")) != 0);
-		st = BM_DrawStepper(ix, ry, iw, rh, "FULLSCREEN", fs_on ? "On" : "Off", FALSE, clicked);
+		dmode = BM_Opt_GetDisplayMode();
+		st = BM_DrawStepper(ix, ry, iw, rh, "DISPLAY MODE", BM_Opt_DisplayModeLabel(dmode), FALSE, clicked);
 		if (st != 0)
 		{
 			g_click_consumed = TRUE;
-			cvar_set("vid_fullscreen", fs_on ? "0" : "1");
-			g_opt_vid_dirty = TRUE;
+			dmode = modulo(dmode + st + 3, 3);
+			BM_Opt_ApplyDisplayMode(dmode);
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else
+	else if (idx == 14)
 	{
 		st = BM_DrawStepper(ix, ry, iw, rh, "RESOLUTION", BM_Opt_ResLabel(g_opt_res_idx), FALSE, clicked);
 		if (st != 0)
 		{
 			g_click_consumed = TRUE;
-			g_opt_res_idx = bound(0, g_opt_res_idx + st, 4);
-			BM_Opt_ApplyRes(g_opt_res_idx);
+			if (g_opt_res_count > 0)
+			{
+				next_idx = bound(0, g_opt_res_idx + st, g_opt_res_count - 1);
+				if (next_idx != g_opt_res_idx)
+					BM_Opt_ApplyRes(next_idx);
+			}
+			BM_PlaySound("sound/misc/menu1.wav");
+		}
+	}
+	else if (idx == 15)
+	{
+		lnch_on = (stof(cvar_string("bm_show_launcher")) != 0);
+		st = BM_DrawStepper(ix, ry, iw, rh, "LAUNCHER ON NEXT START", lnch_on ? "On" : "Off", FALSE, clicked);
+		if (st != 0)
+		{
+			g_click_consumed = TRUE;
+			if (!lnch_on)
+			{
+				cvar_set("bm_show_launcher", "1");
+				localcmd("saveconfig\n");
+				BM_Opt_SetStatus("DISPLAY SETUP WILL OPEN ON NEXT LAUNCH");
+			}
+			else
+			{
+				cvar_set("bm_show_launcher", "0");
+				localcmd("saveconfig\n");
+				BM_Opt_SetStatus("DISPLAY SETUP SKIPPED ON NEXT LAUNCH");
+			}
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
@@ -674,6 +887,10 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo =
 {
 	local float ix, iy, iw, ih, rh, gap, vis, max_scroll, i, r, ry, live_drag, hov, sb_h, sb_y;
+	local float in_clip, row_clicked;
+
+	if (g_opt_res_count <= 0)
+		BM_Opt_BuildResList();
 
 	ix = px + 14;
 	iy = py + 58;
@@ -698,6 +915,9 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 		return;
 	}
 
+	in_clip = BM_MouseIn(ix, iy, iw, ih);
+	row_clicked = (clicked && !g_click_consumed && in_clip);
+
 	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < OPT_VID_COUNT; i = i + 1)
 	{
@@ -705,7 +925,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 		if (r >= 0 && r < vis)
 		{
 			ry = iy + r * (rh + gap);
-			BM_Options_DrawVideoRow(ix, ry, iw, rh, i, clicked);
+			BM_Options_DrawVideoRow(ix, ry, iw, rh, i, row_clicked);
 		}
 	}
 	BM_EndClip();
@@ -725,7 +945,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 		BM_DrawTextClipped(px + 14, py + ph - 20, pw - 246, "Drag sliders or click arrows  |  Wheel scrolls", 8, COL_MUTED, 0.88, FALSE);
 
 	hov = BM_DrawButton(px + pw - 228, py + ph - 24, 90, 18, "SAVE CONFIG", FALSE, FALSE);
-	if (clicked && hov)
+	if (clicked && !g_click_consumed && hov)
 	{
 		g_click_consumed = TRUE;
 		BM_PlaySound("sound/misc/menu2.wav");
@@ -733,7 +953,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawVideo
 	}
 
 	hov = BM_DrawButton(px + pw - 132, py + ph - 24, 118, 18, "RESET DEFAULTS", FALSE, FALSE);
-	if (clicked && hov)
+	if (clicked && !g_click_consumed && hov)
 	{
 		g_click_consumed = TRUE;
 		BM_PlaySound("sound/misc/menu2.wav");
@@ -772,8 +992,8 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 	else if (idx == 1)
 	{
 		if (BM_Opt_IsSimpleMode()) { mi = 0; lbl = "Simple"; }
-		else if (stof(cvar_string("r_water")) != 0 || stof(cvar_string("r_shadow_glossexact")) != 0) { mi = 2; lbl = "Pretty"; }
-		else { mi = 1; lbl = "Default"; }
+		else if (stof(cvar_string("r_water")) != 0 || stof(cvar_string("r_shadow_glossexact")) != 0) { mi = 2; lbl = "High"; }
+		else { mi = 1; lbl = "Normal"; }
 		st = BM_DrawStepper(ix, ry, iw, rh, "GRAPHICS PRESET", lbl, FALSE, clicked);
 		if (st != 0)
 		{
@@ -812,11 +1032,8 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			cvar_set("bm_ui_font", on ? "0" : "1");
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
-		return;
 	}
-	if (idx > 3)
-		idx = idx - 1;
-	if (idx == 3)
+	else if (idx == 4)
 	{
 		on = (stof(cvar_string("r_shadow_realtime_dlight")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "DYNAMIC LIGHTS", on ? "On" : "Off", FALSE, clicked);
@@ -827,7 +1044,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 4)
+	else if (idx == 5)
 	{
 		on = (stof(cvar_string("r_shadow_realtime_dlight_shadows")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "DYNAMIC SHADOWS", on ? "On" : "Off", FALSE, clicked);
@@ -838,7 +1055,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 5)
+	else if (idx == 6)
 	{
 		on = (stof(cvar_string("r_bloom")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "BLOOM GLOW", on ? "On" : "Off", FALSE, clicked);
@@ -851,7 +1068,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 6)
+	else if (idx == 7)
 	{
 		if (stof(cvar_string("r_glsl_offsetmapping_reliefmapping")) != 0) { mi = 2; lbl = "Relief"; }
 		else if (stof(cvar_string("r_shadow_gloss")) != 0 || stof(cvar_string("r_glsl_offsetmapping")) != 0) { mi = 1; lbl = "Normal"; }
@@ -882,7 +1099,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 7)
+	else if (idx == 8)
 	{
 		on = (stof(cvar_string("r_water")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "WATER REFLECTIONS", on ? "On" : "Off", FALSE, clicked);
@@ -893,7 +1110,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 8)
+	else if (idx == 9)
 	{
 		v = stof(cvar_string("cl_particles_quality"));
 		if (v <= 0.6) { mi = 0; lbl = "Low"; }
@@ -910,7 +1127,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 9)
+	else if (idx == 10)
 	{
 		on = (stof(cvar_string("cl_decals")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "IMPACT DECALS", on ? "On" : "Off", FALSE, clicked);
@@ -921,7 +1138,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 10)
+	else if (idx == 11)
 	{
 		v = stof(cvar_string("cl_decals_max"));
 		if (v <= 64) { mi = 0; lbl = "64"; }
@@ -940,7 +1157,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 11)
+	else if (idx == 12)
 	{
 		v = stof(cvar_string("cl_decals_time"));
 		if (v <= 8) { mi = 0; lbl = "10s"; }
@@ -960,7 +1177,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 12)
+	else if (idx == 13)
 	{
 		v = bound(0, rint(stof(cvar_string("gl_picmip"))), 2);
 		if (v == 0) lbl = "Full";
@@ -972,11 +1189,19 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			g_click_consumed = TRUE;
 			v = modulo(v + st + 3, 3);
 			cvar_set("gl_picmip", ftos(v));
+			if (v == 0)
+			{
+				cvar_set("gl_picmip_world", "0");
+				cvar_set("gl_picmip_other", "0");
+				cvar_set("gl_picmip_sprites", "0");
+				cvar_set("gl_picmip_force", "0");
+				cvar_set("gl_max_size", "2048");
+			}
 			g_opt_vid_dirty = TRUE;
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 13)
+	else if (idx == 14)
 	{
 		sv = strtoupper(cvar_string("gl_texturemode"));
 		on = (strstrofs(sv, "NEAREST") >= 0);
@@ -988,7 +1213,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 14)
+	else if (idx == 15)
 	{
 		v = stof(cvar_string("gl_texture_anisotropy"));
 		if (v <= 1) { mi = 0; lbl = "1x"; }
@@ -1007,7 +1232,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 15)
+	else if (idx == 16)
 	{
 		v = stof(cvar_string("vid_samples"));
 		if (v <= 1) { mi = 0; lbl = "Off"; }
@@ -1027,7 +1252,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 16)
+	else if (idx == 17)
 	{
 		v = stof(cvar_string("r_minlight"));
 		if (v <= 0) { mi = 0; lbl = "Off"; }
@@ -1046,7 +1271,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 17)
+	else if (idx == 18)
 	{
 		on = (stof(cvar_string("gl_overbright_models")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "OVERBRIGHT MODELS", on ? "On" : "Off", FALSE, clicked);
@@ -1057,7 +1282,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 18)
+	else if (idx == 19)
 	{
 		on = (stof(cvar_string("r_nearest_conchars")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "SHARP CONSOLE TEXT", on ? "On" : "Off", FALSE, clicked);
@@ -1068,7 +1293,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 19)
+	else if (idx == 20)
 	{
 		on = (stof(cvar_string("bright_skins")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "BRIGHT PLAYER SKINS", on ? "On" : "Off", FALSE, clicked);
@@ -1079,7 +1304,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 20)
+	else if (idx == 21)
 	{
 		on = (stof(cvar_string("centered_weapons")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "CENTERED WEAPONS", on ? "On" : "Off", FALSE, clicked);
@@ -1090,7 +1315,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 21)
+	else if (idx == 22)
 	{
 		on = (stof(cvar_string("cl_bob")) > 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "VIEW BOBBING", on ? "On" : "Off", FALSE, clicked);
@@ -1102,7 +1327,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 22)
+	else if (idx == 23)
 	{
 		v = bound(0, rint(stof(cvar_string("crosshair"))), 7);
 		lbl = (v == 0) ? "Off" : strcat("Style ", ftos(v));
@@ -1115,7 +1340,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 23)
+	else if (idx == 24)
 	{
 		on = (stof(cvar_string("bm_bot_tags")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "BOT NAMEPLATES", on ? "On" : "Off", FALSE, clicked);
@@ -1126,7 +1351,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else if (idx == 24)
+	else if (idx == 25)
 	{
 		on = (stof(cvar_string("bm_player_tags")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "PLAYER NAMEPLATES", on ? "On" : "Off", FALSE, clicked);
@@ -1137,7 +1362,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
-	else
+	else if (idx == 26)
 	{
 		on = (stof(cvar_string("showfps")) != 0);
 		st = BM_DrawStepper(ix, ry, iw, rh, "SHOW FPS", on ? "On" : "Off", FALSE, clicked);
@@ -1153,6 +1378,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraphics =
 {
 	local float ix, iy, iw, ih, rh, gap, vis, max_scroll, i, r, ry, hov, sb_h, sb_y;
+	local float in_clip, row_clicked;
 
 	ix = px + 14;
 	iy = py + 58;
@@ -1165,6 +1391,9 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 	max_scroll = max(0, OPT_GFX_COUNT - vis);
 	g_opt_scroll = bound(0, g_opt_scroll, max_scroll);
 
+	in_clip = BM_MouseIn(ix, iy, iw, ih);
+	row_clicked = (clicked && !g_click_consumed && in_clip);
+
 	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < OPT_GFX_COUNT; i = i + 1)
 	{
@@ -1172,7 +1401,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 		if (r >= 0 && r < vis)
 		{
 			ry = iy + r * (rh + gap);
-			BM_Options_DrawGraphicsRow(ix, ry, iw, rh, i, clicked);
+			BM_Options_DrawGraphicsRow(ix, ry, iw, rh, i, row_clicked);
 		}
 	}
 	BM_EndClip();
@@ -1192,7 +1421,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 		BM_DrawTextClipped(px + 14, py + ph - 20, pw - 246, "Simple Mode for max FPS  |  Wheel scrolls", 8, COL_MUTED, 0.88, FALSE);
 
 	hov = BM_DrawButton(px + pw - 228, py + ph - 24, 90, 18, "SAVE CONFIG", FALSE, FALSE);
-	if (clicked && hov)
+	if (clicked && !g_click_consumed && hov)
 	{
 		g_click_consumed = TRUE;
 		BM_PlaySound("sound/misc/menu2.wav");
@@ -1200,7 +1429,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 	}
 
 	hov = BM_DrawButton(px + pw - 132, py + ph - 24, 118, 18, "RESET DEFAULTS", FALSE, FALSE);
-	if (clicked && hov)
+	if (clicked && !g_click_consumed && hov)
 	{
 		g_click_consumed = TRUE;
 		BM_PlaySound("sound/misc/menu2.wav");
@@ -1211,7 +1440,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawGraph
 void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindList =
 {
 	local float ix, iy, iw, ih, rh, gap, vis, total, max_scroll, i, r, ry, hov, listening;
-	local float sb_h, sb_y, veh_on, bmap;
+	local float sb_h, sb_y, veh_on, bmap, in_clip;
 	local string lbl, cmd, kstr;
 	local vector bg, brd, kcol;
 
@@ -1227,7 +1456,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 			g_opt_ctrl_veh = 0;
 
 		hov = BM_DrawButton(ix, py + 56, 214, 18, veh_on ? "SEPARATE VEHICLE CONFIG: ON" : "SEPARATE VEHICLE CONFIG: OFF", veh_on, veh_on);
-		if (clicked && hov)
+		if (clicked && !g_click_consumed && hov)
 		{
 			g_click_consumed = TRUE;
 			g_bind_listen_idx = -1;
@@ -1259,7 +1488,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		if (veh_on)
 		{
 			hov = BM_DrawTab(ix + iw - 144, py + 56, 70, 18, "ON FOOT", (g_opt_ctrl_veh == 0));
-			if (clicked && hov)
+			if (clicked && !g_click_consumed && hov)
 			{
 				g_click_consumed = TRUE;
 				g_bind_listen_idx = -1;
@@ -1268,7 +1497,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 				BM_PlaySound("sound/misc/menu1.wav");
 			}
 			hov = BM_DrawTab(ix + iw - 70, py + 56, 70, 18, "VEHICLE", (g_opt_ctrl_veh == 1));
-			if (clicked && hov)
+			if (clicked && !g_click_consumed && hov)
 			{
 				g_click_consumed = TRUE;
 				g_bind_listen_idx = -1;
@@ -1290,6 +1519,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 	vis = max(1, floor((ih + gap) / (rh + gap)));
 	max_scroll = max(0, total - vis);
 	g_opt_scroll = bound(0, g_opt_scroll, max_scroll);
+	in_clip = BM_MouseIn(ix, iy, iw, ih);
 
 	BM_BeginClip(ix, iy, iw, ih);
 	for (i = 0; i < total; i = i + 1)
@@ -1301,7 +1531,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 			lbl = bmap ? BM_Opt_VehLabel(i) : BM_Opt_BindLabel(g_opt_tab, i);
 			cmd = bmap ? BM_Opt_VehCmd(i) : BM_Opt_BindCmd(g_opt_tab, i);
 			listening = (g_bind_listen_idx == i);
-			hov = BM_MouseIn(ix, ry, iw, rh);
+			hov = (in_clip && BM_MouseIn(ix, ry, iw, rh));
 
 			bg = listening ? '0.52 0.14 0.04' : (hov ? COL_GLASS_HOVER : COL_GLASS_CARD);
 			brd = listening ? COL_ACCENT : (hov ? COL_ACCENT : COL_BORDER);
@@ -1322,7 +1552,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 			}
 			BM_DrawTextRight(ix + iw - 8, ry + 5, kstr, 8, kcol, 0.96);
 
-			if (clicked && hov)
+			if (clicked && !g_click_consumed && hov)
 			{
 				g_click_consumed = TRUE;
 				g_bind_listen_idx = i;
@@ -1349,7 +1579,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		BM_DrawTextClipped(px + 14, py + ph - 20, pw - 164, "Click row to rebind  |  Mouse wheel scrolls", 8, COL_MUTED, 0.88, FALSE);
 
 	hov = BM_DrawButton(px + pw - 144, py + ph - 24, 130, 18, "RESET DEFAULTS", FALSE, FALSE);
-	if (clicked && hov)
+	if (clicked && !g_click_consumed && hov)
 	{
 		g_click_consumed = TRUE;
 		g_bind_listen_idx = -1;
@@ -1365,6 +1595,44 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 			BM_Opt_BumpVehRev();
 		}
 	}
+};
+
+float() BM_Opt_CurrentMaxScroll =
+{
+	local float ph, ih, rh, gap, vis, total, bmap;
+
+	ph = g_vh - 28;
+	if (g_opt_tab == OPT_TAB_VIDEO)
+	{
+		ih = ph - 94;
+		rh = 18;
+		gap = 2;
+		total = OPT_VID_COUNT;
+	}
+	else if (g_opt_tab == OPT_TAB_GRAPHICS)
+	{
+		ih = ph - 94;
+		rh = 18;
+		gap = 2;
+		total = OPT_GFX_COUNT;
+	}
+	else if (g_opt_tab == OPT_TAB_CONTROLS)
+	{
+		ih = ph - 115;
+		rh = 19;
+		gap = 3;
+		bmap = (g_opt_ctrl_veh && cvar("bm_veh_config") != 0) ? 1 : 0;
+		total = bmap ? OPT_VEH_COUNT : OPT_CTRL_COUNT;
+	}
+	else
+	{
+		ih = ph - 94;
+		rh = 19;
+		gap = 3;
+		total = OPT_WEP_COUNT;
+	}
+	vis = max(1, floor((ih + gap) / (rh + gap)));
+	return max(0, total - vis);
 };
 
 void(float clicked) BM_Options_Draw =
@@ -1515,6 +1783,7 @@ void(float key, float ascii) BM_Options_KeyDown =
 	else if (key == K_TAB)
 	{
 		g_opt_tab = modulo(g_opt_tab + 1, OPT_TAB_COUNT);
+		g_active_slider = 0;
 		g_opt_scroll = 0;
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
@@ -1524,6 +1793,6 @@ void(float key, float ascii) BM_Options_KeyDown =
 	}
 	else if (key == K_MWHEELDOWN || key == K_PGDN || key == K_DOWNARROW)
 	{
-		g_opt_scroll = g_opt_scroll + 1;
+		g_opt_scroll = bound(0, g_opt_scroll + 1, BM_Opt_CurrentMaxScroll());
 	}
 };

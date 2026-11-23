@@ -81,14 +81,14 @@ jobs:
         uses: actions/cache@v6
         with:
           path: dist/Update.exe
-          key: bq-update-win-v3-py3.12-pyinstaller6.22.3-${{ hashFiles('tools/bq_update.py', 'source/icons/bakoquake-update.ico') }}
+          key: bq-update-win-v3-py3.12-pyinstaller6.22.3-${{ hashFiles('tools/bq_update.py', 'tools/bq_display.py', 'source/icons/bakoquake-update.ico') }}
 
       - name: Freeze tools/bq_update.py as Update.exe
         if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           python -m pip install --quiet pyinstaller==6.22.3
-          python -m PyInstaller --onefile --noconsole --noupx --icon source/icons/bakoquake-update.ico --name Update tools/bq_update.py
+          python -m PyInstaller --onefile --noconsole --noupx --paths tools --hidden-import bq_display --icon source/icons/bakoquake-update.ico --name Update tools/bq_update.py
 
       - name: Smoke test
         shell: bash
@@ -449,10 +449,10 @@ jobs:
                       "BakersfieldQuake/ultralow.cfg", "BakersfieldQuake/safemode.cfg",
                       "BakersfieldQuake/maps/bakersfielddowntown_lite.bsp", "BakersfieldQuake/maps/bakersfielddowntown_lite.lit",
                       "BakersfieldQuake/levelshots/bakersfielddowntown_lite.jpg",
-                      "engine/zircon_beta_gcc.exe", "Update.exe", "Update.sh", "Report a Problem.cmd",
+                      "engine/zircon_beta_gcc.exe", "Update.exe", "Update.sh", "Report a Problem.cmd", "Display Settings.cmd",
                       "tools/find-quake-paks.ps1", "tools/find-quake-paks.sh",
                       "tools/bq-preflight.ps1", "tools/bq-report.ps1",
-                      "tools/bq_update.py", "tools/install-shortcuts.ps1",
+                      "tools/bq_update.py", "tools/bq_display.py", "tools/install-shortcuts.ps1",
                       "tools/install-shortcuts.sh", "tools/bakoquake.ico", "tools/bakoquake-256.png",
                       "tools/bakoquake-update.ico", "tools/bakoquake-update-256.png"):
               p = os.path.join(root, rel)
@@ -698,7 +698,7 @@ jobs:
       - name: Decide whether the macOS app needs a new DMG
         id: mac
         run: |
-          inputs=$(cd repo && git ls-files -z source/mac tools/bq_update.py source/icons/bakoquake-256.png source/icons/bakoquake-update-256.png | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+          inputs=$(cd repo && git ls-files -z source/mac tools/bq_update.py tools/bq_display.py source/icons/bakoquake-256.png source/icons/bakoquake-update-256.png | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
           echo "MAC_INPUTS=$inputs" >> "$GITHUB_ENV"
           echo "inputs=$inputs" >> "$GITHUB_OUTPUT"
           build=true why="started by hand"
