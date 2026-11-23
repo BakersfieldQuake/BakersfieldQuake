@@ -13,11 +13,29 @@ void() BM_Veh_ClearBindmap2 =
 	}
 };
 
+// TRUE if the Vehicle Config (bindmap 1) has at least one key for cmd (findkeysforcommand pads empty slots with -1).
+float(string cmd) BM_Veh_HasVehKey =
+{
+	local string raw;
+	local float n, i;
+
+	raw = findkeysforcommand(cmd, 1);
+	n = tokenize(raw);
+	for (i = 0; i < n; i = i + 1)
+		if (stof(argv(i)) > 0)
+			return TRUE;
+	return FALSE;
+};
+
 void(string cmd) BM_Veh_BlockFpsCmd =
 {
 	local string raw;
 	local float n, i, kn;
 
+	// Only hide the on-foot key when the vehicle config has its own key for this action; otherwise the player would
+	// have no key at all for it in a vehicle (e.g. no way to get out). Audit 2026-11-23, CL-02.
+	if (!BM_Veh_HasVehKey(cmd))
+		return;
 	raw = findkeysforcommand(cmd, 0);
 	if (raw == "")
 		return;

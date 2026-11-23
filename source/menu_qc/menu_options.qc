@@ -1589,7 +1589,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		else
 		{
 			if (cvar("bm_veh_init") != 0)
-				localcmd("exec bm_binds.cfg; exec vehicle_binds.cfg\n");
+				localcmd("exec bm_binds.cfg; exec data/vehicle_binds.cfg\n");	// fopen writes under data/ (MN-01)
 			else
 				localcmd("exec bm_binds.cfg\n");
 			BM_Opt_BumpVehRev();
