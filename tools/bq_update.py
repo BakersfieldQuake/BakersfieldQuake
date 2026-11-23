@@ -79,6 +79,74 @@ def hash_file(path, check_cancel=None):
     return total, h.hexdigest()
 
 
+def _pid_alive(pid):
+    """True if a process with this id is running (best effort; unknown counts as alive)."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.restype = ctypes.c_void_p
+        h = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return ctypes.get_last_error() == 5  # access denied: it exists
+        try:
+            code = ctypes.c_ulong()
+            if not k32.GetExitCodeProcess(ctypes.c_void_p(h), ctypes.byref(code)):
+                return True
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(ctypes.c_void_p(h))
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def _lock_is_stale(lock_path):
+    """A lock is stale when its updater is gone (killed or crashed) or it is older than LOCK_STALE."""
+    try:
+        age = time.time() - lock_path.stat().st_mtime
+        if age > LOCK_STALE:
+            return True
+        text = lock_path.read_text("ascii").strip()
+    except OSError:
+        return True
+    if not text:
+        return age > 10  # just created, the owner has not written its pid yet
+    try:
+        pid = int(text.split()[0])
+    except ValueError:
+        return True
+    return pid != os.getpid() and not _pid_alive(pid)
+
+
+def safe_rel(rel):
+    """A manifest/state path is safe only if it stays inside the game folder: relative, '/'-separated, no drive letter,
+    no '..' or empty segments, no control characters."""
+    if not isinstance(rel, str) or not rel or len(rel) > 400:
+        return False
+    if "\\" in rel or ":" in rel or rel.startswith("/") or any(ord(c) < 32 for c in rel):
+        return False
+    return all(part not in ("", ".", "..") for part in rel.split("/"))
+
+
+def validate_manifest(m):
+    """Raises ValueError if the manifest is malformed or names any path outside the game folder (audit 2026-11-23, UP-01)."""
+    if not isinstance(m, dict) or not isinstance(m.get("files", {}), dict):
+        raise ValueError("manifest is not a JSON object with a 'files' table")
+    for key in ("install_only", "exec"):
+        if not isinstance(m.get(key, []), list):
+            raise ValueError(f"manifest '{key}' is not a list")
+    bad = [r for r in list(m.get("files", {})) + list(m.get("install_only", [])) + list(m.get("exec", []))
+           if not safe_rel(r)]
+    if bad:
+        raise ValueError(f"manifest names {len(bad)} unsafe path(s), e.g. {bad[0]!r}; refusing it")
+
+
 def acquire_lock(lock_path, log, wait_secs=None, poll_secs=None):
     """Acquires update.lock exclusively, waiting up to wait_secs if held by another active updater."""
     if wait_secs is None:
@@ -97,11 +165,9 @@ def acquire_lock(lock_path, log, wait_secs=None, poll_secs=None):
                 os.close(fd)
             return True
         except FileExistsError:
-            try:
-                stale = time.time() - lock_path.stat().st_mtime > LOCK_STALE
-            except OSError:
-                stale = True
+            stale = _lock_is_stale(lock_path)
             if stale:
+                log("removing stale update.lock (its updater is no longer running)")
                 lock_path.unlink(missing_ok=True)
                 continue
             now = time.monotonic()
@@ -335,9 +401,55 @@ class Updater:
     # ---- state -------------------------------------------------------------------------------------------------
     def load_state(self):
         try:
-            return json.loads((self.bq / "state.json").read_text("utf-8"))
+            st = json.loads((self.bq / "state.json").read_text("utf-8"))
         except (OSError, ValueError):
             return None
+        # valid JSON of the wrong shape used to crash every launch (UP-04): treat it as "not tracked"
+        if (not isinstance(st, dict) or not isinstance(st.get("build", 0), int)
+                or not isinstance(st.get("cache", {}), dict) or not isinstance(st.get("managed", []), list)):
+            self.log("state.json has an unexpected shape; ignoring it (files will be re-verified)")
+            return None
+        st.setdefault("build", 0)
+        st["managed"] = [r for r in st.get("managed", []) if safe_rel(r)]
+        st["cache"] = {k: v for k, v in st.get("cache", {}).items() if safe_rel(k)}
+        return st
+
+    # ---- interrupted-install recovery (UP-05) ---------------------------------------------------------------------
+    def _journal(self):
+        return self.bq / "install.journal"
+
+    def recover_interrupted_install(self):
+        """If a previous install was killed half way, put the old files back before anything else (works offline)."""
+        j = self._journal()
+        if not j.exists():
+            return False
+        backup = self.bq / "backup"
+        restored = 0
+        # every file in backup/ is an original that was moved aside: put it back (whatever state the target is in)
+        if backup.is_dir():
+            for p in sorted(backup.rglob("*")):
+                if p.is_file():
+                    rel = p.relative_to(backup).as_posix()
+                    if not safe_rel(rel):
+                        continue
+                    try:
+                        (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+                        os.replace(p, self.root / rel)
+                        restored += 1
+                    except OSError as e:
+                        self.log(f"recovery could not restore {rel}: {e}")
+        # files the interrupted install added that did not exist before: remove them
+        new_files = [r for r in j.read_text("utf-8").splitlines() if safe_rel(r)]
+        for rel in new_files:
+            try:
+                (self.root / rel).unlink(missing_ok=True)
+            except OSError as e:
+                self.log(f"recovery could not remove {rel}: {e}")
+        self.log(f"recovered from an interrupted install: restored {restored} file(s), removed {len(new_files)} new file(s)")
+        j.unlink(missing_ok=True)
+        shutil.rmtree(backup, ignore_errors=True)
+        shutil.rmtree(self.bq / "staging", ignore_errors=True)
+        return True
 
     def save_state(self, state):
         self.bq.mkdir(parents=True, exist_ok=True)
@@ -376,6 +488,7 @@ class Updater:
         errors = []
         try:
             m = self.get_json(self.manifest_url, CHECK_TIMEOUT)
+            validate_manifest(m)
             self.manifest = m
             self.manifest_source = primary_label
             return m, primary_label
@@ -386,6 +499,7 @@ class Updater:
         if self.fallback_url:
             try:
                 m = self.get_json(self.fallback_url, FALLBACK_TIMEOUT)
+                validate_manifest(m)
                 self.manifest = m
                 self.manifest_source = "VPS"
                 self.log(f"using VPS fallback manifest: {self.fallback_url}")
@@ -579,6 +693,7 @@ class Updater:
     def plan_update(self, force=False, verify_progress=None):
         """Fetches manifest and inspects local files without modifying anything on disk."""
         self._zip_entries = None
+        self.recover_interrupted_install()
         state = self.load_state()
         m, source = self.fetch_manifest()
         installed = state["build"] if state else 0
@@ -869,13 +984,20 @@ class Updater:
                 status_cb("Installing & verifying files...")
             exec_set = set(m.get("exec", []))
             moved, rel = [], "?"
+            # install journal (UP-05): if this process is killed below, the next start puts the old files back
+            journal = open(self._journal(), "w", encoding="utf-8")
             try:
                 for rel in fetch:
+                    if not safe_rel(rel):
+                        raise IOError(f"unsafe path {rel!r}")
                     target = self.root / rel
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if target.exists():
                         (backup / rel).parent.mkdir(parents=True, exist_ok=True)
                         replace_running(target, backup / rel)
+                    else:
+                        journal.write(rel + "\n")
+                        _fsync_file(journal)
                     moved.append(rel)
                     os.replace(staging / rel, target)
                     f_info = m["files"][rel]
@@ -899,6 +1021,7 @@ class Updater:
                     else:
                         cache[rel] = [st.st_size, st.st_mtime_ns, want_sha]
             except (OSError, UpdateCancelled) as e:
+                journal.close()
                 failed = rel
                 for r_rel in reversed(moved):
                     try:
@@ -909,11 +1032,13 @@ class Updater:
                     except OSError as rb_err:
                         self.log(f"rollback failed for {r_rel}: {rb_err}")
                     cache.pop(r_rel, None)
+                self._journal().unlink(missing_ok=True)
                 if isinstance(e, UpdateCancelled):
                     self.log(f"update cancelled during replace/verify of {failed}; rolled back cleanly")
                     raise
                 raise IOError(f"could not replace/verify {failed} ({e}); is the game or a server running "
                               f"from this folder? The update was rolled back.") from e
+            journal.close()
 
             if os.name != "nt":
                 for rel in m.get("exec", []):
@@ -922,12 +1047,16 @@ class Updater:
                         p.chmod(p.stat().st_mode | 0o111)
 
             for rel in delete:
+                if not safe_rel(rel):
+                    self.log(f"refusing to remove unsafe path {rel!r}")
+                    continue
                 try:
                     (self.root / rel).unlink()
                 except OSError as e:
                     self.log(f"could not remove {rel}: {e}")
 
             self._commit_state(m, cache, preserve_build=plan.preserve_build)
+            self._journal().unlink(missing_ok=True)
             self.log(f"updated to build {plan.preserve_build or m['build']} ({len(fetch)} fetched, {len(delete)} removed)")
             return True
         finally:
