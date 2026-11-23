@@ -21,6 +21,7 @@ param(
     [switch]$DryRun,
     [double]$SimulateTotalRamGB = -1,
     [double]$SimulateFreeRamMB = -1,
+    [double]$SimulateCommitFreeGB = -1,
     [int]$SimulateVramMB = -1,
     [switch]$SimulateIGPU,
     [switch]$SimulateUnclean,
@@ -515,10 +516,12 @@ function Classify-Gpu([string]$Name, [string]$Compat, [string]$Pnp, [uint64]$Vra
         ($Compat -match 'Parsec|Virtual|Citrix|Microsoft')
     if ($isVirtual) { return 'VIRTUAL' }
 
-    $isIntelIgpu = (($Pnp -match 'VEN_8086') -or ($Name -match 'Intel')) -and ($Name -notmatch 'Arc\s+(A|B|Pro)\d')
-    $isAmdApu = ($Pnp -match 'VEN_1002') -and (
+    # Arc dedicated cards report as "Intel(R) Arc(TM) A770 Graphics"; Meteor Lake's built-in "Intel(R) Arc(TM) Graphics" stays iGPU.
+    # AMD APUs are "Radeon 680M/780M/880M" or "Vega 8"; "RX 6800M"/"RX 7600M XT" are dedicated (audit 2026-11-23, LN-01).
+    $isIntelIgpu = (($Pnp -match 'VEN_8086') -or ($Name -match 'Intel')) -and ($Name -notmatch 'Arc(\(TM\))?\s+(Pro\s+)?[AB]\d')
+    $isAmdApu = ($Pnp -match 'VEN_1002') -and ($Name -notmatch '\bRX\s') -and (
         ($Name -match '^AMD Radeon(\(TM\))? Graphics$') -or
-        ($Name -match 'Radeon.*(Vega\s+[0-9]|6[0-9]0M|7[0-9]0M|8[0-9]0M)') -or
+        ($Name -match 'Radeon(\(TM\))?\s+(Vega\s+[0-9]|[678][0-9]0M\b)') -or
         ($VramMb -gt 0 -and $VramMb -le 2048 -and $Name -notmatch 'RX\s+\d|Pro\s+W|FirePro')
     )
     if ($isIntelIgpu -or $isAmdApu -or ($Name -match 'Integrated|APU')) { return 'iGPU' }
@@ -531,7 +534,7 @@ $cs = Get-CimInstance Win32_ComputerSystem
 $totalRamGB = if ($SimulateTotalRamGB -ge 0) { $SimulateTotalRamGB } else { [double]$cs.TotalPhysicalMemory / 1GB }
 $freeRamMB = if ($SimulateFreeRamMB -ge 0) { $SimulateFreeRamMB } else { ([double]$os.FreePhysicalMemory * 1KB) / 1MB }
 $commitLimitGB = ([double]$os.TotalVirtualMemorySize * 1KB) / 1GB
-$commitFreeGB = ([double]$os.FreeVirtualMemory * 1KB) / 1GB
+$commitFreeGB = if ($SimulateCommitFreeGB -ge 0) { $SimulateCommitFreeGB } else { ([double]$os.FreeVirtualMemory * 1KB) / 1GB }
 
 # 2. GPU detection (64-bit registry VRAM, WMI fallback, exclude virtual adapters)
 $gpuSummary = New-Object System.Collections.Generic.List[string]
@@ -627,6 +630,12 @@ if ($uncleanDetected) {
 $tier = 'normal'
 $reason = 'high-spec hardware and sufficient free RAM'
 $weakGpu = $isIGPU -or ($bestVramMB -gt 0 -and $bestVramMB -lt 3000)
+
+# One free-RAM reading swings with whatever else is open, and Windows trims other apps when the game needs memory.
+# On PCs with 16 GB or more and a dedicated GPU, judge memory pressure from commit headroom instead (minus 1 GB margin):
+# a 31 GB PC with 0.9 GB "free" but 9.9 GB of commit room was put on ultralow (audit 2026-11-23, LN-09).
+$roomyPc = ($totalRamGB -ge 15.5) -and (-not $weakGpu)
+$pressureFreeMB = if ($roomyPc) { [Math]::Max($freeRamMB, ($commitFreeGB - 1.0) * 1024) } else { $freeRamMB }
 $normPreset = ''
 if ($UserPreset -and ($UserPreset.Trim() -match '^(simple|normal|high)$')) {
     $normPreset = $UserPreset.Trim().ToLowerInvariant()
@@ -647,9 +656,9 @@ if ($env:BQ_TIER -match '^(normal|lowmem|ultralow|safemode)$') {
 } elseif ($normPreset) {
     $tier = "preset-$normPreset"
     $reason = "user selected graphics preset '$normPreset' in Display Setup"
-} elseif ($freeRamMB -lt 2048) {
+} elseif ($pressureFreeMB -lt 2048) {
     $tier = 'ultralow'
-    $reason = ("live free RAM {0:N0} MB under 2048 MB" -f $freeRamMB)
+    $reason = ("live free RAM {0:N0} MB under 2048 MB" -f $pressureFreeMB)
 } elseif ($isIGPU -and $freeRamMB -lt 3072) {
     $tier = 'ultralow'
     $reason = ("integrated GPU with live free RAM {0:N0} MB under 3072 MB" -f $freeRamMB)
@@ -665,9 +674,9 @@ if ($env:BQ_TIER -match '^(normal|lowmem|ultralow|safemode)$') {
 } elseif ($bestVramMB -gt 0 -and $bestVramMB -lt 3000) {
     $tier = 'lowmem'
     $reason = "dedicated VRAM $bestVramMB MB under 3000 MB"
-} elseif ($freeRamMB -lt 3584) {
+} elseif ($pressureFreeMB -lt 3584) {
     $tier = 'lowmem'
-    $reason = ("live free RAM {0:N0} MB under 3584 MB" -f $freeRamMB)
+    $reason = ("live free RAM {0:N0} MB under 3584 MB" -f $pressureFreeMB)
 }
 
 # Legacy BQ_LOWMEM=1/0 overrides (only when BQ_TIER/BQ_SAFEMODE/BQ_ULTRALOW not explicitly set)
@@ -682,7 +691,7 @@ if (-not ($env:BQ_TIER -match '^(normal|lowmem|ultralow|safemode)$') -and $env:B
 }
 
 # 5. Pre-flight low free-RAM warning (< 1536 MB)
-if (-not $cancelLaunch -and $freeRamMB -lt 1536 -and $interactive) {
+if (-not $cancelLaunch -and $pressureFreeMB -lt 1536 -and $interactive) {
     $top3 = @(Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 3 | ForEach-Object {
         "{0} ({1:N1} GB)" -f $_.ProcessName, ($_.WorkingSet64 / 1GB)
     })
