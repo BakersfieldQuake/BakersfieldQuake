@@ -484,6 +484,11 @@ void() Milky_Vanish =
 
 void() Milky_Touch =
 {
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (Milky_IsEnemy (other))
 		Milky_Burst ();
 };
@@ -843,6 +848,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) Milky_Damage
 		bprint ("milky: hit for ", ftos (floor (damage)), ", ", ftos (floor (targ.milky_hp)), " left\n");
 	if (targ.milky_hp <= 0)
 	{
+		PC_NoteKilled (targ, attacker);
 		targ.enemy = attacker;
 		targ.takedamage = DAMAGE_NO;
 		targ.think = Milky_Burst;
@@ -1056,6 +1062,7 @@ void() Milky_Launch =
 	// quieter single-channel song, only audible when kinda close (MILKY_SONG_ATTN)
 	Milky_Snd (m, CHAN_VOICE, "milky/song.ogg", MILKY_SONG_VOL, MILKY_SONG_ATTN);
 	milky_count = milky_count + 1;
+	PC_Register (m, PC_KIND_HEAVY, 36);
 };
 
 // ---------------------------------------------------------------- every player, every frame
@@ -1096,7 +1103,7 @@ void() Milky_PlayerFrame =
 	if (self.milky_wind && time >= self.milky_wind)
 	{
 		self.milky_wind = 0;
-		if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
+		if (FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self) || EricCannon_Active (self) || MMTank_Driving (self))
 		{
 			self.ammo_nails = self.ammo_nails + 1;
 			if (self.weapon == IT_SUPER_NAILGUN)

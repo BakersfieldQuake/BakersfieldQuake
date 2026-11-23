@@ -374,7 +374,7 @@ void() LtGun_PlayerFrame =
 	local float z, sp, f;
 
 	if (self.weapon != IT_NAILGUN || self.bm_rl_slot == BM_NG
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self))
 	{
 		self.ltg_phase = 0;

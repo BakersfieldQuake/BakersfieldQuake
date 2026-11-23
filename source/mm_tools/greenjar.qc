@@ -798,6 +798,7 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 	m.enemy = GJ_FindTarget (m);
 	m.think = GJ_MiniThink;
 	m.nextthink = time + 0.06 + idx * 0.01;
+	PC_Register (m, PC_KIND_LIGHT, 18);
 };
 
 // ================================================================
@@ -852,6 +853,11 @@ void() GJ_ProjTouch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		remove (self);
@@ -906,6 +912,7 @@ void() GJ_Launch =
 	jar.touch = GJ_ProjTouch;
 	jar.think = GJ_ProjThink;
 	jar.nextthink = time + 0.035;
+	PC_Register (jar, PC_KIND_LIGHT, 20);
 };
 
 // ================================================================
@@ -961,7 +968,7 @@ void() GJ_Frame =
 	local float busy, ammo;
 
 	busy = (self.health <= 0 || self.deadflag || intermission_running
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self));
 	if (busy)
 	{

@@ -9,32 +9,11 @@ EXPLODABLE 3D LAN PARTY PROPS - implementation (Combat+)
 void() Lan_RespawnThink;
 void() Lan_ExplodeNow;
 
-void() LanProps_Precache =
+void() LanDebris_Precache =
 {
-	if (lan_precached)
+	if (lan_debris_precached)
 		return;
-	lan_precached = TRUE;
-
-	precache_model ("progs/bklan/lan_mon1.md3");
-	precache_model ("progs/bklan/lan_mon2.md3");
-	precache_model ("progs/bklan/lan_mon3.md3");
-	precache_model ("progs/bklan/lan_mon4.md3");
-
-	precache_model ("progs/bklan/lan_pc1.md3");
-	precache_model ("progs/bklan/lan_pc2.md3");
-	precache_model ("progs/bklan/lan_pc3.md3");
-	precache_model ("progs/bklan/lan_pc4.md3");
-
-	precache_model ("progs/bklan/lan_chair1.md3");
-	precache_model ("progs/bklan/lan_chair2.md3");
-	precache_model ("progs/bklan/lan_chair3.md3");
-	precache_model ("progs/bklan/lan_chair4.md3");
-
-	precache_model ("progs/bklan/lan_table1.md3");
-	precache_model ("progs/bklan/lan_table2.md3");
-	precache_model ("progs/bklan/lan_table3.md3");
-	precache_model ("progs/bklan/lan_table4.md3");
-	precache_model ("progs/bklan/lan_table4s.md3");
+	lan_debris_precached = TRUE;
 
 	precache_model ("progs/bklan/lan_deb_glass.md3");
 	precache_model ("progs/bklan/lan_deb_yoke.md3");
@@ -59,8 +38,39 @@ void() LanProps_Precache =
 	precache_sound ("larry/it_wont_boot.wav");
 };
 
+void() LanProps_Precache =
+{
+	LanDebris_Precache ();
+	if (lan_precached)
+		return;
+	lan_precached = TRUE;
+
+	precache_model ("progs/bklan/lan_mon1.md3");
+	precache_model ("progs/bklan/lan_mon2.md3");
+	precache_model ("progs/bklan/lan_mon3.md3");
+	precache_model ("progs/bklan/lan_mon4.md3");
+
+	precache_model ("progs/bklan/lan_pc1.md3");
+	precache_model ("progs/bklan/lan_pc2.md3");
+	precache_model ("progs/bklan/lan_pc3.md3");
+	precache_model ("progs/bklan/lan_pc4.md3");
+
+	precache_model ("progs/bklan/lan_chair1.md3");
+	precache_model ("progs/bklan/lan_chair2.md3");
+	precache_model ("progs/bklan/lan_chair3.md3");
+	precache_model ("progs/bklan/lan_chair4.md3");
+
+	precache_model ("progs/bklan/lan_table1.md3");
+	precache_model ("progs/bklan/lan_table2.md3");
+	precache_model ("progs/bklan/lan_table3.md3");
+	precache_model ("progs/bklan/lan_table4.md3");
+	precache_model ("progs/bklan/lan_table4s.md3");
+};
+
 string(float kind, float var_id) Lan_ModelFor =
 {
+	if (kind == LAN_KIND_QUAKEDESK)
+		return "progs/qdesk_b.md3";
 	if (kind == LAN_KIND_MONITOR)
 	{
 		if (var_id == 2) return "progs/bklan/lan_mon2.md3";
@@ -91,6 +101,8 @@ string(float kind, float var_id) Lan_ModelFor =
 
 float(float kind) Lan_MaxHP =
 {
+	if (kind == LAN_KIND_QUAKEDESK)
+		return 75;
 	if (kind == LAN_KIND_MONITOR)
 		return 35;
 	if (kind == LAN_KIND_PC)
@@ -104,6 +116,54 @@ void(entity e) Lan_SetRotatedBounds =
 {
 	local float hl, hw, ht, rad, sn, cs, acs, asn, hx, hy;
 	local vector bmin, bmax;
+
+	if (e.lan_kind == LAN_KIND_QUAKEDESK)
+	{
+		rad = e.angles_y * 0.0174533;
+		sn = sin (rad);
+		cs = cos (rad);
+		acs = fabs (cs);
+		asn = fabs (sn);
+		// qdesk_b.md3 frame-0 bounds: x in [-28.08, 32.63], y in [-29.0, 29.0], z in [0, 57.22].
+		// Exact rotated extent on cardinal angles; clamped to 36u on 45-deg corners so aisles stay clear.
+		if (acs > 0.1 && asn > 0.1)
+		{
+			bmin = '-36 -36 0';
+			bmax = '36 36 57.22';
+		}
+		else
+		{
+			if (cs >= 0)
+			{
+				bmin_x = -28.08 * cs;
+				bmax_x = 32.63 * cs;
+			}
+			else
+			{
+				bmin_x = 32.63 * cs;
+				bmax_x = -28.08 * cs;
+			}
+			bmin_x = bmin_x - asn * 29.0;
+			bmax_x = bmax_x + asn * 29.0;
+
+			if (sn >= 0)
+			{
+				bmin_y = -28.08 * sn;
+				bmax_y = 32.63 * sn;
+			}
+			else
+			{
+				bmin_y = 32.63 * sn;
+				bmax_y = -28.08 * sn;
+			}
+			bmin_y = bmin_y - acs * 29.0;
+			bmax_y = bmax_y + acs * 29.0;
+			bmin_z = 0;
+			bmax_z = 57.22;
+		}
+		setsize (e, bmin, bmax);
+		return;
+	}
 
 	if (e.lan_kind == LAN_KIND_MONITOR)
 	{
@@ -247,6 +307,20 @@ void(entity attacker, float take) Lan_Pain =
 			sound7 (self, CHAN_AUTO, "vehicles/hit_metal1.wav", 0.55, ATTN_NORM, 98 + random () * 18);
 		}
 	}
+	else if (self.lan_kind == LAN_KIND_QUAKEDESK)
+	{
+		sp_org = self.origin + '0 0 36';
+		particle (sp_org, '0 0 36', 244, 18);
+		particle (sp_org + '0 0 -6', '0 0 22', 104, 10);
+		if (time > self.pain_finished)
+		{
+			self.pain_finished = time + 0.16;
+			if (random () < 0.6)
+				sound7 (self, CHAN_AUTO, "hackmon/hm_zap.wav", 0.60, ATTN_NORM, 95 + random () * 20);
+			else
+				sound7 (self, CHAN_AUTO, "vehicles/hit_metal1.wav", 0.55, ATTN_NORM, 98 + random () * 18);
+		}
+	}
 	else
 	{
 		particle (sp_org, '0 0 18', 12, 10);
@@ -327,7 +401,55 @@ void() Lan_ExplodeNow =
 	if (atk == world)
 		atk = self;
 
-	if (self.lan_kind == LAN_KIND_MONITOR)
+	if (self.lan_kind == LAN_KIND_QUAKEDESK)
+	{
+		// Complete 1996 LAN-Party Battlestation: CRT implosion + tower pop + oak desk & chair smash!
+		blast_org = self.origin + '0 0 34';
+		rad_dmg = 48;
+
+		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+		WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+		WriteCoord (MSG_BROADCAST, blast_org_x);
+		WriteCoord (MSG_BROADCAST, blast_org_y);
+		WriteCoord (MSG_BROADCAST, blast_org_z);
+
+		particle (blast_org + '0 0 6', '0 0 55', 244, 48);
+		particle (blast_org, '0 0 28', 108, 32);
+		particle (blast_org - '0 0 8', '0 0 22', 104, 28);
+		sound7 (self, CHAN_VOICE, "lan/crt_implode.wav", 1.0, ATTN_NORM, 94 + random () * 12);
+		sound7 (self, CHAN_BODY, "lan/pc_boom.wav", 0.90, ATTN_NORM, 92 + random () * 14);
+		sound7 (self, CHAN_AUTO, "lan/table_smash.wav", 0.85, ATTN_NORM, 92 + random () * 16);
+		if (random () < 0.12)
+			sound7 (self, CHAN_ITEM, "larry/it_wont_boot.wav", 0.85, ATTN_NORM, 100);
+
+		// CRT yoke & shards from monitor height
+		Lan_ThrowDebris ("progs/bklan/lan_deb_yoke.md3", blast_org + '0 0 8',
+			'1 0 0' * (crandom () * 210) + '0 1 0' * (crandom () * 210) + '0 0 1' * (220 + random () * 140), FALSE, 6.5);
+		i = 0;
+		while (i < 2)
+		{
+			v = '1 0 0' * (crandom () * 290) + '0 1 0' * (crandom () * 290) + '0 0 1' * (190 + random () * 170);
+			Lan_ThrowDebris ("progs/bklan/lan_deb_glass.md3", blast_org + '0 0 8', v, TRUE, 5.5);
+			i = i + 1;
+		}
+		// Beige PC tower guts & peripherals from desktop height
+		Lan_ThrowDebris ("progs/bklan/lan_deb_panel.md3", blast_org,
+			'1 0 0' * (crandom () * 240) + '0 1 0' * (crandom () * 240) + '0 0 1' * (220 + random () * 140), FALSE, 7.0);
+		Lan_ThrowDebris ("progs/bklan/lan_deb_fan.md3", blast_org,
+			'1 0 0' * (crandom () * 270) + '0 1 0' * (crandom () * 270) + '0 0 1' * (245 + random () * 135), FALSE, 6.5);
+		Lan_ThrowDebris ("progs/hd_board.md3", blast_org,
+			'1 0 0' * (crandom () * 220) + '0 1 0' * (crandom () * 220) + '0 0 1' * (230 + random () * 130), FALSE, 7.0);
+		Lan_ThrowDebris ("progs/hd_cd.md3", blast_org + '0 0 2',
+			'1 0 0' * (crandom () * 330) + '0 1 0' * (crandom () * 330) + '0 0 1' * (240 + random () * 150), TRUE, 6.0);
+		Lan_ThrowDebris ("progs/hd_kbd.md3", blast_org - '0 0 4',
+			'1 0 0' * (crandom () * 195) + '0 1 0' * (crandom () * 195) + '0 0 1' * (200 + random () * 120), FALSE, 6.5);
+		// Oak planks & swivel chair caster from lower desk/chair height
+		Lan_ThrowDebris ("progs/bklan/lan_deb_plank.md3", blast_org - '0 0 10',
+			'1 0 0' * (crandom () * 250) + '0 1 0' * (crandom () * 250) + '0 0 1' * (185 + random () * 150), FALSE, 7.0);
+		Lan_ThrowDebris ("progs/bklan/lan_deb_wheel.md3", blast_org - '0 0 16',
+			'1 0 0' * (crandom () * 235) + '0 1 0' * (crandom () * 235) + '0 0 1' * (195 + random () * 130), FALSE, 6.0);
+	}
+	else if (self.lan_kind == LAN_KIND_MONITOR)
 	{
 		blast_org = self.origin + '0 0 10';
 		rad_dmg = 44;
@@ -516,7 +638,10 @@ void(entity e) Lan_RestoreProp =
 	e.th_die = Lan_Die;
 	e.nextthink = 0;
 
-	setmodel (e, Lan_ModelFor (e.lan_kind, e.lan_variant));
+	if (e.lan_kind == LAN_KIND_QUAKEDESK && e.mdl != "")
+		setmodel (e, e.mdl);
+	else
+		setmodel (e, Lan_ModelFor (e.lan_kind, e.lan_variant));
 	Lan_SetRotatedBounds (e);
 	setorigin (e, e.lan_spawn_org);
 };
@@ -577,7 +702,17 @@ void(entity e, float kind) Lan_InitProp =
 {
 	local float v, h;
 
-	LanProps_Precache ();
+	LanDebris_Precache ();
+	if (kind == LAN_KIND_QUAKEDESK)
+	{
+		if (e.mdl == "")
+			e.mdl = "progs/qdesk_b.md3";
+		precache_model (e.mdl);
+	}
+	else
+	{
+		LanProps_Precache ();
+	}
 	e.lan_kind = kind;
 
 	v = floor (e.cnt);
@@ -594,7 +729,13 @@ void(entity e, float kind) Lan_InitProp =
 	}
 	e.lan_variant = v;
 
-	if (kind == LAN_KIND_MONITOR)
+	if (kind == LAN_KIND_QUAKEDESK)
+	{
+		if (!e.skin && e.pos2_z > 0)
+			e.skin = e.pos2_z;
+		e.lan_init_skin = floor (e.skin);
+	}
+	else if (kind == LAN_KIND_MONITOR)
 	{
 		// Preserve explicit map "skin" (0..5), or auto-vary across Q3A, CS 1.5, and Win98 if cnt was omitted!
 		if (e.cnt == 0 && e.skin == 0)
@@ -643,6 +784,12 @@ void() misc_lan_table =
 {
 	self.classname = "misc_lan_table";
 	Lan_InitProp (self, LAN_KIND_TABLE);
+};
+
+void() misc_lan_quakedesk =
+{
+	self.classname = "misc_lan_quakedesk";
+	Lan_InitProp (self, LAN_KIND_QUAKEDESK);
 };
 
 // ---------------------------------------------------------------- Cheat Showcase & Detonate Impulses (95, 96)

@@ -43,6 +43,10 @@ if clash:
     sys.exit("NOT BUILT: these qc_combat_decomp copies are newer than source/mm_tools and differ, so copying would "
              "destroy that work. Move the changes into mm_tools first (or drop the file from COPY): " + ", ".join(clash))
 for n, s in plan:
+    # Skip files that already match (ignoring line endings and the guard): rewriting them would turn CRLF files into
+    # LF and show untouched files as fully changed in git.
+    if os.path.exists(D + n) and _norm(open(D + n, encoding="utf-8", errors="surrogateescape", newline="").read()) == _norm(s):
+        continue
     open(D + n, "w", encoding="utf-8", errors="surrogateescape", newline="").write(s)
     print("copied", n)
 

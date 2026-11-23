@@ -464,6 +464,11 @@ void() NS_DiskTouch =
 {
 	local vector v, n, spot;
 
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (other != world)
 		return;
 	if (pointcontents (self.origin) == CONTENT_SKY)
@@ -522,5 +527,6 @@ void() NS_Throw =
 	setmodel (d, "progs/netsend_disk.md3");		// frame 0: the disk, flying flat
 	setsize (d, '-5 -5 -1', '5 5 1');
 	setorigin (d, FG_Muzzle (24));
+	PC_Register (d, PC_KIND_LIGHT, 20);
 	self.punchangle_x = -4;
 };

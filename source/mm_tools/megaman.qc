@@ -1383,6 +1383,11 @@ void() MegaMan_Touch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
@@ -1415,6 +1420,7 @@ void() MegaMan_ShotPop =
 
 void() MegaMan_Shot =
 {
+	PC_NoteKilled (self, damage_attacker);
 	self.takedamage = DAMAGE_NO;
 	self.touch = SUB_Null;
 	self.think = MegaMan_ShotPop;
@@ -1502,6 +1508,7 @@ void() MegaMan_Launch =
 	// start in front of the player, but not inside a wall
 	traceline (self.origin + '0 0 12', self.origin + '0 0 8' + v_forward * 38 + v_right * 8, TRUE, self);
 	setorigin (mm, trace_endpos);
+	PC_Register (mm, PC_KIND_HEAVY, 28);
 #ifdef COMBATPLUS
 	Underdog_BlueShell (mm);
 #endif
@@ -1684,7 +1691,7 @@ void() MegaMan_ViewFrame =
 		self.mm_pending = FALSE;
 #ifdef COMBATPLUS
 		if (time - self.mm_launch_t < 0.3 && self.health > 0
-			&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self)
+			&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self) && !RocketRider_Flying (self)
 			&& !EricCannon_Active (self) && !MMTank_Driving (self))
 #else
 		if (time - self.mm_launch_t < 0.3 && self.health > 0)
@@ -1701,7 +1708,7 @@ void() MegaMan_ViewFrame =
 	}
 #ifdef COMBATPLUS
 	if (self.meleeing == 1 || self.throwing == 1
-		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self)
+		|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 		|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self))
 		return;
 #endif

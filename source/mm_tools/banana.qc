@@ -80,6 +80,11 @@ void() Banana_BigTouch =
 
 	if (other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		remove (self);
@@ -152,6 +157,7 @@ void() Banana_Launch =
 	// start in front of the muzzle, but not inside a wall
 	traceline (self.origin + '0 0 16', self.origin + '0 0 16' + v_forward * 30, TRUE, self);
 	setorigin (b, trace_endpos);
+	PC_Register (b, PC_KIND_LIGHT, 20);
 };
 
 // fire pressed with the banana gun out (called from W_Attack)

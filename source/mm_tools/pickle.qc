@@ -248,6 +248,11 @@ void() Pk_Touch =
 	}
 	if (self.pk_state != 1 || other == self.owner)
 		return;
+	if (other != world && other.pc_kind > PC_KIND_NONE)
+	{
+		PC_HandlePair (self, other);
+		return;
+	}
 	if (other.takedamage && other.health > 0 && (other.classname == "player" || (other.flags & FL_MONSTER)))
 	{
 		// a direct hit: it bounces off them and sticks to whatever it lands on next, never in mid-air
@@ -519,6 +524,7 @@ void() Pk_Launch =
 	f.traileffectnum = particleeffectnum ("pk_throw_trail");
 	setsize (f, '-5 -5 -5', '5 5 5');
 	setorigin (f, start_org);
+	PC_Register (f, PC_KIND_LIGHT, 20);
 
 	FG_Snd (self, CHAN_WEAPON, "weapons/ax1.wav", 0.92, 1.18);
 	self.punchangle_x = 5.5;		// violent downward/forward slam kick as the claw whips across screen!
