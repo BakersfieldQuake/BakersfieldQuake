@@ -633,28 +633,6 @@ void() player_shot6 = [ 118, player_run ]
 		casing(0);
 		self.nextthink = (time + 0.07);
 	}
-	else
-	{
-		if ((self.weapon == IT_SUPER_SHOTGUN))
-		{
-			if ((autocvar_vanilla_ssg != 0))
-			{
-				casing(0);
-				casing(0);
-			}
-			else
-			{
-				if (((autocvar_vanilla_ssg == 0) && (self.bm_ssgburst != 15)))
-				{
-					casing(0);
-					casing(0);
-					casing(0);
-					casing(0);
-					sound7(self, CHAN_VOICE, "weapons/weapon3.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-				}
-			}
-		}
-	}
 };
 
 void() player_shotswim1 = [ 221, player_shotswim2 ]
@@ -711,28 +689,6 @@ void() player_shotswim6 = [ 226, player_swim ]
 	{
 		casing(0);
 		self.nextthink = (time + 0.07);
-	}
-	else
-	{
-		if ((self.weapon == IT_SUPER_SHOTGUN))
-		{
-			if ((autocvar_vanilla_ssg != 0))
-			{
-				casing(0);
-				casing(0);
-			}
-			else
-			{
-				if (((autocvar_vanilla_ssg == 0) && (self.bm_ssgburst != 15)))
-				{
-					casing(0);
-					casing(0);
-					casing(0);
-					casing(0);
-					sound7(self, CHAN_VOICE, "weapons/weapon3.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-				}
-			}
-		}
 	}
 };
 
@@ -2697,10 +2653,21 @@ void() PlayerDie =
 		self.velocity_z = (self.velocity_z + (random() * 300));
 	}
 	player_die_ax1();
-	if (((self.health < -40) || ((self.enemy.weapon == IT_CHAINSAW) && (random() < 0.5))))
+	if ((cvar("bm_death_anim") <= 0) || (damage_attacker.classname == "teledeath") || (damage_attacker.classname == "teledeath2"))
 	{
-		GibPlayer();
-		return;
+		if (((self.model == "progs/player_id1.mdl") && (self.health < -40) && (self.health >= -95) && (self.enemy.weapon != IT_CHAINSAW)))
+		{
+			if ((random() < 0.45))
+			{
+				GibPlayer();
+				return;
+			}
+		}
+		else if (((self.health < -40) || ((self.enemy.weapon == IT_CHAINSAW) && (random() < 0.5))))
+		{
+			GibPlayer();
+			return;
+		}
 	}
 	if (!self.ishuman)
 	{
@@ -2714,6 +2681,11 @@ void() PlayerDie =
 	{
 		setmodel(self, "progs/player.mdl");
 		setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
+	}
+	if (((self.model == "progs/player_id1.mdl") && (self.watertype != CONTENT_LAVA) && (self.watertype != CONTENT_SLIME) && !((self.watertype == CONTENT_WATER) && (self.waterlevel >= 2))))
+	{
+		if (PD_TryCustomPlayerDeath())
+			return;
 	}
 	if ((self.enemy.meleeing == 0))
 	{

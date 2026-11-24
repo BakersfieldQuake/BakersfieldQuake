@@ -22110,3 +22110,18 @@ velocityjitter 48 48 36
 gravity 0.04
 airfriction 1.6
 // ---- Winged John Combat Update end
+
+// ---- DN3DooM Pump Shotgun tracers (dn3_shotgun.qc)
+effect dn3sg_tracer
+notunderwater
+count 1
+type spark
+tex 63 63
+color 0xffcc44 0xfff0a0
+size 0.45 0.75
+alpha 190 256 1400
+gravity 0
+trailspacing 42
+originjitter 1.2 1.2 1.2
+velocityjitter 6 6 6
+

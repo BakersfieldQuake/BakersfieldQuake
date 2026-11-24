@@ -123,7 +123,7 @@ string(float slot, float active_weap) S4_GetWeaponTag =
 	if (active_weap == IT_SHOTGUN)
 		return "SG";
 	if (active_weap == IT_SUPER_SHOTGUN)
-		return "SSG";
+		return "PUMP";
 	if (active_weap == IT_NAILGUN)
 		return "NG";
 	if (active_weap == IT_SUPER_NAILGUN)

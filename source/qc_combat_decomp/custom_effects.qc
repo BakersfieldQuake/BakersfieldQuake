@@ -316,14 +316,7 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	{
 		if ((self.owner.weapon == IT_SUPER_SHOTGUN))
 		{
-			if ((autocvar_qc_ssg && autocvar_centered_weapons))
-				setmodel(self, "progs/centered/QC/v_shot2.mdl");
-			else if (autocvar_centered_weapons)
-				setmodel(self, "progs/centered/v_shot2.mdl");
-			else if (autocvar_qc_ssg)
-				setmodel(self, "progs/QC/v_shot2.mdl");
-			else
-				setmodel(self, "progs/v_shot2.mdl");
+			setmodel(self, "");
 			self.origin_x = autocvar_weapon_position_fully_adjustable_shot2_x_offset;
 			self.origin_y = autocvar_weapon_position_fully_adjustable_shot2_y_offset;
 			self.origin_z = autocvar_weapon_position_fully_adjustable_shot2_z_offset;
@@ -1083,28 +1076,7 @@ void() v_weapon_position_think =
 			self.initial_weapon_position_gren = 0;
 			self.initial_weapon_position_rock = 0;
 			self.initial_weapon_position_light = 0;
-			if ((autocvar_centered_weapons && !autocvar_qc_ssg))
-			{
-				setmodel(self, "progs/centered/v_shot2.mdl");
-			}
-			else
-			{
-				if ((autocvar_qc_ssg && autocvar_centered_weapons))
-				{
-					setmodel(self, "progs/centered/QC/v_shot2.mdl");
-				}
-				else
-				{
-					if (autocvar_qc_ssg)
-					{
-						setmodel(self, "progs/QC/v_shot2.mdl");
-					}
-					else
-					{
-						setmodel(self, "progs/v_shot2.mdl");
-					}
-				}
-			}
+			setmodel(self, "");
 			if (((self.owner.button0 || ((self.owner.velocity != VEC_ORIGIN) && (self.owner.earthquake_finished < time))) || self.owner.super_damage_finished))
 			{
 				if ((self.owner.idletimer == 0))

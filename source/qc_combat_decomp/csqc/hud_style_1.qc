@@ -162,7 +162,7 @@ string(float slot, float active_weap) S1_ShortWeaponName =
 		if (active_weap == IT_ROCKET_LAUNCHER)
 			return "ROCKET LNCH";
 		if (active_weap == IT_SUPER_SHOTGUN)
-			return "SUPER SHOTTY";
+			return "PUMP SHOTGUN";
 		if (active_weap == IT_SUPER_NAILGUN)
 			return "SUPER NAILER";
 	}

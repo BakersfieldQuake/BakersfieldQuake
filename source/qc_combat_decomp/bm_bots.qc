@@ -279,8 +279,8 @@ float(float id) BM_BotCanUseWeapon =
 	if (id == 3)
 	{
 		if (!(self.items & IT_SUPER_SHOTGUN)) return FALSE;
-		if (autocvar_bm_reload) return (BM_GetMag (self, BM_SSG) >= 2);
-		return (self.ammo_shells >= 2);
+		if (autocvar_bm_reload) return (BM_GetMag (self, BM_SSG) >= 1);
+		return (self.ammo_shells >= 1);
 	}
 	if (id == 4)
 	{

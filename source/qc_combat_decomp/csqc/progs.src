@@ -21,4 +21,5 @@ hud_style_1.qc
 hud_style_2.qc
 hud_style_3.qc
 hud_style_4.qc
+dn3_shotgun_hud.qc
 csqc.main.qc

@@ -37,7 +37,7 @@ float(float s) BM_MagSize =
 	if (s <= BM_MM)
 	{
 		if (s == BM_SG)			n = 8;
-		else if (s == BM_SSG)	n = 12;		// 2 shells a shot: 6 shots, 3 QC bursts
+		else if (s == BM_SSG)	n = 8;		// DN3DooM Pump Shotgun: 8-shell tube magazine (1 shell a shot)
 		else if (s == BM_NG)	n = 5;		// the Laptop Gun (took the nailgun slot): 5-packet mag for DDoS flood salvos
 		else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
 		else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
@@ -72,7 +72,7 @@ float(float s) BM_ReloadTime =
 	local float t;
 
 	if (s == BM_SG)			t = 1.2;
-	else if (s == BM_SSG)	t = 1.6;
+	else if (s == BM_SSG)	t = 1.26;	// DN3DooM Pump Shotgun full tube reload
 	else if (s == BM_NG)	t = 2.5;	// Laptop Gun
 	else if (s == BM_SNG)	t = 5;		// Milky Gun
 	else if (s == BM_GL)	t = 2.2;
@@ -99,8 +99,6 @@ float(float s) BM_ReloadTime =
 // ammo units one shot uses (for the HUD round count and the "can I fire" test)
 float(float s) BM_PerShot =
 {
-	if (s == BM_SSG)
-		return 2;
 	if (s == BM_LG)
 		return 0.6;
 	return 1;
@@ -440,6 +438,11 @@ void(float s) BM_StartReload =
 		self.bm_rl_quiet = FALSE;
 		return;
 	}
+	if (s == BM_SSG)
+	{
+		DN3SG_StartReload ();
+		return;
+	}
 	self.bm_rl_slot = s;
 	self.bm_rl_start = time;
 	self.bm_rl_end = time + max (0.4, BM_ReloadTime (s) * (size - mag) / size);
@@ -579,7 +582,11 @@ void() BM_Frame =
 		mag = BM_GetMag (self, s);
 		if (self.bm_rl_slot == s)
 		{
-			if (time >= self.bm_rl_end)
+			if (s == BM_SSG && self.dn3_sg_rl_phase > 0)
+			{
+				// DN3SG_Frame drives shell-by-shell tilt reload and +attack cancellation
+			}
+			else if (time >= self.bm_rl_end)
 			{
 				BM_SetMag (self, s, size);
 				BM_SetAcc (self, s, 0);
@@ -607,6 +614,10 @@ void() BM_Frame =
 				self.bm_rl_slot = 0;				// fire what's left instead
 				self.bm_rl_quiet = FALSE;
 			}
+		}
+		else if (s == BM_SSG && self.dn3_sg_fire_t > 0 && time < self.dn3_sg_fire_t + DN3SG_REFIRE)
+		{
+			// let the DN3DooM Pump Shotgun finish its fire + pump cycle before auto-reloading
 		}
 		else if (s == BM_NG && self.ltg_phase > 0)
 		{

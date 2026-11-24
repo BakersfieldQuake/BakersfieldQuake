@@ -1551,6 +1551,7 @@ void() PutClientInServer =
 		}
 	}
 	BM_Spawn();	// full magazines
+	DN3SG_Reset();	// DN3DooM Pump Shotgun state reset
 	Jetpack_Spawn();	// no fuel left over (jetpack.qc)
 	Veh_SpawnReset();	// not driving or riding (vehicle_drive.qc)
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast

@@ -2079,71 +2079,7 @@ void() W_FireShotgun =
 
 void() W_FireSuperShotgun =
 {
-	local vector dir;
-	local vector pushback1;
-	local vector direc;
-
-	if ((self.currentammo == 1))
-	{
-		W_FireShotgun();
-		return;
-	}
-	if (autocvar_qc_ssg)
-	{
-		sound7(self, CHAN_WEAPON, "weapons/ssg2.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
-	}
-	else
-	{
-		sound7(self, CHAN_WEAPON, "weapons/shotgn2.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
-	}
-	if (((autocvar_muzzleflash == 1) && !autocvar_centered_weapons))
-	{
-		if (cvar("chase_active"))
-		{
-			sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_right * -1.5)) + (v_forward * 17)) + (v_up * -5)), (self.velocity * 50), 1, 0);
-		}
-		else
-		{
-			if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
-			{
-				sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * 6)), (self.velocity * 50), 1, 0);
-			}
-			else
-			{
-				if ((!autocvar_weapon_position_right && autocvar_weapon_position_fully_adjustable))
-				{
-					sendParticle("double_shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot2_offset)), (self.velocity * 50), 1, 0);
-				}
-				else
-				{
-					sendParticle("double_shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 20)), (self.velocity * 50), 1, 0);
-				}
-			}
-		}
-	}
-	if ((autocvar_effects_explosion_shake != 0))
-	{
-		self.punchangle_x = -5;
-	}
-	SpawnSSGFlash();
-	SpawnSpark_Flash(1, '15 -18 19', '1 0.8 1', 1);
-	SpawnSmoke_Flash(1, '5 0 13', 1, '0.5 0.5 0.5', 0.5);
-	if ((self.waterlevel >= 3))
-	{
-		Sprite_Emitter(self, "progs/s_bubble.spr", 2, '20 -18 -20', '320 30 -10', '25 18 10', 0.7, TYPE_SMOKE);
-		Sprite_Emitter(self, "progs/s_bubble.spr", 2, '20 -18 -20', '150 -10 -30', '25 18 10', 0.7, TYPE_SMOKE);
-	}
-	if ((autocvar_pushback != 0))
-	{
-		direc = aim(self, 100);
-		traceline(self.origin, (self.origin + (direc * autocvar_pushbackshot2)), FALSE, self);
-		pushback1 = trace_endpos - self.origin;
-		self.velocity = (self.velocity - (pushback1 * 0.5));
-	}
-	self.ammo_shells = (self.ammo_shells - 2);
-	self.currentammo = self.ammo_shells;
-	dir = aim(self, 100000);
-	FireBullets(16, dir, '0.085 0.065 0');
+	DN3SG_Fire();
 };
 
 void() s_explode1 = [ 0, s_explode2 ]
@@ -4992,35 +4928,7 @@ void() W_SetCurrentAmmo =
 				if ((self.weapon == IT_SUPER_SHOTGUN))
 				{
 					self.currentammo = self.ammo_shells;
-					if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
-					{
-						self.weaponmodel = "progs/v_shot2_right.mdl";
-					}
-					else
-					{
-						if ((autocvar_centered_weapons && !autocvar_qc_ssg))
-						{
-							self.weaponmodel = "progs/centered/v_shot2.mdl";
-						}
-						else
-						{
-							if ((autocvar_qc_ssg && autocvar_centered_weapons))
-							{
-								self.weaponmodel = "progs/centered/QC/v_shot2.mdl";
-							}
-							else
-							{
-								if (autocvar_qc_ssg)
-								{
-									self.weaponmodel = "progs/QC/v_shot2.mdl";
-								}
-								else
-								{
-									self.weaponmodel = "progs/v_shot2.mdl";
-								}
-							}
-						}
-					}
+					self.weaponmodel = "";		// DN3DooM 2D Pump Shotgun drawn by CSQC
 					self.weaponframe = 0;
 					self.items = (self.items | IT_SHELLS);
 					axeequipped = 0;
@@ -5185,7 +5093,7 @@ float() W_BestWeapon =
 	{
 		return (IT_SUPER_NAILGUN);
 	}
-	if (((self.ammo_shells >= 2) && (it & IT_SUPER_SHOTGUN)))
+	if (((self.ammo_shells >= 1) && (it & IT_SUPER_SHOTGUN)))
 	{
 		return (IT_SUPER_SHOTGUN);
 	}
@@ -5646,6 +5554,10 @@ void() W_Attack =
 		{
 			if ((self.weapon == IT_SUPER_SHOTGUN))
 			{
+				if (!DN3SG_CanFire())
+				{
+					return;
+				}
 				if ((self.waterlevel >= 2))
 				{
 					player_shotswim1();
@@ -5654,20 +5566,9 @@ void() W_Attack =
 				{
 					player_shot1();
 				}
-				W_FireSuperShotgun();
+				DN3SG_Fire();
 				self.attack_timer = 1;
-				if ((autocvar_effects_explosion_shake != 0))
-				{
-					self.viewzoom = 1.02;
-				}
-				if ((autocvar_vanilla_ssg != 0))
-				{
-					self.attack_finished = (time + 0.63);
-				}
-				else
-				{
-					BM_FiredSSG();
-				}
+				self.attack_finished = (time + DN3SG_REFIRE);
 			}
 			else
 			{
@@ -5809,12 +5710,8 @@ void() W_ChangeWeapon =
 		{
 			if ((self.impulse == 3))
 			{
-				if (((autocvar_vanilla_ssg == 0) && (self.bm_ssgburst == 15)))
-				{
-					self.bm_ssgburst = 16;
-				}
 				fl = IT_SUPER_SHOTGUN;
-				if ((self.ammo_shells < 2))
+				if ((self.ammo_shells < 1))
 				{
 					am = 1;
 				}
@@ -5946,7 +5843,7 @@ void() W_ChangeWeapon =
 			{
 				if ((fl == IT_SUPER_SHOTGUN))
 				{
-					sound7(self, CHAN_VOICE, "weapons/weapon3.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
+					// DN3SG_Frame plays dn3sg/pump.wav on draw
 				}
 				else
 				{
@@ -6081,7 +5978,7 @@ void() CycleWeaponCommand =
 				if ((self.weapon == IT_SHOTGUN))
 					{
 						self.weapon = IT_SUPER_SHOTGUN;
-						if ((self.ammo_shells < 2))
+						if ((self.ammo_shells < 1))
 						{
 							am = 1;
 						}
@@ -6181,7 +6078,7 @@ void() CycleWeaponCommand =
 					{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
-							sound7(self, CHAN_VOICE, "weapons/weapon3.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
+							// DN3SG_Frame plays dn3sg/pump.wav on draw
 						}
 						else
 						{
@@ -6328,7 +6225,7 @@ void() CycleWeaponReverseCommand =
 							if ((self.weapon == IT_NAILGUN))
 							{
 								self.weapon = IT_SUPER_SHOTGUN;
-								if ((self.ammo_shells < 2))
+								if ((self.ammo_shells < 1))
 								{
 									am = 1;
 								}
@@ -6398,7 +6295,7 @@ void() CycleWeaponReverseCommand =
 					{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
-							sound7(self, CHAN_VOICE, "weapons/weapon3.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
+							// DN3SG_Frame plays dn3sg/pump.wav on draw
 						}
 						else
 						{
@@ -6577,14 +6474,6 @@ void() ImpulseCommands =
 	{
 		FunGun_Select(((self.impulse - FG_IMPULSE) + 1));
 	}
-	if ((self.impulse == 3))
-	{
-		if (((((self.weapon == IT_SUPER_SHOTGUN) && (autocvar_vanilla_ssg == 0)) && (self.bm_ssgburst == 15)) && ((time - 0.45) < self.attack_finished)))
-		{
-			self.impulse = 0;
-			return;
-		}
-	}
 	if (((self.impulse >= 1) && (self.impulse <= 8)))
 	{
 		W_ChangeWeapon();
@@ -6760,6 +6649,7 @@ void() W_WeaponFrame =
 	Hammer_PlayerFrame();	// charge, swing, spin (hammer.qc)
 	BM_PredictFrame();	// no client prediction while the server drives your speed (bm_match.qc)
 	LtGun_PlayerFrame();	// the laptop's held model and the shock (ltgun.qc)
+	DN3SG_Frame();			// DN3DooM Pump Shotgun 2D sprite frame, pump timing, reload & pitch kick (dn3_shotgun.qc)
 	if (self.deadflag || (self.health <= 0))
 	{
 		PC_PlayerFrame();
@@ -6845,65 +6735,18 @@ void() W_WeaponFrame =
 		{
 			if ((self.weapon == IT_SUPER_SHOTGUN))
 			{
-				if ((autocvar_vanilla_ssg > 0))
+				if (((time + 0.35) > self.attack_finished))
 				{
-					if (((time + 0.375) > self.attack_finished))
+					if ((self.impulse == 215))
 					{
-						if ((self.impulse == 215))
-						{
-							ThrowNade();
-							self.impulse = 0;
-							return;
-						}
-						else
-						{
-							meleeaxe();
-							self.impulse = 0;
-						}
-					}
-				}
-				else
-				{
-					if ((autocvar_pushbacklight == 16))
-					{
-						if (((time + 0.65) > self.attack_finished))
-						{
-							if ((self.impulse == 215))
-							{
-								ThrowNade();
-								self.impulse = 0;
-								return;
-							}
-							else
-							{
-								meleeaxe();
-								self.impulse = 0;
-							}
-						}
+						ThrowNade();
+						self.impulse = 0;
+						return;
 					}
 					else
 					{
-						if ((autocvar_pushbacklight == 15))
-						{
-							if (((time - 0.225) > self.attack_finished))
-							{
-								if ((self.impulse == 215))
-								{
-									ThrowNade();
-									self.impulse = 0;
-									return;
-								}
-								else
-								{
-									meleeaxe();
-									self.impulse = 0;
-								}
-							}
-							else
-							{
-								return;
-							}
-						}
+						meleeaxe();
+						self.impulse = 0;
 					}
 				}
 			}

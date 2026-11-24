@@ -599,6 +599,8 @@ void() BM_Stats =
 	clientstat (109, 2, gk_st_mode);		// Go-Kart rocket HUD: 0=off, 1=charging, 2=armed, 3=low nitro, 4=reloading
 	clientstat (110, 2, gk_st_prog);		// Go-Kart rocket HUD: 0..100 progress
 	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
+	clientstat (112, 2, dn3_st_frame);		// DN3DooM Pump Shotgun CSQC 2D sprite frame + flags
+	clientstat (113, 2, dn3_st_speed);		// DN3DooM Pump Shotgun horizontal speed for walk bob
 };
 
 float() BM_CountPlayers =

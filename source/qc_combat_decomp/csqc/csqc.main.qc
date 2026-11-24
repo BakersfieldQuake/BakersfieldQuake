@@ -248,6 +248,7 @@ void() CSQC_Init =
 	loadScreenSize();
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
+	DN3SG_PrecachePics();
 	precache_pic("progs/mmt_aim_beam");
 };
 
@@ -464,7 +465,10 @@ void(float w, float h) CSQC_UpdateView =
 			else
 			{
 				if (!intermission && !finale && !inMenu)
+				{
+					DN3SG_DrawViewmodel(cw, ch);
 					MMT_DrawAimReticle2D(cw, ch);
+				}
 				if (showHUD > 0 || UIDraw == 1)
 				{
 					fade_camera();

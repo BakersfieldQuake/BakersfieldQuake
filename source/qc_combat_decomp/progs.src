@@ -14,6 +14,7 @@ dookie_defs.qc
 kyle_defs.qc
 robhead_defs.qc
 bm_defs.qc
+dn3_shotgun_defs.qc
 practice_defs.qc
 sniper_defs.qc
 ltgun_defs.qc
@@ -102,6 +103,7 @@ beerguy.qc
 tim_cine.qc
 bpolo_npc.qc
 weapons.qc
+dn3_shotgun.qc
 megaman.qc
 banana.qc
 funguns.qc
@@ -148,6 +150,8 @@ splash.qc
 client.qc
 KickGibs.qc
 player.qc
+player_deaths_frames.qc
+player_deaths.qc
 monsters.qc
 revive.qc
 lg_fatality.qc

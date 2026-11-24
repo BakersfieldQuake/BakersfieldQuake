@@ -673,6 +673,7 @@ void() worldspawn =
 				else
 				{
 					precache_model("progs/player_id1.mdl");
+					PD_Precache();
 					precache_model("progs/player.mdl");
 					precache_model("progs/h_player.mdl");
 					if ((autocvar_player_model == 5))
@@ -801,6 +802,7 @@ void() worldspawn =
 	precache_model("progs/v_nail.mdl");
 	precache_model("progs/v_rock.mdl");
 	precache_model("progs/v_shot2.mdl");
+	DN3SG_Precache();
 	precache_model("progs/v_nail2.mdl");
 	precache_model("progs/v_rock2.mdl");
 	precache_model("progs/v_laserg.mdl");

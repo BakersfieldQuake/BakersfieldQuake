@@ -413,7 +413,7 @@ string(float slot, float active_weap) HUD_GetWeaponName =
 	if (active_weap == IT_SHOTGUN)
 		return "SHOTGUN";
 	if (active_weap == IT_SUPER_SHOTGUN)
-		return "SUPER SHOTGUN";
+		return "PUMP SHOTGUN";
 	if (active_weap == IT_NAILGUN)
 		return "NAILGUN";
 	if (active_weap == IT_SUPER_NAILGUN)
@@ -440,7 +440,7 @@ string(float slot, float active_weap) HUD_GetWeaponPic =
 	if (active_weap == IT_SHOTGUN)
 		return "gfx/inv2_shotgun";
 	if (active_weap == IT_SUPER_SHOTGUN)
-		return "gfx/inv2_sshotgun";
+		return "gfx/dn3sg/hud_icon.png";
 	if (active_weap == IT_NAILGUN)
 		return "gfx/inv2_nailgun";
 	if (active_weap == IT_SUPER_NAILGUN)

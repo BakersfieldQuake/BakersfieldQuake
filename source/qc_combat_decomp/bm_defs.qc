@@ -197,6 +197,8 @@ float(entity p, float s) BM_GetMag;
 float(float s) BM_MagSize;
 float() BM_CurSlot;
 void(float s) BM_StartReload;
+void(entity p, float s, float v) BM_SetMag;
+void() BM_WriteFields;
 void() BM_FiredSSG;
 void() BM_Precache;
 float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage;
