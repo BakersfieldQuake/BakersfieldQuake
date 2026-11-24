@@ -115,6 +115,7 @@ void() BM_Host_StartMatch =
 	mp = BM_Host_MaxpVal(g_host_maxp_idx);
 
 	BM_PlaySound("sound/misc/menu2.wav");
+	BM_Loading_Begin(bsp, BM_Host_MapTitle(g_host_map_idx), "HOSTING LAN");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
 

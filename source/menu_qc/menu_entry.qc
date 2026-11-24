@@ -6,6 +6,7 @@ void() m_init =
 
 	registercvar("bm_menu_bg", "0", 0);
 	cvar_set("bm_menu_bg", "0");
+	registercvar("bm_loading_preview", "0", 0);
 	registercvar("bm_hud_style", "0", 1);
 	registercvar("bm_ui_font", "1", 1);
 	registercvar("bm_show_launcher", "0", 1);
@@ -44,6 +45,9 @@ void() m_init =
 	precache_pic("gfx/menu_cast/rogerver.png");
 	precache_pic("gfx/menu_cast/robeguy.png");
 	precache_pic("gfx/menu_cast/jesskart.png");
+	BM_Loading_Precache();
+	if (cvar("scr_loadingscreen_maxfps") < 30)
+		cvar_set("scr_loadingscreen_maxfps", "30");
 
 	g_cast_left = 0; // Start left side with Green Man
 	g_cast_right = 1 + modulo(floor(random() * (CAST_COUNT - 1)), CAST_COUNT - 1);
@@ -76,11 +80,13 @@ void() m_shutdown =
 	g_ip_buf = BM_ZoneSet(g_ip_buf, "");
 	g_host_buf = BM_ZoneSet(g_host_buf, "");
 	g_opt_status = BM_ZoneSet(g_opt_status, "");
+	BM_Loading_Shutdown();
 	BM_Replays_Shutdown();
 };
 
 void() m_newmap =
 {
+	BM_Loading_Reset();
 	if (g_menu_open)
 		m_toggle(0);
 };
@@ -140,6 +146,12 @@ void() m_draw =
 	g_mouse_moved = (fabs(g_mx - g_last_mx) > 0.25 || fabs(g_my - g_last_my) > 0.25);
 	g_last_mx = g_mx;
 	g_last_my = g_my;
+
+	if (cvar("bm_loading_preview") > 0)
+	{
+		BM_Loading_Draw(g_vw, g_vh);
+		return;
+	}
 
 	if (g_page == PAGE_OPTIONS && g_opt_tab == 0)
 		scrim_a = 0.0;
@@ -237,12 +249,8 @@ void(float key, float ascii) m_keyup =
 void(float width, float height, float defwidth, float defheight) m_drawloading =
 {
 	local float lw, lh;
-	local vector lsz;
 
 	lw = (defwidth > 0) ? defwidth : 640;
 	lh = (defheight > 0) ? defheight : 360;
-	BM_Fill(0, 0, lw, lh, '0 0 0', 0.65);
-	lsz = getimagesize("gfx/loading.lmp");
-	if (lsz_x <= 0) lsz = '160 40 0';
-	drawpic((lw * 0.5 - lsz_x * 0.5) * '1 0 0' + (lh * 0.5 - lsz_y * 0.5) * '0 1 0', "gfx/loading.lmp", lsz, '1 1 1', 1.0, 0);
+	BM_Loading_Draw(lw, lh);
 };

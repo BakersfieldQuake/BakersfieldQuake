@@ -145,6 +145,7 @@ void(string relpath) BM_Replays_PlayFile =
 	if (clean == "")
 		return;
 	BM_PlaySound("sound/misc/menu2.wav");
+	BM_Loading_Begin("", clean, "LOADING REPLAY");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
 	localcmd(strcat("set bm_menu_bg 0; playdemo \"", clean, "\"\n"));

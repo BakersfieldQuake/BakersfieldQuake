@@ -332,8 +332,15 @@ jobs:
           path: pk3cache/zz_dn3fx.pk3
           key: zz_dn3fx-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_fx/build_dn3fx_pk3.py', 'repo/source/mm_tools/dn3_fx/assets/**') }}
 
+      - name: Cache zz_loading.pk3
+        id: cache_loading
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_loading.pk3
+          key: zz_loading-${{ env.BASE_BAKERSFIELD_SHA256 }}-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/loading_screen/build_loading_pk3.py', 'repo/source/mm_tools/loading_screen/assets/**') }}
+
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -418,9 +425,15 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/dn3_fx/build_dn3fx_pk3.py --out pk3cache/zz_dn3fx.pk3
 
+      - name: Build zz_loading.pk3
+        if: steps.cache_loading.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/loading_screen/build_loading_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_loading.pk3
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -718,6 +731,26 @@ jobs:
                   ):
                       if req not in dnames:
                           errors.append(f"zz_dn3fx.pk3 lacks {req}")
+
+          loading = os.path.join(root, "BakersfieldQuake", "zz_loading.pk3")
+          if not os.path.isfile(loading):
+              errors.append("missing BakersfieldQuake/zz_loading.pk3")
+          else:
+              with zipfile.ZipFile(loading) as z:
+                  lnames = set(z.namelist())
+                  for req in (
+                      "gfx/loading/bg_1.png",
+                      "gfx/loading/bg_2.png",
+                      "gfx/loading/bg_3.png",
+                      "gfx/loading/bg_4.png",
+                      "gfx/loading/rob_drone.png",
+                      "gfx/loading/rocket_r.png",
+                      "gfx/loading/rocket_l.png",
+                      "gfx/loading/flame.png",
+                      "gfx/loading/boom.png",
+                  ):
+                      if req not in lnames:
+                          errors.append(f"zz_loading.pk3 lacks {req}")
 
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:

@@ -22,6 +22,8 @@ void(string addr) BM_ConnectTo =
 	if (clean == "")
 		return;
 	BM_PlaySound("sound/misc/menu2.wav");
+	if (!g_load_active)
+		BM_Loading_Begin("", clean, "JOINING SERVER");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
 	localcmd(strcat("set bm_menu_bg 0; connect ", clean, "\n"));
@@ -267,6 +269,7 @@ void(float cx, float cy, float cw, float ch, float idx, float sel, float clicked
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;
+		BM_Loading_Begin(smap, sname, "JOINING SERVER");
 		BM_ConnectTo(cname);
 	}
 };
@@ -511,7 +514,16 @@ void(float key, float ascii) BM_Browser_KeyDown =
 	else if ((key == K_ENTER || key == K_KP_ENTER) && g_br_count > 0)
 	{
 		s_idx = g_br_indices[g_br_sel];
-		cname = (s_idx < 0) ? BAKO_ONLINE_ADDR : getserverliststring(SLIST_CNAME, s_idx);
+		if (s_idx < 0)
+		{
+			cname = BAKO_ONLINE_ADDR;
+			BM_Loading_Begin("", "Bakersfield Online", "JOINING SERVER");
+		}
+		else
+		{
+			cname = getserverliststring(SLIST_CNAME, s_idx);
+			BM_Loading_Begin(getserverliststring(SLIST_MAP, s_idx), getserverliststring(SLIST_NAME, s_idx), "JOINING SERVER");
+		}
 		BM_ConnectTo(cname);
 	}
 };

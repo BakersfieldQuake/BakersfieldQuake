@@ -251,6 +251,14 @@ float g_menu_font_idx;
 float g_menu_font_checked;
 float g_menu_font_probes;
 
+string g_load_map;
+string g_load_title;
+string g_load_mode;
+float g_load_start_t;
+float g_load_last_t;
+float g_load_active;
+float g_load_bg_idx;
+
 float CAST_COUNT = 10;
 
 // Required entrypoint forward declarations
@@ -264,3 +272,10 @@ void() m_newmap;
 float(float entry) m_gethostcachecategory;
 void(float width, float height, float defwidth, float defheight) m_drawloading;
 void(float id, float status, string data) URI_Get_Callback;
+
+// Loading screen module
+void() BM_Loading_Precache;
+void(string mapname, string title, string mode) BM_Loading_Begin;
+void() BM_Loading_Reset;
+void() BM_Loading_Shutdown;
+void(float lw, float lh) BM_Loading_Draw;
