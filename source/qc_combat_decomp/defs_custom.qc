@@ -11983,3 +11983,7 @@ float	ud_next_t;			// next bounty check
 void(entity p) Spruce_PlayerWaterPreThink;
 void(entity part, vector hit_org, entity inflictor, entity attacker, float damage) Spruce_TowerHit;
 void(entity inflictor, entity attacker, float damage, entity direct_other) Spruce_CheckRocketSplash;
+
+// ---- Classic Ranger custom death animations (player_deaths.qc)
+void() PD_Precache;
+float() PD_TryCustomPlayerDeath;
