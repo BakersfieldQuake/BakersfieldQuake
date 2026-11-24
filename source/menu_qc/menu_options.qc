@@ -408,6 +408,7 @@ void() BM_Opt_ApplyGraphicsDefaults =
 	cvar_set("centered_weapons", "0");
 	cvar_set("cl_bob", "0");
 	cvar_set("cl_rollangle", "0");
+	cvar_set("sv_rollangle", "0");
 	cvar_set("crosshair", "5");
 	cvar_set("bm_hud_style", "0");
 	cvar_set("bm_ui_font", "1");
@@ -1324,6 +1325,7 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 			g_click_consumed = TRUE;
 			cvar_set("cl_bob", on ? "0" : "0.02");
 			cvar_set("cl_rollangle", on ? "0" : "2");
+			cvar_set("sv_rollangle", on ? "0" : "2");
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
