@@ -2354,7 +2354,7 @@ void() T_MissileTouch =
 			}
 		}
 	}
-	damg = 135 + (random() * 20);
+	damg = 100 + (random() * 20);
 	if (self.gk_kart != world)
 		damg = 90 + (random() * 15);
 	if ((autocvar_explosiondebris == 0))
@@ -2456,7 +2456,7 @@ void() T_MissileTouch =
 	}
 	else
 	{
-		T_RadiusDamage(self, self.owner, (autocvar_player_rocket_radius + 15), other);
+		T_RadiusDamage(self, self.owner, autocvar_player_rocket_radius, other);
 	}
 	Spruce_CheckRocketSplash(self, self.owner, damg, other);
 	if ((((pointcontents(self.origin) == CONTENT_WATER) || (pointcontents(self.origin) == CONTENT_SLIME)) || (pointcontents(self.origin) == CONTENT_LAVA)))
@@ -3003,13 +3003,11 @@ void() W_FireLightning =
 void() GrenadeExplode =
 {
 
-	T_RadiusDamage(self, self.owner, (autocvar_player_grenades + 25), world);
+	T_RadiusDamage(self, self.owner, autocvar_player_grenades, world);
 	if (((((random() * 100) < 20) && (other.classname != "monster_shambler")) && (other.classname != "monster_hell_knight2")))
 	{
 		spawn_fire();
 	}
-	JG_Splash();	// JohnWave's head goes off as a water splash (jg_splash.qc)
-	return;
 	if (((other.classname == "monster_shambler") || (other.classname == "monster_hell_knight2")))
 	{
 		sendParticle("rocket_resist", self.origin, VEC_ORIGIN, 1, 0);
@@ -3149,8 +3147,7 @@ void() GrenadeTouch =
 			}
 		}
 	}
-	JG_BounceSound();	// voted rubber-ball bounce (jg_splash.qc)
-	JG_GrenadeBounce();	// tumble
+	sound7(self, CHAN_WEAPON, "weapons/bounce.wav", 1, ATTN_NORM, SNDSPD);
 	if ((self.velocity == VEC_ORIGIN))
 	{
 		self.avelocity = VEC_ORIGIN;
@@ -3210,21 +3207,22 @@ void() W_FireGrenade =
 	missile.movetype = MOVETYPE_BOUNCE;
 	missile.solid = SOLID_BBOX;
 	missile.classname = "grenade";
-	missile.nextthink = (time + 0.1);
-	missile.think = GLhitboxes;
+	missile.nextthink = (time + 2.5);
+	missile.think = GrenadeExplode;
 	makevectors(self.v_angle);
 	if (self.v_angle_x)
 	{
-		missile.velocity = ((((v_forward * 720) + (v_up * 190)) + ((crandom() * v_right) * 10)) + ((crandom() * v_up) * 10));
+		missile.velocity = ((((v_forward * 600) + (v_up * 200)) + ((crandom() * v_right) * 10)) + ((crandom() * v_up) * 10));
 	}
 	else
 	{
 		missile.velocity = aim(self, 10000);
-		missile.velocity = (missile.velocity * 730);
-		missile.velocity_z = 190;
+		missile.velocity = (missile.velocity * 600);
+		missile.velocity_z = 200;
 	}
+	missile.avelocity = '300 300 300';
+	missile.angles = vectoangles(missile.velocity);
 	missile.touch = GrenadeTouch;
-	JG_GrenadeLaunch(missile, self.v_angle_y);	// face looks back at you (jg_splash.qc)
 	setmodel(missile, "progs/grenade.mdl");
 	setsize(missile, VEC_ORIGIN, VEC_ORIGIN);
 	// no barrel smoke on the grenade launcher (was SpawnSmoke_Flash(1.3, VEC_ORIGIN, 1, VEC_ORIGIN, 0.7))
@@ -5623,7 +5621,7 @@ void() W_Attack =
 							}
 							else
 							{
-								self.attack_finished = (time + 0.55);
+								self.attack_finished = (time + 0.6);
 							}
 						}
 						else
