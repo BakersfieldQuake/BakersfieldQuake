@@ -111,7 +111,12 @@ float(float a) Veh_NormYaw =
 
 float(float kind) Veh_IsKart =
 {
-	return (kind >= VEH_GOKART_1 && kind <= VEH_GOKART_6);
+	return ((kind >= VEH_GOKART_1 && kind <= VEH_GOKART_6) || kind == VEH_FORELOCO);
+};
+
+float(float kind) Veh_IsForeLoco =
+{
+	return (kind == VEH_FORELOCO);
 };
 
 string(float kind) Veh_DisplayName =
@@ -144,6 +149,8 @@ string(float kind) Veh_DisplayName =
 		return "Mega Man Twin-Dish Interceptor";
 	if (kind == VEH_GOKART_6)
 		return "Mega Man Heavy Fat-Tire Rammer";
+	if (kind == VEH_FORELOCO)
+		return "Eric's Runaway Hospital Bed";
 	return "Tuner Coupe";
 };
 
@@ -217,6 +224,8 @@ string(float kind) Veh_IntactModel =
 		return "progs/gokart_5.md3";
 	if (kind == VEH_GOKART_6)
 		return "progs/gokart_6.md3";
+	if (kind == VEH_FORELOCO)
+		return "progs/crowd_c1.spr32";
 	return "progs/veh_coupe.md3";
 };
 
@@ -365,6 +374,8 @@ float(float kind) Veh_MaxHP =
 		return 200;
 	if (kind == VEH_TUKTUK)
 		return 190;
+	if (Veh_IsForeLoco (kind))
+		return 600;
 	if (Veh_IsKart (kind))
 		return 220;
 	return 210;
@@ -1189,6 +1200,15 @@ void(entity attacker, float take) Veh_Pain =
 {
 	if (self.veh_state == VEH_STATE_WRECK)
 		return;
+	if (self.veh_kind == VEH_FORELOCO)
+	{
+		if (time >= self.veh_pain_snd_t)
+		{
+			self.veh_pain_snd_t = time + 0.16;
+			sound7 (self, CHAN_BODY, "foreloco/boing_hit.wav", 0.72, ATTN_NORM, 98 + random () * 18);
+		}
+		return;
+	}
 	if (attacker != world && attacker != self && !attacker.veh_kind)
 		self.veh_igniter = attacker;
 	else if (attacker.veh_kind && attacker.veh_igniter != world)
@@ -1230,6 +1250,15 @@ void() Veh_ExplodeNow =
 		return;
 
 	kind = self.veh_kind;
+	if (kind == VEH_FORELOCO)
+	{
+		self.veh_state = VEH_STATE_WRECK;
+		drv = self.veh_driver;
+		if (drv != world)
+			FL_Reset (drv);
+		Veh_Leave (self, self.origin + '0 0 24', '0 0 180', TRUE);
+		return;
+	}
 	self.veh_state = VEH_STATE_WRECK;
 	self.veh_chain_t = 0;
 	self.veh_coast_until = 0;
@@ -1882,7 +1911,7 @@ void() Veh_Think =
 	if (time >= self.veh_snd_t)
 	{
 		self.veh_snd_t = time + 1.0;
-		if (self.veh_driver == world)		// the driven van plays its own engine note
+		if (self.veh_driver == world && self.veh_kind != VEH_FORELOCO)		// the driven van plays its own engine note
 			sound7 (self, CHAN_ITEM, Veh_IdleSound (self.veh_kind), 0.26, ATTN_STATIC, 100);
 	}
 };
@@ -1921,7 +1950,7 @@ void(entity v, float kind) Veh_InitEntity =
 		v.veh_has_cm = TRUE;
 	}
 	v.colormod = v.veh_orig_colormod;
-	if (kind == VEH_GOLFCART)
+	if (kind == VEH_GOLFCART || kind == VEH_FORELOCO)
 		v.frame = 0;
 	else if (Veh_IsKart (kind))
 		v.frame = floor (random () * 12);

@@ -601,6 +601,12 @@ void() BM_Stats =
 	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
 	clientstat (112, 2, dn3_st_frame);		// DN3DooM Pump Shotgun CSQC 2D sprite frame + flags
 	clientstat (113, 2, dn3_st_speed);		// DN3DooM Pump Shotgun horizontal speed for walk bob
+	clientstat (114, 2, fl_st_black);		// ForeLoco screen blackout alpha 0..100
+	clientstat (115, 2, fl_st_mode);		// ForeLoco phase: 0=off, 1=drinking, 2=blackout, 3=hospital bed
+	clientstat (116, 2, fl_st_rem);			// ForeLoco remaining time in tenths of a second
+	clientstat (117, 2, fl_st_speed);		// ForeLoco hospital bed speed u/s
+	clientstat (118, 2, fl_st_flags);		// ForeLoco invuln/orbit/boost flags + ram KO count
+	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 };
 
 float() BM_CountPlayers =

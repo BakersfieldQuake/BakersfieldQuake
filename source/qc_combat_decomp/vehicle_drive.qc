@@ -1498,6 +1498,7 @@ void(entity v, vector pos, vector vel, float forced) Veh_Leave =
 		yaw = p.veh_cam_yaw;
 		if (p.veh_camera == 0 && !v.veh_pad_spin)
 			yaw = v.angles_y;
+		FL_Reset (p);
 		Veh_ReleasePlayer (p, pos, vel, yaw);
 	}
 	if (v.veh_cament != world)
@@ -1509,6 +1510,11 @@ void(entity v, vector pos, vector vel, float forced) Veh_Leave =
 	{
 		remove (v.veh_driverent);
 		v.veh_driverent = world;
+	}
+	if (v.veh_kind == VEH_FORELOCO)
+	{
+		remove (v);
+		return;
 	}
 	v.angles_x = 0;
 	v.angles_z = 0;
@@ -2015,7 +2021,12 @@ void(entity p, entity v) Veh_Enter =
 		remove (v.veh_driverent);
 		v.veh_driverent = world;
 	}
-	if (Veh_IsKart (v.veh_kind))
+	if (v.veh_kind == VEH_FORELOCO)
+	{
+		p.veh_cam_pitch = 13;
+		p.veh_cam_dist = 148;
+	}
+	else if (Veh_IsKart (v.veh_kind))
 	{
 		de = spawn ();
 		de.classname = "gokart_driver";
@@ -2038,7 +2049,8 @@ void(entity p, entity v) Veh_Enter =
 	WriteEntity (MSG_ONE, cam);
 	Veh_DriveCamera (p, v, 0.02);
 
-	sound (v, CHAN_VOICE, "vehicles/ignition.wav", 1, ATTN_NORM);
+	if (v.veh_kind != VEH_FORELOCO)
+		sound (v, CHAN_VOICE, "vehicles/ignition.wav", 1, ATTN_NORM);
 	if (!p.veh_hint_shown && !Veh_IsKart (v.veh_kind))
 	{
 		p.veh_hint_shown = TRUE;
@@ -2059,7 +2071,7 @@ entity(entity p) Veh_SeatOf =
 	while (e != world)
 	{
 		// the Spruce school bus drives itself on .ltime waypoints and removes itself at the route end: not enterable
-		if (e.veh_kind >= 1 && e.veh_kind <= VEH_GOKART_6 && e.veh_state != VEH_STATE_WRECK && e.classname != "spruce_schoolbus")
+		if (e.veh_kind >= 1 && e.veh_kind <= VEH_GOKART_6 && e.veh_state != VEH_STATE_WRECK && e.classname != "spruce_schoolbus" && e.veh_kind != VEH_FORELOCO)
 		{
 			rel = p.origin - e.origin;
 			lx = rel * Veh_Fwd (e.angles_y);
@@ -2249,7 +2261,7 @@ float() Veh_DriveFrame =
 		Veh_TryExit (self, v);
 		return TRUE;
 	}
-	if (self.impulse == 87)
+	if (self.impulse == 87 && v.veh_kind != VEH_FORELOCO)
 		self.veh_camera = 1 - self.veh_camera;
 	if (self.impulse == 90)
 		Veh_TestTarget ();		// sv_cheats test aid

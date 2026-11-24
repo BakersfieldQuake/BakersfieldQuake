@@ -99,7 +99,7 @@ void(entity v) GK_ThinkAnim =
 {
 	local float rate, spd, boosted;
 
-	if (v.veh_state == VEH_STATE_WRECK)
+	if (v.veh_state == VEH_STATE_WRECK || v.veh_kind == VEH_FORELOCO)
 		return;
 
 	spd = v.gk_speed;
@@ -218,6 +218,12 @@ void(entity v) GK_BoostExhaust =
 	else
 		ex = v.origin - fwd * 44 - lft * 11 + '0 0 14';
 	pointparticles (veh_fx_boost, ex, fwd * -150, 3);
+	if (v.veh_kind == VEH_FORELOCO)
+	{
+		pointparticles (veh_fx_boost, v.origin - fwd * 36 + '0 0 18', fwd * -220, 4);
+		if (veh_fx_sparks > 0)
+			pointparticles (veh_fx_sparks, ex, fwd * -120 + '0 0 40', 2);
+	}
 };
 
 // Clean, compact Nitro & Drift HUD via centerprint toast. Network: a ~180 B reliable message, so it is only resent
@@ -625,7 +631,7 @@ float(entity v, entity hit, float spd) GK_RamLiving =
 
 	if (time < hit.veh_hit_t || hit.veh_ride == v || (hit.veh_last_van == v && time < hit.veh_bail_safe_t))
 		return FALSE;
-	if (spd < 150)
+	if (spd < (v.veh_kind == VEH_FORELOCO ? 90 : 150))
 		return FALSE;
 
 	driver = GK_DamageAttacker (v);
@@ -637,19 +643,42 @@ float(entity v, entity hit, float spd) GK_RamLiving =
 	else
 		dir = Veh_Fwd (v.angles_y);
 
-	if (v.gk_boosting && spd >= 1150)
-		dmg = 125;		// lethal only at full Shift boost
+	if (v.veh_kind == VEH_FORELOCO)
+	{
+		dmg = bound (50, 50 + (spd - 100) * 0.09, 150);
+		if (v.gk_boosting)
+			dmg = max (dmg, 125);
+		hit.veh_hit_t = time + 0.35;
+		hit.flags = hit.flags - (hit.flags & FL_ONGROUND);
+		setorigin (hit, hit.origin + '0 0 6');
+		hit.velocity = dir * (760 + spd * 0.72) + '0 0 1' * (520 + spd * 0.34);
+		if (driver.classname == "player" && driver.fl_phase == 3)
+		{
+			driver.fl_hits = driver.fl_hits + 1;
+			v.health = min (v.max_health, v.health + 15);
+		}
+		sound7 (hit, CHAN_BODY, "foreloco/boing_hit.wav", 1, ATTN_NORM, 92 + random () * 20);
+		if (veh_fx_sparks > 0)
+			pointparticles (veh_fx_sparks, hit.origin + '0 0 24', '0 0 0', 2);
+		if (veh_fx_drift > 0)
+			pointparticles (veh_fx_drift, hit.origin + '0 0 24', '0 0 0', 2);
+	}
 	else
-		dmg = bound (25, 25 + (spd - 200) * (40 / 850), 65);
+	{
+		if (v.gk_boosting && spd >= 1150)
+			dmg = 125;		// lethal only at full Shift boost
+		else
+			dmg = bound (25, 25 + (spd - 200) * (40 / 850), 65);
 
-	hit.veh_hit_t = time + 0.45;
-	hit.flags = hit.flags - (hit.flags & FL_ONGROUND);
-	setorigin (hit, hit.origin + '0 0 4');
-	hit.velocity = dir * (560 + spd * 0.55) + '0 0 1' * (380 + spd * 0.25);
+		hit.veh_hit_t = time + 0.45;
+		hit.flags = hit.flags - (hit.flags & FL_ONGROUND);
+		setorigin (hit, hit.origin + '0 0 4');
+		hit.velocity = dir * (560 + spd * 0.55) + '0 0 1' * (380 + spd * 0.25);
 
-	sound7 (hit, CHAN_BODY, "vehicles/tire_thud1.wav", 1, ATTN_NORM, 78 + random () * 18);
-	if (veh_fx_sparks > 0)
-		pointparticles (veh_fx_sparks, hit.origin + '0 0 24', '0 0 0', 1);
+		sound7 (hit, CHAN_BODY, "vehicles/tire_thud1.wav", 1, ATTN_NORM, 78 + random () * 18);
+		if (veh_fx_sparks > 0)
+			pointparticles (veh_fx_sparks, hit.origin + '0 0 24', '0 0 0', 1);
+	}
 
 	veh_runover = TRUE;
 	T_Damage (hit, v, driver, dmg);
@@ -691,6 +720,14 @@ void(entity v, entity hit, float imp) GK_RamVehicle =
 	dmg = bound (12, (imp - 100) * 0.08, 55);
 	if (v.gk_boosting)
 		dmg = dmg * 1.5;
+	if (v.veh_kind == VEH_FORELOCO)
+	{
+		dmg = dmg * 1.6;
+		v.veh_air = TRUE;
+		v.veh_vz = max (v.veh_vz, 310);
+		setorigin (v, v.origin + '0 0 8');
+		sound7 (v, CHAN_BODY, "foreloco/boing_hit.wav", 0.95, ATTN_NORM, 108 + random () * 14);
+	}
 	if (veh_fx_sparks > 0)
 		pointparticles (veh_fx_sparks, vd_hitpos, '0 0 0', 1);
 	veh_runover = TRUE;
@@ -849,7 +886,22 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 			p.veh_cam_dist = want_dist;
 		p.veh_cam_dist = p.veh_cam_dist + (want_dist - p.veh_cam_dist) * min (1, dt * 6.0);
 
-		if (v.gk_rkt_aim)
+		if (v.veh_kind == VEH_FORELOCO && p.fl_phase == 3 && (time - p.fl_t0) < FL_INTRO_DUR)
+		{
+			// Smooth 360-degree situation reveal orbit around Eric in the hospital bed
+			local float fl_u, fl_s;
+			fl_u = bound (0, (time - p.fl_t0) / FL_INTRO_DUR, 1);
+			fl_s = fl_u * fl_u * (3 - 2 * fl_u);
+			cdist = 166 - 24 * fl_s;
+			cup = 46;
+			p.veh_cam_dist = cdist;
+			yaw = Veh_NormYaw (v.angles_y + 360 * (1 - fl_s));
+			pitch = 16 - 4 * fl_s;
+			p.veh_cam_yaw = yaw;
+			p.veh_cam_pitch = pitch;
+			tgt = v.origin + '0 0 1' * cup;
+		}
+		else if (v.gk_rkt_aim)
 		{
 			if (v.gk_aim_enter)
 			{
@@ -921,11 +973,18 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	local float yaw0, yaw1, vf, vl, spd, acc, brake_a, turn_rate, yr, yr_in;
 	local float ctop, k, launch, power, d, z, imp, vn, new_tier, mt_dur, mt_pwr, mt_nitro, grav;
 	local float pitch_tgt, roll_tgt, hud_dirty, pass, old_solid, climbed, is_boosted;
-	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag, m1, rkt_ready;
+	local float lat_grip, vf1, vl1, peeling, skidding, slip_mag, m1, rkt_ready, is_fl;
 	local vector fwd, lft, fwd1, lft1, vel, vel_world, org0, org1, org2, n, tang;
 	local entity hit, restore1, restore2, restore3, restore4;
 	local float rsol1, rsol2, rsol3, rsol4, rcnt, gone, is_living, is_prop, is_veh;
 
+	is_fl = (v.veh_kind == VEH_FORELOCO);
+	if (is_fl)
+	{
+		FL_BedDriveTick (p, v, dt);
+		if (p.fl_phase != 3)
+			return TRUE;
+	}
 	hud_dirty = FALSE;
 	started = (time >= v.veh_start_t);
 	thr = bound (0, p.movement_x / 160, 1);
@@ -999,12 +1058,12 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		{
 			v.gk_boosting = TRUE;
 			hud_dirty = TRUE;
-			if (vf < 1200)
-				vf = max (vf + 260, 1180);
+			if (vf < (is_fl ? 1320 : 1200))
+				vf = max (vf + 260, is_fl ? 1320 : 1180);
 			if (time >= v.gk_boost_snd_t)
 			{
 				v.gk_boost_snd_t = time + 0.65;
-				sound7 (v, CHAN_AUTO, "john_bird/swoop.wav", 0.85, ATTN_NORM, 112 + random () * 8);
+				sound7 (v, CHAN_AUTO, is_fl ? "foreloco/bed_boost.wav" : "john_bird/swoop.wav", 0.85, ATTN_NORM, 112 + random () * 8);
 			}
 		}
 	}
@@ -1017,7 +1076,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 
 	if (v.gk_boosting)
 	{
-		v.gk_nitro = max (0, v.gk_nitro - 32 * dt);
+		v.gk_nitro = max (0, v.gk_nitro - (is_fl ? 18 : 32) * dt);
 		if (v.gk_nitro <= 0)
 		{
 			v.gk_boosting = FALSE;
@@ -1026,12 +1085,12 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		if (time >= v.gk_boost_snd_t)
 		{
 			v.gk_boost_snd_t = time + 0.65;
-			sound7 (v, CHAN_AUTO, "john_bird/swoop.wav", 0.72, ATTN_NORM, 118 + random () * 8);
+			sound7 (v, CHAN_AUTO, is_fl ? "foreloco/bed_boost.wav" : "john_bird/swoop.wav", 0.72, ATTN_NORM, 118 + random () * 8);
 		}
 	}
 	else
 	{
-		v.gk_nitro = min (100, v.gk_nitro + 14 * dt);
+		v.gk_nitro = min (100, v.gk_nitro + (is_fl ? 32 : 14) * dt);
 		if (v.veh_air && v.gk_air_t > 0.60)
 			v.gk_nitro = min (100, v.gk_nitro + 22 * dt);
 	}
@@ -1040,10 +1099,10 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	if (started && spc_edge && !v.veh_air)
 	{
 		v.veh_air = TRUE;
-		v.veh_vz = 235;
+		v.veh_vz = is_fl ? 435 : 235;
 		v.gk_air_t = 0;
 		setorigin (v, v.origin + '0 0 3');
-		sound7 (v, CHAN_BODY, "bikes/tire_bounce.wav", 0.72, ATTN_NORM, 138 + random () * 10);
+		sound7 (v, CHAN_BODY, is_fl ? "foreloco/bed_jump.wav" : "bikes/tire_bounce.wav", 0.82, ATTN_NORM, is_fl ? (100 + random () * 12) : (138 + random () * 10));
 		if (fabs (steer_in) > 0.15 && vf > 200)
 			v.gk_drift_dir = (steer_in > 0) ? 1 : -1;
 	}
@@ -1133,9 +1192,55 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.gk_drift_tier = 0;
 	}
 
-	// ---- M1 (+button0): Tap (<0.18s) = Horn | Hold (>=0.18s) = Rocket Crosshair & Free-Aim | Release = Fire
+	// ---- M1 (+button0): Tap (<0.18s) = Horn | Hold (>=0.18s) = Rocket Crosshair & Free-Aim (or ForeLoco Bedpan/Can Barrage!)
 	m1 = (started && p.button0 != 0);
-	if (v.gk_m1_hold_t < 0)
+	if (is_fl)
+	{
+		if (v.gk_m1_hold_t < 0)
+		{
+			if (!m1)
+				v.gk_m1_hold_t = 0;
+			v.gk_m1_prev = FALSE;
+		}
+		else if (m1)
+		{
+			if (!v.gk_m1_prev)
+			{
+				v.gk_m1_hold_t = 0;
+				v.gk_rkt_aim = FALSE;
+			}
+			else
+			{
+				v.gk_m1_hold_t = v.gk_m1_hold_t + dt;
+				if (v.gk_m1_hold_t >= GK_RKT_TAP_MAX && time >= v.gk_rkt_cd)
+				{
+					v.gk_rkt_cd = time + 0.26;
+					v.gk_rkt_armed = TRUE;	// reuse flag locally to suppress tap-horn after firing
+					FL_BedFire (p, v);
+				}
+			}
+			v.gk_m1_prev = TRUE;
+		}
+		else if (v.gk_m1_prev)
+		{
+			if (!v.gk_rkt_armed && started && time >= v.veh_horn_t)
+			{
+				v.veh_horn_t = time + 0.55;
+				sound7 (v, CHAN_WEAPON, "foreloco/bed_horn.wav", 0.95, ATTN_NORM, 96 + random () * 10);
+			}
+			v.gk_m1_hold_t = 0;
+			v.gk_rkt_aim = FALSE;
+			v.gk_rkt_armed = FALSE;
+			v.gk_m1_prev = FALSE;
+		}
+		if (p.ishuman == 1 && !is_fl)
+		{
+			p.gk_st_mode = 0;
+			p.gk_st_prog = 0;
+			p.gk_st_nitro = 0;
+		}
+	}
+	else if (v.gk_m1_hold_t < 0)
 	{
 		// Entered the kart while M1 was already held: ignore until released once
 		if (!m1)
@@ -1224,7 +1329,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.gk_m1_prev = FALSE;
 	}
 
-	if (p.ishuman == 1)
+	if (p.ishuman == 1 && !is_fl)
 	{
 		if (v.gk_rkt_aim)
 		{
@@ -1259,9 +1364,9 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	}
 
 	is_boosted = (v.gk_boosting || time < v.gk_boost_t);
-	ctop = GK_TOP_CRUISE;
+	ctop = is_fl ? 1180 : GK_TOP_CRUISE;
 	if (v.gk_boosting)
-		ctop = max (ctop, GK_TOP_NITRO);
+		ctop = max (ctop, is_fl ? 1720 : GK_TOP_NITRO);
 	if (time < v.gk_boost_t)
 		ctop = max (ctop, v.gk_boost_pwr);
 	ctop = ctop * power;
@@ -1708,7 +1813,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	v.veh_rpm = bound (0.14, 0.16 + 0.84 * (spd / GK_TOP_CRUISE), 1.0);
 	if (is_boosted)
 		v.veh_rpm = 1.0;
-	if (started)
+	if (started && !is_fl)
 		Veh_EngineSound (v, max (thr, is_boosted));
 
 	if (is_boosted && time >= v.veh_fx_boost_t)
@@ -1718,34 +1823,38 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	}
 
 	// Keep MD3 super-boost / drive frames locked responsively every client frame while preserving wheel phase
-	if (is_boosted && (v.frame < 28 || v.frame > 43))
+	if (!is_fl)
 	{
-		if (v.frame >= 12 && v.frame <= 27)
-			v.veh_anim = floor ((v.frame - 12) * 0.5);
-		else
-			v.veh_anim = 0;
-		v.frame = 28 + v.veh_anim;
-	}
-	else if (!is_boosted && spd > 35 && (v.frame < 12 || v.frame > 27))
-	{
-		if (v.frame >= 28 && v.frame <= 43)
+		if (is_boosted && (v.frame < 28 || v.frame > 43))
 		{
-			local float kf;
-			kf = (v.frame - 28) * 2;
-			v.veh_anim = kf - 16 * floor (kf / 16);
+			if (v.frame >= 12 && v.frame <= 27)
+				v.veh_anim = floor ((v.frame - 12) * 0.5);
+			else
+				v.veh_anim = 0;
+			v.frame = 28 + v.veh_anim;
 		}
-		else
-			v.veh_anim = 0;
-		v.frame = 12 + v.veh_anim;
+		else if (!is_boosted && spd > 35 && (v.frame < 12 || v.frame > 27))
+		{
+			if (v.frame >= 28 && v.frame <= 43)
+			{
+				local float kf;
+				kf = (v.frame - 28) * 2;
+				v.veh_anim = kf - 16 * floor (kf / 16);
+			}
+			else
+				v.veh_anim = 0;
+			v.frame = 12 + v.veh_anim;
+		}
 	}
 
 	// ---- Nitro / Drift HUD: at most 2 Hz, and only when its text changes (GK_UpdateHUD sets gk_hud_t)
-	if (time >= v.gk_hud_t)
+	if (!is_fl && time >= v.gk_hud_t)
 		GK_UpdateHUD (p, v, hud_dirty);
 
 	// ---- Seat Driver & Update Mario Kart Chase Camera
 	setorigin (p, v.origin - Veh_Fwd (yaw1) * 9 + '0 0 18');
-	GK_SyncDriverEnt (v);
+	if (!is_fl)
+		GK_SyncDriverEnt (v);
 	GK_DriveCamera (p, v, dt);
 	return TRUE;
 };

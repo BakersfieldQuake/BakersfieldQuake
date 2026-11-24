@@ -457,7 +457,7 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	}
 	self.frame = self.owner.weaponframe;
 	Pickle_ViewFrame (self, TRUE);	// sync articulated Pickle Surprise skin & pose on Quad overlay (pickle.qc)
-	if ((self.owner.throwing == 1) || (self.owner.bm_rl_slot && self.owner.health > 0 && !(M4_ShowsReload (self.owner) || Garand_ShowsReload (self.owner))) || FD_Flying(self.owner) || Veh_Driving(self.owner) || JohnBird_Flying(self.owner) || RocketRider_Flying(self.owner) || EricCannon_Active(self.owner) || MMTank_Driving(self.owner) || Binoc_On(self.owner))
+	if ((self.owner.fl_phase == 1) || (self.owner.fl_phase == 2) || (self.owner.throwing == 1) || (self.owner.bm_rl_slot && self.owner.health > 0 && !(M4_ShowsReload (self.owner) || Garand_ShowsReload (self.owner))) || FD_Flying(self.owner) || Veh_Driving(self.owner) || JohnBird_Flying(self.owner) || RocketRider_Flying(self.owner) || EricCannon_Active(self.owner) || MMTank_Driving(self.owner) || Binoc_On(self.owner))
 	{
 		self.alpha = -1;
 	}
@@ -2476,7 +2476,7 @@ void() v_weapon_position_think =
 	}
 	Milky_ViewFrame (self);	// which Milky Gun clip, and when the hand is put away (milky.qc)
 	Pickle_ViewFrame (self, FALSE);	// articulated Pickle Surprise idle, throw, follow-through & reload (pickle.qc)
-	if ((self.owner.bm_rl_slot && self.owner.health > 0 && !(M4_ShowsReload (self.owner) || Garand_ShowsReload (self.owner))) || FD_Flying(self.owner) || Veh_Driving(self.owner) || JohnBird_Flying(self.owner) || RocketRider_Flying(self.owner) || EricCannon_Active(self.owner) || MMTank_Driving(self.owner) || Binoc_On(self.owner))
+	if ((self.owner.fl_phase == 1) || (self.owner.fl_phase == 2) || (self.owner.bm_rl_slot && self.owner.health > 0 && !(M4_ShowsReload (self.owner) || Garand_ShowsReload (self.owner))) || FD_Flying(self.owner) || Veh_Driving(self.owner) || JohnBird_Flying(self.owner) || RocketRider_Flying(self.owner) || EricCannon_Active(self.owner) || MMTank_Driving(self.owner) || Binoc_On(self.owner))
 	{
 		self.alpha = -1;	// the gun is put away while it reloads (bm_reload.qc), and while flying a Rob Dob head
 	}

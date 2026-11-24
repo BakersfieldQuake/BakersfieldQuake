@@ -223,6 +223,10 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	damage = Underdog_Damage(targ, attacker, damage);
 	damage = BM_Damage(targ, inflictor, attacker, damage);	// spawn protection, less self-damage
 	damage = Milky_Damage(targ, inflictor, attacker, damage);	// the Pink Lady keeps her own hit points (milky.qc)
+	if ((targ.veh_kind == VEH_FORELOCO))
+	{
+		damage = max(1, (damage * 0.25));
+	}
 	if ((targ.classname == "misc_vehicle_johnbird"))
 	{
 		if ((((inflictor.classname == "missile") || (inflictor.classname == "grenade")) && (damage >= 75)))
@@ -252,7 +256,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		targ.dmg_save = (targ.dmg_save + save);
 		targ.dmg_inflictor = inflictor;
 	}
-	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)))
+	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)) && !(targ.veh_kind == VEH_FORELOCO && targ.invincible_finished >= time))
 	{
 		if (((fg_inflicting == FG_GARAND) && (bm_kb > 20)))
 		{

@@ -888,6 +888,294 @@ void(float raw_w, float raw_h) GK_DrawHUD =
 	BM_ShadowColorRight (w - 8, y0 - 7, lbl, 5.0, 0.94);
 };
 
+float fl_csqc_mode_prev;
+float fl_csqc_t0;
+float fl_csqc_bob_phase;
+
+void() FL_PrecachePics =
+{
+	precache_pic("gfx/foreloco/vm_01.png");
+	precache_pic("gfx/foreloco/vm_02.png");
+	precache_pic("gfx/foreloco/vm_03.png");
+	precache_pic("gfx/foreloco/vm_04.png");
+	precache_pic("gfx/foreloco/vm_05.png");
+	precache_pic("gfx/foreloco/vm_06.png");
+	precache_pic("gfx/foreloco/vm_07.png");
+	precache_pic("gfx/foreloco/vm_08.png");
+	precache_pic("gfx/foreloco/vm_09.png");
+	precache_pic("gfx/foreloco/vm_10.png");
+	precache_pic("gfx/foreloco/vm_11.png");
+	precache_pic("gfx/foreloco/vm_12.png");
+	precache_pic("gfx/foreloco/vm_13.png");
+	precache_pic("gfx/foreloco/vm_14.png");
+	precache_pic("gfx/foreloco/vm_15.png");
+	precache_pic("gfx/foreloco/vm_16.png");
+	precache_pic("gfx/foreloco/vm_17.png");
+	precache_pic("gfx/foreloco/vm_18.png");
+	precache_pic("gfx/foreloco/vm_19.png");
+	precache_pic("gfx/foreloco/vm_20.png");
+	precache_pic("gfx/foreloco/vm_21.png");
+	precache_pic("gfx/foreloco/vm_22.png");
+	precache_pic("gfx/foreloco/vm_23.png");
+	precache_pic("gfx/foreloco/vm_24.png");
+	precache_pic("gfx/foreloco/vm_25.png");
+	precache_pic("gfx/foreloco/vm_26.png");
+	precache_pic("gfx/foreloco/vm_27.png");
+	precache_pic("gfx/foreloco/vm_28.png");
+	precache_pic("gfx/foreloco/vm_29.png");
+	precache_pic("gfx/foreloco/vm_30.png");
+	precache_pic("gfx/foreloco/vm_31.png");
+	precache_pic("gfx/foreloco/vm_32.png");
+	precache_pic("gfx/foreloco/vm_33.png");
+	precache_pic("gfx/foreloco/vm_34.png");
+	precache_pic("gfx/foreloco/vm_35.png");
+	precache_pic("gfx/foreloco/vm_36.png");
+	precache_pic("gfx/foreloco/pour_stream.png");
+	precache_pic("gfx/foreloco/smear_pink.png");
+	precache_pic("gfx/foreloco/smear_green.png");
+	precache_pic("gfx/foreloco/smear_drips.png");
+};
+
+string(float fr) FL_VMFramePic =
+{
+	if (fr <= 1)	return "gfx/foreloco/vm_01.png";
+	if (fr == 2)	return "gfx/foreloco/vm_02.png";
+	if (fr == 3)	return "gfx/foreloco/vm_03.png";
+	if (fr == 4)	return "gfx/foreloco/vm_04.png";
+	if (fr == 5)	return "gfx/foreloco/vm_05.png";
+	if (fr == 6)	return "gfx/foreloco/vm_06.png";
+	if (fr == 7)	return "gfx/foreloco/vm_07.png";
+	if (fr == 8)	return "gfx/foreloco/vm_08.png";
+	if (fr == 9)	return "gfx/foreloco/vm_09.png";
+	if (fr == 10)	return "gfx/foreloco/vm_10.png";
+	if (fr == 11)	return "gfx/foreloco/vm_11.png";
+	if (fr == 12)	return "gfx/foreloco/vm_12.png";
+	if (fr == 13)	return "gfx/foreloco/vm_13.png";
+	if (fr == 14)	return "gfx/foreloco/vm_14.png";
+	if (fr == 15)	return "gfx/foreloco/vm_15.png";
+	if (fr == 16)	return "gfx/foreloco/vm_16.png";
+	if (fr == 17)	return "gfx/foreloco/vm_17.png";
+	if (fr == 18)	return "gfx/foreloco/vm_18.png";
+	if (fr == 19)	return "gfx/foreloco/vm_19.png";
+	if (fr == 20)	return "gfx/foreloco/vm_20.png";
+	if (fr == 21)	return "gfx/foreloco/vm_21.png";
+	if (fr == 22)	return "gfx/foreloco/vm_22.png";
+	if (fr == 23)	return "gfx/foreloco/vm_23.png";
+	if (fr == 24)	return "gfx/foreloco/vm_24.png";
+	if (fr == 25)	return "gfx/foreloco/vm_25.png";
+	if (fr == 26)	return "gfx/foreloco/vm_26.png";
+	if (fr == 27)	return "gfx/foreloco/vm_27.png";
+	if (fr == 28)	return "gfx/foreloco/vm_28.png";
+	if (fr == 29)	return "gfx/foreloco/vm_29.png";
+	if (fr == 30)	return "gfx/foreloco/vm_30.png";
+	if (fr == 31)	return "gfx/foreloco/vm_31.png";
+	if (fr == 32)	return "gfx/foreloco/vm_32.png";
+	if (fr == 33)	return "gfx/foreloco/vm_33.png";
+	if (fr == 34)	return "gfx/foreloco/vm_34.png";
+	if (fr == 35)	return "gfx/foreloco/vm_35.png";
+	return "gfx/foreloco/vm_36.png";
+};
+
+void(float w, float h, float el) FL_DrawLiquidSmear =
+{
+	local float pour_a, smear_p, smear_fade, cascade, sx, sy, px, py, dy, sn, sn2, sn_g, gx, stream_a, gulp_mod, pour_env, mist_s;
+
+	if (el < 0.72)
+		return;
+
+	// 1. Tab-pop pressurized CO2 spray mist strictly 0.72..1.05s
+	if (el < 1.05)
+	{
+		mist_s = sin (((el - 0.72) / 0.33) * 3.14159);
+		pour_a = max (0, mist_s) * 0.24;
+		if (pour_a > 0.005)
+		{
+			sn = sin (time * 5.5);
+			px = sn * 6;
+			drawpic ((px - 8) * '1 0 0', "gfx/foreloco/smear_pink.png", (w + 16) * '1 0 0' + h * '0 1 0', '1 1 1', pour_a * 0.45, 0);
+			drawpic ((0 - px - 8) * '1 0 0', "gfx/foreloco/smear_green.png", (w + 16) * '1 0 0' + h * '0 1 0', '1 1 1', pour_a * 0.40, 0);
+		}
+		return;
+	}
+
+	// 2. Cascading pour ribbons strictly during active chug (1.24..2.22s), never during upright crush
+	pour_env = bound (0, (el - 1.24) / 0.14, 1) * (1 - bound (0, (el - 2.08) / 0.14, 1));
+	if (pour_env > 0.005)
+	{
+		cascade = (el * 1.72) - floor (el * 1.72);
+		py = cascade * h;
+		sn = sin (time * 8.5);
+		sx = sn * 14;
+		sn_g = sin ((el - 1.24) * 19.2);
+		gulp_mod = 0.85 + 0.22 * sn_g;
+		stream_a = 0.42 * pour_env * gulp_mod;
+		if (stream_a > 0.01)
+		{
+			drawpic (sx * '1 0 0' + (py - h) * '0 1 0', "gfx/foreloco/pour_stream.png", w * '1 0 0' + h * '0 1 0', '1 1 1', stream_a, 0);
+			drawpic (sx * '1 0 0' + py * '0 1 0', "gfx/foreloco/pour_stream.png", w * '1 0 0' + h * '0 1 0', '1 1 1', stream_a, 0);
+		}
+	}
+
+	// 3. Edge-framed watermelon-pink & sour-green smears + drips: build during chug, decay cleanly for crush/yeet
+	smear_p = bound (0, (el - 1.18) / 0.78, 1);
+	smear_fade = 1 - bound (0, (el - 2.22) / 0.55, 1) * 0.58;
+	pour_a = (0.18 + smear_p * 0.72) * smear_fade;
+	if (smear_p > 0.01 && pour_a > 0.01)
+	{
+		sn = sin (time * 4.2);
+		sn2 = sin (time * 3.6);
+		px = sn * 12 * smear_p;
+		gx = (0 - sn2) * 14 * smear_p;
+		sy = smear_p * (h * 0.08);
+		drawpic ((px - 16) * '1 0 0' + (sy - h * 0.08) * '0 1 0', "gfx/foreloco/smear_pink.png", (w + 32) * '1 0 0' + (h * 1.08) * '0 1 0', '1 1 1', pour_a * 0.62, 0);
+		drawpic ((gx - 16) * '1 0 0' + (sy * 1.2 - h * 0.10) * '0 1 0', "gfx/foreloco/smear_green.png", (w + 32) * '1 0 0' + (h * 1.10) * '0 1 0', '1 1 1', pour_a * 0.56, 0);
+		dy = (0 - h * 0.32) * (1 - smear_p);
+		drawpic ((px * 0.4 - 8) * '1 0 0' + dy * '0 1 0', "gfx/foreloco/smear_drips.png", (w + 16) * '1 0 0' + h * '0 1 0', '1 1 1', pour_a * 0.76, 0);
+	}
+};
+
+void(float w, float h) FL_DrawViewmodel =
+{
+	local float mode, fr, srv_fr, el, srv_el, drift, frac, ph, pw, px, py, bx, by, amp, sn, cs2, dt, sn_g, sn_cr, gulp_y, chug_env, cr_env, vm_a;
+	local string vpic;
+
+	mode = getstati (115);
+	if (mode != fl_csqc_mode_prev)
+	{
+		fl_csqc_mode_prev = mode;
+		fl_csqc_t0 = time;
+		fl_csqc_bob_phase = 0;
+	}
+	if (mode != 1)
+		return;
+	if (inMenu || intermission || finale)
+		return;
+	if (getstati (STAT_HEALTH) <= 0)
+		return;
+
+	el = max (0, time - fl_csqc_t0);
+	srv_fr = getstati (119);
+	if (srv_fr >= 1 && srv_fr <= 36)
+	{
+		srv_el = (srv_fr - 0.5) * (2.85 / 36);
+		drift = srv_el - el;
+		if (drift > 0.22 || drift < -0.22)
+		{
+			fl_csqc_t0 = fl_csqc_t0 - drift * 0.25;
+			el = max (0, time - fl_csqc_t0);
+		}
+	}
+
+	FL_DrawLiquidSmear (w, h, el);
+
+	if (cvar ("r_drawviewmodel") <= 0 || cvar ("chase_active") > 0)
+		return;
+
+	frac = bound (0, el / 2.85, 0.9995);
+	fr = bound (1, 1 + floor (frac * 36), 36);
+	vpic = FL_VMFramePic (fr);
+
+	// Downward-only figure-8 bob + smooth chug gulp / crush tremor envelopes (wrist stays anchored bottom-right)
+	dt = frametime;
+	if (dt < 0 || dt > 0.1)
+		dt = 0.016;
+	fl_csqc_bob_phase = fl_csqc_bob_phase + dt * 7.2;
+
+	sn = sin (fl_csqc_bob_phase);
+	cs2 = cos (fl_csqc_bob_phase * 2);
+	chug_env = bound (0, (el - 1.18) / 0.14, 1) * (1 - bound (0, (el - 2.16) / 0.12, 1));
+	cr_env = bound (0, (el - 2.22) / 0.08, 1) * (1 - bound (0, (el - 2.50) / 0.10, 1));
+
+	amp = 3.0 + 1.6 * chug_env - 0.8 * cr_env;
+	sn_g = sin ((el - 1.24) * 19.2);
+	sn_cr = sin (time * 44.0);
+	gulp_y = ((0.5 + 0.5 * sn_g) * 3.2) * chug_env + ((0.5 + 0.5 * sn_cr) * 2.0) * cr_env;
+
+	bx = sn * amp;
+	by = amp * 0.45 * (1 - cs2) + gulp_y;
+
+	ph = h * 0.98;
+	pw = ph * 1.333333;
+	px = w - pw + 8 + bx;
+	py = (h - ph) + by + 5;
+	vm_a = 1 - bound (0, (el - 2.68) / 0.17, 1);
+	if (vm_a > 0.005)
+		drawpic (px * '1 0 0' + py * '0 1 0', vpic, pw * '1 0 0' + ph * '0 1 0', '1 1 1', vm_a, 0);
+};
+
+void(float w, float h) FL_DrawHUD =
+{
+	local float blk, mode, rem, spd, fl_flags, invuln, orbit, boosted, hits;
+	local float y0, sec, dec, mph, el;
+	local string ts, s1, s2, tags, lbl;
+
+	FL_DrawViewmodel (w, h);
+
+	mode = getstati (115);
+	blk = getstati (114);
+	rem = getstati (116);
+	spd = getstati (117);
+	fl_flags = getstati (118);
+
+	y0 = 36;
+	if (cvar ("bm_hud_style") == 2)
+		y0 = 64;
+
+	if (mode == 2)
+		FL_DrawLiquidSmear (w, h, 2.80);
+
+	if (mode == 3)
+	{
+		invuln = fl_flags & 1;
+		orbit = fl_flags & 2;
+		boosted = fl_flags & 4;
+		hits = floor (fl_flags / 16);
+
+		sec = floor (rem / 10);
+		dec = rem - sec * 10;
+		ts = strcat (ftos (sec), ".", ftos (dec), "s");
+		mph = floor (spd * 0.085 + 0.5);
+
+		tags = "";
+		if (orbit)
+			tags = strcat (tags, "  ^3[360 REVEAL]");
+		if (invuln)
+		{
+			if ((floor (time * 8) & 1) == 0)
+				tags = strcat (tags, "  ^3[INVULNERABLE!]");
+			else
+				tags = strcat (tags, "  ^2[INVULNERABLE!]");
+		}
+		if (hits > 0)
+			tags = strcat (tags, "  ^1RAM KOs: ", ftos (hits));
+
+		s1 = strcat ("^2FORELOCO: ^3ERIC HOSPITAL BED  ^7", ts, tags);
+		s2 = strcat ("^3SPEED: ^7", ftos (mph), " MPH", boosted ? " ^2[TURBO!]" : "", "  ^3[SHIFT]^7 TURBO  ^3[SPACE]^7 JUMP  ^3[M1]^7 BEDPANS/HORN  ^3[H]^7 BAIL");
+		BM_DrawColorShadow (10, y0, s1, 6.4, 0.98);
+		BM_DrawColorShadow (10, y0 + 12, s2, 6.0, 0.96);
+	}
+	else if (mode == 1)
+	{
+		el = max (0, time - fl_csqc_t0);
+		if (el < 0.68)
+			lbl = "^3WATERMELON FORELOCO  ^712% ALC/VOL";
+		else if (el < 1.12)
+			lbl = "^3WATERMELON FORELOCO  ^2CRACKING TAB!";
+		else if (el < 2.22)
+			lbl = "^3WATERMELON FORELOCO  ^2CHUGGING!!";
+		else
+			lbl = "^3WATERMELON FORELOCO  ^1CRUSH & YEET!";
+		BM_DrawColorShadow (10, y0, lbl, 6.2, 0.96);
+	}
+
+	if (blk > 0)
+	{
+		drawfill ('0 0 0', w * '1 0 0' + h * '0 1 0', '0 0 0', bound (0, blk / 100, 1), 0);
+		if (mode == 2)
+			BM_DrawColorShadow (10, y0, "^3VEGAS BABY!!", 7.2, 0.98);
+	}
+};
+
 void(float w, float h) BM_DrawHUD =
 {
 	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, ty, row_step, rlp_step;

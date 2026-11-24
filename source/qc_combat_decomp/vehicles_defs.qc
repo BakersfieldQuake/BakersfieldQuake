@@ -45,6 +45,7 @@ float	VEH_GOKART_3	= 12;
 float	VEH_GOKART_4	= 13;
 float	VEH_GOKART_5	= 14;
 float	VEH_GOKART_6	= 15;
+float	VEH_FORELOCO	= 16;
 
 float	VEH_STATE_IDLE	= 0;
 float	VEH_STATE_FIRE	= 1;
@@ -183,6 +184,7 @@ float(float kind) Veh_HalfLen;
 float(float kind) Veh_HalfWid;
 float(float kind) Veh_BodyHeight;
 float(entity p) Veh_Driving;				// TRUE while p is at the wheel (custom_effects.qc hides the gun on it)
+void(entity v, vector pos, vector vel, float forced) Veh_Leave;
 float(entity p) Veh_Riding;					// TRUE while p is riding shotgun / turret passenger
 float() Veh_DriveFrame;						// W_WeaponFrame hook: TRUE while this player is driving (he does nothing else)
 void() Veh_PassengerFrame;					// W_WeaponFrame hook: syncs passenger seat & handles H bail while keeping full weapons

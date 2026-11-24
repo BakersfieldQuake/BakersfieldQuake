@@ -28,6 +28,7 @@ garand_defs.qc
 jetpack_defs.qc
 milky_defs.qc
 vehicles_defs.qc
+foreloco_defs.qc
 john_bird_defs.qc
 rocket_rider_defs.qc
 lan_props_defs.qc
@@ -126,6 +127,7 @@ milky.qc
 vehicles.qc
 vehicle_drive.qc
 gokart.qc
+foreloco.qc
 john_bird.qc
 rocket_rider.qc
 bklan_tv_data.qc

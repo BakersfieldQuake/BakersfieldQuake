@@ -6470,6 +6470,9 @@ void() ImpulseCommands =
 	Vehicles_Impulse();
 	if (!self.impulse)
 		return;
+	FL_Impulse();
+	if (!self.impulse)
+		return;
 	LanProps_Impulse();
 	Bicycles_Impulse();
 	if ((self.impulse == MM_IMPULSE))
@@ -6675,6 +6678,11 @@ void() W_WeaponFrame =
 	{
 		self.jb_st_status = 0;	// same: no stale slowed/burning status for the whole drive
 		return;	// driving a vehicle: nothing else happens (vehicle_drive.qc)
+	}
+	if (FL_Frame())
+	{
+		self.jb_st_status = 0;
+		return;	// drinking ForeLoco / blacking out (foreloco.qc)
 	}
 	Veh_PassengerFrame();	// riding shotgun / turret gunner: syncs seat & H bail while keeping full weapons!
 	JohnBird_DebuffFrame();	// sticky slow / burn DoT & Winged John CSQC stats
