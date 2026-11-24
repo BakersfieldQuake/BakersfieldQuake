@@ -211,6 +211,7 @@ void(vector dir) M4_WallImpact =
 		pointparticles (m4_fx_spark, trace_endpos + trace_plane_normal * 1.5, trace_plane_normal * 95, 1);
 	else
 		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1, 0);
+	DN3FX_OnWallImpact (trace_endpos + trace_plane_normal * 1.5, trace_plane_normal);
 
 	if (random () < 0.28)
 	{

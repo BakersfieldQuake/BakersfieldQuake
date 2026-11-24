@@ -15,6 +15,7 @@ kyle_defs.qc
 robhead_defs.qc
 bm_defs.qc
 dn3_shotgun_defs.qc
+dn3_fx_defs.qc
 practice_defs.qc
 sniper_defs.qc
 ltgun_defs.qc
@@ -72,6 +73,7 @@ settings_soc.qc
 projectiles_soc.qc
 client_debuff_soc.qc
 particle_emitters.qc
+dn3_fx.qc
 gib_extra.qc
 scripting_extra.qc
 hook.qc

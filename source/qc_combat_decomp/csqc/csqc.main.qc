@@ -249,6 +249,7 @@ void() CSQC_Init =
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
 	DN3SG_PrecachePics();
+	DN3FX_Precache();
 	precache_pic("progs/mmt_aim_beam");
 };
 
@@ -565,6 +566,10 @@ void(float isnew) CSQC_Ent_Update =
 			{
 				BM_Radar_EntUpdate(isnew);
 			}
+			else if ((self.enttype == ENT_DN3FX))
+			{
+				DN3FX_EntUpdate(isnew);
+			}
 			else
 			{
 				print(/*11460i*/"ERR: Unhandled CSQC entity\n");
@@ -583,6 +588,11 @@ void() CSQC_Ent_Remove =
 	if ((self.enttype == ENT_BM_RADAR))
 	{
 		BM_Radar_EntRemove();
+		return;
+	}
+	if ((self.enttype == ENT_DN3FX))
+	{
+		remove(self);
 		return;
 	}
 	if ((self.classname != "sprite"))

@@ -191,6 +191,7 @@ void() spike_afrit_touch =
 		else
 		{
 			pointparticles(particleeffectnum(/*52009i*/"TE_AFRITSPIKE_RED"), self.origin, VEC_ORIGIN, 1);
+			DN3FX_OnFire(self.origin, '0 0 22', 0.80, FALSE);
 		}
 		sound7(self, CHAN_WEAPON, "afrit/fireballtouch.wav", 0.6, ATTN_NORM, SNDSPD);
 	}
@@ -2272,6 +2273,7 @@ void() afrit_deathb4 = [ 64, afrit_deathb4 ]
 	if (!self.skin)
 	{
 		pointparticles(particleeffectnum(/*13606i*/"Afrit_death_explode"), self.origin, VEC_ORIGIN, 1);
+		DN3FX_OnExplode(self, self.origin, 0.90);
 	}
 	if (self.skin)
 	{

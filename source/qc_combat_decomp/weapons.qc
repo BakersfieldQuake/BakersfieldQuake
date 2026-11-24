@@ -1039,6 +1039,7 @@ void(vector org, vector vel, float damage) SpawnBlood =
 	if ((trace_ent.dodge_finished < time))
 	{
 		particle(org, (vel * 0.1), 73, (damage * 2));
+		DN3FX_OnBlood(trace_ent, org, vel, damage);
 	}
 };
 
@@ -1579,6 +1580,7 @@ void(float damage, vector dir) TraceAttack =
 		WriteCoord(MSG_BROADCAST, org_x);
 		WriteCoord(MSG_BROADCAST, org_y);
 		WriteCoord(MSG_BROADCAST, org_z);
+		DN3FX_OnWallImpact(trace_endpos + trace_plane_normal * 1.5, trace_plane_normal);
 	}
 };
 
@@ -2250,6 +2252,10 @@ void() BecomeExplosion =
 			explod.scale = 0.9;
 			explod.alpha = 0.7;
 		}
+	}
+	if ((self.classname != "light_destruct") && (self.classname != "resistexp") && (self.classname != "slimeball") && (self.classname != "monster_tarbaby") && (self.classname != "missile"))
+	{
+		DN3FX_OnExplode(self, (self.origin + '0 0 15'), ((self.classname == "misc_explobox") || (self.classname == "explo_box")) ? 1.35 : 1.05);
 	}
 	setorigin(explod, (self.origin + '0 0 15'));
 	explod.frame = 0;
@@ -4199,6 +4205,7 @@ void() spike_touch =
 				{
 					sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
+				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_nailgun);
 				T_Damage(other, self, self.owner, autocvar_player_nailgun);
 				remove(self);
 				return;
@@ -4244,6 +4251,7 @@ void() spike_touch =
 				pointparticles(particleeffectnum(/*25865i*/"blood_saw"), self.origin, VEC_ORIGIN, 1);
 				spawn_touchblood(14);
 			}
+			DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_nailgun);
 			T_Damage(other, self, self.owner, autocvar_player_nailgun);
 		}
 		if ((autocvar_fleshsplat == 1))
@@ -4588,6 +4596,7 @@ void() superspike_touch =
 				{
 					sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
+				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_supernailgun);
 				T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 				remove(self);
 				return;
@@ -4635,6 +4644,7 @@ void() superspike_touch =
 					pointparticles(particleeffectnum(/*25865i*/"blood_saw"), self.origin, VEC_ORIGIN, 1);
 					spawn_touchblood(16);
 				}
+				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_supernailgun);
 				T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 			}
 		}

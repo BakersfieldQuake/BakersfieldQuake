@@ -315,8 +315,15 @@ jobs:
           path: pk3cache/zz_dn3shotgun.pk3
           key: zz_dn3shotgun-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_shotgun/build_dn3shotgun_pk3.py', 'repo/source/mm_tools/dn3_shotgun/assets/**') }}
 
+      - name: Cache zz_dn3fx.pk3
+        id: cache_dn3fx
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_dn3fx.pk3
+          key: zz_dn3fx-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_fx/build_dn3fx_pk3.py', 'repo/source/mm_tools/dn3_fx/assets/**') }}
+
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -389,9 +396,15 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/dn3_shotgun/build_dn3shotgun_pk3.py --out pk3cache/zz_dn3shotgun.pk3
 
+      - name: Build zz_dn3fx.pk3
+        if: steps.cache_dn3fx.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/dn3_fx/build_dn3fx_pk3.py --out pk3cache/zz_dn3fx.pk3
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_dn3fx.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -643,6 +656,24 @@ jobs:
               n_qdesk_cls = l0_txt.count('"classname" "misc_lan_quakedesk"')
               if n_qdesk_cls != 18:
                   errors.append(f"bakersfielddowntown.bsp expected 18 misc_lan_quakedesk LAN desks, found {n_qdesk_cls}")
+
+          dn3fx = os.path.join(root, "BakersfieldQuake", "zz_dn3fx.pk3")
+          if not os.path.isfile(dn3fx):
+              errors.append("missing BakersfieldQuake/zz_dn3fx.pk3")
+          else:
+              with zipfile.ZipFile(dn3fx) as z:
+                  dnames = set(z.namelist())
+                  for req in (
+                      "progs/dn3fx_bloodpuff.spr32",
+                      "progs/dn3fx_explode.spr32",
+                      "progs/dn3fx_wallsplat.md3",
+                      "progs/dn3fx_pool.md3",
+                      "progs/dn3fx_flesh1.md3",
+                      "scripts/dn3fx.shader",
+                      "sound/dn3fx/bombexpl.wav",
+                  ):
+                      if req not in dnames:
+                          errors.append(f"zz_dn3fx.pk3 lacks {req}")
 
           print(f"{len(maps)} map files in the package; server.cfg wants: {' '.join(dict.fromkeys(wanted))}")
           for e in errors:

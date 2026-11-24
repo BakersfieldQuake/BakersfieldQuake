@@ -164,6 +164,11 @@ void() fire_burn_out =
 	self.spintimer = (self.spintimer + 1);
 	self.think = fire_burn_out;
 	self.nextthink = (time + 0.1);
+	if ((self.spintimer < 240) && (time >= self.dn3fx_fire_t) && (pointcontents(self.origin) != CONTENT_WATER) && (pointcontents(self.origin) != CONTENT_SLIME))
+	{
+		self.dn3fx_fire_t = time + 0.42;
+		DN3FX_OnFire(self.origin, '0 0 18', 0.85, FALSE);
+	}
 	if ((((pointcontents(self.origin) == CONTENT_WATER) || (pointcontents(self.origin) == CONTENT_SLIME)) || (pointcontents(self.origin) == CONTENT_LAVA)))
 	{
 		self.pflags = 3;
@@ -231,6 +236,10 @@ void() spawn_fire =
 	{
 		fire.traileffectnum = particleeffectnum(/*1i*/"");
 		fire.spintimer = 379;
+	}
+	else
+	{
+		DN3FX_OnFire(fire.origin, '0 0 24', 1.1, TRUE);
 	}
 	fire.think = fire_burn_out;
 	fire.nextthink = time;
@@ -317,6 +326,7 @@ void() burngib_init =
 	self.think = burngib_think;
 	self.nextthink = (time + 14);
 	self.colormod = '0.75 0.8 0.8';
+	DN3FX_OnFire(self.origin, '0 0 14', 0.65, FALSE);
 };
 
 void() play_gibsound =
@@ -344,6 +354,7 @@ void() play_gibsound =
 			sound7(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM, SNDSPD);
 		}
 	}
+	DN3FX_OnGib(self);
 };
 
 float(entity to, float sendFlags) sprite_sendtocsqc =

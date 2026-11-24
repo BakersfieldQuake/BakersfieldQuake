@@ -2882,6 +2882,7 @@ void() army_die =
 					{
 						sendParticle("blood_monster_gib", self.origin, VEC_ORIGIN, 1);
 					}
+					DN3FX_OnGib(self);
 					ThrowWeapon("progs/w_soldiergun.mdl", self.health);
 					CeilSplat();
 					CeilSplat();
@@ -3121,6 +3122,7 @@ void() army_die =
 			{
 				sendParticle("blood_monster_gib", self.origin, VEC_ORIGIN, 1);
 			}
+			DN3FX_OnGib(self);
 			ThrowGib("progs/chop.mdl", self.health);
 			ThrowGib("progs/chop.mdl", self.health);
 			ThrowGib("progs/chop.mdl", self.health);

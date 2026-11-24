@@ -99,6 +99,7 @@ void(vector dir) DN3SG_WallImpact =
 		pointparticles (dn3sg_fx_spark, trace_endpos + trace_plane_normal * 1.5, trace_plane_normal * 85, 1);
 	else
 		sendParticle ("TE_GUNSHOT", trace_endpos - dir * 1, VEC_ORIGIN, 1, 0);
+	DN3FX_OnWallImpact (trace_endpos + trace_plane_normal * 1.5, trace_plane_normal);
 };
 
 void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
