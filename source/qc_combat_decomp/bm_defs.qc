@@ -142,6 +142,10 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	gk_st_mode;			// Go-Kart rocket HUD: 0=off, 1=charging, 2=armed, 3=low nitro, 4=reloading (stat 109)
 .float	gk_st_prog;			// Go-Kart rocket HUD: 0..100 charge/nitro/cooldown % (stat 110)
 .float	gk_st_nitro;		// Go-Kart rocket HUD: 0..100 current nitro % (stat 111)
+.float	gk_st_lock;			// Go-Kart rocket HUD: 1 = locked on a player (stat 120)
+.float	gk_st_tx;			// Go-Kart rocket HUD: locked target world X (stat 121)
+.float	gk_st_ty;			// ...Y (stat 122)
+.float	gk_st_tz;			// ...Z (stat 123)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
@@ -317,6 +321,8 @@ entity	skypad_head;
 .float	skypad_safe_t;
 .float	skypad_vel_sent;
 void() SkyPad_Precache;
+void() Q3Pad_Init;
+void() MMT_DowntownInit;
 void() SkyPad_LandWave;
 void() SkyPad_Report;
 void() SkyPad_Frame;

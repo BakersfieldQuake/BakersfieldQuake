@@ -31,7 +31,6 @@ void() JohnBird_Precache =
 	precache_model ("progs/john_bird_feather.md3");
 	precache_model ("progs/spike.mdl");
 	precache_model ("progs/jb_hairspray_can.md3");
-	precache_model ("progs/jb_spraying_can.md3");
 	precache_model ("progs/jb_match.md3");
 
 	precache_sound ("john_bird/flap1.wav");
@@ -74,6 +73,7 @@ void() JohnBird_Precache =
 	jb_fx_feather_boom = particleeffectnum ("jb_fx_feather_boom");
 	jb_fx_mist_burst = particleeffectnum ("jb_fx_mist_burst");
 	jb_fx_mist_cloud = particleeffectnum ("jb_fx_mist_cloud");
+	jb_fx_mist_pop = particleeffectnum ("jb_fx_mist_pop");
 };
 
 float(entity p) JohnBird_Flying =
@@ -290,7 +290,7 @@ entity(entity jb, string mdl) JB_EnsureProp =
 void(entity jb, entity pilot, float combat_on, float vmode, float match_lit) JB_UpdateProps =
 {
 	local vector can_ofs;
-	local float cam_1p, sc, idx;
+	local float cam_1p, sc;
 
 	if (!combat_on)
 	{
@@ -303,11 +303,11 @@ void(entity jb, entity pilot, float combat_on, float vmode, float match_lit) JB_
 
 	cam_1p = (pilot != world && pilot.jb_cam_mode == 1);
 	if (jb.jb_can_ent == world || bm_wasfreed (jb.jb_can_ent) || jb.jb_can_ent.owner != jb)
-		jb.jb_can_ent = JB_EnsureProp (jb, "progs/jb_spraying_can.md3");
+		jb.jb_can_ent = JB_EnsureProp (jb, "progs/jb_hairspray_can.md3");
 
 	jb.jb_can_ent.effects = jb.jb_can_ent.effects - (jb.jb_can_ent.effects & EF_NODRAW);
 
-	// Big spraying hairspray can held in John's mouth while giant bangs wave wildly!
+	// Hairspray can held in John's mouth while giant bangs wave wildly. Plain can, no mist cone (playtest 1.76).
 	if (cam_1p)
 	{
 		can_ofs = '66 0 40';
@@ -321,8 +321,7 @@ void(entity jb, entity pilot, float combat_on, float vmode, float match_lit) JB_
 	jb.jb_can_ent.origin = can_ofs;
 	jb.jb_can_ent.scale = sc;
 	jb.jb_can_ent.angles = '0 0 0';
-	idx = floor (time * 24);
-	jb.jb_can_ent.frame = idx - 12 * floor (idx / 12);
+	jb.jb_can_ent.frame = 0;
 };
 
 vector(entity jb, entity pilot, float vmode) JB_GetNozzleWorld =
@@ -331,10 +330,11 @@ vector(entity jb, entity pilot, float vmode) JB_GetNozzleWorld =
 	local float cam_1p;
 
 	cam_1p = (pilot != world && pilot.jb_cam_mode == 1);
+	// Shots leave from the can in John's mouth (the prop sits at '66 0 40' / '22 0 36')
 	if (cam_1p)
-		can_ofs = '75.5 0 40';
+		can_ofs = '70 0 40';
 	else
-		can_ofs = '36 0 36';
+		can_ofs = '28 0 36';
 	return JB_LocalToWorld (jb, can_ofs);
 };
 
@@ -670,13 +670,7 @@ void() JB_FoamCloudThink =
 		return;
 	}
 
-	if (jb_fx_mist_cloud > 0)
-		pointparticles (jb_fx_mist_cloud, self.origin + '0 0 18', '0 0 18', 1);
-	else if (jb_fx_sticky_foam > 0)
-	{
-		pointparticles (jb_fx_sticky_foam, self.origin + '0 0 18', '0 0 24', 2);
-		pointparticles (jb_fx_sticky_foam, self.origin + '1 0 0' * (crandom () * 64) + '0 1 0' * (crandom () * 64) + '0 0 22', '0 0 16', 1);
-	}
+	// No visible mist (playtest 1.76): the cloud only slows; slowed targets show their own sticky foam.
 
 	atk = self.jb_summoner;
 	if (atk != world && bm_wasfreed (atk))
@@ -721,8 +715,6 @@ entity(vector org, entity atk, float dur) JB_SpawnMistCloud =
 				e.jb_foam_until = max (e.jb_foam_until, time + dur);
 				if (atk != world)
 					e.jb_summoner = atk;
-				if (jb_fx_mist_cloud > 0)
-					pointparticles (jb_fx_mist_cloud, e.origin + '0 0 18', '0 0 24', 2);
 				return e;
 			}
 			n = n + 1;
@@ -744,8 +736,6 @@ entity(vector org, entity atk, float dur) JB_SpawnMistCloud =
 	cloud.jb_foam_until = time + dur;
 	cloud.think = JB_FoamCloudThink;
 	cloud.nextthink = time + 0.08;
-	if (jb_fx_mist_cloud > 0)
-		pointparticles (jb_fx_mist_cloud, org + '0 0 18', '0 0 22', 2);
 	return cloud;
 };
 
@@ -885,6 +875,23 @@ void(entity jb, entity attacker, vector muz, vector dir, float is_fire, float is
 	}
 };
 
+// a hairspray can hit something: small mist puff + contact clink
+void(vector at) JB_ImpactPop =
+{
+	local entity e;
+
+	e = spawn ();
+	e.classname = "jb_impact_pop";
+	e.solid = SOLID_NOT;
+	e.movetype = MOVETYPE_NONE;
+	setorigin (e, at);
+	if (jb_fx_mist_pop > 0)
+		pointparticles (jb_fx_mist_pop, at, '0 0 0', 1);
+	sound7 (e, CHAN_AUTO, "john_bird/jb_bottle_bonk.wav", 0.8, 0.8, 96 + random () * 14);
+	e.think = SUB_Remove;
+	e.nextthink = time + 1.5;
+};
+
 void() JB_BottleTouch =
 {
 	local vector org, push;
@@ -930,20 +937,14 @@ void() JB_BottleTouch =
 		cloud = JB_SpawnMistCloud (org, atk, 1.8);
 		snd_ent = (cloud != world) ? cloud : self;
 		sound (snd_ent, CHAN_BODY, "john_bird/jb_spray_loop.wav", 0.72, 0.72);
-		sound (snd_ent, CHAN_AUTO, "john_bird/jb_bottle_bonk.wav", 0.52, 0.70);
-	}
-	else if (other != world && other.takedamage)
-	{
-		sound (self, CHAN_AUTO, "john_bird/jb_bottle_bonk.wav", 0.45, 0.80);
 	}
 
-	// No feathers on hairspray crash — only bright aerosol mist particles (feathers spawn on bird-vs-bird hit below)
-	if (jb_fx_mist_burst > 0)
-		pointparticles (jb_fx_mist_burst, org, '0 0 0', 1);
+	// Every contact pops a small mist cloud and clinks (playtest). Both come from a short-lived marker, because the
+	// can itself is removed this frame.
+	JB_ImpactPop (self.origin);
+	// a lit can still flares
 	if (self.jb_match_on && jb_fx_hairfire > 0)
 		pointparticles (jb_fx_hairfire, org, '0 0 42', 2);
-	else if (do_cloud && jb_fx_sticky_foam > 0)
-		pointparticles (jb_fx_sticky_foam, org, '0 0 32', 1);
 
 	jb_inflicting = self.jb_match_on ? 4 : 5;
 	if (other != world && other.takedamage && other.health > 0)
@@ -1004,28 +1005,16 @@ void() JB_BottleTouch =
 
 void() JB_BottleThink =
 {
-	local vector fdir;
-
 	if (time >= self.jb_foam_until)
 	{
 		// Fizzle cleanly out of range
-		if (jb_fx_mist_burst > 0)
-			pointparticles (jb_fx_mist_burst, self.origin, '0 0 0', 1);
 		remove (self);
 		return;
 	}
-	self.frame = self.frame + 1;
-	if (self.frame >= 12)
-		self.frame = 0;
 
 	// Light gravity arc for responsive air-to-air dogfighting
 	self.velocity_z = self.velocity_z - 150 * 0.04;
 
-	if (jb_fx_hairspray > 0 && vlen (self.velocity) > 10)
-	{
-		fdir = normalize (self.velocity);
-		pointparticles (jb_fx_hairspray, self.origin + fdir * 20, fdir * 540, 1);
-	}
 	if (time >= self.jb_spray_snd_t)
 	{
 		self.jb_spray_snd_t = time + 0.48;
@@ -1055,7 +1044,7 @@ void(entity jb, entity attacker, vector muz, vector dir, float spd, float direct
 	b.cnt = direct_dmg;
 	b.movetype = MOVETYPE_FLYMISSILE;
 	b.solid = SOLID_BBOX;
-	setmodel (b, "progs/jb_spraying_can.md3");
+	setmodel (b, "progs/jb_hairspray_can.md3");	// plain can, no mist cone or trail (playtest 1.76)
 	setsize (b, '-6 -6 -6', '6 6 6');
 	setorigin (b, muz);
 	b.velocity = dir * spd;
@@ -1066,8 +1055,6 @@ void(entity jb, entity attacker, vector muz, vector dir, float spd, float direct
 	b.frame = 0;
 	b.jb_foam_until = time + 1.25;
 	b.jb_spray_snd_t = time + 0.36;
-	if (jb_fx_bottle_trail > 0)
-		b.traileffectnum = jb_fx_bottle_trail;
 	b.touch = JB_BottleTouch;
 	b.think = JB_BottleThink;
 	b.nextthink = time + 0.04;

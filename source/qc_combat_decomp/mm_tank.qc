@@ -2874,3 +2874,39 @@ void() MMTank_Impulse =
 		return;
 	}
 };
+
+// ---------------------------------------------------------------- Bakersfield Downtown: the tanks
+// The Downtown map has no misc_mm_tank of its own (playtest: "I can't find it anymore"), so two are parked here.
+
+void(vector org, float yaw) MMT_PlaceMapTank =
+{
+	local entity t;
+
+	t = spawn ();
+	t.classname = "misc_mm_tank";
+	t.angles_y = yaw;
+	setorigin (t, org);
+	MMT_InitTank (t, FALSE);		// FALSE: it comes back after being destroyed
+};
+
+void() MMT_DowntownThink =
+{
+	MMT_PlaceMapTank ('-8100 1800 2', 0);		// 20th St
+	MMT_PlaceMapTank ('-4464 -300 2', 90);		// Eye St
+	dprint ("mmtank: 2 tanks parked on Downtown\n");
+	remove (self);
+};
+
+// from worldspawn
+void() MMT_DowntownInit =
+{
+	local entity e;
+
+	if (mapname != "bakersfielddowntown" && mapname != "bakersfielddowntown_lite")
+		return;
+	MMTank_Precache ();
+	e = spawn ();
+	e.classname = "mmt_downtown_placer";
+	e.think = MMT_DowntownThink;
+	e.nextthink = time + 0.4;
+};

@@ -55,6 +55,10 @@ float	GJ_ORBITS_BEFORE_ATK	= 600;		// ~1.67 comical orbit laps around victim BEF
 .float	gj_climb_end;		// max duration of a single wall climb
 .float	gj_die_at;			// max lifetime safety pop timestamp
 .vector	gj_wall_n;			// surface normal of vertical building wall being climbed
+.float	gj_move_t;			// last time it was moved
+.float	gj_ai_t;			// next AI tick (20 Hz)
+.float	gj_stuck_t;			// next "has it moved?" check
+.vector	gj_stuck_org;		// where it was at the last check
 
 void() GreenJar_Precache;
 void() GJ_Press;

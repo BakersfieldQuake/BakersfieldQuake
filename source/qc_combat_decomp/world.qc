@@ -171,6 +171,8 @@ void() worldspawn =
 	}
 	W_Precache();
 	Practice_Precache();
+	Q3Pad_Init();		// Quake 3 style jump pads on Bakersfield Downtown (q3pad.qc)
+	MMT_DowntownInit();	// two Mega Man tanks on Bakersfield Downtown (mm_tank.qc)
 	precache_sound("demon/dland2.wav");
 	precache_sound("misc/h2ohit1.wav");
 	precache_sound("player/watersplash.wav");

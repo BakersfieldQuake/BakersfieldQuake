@@ -300,6 +300,13 @@ void() misc_traffic_car =
 	local string mdl;
 	local vector dims, span;
 
+	// playtest: no randomly driving cars on Bakersfield Downtown
+	if (mapname == "bakersfielddowntown" || mapname == "bakersfielddowntown_lite")
+	{
+		remove (self);
+		return;
+	}
+
 	Traffic_Precache ();
 
 	// Deterministic hash from initial origin for variety

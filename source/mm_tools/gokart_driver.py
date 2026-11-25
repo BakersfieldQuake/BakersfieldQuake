@@ -35,6 +35,7 @@ ID1_PAK0 = os.path.abspath(os.path.join(REPO_ROOT, "..", "id1", "pak0.pak"))
 ID1_PLAYER_MDL = os.path.join(HERE, "id1", "player.mdl")
 
 DRIVER_SHADER = "progs/gk_driver"
+DRIVER_NODRAW_SHADER = "progs/gk_driver_nodraw"	# invisible (scripts/gokart.shader): hides the head in cockpit view
 DRIVER_TEX_REL = "progs/gk_driver.png"
 DRIVER_TEX_ABS = os.path.join(PROGS_DIR, "gk_driver.png")
 
@@ -730,17 +731,44 @@ def build_driver_md3(progs_dir=PROGS_DIR, meta_dir=OUT_DIR, bakersfield_pk3=BAKE
         frame_names.append(f"explode_{k:02d}")
     frames += _simulate_driver_explosion(mesh, 1.8, squat_pivot, (-26.0, 18.0, 168.0), (210.0, -340.0, 145.0), n_frames=20)
 
+    # The head is its own surface so the cockpit view can hide just the head (skin 1) and the driver still sees his
+    # arms and hands on the wheel (playtest 1.76). Same split as _classify_vert, on the output UVs.
+    def _is_head_uv(s, t):
+        uf = s - 0.5 if s >= 0.5 else s
+        return t <= 0.175 and 0.24 < uf < 0.36
+
+    def _sub_surface(name, tri_list):
+        remap, st_out, tris_out = {}, [], []
+        for tri in tri_list:
+            out = []
+            for vi in tri:
+                if vi not in remap:
+                    remap[vi] = len(st_out)
+                    st_out.append(mesh.st[vi])
+                out.append(remap[vi])
+            tris_out.append(tuple(out))
+        order = sorted(remap, key=remap.get)
+        sub_frames = [([vv[i] for i in order], [nn[i] for i in order]) for vv, nn in frames]
+        return dict(name=name, shader=DRIVER_SHADER, tris=tris_out, st=st_out, frames=sub_frames)
+
+    head_tris = [t for t in mesh.tris if all(_is_head_uv(*mesh.st[i]) for i in t)]
+    body_tris = [t for t in mesh.tris if not all(_is_head_uv(*mesh.st[i]) for i in t)]
+    assert head_tris and body_tris
+
     model = dict(
         name="progs/gokart_driver.md3",
         frame_names=frame_names,
-        surfaces=[dict(name="driver", shader=DRIVER_SHADER, tris=mesh.tris, st=mesh.st, frames=frames)],
+        surfaces=[_sub_surface("driver", body_tris), _sub_surface("head", head_tris)],
     )
     md3_path = os.path.join(progs_dir, "gokart_driver.md3")
     md3lib.write(md3_path, model)
 
+    # skin 0: everyone else sees the whole driver; skin 1: the driver's own cockpit view, head hidden
     skin_path = md3_path + "_0.skin"
     with open(skin_path, "w", encoding="ascii", newline="\n") as f:
-        f.write(f"driver,{DRIVER_SHADER}\n")
+        f.write(f"driver,{DRIVER_SHADER}\nhead,{DRIVER_SHADER}\n")
+    with open(md3_path + "_1.skin", "w", encoding="ascii", newline="\n") as f:
+        f.write(f"driver,{DRIVER_SHADER}\nhead,{DRIVER_NODRAW_SHADER}\n")
 
     if meta_dir is not None:
         os.makedirs(meta_dir, exist_ok=True)
@@ -759,8 +787,8 @@ def build_driver_md3(progs_dir=PROGS_DIR, meta_dir=OUT_DIR, bakersfield_pk3=BAKE
             )
 
     rt = md3lib.read(md3_path)
-    assert rt["nframes"] == 64 and len(rt["surfaces"]) == 1
-    print(f"[OK] {md3_path} | 64f | {len(mesh.verts)}v / {len(mesh.tris)}t | {skin_path}")
+    assert rt["nframes"] == 64 and len(rt["surfaces"]) == 2
+    print(f"[OK] {md3_path} | 64f | {len(mesh.verts)}v / {len(mesh.tris)}t (head {len(head_tris)}t) | {skin_path}")
     return md3_path
 
 

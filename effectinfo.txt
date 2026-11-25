@@ -18496,13 +18496,14 @@ lightshadow 0
 // BakersfieldQuake: trails for the Rob Dob head and the JohnWave grenade (BakersfieldQuake\source\mm_tools\fh_effectinfo.txt, appended to effectinfo.txt)
 
 // the Rob Dob head: a thin glowing smoke
+// Rob Drone smoke: sparse and small, so the 2000 u/s dash doesn't fill the chase camera with overdraw
 effect fd_trail
-trailspacing 9
+trailspacing 30
 type smoke
 tex 0 8
 color 0xfff0c0 0xffffff
 size 3 5
-sizeincrease 7
+sizeincrease 3
 alpha 110 170 150
 originjitter 2 2 2
 velocityjitter 7 7 7
@@ -22478,3 +22479,41 @@ rotate -40 40 -25 25
 // ---- Bakersfield-ish Destructible Landmarks FX end
 
 
+// hairspray can contact: a small puff of mist (john_bird.qc JB_ImpactPop)
+effect jb_fx_mist_pop
+notunderwater
+count 9
+type alphastatic
+tex 0 8
+color 0xcfefff 0xffffff
+size 5 9
+sizeincrease 26
+alpha 110 170 300
+originjitter 4 4 4
+velocityjitter 55 55 45
+velocityoffset 0 0 18
+gravity -0.03
+airfriction 3
+
+effect jb_fx_mist_pop
+notunderwater
+count 14
+type spark
+tex 40 40
+color 0x9ce8ff 0xffffff
+size 0.7 1.3
+stretchfactor 1
+alpha 200 256 600
+velocityjitter 120 120 110
+gravity 0.3
+airfriction 2
+
+effect jb_fx_mist_pop
+underwater
+count 8
+type bubble
+tex 62 63
+size 1 2.5
+alpha 140 220 120
+originjitter 6 6 6
+velocityjitter 60 60 60

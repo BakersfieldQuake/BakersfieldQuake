@@ -765,6 +765,28 @@ void() EC_NukeThink =
 	self.nextthink = time + 0.20;
 };
 
+// the pilot goes out with his rocket (0 frag cost)
+void(entity p, vector boom_org) EC_KillPilot =
+{
+	local entity inf;
+
+	p.ec_cannon_ent = world;
+	p.ec_watch_until = 0;
+	EC_RestoreViewAndBody (p);
+	setorigin (p, boom_org + '0 0 28');
+	p.velocity = '0 0 260';
+	p.bm_prot_t = 0;
+	p.takedamage = DAMAGE_AIM;
+	sound (p, 5, "misc/null.wav", 1, ATTN_NORM);
+	inf = spawn ();
+	inf.classname = "eric_cannon_blast";
+	setorigin (inf, boom_org + '0 0 24');
+	ec_inflicting = 1;
+	T_Damage (p, inf, p, 1000);
+	ec_inflicting = 0;
+	remove (inf);
+};
+
 // Multi-stage nuclear detonation: blinding flash, expanding shockwave, rising mushroom cloud, 750u tactical blast & boosted PC fountain
 void(vector boom_org, entity pilot, entity base) EC_Detonate =
 {
@@ -872,16 +894,16 @@ void(vector boom_org, entity pilot, entity base) EC_Detonate =
 	if (pilot != world && pilot.classname == "player")
 	{
 		pilot.ec_cannon_ent = world;
-		pilot.ec_watch_until = 0;
-		EC_RestoreViewAndBody (pilot);
-		setorigin (pilot, boom_org + '0 0 28');
-		pilot.velocity = '0 0 260';
-		pilot.bm_prot_t = 0;
-		pilot.takedamage = DAMAGE_AIM;
-		sound (pilot, 5, "misc/null.wav", 1, ATTN_NORM);
-		ec_inflicting = 1;
-		T_Damage (pilot, inf_ent, pilot, 1000);
-		ec_inflicting = 0;
+		if (pilot.ishuman == 1 && pilot.health > 0 && pilot.ec_cam != world)
+		{
+			// first the outside view of the explosion (EricCannon_Frame), then the kamikaze death
+			pilot.ec_boomat = boom_org;
+			pilot.ec_watch_until = time + EC_WATCH_TIME;
+			setorigin (pilot, boom_org + '0 0 28');
+			pilot.velocity = '0 0 0';
+		}
+		else
+			EC_KillPilot (pilot, boom_org);
 	}
 	remove (inf_ent);
 };
@@ -1000,7 +1022,7 @@ float(entity tube, entity pilot, float dt, float flight_age) EC_StepFlight =
 float() EricCannon_Frame =
 {
 	local entity base, yoke, tube;
-	local float dt, el, idx, fwd_in, str_in, yaw_err, max_turn, turn_step, roll_t, hspd_t, cur_h, grav, term_vz;
+	local float dt, el, idx, fwd_in, str_in, yaw_err, max_turn, turn_step, roll_t, hspd_t, cur_h, grav, vz_t, sink, pitch;
 	local vector pivot, cam_des, look_ang, fwd_v, rgt_v, vel_xy, dir_ang, fwd_3d, cur_nozzle, ret_pos;
 
 	// 1. Post-impact 3rd-person crater watch-cam (`ec_watch_until`)
@@ -1018,25 +1040,15 @@ float() EricCannon_Frame =
 			return TRUE;
 		}
 
-		// Watch-cam finished -> restore camera & return rider safely to the street pedestal alive!
+		// seen enough: the pilot dies with the rocket
+		if (self.health > 0)
+		{
+			centerprint (self, "");
+			EC_KillPilot (self, self.ec_boomat);
+			return TRUE;
+		}
 		self.ec_watch_until = 0;
 		EC_RestoreViewAndBody (self);
-		ret_pos = self.ec_return_pos;
-		if (!EC_SpotClear (self, ret_pos))
-		{
-			if (self.ec_return_base != world && !bm_wasfreed (self.ec_return_base) && self.ec_return_base.classname == "misc_eric_cannon")
-				ret_pos = EC_FindExitPos (self.ec_return_base, self);
-			if (!EC_SpotClear (self, ret_pos))
-				ret_pos = self.ec_return_pos + '0 0 32';
-		}
-		setorigin (self, ret_pos);
-		self.velocity = '0 0 0';
-		self.angles = '0 1 0' * self.ec_return_yaw;
-		self.v_angle = self.angles;
-		self.fixangle = TRUE;
-		sound (self, 5, "misc/null.wav", 1, ATTN_NORM);
-		sound (self, CHAN_ITEM, "eric_cannon/mount.wav", 0.7, ATTN_NORM);
-		centerprint (self, "");
 		return FALSE;
 	}
 
@@ -1174,7 +1186,7 @@ float() EricCannon_Frame =
 				tube.frame = 30;			// liftoff1
 
 				makevectors ('0 1 0' * base.ec_yaw);
-				tube.velocity = v_forward * (520 + EC_Cos (base.ec_pitch) * 260);
+				tube.velocity = v_forward * (900 + EC_Cos (base.ec_pitch) * 500);
 				tube.velocity_z = 1380 + EC_Sin (bound (22, base.ec_pitch, 66)) * 320;
 				setorigin (tube, base.origin + '0 0 74');
 				tube.angles_x = bound (22, base.ec_pitch, 66);
@@ -1184,11 +1196,11 @@ float() EricCannon_Frame =
 			}
 			// Snap chase camera cleanly behind the ascending ICBM once at liftoff; free mouse orbit from next frame on!
 			self.angles = '0 0 0';
-			self.angles_x = 8;
+			self.angles_x = 0;
 			self.angles_y = base.ec_yaw;
 			self.v_angle = self.angles;
 			self.fixangle = TRUE;
-			centerprint (self, "ICBM LAUNCH! Mouse: Steer | W: Power Dive | S: Extend Range | A/D: Bank");
+			centerprint (self, "ICBM LAUNCH! Fly with the mouse (look up, down, around) | W: Boost | S: Glide | A/D: Bank");
 			return TRUE;
 		}
 
@@ -1202,7 +1214,7 @@ float() EricCannon_Frame =
 	}
 
 	// =========================================================================
-	// STATE 3: HEAVY BALLISTIC ICBM ARC & TERMINAL NOSE-DOWN DIVE
+	// STATE 3: GUIDED ICBM FLIGHT
 	// =========================================================================
 	if (base.ec_state == EC_STATE_FLYING && tube != world)
 	{
@@ -1219,74 +1231,50 @@ float() EricCannon_Frame =
 		}
 		else
 		{
-			// Guided yaw steering toward player's mouse look (`~82 deg/s`) + A/D bank/strafe trim (`~42 deg/s`)
+			// Guided yaw steering toward the player's mouse look + A/D bank/strafe trim
 			yaw_err = EC_AngDelta (self.v_angle_y, tube.ec_fly_yaw);
-			max_turn = 82.0 * dt;
-			turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 3.8, 1), max_turn) + (0 - str_in) * 42.0 * dt;
+			max_turn = EC_TURN_RATE * dt;
+			turn_step = bound (0 - max_turn, yaw_err * bound (0, dt * 6, 1), max_turn) + (0 - str_in) * 60.0 * dt;
 			tube.ec_fly_yaw = EC_NormAng (tube.ec_fly_yaw + turn_step);
 
 			makevectors ('0 1 0' * tube.ec_fly_yaw);
 			fwd_v = v_forward;
 			rgt_v = v_right;
 
-			// Horizontal & vertical ballistic ICBM arc:
-			//   - Climb / rocket burn (`velocity_z > 0 && el < 2.65`): fast steep climb, smoothly arcing over apex
-			//   - Terminal dive (`velocity_z <= 0 || el >= 2.65`): gravity accelerates nose-down (`-1320 u/s` neutral,
-			//     `-1650 u/s` power-dive on W, `-740 u/s` extended-range glide on S — still descending, never floating!)
-			if (tube.velocity_z > 0 && el < 2.65)
+			// A guided missile (playtest: more control, much farther). A short rocket climb, then it flies where the
+			// pilot looks: up climbs, down dives. After EC_SINK_FROM seconds it gets heavier and heavier, so it
+			// always comes down in the end. W boosts, S glides (slower, sinks half as fast).
+			if (fwd_in > 0.2)
+				hspd_t = 2100;
+			else if (fwd_in < -0.2)
+				hspd_t = 1200;
+			else
+				hspd_t = 1600;
+
+			if (el < EC_CLIMB_TIME)
 			{
-				if (fwd_in > 0.2)
-					hspd_t = 760;
-				else if (fwd_in < -0.2)
-					hspd_t = 940;
-				else
-					hspd_t = 820;
-
-				if (el < 0.85)
-					grav = 240;
-				else if (fwd_in < -0.2)
-					grav = 580;
-				else
-					grav = 760;
-
+				grav = (el < 0.85) ? 240 : 760;
 				tube.velocity_z = tube.velocity_z - grav * dt;
-				if (fwd_in > 0.35 && el > 0.55)
-					tube.velocity_z = tube.velocity_z - 720 * dt;		// W noses over early into steep dive
 			}
 			else
 			{
-				if (!base.ec_screamed && el > 1.0)
+				pitch = self.v_angle_x;
+				if (pitch > 180)
+					pitch = pitch - 360;
+				pitch = bound (-40, pitch, 80);
+				sink = bound (0, (el - EC_SINK_FROM) * 110, 1500);
+				if (fwd_in < -0.2)
+					sink = sink * 0.5;
+				vz_t = 0 - EC_Sin (pitch) * hspd_t - sink;
+				tube.velocity_z = EC_Approach (tube.velocity_z, vz_t, 1700 * dt);
+				// diving trades forward speed for fall speed
+				hspd_t = hspd_t * bound (0.35, EC_Cos (pitch), 1);
+
+				if (!base.ec_screamed && tube.velocity_z < -300)
 				{
 					base.ec_screamed = TRUE;
 					sound (tube, CHAN_VOICE, "eric_cannon/doppler_scream.wav", 0.68, 0.45);
 				}
-				if (fwd_in > 0.2 || self.v_angle_x > 52)
-				{
-					grav = 1650;
-					term_vz = -1650;
-					hspd_t = 740;
-				}
-				else if (fwd_in < -0.2)
-				{
-					grav = 560;
-					term_vz = -740;
-					hspd_t = 1120;
-				}
-				else
-				{
-					grav = 980;
-					term_vz = -1320;
-					hspd_t = 840;
-				}
-
-				if (tube.velocity_z > term_vz)
-				{
-					tube.velocity_z = tube.velocity_z - grav * dt;
-					if (tube.velocity_z < term_vz)
-						tube.velocity_z = term_vz;
-				}
-				else
-					tube.velocity_z = tube.velocity_z + (term_vz - tube.velocity_z) * bound (0, dt * 2.4, 1);
 			}
 
 			vel_xy = tube.velocity;
@@ -1299,7 +1287,7 @@ float() EricCannon_Frame =
 		}
 
 		// Step airborne collision & check impact
-		if (EC_StepFlight (tube, self, dt, el) || el > 24.0)
+		if (EC_StepFlight (tube, self, dt, el) || el > EC_MAX_FLIGHT)
 		{
 			EC_Detonate (tube.origin, self, base);
 			return TRUE;

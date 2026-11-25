@@ -147,16 +147,15 @@ void() M4_MuzzleAndBrass =
 			fl.classname = "flash";
 			fl.effects = EF_ADDITIVE;
 			setmodel (fl, "progs/muzzleflash1.spr");
-			fl.scale = 0.28 + random () * 0.08;
-			fl.alpha = 0.85;
+			fl.scale = 0.09 + random () * 0.04;		// suppressed: barely a flicker at the end of the can
+			fl.alpha = 0.45;
 			setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
-			// Aligned directly with the baked v_m4.md3 barrel tip [35.59, -14.67, -6.86]
-			setorigin (fl, '36.2 -14.7 -6.6');
+			// the end of the silencer zz_m4.pk3 puts on v_m4.md3 (source/mm_tools/build_m4_pk3.py)
+			setorigin (fl, '43.6 -15.4 -6.9');
 			fl.think = SUB_Remove;
 			fl.nextthink = time + 0.045;
 		}
 
-		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 24 + v_right * 10 - v_up * 5, self.velocity * 20, 1, 0);
 	}
 
 	if (autocvar_shellcasing)
@@ -267,7 +266,6 @@ void() M4_Press =
 	self.m4_bloom_t = time;
 	self.attack_finished = time + M4_REFIRE;
 	player_mm1 ();
-	self.effects = self.effects | EF_MUZZLEFLASH;
 	if (random () < 0.5)
 		FG_Snd (self, CHAN_WEAPON, m4_snd_fire1, 0.92, 1);
 	else

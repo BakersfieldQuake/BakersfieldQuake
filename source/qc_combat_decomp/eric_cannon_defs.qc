@@ -28,7 +28,11 @@ float	EC_YOKE_Z			= 24.0;
 float	EC_CANNON_Z			= 56.8;
 float	EC_REST_PITCH		= 15.6;
 float	EC_RELOAD_TIME		= 40.0;
-float	EC_WATCH_TIME		= 3.5;
+float	EC_WATCH_TIME		= 3.5;		// outside view of the explosion before the pilot dies
+float	EC_CLIMB_TIME		= 1.1;		// rocket climb before the pilot gets the pitch
+float	EC_TURN_RATE		= 150;		// deg/s toward where he looks
+float	EC_SINK_FROM		= 9.0;		// seconds of flight before it starts getting heavy
+float	EC_MAX_FLIGHT		= 30.0;		// safety cap
 
 float	ec_precached;
 float	ec_has_cannons;

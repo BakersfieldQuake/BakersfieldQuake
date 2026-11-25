@@ -249,3 +249,60 @@
   Not run in a signed CI build yet.
 - Follow-up: in the next DMG, check the one-time "BAKOQUAKE wants to control iTerm" prompt, the Dock icon with the
   engine as a child process, and that Cmd-Q exits 0 (otherwise the crash dialog shows on every quit).
+
+## 2026-11-25 — v1.76 playtest fixes
+
+- Outcome:
+  - Host Game thumbnails: Zircon can't decode JPEG here (no jpeg62 library: `levelshots/*.jpg ... decode failed`), so the
+    new CI-built `zz_levelshots.pk3` (`build_levelshots_pk3.py`) carries PNG copies; `menu_ui.qc` prefers `.png` and
+    draws a named placeholder card when a shot is missing.
+  - Loading screen: every menu clock (`gettime`, any timer argument) is frozen while a map load blocks (Downtown: 12 s,
+    ~110 redraws on one timestamp), so the bar sat at 2% and each time jump re-picked the backdrop. Now one backdrop
+    per load (a load ends at the first normal `m_draw` frame), progress follows loading redraws plus the wall clock
+    (`strftime`), and the elapsed readout is real.
+  - Rob Drone HUD (`csqc/robhead_xray.qc`): solid bright through-wall silhouettes with a glow shell; small labels and
+    reticle; terminal types the launch's commands, shows the result, then closes; text clipped to its boxes (the
+    Linux/macOS packages have no Roboto, so the wide Quake font overflowed; the HUD now detects that); pulsing radar
+    contacts; Raspberry Pi board is one picture (`zz_robdrone.pk3`, `build_robdrone_pk3.py`); randomized download/upload
+    readout bottom-left with no box; edge markers drawn with fills (drawline dropped them).
+  - Drone performance: pilots (bots too) no longer get `EF_DIMLIGHT` (a shadow-casting dlight each); `fd_trail` is
+    sparse. Note: a test window that isn't focused is capped by `cl_maxidlefps 20`, which looks exactly like the
+    reported 20 FPS; with focus the drone costs ~25% render time here, ~2/3 of it the dlights.
+  - Woo Cannon: no flying barbells. RL/GL back in the magazine system (54db503's reload revert undone; its damage and
+    fuse values kept). John Bird: plain can, no mist cone, trail or mist clouds. Hit sound: new synthesized metallic
+    "tink" (`make_hitsound.py --pk3`, `zz_hitsound.pk3`), pitch rising with damage.
+  - Downtown jump pads: `q3pad.qc` lays a Quake 3 style pad (`zz_jumppads.pk3`) on the 28 plain trigger_push pads; SkyPads,
+    kart boost pads and ladders untouched.
+  - Go-kart cockpit: driver head is its own surface, hidden only for the driver (skin 1); eye at the driver's head,
+    tilted 32° so the wheel and both hands show.
+- Verification: compiled with fteqcc `c781d13`; each new pk3 built twice with identical sha256 (numpy 2.5.4 / pillow
+  13.0.0); in-game screenshots on Linux Zircon (v1.76 install, isolated userdir) of the Host menu, loading log, drone
+  HUD, Downtown pads and kart cockpit; RL magazine refills and the launcher stays selected. Not checked in game: Woo
+  Cannon blast, John Bird spray, the hit sound by ear (tests ran muted); nothing on Windows/macOS; no CI run.
+- Follow-up: `build-zip.yml` builds `zz_bakersfieldish.pk3` with `source/mm_tools/build_bakersfieldish_pk3.py`, which
+  is not in the repo; it only works while that cache entry exists. (Resolved: v1.77 added the script.)
+
+## 2026-11-25 — second playtest round, on top of v1.77
+
+- Prompt: playtest notes on weapons, deployables, karts, effects and jump pads (follows the 1.76 round above).
+- Outcome:
+  - 4Loco bed: a hit on the bed is a hit on the rider (only the 3.2 s spawn protection remains); mouse or A/D steering,
+    far more grip, lower top speed, no drift lock, S brakes during surges, taller hitbox.
+  - Jump pads (Downtown): all 55 now have models: 28 plain, 16 kart boost pads (`q3kart60/66/72.md3`), 11 SkyPads (blue).
+  - Weapons: John Bird cans pop a small mist and clink on contact; Rob drone cruise 320 -> 440 and moved by the clock,
+    no electricity in its blast; M4 silencer and suppressed shots (`build_m4_pk3.py`, `zz_m4.pk3`); Woo Cannon splash
+    95..191 -> 260..530 (the shooter still takes the old amount); Eric Cannon is mouse-flown, much longer range, and
+    shows the blast from outside before the pilot dies.
+  - Green Men drive themselves (engine bounce physics parked them on landing) and all of them climb walls.
+  - Downtown: two Mega Man tanks, no ambient traffic cars, ten spawn points seat you in a go-kart.
+  - Go-kart rockets lock the player near the crosshair and home on them, with a proximity fuse.
+  - Merged with v1.77, which removed the Duke Nukem blood altogether, so the planned blood shrink was dropped.
+- Verification (Linux Zircon, v1.77 install, isolated userdir, muted, temporary logging build that is not in the repo):
+  bed protection/damage/death, drone ~440 u/s, Green Men roaming and climbing, Eric flight and crash view, kart spawns
+  (7 of 7 kart-spot picks seated), homing hits on bots, Woo tap-shot kill with shooter unhurt, M4 silencer, hairspray
+  mist, pads, tanks, Host menu thumbnails. Not checked: anything by ear, bed handling by feel, Windows/macOS, CI.
+- Noticed, not changed (present in v1.77): client `VM_remove` / `setorigin` warnings and "effect number 65535" during
+  the ForeLoco; cheat impulses 145/146 (spawn/drink ForeLoco) are taken by `BM_TestImpulses`, and 136-138 (go-kart
+  tests) are now also used by Bakersfield-ish.
+- Merged onto v1.80: heat-seeker HUD stats moved from 120-123 to 124-127 (Bakersfield-ish uses 120/121). Muted Linux
+  smoke runs on the merged build (Downtown, kart spawns and lock-on, bed, drone, Host menu) showed no new warnings.

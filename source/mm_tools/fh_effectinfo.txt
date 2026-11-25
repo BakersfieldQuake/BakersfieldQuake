@@ -1,13 +1,13 @@
 // BakersfieldQuake: trails for the Rob Dob head and the JohnWave grenade (BakersfieldQuake\source\mm_tools\fh_effectinfo.txt, appended to effectinfo.txt)
 
-// the Rob Dob head: a thin glowing smoke
+// the Rob Dob head: a thin glowing smoke (sparse since playtest 1.76: dense smoke in front of the chase camera cost FPS)
 effect fd_trail
-trailspacing 9
+trailspacing 30
 type smoke
 tex 0 8
 color 0xfff0c0 0xffffff
 size 3 5
-sizeincrease 7
+sizeincrease 3
 alpha 110 170 150
 originjitter 2 2 2
 velocityjitter 7 7 7

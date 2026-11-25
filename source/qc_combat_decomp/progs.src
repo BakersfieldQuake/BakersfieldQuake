@@ -147,6 +147,7 @@ bm_match.qc
 bm_minimap.qc
 bm_fun.qc
 skypad.qc
+q3pad.qc
 lol_props.qc
 bm_bots.qc
 proj_collide.qc

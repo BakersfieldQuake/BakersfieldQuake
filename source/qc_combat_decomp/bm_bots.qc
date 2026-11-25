@@ -297,11 +297,13 @@ float(float id) BM_BotCanUseWeapon =
 	if (id == 6)
 	{
 		if (!(self.items & IT_GRENADE_LAUNCHER)) return FALSE;
+		if (autocvar_bm_reload) return (BM_GetMag (self, BM_GL) >= 1);
 		return (self.ammo_rockets >= 1);
 	}
 	if (id == 7)
 	{
 		if (!(self.items & IT_ROCKET_LAUNCHER)) return FALSE;
+		if (autocvar_bm_reload) return (BM_GetMag (self, BM_RL) >= 1);
 		return (self.ammo_rockets >= 1);
 	}
 	if (id == 8)

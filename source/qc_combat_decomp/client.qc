@@ -1418,6 +1418,79 @@ void() CTF_team_spawn =
 	}
 };
 
+// ---------------------------------------------------------------- go-kart spawns (Bakersfield Downtown)
+// Ten street-level deathmatch spawns with room around them seat a human player straight into a go-kart.
+
+.entity	gk_spawnkart;		// spawn point: the kart it last handed out
+.entity	gk_spawn_spot;		// kart-seating helper: the spawn point
+.float	gk_spawn_yaw;
+
+// the way the kart faces (clear road ahead), or -1 when this spawn is an ordinary one
+float(entity spot) Spawn_KartYaw =
+{
+	local vector o;
+
+	if (mapname != "bakersfielddowntown" && mapname != "bakersfielddowntown_lite")
+		return -1;
+	o = spot.origin;
+	o_z = 0;
+	if (vlen (o - '-6312 3660 0') < 48) return 338;
+	if (vlen (o - '-6000 1980 0') < 48) return 338;
+	if (vlen (o - '-5124 2214 0') < 48) return 338;
+	if (vlen (o - '-4164 990 0') < 48) return 270;
+	if (vlen (o - '-10260 2085 0') < 48) return 338;
+	if (vlen (o - '-8340 -5880 0') < 48) return 338;
+	if (vlen (o - '-9129 -6090 0') < 48) return 338;
+	if (vlen (o - '-4104 -2439 0') < 48) return 22;
+	if (vlen (o - '-2304 -4404 0') < 48) return 180;
+	if (vlen (o - '-12865 3120 0') < 48) return 338;
+	return -1;
+};
+
+// self = helper, self.owner = the player who just spawned there
+void() Spawn_SeatInKart =
+{
+	local entity p, v, spot;
+
+	p = self.owner;
+	spot = self.gk_spawn_spot;
+	if (p.classname != "player" || p.health <= 0 || p.deadflag || p.bm_obs || intermission_running || p.veh_van != world || p.veh_ride != world || p.fd_head != world || p.mmt_tank != world || vlen (p.origin - spot.origin) > 128)
+	{
+		remove (self);
+		return;
+	}
+	v = spot.gk_spawnkart;
+	if (v == world || bm_wasfreed (v) || v.classname != "misc_gokart" || v.veh_driver != world || v.veh_state == VEH_STATE_WRECK || vlen (v.origin - spot.origin) > 160)
+	{
+		gokart_spawn_cycle = gokart_spawn_cycle + 1;
+		if (gokart_spawn_cycle > 6)
+			gokart_spawn_cycle = 1;
+		v = Veh_SpawnDynamic (VEH_GOKART_1 + gokart_spawn_cycle - 1, spot.origin - '0 0 16', self.gk_spawn_yaw);
+		spot.gk_spawnkart = v;
+	}
+	Veh_Enter (p, v);
+	remove (self);
+};
+
+void(entity p, entity spot) Spawn_CheckKart =
+{
+	local entity e;
+	local float yaw;
+
+	if (p.ishuman != 1 || spot == world || CTF_ENABLED)
+		return;
+	yaw = Spawn_KartYaw (spot);
+	if (yaw < 0)
+		return;
+	e = spawn ();
+	e.classname = "gk_spawn_helper";
+	e.owner = p;
+	e.gk_spawn_spot = spot;
+	e.gk_spawn_yaw = yaw;
+	e.think = Spawn_SeatInKart;
+	e.nextthink = time + 0.15;		// let the spawn (and a joining client's first frames) settle
+};
+
 void() PutClientInServer =
 {
 	local entity spot;
@@ -1697,6 +1770,7 @@ void() PutClientInServer =
 	Underdog_Spawn();
 	BM_PlayerSpawned();	// spawn protection
 	FloatHead_StartSpawner();	// floating heads in deathmatch (floathead.qc)
+	Spawn_CheckKart(self, spot);	// some Downtown spawns start in a go-kart
 };
 
 void() info_player_start =

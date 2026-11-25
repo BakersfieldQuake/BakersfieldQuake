@@ -606,6 +606,10 @@ void() BM_Stats =
 	clientstat (116, 2, fl_st_rem);			// ForeLoco remaining time in tenths of a second
 	clientstat (117, 2, fl_st_speed);		// ForeLoco hospital bed speed u/s
 	clientstat (118, 2, fl_st_flags);		// ForeLoco invuln/orbit/boost flags + ram KO count
+	clientstat (124, 2, gk_st_lock);		// Go-Kart heat-seeker: locked on a player
+	clientstat (125, 2, gk_st_tx);			// Go-Kart heat-seeker: target world X
+	clientstat (126, 2, gk_st_ty);			// Go-Kart heat-seeker: target world Y
+	clientstat (127, 2, gk_st_tz);			// Go-Kart heat-seeker: target world Z
 	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
 	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code

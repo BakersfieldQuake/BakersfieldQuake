@@ -29,11 +29,9 @@ float	WC_LIFE			= 6;		// a Wheelman that has not crashed by then blows up where 
 float	WC_HEALTH		= 80;		// he can be shot (he is a driving projectile, not a rocket): shot down, he blows up where he is
 float	WC_STEPUP		= 32;		// he drives over curbs and downtown steps this high
 float	WC_COOLDOWN		= 1.1;		// seconds after a shot for frames 26..47 (blast, recoil & breech lock) before reload/next charge
-float	WC_DMG_DIRECT	= 35;		// base extra direct damage (scales +12/tier: T0=130 dir/95 spl, T3=262 dir/191 spl)
-float	WC_DMG_BASE		= 95;		// radius damage of a quick tap (big comedy knockback, not a cheap 1-shot)
-float	WC_DMG_STEP		= 32;		// more per tier (tier 3 = 191 splash, 262 direct)
-float	WC_RADIUS_BASE	= 135;
-float	WC_RADIUS_STEP	= 32;
+float	WC_DMG_DIRECT	= 100;		// extra damage to whoever he rams (+40/tier: T0=360 dir/260 spl, T3=750 dir/530 spl)
+float	WC_DMG_BASE		= 260;		// radius damage of a quick tap (playtest: the Woo Cannon must hit extremely hard)
+float	WC_DMG_STEP		= 90;		// more per tier (tier 3 = 530 splash, reaching about 570 units)
 float	WC_DOWN			= 0.7;		// aim this steeply down (the sine of the pitch) near the floor and he crashes at once under you: a rocket jump
 float	WC_DANCE_LIFE	= 2.5;		// seconds Larry tears around playing crazy animations & shouting lines after exploding (progs/wheelman_dance.spr32)
 float	WC_DANCE_SPEED	= 540;		// how fast he sprints around after crashing (a player runs at 320)

@@ -74,6 +74,7 @@ float	jb_fx_sticky_foam;
 float	jb_fx_feather_boom;
 float	jb_fx_mist_burst;
 float	jb_fx_mist_cloud;
+float	jb_fx_mist_pop;
 
 // Player fields
 .entity	jb_vehicle;						// Winged John currently piloted by this player

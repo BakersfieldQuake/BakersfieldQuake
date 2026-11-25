@@ -4,7 +4,7 @@
 ROB DOB  (the floating head, Combat+)
 
 Inspired by Peeker, the Strogg & Peeker ability in Quake Champions: a drone leaves your body and you fly it round the map
-from behind.  Here the drone is a live-action red-fedora Rob head sprite (progs/robhead_proj.spr32), and it is an electricity bomb.
+from behind.  Here the drone is a live-action red-fedora Rob head sprite (progs/robhead_proj.spr32).
 
   Fire the Rob Dob (fun gun 1, impulse 61 or 17)
       your body stays where it is (hidden, and nobody targets it) and the head launches out of you.  You see the head
@@ -17,7 +17,7 @@ from behind.  Here the drone is a live-action red-fedora Rob head sprite (progs/
   hit wall  a dash that runs straight into a wall sets it off.  A graze (a corner, a scrape along a wall) does not: it
             slides on, and only goes off if it keeps scraping for FD_GRACE seconds.  Just after a click (FD_DASH_ARM) it
             will not go off on a wall at all, so a click next to a wall is not wasted.
-  blast     an electric blast: the stock rocket explosion, lightning arcs, and funny/heh.wav.  You watch it from behind for
+  blast     the stock rocket explosion and funny/heh.wav.  You watch it from behind for
             a moment before you are back in your body.
   shot down the head has 60 health: shoot it and it blows up the same way.
   runs out  no time limit: you fly it as long as you like, until it blows up (set fd_flight N to make it pop harmlessly after N seconds)
@@ -39,7 +39,7 @@ float	FD_IMPULSE		= 17;
 float	FD_PROJ_SCALE	= 0.40;		// 108x119 progs/robhead_proj.spr32 -> ~47u in world (matches old floathead.mdl)
 float	FD_MINI_SCALE	= 0.16;		// bouncing mini-heads on pop
 float	FD_IMP_SCALE	= 0.75;		// 153x153 progs/robhead_impact.spr32 fedora-pop burst
-float	FD_SPEED		= 320;		// cruising speed: as fast as a player can run (sv_maxspeed), no faster
+float	FD_SPEED		= 440;		// cruising speed: a bit faster than a running player (playtest: it felt slow)
 float	FD_ACCEL		= 5;		// how fast it turns to a new course (a fraction of the gap per second)
 float	FD_ARM			= 0.7;		// seconds after launch before the head may dash (so it cannot be wasted instantly)
 float	FD_CAM_BACK		= 92;		// the camera sits this far behind the head...
@@ -62,7 +62,7 @@ vector	FD_MINS			= '-10 -10 -10';	// the head's own box, small so it fits round 
 vector	FD_MAXS			= '10 10 10';
 var float	autocvar_fd_flight = 0;		// 0 = fly as long as you want (set fd_flight N for a max duration)
 var float	autocvar_fd_dash = 2000;	// speed of the dash
-void(entity h, float big) FD_Shock;	// defined with the electricity code below, the blast needs it first
+.float	fd_t;							// when the head was last moved: it flies by the clock, not by frametime
 float	FD_CLIENTTYPE_REAL = 1;		// clienttype() result for a real player (the Combat+ defs have no name for it)
 
 // .entity fd_head is declared in robhead_defs.qc so combat.qc can warn pilots when their body is hit
@@ -86,7 +86,6 @@ float	FD_CLIENTTYPE_REAL = 1;		// clienttype() result for a real player (the Com
 .float	fd_song_n;			// head: which slice of the calc song is next
 .entity	fd_hitent;			// head: what its last move ran into
 vector	fd_normal;			// the plane the last FD_Move ran into (set whenever it returns FALSE)
-.float	fd_big;				// shock: the big electric blast rather than a crackle
 
 float	FD_ENT_XRAY_TARGET = 7;	// CSQC SendEntity type (matches ENT_RD_TARGET in csqc)
 float	FD_XRAY_MAX		= 24;		// max simultaneous X-ray targets tracked per drone
@@ -129,7 +128,6 @@ void() FloatHead_Precache =
 	precache_sound ("robhead/idle.wav");
 	precache_sound ("robhead/pop.wav");
 	precache_sound ("robhead/boing.wav");
-	precache_sound ("weapons/lhit.wav");
 	precache_sound ("robhead/launch.wav");
 	precache_sound ("robhead/key1.wav");
 	precache_sound ("robhead/key2.wav");
@@ -157,25 +155,18 @@ float(float v, float lo, float hi) FD_Clamp =
 
 // ---------------------------------------------------------------- the player's side
 
-// while the head is out, the pilot body stays visible & vulnerable with a faint trance glow so rivals can punish unguarded launches!
+// while the head is out, the pilot body stays visible & vulnerable so rivals can punish unguarded launches.
+// No EF_DIMLIGHT "trance glow" any more: with r_shadow_realtime_dlight_shadows every flying pilot (bots too) was a
+// shadow-casting light, the biggest frame-time cost of the drone (playtest 1.76: ~20 FPS with two bots).
 void(entity p) FD_Hide =
 {
-	if (!(p.effects & EF_DIMLIGHT))
-	{
-		p.effects = p.effects | EF_DIMLIGHT;
-		p.fd_notarget = TRUE;
-	}
+	p.fd_notarget = TRUE;
 };
 
 void(entity p) FD_Unhide =
 {
 	p.alpha = 0;						// 0 = opaque
-	if (p.fd_notarget)
-	{
-		p.fd_notarget = FALSE;
-		if (p.effects & EF_DIMLIGHT)
-			p.effects = p.effects - EF_DIMLIGHT;
-	}
+	p.fd_notarget = FALSE;
 };
 
 // put the player back behind his own eyes and make him visible again
@@ -425,7 +416,7 @@ void() FD_Minis =
 	}
 };
 
-// the head goes off in an electric blast: self = the head. Its pilot is not sent back to his body yet: the camera stays
+// the head goes off: self = the head. Its pilot is not sent back to his body yet: the camera stays
 // behind the blast for FD_WATCH seconds (see FD_Frame), so he can see it
 void() FD_Detonate =
 {
@@ -444,9 +435,7 @@ void() FD_Detonate =
 	sound (self, CHAN_ITEM, "misc/null.wav", 1, ATTN_NORM);		// and the hum
 	self.touch = SUB_Null;
 	self.takedamage = DAMAGE_NO;
-	FD_Shock (self, TRUE);				// an electricity bomb: big lightning arcs round the blast...
 	FD_ImpactFX (self.origin);			// ...fedora-pop & comic stars burst
-	sound (self, CHAN_WEAPON, "weapons/lhit.wav", 1, ATTN_NORM);
 	sound (self, CHAN_VOICE, "funny/heh.wav", 1, ATTN_NORM);		// ...and a "heh" on top of the bang
 	self.effects = 0;
 	self.customizeentityforclient = SUB_Null;
@@ -584,66 +573,6 @@ void() FD_HeadThink =
 		self.fd_song_t = self.fd_song_t + FD_SONG_LEN;
 	}
 	self.nextthink = time + 0.1;
-};
-
-// ---------------------------------------------------------------- electricity
-
-// the electric arcs of the blast (eight wide arcs for over a second); a small crackle (three arcs) is the other kind.
-// self = the arcs, they remove themselves when done
-void() FD_ShockThink =
-{
-	local float		i, n, r, last;
-	local vector	e;
-
-	if (self.fd_big)
-	{
-		n = 8;
-		r = 90;
-		last = 12;
-	}
-	else
-	{
-		n = 3;
-		r = 24;
-		last = 5;
-	}
-	if (self.cnt >= last)
-	{
-		remove (self);
-		return;
-	}
-	self.cnt = self.cnt + 1;
-	i = 0;
-	while (i < n)
-	{
-		e = self.origin + '1 0 0' * crandom () * r + '0 1 0' * crandom () * r + '0 0 1' * crandom () * r;
-		WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
-		WriteByte (MSG_BROADCAST, TE_LIGHTNING2);
-		WriteEntity (MSG_BROADCAST, world);		// not self: the client merges beams with the same entity, so 8 arcs showed as 1
-		WriteCoord (MSG_BROADCAST, self.origin_x);
-		WriteCoord (MSG_BROADCAST, self.origin_y);
-		WriteCoord (MSG_BROADCAST, self.origin_z);
-		WriteCoord (MSG_BROADCAST, e_x);
-		WriteCoord (MSG_BROADCAST, e_y);
-		WriteCoord (MSG_BROADCAST, e_z);
-		i = i + 1;
-	}
-	self.nextthink = time + 0.1;
-};
-
-// start the electric arcs where the head is (big = the blast)
-void(entity h, float big) FD_Shock =
-{
-	local entity	sh;
-
-	sh = spawn ();
-	sh.classname = "fh_shock";
-	sh.movetype = MOVETYPE_NONE;
-	sh.solid = SOLID_NOT;
-	sh.fd_big = big;
-	setorigin (sh, h.origin);
-	sh.think = FD_ShockThink;
-	sh.nextthink = time + 0.01;
 };
 
 // the head ran into something (FD_Move returned FALSE; fd_hitent and fd_normal say what). Sets it off, or lets it slide on.
@@ -944,6 +873,7 @@ void() FD_Launch =
 	setorigin (h, trace_endpos - v_forward * 4);
 	h.angles = vectoangles (v_forward);
 	h.velocity = v_forward * FD_SPEED;
+	h.fd_t = time;
 	h.scale = FD_PROJ_SCALE;
 	h.frame = 0;
 	h.customizeentityforclient = FD_Customize;
@@ -1021,7 +951,7 @@ float() FD_Frame =
 {
 	local entity	h, c, oldself;
 	local vector	wish;
-	local float		mx, my, mz, k;
+	local float		mx, my, mz, k, dt;
 
 	h = self.fd_head;
 	if (!h)
@@ -1057,6 +987,9 @@ float() FD_Frame =
 
 	FD_Hide (self);
 	self.velocity = '0 0 0';
+	// the player's think can be handed a frametime that does not add up to real time, which made the head crawl
+	dt = FD_Clamp (time - h.fd_t, 0, 0.1);
+	h.fd_t = time;
 	if (self.ishuman != 1)
 	{
 		local entity foe, bestfoe;
@@ -1110,14 +1043,14 @@ float() FD_Frame =
 	if (!self.button0)
 		self.fd_btn = FALSE;
 
-	if (h.fd_blowing)
+	if (h.fd_blowing || dt <= 0)
 	{
 		// ordered to go off: it hangs still until its think fires, a few frames
 	}
 	else if (time < h.skypad_steer_t)
 	{
 		h.fd_charging = FALSE;
-		if (!FD_Move (h, h.velocity, frametime))
+		if (!FD_Move (h, h.velocity, dt))
 			FD_Touched (self, h);
 		if (vlen (h.velocity) > 10)
 			h.angles = vectoangles (h.velocity);
@@ -1137,11 +1070,11 @@ float() FD_Frame =
 		}
 		else
 		{
-			k = FD_Clamp (frametime * FD_STEER, 0, 1);
+			k = FD_Clamp (dt * FD_STEER, 0, 1);
 			h.movedir = normalize (h.movedir + (v_forward - h.movedir) * k);
 			h.velocity = h.movedir * autocvar_fd_dash;
 			h.angles = vectoangles (h.movedir);
-			if (FD_Move (h, h.velocity, frametime))
+			if (FD_Move (h, h.velocity, dt))
 				h.fd_scrape = 0;		// a clear step: the scrape (if any) is over
 			else
 				FD_Touched (self, h);
@@ -1159,9 +1092,9 @@ float() FD_Frame =
 		wish = v_forward * mx + v_right * my + '0 0 1' * mz;
 		if (vlen (wish) > 1)
 			wish = normalize (wish);
-		k = FD_Clamp (frametime * FD_ACCEL, 0, 1);
+		k = FD_Clamp (dt * FD_ACCEL, 0, 1);
 		h.velocity = h.velocity + (wish * FD_SPEED - h.velocity) * k;
-		if (!FD_Move (h, h.velocity, frametime))		// it slides off walls: a bump just turns it...
+		if (!FD_Move (h, h.velocity, dt))		// it slides off walls: a bump just turns it...
 			FD_Touched (self, h);						// ...but a living enemy sets it off
 		h.angles = vectoangles (v_forward);
 		if (self.button0 && !self.fd_btn && time > h.fd_arm && !h.fd_blowing)

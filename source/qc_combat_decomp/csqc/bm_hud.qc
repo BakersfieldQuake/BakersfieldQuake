@@ -911,6 +911,33 @@ void(float raw_w, float raw_h) GK_DrawHUD =
 	drawfill ([cx - th * 0.5, cy - gap - arm, 0], [th, arm, 0], col, 0.95, 0);
 	drawfill ([cx - th * 0.5, cy + gap, 0], [th, arm, 0], col, 0.95, 0);
 
+	// heat-seeker lock: small brackets on the target itself
+	if (getstati (124))
+	{
+		local vector wp, sp;
+		wp_x = getstati (125);
+		wp_y = getstati (126);
+		wp_z = getstati (127);
+		sp = cs_project (wp);
+		if (sp_z > 0 && sp_x > 8 && sp_x < w - 8 && sp_y > 8 && sp_y < h - 8)
+		{
+			local float sx, sy;
+			sx = sp_x;
+			sy = sp_y;
+			col = (pulse > 0.5) ? '1 0.30 0.22' : '1 0.75 0.20';
+			r = 9 + 1.5 * pulse;
+			drawfill ([sx - r, sy - r, 0], [5, 1.2, 0], col, 0.95, 0);
+			drawfill ([sx - r, sy - r, 0], [1.2, 5, 0], col, 0.95, 0);
+			drawfill ([sx + r - 5, sy - r, 0], [5, 1.2, 0], col, 0.95, 0);
+			drawfill ([sx + r - 1.2, sy - r, 0], [1.2, 5, 0], col, 0.95, 0);
+			drawfill ([sx - r, sy + r - 1.2, 0], [5, 1.2, 0], col, 0.95, 0);
+			drawfill ([sx - r, sy + r - 5, 0], [1.2, 5, 0], col, 0.95, 0);
+			drawfill ([sx + r - 5, sy + r - 1.2, 0], [5, 1.2, 0], col, 0.95, 0);
+			drawfill ([sx + r - 1.2, sy + r - 5, 0], [1.2, 5, 0], col, 0.95, 0);
+			BM_Centered (sx, sy + r + 2, "LOCKED", 5.0, col, 0.95);
+		}
+	}
+
 	// Compact bottom-right status badge (keeps center driving view unobstructed; minimap is bottom-left)
 	base = BM_CornerBottomY (h);
 	bw = 74;

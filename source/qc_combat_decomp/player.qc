@@ -2619,8 +2619,13 @@ void() setDamageSkin =
 void() PlayerDie =
 {
 	local float i;
+	local entity bed;
 
 	FunGun_PlayerDie();
+	// killed riding Eric's hospital bed: get out of it (and remove it) before the death sets up the body
+	bed = self.veh_van;
+	if (((bed != world) && (bed.veh_driver == self) && (bed.veh_kind == VEH_FORELOCO)))
+		Veh_Leave(bed, bed.origin + '0 0 24', bed.velocity * 0.4 + '0 0 200', FALSE);
 	if ((autocvar_chasecam_death_view && !cvar("chase_active")))
 	{
 		stuffcmd(self, "chase_active 1\n");

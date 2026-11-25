@@ -406,10 +406,130 @@ void() GJ_MiniTouch =
 };
 
 // ================================================================
+// DRIVING: they move themselves. Engine bounce physics parks an entity the moment it touches the floor (velocity
+// on an on-ground entity is ignored), which left them standing still (playtest), so their think does the moving:
+// swept box, curb steps, wall slides, ground following, gravity.
+// ================================================================
+
+// a living player the box at org would run into (and is not already inside)
+entity(vector org) GJ_MiniRunsInto =
+{
+	local entity e;
+	local vector a, b;
+
+	a = org + self.mins;
+	b = org + self.maxs;
+	e = bm_player_head;
+	while (e)
+	{
+		if (e.health > 0 && e.solid != SOLID_NOT && a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z)
+		{
+			a = self.origin + self.mins;
+			b = self.origin + self.maxs;
+			if (!(a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z))
+				return e;
+			a = org + self.mins;
+			b = org + self.maxs;
+		}
+		e = e.bm_player_next;
+	}
+	return world;
+};
+
+float() GJ_MiniMove =
+{
+	local float dt, climbing, stepped, drop;
+	local vector dest, n, up, along;
+	local entity oth, hit;
+
+	dt = bound (0, time - self.gj_move_t, 0.1);
+	self.gj_move_t = time;
+	if (dt <= 0)
+		return TRUE;
+	climbing = (self.gj_state == 2);
+	if (!climbing)
+	{
+		if (self.flags & FL_ONGROUND)
+			self.velocity_z = max (0, self.velocity_z);
+		else
+			self.velocity_z = self.velocity_z - 680 * dt;
+	}
+	dest = self.origin + self.velocity * dt;
+	if (pointcontents (dest) == CONTENT_SKY || dest_z < world.mins_z - 64)
+	{
+		remove (self);
+		return FALSE;
+	}
+	// bump off players (they are solid to each other); everything else is traced against the map only, because the
+	// pack spawns on top of itself and a box trace would call that stuck
+	hit = GJ_MiniRunsInto (dest);
+	if (hit != world)
+	{
+		oth = other;
+		other = hit;
+		GJ_MiniTouch ();
+		other = oth;
+		return TRUE;
+	}
+	tracebox (self.origin, self.mins, self.maxs, dest, TRUE, self);
+	if (trace_startsolid)
+		setorigin (self, self.origin + '0 0 3');		// wedged in the map: ease up out of it
+	else if (trace_fraction == 1)
+		setorigin (self, dest);
+	else
+	{
+		n = trace_plane_normal;
+		setorigin (self, trace_endpos);
+		if (n_z > 0.7)
+			self.velocity_z = 0;
+		else
+		{
+			stepped = FALSE;
+			if (!climbing)
+			{
+				up = self.origin + '0 0 18';
+				along = self.velocity * dt;
+				along_z = 0;
+				tracebox (self.origin, self.mins, self.maxs, up, TRUE, self);
+				if (trace_fraction == 1)
+				{
+					tracebox (up, self.mins, self.maxs, up + along, TRUE, self);
+					if (trace_fraction == 1 && !trace_startsolid)
+					{
+						setorigin (self, up + along);
+						stepped = TRUE;
+					}
+				}
+			}
+			if (!stepped)
+				self.velocity = self.velocity - n * (self.velocity * n);
+		}
+	}
+
+	// follow the ground (stairs and slopes), or fall
+	if (climbing || self.velocity_z > 1)
+	{
+		self.flags = self.flags - (self.flags & FL_ONGROUND);
+		return TRUE;
+	}
+	drop = (self.flags & FL_ONGROUND) ? 22 : 2;
+	tracebox (self.origin, self.mins, self.maxs, self.origin - '0 0 1' * drop, TRUE, self);
+	if (!trace_startsolid && trace_fraction < 1 && trace_plane_normal_z > 0.7)
+	{
+		setorigin (self, trace_endpos);
+		self.flags = self.flags | FL_ONGROUND;
+		self.velocity_z = 0;
+	}
+	else
+		self.flags = self.flags - (self.flags & FL_ONGROUND);
+	return TRUE;
+};
+
+// ================================================================
 // GREEN MAN AI: WHEEL-DRIVE -> SWARM 3 LAPS AROUND ENEMY -> ATTACK!
 // ================================================================
 
-void() GJ_MiniThink =
+void() GJ_MiniAI =
 {
 	local vector dir, fwd_ang, goal, wall_check, roof_check, to_goal, vel_xy, tang;
 	local float dist, spd, step_deg, cur_yaw, d_yaw, want_yaw, yaw_diff;
@@ -434,10 +554,6 @@ void() GJ_MiniThink =
 		return;
 	}
 
-	// Settle tire bounce after initial radial smoke-pop so their spinning wheels hug the ground smoothly!
-	if (time > self.fg_born + 0.38)
-		self.bouncefactor = 0.12;
-
 	// Continuous overlapping helium laughing, screaming & giggling (spaced to avoid audio spam)
 	if (time >= self.gj_next_voice)
 	{
@@ -447,8 +563,6 @@ void() GJ_MiniThink =
 
 	if (time < self.skypad_steer_t)
 	{
-		self.think = GJ_MiniThink;
-		self.nextthink = time + 0.05;
 		return;
 	}
 
@@ -496,8 +610,6 @@ void() GJ_MiniThink =
 		if (dist < 78)
 			GJ_AttackHit (self, self.enemy);
 
-		self.think = GJ_MiniThink;
-		self.nextthink = time + 0.05;
 		return;
 	}
 
@@ -542,8 +654,6 @@ void() GJ_MiniThink =
 				dir = normalize ((self.enemy.origin + '0 0 20') - self.origin);
 				self.velocity = dir * 460 + '0 0 190';
 				self.angles_y = vectoyaw (self.enemy.origin - self.origin);
-				self.think = GJ_MiniThink;
-				self.nextthink = time + 0.05;
 				return;
 			}
 
@@ -585,8 +695,6 @@ void() GJ_MiniThink =
 				}
 			}
 
-			self.think = GJ_MiniThink;
-			self.nextthink = time + 0.05;
 			return;
 		}
 	}
@@ -604,8 +712,6 @@ void() GJ_MiniThink =
 			self.gj_state = 1;
 			self.velocity = ('0 0 0' - self.gj_wall_n) * 240 + '0 0 195';
 			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.75, 1.0 + random () * 0.15);
-			self.think = GJ_MiniThink;
-			self.nextthink = time + 0.05;
 			return;
 		}
 		roof_check = self.origin + '0 0 46';
@@ -613,12 +719,10 @@ void() GJ_MiniThink =
 		if (trace_fraction < 0.95 || time >= self.gj_climb_end)
 		{
 			self.gj_state = 1;
-			self.gj_wall_cool = time + 2.2;
+			self.gj_wall_cool = time + 1.2;
 			self.angles_y = vectoyaw (self.gj_wall_n) + crandom () * 45;
 			self.velocity = self.gj_wall_n * 310 + '0 0 -50';
 			FG_Snd (self, CHAN_BODY, "greenjar/mini_boing.wav", 0.75, 1.08);
-			self.think = GJ_MiniThink;
-			self.nextthink = time + 0.05;
 			return;
 		}
 
@@ -626,8 +730,6 @@ void() GJ_MiniThink =
 			self.flags = self.flags - FL_ONGROUND;
 		self.velocity = ('0 0 0' - self.gj_wall_n) * 75 + '0 0 285';
 		self.angles_y = vectoyaw ('0 0 0' - self.gj_wall_n);
-		self.think = GJ_MiniThink;
-		self.nextthink = time + 0.05;
 		return;
 	}
 
@@ -648,8 +750,6 @@ void() GJ_MiniThink =
 				self.gj_orbit_ang = vectoyaw (self.origin - self.enemy.origin);
 				self.gj_prev_yaw = self.gj_orbit_ang;
 			}
-			self.think = GJ_MiniThink;
-			self.nextthink = time + 0.05;
 			return;
 		}
 		want_yaw = vectoyaw (self.enemy.origin - self.origin) + crandom () * 10;
@@ -692,17 +792,15 @@ void() GJ_MiniThink =
 		}
 		else if (fabs (trace_plane_normal_z) < 0.28)
 		{
-			if (self.gj_role == 2 && time >= self.gj_wall_cool)
+			if (time >= self.gj_wall_cool)
 			{
-				// Role-2 wall-driver drives straight up the building wall!
+				// Drive straight up the building wall!
 				self.gj_state = 2;
 				self.gj_wall_n = trace_plane_normal;
-				self.gj_climb_end = time + 1.10;
+				self.gj_climb_end = time + 3.0;
 				if (self.flags & FL_ONGROUND)
 					self.flags = self.flags - FL_ONGROUND;
 				self.velocity = ('0 0 0' - self.gj_wall_n) * 65 + '0 0 280';
-				self.think = GJ_MiniThink;
-				self.nextthink = time + 0.05;
 				return;
 			}
 			else
@@ -719,8 +817,36 @@ void() GJ_MiniThink =
 	self.velocity_x = v_forward_x * spd;
 	self.velocity_y = v_forward_y * spd;
 
+};
+
+void() GJ_MiniThink =
+{
+	if (self.gj_state == 4 || self.gj_state == 5)
+		return;
+	if (self.movetype == MOVETYPE_NONE && !GJ_MiniMove ())
+		return;
+	if (time >= self.gj_ai_t)
+	{
+		self.gj_ai_t = time + 0.05;
+		GJ_MiniAI ();
+		if (self.gj_state == 4 || self.gj_state == 5)
+			return;
+		// never parked: if it has barely moved, kick off in a new direction
+		if (time >= self.gj_stuck_t)
+		{
+			if (vlen (self.origin - self.gj_stuck_org) < 40 && self.gj_state == 1)
+			{
+				self.angles_y = random () * 360;
+				self.velocity_z = 260;
+				self.flags = self.flags - (self.flags & FL_ONGROUND);
+				self.gj_wall_cool = 0;
+			}
+			self.gj_stuck_org = self.origin;
+			self.gj_stuck_t = time + 0.6;
+		}
+	}
 	self.think = GJ_MiniThink;
-	self.nextthink = time + 0.05;
+	self.nextthink = time + 0.02;
 };
 
 void(entity who) GJ_MakeRoomMinis =
@@ -774,11 +900,10 @@ void(vector org, entity who, float idx) GJ_SpawnMini =
 	m.gj_next_boing = time + 0.35;
 	m.gj_next_poke = time + 0.2;
 
-	m.movetype = MOVETYPE_BOUNCE;
+	m.movetype = MOVETYPE_NONE;		// GJ_MiniMove drives them
 	m.solid = SOLID_BBOX;
-	m.bouncefactor = 0.42;		// settles to 0.12 after 0.38s so tires hug the floor smoothly!
-	m.bouncestop = 0.08;
-	m.gravity = 0.85;
+	m.gj_move_t = time;
+	m.gj_stuck_t = time + 1.0;
 	m.health = 1;
 	m.max_health = 1;
 	m.takedamage = DAMAGE_AIM;

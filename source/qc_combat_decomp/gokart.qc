@@ -31,6 +31,12 @@ float	GK_TURN_HI		= 132;		// deg/s at cruise/boost (crisp cornering at all speed
 float	GK_GRIP			= 3400;		// lateral grip when not drifting
 float	GK_GRAVITY		= 800;		// matches sv_gravity & SkyPad_CalcVel ballistic arcs
 
+// Eric's hospital bed (4Loco): slower than before, but it turns hard and grips (playtest: not enough control)
+float	FL_TOP_CRUISE	= 900;
+float	FL_TOP_NITRO	= 1420;
+float	FL_TURN_RATE	= 220;
+float	FL_GRIP			= 6000;
+
 float	GK_RKT_TAP_MAX		= 0.18;		// M1 tap <= 0.18s honks horn; holding longer opens rocket aim
 float	GK_RKT_CHARGE_T		= 0.80;		// hold duration in aim mode to arm the rocket
 float	GK_RKT_NITRO_COST	= 40;		// Nitro spent per rocket shot
@@ -68,6 +74,20 @@ void(entity v) GK_InitKart =
 	v.gk_rkt_cd = 0;
 };
 
+// Cockpit view: the driver sees his own arms and hands on the wheel, but not the inside of his head.
+// gokart_driver.md3 skin 1 (zz_karts.pk3) draws the "head" surface with an invisible shader.
+float() GK_DriverCustomize =
+{
+	local entity v;
+
+	v = self.owner;
+	if (v != world && other == v.veh_driver && other.veh_camera == 0)
+		self.skin = 1;
+	else
+		self.skin = 0;
+	return TRUE;
+};
+
 // Keep attached seated Quake Ranger driver entity synced to kart origin, angles & animation frame
 void(entity v) GK_SyncDriverEnt =
 {
@@ -85,11 +105,10 @@ void(entity v) GK_SyncDriverEnt =
 	setorigin (de, v.origin);
 	de.angles = v.angles;
 	de.frame = v.frame;
-	// cockpit view hides the seated body only from the driver himself (EF_NODRAW hid it from everyone)
-	if (v.veh_driver.veh_camera == 0)
-		de.nodrawtoclient = v.veh_driver;
-	else
-		de.nodrawtoclient = world;
+	// drawn for everyone; in cockpit view the driver gets the headless skin (GK_DriverCustomize)
+	de.owner = v;
+	de.customizeentityforclient = GK_DriverCustomize;
+	de.nodrawtoclient = world;
 	de.effects = de.effects - (de.effects & EF_NODRAW);
 };
 
@@ -745,6 +764,8 @@ void(entity v, entity hit, float imp) GK_RamVehicle =
 	veh_runover = FALSE;
 };
 
+void() GK_RocketSeek;
+
 void() GK_RocketThink =
 {
 	local float rem;
@@ -761,6 +782,12 @@ void() GK_RocketThink =
 	}
 	if (self.gk_shooter != world && !bm_wasfreed (self.gk_shooter))
 		self.owner = self.gk_shooter;
+	if (self.gk_seek != world)
+	{
+		self.think = GK_RocketSeek;		// heat seeker
+		self.nextthink = time;
+		return;
+	}
 	rem = max (0.10, (self.gk_safe_t + 4.86) - time);
 	self.think = SUB_Remove;
 	self.nextthink = time + rem;
@@ -777,6 +804,153 @@ void() GK_RocketTouch =
 	if (self.gk_shooter != world && !bm_wasfreed (self.gk_shooter))
 		self.owner = self.gk_shooter;
 	T_MissileTouch ();
+};
+
+// ---------------------------------------------------------------- heat-seeking rockets
+// While the rocket crosshair is up, another player near it (on foot, in a vehicle or in a tank) is locked on, and the
+// rocket fired then follows him.
+
+float	GK_LOCK_RANGE	= 3500;
+float	GK_LOCK_CONE	= 0.93;		// cos of the angle from the crosshair to get a lock (about 21 degrees)
+float	GK_LOCK_KEEP	= 0.82;		// ...and to keep it
+float	GK_SEEK_SPEED	= 1150;
+float	GK_SEEK_TURN	= 7;		// how fast the rocket turns onto its target (fraction of the gap per second)
+
+// what stands for player e in the world right now (his vehicle or tank while he is in one)
+entity(entity e) GK_LockBody =
+{
+	if (e.veh_van != world && e.veh_van.veh_driver == e)
+		return e.veh_van;
+	if (e.mmt_tank != world && e.mmt_tank.mmt_driver == e)
+		return e.mmt_tank;
+	return e;
+};
+
+vector(entity e) GK_LockPoint =
+{
+	local entity b;
+
+	b = GK_LockBody (e);
+	if (b.classname == "misc_mm_tank")
+		return b.origin + '0 0 63';
+	if (b != e)
+		return b.origin + '0 0 24';
+	return e.origin + '0 0 4';
+};
+
+float(entity p, entity e) GK_Lockable =
+{
+	if (e == world || e == p || bm_wasfreed (e) || e.classname != "player" || e.health <= 0)
+		return FALSE;
+	if ((e.items & IT_INVISIBILITY) || (e.flags & FL_NOTARGET))
+		return FALSE;
+	if (teamplay && p.team > 0 && e.team == p.team)
+		return FALSE;
+	return TRUE;
+};
+
+// how well e sits under the crosshair: the cosine, or -1 if out of range or hidden
+float(entity v, entity e, vector from, vector dir) GK_LockScore =
+{
+	local vector to;
+	local float c;
+
+	to = GK_LockPoint (e) - from;
+	if (vlen (to) > GK_LOCK_RANGE)
+		return -1;
+	c = normalize (to) * dir;
+	traceline (v.origin + '0 0 44', GK_LockPoint (e), TRUE, v);
+	if (trace_fraction < 0.98 && trace_ent != GK_LockBody (e))
+		return -1;
+	return c;
+};
+
+void(entity p, entity v) GK_UpdateLock =
+{
+	local entity e, best, cam;
+	local vector from, dir, ang, pt;
+	local float c, bc;
+
+	best = world;
+	if (v.gk_rkt_aim)
+	{
+		cam = v.veh_cament;
+		from = (cam != world) ? cam.origin : v.origin + '0 0 44';
+		ang = '0 0 0';
+		ang_x = p.veh_cam_pitch;
+		ang_y = p.veh_cam_yaw;
+		makevectors (ang);
+		dir = v_forward;
+		if (GK_Lockable (p, v.gk_lock_ent) && GK_LockScore (v, v.gk_lock_ent, from, dir) > GK_LOCK_KEEP)
+			best = v.gk_lock_ent;
+		else
+		{
+			bc = GK_LOCK_CONE;
+			e = bm_player_head;
+			while (e)
+			{
+				if (GK_Lockable (p, e))
+				{
+					c = GK_LockScore (v, e, from, dir);
+					if (c > bc)
+					{
+						best = e;
+						bc = c;
+					}
+				}
+				e = e.bm_player_next;
+			}
+		}
+	}
+	if (best != world && best != v.gk_lock_ent && p.ishuman == 1)
+		FG_Snd (p, CHAN_AUTO, "bikes/spoke_ping.wav", 1, 1.6);
+	v.gk_lock_ent = best;
+	if (p.ishuman == 1)
+	{
+		p.gk_st_lock = (best != world);
+		if (best != world)
+		{
+			pt = GK_LockPoint (best);
+			p.gk_st_tx = floor (pt_x);
+			p.gk_st_ty = floor (pt_y);
+			p.gk_st_tz = floor (pt_z);
+		}
+	}
+};
+
+void() GK_RocketSeek =
+{
+	local vector want, dir, pt;
+	local entity body, oth;
+	local float d;
+
+	if (time >= self.gk_safe_t + 4.86)
+	{
+		remove (self);
+		return;
+	}
+	self.nextthink = time + 0.03;
+	if (time < self.skypad_steer_t)
+		return;
+	if (!GK_Lockable (self.gk_shooter, self.gk_seek))
+		return;			// target gone: fly straight on
+	body = GK_LockBody (self.gk_seek);
+	pt = GK_LockPoint (self.gk_seek);
+	d = vlen (pt - self.origin);
+	// proximity fuse: a near miss still counts, or it would circle its target and plough into the road
+	if (d < ((body == self.gk_seek) ? 56 : 90))
+	{
+		oth = other;
+		other = body;
+		GK_RocketTouch ();
+		other = oth;
+		return;
+	}
+	want = normalize (pt + body.velocity * min (0.4, d / GK_SEEK_SPEED) - self.origin);		// lead a moving target
+	dir = normalize (self.velocity);
+	dir = normalize (dir + (want - dir) * min (1, GK_SEEK_TURN * 0.03 * 1.5));
+	self.velocity = dir * GK_SEEK_SPEED;
+	self.angles = vectoangles (self.velocity);
 };
 
 void(entity p, entity v) GK_FireRocket =
@@ -835,10 +1009,16 @@ void(entity p, entity v) GK_FireRocket =
 	missile.touch = GK_RocketTouch;
 	missile.nextthink = time + 0.14;
 	missile.think = GK_RocketThink;
+	if (GK_Lockable (p, v.gk_lock_ent))
+		missile.gk_seek = v.gk_lock_ent;
 	setmodel (missile, "progs/missile.mdl");
 	setsize (missile, VEC_ORIGIN, VEC_ORIGIN);
 	setorigin (missile, launch_org);
 };
+
+float	GK_COCKPIT_TILT		= 32;		// degrees the cockpit view looks down, to show the wheel and hands
+float	GK_COCKPIT_X		= -8;		// cockpit eye in kart space (driver head: x -9.5..0, z 34.5..45; shoulders z <= 38)
+float	GK_COCKPIT_Z		= 40;
 
 void(entity p, entity v, float dt) GK_DriveCamera =
 {
@@ -857,7 +1037,9 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 
 	if (p.veh_camera == 0)
 	{
-		pos = v.origin + fwd * 14 + '0 0 28';
+		// eye where the driver's eyes are (his head is hidden from him: GK_DriverCustomize), above the shoulders,
+		// so the wheel and his hands are in front of you (playtest 1.76); the view tilts down (GK_COCKPIT_TILT)
+		pos = v.origin + fwd * GK_COCKPIT_X + '0 0 1' * GK_COCKPIT_Z;
 		if (v.gk_rkt_aim)
 		{
 			if (v.gk_aim_enter)
@@ -879,7 +1061,7 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 			lead = 0 - v.veh_steer * 10 * bound (0, spd / 240, 1);
 			p.veh_cam_look = p.veh_cam_look + (lead - p.veh_cam_look) * min (1, dt * 6);
 			yaw = Veh_NormYaw (v.angles_y + p.veh_cam_look);
-			pitch = 0 - v.angles_x;
+			pitch = GK_COCKPIT_TILT - v.angles_x;
 			p.veh_cam_yaw = yaw;
 			p.veh_cam_pitch = pitch;
 		}
@@ -926,6 +1108,24 @@ void(entity p, entity v, float dt) GK_DriveCamera =
 				p.veh_cam_yaw = yaw;
 				p.veh_cam_pitch = pitch;
 			}
+			tgt = v.origin + '0 0 1' * cup;
+		}
+		else if (v.veh_kind == VEH_FORELOCO && p.movement_y == 0)
+		{
+			// free mouse look: the bed follows the view (GK_DriveFrame), so never force the angles here
+			lock_view = FALSE;
+			yaw = Veh_NormYaw (p.v_angle_y);
+			pitch = bound (-35, p.v_angle_x, 55);
+			p.veh_cam_yaw = yaw;
+			p.veh_cam_pitch = pitch;
+			tgt = v.origin + '0 0 1' * cup;
+		}
+		else if (v.veh_kind == VEH_FORELOCO)
+		{
+			// A/D turn the bed and the view stays locked behind it
+			yaw = v.angles_y;
+			p.veh_cam_yaw = yaw;
+			pitch = bound (-35, p.veh_cam_pitch, 55);
 			tgt = v.origin + '0 0 1' * cup;
 		}
 		else
@@ -1068,8 +1268,8 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		{
 			v.gk_boosting = TRUE;
 			hud_dirty = TRUE;
-			if (vf < (is_fl ? 1320 : 1200))
-				vf = max (vf + 260, is_fl ? 1320 : 1180);
+			if (vf < (is_fl ? 1100 : 1200))
+				vf = max (vf + 260, is_fl ? 1100 : 1180);
 			if (time >= v.gk_boost_snd_t)
 			{
 				v.gk_boost_snd_t = time + 0.65;
@@ -1113,10 +1313,10 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.gk_air_t = 0;
 		setorigin (v, v.origin + '0 0 3');
 		sound7 (v, CHAN_BODY, is_fl ? "foreloco/bed_jump.wav" : "bikes/tire_bounce.wav", 0.82, ATTN_NORM, is_fl ? (100 + random () * 12) : (138 + random () * 10));
-		if (fabs (steer_in) > 0.15 && vf > 200)
+		if (!is_fl && fabs (steer_in) > 0.15 && vf > 200)
 			v.gk_drift_dir = (steer_in > 0) ? 1 : -1;
 	}
-	else if (started && spc && v.gk_drift_dir == 0 && fabs (steer_in) > 0.25 && vf > 220)
+	else if (!is_fl && started && spc && v.gk_drift_dir == 0 && fabs (steer_in) > 0.25 && vf > 220)
 	{
 		// Also allow locking drift as soon as steering starts while holding SPACE
 		v.gk_drift_dir = (steer_in > 0) ? 1 : -1;
@@ -1339,6 +1539,9 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 		v.gk_m1_prev = FALSE;
 	}
 
+	if (!is_fl)
+		GK_UpdateLock (p, v);
+
 	if (p.ishuman == 1 && !is_fl)
 	{
 		if (v.gk_rkt_aim)
@@ -1374,9 +1577,9 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 	}
 
 	is_boosted = (v.gk_boosting || time < v.gk_boost_t);
-	ctop = is_fl ? 1180 : GK_TOP_CRUISE;
+	ctop = is_fl ? FL_TOP_CRUISE : GK_TOP_CRUISE;
 	if (v.gk_boosting)
-		ctop = max (ctop, is_fl ? 1720 : GK_TOP_NITRO);
+		ctop = max (ctop, is_fl ? FL_TOP_NITRO : GK_TOP_NITRO);
 	if (time < v.gk_boost_t)
 		ctop = max (ctop, v.gk_boost_pwr);
 	ctop = ctop * power;
@@ -1398,7 +1601,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			acc = GK_ACCEL * 2.05 * power * (1 - pow (k, 2.6));
 		}
 	}
-	else if (time < v.gk_boost_t && !v.veh_air)
+	else if (time < v.gk_boost_t && !v.veh_air && !(is_fl && brk > 0))
 	{
 		k = bound (0, vf / ctop, 1);
 		acc = GK_ACCEL * 1.85 * power * (1 - pow (k, 2.4));
@@ -1455,7 +1658,21 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 
 	// ---- Snappy Arcade Steering + Natural High-Speed Oversteer & Skid
 	turn_rate = GK_TURN_MAX - (GK_TURN_MAX - GK_TURN_HI) * bound (0, spd / GK_TOP_CRUISE, 1);
-	if (v.veh_air)
+	if (is_fl && steer_in == 0 && started && (time - p.fl_t0) >= FL_INTRO_DUR)
+	{
+		// the hospital bed steers with the mouse: it swings to face where you look (casters: even standing still)
+		k = Veh_AngDelta (p.v_angle_y, yaw0);
+		yr = bound (0 - FL_TURN_RATE, k * 7, FL_TURN_RATE);
+		if (v.veh_air)
+			yr = bound (-110, yr, 110);
+	}
+	else if (is_fl)
+	{
+		yr = 0 - v.veh_steer * (v.veh_air ? 110 : FL_TURN_RATE);
+		if (vf < -18)
+			yr = 0 - yr;
+	}
+	else if (v.veh_air)
 	{
 		// Gentle air steering so player can line up landings
 		yr = 0 - v.veh_steer * 32;
@@ -1515,6 +1732,8 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 				if (is_boosted)
 					lat_grip = lat_grip * 0.72;
 			}
+			if (is_fl && lat_grip > 460)
+				lat_grip = FL_GRIP;		// the bed goes where it points; only brake+steer slides it
 			vl1 = Veh_Approach (vl1, 0, lat_grip * dt);
 		}
 		vel = fwd1 * vf1 + lft1 * vl1;
@@ -1733,7 +1952,7 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			z = vd_gh;
 			v.veh_vz = 0;
 			v.veh_air = FALSE;
-			if (v.gk_air_t >= 0.68)
+			if (v.gk_air_t >= (v.veh_kind == VEH_FORELOCO ? 1.35 : 0.68))
 			{
 				// Landing boost on touchdown from real airtime (ramps/drops/jump pads)!
 				v.gk_boost_t = max (v.gk_boost_t, time + 0.85);

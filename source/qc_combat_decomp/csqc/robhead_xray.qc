@@ -3,6 +3,8 @@
 robhead_xray.qc — Kali / Red Hat Linux Hacker Terminal + X-Ray Scanner HUD for Rob Head Drone
 Called from CSQC_UpdateView when BMST_FD_MODE (stat 81) > 0.
 Receives live map-wide enemy targets from SSQC via ENT_RD_TARGET (SendEntity).
+Playtest 1.76 cleanup: bright through-wall silhouettes, small labels and reticle, a terminal that types a few
+commands and closes, pulsing radar contacts, a pictured Raspberry Pi board and a bottom-left transfer readout.
 ================
 */
 
@@ -15,6 +17,9 @@ float	BMST_FD_SEQ			= 85;		// 1..14 randomized terminal sequence per launch
 
 .entity	rh_next;
 .entity	rh_sil;
+.entity	rh_sil2;						// glow shell drawn around rh_sil
+.float	rh_occl;						// set each frame by RH_AddXRayEntities: hidden behind a wall
+.float	rh_phase;						// radar pulse phase
 .float	rh_hp;
 .float	rh_flags;						// bit 1 = monster, bit 2 = ally
 .float	rh_frame;
@@ -31,6 +36,7 @@ float	rh_launch_t;
 float	rh_active_seq;
 float	rh_term_font;
 float	rh_font_checked;
+float	rh_rpi_ok;						// 1 = gfx/rh_rpi.png loaded, -1 = missing
 
 float	RH_DEG2RAD			= 0.01745329;
 float	RH_RAD2DEG			= 57.2957795;
@@ -142,6 +148,16 @@ void() RH_XRay_EntRemove =
 		remove (self.rh_sil);
 		self.rh_sil = world;
 	}
+	if (self.rh_sil2)
+	{
+		if (self.rh_sil2.rh_mdlname != "")
+		{
+			strunzone (self.rh_sil2.rh_mdlname);
+			self.rh_sil2.rh_mdlname = "";
+		}
+		remove (self.rh_sil2);
+		self.rh_sil2 = world;
+	}
 	if (self.rh_mdlname != "")
 	{
 		strunzone (self.rh_mdlname);
@@ -155,65 +171,65 @@ void() RH_XRay_EntRemove =
 	remove (self);
 };
 
+// Through-wall "chams": every hidden enemy is drawn as a bright, solid, no-depth-test silhouette plus a soft glow
+// shell, so you see people through walls at a glance. Visible enemies get nothing extra here (playtest 1.76: the old
+// sweep-modulated alpha topped out at ~0.6 and was hard to see).
+void(entity s, entity t, float sc, vector col, float a, float fx) RH_SetupSil =
+{
+	if (s.rh_mdlname != t.rh_mdlname)
+	{
+		if (s.rh_mdlname != "")
+			strunzone (s.rh_mdlname);
+		precache_model (t.rh_mdlname);
+		setmodel (s, t.rh_mdlname);
+		s.rh_mdlname = strzone (t.rh_mdlname);
+	}
+	s.frame = t.rh_frame;
+	s.skin = t.rh_skin;
+	s.angles = t.rh_yaw * '0 1 0';
+	s.scale = ((t.rh_scale > 0) ? t.rh_scale : 1) * sc;
+	setorigin (s, t.origin);
+	s.effects = fx;
+	s.colormod = col;
+	s.alpha = a;
+	addentity (s);
+};
+
 void() RH_AddXRayEntities =
 {
-	local entity t, s;
-	local vector cam_org, cam_ang, delta;
-	local float dist, a, sweep_deg, bear_deg, diff, ping;
+	local entity t;
+	local vector cam_org, col;
+	local float dist, a, pul;
 
 	cam_org = getpropertyvec (VF_ORIGIN);
-	cam_ang = getpropertyvec (VF_ANGLES);
-	makevectors (cam_ang);
-	sweep_deg = RH_Wrap180 (time * 165);
+	pul = 0.5 + 0.5 * RH_Sin (time * 6);
 
 	t = rh_xray_head;
 	while (t)
 	{
+		t.rh_occl = FALSE;
 		if (time - t.rh_last_t <= 0.6 && !(t.rh_flags & 2) && t.rh_mdlname != "")
 		{
 			dist = vlen (t.origin - cam_org);
 			if (dist <= 3600)
 			{
-				// Skip targets already in direct line-of-sight so we don't double-render a glow over visible enemies
+				// Only hidden targets: a target in plain sight needs no glow over it
 				traceline (cam_org, t.origin + '0 0 24', TRUE, world);
 				if (trace_fraction < 0.995)
 				{
-					delta = t.origin - cam_org;
-					delta_z = 0;
-					bear_deg = RH_Atan2Deg (delta * v_right, delta * v_forward);
-					diff = fabs (RH_Wrap180 (sweep_deg - bear_deg));
-					ping = max (0, 1 - diff / 42);
-
-					a = (0.38 + 0.24 * ping) * (1 - bound (0, (dist - 1800) / 1800, 0.72));
-					if (a > 0.03)
-					{
-						if (!t.rh_sil)
-							t.rh_sil = spawn ();
-						s = t.rh_sil;
-						if (s.rh_mdlname != t.rh_mdlname)
-						{
-							if (s.rh_mdlname != "")
-								strunzone (s.rh_mdlname);
-							precache_model (t.rh_mdlname);
-							setmodel (s, t.rh_mdlname);
-							s.rh_mdlname = strzone (t.rh_mdlname);
-						}
-						s.frame = t.rh_frame;
-						s.skin = t.rh_skin;
-						s.angles = t.rh_yaw * '0 1 0';
-						if (t.rh_scale > 0)
-							s.scale = t.rh_scale;
-						else
-							s.scale = 1;
-						setorigin (s, t.origin);
-						s.effects = 8192 | 512 | 32;		// EF_NODEPTHTEST | EF_FULLBRIGHT | EF_ADDITIVE
-						if (dist < 460)
-							s.colormod = '1.80 0.28 0.28' * (0.75 + 0.35 * ping);
-						else
-							s.colormod = '0.10 1.45 1.85' * (0.75 + 0.40 * ping);
-						s.alpha = a;
-						addentity (s);
-					}
+					t.rh_occl = TRUE;
+					a = 1 - bound (0, (dist - 2200) / 1400, 0.45);
+					if (dist < 460)
+						col = '3.2 0.45 0.35';		// close: hot red
+					else
+						col = '0.55 2.8 3.2';		// bright cyan
+					if (!t.rh_sil)
+						t.rh_sil = spawn ();
+					if (!t.rh_sil2)
+						t.rh_sil2 = spawn ();
+					// solid bright body (EF_NODEPTHTEST | EF_FULLBRIGHT) + an additive glow shell around it
+					RH_SetupSil (t.rh_sil, t, 1, col, 0.95 * a, 8192 | 512);
+					RH_SetupSil (t.rh_sil2, t, 1.14, col * 0.7, (0.30 + 0.25 * pul) * a, 8192 | 512 | 32);
 				}
 			}
 		}
@@ -284,69 +300,6 @@ void(float x, float y, float pw, float ph, vector bg, float bg_a, vector bd, flo
 	drawfill (x * '1 0 0' + (y + ph - c) * '0 1 0', '1 0 0' + c * '0 1 0', corner_col, 0.95, 0);
 	drawfill ((x + pw - c) * '1 0 0' + (y + ph - 1) * '0 1 0', c * '1 0 0' + '0 1 0', corner_col, 0.95, 0);
 	drawfill ((x + pw - 1) * '1 0 0' + (y + ph - c) * '0 1 0', '1 0 0' + c * '0 1 0', corner_col, 0.95, 0);
-};
-
-void(float cx, float cy, float rad, float a, vector col, float locked) RH_DrawTargetBracket =
-{
-	local float arm, sy;
-	local vector hx, vy;
-
-	arm = bound (3, floor (rad * 0.42), 7);
-	hx = arm * '1 0 0' + '0 1 0';
-	vy = '1 0 0' + arm * '0 1 0';
-
-	drawfill ((cx - rad) * '1 0 0' + (cy - rad) * '0 1 0', hx, col, a, 0);
-	drawfill ((cx - rad) * '1 0 0' + (cy - rad) * '0 1 0', vy, col, a, 0);
-	drawfill ((cx + rad - arm) * '1 0 0' + (cy - rad) * '0 1 0', hx, col, a, 0);
-	drawfill ((cx + rad - 1) * '1 0 0' + (cy - rad) * '0 1 0', vy, col, a, 0);
-	drawfill ((cx - rad) * '1 0 0' + (cy + rad - 1) * '0 1 0', hx, col, a, 0);
-	drawfill ((cx - rad) * '1 0 0' + (cy + rad - arm) * '0 1 0', vy, col, a, 0);
-	drawfill ((cx + rad - arm) * '1 0 0' + (cy + rad - 1) * '0 1 0', hx, col, a, 0);
-	drawfill ((cx + rad - 1) * '1 0 0' + (cy + rad - arm) * '0 1 0', vy, col, a, 0);
-
-	// Active horizontal laser scanline sweeping inside the target bracket
-	sy = cy + RH_Sin (time * 6.5 + cx * 0.05) * (rad * 0.72);
-	drawfill ((cx - rad + 2) * '1 0 0' + sy * '0 1 0', max (2, (rad * 2 - 4)) * '1 0 0' + '0 1 0', col, a * 0.45, 0);
-
-	if (locked)
-		RH_Circle (cx, cy, rad * 1.28, 8, time * 75, 1.0, '1.0 0.22 0.22', a * 0.90);
-};
-
-void(entity t, vector cam_org, float w, float h, float top_h, float bot_h, float sz, vector col_red, vector col_cyan) RH_DrawEdgePip =
-{
-	local vector delta, tip, lwing, rwing;
-	local float dist, dirx, diry, dlen, px, py, nx, ny, a;
-
-	if (!t)
-		return;
-	delta = (t.origin + '0 0 24') - cam_org;
-	dist = vlen (delta);
-	a = 0.75 * (1 - bound (0, (dist - 900) / 1600, 0.55));
-	dirx = delta * v_right;
-	diry = 0 - (delta * v_up);
-	dlen = sqrt (dirx * dirx + diry * diry);
-	if (dlen < 0.001)
-	{
-		dirx = 0;
-		diry = 1;
-	}
-	else
-	{
-		dirx = dirx / dlen;
-		diry = diry / dlen;
-	}
-	px = bound (14, w * 0.5 + dirx * (w * 0.5 - 18), w - 14);
-	py = bound (top_h + 12, h * 0.5 + diry * (h * 0.5 - top_h - 16), h - bot_h - 12);
-
-	tip = (px + dirx * 6) * '1 0 0' + (py + diry * 6) * '0 1 0';
-	nx = -diry;
-	ny = dirx;
-	lwing = (px - dirx * 4.5 + nx * 5) * '1 0 0' + (py - diry * 4.5 + ny * 5) * '0 1 0';
-	rwing = (px - dirx * 4.5 - nx * 5) * '1 0 0' + (py - diry * 4.5 - ny * 5) * '0 1 0';
-	RH_Line (1.6, tip, lwing, col_red, a);
-	RH_Line (1.6, tip, rwing, col_red, a);
-	RH_Line (1.0, lwing, rwing, col_cyan, a * 0.75);
-	BM_ShadowCentered (px - dirx * 16, py - diry * 10 - sz * 0.4, strcat (ftos (floor (dist)), "u"), sz * 0.85, col_cyan, a);
 };
 
 // 14 unique Kali / Red Hat Linux hacking sequences (real Linux commands, funny Quake/wallhack payloads)
@@ -481,736 +434,370 @@ string(float seq, float slot, float n_en) RH_SeqLine =
 	return strcat ("[+] ", nstr, " VICTIMS READY 4 DETONATION!");
 };
 
-string(float idx) RH_LiveCmd =
+// Shortens s with ".." until it fits maxw at text size sv (the terminal text used to run off the window)
+string(string s, float maxw, vector sv) RH_Fit =
 {
-	local float k;
+	local float wd, n;
 
-	k = idx - 14 * floor (idx / 14);
-	if (k == 0) return "sudo apt upgrade -y quakeahh.exe";
-	if (k == 1) return "exec WallHacks.cfg --verbose";
-	if (k == 2) return "cat /proc/noobs_behind_walls";
-	if (k == 3) return "ss -uapn | grep 26000";
-	if (k == 4) return "tail -n1 /var/log/wallhack.log";
-	if (k == 5) return "sudo chmod 777 /etc/enemy_spawns";
-	if (k == 6) return "grep -i \"camper\" /proc/quake_map";
-	if (k == 7) return "watch -n0 cat /dev/fedora_hax";
-	if (k == 8) return "sudo systemctl status xrayd";
-	if (k == 9) return "ping -c1 -W1 10.13.37.69";
-	if (k == 10) return "ps aux | grep -i wallhack";
-	if (k == 11) return "uname -a && whoami";
-	if (k == 12) return "sudo journalctl -u wallhack -n1";
-	return "dmesg | tail -n1";
+	wd = stringwidth (s, FALSE, sv);
+	if (wd <= maxw)
+		return s;
+	n = floor (strlen (s) * maxw / wd);
+	while (n > 1 && stringwidth (strcat (substring (s, 0, n), ".."), FALSE, sv) > maxw)
+		n = n - 1;
+	return strcat (substring (s, 0, max (1, n)), "..");
 };
 
-string(float idx, float n_en) RH_LiveOut =
+// Thin corner brackets around a target in plain sight
+void(float cx, float cy, float rad, float a, vector col) RH_DrawTargetBracket =
 {
-	local float k;
-	local string nstr;
+	local float arm;
+	local vector hx, vy;
 
-	nstr = ftos (n_en);
-	k = idx - 14 * floor (idx / 14);
-	if (k == 0) return "[APT] quakeahh.exe upgraded to v4.20";
-	if (k == 1) return "[CFG] WALLHACKS.CFG APPLIED OK";
-	if (k == 2) return strcat ("[SYS] ", nstr, " NOOBS EXPOSED IN REALTIME");
-	if (k == 3) return "[NET] UDP:26000 ESTAB rtt=1.2ms";
-	if (k == 4) return strcat ("[LOG] PVS_BYPASS=1 | ", nstr, " LOCKED");
-	if (k == 5) return "[FS] WORLD-READABLE SPAWN COORDS";
-	if (k == 6) return strcat ("[SCAN] ", nstr, " CAMPERS TRACKED ON RADAR");
-	if (k == 7) return "[DEV] EF_NODEPTHTEST=ACTIVE";
-	if (k == 8) return "[SVC] xrayd.service: active (hacking)";
-	if (k == 9) return "[ICMP] 64 bytes from noob: ttl=64";
-	if (k == 10) return "[PID] root 1337 WallHacks.cfg";
-	if (k == 11) return "[ID] Linux kali-rhel9 :: root (hax)";
-	if (k == 12) return "[JRN] GL_DEPTH_TEST=FALSE SYNCED";
-	return "[KRN] rob_drone0: XRAY LINK UP";
+	arm = bound (2, floor (rad * 0.35), 5);
+	hx = arm * '1 0 0' + '0 1 0';
+	vy = '1 0 0' + arm * '0 1 0';
+	drawfill ((cx - rad) * '1 0 0' + (cy - rad) * '0 1 0', hx, col, a, 0);
+	drawfill ((cx - rad) * '1 0 0' + (cy - rad) * '0 1 0', vy, col, a, 0);
+	drawfill ((cx + rad - arm) * '1 0 0' + (cy - rad) * '0 1 0', hx, col, a, 0);
+	drawfill ((cx + rad - 1) * '1 0 0' + (cy - rad) * '0 1 0', vy, col, a, 0);
+	drawfill ((cx - rad) * '1 0 0' + (cy + rad - 1) * '0 1 0', hx, col, a, 0);
+	drawfill ((cx - rad) * '1 0 0' + (cy + rad - arm) * '0 1 0', vy, col, a, 0);
+	drawfill ((cx + rad - arm) * '1 0 0' + (cy + rad - 1) * '0 1 0', hx, col, a, 0);
+	drawfill ((cx + rad - 1) * '1 0 0' + (cy + rad - arm) * '0 1 0', vy, col, a, 0);
 };
 
-// Draws Red Hat Linux neofetch ASCII art + system spec row 0..6
-void(float bx, float y, float row, float tfont, vector tsv, vector col_red, vector col_cyan, vector col_white, vector col_green) RH_DrawNeofetchRow =
+// Small marker on the screen edge pointing at an off-screen enemy (no text): a dot with a short tip toward it.
+// drawfill, not drawline: Zircon's drawline dropped these short diagonal strokes.
+void(entity t, vector cam_org, float w, float h, vector col) RH_DrawEdgePip =
 {
-	local float hat_w, art_cx, col2_x, aw, lw, rw;
-	local string art, lbl, val;
+	local vector delta;
+	local float dist, dirx, diry, dlen, px, py, a, pul;
 
-	hat_w = stringwidth ("[== RED HAT ==]", FALSE, tsv);
-	art_cx = bx + hat_w * 0.5 + 2;
-	col2_x = bx + hat_w + tfont * 1.4;
-	if (row == 0)
+	if (!t)
+		return;
+	delta = (t.origin + '0 0 24') - cam_org;
+	dist = vlen (delta);
+	a = 0.80 * (1 - bound (0, (dist - 900) / 1600, 0.5));
+	dirx = delta * v_right;
+	diry = 0 - (delta * v_up);
+	dlen = sqrt (dirx * dirx + diry * diry);
+	if (dlen < 0.001)
 	{
-		art = ".#####.";
-		lbl = "root@kali-rhel9";
-		val = "";
-	}
-	else if (row == 1)
-	{
-		art = "./#######\\.";
-		lbl = "-------------------";
-		val = "";
-	}
-	else if (row == 2)
-	{
-		art = "/##/     \\##\\";
-		lbl = "OS: ";
-		val = "Red Hat Linux 9";
-	}
-	else if (row == 3)
-	{
-		art = "/##/       \\##\\";
-		lbl = "Kernel: ";
-		val = "6.8-kali-x64";
-	}
-	else if (row == 4)
-	{
-		art = "/#############\\";
-		lbl = "Shell: ";
-		val = "zsh 5.9 tty0";
-	}
-	else if (row == 5)
-	{
-		art = "[== RED HAT ==]";
-		lbl = "Bypass: ";
-		val = "PVS + GL_DEPTH";
+		dirx = 0;
+		diry = 1;
 	}
 	else
 	{
-		art = "'---------'";
-		lbl = "Mode: ";
-		val = "WALLHACK X-RAY";
+		dirx = dirx / dlen;
+		diry = diry / dlen;
 	}
-
-	if (row == 2)
-	{
-		lw = stringwidth ("/##/", FALSE, tsv);
-		RH_ShadowStr ((art_cx - tfont * 1.4 - lw) * '1 0 0' + y * '0 1 0', "/##/", tsv, col_red, 1.0, 0);
-		RH_ShadowStr ((art_cx + tfont * 1.4) * '1 0 0' + y * '0 1 0', "\\##\\", tsv, col_red, 1.0, 0);
-	}
-	else if (row == 3)
-	{
-		lw = stringwidth ("/##/", FALSE, tsv);
-		RH_ShadowStr ((art_cx - tfont * 2.0 - lw) * '1 0 0' + y * '0 1 0', "/##/", tsv, col_red, 1.0, 0);
-		RH_ShadowStr ((art_cx + tfont * 2.0) * '1 0 0' + y * '0 1 0', "\\##\\", tsv, col_red, 1.0, 0);
-	}
-	else
-	{
-		aw = stringwidth (art, FALSE, tsv);
-		RH_ShadowStr ((art_cx - aw * 0.5) * '1 0 0' + y * '0 1 0', art, tsv, col_red, 1.0, 0);
-	}
-
-	if (row == 0)
-		RH_ShadowStr (col2_x * '1 0 0' + y * '0 1 0', lbl, tsv, col_cyan, 1.0, 0);
-	else if (row == 1)
-		RH_ShadowStr (col2_x * '1 0 0' + y * '0 1 0', lbl, tsv, '0.62 0.84 0.96', 0.95, 0);
-	else
-	{
-		RH_ShadowStr (col2_x * '1 0 0' + y * '0 1 0', lbl, tsv, col_red, 1.0, 0);
-		rw = stringwidth (lbl, FALSE, tsv);
-		RH_ShadowStr ((col2_x + rw) * '1 0 0' + y * '0 1 0', val, tsv, (row == 6) ? col_green : col_white, 1.0, 0);
-	}
+	px = bound (12, w * 0.5 + dirx * (w * 0.5 - 14), w - 12);
+	py = bound (24, h * 0.5 + diry * (h * 0.5 - 26), h - 24);
+	pul = 0.75 + 0.25 * RH_Sin (time * 8);
+	drawfill ((px - 2) * '1 0 0' + (py - 2) * '0 1 0', '4 4 0', col, a * pul, 0);
+	drawfill ((px + dirx * 3.5 - 1) * '1 0 0' + (py + diry * 3.5 - 1) * '0 1 0', '2 2 0', col, a, 0);
+	drawfill ((px + dirx * 6 - 0.75) * '1 0 0' + (py + diry * 6 - 0.75) * '0 1 0', '1.5 1.5 0', col, a, 0);
 };
 
-// Draws one virtual scrollback line 0..total_lines-1 inside the terminal body
-void(float idx, float bx, float y, float tfont, vector tsv, float seq, float n_en, float pulse, float cur_t0, float cur_t1, string c0, string c1, string live_cur, float live_done, float live_idx, entity en1, entity en2, entity en3, vector cam_org, float mode, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_amber) RH_DrawTermRow =
+// Top-left terminal: types a few commands from the launch's sequence, shows the result, then closes on its own
+float RH_TERM_HOLD = 1.6;		// seconds the finished terminal stays up
+float RH_TERM_FADE = 0.45;
+
+void(float w, float h, float seq, float age, float mode, float n_en, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_amber) RH_DrawTerminal =
 {
-	local string s, pfx, spin, bar;
-	local float pw, dist, pct, k;
-	local entity targ;
+	local float tx, ty, tw, th, cur_th, open_u, tfont, tlh, title_h, body_y, maxw, pw, fade;
+	local float ch_rate, t_cmd0, t_out0, t_cmd1, t_res, t_end, n0, n1;
+	local string c0, c1, s;
+	local vector tsv;
 
-	// 0: neofetch command
-	if (idx == 0)
-	{
-		pfx = "# ";
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', pfx, tsv, col_red, 1.0, 0);
-		pw = stringwidth (pfx, FALSE, tsv);
-		RH_ShadowStr ((bx + pw) * '1 0 0' + y * '0 1 0', "neofetch --distro rhel", tsv, col_green, 1.0, 0);
+	if (mode == 3)
 		return;
-	}
-	// 1..7: Red Hat neofetch ASCII art + specs
-	if (idx >= 1 && idx <= 7)
-	{
-		RH_DrawNeofetchRow (bx, y, idx - 1, tfont, tsv, col_red, col_cyan, col_white, col_green);
+	ch_rate = 40;
+	c0 = RH_SeqLine (seq, 0, n_en);
+	c1 = RH_SeqLine (seq, 2, n_en);
+	t_cmd0 = 0.20;
+	t_out0 = t_cmd0 + strlen (c0) / ch_rate + 0.10;
+	t_cmd1 = t_out0 + 0.25;
+	t_res = t_cmd1 + strlen (c1) / ch_rate + 0.12;
+	t_end = t_res + RH_TERM_HOLD;
+	if (age >= t_end + RH_TERM_FADE)
 		return;
-	}
-	// 8: Command 1
-	if (idx == 8)
-	{
-		pfx = "kali# ";
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', pfx, tsv, col_red, 1.0, 0);
-		pw = stringwidth (pfx, FALSE, tsv);
-		s = cur_t0 ? strcat (c0, "_") : c0;
-		RH_ShadowStr ((bx + pw) * '1 0 0' + y * '0 1 0', s, tsv, col_green, 1.0, 0);
-		return;
-	}
-	// 9: Output 1
-	if (idx == 9)
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', RH_SeqLine (seq, 1, n_en), tsv, col_cyan, 1.0, 0);
-		return;
-	}
-	// 10: Command 2
-	if (idx == 10)
-	{
-		pfx = "kali# ";
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', pfx, tsv, col_red, 1.0, 0);
-		pw = stringwidth (pfx, FALSE, tsv);
-		s = cur_t1 ? strcat (c1, "_") : c1;
-		RH_ShadowStr ((bx + pw) * '1 0 0' + y * '0 1 0', s, tsv, col_white, 1.0, 0);
-		return;
-	}
-	// 11: Banner
-	if (idx == 11)
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', RH_SeqLine (seq, 3, n_en), tsv, col_red, 1.0, 0);
-		return;
-	}
-	// 12: Scan line + progress bar
-	if (idx == 12)
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', RH_SeqLine (seq, 4, n_en), tsv, col_amber, 1.0, 0);
-		return;
-	}
-	// 13: Result count
-	if (idx == 13)
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', RH_SeqLine (seq, 5, n_en), tsv, col_green, 1.0, 0);
-		return;
-	}
-	// 14..16: Live target coordinate dumps from rh_xray_head
-	if (idx >= 14 && idx <= 16)
-	{
-		targ = world;
-		if (idx == 14) targ = en1;
-		else if (idx == 15) targ = en2;
-		else if (idx == 16) targ = en3;
-		if (targ)
-		{
-			s = targ.netname;
-			if (s == "") s = "HOSTILE";
-			if (strlen (s) > 10) s = substring (s, 0, 10);
-			dist = floor (vlen (targ.origin - cam_org));
-			s = strcat ("> [", ftos (idx - 13), "] ", s, " ", ftos (targ.rh_hp), "HP ");
-			s = strcat (s, ftos (dist), "u");
-			RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', s, tsv, (dist < 460) ? col_red : col_cyan, 1.0, 0);
-		}
-		else if (idx == 14)
-		{
-			k = floor (time * 8) - 4 * floor (floor (time * 8) / 4);
-			if (k == 0) spin = "|";
-			else if (k == 1) spin = "/";
-			else if (k == 2) spin = "-";
-			else spin = "\\";
-			pct = floor (50 + 50 * RH_Sin (time * 3));
-			bar = (pct > 66) ? "[########--]" : ((pct > 33) ? "[#####-----]" : "[###-------]");
-			RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', strcat (spin, " SWEEPING SECTOR ", bar), tsv, col_cyan, 1.0, 0);
-		}
-		else
-		{
-			RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', "[SCAN] NO CLOSE CONTACTS IN PVS", tsv, '0.72 0.90 0.98', 0.96, 0);
-		}
-		return;
-	}
-	// 17+: Continuous live Linux commands + output pairs (2 rows per live command)
-	local float rel, pair, is_out, active_pair;
-	rel = idx - 17;
-	pair = floor (rel / 2);
-	is_out = rel - pair * 2;
-	active_pair = (pair == live_idx);
+	fade = 1 - bound (0, (age - t_end) / RH_TERM_FADE, 1);
 
-	if (mode == 3 && active_pair && is_out)
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', "[!] SIGKILL: DRONE DETONATED!", tsv, col_red, 1.0, 0);
-		return;
-	}
-
-	if (!is_out)
-	{
-		pfx = "kali# ";
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', pfx, tsv, col_red, 1.0, 0);
-		pw = stringwidth (pfx, FALSE, tsv);
-		if (active_pair)
-			s = live_done ? strcat (live_cur, (pulse > 0) ? "_" : "") : strcat (live_cur, "_");
-		else
-			s = RH_LiveCmd (pair);
-		RH_ShadowStr ((bx + pw) * '1 0 0' + y * '0 1 0', s, tsv, col_green, 1.0, 0);
-	}
-	else
-	{
-		RH_ShadowStr (bx * '1 0 0' + y * '0 1 0', RH_LiveOut (pair, n_en), tsv, col_white, 1.0, 0);
-	}
-};
-
-void(float w, float h, float seq, float age, float mode, float n_en, float pulse, vector cam_org, entity en1, entity en2, entity en3, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_amber) RH_DrawTerminal =
-{
-	local float tx, ty, tw, th, cur_th, open_u, tfont, tlh, title_h, foot_h, body_y, max_rows;
-	local float neo_rows, ch_rate, cmd0_len, cmd1_len, t_cmd0, t_cmd1, t_scan, t_live;
-	local float cmd0_n, cmd1_n, total_rows, start_row, row, cur_ch, stage;
-	local float lidx, lt, llen, lch, live_done, k;
-	local string cmd0_full, cmd1_full, c0_draw, c1_draw, live_full, live_cur, spin;
-	local vector tsv, bg_col, bd_col, bar_col;
-
-	tfont = (rh_term_font > 0) ? bound (6.8, w * 0.0115, 11.5) : bound (4.8, w * 0.0078, 8.2);
+	tfont = (rh_term_font > 0) ? bound (6, floor (w * 0.0105), 9) : bound (4.5, floor (w * 0.0075), 6);
 	tsv = tfont * '1 1 0';
-	tlh = (rh_term_font > 0) ? (tfont + 1.4) : (tfont + 2.4);
-
+	tlh = tfont + 2;
 	tx = 8;
 	ty = JBH_TopLeftY ();
-	tw = bound (218, floor (w * 0.37), 410);
-	title_h = tlh + 4;
-	foot_h = tlh + 3;
-	max_rows = 15;
-	th = title_h + 4 + max_rows * tlh + 3 + foot_h;
+	tw = bound (170, floor (w * 0.30), 300);
+	title_h = tlh + 3;
+	th = title_h + 4 + 4 * tlh + 3;
+	maxw = tw - 10;
 
 	open_u = bound (0, age / 0.14, 1);
-	cur_th = max (title_h + 6, floor (th * (1 - (1 - open_u) * (1 - open_u))));
+	cur_th = max (title_h + 2, floor (th * (1 - (1 - open_u) * (1 - open_u))));
 
-	bg_col = '0 0 0';
-	bd_col = (mode == 3) ? col_red : '0.92 0.24 0.28';
-	bar_col = '0.03 0.03 0.04';
+	drawsetcliparea (tx, ty, tw, cur_th);
+	RH_WindowBox (tx, ty, tw, cur_th, '0 0 0', 0.55 * fade, '0.92 0.24 0.28', 0.85 * fade, col_cyan);
+	drawfill ((tx + 4) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_red, fade, 0);
+	drawfill ((tx + 9) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_amber, fade, 0);
+	drawfill ((tx + 14) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_green, fade, 0);
+	RH_ShadowStr ((tx + 21) * '1 0 0' + (ty + 2) * '0 1 0', RH_Fit ("root@kali-rhel9: ~/wallhack", tw - 26, tsv), tsv, col_white, fade, 0);
+	drawfill ((tx + 1) * '1 0 0' + (ty + title_h) * '0 1 0', (tw - 2) * '1 0 0' + '0 1 0', '0.92 0.24 0.28', 0.6 * fade, 0);
 
-	RH_WindowBox (tx, ty, tw, cur_th, bg_col, 0.72, bd_col, 0.90, (mode == 3) ? col_red : col_cyan);
-
-	// Title bar (black)
-	drawfill ((tx + 1) * '1 0 0' + (ty + 1) * '0 1 0', (tw - 2) * '1 0 0' + (title_h - 1) * '0 1 0', bar_col, 0.88, 0);
-	drawfill ((tx + 1) * '1 0 0' + (ty + title_h) * '0 1 0', (tw - 2) * '1 0 0' + '0 1 0', bd_col, 0.72, 0);
-
-	// Classic terminal window buttons (red, amber, green)
-	drawfill ((tx + 5) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_red, 0.98, 0);
-	drawfill ((tx + 10) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_amber, 0.98, 0);
-	drawfill ((tx + 15) * '1 0 0' + (ty + floor (title_h * 0.5) - 1) * '0 1 0', '3 3 0', col_green, 0.98, 0);
-
-	RH_ShadowStr ((tx + 22) * '1 0 0' + (ty + 2) * '0 1 0', "root@kali-rhel9: ~/wallhack", tsv * 0.96, col_white, 1.0, 0);
-	RH_ShadowStrRight (tx + tw - 5, ty + 2, "[ZSH]", tsv * 0.92, col_cyan, 0.96);
-
-	if (open_u < 0.85)
-		return;
-
-	// Timeline calculation
-	cmd0_full = RH_SeqLine (seq, 0, n_en);
-	cmd1_full = RH_SeqLine (seq, 2, n_en);
-	cmd0_len = strlen (cmd0_full);
-	cmd1_len = strlen (cmd1_full);
-	ch_rate = 38;
-
-	// 0.08..0.36s: neofetch lines 0..7 cascade in rapidly
-	neo_rows = bound (1, floor ((age - 0.08) / 0.036) + 1, 8);
-	t_cmd0 = 0.38;
-	cmd0_n = floor (max (0, age - t_cmd0) * ch_rate);
-	t_cmd1 = t_cmd0 + cmd0_len / ch_rate + 0.14;
-	cmd1_n = floor (max (0, age - t_cmd1) * ch_rate);
-	t_scan = t_cmd1 + cmd1_len / ch_rate + 0.12;
-	t_live = t_scan + 0.48;
-
-	cur_ch = 0;
-	stage = 0;
-	total_rows = neo_rows;
-	c0_draw = "";
-	c1_draw = "";
-	live_cur = "";
-	live_done = 0;
-	lidx = 0;
-
-	if (age >= t_cmd0)
+	if (open_u >= 0.85)
 	{
-		if (cmd0_n < cmd0_len)
+		body_y = ty + title_h + 4;
+		pw = stringwidth ("kali# ", FALSE, tsv);
+		if (age >= t_cmd0)
 		{
-			c0_draw = substring (cmd0_full, 0, cmd0_n);
-			cur_ch = cmd0_n;
-			total_rows = 9;
+			n0 = min (strlen (c0), floor ((age - t_cmd0) * ch_rate));
+			s = substring (c0, 0, n0);
+			if (age < t_out0)
+				s = strcat (s, "_");
+			RH_ShadowStr ((tx + 5) * '1 0 0' + body_y * '0 1 0', "kali# ", tsv, col_red, fade, 0);
+			RH_ShadowStr ((tx + 5 + pw) * '1 0 0' + body_y * '0 1 0', RH_Fit (s, maxw - pw, tsv), tsv, col_green, fade, 0);
 		}
-		else
+		if (age >= t_out0)
+			RH_ShadowStr ((tx + 5) * '1 0 0' + (body_y + tlh) * '0 1 0', RH_Fit (RH_SeqLine (seq, 1, n_en), maxw, tsv), tsv, col_cyan, fade, 0);
+		if (age >= t_cmd1)
 		{
-			c0_draw = cmd0_full;
-			cur_ch = cmd0_len;
-			stage = 1;
-			total_rows = 10;
+			n1 = min (strlen (c1), floor ((age - t_cmd1) * ch_rate));
+			s = substring (c1, 0, n1);
+			if (age < t_res)
+				s = strcat (s, "_");
+			RH_ShadowStr ((tx + 5) * '1 0 0' + (body_y + 2 * tlh) * '0 1 0', "kali# ", tsv, col_red, fade, 0);
+			RH_ShadowStr ((tx + 5 + pw) * '1 0 0' + (body_y + 2 * tlh) * '0 1 0', RH_Fit (s, maxw - pw, tsv), tsv, col_white, fade, 0);
 		}
+		if (age >= t_res)
+			RH_ShadowStr ((tx + 5) * '1 0 0' + (body_y + 3 * tlh) * '0 1 0', RH_Fit (RH_SeqLine (seq, 5, n_en), maxw, tsv), tsv, col_green, fade, 0);
 	}
-	if (age >= t_cmd1)
-	{
-		if (cmd1_n < cmd1_len)
-		{
-			c1_draw = substring (cmd1_full, 0, cmd1_n);
-			cur_ch = cmd0_len + cmd1_n;
-			total_rows = 11;
-		}
-		else
-		{
-			c1_draw = cmd1_full;
-			cur_ch = cmd0_len + cmd1_len;
-			stage = 2;
-			total_rows = 12;
-			if (age >= t_scan)
-			{
-				stage = 3;
-				total_rows = 13;
-			}
-			if (age >= t_scan + 0.16)
-			{
-				stage = 4;
-				total_rows = 14;
-			}
-			if (age >= t_scan + 0.30)
-			{
-				total_rows = 17;
-			}
-		}
-	}
-
-	if (age >= t_live)
-	{
-		lt = age - t_live;
-		lidx = floor (lt / 2.1);
-		live_full = RH_LiveCmd (lidx);
-		llen = strlen (live_full);
-		lch = floor ((lt - lidx * 2.1) * 32);
-		if (lch < llen)
-		{
-			live_cur = substring (live_full, 0, lch);
-			cur_ch = cmd0_len + cmd1_len + lidx * 32 + lch;
-			stage = 5 + lidx * 2;
-			total_rows = 17 + lidx * 2 + 1;
-		}
-		else
-		{
-			live_cur = live_full;
-			live_done = 1;
-			cur_ch = cmd0_len + cmd1_len + (lidx + 1) * 32;
-			stage = 6 + lidx * 2;
-			total_rows = 17 + (lidx + 1) * 2;
-		}
-	}
-
-	// Render visible rows (auto-scrolls smoothly once > max_rows)
-	body_y = ty + title_h + 4;
-	start_row = max (0, total_rows - max_rows);
-	row = start_row;
-	while (row < total_rows)
-	{
-		RH_DrawTermRow (
-			row,
-			tx + 5,
-			body_y + (row - start_row) * tlh,
-			tfont,
-			tsv,
-			seq,
-			n_en,
-			pulse,
-			(age >= t_cmd0 && cmd0_n < cmd0_len),
-			(age >= t_cmd1 && cmd1_n < cmd1_len),
-			c0_draw,
-			c1_draw,
-			live_cur,
-			live_done,
-			lidx,
-			en1, en2, en3,
-			cam_org,
-			mode,
-			col_red, col_cyan, col_white, col_green, col_amber
-		);
-		row = row + 1;
-	}
-
-	// Footer status bar inside terminal (black)
-	local float fy;
-	fy = ty + th - foot_h;
-	drawfill ((tx + 1) * '1 0 0' + fy * '0 1 0', (tw - 2) * '1 0 0' + '0 1 0', bd_col, 0.65, 0);
-	drawfill ((tx + 1) * '1 0 0' + (fy + 1) * '0 1 0', (tw - 2) * '1 0 0' + (foot_h - 2) * '0 1 0', bar_col, 0.84, 0);
-	k = floor (time * 10) - 4 * floor (floor (time * 10) / 4);
-	if (k == 0) spin = "|";
-	else if (k == 1) spin = "/";
-	else if (k == 2) spin = "-";
-	else spin = "\\";
-	if (mode == 3)
-		RH_ShadowStr ((tx + 5) * '1 0 0' + (fy + 2) * '0 1 0', "[!] LINK TERMINATED // SIGNAL LOST", tsv * 0.92, col_red, 1.0, 0);
-	else
-		RH_ShadowStr ((tx + 5) * '1 0 0' + (fy + 2) * '0 1 0', strcat (spin, " SCANNING  |  PVS:OFF  |  ", ftos (n_en), " TARGETS"), tsv * 0.92, col_cyan, 1.0, 0);
+	drawresetcliparea ();
 };
 
+// Top-right X-ray radar: every contact pulses on its own (playtest 1.76), not only when the sweep passes it
 void(float w, float h, float mode, float timer10, float spd, float armed, float n_en, float pulse, vector cam_org, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_ally) RH_DrawMiniMap =
 {
 	local float sz, lh, rrad, box_w, box_h, bx0, by0, rcx, rcy;
-	local float sw_deg, sw_ang, swc, sws, i, ta, tx, ty, rf, rr, px, py, bear_deg, diff, ping;
-	local vector sv, delta;
+	local float sw_ang, i, ta, tx, ty, rf, rr, px, py, ph, close, ft_y;
+	local vector sv, delta, bcol;
 	local entity t;
 	local string s;
 
-	sz = (rh_term_font > 0) ? bound (6.6, floor (w * 0.0112), 11) : bound (5, floor (w * 0.0082), 8);
+	sz = (rh_term_font > 0) ? bound (6, floor (w * 0.0100), 9) : bound (4.5, floor (w * 0.0075), 6);
 	sv = sz * '1 1 0';
 	lh = sz + 1.5;
 
-	rrad = bound (36, floor (h * 0.135), 64);
-	box_w = rrad * 2 + 12;
-	box_h = rrad * 2 + lh + 12;
+	rrad = bound (34, floor (h * 0.125), 60);
+	box_w = rrad * 2 + 10;
+	box_h = rrad * 2 + lh + 10;
 	bx0 = w - 8 - box_w;
 	by0 = 8;
 
-	RH_WindowBox (bx0, by0, box_w, box_h, '0.02 0.04 0.06', 0.24, col_cyan, 0.78, (mode == 2 || mode == 3) ? col_red : col_cyan);
-	drawfill ((bx0 + 1) * '1 0 0' + (by0 + 1) * '0 1 0', (box_w - 2) * '1 0 0' + (lh + 2) * '0 1 0', '0.03 0.10 0.14', 0.38, 0);
-	drawfill ((bx0 + 1) * '1 0 0' + (by0 + lh + 3) * '0 1 0', (box_w - 2) * '1 0 0' + '0 1 0', col_cyan, 0.65, 0);
-
-	RH_ShadowStr ((bx0 + 5) * '1 0 0' + (by0 + 2) * '0 1 0', "MINIMAP", sv * 0.94, col_cyan, 1.0, 0);
-	RH_ShadowStrRight (bx0 + box_w - 4, by0 + 2, strcat (ftos (n_en), (n_en == 1) ? " HOSTILE" : " HOSTILES"), sv * 0.92, (n_en > 0) ? col_red : col_green, 1.0);
+	RH_WindowBox (bx0, by0, box_w, box_h, '0.02 0.04 0.06', 0.22, col_cyan, 0.6, (mode == 2 || mode == 3) ? col_red : col_cyan);
+	RH_ShadowStr ((bx0 + 4) * '1 0 0' + (by0 + 2) * '0 1 0', "X-RAY", sv, col_cyan, 1.0, 0);
+	RH_ShadowStrRight (bx0 + box_w - 4, by0 + 2, ftos (n_en), sv, (n_en > 0) ? col_red : col_green, 1.0);
 
 	rcx = bx0 + box_w * 0.5;
-	rcy = by0 + lh + 7 + rrad;
+	rcy = by0 + lh + 5 + rrad;
 
-	// Concentric range rings & crosshairs
-	RH_Circle (rcx, rcy, rrad, 28, 0, 1.2, col_cyan, 0.65);
-	RH_Circle (rcx, rcy, rrad * 0.66, 20, 0, 1.0, col_cyan, 0.30);
-	RH_Circle (rcx, rcy, rrad * 0.33, 14, 0, 1.0, col_cyan, 0.22);
-	RH_Line (1.0, (rcx - rrad) * '1 0 0' + rcy * '0 1 0', (rcx + rrad) * '1 0 0' + rcy * '0 1 0', col_cyan, 0.22);
-	RH_Line (1.0, rcx * '1 0 0' + (rcy - rrad) * '0 1 0', rcx * '1 0 0' + (rcy + rrad) * '0 1 0', col_cyan, 0.22);
-
-	// Drone camera forward FOV cone (+/- 42 deg up from center)
-	RH_Line (1.0, rcx * '1 0 0' + rcy * '0 1 0', (rcx - rrad * 0.66) * '1 0 0' + (rcy - rrad * 0.74) * '0 1 0', col_white, 0.28);
-	RH_Line (1.0, rcx * '1 0 0' + rcy * '0 1 0', (rcx + rrad * 0.66) * '1 0 0' + (rcy - rrad * 0.74) * '0 1 0', col_white, 0.28);
-
-	// Rotating radar sweep + 3 trailing phosphor fade rays
-	sw_deg = time * 165;
-	i = 3;
-	while (i >= 1)
-	{
-		sw_ang = (sw_deg - i * 8) * RH_DEG2RAD;
-		swc = RH_Cos (sw_ang);
-		sws = RH_Sin (sw_ang);
-		RH_Line (1.0, rcx * '1 0 0' + rcy * '0 1 0', (rcx + swc * rrad) * '1 0 0' + (rcy + sws * rrad) * '0 1 0', col_cyan, 0.32 - i * 0.07);
-		i = i - 1;
-	}
-	sw_ang = sw_deg * RH_DEG2RAD;
-	swc = RH_Cos (sw_ang);
-	sws = RH_Sin (sw_ang);
-	RH_Line (1.5, rcx * '1 0 0' + rcy * '0 1 0', (rcx + swc * rrad) * '1 0 0' + (rcy + sws * rrad) * '0 1 0', col_cyan, 0.92);
-
-	// Outer 4-way ticks
+	RH_Circle (rcx, rcy, rrad, 24, 0, 1.0, col_cyan, 0.55);
+	RH_Circle (rcx, rcy, rrad * 0.5, 16, 0, 1.0, col_cyan, 0.22);
 	i = 0;
-	while (i < 8)
+	while (i < 4)
 	{
-		ta = (i * 45) * RH_DEG2RAD;
+		ta = (i * 90) * RH_DEG2RAD;
 		tx = RH_Cos (ta);
 		ty = RH_Sin (ta);
-		RH_Line (1.0, (rcx + tx * (rrad - 3)) * '1 0 0' + (rcy + ty * (rrad - 3)) * '0 1 0', (rcx + tx * rrad) * '1 0 0' + (rcy + ty * rrad) * '0 1 0', col_cyan, 0.55);
+		RH_Line (1.0, (rcx + tx * (rrad - 3)) * '1 0 0' + (rcy + ty * (rrad - 3)) * '0 1 0', (rcx + tx * rrad) * '1 0 0' + (rcy + ty * rrad) * '0 1 0', col_cyan, 0.5);
 		i = i + 1;
 	}
-
-	// Drone center marker + forward arrow tip on top ring
+	sw_ang = (time * 165) * RH_DEG2RAD;
+	RH_Line (1.2, rcx * '1 0 0' + rcy * '0 1 0', (rcx + RH_Cos (sw_ang) * rrad) * '1 0 0' + (rcy + RH_Sin (sw_ang) * rrad) * '0 1 0', col_cyan, 0.55);
 	drawfill ((rcx - 1.5) * '1 0 0' + (rcy - 1.5) * '0 1 0', '3 3 0', col_white, 0.98, 0);
 	drawfill ((rcx - 0.5) * '1 0 0' + (rcy - rrad - 2) * '0 1 0', '1.5 3 0', col_white, 0.85, 0);
 
-	// Blips with sweep-triggered ping ring
+	// Contacts: a bright dot plus an expanding ring, each on its own phase; faster and red when close
 	t = rh_xray_head;
 	while (t)
 	{
 		if (time - t.rh_last_t <= 0.6)
 		{
+			if (!t.rh_phase)
+				t.rh_phase = 0.05 + random () * 0.9;
 			delta = t.origin - cam_org;
 			delta_z = 0;
 			rf = delta * v_forward;
 			rr = delta * v_right;
 			px = rcx + bound (-1, rr / 2600, 1) * (rrad - 3);
 			py = rcy - bound (-1, rf / 2600, 1) * (rrad - 3);
-
-			// Sweep angle in radar screen space (0=right, +90=down): dx=rr, dy=-rf
-			bear_deg = RH_Atan2Deg (-rf, rr);
-			diff = fabs (RH_Wrap180 (sw_deg - bear_deg));
-			ping = max (0, 1 - diff / 34);
-
-			if (ping > 0.1)
-				RH_Circle (px, py, 2.5 + (1 - ping) * 5, 10, 0, 1.0, (t.rh_flags & 2) ? col_ally : col_red, ping * 0.75);
-			drawfill ((px - 1.5) * '1 0 0' + (py - 1.5) * '0 1 0', '3 3 0', (t.rh_flags & 2) ? col_ally : col_red, 0.96, 0);
+			close = (vlen (delta) < 700);
+			ph = time * (close ? 2.4 : 1.4) + t.rh_phase;
+			ph = ph - floor (ph);
+			if (t.rh_flags & 2)
+				bcol = col_ally;
+			else if (close)
+				bcol = '1 0.25 0.22';
+			else
+				bcol = '1 0.55 0.30';
+			RH_Circle (px, py, 2 + ph * 6, 8, 0, 1.0, bcol, 0.85 * (1 - ph));
+			drawfill ((px - 1.5) * '1 0 0' + (py - 1.5) * '0 1 0', '3 3 0', bcol, 0.65 + 0.35 * (1 - ph), 0);
 		}
 		t = t.rh_next;
 	}
 
-	// Telemetry stacked cleanly right below the minimap box
-	local float ft_y;
-	ft_y = by0 + box_h + 4;
+	ft_y = by0 + box_h + 3;
 	if (mode == 2)
-		RH_ShadowStrRight (w - 8, ft_y, ">> DASHING <<", sv, col_red, 0.82 + 0.18 * pulse);
+		RH_ShadowStrRight (w - 8, ft_y, "DASHING", sv, col_red, 0.82 + 0.18 * pulse);
 	else if (mode == 3)
 		RH_ShadowStrRight (w - 8, ft_y, "SIGNAL LOST", sv, col_red, 0.94);
 	else
-		RH_ShadowStrRight (w - 8, ft_y, armed ? "CRUISE [ARMED]" : "CRUISE [BOOT]", sv, col_cyan, 0.92);
-
+		RH_ShadowStrRight (w - 8, ft_y, armed ? "CRUISE  ARMED" : "CRUISE  BOOT", sv, col_cyan, 0.92);
 	if (timer10 == 999)
-		s = "UNLIMITED";
+		s = strcat (ftos (spd), " u/s");
 	else
-		s = strcat ("FUEL ", ftos (floor (timer10 / 10)), ".", ftos (timer10 - 10 * floor (timer10 / 10)), "s");
-	RH_ShadowStrRight (w - 8, ft_y + lh, strcat (ftos (spd), " u/s  |  ", s), sv, (timer10 < 40 && timer10 != 999) ? col_red : col_white, 0.88);
+		s = strcat (ftos (spd), " u/s  FUEL ", ftos (floor (timer10 / 10)), ".", ftos (timer10 - 10 * floor (timer10 / 10)), "s");
+	RH_ShadowStrRight (w - 8, ft_y + lh, s, sv, (timer10 < 40 && timer10 != 999) ? col_red : col_white, 0.88);
 	bm_topright_y = ft_y + 2 * lh;
 };
 
-// Detailed Raspberry Pi 4B PCB widget stacked cleanly under the minimap telemetry
-void(float w, float h, float mode, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_amber) RH_DrawRaspberryPi =
+// Raspberry Pi 4B board under the radar: one detailed picture (gfx/rh_rpi.png from zz_robdrone.pk3) instead of ~50
+// fills, with the PWR / ACT LEDs drawn live on top
+float RH_RPI_W = 320;
+float RH_RPI_H = 212;
+void(float w, float h, float mode, vector col_red, vector col_green) RH_DrawRaspberryPi =
 {
-	local float sz, rrad, box_w, px, py, pw, ph, i, pin_x, cx, cy, cw, ch, act_on, temp_c;
-	local vector sv, pcb_col, pcb_bd, gold_col, chip_col, metal_col;
+	local float rrad, box_w, px, py, pw, ph, sx;
 
-	sz = (rh_term_font > 0) ? 6.4 : 4.8;
-	sv = sz * '1 1 0';
-	rrad = bound (36, floor (h * 0.135), 64);
-	box_w = rrad * 2 + 12;
+	if (rh_rpi_ok == 0)
+		rh_rpi_ok = (drawgetimagesize ("gfx/rh_rpi.png") != '0 0 0') ? 1 : -1;
+	if (rh_rpi_ok < 0)
+		return;
+	rrad = bound (34, floor (h * 0.125), 60);
+	box_w = rrad * 2 + 10;
+	pw = box_w;
+	ph = floor (pw * RH_RPI_H / RH_RPI_W);
+	px = w - 8 - box_w;
+	py = bm_topright_y + 4;
+	sx = pw / RH_RPI_W;
 
-	pw = box_w - 6;
-	ph = floor (pw * 0.56);
-	px = w - 8 - box_w + 2;
-	py = bm_topright_y + 6;
-
-	pcb_col = '0.06 0.36 0.12';
-	pcb_bd = '0.28 0.92 0.42';
-	gold_col = '0.96 0.80 0.24';
-	chip_col = '0.04 0.04 0.06';
-	metal_col = '0.72 0.78 0.84';
-
-	// Green PCB board + trace border
-	drawfill (px * '1 0 0' + py * '0 1 0', pw * '1 0 0' + ph * '0 1 0', pcb_col, 0.80, 0);
-	drawfill (px * '1 0 0' + py * '0 1 0', pw * '1 0 0' + '0 1 0', pcb_bd, 0.88, 0);
-	drawfill (px * '1 0 0' + (py + ph - 1) * '0 1 0', pw * '1 0 0' + '0 1 0', pcb_bd, 0.88, 0);
-	drawfill (px * '1 0 0' + py * '0 1 0', '1 0 0' + ph * '0 1 0', pcb_bd, 0.88, 0);
-	drawfill ((px + pw - 1) * '1 0 0' + py * '0 1 0', '1 0 0' + ph * '0 1 0', pcb_bd, 0.88, 0);
-
-	// 4 gold corner mounting holes
-	drawfill ((px + 3) * '1 0 0' + (py + 3) * '0 1 0', '3 3 0', gold_col, 0.95, 0);
-	drawfill ((px + 4) * '1 0 0' + (py + 4) * '0 1 0', '1 1 0', '0 0 0', 0.95, 0);
-	drawfill ((px + pw - 6) * '1 0 0' + (py + 3) * '0 1 0', '3 3 0', gold_col, 0.95, 0);
-	drawfill ((px + pw - 5) * '1 0 0' + (py + 4) * '0 1 0', '1 1 0', '0 0 0', 0.95, 0);
-	drawfill ((px + 3) * '1 0 0' + (py + ph - 6) * '0 1 0', '3 3 0', gold_col, 0.95, 0);
-	drawfill ((px + 4) * '1 0 0' + (py + ph - 5) * '0 1 0', '1 1 0', '0 0 0', 0.95, 0);
-	drawfill ((px + pw - 6) * '1 0 0' + (py + ph - 6) * '0 1 0', '3 3 0', gold_col, 0.95, 0);
-	drawfill ((px + pw - 5) * '1 0 0' + (py + ph - 5) * '0 1 0', '1 1 0', '0 0 0', 0.95, 0);
-
-	// 40-pin GPIO header strip along top edge (2 rows of gold pins)
-	local float gpio_w;
-	gpio_w = floor (pw * 0.56);
-	drawfill ((px + 10) * '1 0 0' + (py + 2) * '0 1 0', gpio_w * '1 0 0' + '0 6 0', chip_col, 0.92, 0);
-	i = 0;
-	while (i < 12)
-	{
-		pin_x = px + 12 + i * floor ((gpio_w - 4) / 12);
-		drawfill (pin_x * '1 0 0' + (py + 3) * '0 1 0', '1.5 1.5 0', gold_col, 0.95, 0);
-		drawfill (pin_x * '1 0 0' + (py + 5.5) * '0 1 0', '1.5 1.5 0', gold_col, 0.95, 0);
-		i = i + 1;
-	}
-
-	// Copper PCB traces
-	RH_Line (1.0, (px + 12) * '1 0 0' + (py + 12) * '0 1 0', (px + floor (pw * 0.42)) * '1 0 0' + (py + floor (ph * 0.48)) * '0 1 0', pcb_bd, 0.45);
-	RH_Line (1.0, (px + 16) * '1 0 0' + (py + ph - 10) * '0 1 0', (px + floor (pw * 0.42)) * '1 0 0' + (py + floor (ph * 0.58)) * '0 1 0', pcb_bd, 0.45);
-	RH_Line (1.0, (px + floor (pw * 0.56)) * '1 0 0' + (py + floor (ph * 0.52)) * '0 1 0', (px + pw - 14) * '1 0 0' + (py + floor (ph * 0.52)) * '0 1 0', pcb_bd, 0.45);
-
-	// Central Broadcom SoC CPU chip + pins
-	cw = floor (pw * 0.24);
-	ch = cw;
-	cx = px + floor (pw * 0.34);
-	cy = py + floor (ph * 0.34);
-	drawfill ((cx - 1) * '1 0 0' + (cy - 1) * '0 1 0', (cw + 2) * '1 0 0' + (ch + 2) * '0 1 0', metal_col, 0.72, 0);
-	drawfill (cx * '1 0 0' + cy * '0 1 0', cw * '1 0 0' + ch * '0 1 0', chip_col, 0.96, 0);
-	RH_ShadowStr ((cx + 2) * '1 0 0' + (cy + floor (ch * 0.30)) * '0 1 0', "BCM", sv * 0.82, metal_col, 0.95, 0);
-
-	// Secondary LPDDR RAM / WiFi IC on left
-	drawfill ((px + 10) * '1 0 0' + (cy + 2) * '0 1 0', '11 10 0', chip_col, 0.94, 0);
-	drawfill ((px + 10) * '1 0 0' + (cy + 2) * '0 1 0', '11 1 0', metal_col, 0.55, 0);
-
-	// Raspberry berry logo mark (red berry + green leaf) near top-left of PCB
-	drawfill ((px + 11) * '1 0 0' + (py + 13) * '0 1 0', '4 1.5 0', col_green, 0.96, 0);
-	drawfill ((px + 10) * '1 0 0' + (py + 15) * '0 1 0', '6 6 0', col_red, 0.96, 0);
-
-	// Metallic USB & Ethernet ports protruding on right edge
-	drawfill ((px + pw - 11) * '1 0 0' + (py + 10) * '0 1 0', '13 11 0', metal_col, 0.92, 0);
-	drawfill ((px + pw - 3) * '1 0 0' + (py + 12) * '0 1 0', '4 7 0', '0.10 0.12 0.15', 0.92, 0);
-	drawfill ((px + pw - 10) * '1 0 0' + (py + 25) * '0 1 0', '12 9 0', metal_col, 0.90, 0);
-	drawfill ((px + pw - 10) * '1 0 0' + (py + 37) * '0 1 0', '12 9 0', metal_col, 0.90, 0);
-
-	// Bottom micro-HDMI / USB-C ports
-	drawfill ((px + 16) * '1 0 0' + (py + ph - 4) * '0 1 0', '9 5 0', metal_col, 0.90, 0);
-	drawfill ((px + 32) * '1 0 0' + (py + ph - 4) * '0 1 0', '8 5 0', metal_col, 0.90, 0);
-
-	// PWR (red) and blinking ACT (green) status LEDs
-	act_on = (RH_Sin (time * 24) > -0.1);
-	drawfill ((px + 4) * '1 0 0' + (py + floor (ph * 0.56)) * '0 1 0', '2.5 2.5 0', col_red, 0.98, 0);
-	if (act_on && mode != 3)
-		drawfill ((px + 4) * '1 0 0' + (py + floor (ph * 0.68)) * '0 1 0', '2.5 2.5 0', col_green, 0.98, 0);
-
-	// Label right below the Raspberry Pi board
-	temp_c = 64 + floor (3 + 3 * RH_Sin (time * 1.7));
-	RH_ShadowStrRight (w - 8, py + ph + 3, strcat ("RPi 4B  |  ", ftos (temp_c), "C  GPIO:ON"), sv, col_green, 0.96);
-	bm_topright_y = py + ph + sz + 6;
+	drawpic (px * '1 0 0' + py * '0 1 0', "gfx/rh_rpi.png", pw * '1 0 0' + ph * '0 1 0', '1 1 1', 0.96, 0);
+	// LED pads in the picture sit at (24,150) PWR and (24,168) ACT, 8x8 px
+	drawfill ((px + 24 * sx) * '1 0 0' + (py + 150 * sx) * '0 1 0', (8 * sx) * '1 1 0', col_red, 0.95, 0);
+	if (mode != 3 && RH_Sin (time * 24 + RH_Sin (time * 5) * 3) > -0.2)
+		drawfill ((px + 24 * sx) * '1 0 0' + (py + 168 * sx) * '0 1 0', (8 * sx) * '1 1 0', col_green, 0.98, 0);
+	bm_topright_y = py + ph + 3;
 };
 
-// Bottom-center hacker computer download / upload & packet telemetry strip
-void(float w, float h, float mode, float n_en, vector col_red, vector col_cyan, vector col_white, vector col_green, vector col_amber) RH_DrawHackerTransfers =
+// Bottom-left download / upload readout: random file, size, speed and timing each cycle, no box behind it
+float rh_dl_t0, rh_dl_dur, rh_dl_name, rh_dl_mb, rh_dl_gap;
+float rh_ul_t0, rh_ul_dur, rh_ul_name, rh_ul_mb, rh_ul_gap;
+
+string(float i) RH_DlName =
 {
-	local float sz, lh, pw, ph, x0, y0, bar_w, dl_u, ul_u, dl_idx, ul_idx, dl_pct, ul_pct, pkts;
+	if (i == 0) return "quakeahh.exe";
+	if (i == 1) return "WallHacks_v4.bin";
+	if (i == 2) return "pvs_bypass.ko";
+	if (i == 3) return "enemy_coords.db";
+	if (i == 4) return "rob_aimbot.tar.gz";
+	if (i == 5) return "dm6_spawns.zip";
+	if (i == 6) return "zircon_god.dll";
+	if (i == 7) return "bako_maps.pk3";
+	return "rocket_jumps.dem";
+};
+
+string(float i) RH_UlName =
+{
+	if (i == 0) return "player_ips.json";
+	if (i == 1) return "camper_locs.csv";
+	if (i == 2) return "xray_stream.pcap";
+	if (i == 3) return "bako_lan_dump.sql";
+	if (i == 4) return "kill_cam.mp4";
+	if (i == 5) return "frag_log.txt";
+	return "rob_selfie.png";
+};
+
+void(float y, string verb, string nm, float u, float mb, vector col, float sz, float x0, float bar_w) RH_DrawTransferRow =
+{
 	local vector sv;
-	local string dl_name, ul_name, dl_spd, ul_spd;
+	local string s;
+
+	sv = sz * '1 1 0';
+	if (u >= 1)
+		s = strcat (verb, " ", nm, "  DONE");
+	else
+	{
+		s = strcat (verb, " ", nm, "  ", ftos (floor (u * 100)), "%  ");
+		s = strcat (s, ftos (floor (mb)), ".", ftos (floor (mb * 10) - 10 * floor (mb)), " MB/s");
+	}
+	RH_ShadowStr (x0 * '1 0 0' + y * '0 1 0', RH_Fit (s, bar_w, sv), sv, col, 0.95, 0);
+	drawfill (x0 * '1 0 0' + (y + sz + 1) * '0 1 0', bar_w * '1 0 0' + '0 2 0', '0 0 0', 0.45, 0);
+	drawfill (x0 * '1 0 0' + (y + sz + 1) * '0 1 0', max (1, floor (bar_w * min (u, 1))) * '1 0 0' + '0 2 0', col, 0.95, 0);
+};
+
+void(float w, float h, float mode, float bottom_y, vector col_cyan, vector col_amber) RH_DrawHackerTransfers =
+{
+	local float sz, x0, y0, bar_w, dl_u, ul_u;
 
 	if (mode == 3)
 		return;
+	if (rh_dl_dur <= 0 || time > rh_dl_t0 + rh_dl_dur + rh_dl_gap || time < rh_dl_t0)
+	{
+		rh_dl_t0 = time;
+		rh_dl_dur = 1.4 + random () * 3.2;
+		rh_dl_gap = 0.25 + random () * 0.9;
+		rh_dl_name = floor (random () * 8.999);
+		rh_dl_mb = 2 + random () * 14;
+	}
+	if (rh_ul_dur <= 0 || time > rh_ul_t0 + rh_ul_dur + rh_ul_gap || time < rh_ul_t0)
+	{
+		rh_ul_t0 = time;
+		rh_ul_dur = 1.2 + random () * 2.8;
+		rh_ul_gap = 0.25 + random () * 1.1;
+		rh_ul_name = floor (random () * 6.999);
+		rh_ul_mb = 0.4 + random () * 4;
+	}
+	dl_u = (time - rh_dl_t0) / rh_dl_dur;
+	ul_u = (time - rh_ul_t0) / rh_ul_dur;
 
-	sz = (rh_term_font > 0) ? 6.6 : 4.8;
-	sv = sz * '1 1 0';
-	lh = sz + 1.5;
-	pw = bound (220, floor (w * 0.42), 360);
-	ph = lh * 3 + 15;
-	x0 = floor (w * 0.5 - pw * 0.5);
-	y0 = h - ph - 6;
-	bar_w = pw - 12;
-
-	RH_WindowBox (x0, y0, pw, ph, '0 0 0', 0.68, col_cyan, 0.72, col_green);
-
-	// Downloading cycle (0..100% every 3.4s)
-	dl_u = (time / 3.4) - floor (time / 3.4);
-	dl_idx = floor (time / 3.4);
-	dl_idx = dl_idx - 5 * floor (dl_idx / 5);
-	if (dl_idx == 0)      dl_name = "quakeahh.exe";
-	else if (dl_idx == 1) dl_name = "WallHacks_v4.bin";
-	else if (dl_idx == 2) dl_name = "pvs_bypass.ko";
-	else if (dl_idx == 3) dl_name = "enemy_coords.db";
-	else                  dl_name = "rob_aimbot.tar.gz";
-	dl_pct = floor (dl_u * 100);
-	dl_spd = strcat (ftos (3 + floor (dl_u * 5)), ".", ftos (floor ((dl_u * 9) - 10 * floor ((dl_u * 9) / 10))), " MB/s");
-
-	RH_ShadowStr ((x0 + 6) * '1 0 0' + (y0 + 3) * '0 1 0', strcat ("DOWNLOADING: ", dl_name), sv, col_cyan, 1.0, 0);
-	RH_ShadowStrRight (x0 + pw - 6, y0 + 3, strcat (ftos (dl_pct), "%  ", dl_spd), sv, col_green, 1.0);
-	drawfill ((x0 + 6) * '1 0 0' + (y0 + lh + 3) * '0 1 0', bar_w * '1 0 0' + '0 3 0', '0.08 0.14 0.18', 0.80, 0);
-	drawfill ((x0 + 6) * '1 0 0' + (y0 + lh + 3) * '0 1 0', max (2, floor (bar_w * dl_u)) * '1 0 0' + '0 3 0', col_cyan, 0.96, 0);
-
-	// Uploading cycle (0..100% every 2.8s)
-	ul_u = ((time + 1.1) / 2.8) - floor ((time + 1.1) / 2.8);
-	ul_idx = floor ((time + 1.1) / 2.8);
-	ul_idx = ul_idx - 4 * floor (ul_idx / 4);
-	if (ul_idx == 0)      ul_name = "player_ips.json";
-	else if (ul_idx == 1) ul_name = "camper_locs.csv";
-	else if (ul_idx == 2) ul_name = "xray_stream.pcap";
-	else                  ul_name = "bako_lan_dump.sql";
-	ul_pct = floor (ul_u * 100);
-	ul_spd = strcat (ftos (1 + floor (ul_u * 3)), ".", ftos (floor ((ul_u * 7) - 10 * floor ((ul_u * 7) / 10))), " MB/s");
-
-	RH_ShadowStr ((x0 + 6) * '1 0 0' + (y0 + lh + 8) * '0 1 0', strcat ("UPLOADING:   ", ul_name), sv, col_amber, 1.0, 0);
-	RH_ShadowStrRight (x0 + pw - 6, y0 + lh + 8, strcat (ftos (ul_pct), "%  ", ul_spd), sv, col_white, 1.0);
-	drawfill ((x0 + 6) * '1 0 0' + (y0 + lh * 2 + 8) * '0 1 0', bar_w * '1 0 0' + '0 3 0', '0.16 0.10 0.06', 0.80, 0);
-	drawfill ((x0 + 6) * '1 0 0' + (y0 + lh * 2 + 8) * '0 1 0', max (2, floor (bar_w * ul_u)) * '1 0 0' + '0 3 0', col_amber, 0.96, 0);
-
-	// Bottom hacker network footer
-	pkts = 1240 + floor (420 * (0.5 + 0.5 * RH_Sin (time * 9.3)));
-	RH_ShadowStr ((x0 + 6) * '1 0 0' + (y0 + lh * 2 + 13) * '0 1 0', strcat ("PKT: ", ftos (pkts), "/s  |  AES-256  |  ", ftos (n_en), " TARGETS SYNCED"), sv * 0.90, col_green, 0.95, 0);
+	sz = (rh_term_font > 0) ? bound (6, floor (w * 0.0098), 9) : bound (4.5, floor (w * 0.0075), 6);
+	bar_w = bound (130, floor (w * 0.24), 230);
+	x0 = JP_IsVisible () ? 36 : 10;
+	y0 = bottom_y - 2 * (sz + 6);
+	RH_DrawTransferRow (y0, "DL", RH_DlName (rh_dl_name), dl_u, rh_dl_mb * (0.8 + 0.2 * RH_Sin (time * 7)), col_cyan, sz, x0, bar_w);
+	RH_DrawTransferRow (y0 + sz + 6, "UL", RH_UlName (rh_ul_name), ul_u, rh_ul_mb * (0.8 + 0.2 * RH_Sin (time * 5 + 1)), col_amber, sz, x0, bar_w);
 };
 
 void(float w, float h) RH_DrawXRayHUD =
 {
-	local float mode, timer10, spd, armed, seq, age, sz, lh, top_h, bot_h, old_font;
-	local float pulse, sy, n_en, dist, rad, dfade, locked;
-	local float cx, cy, r0, arm, off1_d, off2_d, off3_d, near1_d, near2_d, near3_d;
-	local float spin_k;
-	local vector col_red, col_cyan, col_white, col_green, col_amber, col_ally, sv;
-	local vector cam_org, cam_ang, sp, sp_top, sp_bot;
-	local entity t, off1, off2, off3, near1, near2, near3;
-	local string s, tname;
+	local float mode, timer10, spd, armed, seq, age, sz, lh, old_font;
+	local float pulse, n_en, dist, rad, dfade, locked;
+	local float cx, cy, off1_d, off2_d;
+	local vector col_red, col_cyan, col_white, col_green, col_amber, col_ally;
+	local vector cam_org, cam_ang, sp, sp_top, sp_bot, tcol;
+	local entity t, off1, off2;
+	local string tname;
 
 	if (!rh_font_checked)
 	{
 		rh_font_checked = TRUE;
-		rh_term_font = loadfont ("user1", "engine/fonts/Roboto-Medium.ttf", "8 12 16 24");
+		// Same slot and size list as BM_GetUIFont (csqc.sbardefs.qc), so the two calls don't fight over "user1"
+		rh_term_font = loadfont ("user1", "engine/fonts/Roboto-Medium.ttf", "8 12 16 24 32");
 		if (rh_term_font <= 0)
 			rh_term_font = findfont ("Roboto");
 		if (rh_term_font < 0)
 			rh_term_font = 0;
+		// loadfont hands out the slot even when the .ttf is missing (Linux/macOS packages): then the wide Quake
+		// font is drawn at the Roboto sizes and runs off the panels. Keep the slot only if it is proportional.
+		if (rh_term_font > 0)
+		{
+			old_font = drawfont;
+			drawfont = rh_term_font;
+			if (stringwidth ("iiiiiiiiii", FALSE, '10 10 0') >= 80)
+				rh_term_font = 0;
+			drawfont = old_font;
+		}
 	}
 
 	if (vid_conwidth > 0)
@@ -1234,6 +821,8 @@ void(float w, float h) RH_DrawXRayHUD =
 	{
 		rh_launch_t = time;
 		rh_active_seq = getstati (BMST_FD_SEQ);
+		rh_dl_dur = 0;
+		rh_ul_dur = 0;
 	}
 	rh_prev_mode = mode;
 
@@ -1263,45 +852,21 @@ void(float w, float h) RH_DrawXRayHUD =
 	bm_ui_skip_scale = TRUE;
 
 	pulse = RH_Sin (time * 7);
-	sz = (rh_term_font > 0) ? 7.2 : 5;
-	sv = sz * '1 1 0';
-	lh = (rh_term_font > 0) ? 9.0 : 8;
-	top_h = 16;
-	bot_h = 16;
+	// Labels over targets: small (playtest 1.76 found LOCKED / names far too big)
+	sz = (rh_term_font > 0) ? 5.5 : 4.5;
+	lh = (rh_term_font > 0) ? 8.0 : 7;
 	cx = w * 0.5;
 	cy = h * 0.5;
-
-	// Subtle perimeter scan ticks & top-center scanner status line (never blocks center viewport)
-	if (mode == 1 || mode == 2)
-	{
-		sy = (time * 0.52 - floor (time * 0.52)) * h;
-		drawfill (sy * '0 1 0', '7 1 0', col_cyan, 0.45, 0);
-		drawfill ((w - 7) * '1 0 0' + sy * '0 1 0', '7 1 0', col_cyan, 0.45, 0);
-		drawfill ((w - 3) * '1 0 0' + (h - sy) * '0 1 0', '3 1 0', col_red, 0.40, 0);
-
-		if (age < 1.60)
-			BM_Centered (cx, 6, "^xF66[ ^3KALI-RHEL9 ^xF66] ^5EXECUTING QUAKE WALLHACKS...", sz, col_white, 0.94 + 0.06 * pulse);
-		else
-			BM_Centered (cx, 6, "^5[ X-RAY SCANNER ACTIVE ] ^2PVS BYPASS: ON", sz, col_white, 0.90);
-
-		// Sleek 1px animated scanning bar directly under top-center status
-		local float bar_w, bar_x;
-		bar_w = 110;
-		bar_x = cx - bar_w * 0.5;
-		drawfill (bar_x * '1 0 0' + '0 13 0', bar_w * '1 0 0' + '0 1 0', col_cyan, 0.22, 0);
-		drawfill ((bar_x + (0.5 + 0.5 * RH_Sin (time * 4.5)) * (bar_w - 24)) * '1 0 0' + '0 13 0', '24 1 0', (mode == 2) ? col_red : col_cyan, 0.85, 0);
-	}
 
 	cam_org = getpropertyvec (VF_ORIGIN);
 	cam_ang = getpropertyvec (VF_ANGLES);
 	makevectors (cam_ang);
 
-	// 1. 3D-projected enemy scan brackets, moving scanlines, target lock & nearest-3 tracking for terminal/edges
+	// 1. Target labels. Hidden enemies already glow through the wall (RH_AddXRayEntities), so they only get a small
+	//    name tag; enemies in plain sight get thin brackets. Off-screen ones: up to 2 edge arrows.
 	n_en = 0;
-	off1 = world; off2 = world; off3 = world;
-	off1_d = 99999; off2_d = 99999; off3_d = 99999;
-	near1 = world; near2 = world; near3 = world;
-	near1_d = 99999; near2_d = 99999; near3_d = 99999;
+	off1 = world; off2 = world;
+	off1_d = 99999; off2_d = 99999;
 
 	t = rh_xray_head;
 	while (t)
@@ -1313,62 +878,44 @@ void(float w, float h) RH_DrawXRayHUD =
 			{
 				if (mode != 3 && dist <= 1800)
 				{
-					sp = cs_project (t.origin + '0 0 28');
-					if (sp_z > 0 && sp_x > 16 && sp_x < w - 16 && sp_y > top_h + 8 && sp_y < h - bot_h - 8)
+					sp = cs_project (t.origin + '0 0 34');
+					if (sp_z > 0 && sp_x > 16 && sp_x < w - 16 && sp_y > 16 && sp_y < h - 16)
 					{
 						tname = t.netname;
 						if (tname == "")
 							tname = "ALLY";
-						BM_ShadowCentered (sp_x, sp_y - 8, strcat ("[ALLY] ", tname), sz, col_ally, 0.70);
+						BM_ShadowCentered (sp_x, sp_y - 6, tname, sz, col_ally, 0.70);
 					}
 				}
 			}
 			else
 			{
 				n_en = n_en + 1;
-				if (dist < near1_d)
-				{
-					near3 = near2; near3_d = near2_d;
-					near2 = near1; near2_d = near1_d;
-					near1 = t;     near1_d = dist;
-				}
-				else if (dist < near2_d)
-				{
-					near3 = near2; near3_d = near2_d;
-					near2 = t;     near2_d = dist;
-				}
-				else if (dist < near3_d)
-				{
-					near3 = t;     near3_d = dist;
-				}
-
 				if (mode != 3)
 				{
 					sp = cs_project (t.origin + '0 0 24');
-					if (sp_z > 0 && sp_x >= 16 && sp_x <= w - 16 && sp_y >= top_h + 10 && sp_y <= h - bot_h - 10)
+					if (sp_z > 0 && sp_x >= 12 && sp_x <= w - 12 && sp_y >= 12 && sp_y <= h - 12)
 					{
 						if (dist <= 3200)
 						{
 							dfade = 1 - bound (0, (dist - 1500) / 1700, 0.55);
-							sp_top = cs_project (t.origin + '0 0 48');
-							sp_bot = cs_project (t.origin - '0 0 18');
-							rad = bound (8, fabs (sp_bot_y - sp_top_y) * 0.45, 26);
-							locked = (fabs (sp_x - cx) < 34 && fabs (sp_y - cy) < 34);
-							RH_DrawTargetBracket (sp_x, sp_y, rad, 0.72 * dfade, (dist < 460 || locked) ? col_red : col_cyan, locked);
-
-							if (dist <= 2200)
+							sp_top = cs_project (t.origin + '0 0 40');
+							sp_bot = cs_project (t.origin - '0 0 22');
+							rad = bound (6, fabs (sp_bot_y - sp_top_y) * 0.5, 22);
+							locked = (fabs (sp_x - cx) < 26 && fabs (sp_y - cy) < 26);
+							tcol = (dist < 460 || locked) ? col_red : col_cyan;
+							if (!t.rh_occl)
+								RH_DrawTargetBracket (sp_x, sp_y, rad, 0.75 * dfade, tcol);
+							if (dist <= 2200 || locked)
 							{
 								tname = t.netname;
 								if (tname == "")
 									tname = "HOSTILE";
-								if (strlen (tname) > 12)
-									tname = substring (tname, 0, 12);
-								if (dist <= 1300)
-									s = strcat (tname, " [", ftos (t.rh_hp), "]");
-								else
-									s = tname;
-								BM_ShadowCentered (sp_x, sp_y - rad - 8, s, sz, locked ? col_red : col_white, 0.86 * dfade);
-								BM_ShadowCentered (sp_x, sp_y + rad + 2, locked ? ">> LOCKED <<" : strcat (ftos (floor (dist)), "u"), sz * 0.90, locked ? col_red : col_cyan, 0.80 * dfade);
+								if (strlen (tname) > 14)
+									tname = substring (tname, 0, 14);
+								BM_ShadowCentered (sp_x, sp_y - rad - sz - 2, tname, sz, locked ? col_red : col_white, 0.85 * dfade);
+								if (locked)
+									BM_ShadowCentered (sp_x, sp_y + rad + 2, "LOCKED", sz * 0.85, col_red, 0.9);
 							}
 						}
 					}
@@ -1376,18 +923,12 @@ void(float w, float h) RH_DrawXRayHUD =
 					{
 						if (dist < off1_d)
 						{
-							off3 = off2; off3_d = off2_d;
 							off2 = off1; off2_d = off1_d;
 							off1 = t;    off1_d = dist;
 						}
 						else if (dist < off2_d)
 						{
-							off3 = off2; off3_d = off2_d;
 							off2 = t;    off2_d = dist;
-						}
-						else if (dist < off3_d)
-						{
-							off3 = t;    off3_d = dist;
 						}
 					}
 				}
@@ -1398,48 +939,46 @@ void(float w, float h) RH_DrawXRayHUD =
 
 	if (mode != 3)
 	{
-		RH_DrawEdgePip (off1, cam_org, w, h, top_h, bot_h, sz, col_red, col_cyan);
-		RH_DrawEdgePip (off2, cam_org, w, h, top_h, bot_h, sz, col_red, col_cyan);
-		RH_DrawEdgePip (off3, cam_org, w, h, top_h, bot_h, sz, col_red, col_cyan);
+		RH_DrawEdgePip (off1, cam_org, w, h, col_red);
+		RH_DrawEdgePip (off2, cam_org, w, h, col_red);
 	}
 
-	// 2. Center tactical scanner reticle
+	// 2. Small centre reticle: four 2px ticks and a dot (was ~30px with a spinning circle)
 	if (mode == 1 || mode == 2)
 	{
-		r0 = (mode == 2) ? 7 : 6;
-		arm = 5;
-		drawfill ((cx - r0 - arm) * '1 0 0' + (cy - r0) * '0 1 0', arm * '1 0 0' + '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx - r0) * '1 0 0' + (cy - r0 - arm) * '0 1 0', '1 0 0' + arm * '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx + r0) * '1 0 0' + (cy - r0) * '0 1 0', arm * '1 0 0' + '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx + r0 - 1) * '1 0 0' + (cy - r0 - arm) * '0 1 0', '1 0 0' + arm * '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx - r0 - arm) * '1 0 0' + (cy + r0 - 1) * '0 1 0', arm * '1 0 0' + '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx - r0) * '1 0 0' + (cy + r0) * '0 1 0', '1 0 0' + arm * '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx + r0) * '1 0 0' + (cy + r0 - 1) * '0 1 0', arm * '1 0 0' + '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx + r0 - 1) * '1 0 0' + (cy + r0) * '0 1 0', '1 0 0' + arm * '0 1 0', col_cyan, 0.65, 0);
-		drawfill ((cx - 1) * '1 0 0' + (cy - 1) * '0 1 0', '2 2 0', col_red, 0.85, 0);
-		spin_k = time * 48;
-		RH_Circle (cx, cy, 15, 8, spin_k, 0.9, (mode == 2) ? col_red : col_cyan, 0.24);
+		tcol = (mode == 2) ? col_red : col_cyan;
+		drawfill ((cx - 6) * '1 0 0' + (cy - 0.5) * '0 1 0', '3 1 0', tcol, 0.8, 0);
+		drawfill ((cx + 3) * '1 0 0' + (cy - 0.5) * '0 1 0', '3 1 0', tcol, 0.8, 0);
+		drawfill ((cx - 0.5) * '1 0 0' + (cy - 6) * '0 1 0', '1 3 0', tcol, 0.8, 0);
+		drawfill ((cx - 0.5) * '1 0 0' + (cy + 3) * '0 1 0', '1 3 0', tcol, 0.8, 0);
+		drawfill ((cx - 1) * '1 0 0' + (cy - 1) * '0 1 0', '2 2 0', col_red, 0.9, 0);
 	}
 
-	// 3. Top-left Kali / Red Hat Linux hacker terminal (opens with Red Hat neofetch ASCII art, then executes wallhack commands)
-	RH_DrawTerminal (w, h, seq, age, mode, n_en, pulse, cam_org, near1, near2, near3, col_red, col_cyan, col_white, col_green, col_amber);
+	// 3. Top-left terminal (a few commands, then it closes)
+	RH_DrawTerminal (w, h, seq, age, mode, n_en, col_red, col_cyan, col_white, col_green, col_amber);
 
-	// 4. Top-right tactical minimap radar & telemetry + Raspberry Pi chip
+	// 4. Top-right radar + telemetry + Raspberry Pi board
 	RH_DrawMiniMap (w, h, mode, timer10, spd, armed, n_en, pulse, cam_org, col_red, col_cyan, col_white, col_green, col_ally);
-	RH_DrawRaspberryPi (w, h, mode, col_red, col_cyan, col_white, col_green, col_amber);
+	RH_DrawRaspberryPi (w, h, mode, col_red, col_green);
 
-	// 5. Bottom-center hacker download/upload & network telemetry
-	RH_DrawHackerTransfers (w, h, mode, n_en, col_red, col_cyan, col_white, col_green, col_amber);
-
-	// 6. Bottom-right controls
+	// 5. Bottom-right controls
 	BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - lh - 7, "^5[MOUSE]^7 Steer   ^xF66[LMB]^7 Dash / Detonate", sz, 1.0);
 	BM_ShadowColorRight (w - 8, BM_CornerBottomY (h) - 7, "^3[H]^7 Recall", sz, 1.0);
 
 	bm_ui_skip_scale = FALSE;
 	drawfont = old_font;
 
-	// 7. Centerprint toast (bottom-left) + post-blast SIGNAL LOST line stacked above it
+	// 6. Bottom-left: centerprint toast, then the download/upload readout stacked above it
 	BM_DrawCenterPrint (w, h);
 	if (mode == 3)
 		BM_DrawColorShadow (JP_IsVisible () ? 36 : 10, bm_cp_top_y - 9, "^1// SIGNAL LOST :: DETONATED //", 6, 0.86 + 0.12 * pulse);
+	else
+	{
+		if (rh_term_font > 0)
+			drawfont = rh_term_font;
+		bm_ui_skip_scale = TRUE;
+		RH_DrawHackerTransfers (w, h, mode, bm_cp_top_y - 4, col_cyan, col_amber);
+		bm_ui_skip_scale = FALSE;
+		drawfont = old_font;
+	}
 };

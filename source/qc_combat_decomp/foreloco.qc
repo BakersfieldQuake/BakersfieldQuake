@@ -187,7 +187,7 @@ void(entity p, entity v) FL_BedFire =
 
 	cam = v.veh_cament;
 	aim_ang = '0 0 0';
-	aim_ang_x = p.veh_cam_pitch * 0.45;
+	aim_ang_x = p.veh_cam_pitch;
 	aim_ang_y = p.veh_cam_yaw;
 	makevectors (aim_ang);
 
@@ -285,7 +285,7 @@ void(entity p) FL_TransformToBed =
 	sound7 (v, VD_MUSIC_CH, "foreloco/party_loop.wav", 0.95, ATTN_NORM, 100);
 	v.veh_music_t = time + FL_PARTY_LEN;
 	if (p.ishuman == 1)
-		centerprint (p, "VEGAS BABY!! CHECK YOUR SURROUNDINGS (INVULNERABLE)!");
+		centerprint (p, "VEGAS BABY!! 3 SECONDS OF PROTECTION, THEN YOU CAN DIE!");
 };
 
 void(entity p, entity v, float dt) FL_BedDriveTick =
@@ -319,7 +319,7 @@ void(entity p, entity v, float dt) FL_BedDriveTick =
 		sound7 (v, CHAN_AUTO, "foreloco/bed_boost.wav", 0.90, ATTN_NORM, 106);
 		sound7 (v, CHAN_BODY, "foreloco/bed_horn.wav", 0.92, ATTN_NORM, 112);
 		if (p.ishuman == 1)
-			centerprint (p, "ERIC HOSPITAL BED!! SHIFT=TURBO | SPACE=JUMP | M1=BEDPANS/HORN");
+			centerprint (p, "ERIC HOSPITAL BED!! MOUSE OR A/D=STEER | SHIFT=TURBO | SPACE=JUMP | M1=BEDPANS");
 	}
 
 	fl_flags = 0;

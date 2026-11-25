@@ -394,6 +394,16 @@ progs/gk_driver
 	}
 }
 
+// the driver's head in his own cockpit view (gokart_driver.md3_1.skin): draws nothing, like progs/veh_van_nodraw
+progs/gk_driver_nodraw
+{
+	cull none
+	{
+		map progs/gk_driver
+		blendfunc GL_ZERO GL_ONE
+	}
+}
+
 progs/gk_shell_green
 {
 	cull none

@@ -10,7 +10,7 @@ held and launches (WC_Fire) on release or at full charge. The shot (WC_Touch, WC
 progs/wheelman.spr32. He is a driving projectile, not a rocket: MOVETYPE_NONE with his own physics in WC_Think: gravity, he hugs
 the floor at his speed and follows ramps up and down, leaves a crest in an arc, drives over steps, crashes into walls, ceilings and
 anyone he hits, and can be shot (WC_HEALTH). No flames or trail. The crash (WC_Crash) deals radius damage, triggers a normal rocket
-explosion (WC_Boom) with flying wheels, bars, gibs and sparks (WC_Debris), and launches the crazed Wheelman (WC_Dancer) sprinting
+explosion (WC_Boom) with flying wheels, gibs and sparks (WC_Debris), and launches the crazed Wheelman (WC_Dancer) sprinting
 around really fast while cycling through all 8 crazy 360-degree animations of progs/wheelman_dance.spr32.
 ================
 */
@@ -33,7 +33,6 @@ void() WC_PrecacheSprites =
 void() WC_Precache =
 {
 	precache_model ("progs/v_wewcannon.md3");
-	precache_model ("progs/wc_bar.md3");
 	precache_model ("progs/mm_wheel.md3");
 	precache_model ("progs/s_explod.spr");
 	precache_model ("progs/s_explodbig.spr");
@@ -268,7 +267,7 @@ vector(float lift) WC_Fling =
 	return v;
 };
 
-// wheels, bars, gibs and sparks. self = the explosion entity (ThrowGib throws from self)
+// wheels, gibs and sparks (no spinning barbells: playtest 1.76). self = the explosion entity (ThrowGib throws from self)
 void(vector org, float tier) WC_Debris =
 {
 	local float n, i, gcount;
@@ -278,13 +277,6 @@ void(vector org, float tier) WC_Debris =
 	while (i < n)
 	{
 		WC_Chunk ("progs/mm_wheel.md3", org + '0 0 20', WC_Fling (260 + tier * 40), 0.85, 2.5 + random () * 1.5);
-		i = i + 1;
-	}
-	n = 1 + (tier >= 2);		// bars
-	i = 0;
-	while (i < n)
-	{
-		WC_Chunk ("progs/wc_bar.md3", org + '0 0 24', WC_Fling (260 + tier * 40), 1, 5 + random () * 2);
 		i = i + 1;
 	}
 	gcount = 4 + tier * 3;		// more gibs
@@ -300,7 +292,7 @@ void(vector org, float tier) WC_Debris =
 	pointparticles (wc_fx_spark, org + '0 0 24', '0 0 160', 35 + tier * 20);
 };
 
-// normal rocket explosion at 'org' (no custom Wheelman explosion sprite), plus flying wheels, bars and gibs
+// normal rocket explosion at 'org' (no custom Wheelman explosion sprite), plus flying wheels and gibs
 void(vector org, float tier, entity hit) WC_Boom =
 {
 	local entity b, me;
@@ -644,8 +636,8 @@ void() WC_Fizzle =
 void(entity hit) WC_Crash =
 {
 	local vector org, in_dir, kick;
-	local float tier, dmg, dir_bonus;
-	local entity e;
+	local float tier, dmg, dir_bonus, points, shooter_td;
+	local entity e, shooter;
 
 	if (self.owner.classname != "player")
 	{
@@ -659,13 +651,24 @@ void(entity hit) WC_Crash =
 	self.solid = SOLID_NOT;
 	setsize (self, '0 0 0', '0 0 0');		// T_Damage pushes away from the middle of the inflictor's box: with his 48 high box the blast sat above you and pushed you into the floor
 	dmg = WC_DMG_BASE + tier * WC_DMG_STEP;
-	dir_bonus = WC_DMG_DIRECT + tier * 12;
+	dir_bonus = WC_DMG_DIRECT + tier * 40;
 	dprint (strcat ("wcannon: crash tier ", strcat (ftos (tier), strcat (" at ", strcat (vtos (org), "\n")))));
 	sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);		// the scream stops
 	fg_inflicting = FG_WCANNON;
 	if (hit && hit.takedamage)
 		T_Damage (hit, self, self.owner, dmg + dir_bonus);
-	T_RadiusDamage (self, self.owner, dmg, hit);
+	// everyone else takes the full blast; whoever fired it takes only the old, survivable amount
+	shooter = self.owner;
+	shooter_td = shooter.takedamage;
+	shooter.takedamage = DAMAGE_NO;
+	T_RadiusDamage (self, shooter, dmg, hit);
+	shooter.takedamage = shooter_td;
+	if (hit != shooter && shooter.takedamage && CanDamage (shooter, self))
+	{
+		points = (95 + tier * 32) - 0.5 * vlen (org - (shooter.origin + (shooter.mins + shooter.maxs) * 0.5));
+		if (points > 0)
+			T_Damage (shooter, self, shooter, points * 0.5);
+	}
 	fg_inflicting = 0;
 	if (tier <= 1)
 	{

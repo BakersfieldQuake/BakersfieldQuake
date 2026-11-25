@@ -660,6 +660,8 @@ void(entity v, vector org, float yaw) Veh_GroundSample =
 
 float(float kind) Veh_DrivenTopZ =
 {
+	if (kind == VEH_FORELOCO)
+		return 56;		// Eric sits well above the bed: shots at him must hit
 	if (Veh_IsKart (kind))
 		return 34;
 	if (kind == VEH_SCHOOLBUS)
@@ -1461,6 +1463,7 @@ void(entity p, vector pos, vector vel, float yaw) Veh_ReleasePlayer =
 	p.gk_st_mode = 0;
 	p.gk_st_prog = 0;
 	p.gk_st_nitro = 0;
+	p.gk_st_lock = 0;
 	p.veh_van = world;
 	p.clientcamera = p;
 	msg_entity = p;

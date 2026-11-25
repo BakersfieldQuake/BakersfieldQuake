@@ -751,15 +751,13 @@ void(entity rob1, entity rob2) PC_RobVsRob =
 	PC_PopProjectile (rob1, p2, FALSE);
 	PC_PopProjectile (rob2, p1, FALSE);
 
-	// Double bouncing mini-heads + extra electric arcs!
+	// Double bouncing mini-heads
 	oself = self;
 	self = rob1;
 	FD_Minis ();
-	FD_Shock (rob1, TRUE);
 	FD_ImpactFX (mid);
 	self = rob2;
 	FD_Minis ();
-	FD_Shock (rob2, TRUE);
 	self = oself;
 
 	sound (rob1, CHAN_AUTO, "robhead/pop.wav", 1.0, ATTN_NONE);
