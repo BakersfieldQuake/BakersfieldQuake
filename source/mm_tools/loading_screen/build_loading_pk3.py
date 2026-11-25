@@ -216,6 +216,12 @@ def _collect_entries(base_pk3: Path) -> dict[str, bytes]:
         with Image.open(bg_path) as im:
             entries[f"gfx/loading/bg_{idx}.png"] = _png_bytes(im.convert("RGB"))
 
+    menu_bg = ASSETS_DIR / "main_menu_bg.png"
+    if not menu_bg.is_file():
+        raise FileNotFoundError(f"Missing main menu backdrop: {menu_bg}")
+    with Image.open(menu_bg) as im:
+        entries["gfx/loading/main_menu_bg.png"] = _png_bytes(im.convert("RGB"))
+
     entries["gfx/loading/rob_drone.png"] = _png_bytes(_extract_rob_drone(base_pk3))
 
     rocket_r = _make_rocket_right()

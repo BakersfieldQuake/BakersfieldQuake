@@ -33,6 +33,7 @@ void() m_init =
 	precache_pic("gfx/p_option.lmp");
 	precache_pic("gfx/p_multi.lmp");
 	precache_pic("gfx/loading.lmp");
+	precache_pic("gfx/loading/main_menu_bg.png");
 	for (i = 1; i <= 6; i = i + 1)
 		precache_pic(strcat("gfx/menudot", ftos(i), ".lmp"));
 	precache_pic("gfx/menu_cast/greenguy.png");

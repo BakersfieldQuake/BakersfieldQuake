@@ -177,34 +177,68 @@ void(float px, float menu_right, float top_y) BM_Main_DrawCast =
 
 void(float clicked) BM_Main_Draw =
 {
-	local float cx, top_y, px, mx, my, mw, mh, gap;
-	local float in_match, count, i, act, hov, sel;
-	local string label, cur_cname;
+	local float cx, pw, px, py, ph, pad_top, sub_h, rh, gap, rows_h, pad_mid, name_h, pad_bot;
+	local float qp_h, qp_w, rx, rw, my, in_match, count, i, act, hov, sel, f_dot;
+	local string label, cur_cname, ver_str, dot_pic;
 
 	in_match = BM_IsInLiveMatch();
 	count = BM_Main_RowCount(in_match);
 
 	cx = floor(g_vw * 0.5);
-	top_y = max(20, floor((g_vh - 246) * 0.5));
 
-	// Bakersfield Quake top header + classic Quake side plaque
-	BM_DrawTextCentered(cx, top_y - 6, "BAKERSFIELD QUAKE", 18, COL_ACCENT, 0.99);
-	BM_Fill(cx - 132, top_y + 16, 264, 2, COL_ACCENT_HOT, 0.88);
-	BM_Fill(cx - 88, top_y + 18, 176, 1, COL_ACCENT, 0.55);
+	// On launch (disconnected), display the borderless 1992 SNES Grand Prix artwork full-screen
+	if (!in_match && getimagesize("gfx/loading/main_menu_bg.png") != '0 0 0')
+		drawpic('0 0 0', "gfx/loading/main_menu_bg.png", g_vw * '1 0 0' + g_vh * '0 1 0', '1 1 1', 1.0, 0);
 
-	px = cx - 144;
-	drawpic(px * '1 0 0' + (top_y + 26) * '0 1 0', "gfx/qplaque.lmp", '32 144 0', '1 1 1', 1.0, 0);
+	pw = bound(210, floor(g_vw * 0.34), g_vw - 76);
+	px = floor((g_vw - pw) * 0.5);
+	pad_top = 6;
+	sub_h = 12;
+	rh = in_match ? 17 : 18;
+	gap = 3;
+	rows_h = count * rh + max(0, count - 1) * gap;
+	pad_mid = 6;
+	name_h = 18;
+	pad_bot = 6;
+	ph = pad_top + sub_h + 5 + rows_h + pad_mid + name_h + pad_bot;
 
-	mx = cx - 84;
-	mw = 200;
-	my = top_y + 40;
-	mh = 22;
-	gap = 4;
+	if (!in_match && getimagesize("gfx/loading/main_menu_bg.png") != '0 0 0')
+		py = floor(g_vh * 0.955) - ph;
+	else
+	{
+		py = max(48, floor((g_vh - ph) * 0.5) + 12);
+		BM_DrawTextCentered(cx, py - 28, "BAKERSFIELD QUAKE", 18, COL_ACCENT, 0.99);
+		BM_Fill(cx - 132, py - 8, 264, 2, COL_ACCENT_HOT, 0.88);
+		BM_Fill(cx - 88, py - 6, 176, 1, COL_ACCENT, 0.55);
+	}
 
-	BM_Main_DrawCast(px, mx + mw, top_y);
+	// Classic Quake side plaque scaled cleanly beside the Grand Prix SNES box
+	qp_h = min(136, max(48, ph - 8));
+	qp_w = max(14, floor(qp_h * (32 / 144)));
+	drawpic((px - qp_w - 5) * '1 0 0' + (py + floor((ph - qp_h) * 0.5)) * '0 1 0', "gfx/qplaque.lmp", qp_w * '1 0 0' + qp_h * '0 1 0', '1 1 1', 1.0, 0);
+
+	// SNES Grand Prix beveled gold-and-espresso cartridge plaque
+	BM_Fill(px, py, pw, ph, '0.07 0.045 0.035', 0.92);
+	BM_Outline(px, py, pw, ph, '0.84 0.59 0.21', 0.96, 1.5);
+	BM_Outline(px + 2, py + 2, pw - 4, ph - 4, '0.30 0.14 0.05', 0.90, 1.0);
+	BM_Fill(px + 2, py + 1.5, pw - 4, 1.5, '1.0 0.88 0.58', 0.55);
+
+	ver_str = cvar_string("showdate_format");
+	if (ver_str == "" || ver_str == "0")
+		ver_str = "DEV";
+	BM_DrawText(px + 8, py + pad_top, in_match ? "MATCH PAUSED" : "1P / LAN GRAND PRIX", 7, COL_ACCENT, 0.95);
+	BM_DrawTextRight(px + pw - 8, py + pad_top, ver_str, 7, COL_MUTED, 0.90);
+	BM_Fill(px + 6, py + pad_top + sub_h, pw - 12, 1, '0.84 0.59 0.21', 0.42);
+
+	rx = px + 8;
+	rw = pw - 16;
+	my = py + pad_top + sub_h + 5;
 
 	if (g_main_sel >= count) g_main_sel = count - 1;
 	if (g_main_sel < 0) g_main_sel = 0;
+
+	f_dot = 1 + modulo(floor(gettime() * 10), 6);
+	dot_pic = strcat("gfx/menudot", ftos(f_dot), ".lmp");
 
 	for (i = 0; i < count; i = i + 1)
 	{
@@ -217,17 +251,22 @@ void(float clicked) BM_Main_Draw =
 		else if (act == MAIN_ACT_DISCONNECT) label = "DISCONNECT";
 		else label = "QUIT";
 
-		hov = BM_MouseIn(mx, my, mw, mh);
+		hov = BM_MouseIn(rx, my, rw, rh);
 		if (hov && g_mouse_moved)
 			g_main_sel = i;
 		sel = (g_main_sel == i && g_focus_input == INPUT_NONE);
 
 		if (sel || hov)
 		{
-			BM_Fill(mx, my, mw, mh, '0.58 0.08 0.04', 0.78);
-			BM_DrawMenuDot(mx - 22, my + 3);
+			BM_Fill(rx, my, rw, rh, '0.58 0.09 0.04', 0.88);
+			BM_Outline(rx, my, rw, rh, COL_ACCENT, 0.72, 1.0);
+			drawpic((rx + 4) * '1 0 0' + (my + floor((rh - 12) * 0.5)) * '0 1 0', dot_pic, '12 12 0', '1 1 1', 1.0, 0);
 		}
-		BM_DrawText(mx + 8, my + 5, label, 12, (sel || hov) ? '1 1 1' : COL_ACCENT, 0.98);
+		else
+		{
+			BM_Fill(rx, my, rw, rh, '0.12 0.08 0.06', 0.52);
+		}
+		BM_DrawText(rx + 20, my + floor((rh - 10) * 0.5), label, 10, (sel || hov) ? '1 1 1' : COL_ACCENT, 0.98);
 
 		if (clicked && hov)
 		{
@@ -238,19 +277,20 @@ void(float clicked) BM_Main_Draw =
 			BM_Main_Execute(act);
 			return;
 		}
-		my = my + mh + gap;
+		my = my + rh + gap;
 	}
 
-	// Clean inline Player Name row below main items
-	my = my + 12;
-	BM_DrawText(mx + 8, my + 5, "NAME", 8, COL_MUTED, 0.94);
+	// Clean inline Player Name row at bottom of plaque
+	my = my + (pad_mid - gap);
+	BM_Fill(px + 6, my - 3, pw - 12, 1, '0.84 0.59 0.21', 0.35);
+	BM_DrawText(rx + 2, my + 5, "NAME", 7.5, COL_MUTED, 0.95);
 	if (g_focus_input != INPUT_PLAYERNAME)
 	{
 		cur_cname = cvar_string("_cl_name");
 		if (cur_cname != g_name_buf)
 			g_name_buf = BM_ZoneSet(g_name_buf, cur_cname);
 	}
-	hov = BM_DrawInputBox(mx + 50, my, mw - 50, 18, g_name_buf, "Enter name...", (g_focus_input == INPUT_PLAYERNAME));
+	hov = BM_DrawInputBox(rx + 40, my, rw - 40, name_h, g_name_buf, "Enter name...", (g_focus_input == INPUT_PLAYERNAME));
 	if (clicked && hov)
 	{
 		g_focus_input = INPUT_PLAYERNAME;

@@ -783,6 +783,7 @@ jobs:
                       "gfx/loading/bg_4.png",
                       "gfx/loading/bg_5.png",
                       "gfx/loading/bg_6.png",
+                      "gfx/loading/main_menu_bg.png",
                       "gfx/loading/rob_drone.png",
                       "gfx/loading/rocket_r.png",
                       "gfx/loading/rocket_l.png",
