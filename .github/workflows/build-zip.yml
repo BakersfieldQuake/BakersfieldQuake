@@ -339,13 +339,6 @@ jobs:
           path: pk3cache/zz_loading.pk3
           key: zz_loading-${{ env.BASE_BAKERSFIELD_SHA256 }}-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/loading_screen/build_loading_pk3.py', 'repo/source/mm_tools/loading_screen/assets/**') }}
 
-      - name: Cache zz_bakersfieldish.pk3
-        id: cache_bakersfieldish
-        uses: actions/cache@v6
-        with:
-          path: pk3cache/zz_bakersfieldish.pk3
-          key: zz_bakersfieldish-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_bakersfieldish_pk3.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/bakersfieldish_assets/**') }}
-
       - name: Cache zz_player_deaths.pk3
         id: cache_player_deaths
         uses: actions/cache@v6
@@ -354,7 +347,7 @@ jobs:
           key: zz_player_deaths-${{ env.BASE_BAKERSFIELD_SHA256 }}-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_player_deaths.py', 'repo/source/mm_tools/gokart_driver.py', 'repo/source/mm_tools/id1/player.mdl', 'repo/source/mm_tools/id1/h_player.mdl') }}
 
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_bakersfieldish.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -445,12 +438,6 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/loading_screen/build_loading_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_loading.pk3
 
-      - name: Build zz_bakersfieldish.pk3
-        if: steps.cache_bakersfieldish.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p pk3cache
-          python -I repo/source/mm_tools/build_bakersfieldish_pk3.py pk3cache/zz_bakersfieldish.pk3 --verify-repro
-
       - name: Build zz_player_deaths.pk3
         if: steps.cache_player_deaths.outputs.cache-hit != 'true'
         run: |
@@ -459,7 +446,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -779,28 +766,6 @@ jobs:
                   ):
                       if req not in lnames:
                           errors.append(f"zz_loading.pk3 lacks {req}")
-
-          bakoish = os.path.join(root, "BakersfieldQuake", "zz_bakersfieldish.pk3")
-          if not os.path.isfile(bakoish):
-              errors.append("missing BakersfieldQuake/zz_bakersfieldish.pk3")
-          else:
-              with zipfile.ZipFile(bakoish) as z:
-                  bnames = set(z.namelist())
-                  for req in (
-                      "progs/bako_boulder1.md3",
-                      "progs/bako_boulder2.md3",
-                      "progs/bako_boulder3.md3",
-                      "progs/bako_boulder4.md3",
-                      "progs/bako_glass_shard1.md3",
-                      "progs/bako_glass_shard2.md3",
-                      "progs/bako_glass_shard3.md3",
-                      "levelshots/bakersfieldish.jpg",
-                      "gfx/minimap/bakersfieldish.png",
-                      "gfx/minimap/bakersfieldish.txt",
-                      "scripts/bakersfieldish_minimap.shader",
-                  ):
-                      if req not in bnames:
-                          errors.append(f"zz_bakersfieldish.pk3 lacks {req}")
 
           pdeaths = os.path.join(root, "BakersfieldQuake", "zz_player_deaths.pk3")
           if not os.path.isfile(pdeaths):
