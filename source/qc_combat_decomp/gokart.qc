@@ -102,6 +102,13 @@ void(entity v) GK_ThinkAnim =
 	if (v.veh_state == VEH_STATE_WRECK || v.veh_kind == VEH_FORELOCO)
 		return;
 
+	if (v.veh_driver == world && v.veh_coast_until <= 0)
+	{
+		v.frame = 0;
+		GK_SyncDriverEnt (v);
+		return;
+	}
+
 	spd = v.gk_speed;
 	boosted = (v.gk_boosting || time < v.gk_boost_t);
 	if (v.veh_driver != world && boosted)

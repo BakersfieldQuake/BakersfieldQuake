@@ -1847,13 +1847,19 @@ void() Veh_Think =
 	// ---- STATE 0: Intact Running Idle (frames 0..15, or 16..21 during bullet hit flinch)
 	if (self.veh_driver == world && self.veh_coast_until <= 0 && time >= self.veh_flinch_end)
 	{
+		if (Veh_IsKart (self.veh_kind))
+		{
+			self.frame = 0;
+			self.nextthink = time + 0.5;
+			return;
+		}
 		local entity hp;
 		local float near_plr;
 		near_plr = FALSE;
 		hp = bm_player_head;
 		while (hp)
 		{
-			if (hp.ishuman == 1 && vlen (hp.origin - self.origin) < 1100)
+			if (hp.ishuman == 1 && vlen (hp.origin - self.origin) < 700)
 			{
 				near_plr = TRUE;
 				break;

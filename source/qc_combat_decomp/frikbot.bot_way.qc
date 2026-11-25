@@ -209,10 +209,10 @@ entity(entity start) FindWayPoint =
 	local vector org;
 	local float dst;
 	local float tdst;
+	local float dx, dy, dz;
 	local entity best;
 
 	org = realorigin(self);
-	t = way_head;
 	if (((start != world) && !bm_wasfreed(start) && (start.classname == "waypoint")))
 	{
 		dst = vlen((start.origin - org));
@@ -220,9 +220,10 @@ entity(entity start) FindWayPoint =
 	}
 	else
 	{
-		dst = 100000;
+		dst = 1600;
 		best = world;
 	}
+	t = way_head;
 	while (t)
 	{
 		if ((dst < 20))
@@ -231,17 +232,50 @@ entity(entity start) FindWayPoint =
 		}
 		if ((!(t.b_aiflags & AI_IGNORE_TYPES) || self.ishuman))
 		{
-			tdst = vlen((t.origin - org));
-			if ((tdst < dst))
+			dx = t.origin_x - org_x;
+			if (dx < dst && dx > (0 - dst))
 			{
-				if (sisible(t))
+				dy = t.origin_y - org_y;
+				if (dy < dst && dy > (0 - dst))
 				{
-					dst = tdst;
-					best = t;
+					dz = t.origin_z - org_z;
+					if (dz < dst && dz > (0 - dst))
+					{
+						tdst = vlen((t.origin - org));
+						if ((tdst < dst))
+						{
+							if (sisible(t))
+							{
+								dst = tdst;
+								best = t;
+							}
+						}
+					}
 				}
 			}
 		}
 		t = t._next;
+	}
+	if (best == world)
+	{
+		dst = 100000;
+		t = way_head;
+		while (t)
+		{
+			if ((!(t.b_aiflags & AI_IGNORE_TYPES) || self.ishuman))
+			{
+				tdst = vlen((t.origin - org));
+				if ((tdst < dst))
+				{
+					if (sisible(t))
+					{
+						dst = tdst;
+						best = t;
+					}
+				}
+			}
+			t = t._next;
+		}
 	}
 	return (best);
 };
