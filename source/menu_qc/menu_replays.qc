@@ -427,7 +427,7 @@ void(float cx, float cy, float cw, float ch, float idx, float sel, float clicked
 	tw = 74;
 	th = 44;
 	thumb = BM_LevelshotPic(mp);
-	drawpic((cx + 6) * '1 0 0' + (cy + 5) * '0 1 0', thumb, tw * '1 0 0' + th * '0 1 0', '1 1 1', 0.98, 0);
+	BM_DrawLevelshot(cx + 6, cy + 5, tw, th, thumb, mp, 0.98);
 	BM_Outline(cx + 6, cy + 5, tw, th, COL_BORDER, 0.65, 1);
 
 	BM_Fill(cx + cw - 54, cy + 5, 48, 13, '0.03 0.04 0.07', 0.92);

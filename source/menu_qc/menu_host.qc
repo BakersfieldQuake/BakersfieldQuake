@@ -206,7 +206,7 @@ void(float clicked) BM_Host_Draw =
 				BM_Fill(cx, cy, cw, ch, bg, 0.90);
 				BM_Outline(cx, cy, cw, ch, brd, sel ? 0.98 : 0.58, sel ? 1.5 : 1);
 
-				drawpic((cx + 3) * '1 0 0' + (cy + 3) * '0 1 0', thumb, (cw - 6) * '1 0 0' + (th - 3) * '0 1 0', '1 1 1', 0.98, 0);
+				BM_DrawLevelshot(cx + 3, cy + 3, cw - 6, th - 3, thumb, title, 0.98);
 				BM_DrawTextClipped(cx + 4, cy + th + 4, cw - 8, title, 8, sel ? COL_ACCENT : COL_TEXT, 0.96, FALSE);
 
 				if (clicked && hov)
@@ -254,7 +254,7 @@ void(float clicked) BM_Host_Draw =
 	tw = sw - 14;
 	th = min(74, floor(tw * 0.50));
 
-	drawpic((sx + 7) * '1 0 0' + (y + 7) * '0 1 0', thumb, tw * '1 0 0' + th * '0 1 0', '1 1 1', 0.98, 0);
+	BM_DrawLevelshot(sx + 7, y + 7, tw, th, thumb, "", 0.98);
 	BM_Outline(sx + 7, y + 7, tw, th, COL_ACCENT, 0.72, 1);
 	BM_Fill(sx + 7, y + 7 + th - 16, tw, 16, '0.02 0.03 0.05', 0.84);
 	BM_DrawTextClipped(sx + 11, y + 7 + th - 12, tw - 8, strtoupper(bsp), 8, COL_ACCENT, 0.98, FALSE);

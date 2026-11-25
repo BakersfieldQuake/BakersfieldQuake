@@ -117,7 +117,8 @@ float() clientcount = #61;
 float() clientstate = #62;
 void(string s) localsound = #65;
 vector() getmousepos = #66;
-float() gettime = #67;
+float() gettime = #67;		// frame start time: frozen while a map load blocks (Zircon ignores the timer argument)
+string(float uselocaltime, string format, ...) strftime = #478;	// wall clock, keeps running during a load
 float(float a, float b) modulo = #70;
 string(...) cvar_string = #71;
 float(string pattern, float caseinsensitive, float quiet) search_begin = #74;
@@ -255,9 +256,11 @@ string g_load_map;
 string g_load_title;
 string g_load_mode;
 float g_load_start_t;
-float g_load_last_t;
 float g_load_active;
 float g_load_bg_idx;
+float g_load_draws;
+float g_load_frac;
+float g_load_pending;
 
 float CAST_COUNT = 10;
 

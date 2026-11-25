@@ -130,6 +130,7 @@ void() m_draw =
 	local vector mp;
 	local float scrim_a;
 
+	BM_Loading_GameFrame();
 	if (!g_menu_open)
 		return;
 

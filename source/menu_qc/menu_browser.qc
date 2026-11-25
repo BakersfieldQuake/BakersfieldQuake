@@ -22,7 +22,7 @@ void(string addr) BM_ConnectTo =
 	if (clean == "")
 		return;
 	BM_PlaySound("sound/misc/menu2.wav");
-	if (!g_load_active)
+	if (!g_load_active && !g_load_pending)
 		BM_Loading_Begin("", clean, "JOINING SERVER");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
@@ -216,7 +216,7 @@ void(float cx, float cy, float cw, float ch, float idx, float sel, float clicked
 	tw = 74;
 	th = 46;
 	thumb = BM_LevelshotPic(smap);
-	drawpic((cx + 6) * '1 0 0' + (cy + 8) * '0 1 0', thumb, tw * '1 0 0' + th * '0 1 0', '1 1 1', 0.98, 0);
+	BM_DrawLevelshot(cx + 6, cy + 8, tw, th, thumb, smap, 0.98);
 	BM_Outline(cx + 6, cy + 8, tw, th, COL_BORDER, 0.65, 1);
 
 	// Ping badge (top-right)

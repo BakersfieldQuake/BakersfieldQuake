@@ -459,15 +459,17 @@ string(string cur, float maxlen, float key, float ascii, float allow_space) BM_E
 	return cur;
 };
 
-// Levelshots for Host / Join map cards only
-void() BM_InitLevelshots =
+// Levelshots for Host / Join map cards only.
+// PNG first: Zircon decodes JPEG only through a jpeg62 library the Linux/Windows packages don't ship, so the
+// .jpg shots failed to load and the cards came up empty (playtest 1.76). zz_levelshots.pk3 carries PNG copies.
+// g_levelshot_known holds " name.ext " entries for every shot found.
+string(string ext) BM_ScanLevelshots =
 {
 	local float sh, cnt, i, slash, dot;
 	local string fn, nm, acc;
 
-	precache_pic("levelshots/_unknown.jpg");
-	sh = search_begin("levelshots/*.jpg", 1, 1);
-	acc = " ";
+	acc = "";
+	sh = search_begin(strcat("levelshots/*.", ext), 1, 1);
 	if (sh >= 0)
 	{
 		cnt = search_getsize(sh);
@@ -477,17 +479,48 @@ void() BM_InitLevelshots =
 			slash = strstrofs(fn, "/");
 			if (slash >= 0)
 				fn = substring(fn, slash + 1, strlen(fn) - slash - 1);
-			dot = strstrofs(fn, ".jpg");
+			dot = strstrofs(fn, strcat(".", ext));
 			if (dot > 0)
 			{
 				nm = substring(fn, 0, dot);
-				acc = strcat(acc, nm, " ");
-				precache_pic(strcat("levelshots/", nm, ".jpg"));
+				acc = strcat(acc, nm, ".", ext, " ");
+				precache_pic(strcat("levelshots/", nm, ".", ext));
 			}
 		}
 		search_end(sh);
 	}
+	return acc;
+};
+
+void() BM_InitLevelshots =
+{
+	local string acc;
+
+	acc = strcat(" ", BM_ScanLevelshots("png"));
+	acc = strcat(acc, BM_ScanLevelshots("jpg"));
 	g_levelshot_known = BM_ZoneSet(g_levelshot_known, acc);
+};
+
+// Fallback card when no shot can be drawn
+string() BM_LevelshotUnknown =
+{
+	if (strstrofs(g_levelshot_known, " _unknown.png ") >= 0)
+		return "levelshots/_unknown.png";
+	return "levelshots/_unknown.jpg";
+};
+
+// Draw a levelshot, or a plain card with the map name when the image did not load
+void(float x, float y, float w, float h, string pic, string label, float a) BM_DrawLevelshot =
+{
+	if (getimagesize(pic) != '0 0 0')
+	{
+		drawpic(x * '1 0 0' + y * '0 1 0', pic, w * '1 0 0' + h * '0 1 0', '1 1 1', a, 0);
+		return;
+	}
+	BM_Fill(x, y, w, h, '0.10 0.08 0.06', a * 0.9);
+	BM_Outline(x, y, w, h, '0.48 0.34 0.18', a * 0.6, 1);
+	if (label != "")
+		BM_DrawTextClipped(x + 4, y + h * 0.5 - 4, w - 8, strtoupper(label), 8, '0.80 0.62 0.32', a, FALSE);
 };
 
 string(string mapname) BM_CleanMapName =
@@ -513,13 +546,18 @@ string(string mapname) BM_LevelshotPic =
 
 	m = BM_CleanMapName(mapname);
 	if (m == "")
-		return "levelshots/_unknown.jpg";
-	if (g_levelshot_known != "" && strstrofs(g_levelshot_known, strcat(" ", m, " ")) >= 0)
+		return BM_LevelshotUnknown();
+	if (strstrofs(g_levelshot_known, strcat(" ", m, ".png ")) >= 0)
+		return strcat("levelshots/", m, ".png");
+	if (strstrofs(g_levelshot_known, strcat(" ", m, ".jpg ")) >= 0)
 		return strcat("levelshots/", m, ".jpg");
+	path = strcat("levelshots/", m, ".png");
+	if (getimagesize(path) != '0 0 0')
+		return path;
 	path = strcat("levelshots/", m, ".jpg");
 	if (getimagesize(path) != '0 0 0')
 		return path;
-	return "levelshots/_unknown.jpg";
+	return BM_LevelshotUnknown();
 };
 
 // Classic Quake backdrop: live game with light dark tint when connected, brightened conback when disconnected

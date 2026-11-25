@@ -12,6 +12,16 @@ void() BM_Loading_Precache =
 	precache_pic("gfx/loading/bg_6.png");
 };
 
+// Wall-clock seconds of the day for the elapsed readout. gettime() is the time the engine frame started; a map load
+// blocks inside one frame for seconds (12 s for Downtown here), so it froze, the old bar sat at 2% and every time
+// jump re-picked the backdrop (playtest 1.76). strftime reads the real clock (1 s steps).
+float() BM_Loading_Clock =
+{
+	if (tokenize(strftime(TRUE, "%H %M %S")) < 3)
+		return gettime();
+	return stof(argv(0)) * 3600 + stof(argv(1)) * 60 + stof(argv(2));
+};
+
 float() BM_Loading_PickNextBg =
 {
 	local float seed, pick;
@@ -32,14 +42,24 @@ void(string mapname, string title, string mode) BM_Loading_Begin =
 	g_load_title = BM_ZoneSet(g_load_title, title);
 	g_load_mode = BM_ZoneSet(g_load_mode, mode);
 	g_load_bg_idx = BM_Loading_PickNextBg();
-	g_load_start_t = gettime();
-	g_load_last_t = g_load_start_t;
-	g_load_active = TRUE;
+	g_load_pending = TRUE;		// keep this backdrop for the load that is about to start
+	g_load_active = FALSE;
 };
 
+// Called on m_newmap, which can fire in the middle of a load: keep the backdrop and the bar where they are.
 void() BM_Loading_Reset =
 {
-	g_load_active = FALSE;
+};
+
+// Called at the top of every normal frame (m_draw). The engine draws no normal frames while it loads a map, so the
+// first one after loading-screen draws means the load is over; the next loading draw starts a new load.
+void() BM_Loading_GameFrame =
+{
+	if (g_load_active && cvar("bm_loading_preview") <= 0)
+	{
+		g_load_active = FALSE;
+		g_load_pending = FALSE;
+	}
 };
 
 void() BM_Loading_Shutdown =
@@ -117,13 +137,18 @@ string(float t) BM_Loading_Dots =
 	return "...";
 };
 
-// Monotonic left-to-right progress bar with percentage (strictly one direction, 0% -> 99%)
+// Monotonic left-to-right progress bar with percentage. The engine gives menu QC no real progress, so it moves on
+// loading-screen redraws (the engine redraws after each load step: ~140 for Downtown) and on the wall clock.
+// Never goes backwards within a load.
 void(float elapsed, float x0, float y0, float w, float h) BM_Loading_DrawProgressBar =
 {
 	local float bar_w, frac, fill_w, pct;
 	local string pct_str;
 
-	frac = bound(0.02, elapsed / (elapsed + 1.8), 0.99);
+	frac = max(elapsed / (elapsed + 4), g_load_draws / (g_load_draws + 40));
+	frac = bound(0.01, frac, 0.97);
+	g_load_frac = max(g_load_frac, frac);
+	frac = g_load_frac;
 	pct = floor(frac * 100);
 
 	bar_w = max(24, w - 32);
@@ -145,18 +170,26 @@ void(float lw, float lh) BM_Loading_Draw =
 {
 	local float t, elapsed, prev_v, bg_idx, pulse;
 	local float bx, by, bw, bh, tx, ty, tw, th, info_x, info_w, bar_x, bar_w;
-	local float tip_idx, mins, secs, tenths;
+	local float tip_idx, mins, secs;
 	local string bg_pic, cur_map, map_cvar, map_title, mode_str, thumb, tip_str, time_str, stage_str, hdr_str;
 
-	t = gettime();
-	if (!g_load_active || (t - g_load_last_t) > 1.2)
+	// One backdrop per load: picked when the load starts (or by BM_Loading_Begin just before it), never again until
+	// a normal frame has been drawn (BM_Loading_GameFrame)
+	if (!g_load_active)
 	{
-		g_load_start_t = t;
+		g_load_start_t = BM_Loading_Clock();
 		g_load_active = TRUE;
-		g_load_bg_idx = BM_Loading_PickNextBg();
+		g_load_draws = 0;
+		g_load_frac = 0;
+		if (!g_load_pending)
+			g_load_bg_idx = BM_Loading_PickNextBg();
+		g_load_pending = FALSE;
 	}
-	g_load_last_t = t;
-	elapsed = max(0, t - g_load_start_t);
+	g_load_draws = g_load_draws + 1;
+	t = gettime();
+	elapsed = BM_Loading_Clock() - g_load_start_t;
+	if (elapsed < 0)
+		elapsed = elapsed + 86400;		// past midnight
 
 	// Allow bm_loading_preview 1..4 to preview each specific backdrop
 	prev_v = floor(cvar("bm_loading_preview"));
@@ -200,7 +233,7 @@ void(float lw, float lh) BM_Loading_Draw =
 	tw = th * 1.6;
 	tx = bx + 4;
 	ty = by + 3;
-	thumb = (cur_map != "") ? BM_LevelshotPic(cur_map) : "levelshots/_unknown.jpg";
+	thumb = (cur_map != "") ? BM_LevelshotPic(cur_map) : BM_LevelshotUnknown();
 	BM_Fill(tx, ty, tw, th, '0.02 0.02 0.03', 1.0);
 	if (getimagesize(thumb) != '0 0 0')
 		drawpic(tx * '1 0 0' + ty * '0 1 0', thumb, tw * '1 0 0' + th * '0 1 0', '1 1 1', 1.0, 0);
@@ -217,8 +250,7 @@ void(float lw, float lh) BM_Loading_Draw =
 
 	mins = floor(elapsed / 60);
 	secs = floor(modulo(elapsed, 60));
-	tenths = floor(modulo(elapsed * 10, 10));
-	time_str = strcat(ftos(mins), ":", (secs < 10) ? "0" : "", ftos(secs), ".", ftos(tenths));
+	time_str = strcat(ftos(mins), ":", (secs < 10) ? "0" : "", ftos(secs));
 
 	bar_x = info_x + info_w * 0.45;
 	bar_w = info_w * 0.37;
