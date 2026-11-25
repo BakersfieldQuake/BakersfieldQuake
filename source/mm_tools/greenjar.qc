@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 // ---------------------------------------------------------------- 2. JAR O' GREEN GUYS (fun gun 2, impulse 62)
 // Hold a clear specimen mason jar filled with swirling neon-green mist and a tiny photo-digitized Green-Suit Guy
 // spazzing out across 4 manic antics (hamster-wheeling the glass, squishing his grinning/screaming face on the glass,
@@ -422,7 +425,8 @@ entity(vector org) GJ_MiniRunsInto =
 	e = bm_player_head;
 	while (e)
 	{
-		if (e.health > 0 && e.solid != SOLID_NOT && a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z)
+		if (e != self.owner && !(teamplay && self.owner.team > 0 && e.team == self.owner.team)
+			&& e.health > 0 && e.solid != SOLID_NOT && a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z)
 		{
 			a = self.origin + self.mins;
 			b = self.origin + self.maxs;

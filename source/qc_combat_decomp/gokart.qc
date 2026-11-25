@@ -842,7 +842,7 @@ float(entity p, entity e) GK_Lockable =
 {
 	if (e == world || e == p || bm_wasfreed (e) || e.classname != "player" || e.health <= 0)
 		return FALSE;
-	if ((e.items & IT_INVISIBILITY) || (e.flags & FL_NOTARGET))
+	if ((e.items & IT_INVISIBILITY) || ((e.flags & FL_NOTARGET) && e.mmt_tank == world))
 		return FALSE;
 	if (teamplay && p.team > 0 && e.team == p.team)
 		return FALSE;

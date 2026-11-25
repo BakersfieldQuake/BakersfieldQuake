@@ -2378,6 +2378,11 @@ void() gibdeath_effects;
 void() burngib_end_think;
 void() burngib_think;
 void() burngib_init;
+.entity bm_hit_infl;	// ForeLoco rider: last inflictor applied this frame (audit 2026-11-26)
+.float bm_hit_infl_t;
+.float bm_gib_fade_at;	// deathmatch burning gib: when its normal fade starts (audit 2026-11-26)
+.void() bm_gib_fade_fn;
+void(entity g) BM_DMBurnGib;
 void(float amount) spawn_stickygibs;
 void() play_gibsound;
 float(entity to, float sendFlags) sprite_sendtocsqc;

@@ -2126,6 +2126,7 @@ void(string gibname, float dm) ThrowGib =
 			new.nextthink = ((time + gibsfadetime) + (random() * 10));
 		}
 	}
+	BM_DMBurnGib(new);	// deathmatch: flames burn out after 6 s (gib_extra.qc)
 	new.frame = 0;
 	new.flags = 0;
 	GibPhysics(new);

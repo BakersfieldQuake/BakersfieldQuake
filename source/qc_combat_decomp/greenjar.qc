@@ -425,7 +425,8 @@ entity(vector org) GJ_MiniRunsInto =
 	e = bm_player_head;
 	while (e)
 	{
-		if (e.health > 0 && e.solid != SOLID_NOT && a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z)
+		if (e != self.owner && !(teamplay && self.owner.team > 0 && e.team == self.owner.team)
+			&& e.health > 0 && e.solid != SOLID_NOT && a_x < e.absmax_x && b_x > e.absmin_x && a_y < e.absmax_y && b_y > e.absmin_y && a_z < e.absmax_z && b_z > e.absmin_z)
 		{
 			a = self.origin + self.mins;
 			b = self.origin + self.maxs;

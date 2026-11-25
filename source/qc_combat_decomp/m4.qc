@@ -180,7 +180,7 @@ void() M4_MuzzleAndBrass =
 			c.SendEntity = casing_sendtocsqc;
 			c.SendFlags = c.SendFlags | 1;
 			c.think = SUB_Remove;
-			c.nextthink = time + 0.01;
+			c.nextthink = time + 0.1;	// was one tick (audit 2026-11-26)
 		}
 		else
 		{

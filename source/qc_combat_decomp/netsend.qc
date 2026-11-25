@@ -148,6 +148,15 @@ void(entity p) NS_ClientGone =
 			remove (e);
 		e = nx;
 	}
+	// bolts in flight credit their thrower (enemy): they would hit in an empty or reused slot's name
+	e = find (world, classname, "netsend_laser");
+	while (e)
+	{
+		nx = find (e, classname, "netsend_laser");
+		if (e.enemy == p)
+			remove (e);
+		e = nx;
+	}
 };
 
 // shot to bits (th_die, self = the PC): a pop, then it is gone. The removal waits a frame: T_Damage/Killed still hold the entity
@@ -414,6 +423,7 @@ void(vector spot) NS_Stick =
 		NS_MakeRoom (self.owner);
 	self.fg_born = time;
 	self.classname = "netsend_pc";
+	self.pc_kind = PC_KIND_NONE;		// no longer a projectile: one enemy bullet used to "pop" it and steal it (audit 2026-11-26)
 	self.movetype = MOVETYPE_NONE;
 	self.velocity = '0 0 0';
 	self.avelocity = '0 0 0';

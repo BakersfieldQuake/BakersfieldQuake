@@ -1388,6 +1388,8 @@ float(entity p, entity v) Veh_EnterPassenger =
 
 	if (p.health <= 0 || p.veh_van != world || p.veh_ride != world || p.jb_vehicle != world || p.rr_vehicle != world || p.fd_head != world || p.mmt_tank != world)
 		return FALSE;
+	if (p.fl_phase > 0 || EricCannon_Active (p))
+		return FALSE;		// bed / cannon riders are not seated (audit 2026-11-26)
 	s = Veh_FindFreeSeat (v);
 	if (s <= 0)
 	{

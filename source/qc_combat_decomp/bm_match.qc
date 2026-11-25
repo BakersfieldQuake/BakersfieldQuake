@@ -105,7 +105,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "milky" || inflictor.classname == "jwwave"
 				|| inflictor.classname == "veh_blast_inflictor" || inflictor.classname == "lan_blast_inflictor"
 				|| inflictor.classname == "eric_cannon_blast"
-				|| inflictor.classname == "mm_tank_bar" || inflictor.classname == "mm_tank_blast"
+				|| inflictor.classname == "mm_tank_bar" || inflictor.classname == "mm_tank_blast" || inflictor.classname == "mm_tank_eject"
 				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
 				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.classname == "misc_vehicle_rocketrider" || inflictor.veh_kind > 0)
 			{
@@ -1246,6 +1246,16 @@ void(entity p) BM_ClientGone =
 	NS_ClientGone (p);
 	KY_CleanupOwner (p);
 	FD_Reset (p);
+	// a burning van or tank credited its kill to whoever got this slot next (audit 2026-11-26)
+	e = nextent (world);
+	while (e)
+	{
+		if (e.veh_igniter == p)
+			e.veh_igniter = world;
+		if (e.mmt_igniter == p)
+			e.mmt_igniter = world;
+		e = nextent (e);
+	}
 	me = self;
 	e = find (world, classname, "pickle");
 	while (e)
@@ -1308,6 +1318,8 @@ void(entity p) BM_ClientGone =
 		if (e.milky_owner == p)
 		{
 			sound (e, CHAN_BODY, "misc/null.wav", 0, ATTN_NONE);
+			if (milky_count > 0)
+				milky_count = milky_count - 1;	// else Milky_PlayerFrame kept dropping crumbs all map (audit 2026-11-26)
 			remove (e);
 		}
 		e = nx;

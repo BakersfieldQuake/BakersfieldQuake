@@ -874,6 +874,12 @@ void() FunGun_PlayerDie =
 	}
 	Jetpack_Off ();		// cuts the swoosh
 	self.disableclientprediction = 0;
+	if (self.fd_fade)
+	{
+		// Rob Dob blast watch: FD_Frame does not run while dead, so the camera stayed on the blast (audit 2026-11-26)
+		self.fd_fade = 0;
+		FD_Restore (self);
+	}
 	if (self.bn_on)
 	{
 		// Binoc_Frame no longer runs while dead: the death cam stayed zoomed in with the BINOCULARS text up

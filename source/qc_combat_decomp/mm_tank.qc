@@ -2264,7 +2264,7 @@ void(entity tank, entity attacker) MMT_StartFire =
 	tank.mmt_fx_t = time;
 	tank.mmt_smoke_t = time;
 	tank.mmt_fire_snd_t = time;
-	if (attacker != world && attacker.classname == "player")
+	if (attacker != world && attacker.classname == "player" && attacker != tank.mmt_driver)
 		tank.mmt_igniter = attacker;
 	sound (tank, CHAN_AUTO, "vehicles/clang2.wav", 0.95, 0.45);
 };
@@ -2289,7 +2289,7 @@ void(entity tank, entity atk) MMT_EjectOrKillDriver =
 	if (p.health > 0 && !(p.flags & FL_GODMODE) && p.invincible_finished < time)
 	{
 		inf = spawn ();
-		inf.classname = "mm_tank_blast";
+		inf.classname = "mm_tank_eject";	// own class: combat.qc lets only this one past the hull (audit 2026-11-26)
 		setorigin (inf, tank.origin + '0 0 32');
 		mmt_inflicting = 2;
 		if (atk != world)
@@ -2378,7 +2378,7 @@ void(entity attacker, float take) MMT_Pain =
 {
 	if (self.mmt_state == MMT_STATE_WRECK)
 		return;
-	if (attacker != world && attacker.classname == "player")
+	if (attacker != world && attacker.classname == "player" && attacker != self.mmt_driver)
 		self.mmt_igniter = attacker;
 	self.mmt_flinch_end = time + 0.36;
 	if (time >= self.mmt_pain_snd_t)
@@ -2399,7 +2399,7 @@ void() MMT_Die =
 {
 	if (self.mmt_state == MMT_STATE_WRECK)
 		return;
-	if (damage_attacker != world && damage_attacker.classname == "player")
+	if (damage_attacker != world && damage_attacker.classname == "player" && damage_attacker != self.mmt_driver)
 		self.mmt_igniter = damage_attacker;
 	// Defer detonation by 1 frame so we never mutate findradius .chain during T_RadiusDamage
 	self.health = 1;
