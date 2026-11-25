@@ -123,6 +123,8 @@ void() BM_Opt_BuildResList =
 	g_opt_res_idx = best_i;
 };
 
+float g_opt_pend_conw;
+
 void(float w, float h) BM_Opt_SyncVideoDims =
 {
 	local float cw;
@@ -145,8 +147,7 @@ void(float w, float h) BM_Opt_SyncVideoDims =
 	cvar_set("_vid_fullscreen_height", hs);
 	cvar_set("_vid_window_width", ws);
 	cvar_set("_vid_window_height", hs);
-	cvar_set("vid_conwidth", ftos(cw));
-	cvar_set("vid_conheight", "360");
+	g_opt_pend_conw = cw;
 };
 
 // 0 = Borderless, 1 = Fullscreen, 2 = Windowed
@@ -249,6 +250,12 @@ void(string msg) BM_Opt_SetStatus =
 void() BM_Opt_ApplyVideoAndSave =
 {
 	g_opt_vid_dirty = FALSE;
+	if (g_opt_pend_conw >= 480)
+	{
+		cvar_set("vid_conwidth", ftos(g_opt_pend_conw));
+		cvar_set("vid_conheight", "360");
+		g_opt_pend_conw = 0;
+	}
 	// Zircon's saveconfig syncs vid_fullscreen/vid_width/vid_height back to the live window
 	// before writing config.cfg, so vid_restart must apply the new mode first.
 	localcmd("vid_restart; saveconfig\n");
@@ -284,7 +291,7 @@ void() BM_Opt_ApplyVideoDefaults =
 	cvar_set("bgmvolume", "0.2");
 	cvar_set("vid_vsync", "0");
 	cvar_set("cl_maxfps", "250");
-	localcmd("saveconfig\n");
+	BM_Opt_SaveConfig();
 	BM_Opt_SetStatus("CLEAN VIDEO & AUDIO DEFAULTS APPLIED");
 };
 
@@ -356,7 +363,7 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("r_bloom_blur", "0.1");
 		cvar_set("r_bloom_brighten", "0.1");
 		cvar_set("r_shadow_realtime_dlight", "1");
-		cvar_set("r_shadow_realtime_dlight_shadows", "1");
+		cvar_set("r_shadow_realtime_dlight_shadows", "0");
 		cvar_set("r_shadow_gloss", "1");
 		cvar_set("r_shadow_glossexact", "0");
 		cvar_set("r_shadow_shadowmapping", "0");
@@ -390,7 +397,7 @@ void() BM_Opt_ApplyPrettyPreset =
 	BM_Opt_ApplySimpleMode(FALSE);
 	cvar_set("r_glsl_offsetmapping_reliefmapping", "1");
 	cvar_set("r_glsl_offsetmapping_scale", "0.04");
-	cvar_set("r_shadow_shadowmapping", "1");
+	cvar_set("r_shadow_shadowmapping", "0");
 	cvar_set("r_shadow_shadowmapping_maxsize", "1024");
 	cvar_set("r_shadow_glossexact", "1");
 	cvar_set("r_water", "1");
@@ -415,7 +422,7 @@ void() BM_Opt_ApplyGraphicsDefaults =
 	cvar_set("bm_bot_tags", "1");
 	cvar_set("bm_player_tags", "1");
 	cvar_set("showfps", "1");
-	localcmd("saveconfig\n");
+	BM_Opt_SaveConfig();
 	BM_Opt_SetStatus("CLEAN GRAPHICS DEFAULTS APPLIED");
 };
 
@@ -474,11 +481,11 @@ string(float tab, float idx) BM_Opt_BindLabel =
 
 	if (idx == 0)  return "Next Weapon";
 	if (idx == 1)  return "Previous Weapon";
-	if (idx == 2)  return "Slot 1: Hammer";
+	if (idx == 2)  return "Slot 1: Bonk Hammer";
 	if (idx == 3)  return "Slot 2: Shotgun";
-	if (idx == 4)  return "Slot 3: Super Shotgun";
-	if (idx == 5)  return "Slot 4: Nailgun";
-	if (idx == 6)  return "Slot 5: Super Nailgun";
+	if (idx == 4)  return "Slot 3: Pump Shotgun";
+	if (idx == 5)  return "Slot 4: Laptop Gun";
+	if (idx == 6)  return "Slot 5: Milky Gun";
 	if (idx == 7)  return "Slot 6: Grenade Launcher";
 	if (idx == 8)  return "Slot 7: Rocket Launcher";
 	if (idx == 9)  return "Slot 8: Lightning / CCC";
@@ -1486,7 +1493,14 @@ void(float px, float py, float pw, float ph, float clicked) BM_Options_DrawBindL
 		if (!veh_on)
 			g_opt_ctrl_veh = 0;
 
-		hov = BM_DrawButton(ix, py + 56, 214, 18, veh_on ? "SEPARATE VEHICLE CONFIG: ON" : "SEPARATE VEHICLE CONFIG: OFF", veh_on, veh_on);
+		local float vc_w;
+		local string vc_lbl;
+		vc_w = veh_on ? min(214, max(120, iw - 150)) : min(214, iw);
+		if (vc_w < 190)
+			vc_lbl = veh_on ? "VEH CONFIG: ON" : "VEH CONFIG: OFF";
+		else
+			vc_lbl = veh_on ? "SEPARATE VEHICLE CONFIG: ON" : "SEPARATE VEHICLE CONFIG: OFF";
+		hov = BM_DrawButton(ix, py + 56, vc_w, 18, vc_lbl, veh_on, veh_on);
 		if (clicked && !g_click_consumed && hov)
 		{
 			g_click_consumed = TRUE;
@@ -1714,8 +1728,21 @@ void(float clicked) BM_Options_Draw =
 		return;
 	}
 
-	// Tabs
-	hov = BM_DrawTab(px + 14, py + 32, 112, 18, "VIDEO & AUDIO", (g_opt_tab == OPT_TAB_VIDEO));
+	// Tabs (scale widths proportionally so all 4 fit cleanly on 4:3 as well as 16:9)
+	local float tw_avail, tw1, tw2, tx;
+	tw_avail = pw - 28 - 12;
+	if (tw_avail < 370)
+	{
+		tw1 = floor(tw_avail * 0.30);
+		tw2 = floor((tw_avail - tw1) / 3);
+	}
+	else
+	{
+		tw1 = 112;
+		tw2 = 86;
+	}
+	tx = px + 14;
+	hov = BM_DrawTab(tx, py + 32, tw1, 18, (tw1 < 104) ? "VIDEO" : "VIDEO & AUDIO", (g_opt_tab == OPT_TAB_VIDEO));
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;
@@ -1725,7 +1752,8 @@ void(float clicked) BM_Options_Draw =
 		g_opt_tab = OPT_TAB_VIDEO;
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
-	hov = BM_DrawTab(px + 130, py + 32, 86, 18, "GRAPHICS", (g_opt_tab == OPT_TAB_GRAPHICS));
+	tx = tx + tw1 + 4;
+	hov = BM_DrawTab(tx, py + 32, tw2, 18, "GRAPHICS", (g_opt_tab == OPT_TAB_GRAPHICS));
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;
@@ -1735,7 +1763,8 @@ void(float clicked) BM_Options_Draw =
 		g_opt_tab = OPT_TAB_GRAPHICS;
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
-	hov = BM_DrawTab(px + 220, py + 32, 86, 18, "CONTROLS", (g_opt_tab == OPT_TAB_CONTROLS));
+	tx = tx + tw2 + 4;
+	hov = BM_DrawTab(tx, py + 32, tw2, 18, "CONTROLS", (g_opt_tab == OPT_TAB_CONTROLS));
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;
@@ -1745,7 +1774,8 @@ void(float clicked) BM_Options_Draw =
 		g_opt_tab = OPT_TAB_CONTROLS;
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
-	hov = BM_DrawTab(px + 310, py + 32, 86, 18, "WEAPONS", (g_opt_tab == OPT_TAB_WEAPONS));
+	tx = tx + tw2 + 4;
+	hov = BM_DrawTab(tx, py + 32, tw2, 18, "WEAPONS", (g_opt_tab == OPT_TAB_WEAPONS));
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;

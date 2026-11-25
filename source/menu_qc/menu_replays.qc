@@ -511,6 +511,8 @@ void(float clicked) BM_Replays_Draw =
 	{
 		g_click_consumed = TRUE;
 		BM_PlaySound("sound/misc/menu3.wav");
+		if (g_rep_dl_id != "")
+			localcmd("curl --cancel\n");
 		g_rep_dl_id = BM_ZoneSet(g_rep_dl_id, "");
 		g_page = PAGE_MAIN;
 		return;
@@ -631,6 +633,8 @@ void(float key, float ascii) BM_Replays_KeyDown =
 	if (key == K_ESCAPE)
 	{
 		BM_PlaySound("sound/misc/menu3.wav");
+		if (g_rep_dl_id != "")
+			localcmd("curl --cancel\n");
 		g_rep_dl_id = BM_ZoneSet(g_rep_dl_id, "");
 		g_page = PAGE_MAIN;
 		return;

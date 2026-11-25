@@ -173,6 +173,8 @@ void(float x, float y, float w, string s, float sz, vector rgb, float a, float u
 {
 	local float cx0, cy0, cx1, cy1, use_sz, dy;
 
+	if (w <= 0)
+		return;
 	use_sz = BM_MenuScaleSz(sz);
 	dy = (use_sz - sz) * 0.45;
 	cx0 = x;
@@ -185,9 +187,9 @@ void(float x, float y, float w, string s, float sz, vector rgb, float a, float u
 		if (cy0 < g_clip_y) cy0 = g_clip_y;
 		if (cx1 > g_clip_x + g_clip_w) cx1 = g_clip_x + g_clip_w;
 		if (cy1 > g_clip_y + g_clip_h) cy1 = g_clip_y + g_clip_h;
-		if (cx1 <= cx0 || cy1 <= cy0)
-			return;
 	}
+	if (cx1 <= cx0 || cy1 <= cy0)
+		return;
 	drawsetcliparea(cx0, cy0, cx1 - cx0, cy1 - cy0);
 	if (use_colors)
 		BM_DrawColorText(x, y, s, sz, a);
@@ -340,7 +342,15 @@ float(float x, float y, float w, float h, string label, string val_str, float se
 	BM_Outline(bx1, y + 2, bw, h - 4, h1 ? COL_ACCENT : COL_BORDER, 0.75, 1);
 	BM_DrawTextCentered(bx1 + bw * 0.5, y + floor((h - 8) * 0.5), "<", 8, h1 ? COL_ACCENT : COL_TEXT, 0.95);
 
-	BM_DrawTextCentered(bx1 + bw + vw * 0.5, y + floor((h - 8) * 0.5), val_str, 8, COL_ACCENT, 0.98);
+	local float vwd, vfont, old_vf, vsz, vx;
+	vfont = BM_MenuFont();
+	vsz = BM_MenuScaleSz(8);
+	old_vf = drawfont;
+	if (vfont > 0) drawfont = vfont;
+	vwd = stringwidth(val_str, FALSE, vsz * '1 1 0');
+	drawfont = old_vf;
+	vx = max(bx1 + bw + 2, (bx1 + bw + vw * 0.5) - vwd * 0.5);
+	BM_DrawTextClipped(vx, y + floor((h - 8) * 0.5), max(4, (bx2 - 2) - vx), val_str, 8, COL_ACCENT, 0.98, FALSE);
 
 	BM_Fill(bx2, y + 2, bw, h - 4, h2 ? '0.52 0.12 0.06' : '0.16 0.11 0.07', 0.90);
 	BM_Outline(bx2, y + 2, bw, h - 4, h2 ? COL_ACCENT : COL_BORDER, 0.75, 1);

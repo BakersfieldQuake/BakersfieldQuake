@@ -74,6 +74,8 @@ float(float idx) BM_Host_MaxpVal =
 	return 16;
 };
 
+float g_host_inited;
+
 void() BM_Host_Open =
 {
 	local string cur_host;
@@ -84,8 +86,9 @@ void() BM_Host_Open =
 	g_host_last_click_idx = -1;
 	g_host_last_click_time = 0;
 
-	if (g_host_frag_idx == 0 && g_host_time_idx == 0 && g_host_maxp_idx == 0)
+	if (!g_host_inited)
 	{
+		g_host_inited = TRUE;
 		g_host_frag_idx = 4; // 25 frags
 		g_host_time_idx = 3; // 15 min
 		g_host_maxp_idx = 5; // 16 players
@@ -117,7 +120,7 @@ void() BM_Host_StartMatch =
 	mp = BM_Host_MaxpVal(g_host_maxp_idx);
 
 	BM_PlaySound("sound/misc/menu2.wav");
-	BM_Loading_Begin(bsp, BM_Host_MapTitle(g_host_map_idx), "HOSTING LAN");
+	BM_Loading_Begin(bsp, BM_Host_MapTitle(g_host_map_idx), g_host_public ? "HOSTING PUBLIC" : "HOSTING LAN");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
 
@@ -327,8 +330,8 @@ void(float clicked) BM_Host_Draw =
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
 
-	// Start LAN Match CTA
-	hov = BM_DrawButton(sx + 7, gy + gh - 28, sw - 14, 22, "START LAN MATCH", FALSE, TRUE);
+	// Start Match CTA
+	hov = BM_DrawButton(sx + 7, gy + gh - 28, sw - 14, 22, g_host_public ? "START PUBLIC MATCH" : "START LAN MATCH", FALSE, TRUE);
 	if (clicked && hov)
 	{
 		g_click_consumed = TRUE;

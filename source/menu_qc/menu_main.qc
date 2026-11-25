@@ -163,7 +163,7 @@ void(float px, float menu_right, float top_y) BM_Main_DrawCast =
 	dir_col = modulo(floor(phase * 8), 8);
 	anim_row = modulo(floor(t * 7.5), 6);
 
-	sz = min(128, max(64, min(px - 18, (g_vw - menu_right) - 18)));
+	sz = min(128, min(px - 18, (g_vw - menu_right) - 18));
 	if (sz < 64)
 		return;
 

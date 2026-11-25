@@ -201,6 +201,8 @@ void(float key, float ascii) m_keydown =
 
 	if (key == K_MOUSE1)
 	{
+		if (stof(cvar_string("bm_loading_preview")) != 0)
+			return;
 		g_mouse1_down = TRUE;
 		g_click_consumed = FALSE;
 		if (g_page == PAGE_MAIN)

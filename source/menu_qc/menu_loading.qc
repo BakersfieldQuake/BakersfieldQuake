@@ -220,13 +220,11 @@ void(float lw, float lh) BM_Loading_Draw =
 	tenths = floor(modulo(elapsed * 10, 10));
 	time_str = strcat(ftos(mins), ":", (secs < 10) ? "0" : "", ftos(secs), ".", ftos(tenths));
 
-	// Top row inside slim strip: pulsing active dot + "LOADING: MAP - PLEASE WAIT..." | inline progress bar | elapsed + Q dot
-	BM_Fill(info_x, by + 5.5, 6, 6, '0.28 0.98 0.42', 0.45 + 0.55 * pulse);
-	hdr_str = strcat(mode_str, ": ", map_title, " - PLEASE WAIT", BM_Loading_Dots(t));
-	BM_DrawTextClipped(info_x + 10, by + 4, info_w * 0.46, hdr_str, 7.5, COL_ACCENT, 0.98, FALSE);
-
 	bar_x = info_x + info_w * 0.45;
 	bar_w = info_w * 0.37;
+	BM_Fill(info_x, by + 5.5, 6, 6, '0.28 0.98 0.42', 0.45 + 0.55 * pulse);
+	hdr_str = strcat(mode_str, ": ", map_title, " - PLEASE WAIT", BM_Loading_Dots(t));
+	BM_DrawTextClipped(info_x + 10, by + 4, max(16, (bar_x - (info_x + 10)) - 6), hdr_str, 7.5, COL_ACCENT, 0.98, FALSE);
 	BM_Loading_DrawProgressBar(elapsed, bar_x, by + 4.5, bar_w, 7);
 
 	BM_DrawTextRight(bx + bw - 26, by + 4, time_str, 7, COL_GOOD, 0.98);
