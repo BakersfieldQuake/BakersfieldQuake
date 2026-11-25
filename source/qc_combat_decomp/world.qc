@@ -897,6 +897,7 @@ void() StartFrame =
 	BakoDestruct_Frame();
 	PC_Frame();
 	CheckSplash();
+	Semisolid_Frame();
 	teamplay = autocvar_teamplay;
 	skill = autocvar_skill;
 	framecount = framecount + 1;
@@ -1163,6 +1164,12 @@ void(entity ent, float hp, string headmdl) CopyToBodyQue =
 		bodyque_head.th_pain = corpse_pain;
 		bodyque_head.semisolid = "y";
 		has_semisolids = 1;
+		if (!bodyque_head.semisolid_reg)
+		{
+			bodyque_head.semisolid_reg = TRUE;
+			bodyque_head.semisolid_next = semisolid_head;
+			semisolid_head = bodyque_head;
+		}
 		bodyque_head.movetype = MOVETYPE_STEP;
 	}
 	else
@@ -2207,76 +2214,119 @@ void() corpse_pain =
 
 void() SemisolidPreThink =
 {
-	local entity e;
+	local entity e, prev, nxt;
 
 	if (!has_semisolids)
 		return;
-	e = find(world, semisolid, "y");
+	prev = world;
+	e = semisolid_head;
 	while (e)
 	{
-		e.oldSolid = e.solid;
-		e.solid = 0;
-		e = find(e, semisolid, "y");
+		nxt = e.semisolid_next;
+		if (bm_wasfreed(e) || e.semisolid != "y")
+		{
+			if (!bm_wasfreed(e))
+			{
+				e.semisolid_reg = FALSE;
+				e.semisolid_next = world;
+			}
+			if (prev)
+				prev.semisolid_next = nxt;
+			else
+				semisolid_head = nxt;
+		}
+		else
+		{
+			e.oldSolid = e.solid;
+			e.solid = 0;
+			prev = e;
+		}
+		e = nxt;
 	}
+	if (!semisolid_head)
+		has_semisolids = 0;
 };
 
 void() SemisolidPostThink =
 {
 	local entity e;
-	local vector check;
-	local float zuf;
 
 	if (!has_semisolids)
 		return;
-	e = find(world, semisolid, "y");
+	e = semisolid_head;
 	while (e)
 	{
-		if ((e.oldSolid != -1))
+		if (!bm_wasfreed(e))
 		{
-			e.solid = e.oldSolid;
+			if ((e.oldSolid != -1))
+				e.solid = e.oldSolid;
+			e.oldSolid = -1;
 		}
-		e.oldSolid = -1;
+		e = e.semisolid_next;
+	}
+};
+
+// Throttled 5 Hz corpse environmental/twitch tick (was running per-player every 72 Hz frame with full find())
+void() Semisolid_Frame =
+{
+	local entity e, prev, nxt;
+	local vector check;
+	local float zuf, pc;
+
+	if (!has_semisolids || time < semisolid_fx_t)
+		return;
+	semisolid_fx_t = time + 0.2;
+	prev = world;
+	e = semisolid_head;
+	while (e)
+	{
+		nxt = e.semisolid_next;
+		if (bm_wasfreed(e) || e.semisolid != "y")
+		{
+			if (!bm_wasfreed(e))
+			{
+				e.semisolid_reg = FALSE;
+				e.semisolid_next = world;
+			}
+			if (prev)
+				prev.semisolid_next = nxt;
+			else
+				semisolid_head = nxt;
+			e = nxt;
+			continue;
+		}
+		prev = e;
 		if ((e.spin_direction == 1))
-		{
 			e.avelocity = '0 -77 0';
-		}
 		else
-		{
 			e.avelocity = '0 77 0';
-		}
 		check = (e.origin - '0 0 20') + '0 0 1';
+		pc = pointcontents(check);
 		if ((autocvar_monsterlavaslime >= 1))
 		{
-			if ((pointcontents(check) == CONTENT_LAVA))
+			if ((pc == CONTENT_LAVA))
 			{
 				e.traileffectnum = particleeffectnum(/*19553i*/"monsterburn");
 				e.colormod = '0.4 0.1 0.1';
 			}
-			if ((pointcontents(check) == CONTENT_SLIME))
+			else if ((pc == CONTENT_SLIME))
 			{
 				e.traileffectnum = particleeffectnum(/*19565i*/"monsteracid");
 				e.colormod = '0.9 1.4 0.4';
 			}
-			if (((pointcontents(check) != CONTENT_SLIME) && (pointcontents(check) != CONTENT_LAVA)))
+			else
 			{
 				e.traileffectnum = particleeffectnum(/*19577i*/"monsternull");
 			}
 		}
 		if (autocvar_corpseflies)
 		{
-			if ((((pointcontents(check) != CONTENT_SLIME) && (pointcontents(check) != CONTENT_LAVA)) && (pointcontents(check) != CONTENT_WATER)))
+			if (((pc != CONTENT_SLIME) && (pc != CONTENT_LAVA) && (pc != CONTENT_WATER)))
 			{
 				if ((autocvar_corpseflies == 1))
-				{
 					e.traileffectnum = particleeffectnum(/*38603i*/"monsterfliesblack");
-				}
-				else
-				{
-					if ((autocvar_corpseflies == 2))
-					{
-						e.traileffectnum = particleeffectnum(/*38621i*/"monsterfliesbrown");
-					}
-				}
+				else if ((autocvar_corpseflies == 2))
+					e.traileffectnum = particleeffectnum(/*38621i*/"monsterfliesbrown");
 			}
 		}
 		if ((e.just_been_shot < time))
@@ -2288,11 +2338,9 @@ void() SemisolidPostThink =
 		{
 			if (((e.create_blood_puddle > time) && (e.create_blood_puddle_timer < time)))
 			{
-				traceline(e.origin, (e.origin - '0 0 66'), TRUE, self);
+				traceline(e.origin, (e.origin - '0 0 66'), TRUE, e);
 				if ((e.create_blood_puddle_counter == 0))
-				{
 					pointparticles(particleeffectnum(/*38639i*/"blood_smear"), trace_endpos, VEC_ORIGIN, 1);
-				}
 				e.create_blood_puddle_timer = (time + 0.1);
 				e.create_blood_puddle_counter = (e.create_blood_puddle_counter + 1);
 			}
@@ -2307,51 +2355,44 @@ void() SemisolidPostThink =
 					e.twitch_finished = (((((time + autocvar_twitching_corpses_interval) + random()) + random()) + random()) + random());
 					e.twitch_back = 0;
 				}
-				else
+				else if ((e.frame == e.original_frame))
 				{
-					if ((e.frame == e.original_frame))
+					e.frame = (e.original_frame - 1);
+					e.twitch_back = 1;
+					e.twitch_finished = ((time + 0.2) + (random() * 0.2));
+				}
+			}
+		}
+		else if ((autocvar_twitching_corpses == 2))
+		{
+			if ((e.twitch_finished < time))
+			{
+				if (e.twitch_back)
+				{
+					e.frame = e.original_frame;
+					e.twitch_finished = (((((time + autocvar_twitching_corpses_interval) + random()) + random()) + random()) + random());
+					e.twitch_back = 0;
+				}
+				else if ((e.frame == e.original_frame))
+				{
+					zuf = random();
+					if ((zuf > 0.3))
 					{
 						e.frame = (e.original_frame - 1);
 						e.twitch_back = 1;
 						e.twitch_finished = ((time + 0.2) + (random() * 0.2));
 					}
-				}
-			}
-		}
-		else
-		{
-			if ((autocvar_twitching_corpses == 2))
-			{
-				if ((e.twitch_finished < time))
-				{
-					if (e.twitch_back)
-					{
-						e.frame = e.original_frame;
-						e.twitch_finished = (((((time + autocvar_twitching_corpses_interval) + random()) + random()) + random()) + random());
-						e.twitch_back = 0;
-					}
 					else
 					{
-						if ((e.frame == e.original_frame))
-						{
-							zuf = random();
-							if ((zuf > 0.3))
-							{
-								e.frame = (e.original_frame - 1);
-								e.twitch_back = 1;
-								e.twitch_finished = ((time + 0.2) + (random() * 0.2));
-							}
-							else
-							{
-								e.frame = (e.original_frame - 2);
-								e.twitch_back = 2;
-								e.twitch_finished = ((time + 0.2) + (random() * 0.1));
-							}
-						}
+						e.frame = (e.original_frame - 2);
+						e.twitch_back = 2;
+						e.twitch_finished = ((time + 0.2) + (random() * 0.1));
 					}
 				}
 			}
 		}
-		e = find(e, semisolid, "y");
+		e = nxt;
 	}
+	if (!semisolid_head)
+		has_semisolids = 0;
 };

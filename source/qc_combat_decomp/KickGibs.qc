@@ -175,6 +175,7 @@ void() kick_touch2 =
 		self.avelocity = '0 300 0';
 	}
 	self.cansplash = 1;
+	Splash_Register(self);
 	self.think = gib_gravity_reset2;
 	self.nextthink = (time + 1.1);
 };
@@ -489,6 +490,7 @@ void() kick_touch5 =
 	setsize(self, '-12 -12 0', '12 12 48');
 	self.touch = kick_touch5;
 	self.cansplash = 1;
+	Splash_Register(self);
 	self.think = gib_gravity_reset;
 	self.nextthink = (time + 1.1);
 };

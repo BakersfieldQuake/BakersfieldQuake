@@ -547,16 +547,20 @@ float(entity e) Bako_SkipRoofEntity =
 
 	if (e == world || e.bako_group > 0)
 		return TRUE;
-	if (e.veh_driver != world)
+	if (e.veh_driver != world || e.jb_pilot != world || e.rr_pilot != world)
 		return TRUE;
 	c = e.classname;
-	if (c == "player" || c == "worldspawn" || c == "light" || c == "missile" || c == "grenade" || c == "rocket")
+	if (c == "player" || c == "worldspawn" || c == "light" || c == "missile" || c == "grenade" || c == "rocket" || c == "spike")
 		return TRUE;
 	if (c == "bako_boulder" || c == "bako_chunk" || c == "bako_glass_shard" || c == "npc_bako_worker")
 		return TRUE;
 	if (c == "bako_destruct_ctrl" || c == "bako_snd_emitter" || c == "bc_cam" || c == "camera")
 		return TRUE;
-	if (c == "dn3fx_relay" || c == "bako_blast_spr")
+	if (c == "dn3fx_relay" || c == "bako_blast_spr" || c == "bm_radar_feed" || c == "ud_fx")
+		return TRUE;
+	if (c == "robdob" || c == "megaman" || c == "kyle_proj" || c == "milky" || c == "wc_shot" || c == "dookie_shot" || c == "foreloco_proj" || c == "greenjar_proj" || c == "greenguy_mini" || c == "pickle" || c == "netsend_disk")
+		return TRUE;
+	if (c == "misc_vehicle_johnbird" || c == "misc_vehicle_rocketrider" || c == "misc_mm_tank")
 		return TRUE;
 	return FALSE;
 };
@@ -667,7 +671,7 @@ void(float grp) Bako_HideRoofProps =
 		e = e.bako_roof_next;
 	}
 
-	// Dynamic full-world scan inside the exact padded rooftop footprint (catches PlaceItem/renamed gokarts/items!)
+	// One-time scan on collapse inside the exact padded rooftop footprint with roof ceiling (never grabs sky flyers!)
 	e = nextent (world);
 	while (e != world)
 	{
@@ -675,7 +679,7 @@ void(float grp) Bako_HideRoofProps =
 		{
 			if (e.origin_x >= bmin_x && e.origin_x <= bmax_x
 				&& e.origin_y >= bmin_y && e.origin_y <= bmax_y
-				&& e.origin_z > min_z)
+				&& e.origin_z > min_z && e.origin_z <= bmax_z + 180)
 			{
 				Bako_HideOneRoofEnt (grp, e, drop_pos);
 			}
@@ -684,7 +688,7 @@ void(float grp) Bako_HideRoofProps =
 	}
 };
 
-// Enforce invisibility every think tick so NO item respawn/blink timer can EVER unhide rooftop props!
+// Enforce invisibility on the captured rooftop list (no periodic full-world nextent() scan!)
 void(float grp) Bako_MaintainHiddenRoofProps =
 {
 	local entity e;
@@ -709,13 +713,6 @@ void(float grp) Bako_MaintainHiddenRoofProps =
 			}
 		}
 		e = e.bako_roof_next;
-	}
-
-	// Periodic safety sweep every 0.5s in case any entity spawned/teleported into the empty sky footprint
-	if (time >= bako_roof_scan_t)
-	{
-		bako_roof_scan_t = time + 0.50;
-		Bako_HideRoofProps (grp);
 	}
 };
 
@@ -982,7 +979,7 @@ void() Bako_BoulderThink =
 		}
 	}
 
-	// Reliable proximity sweep EVERY think tick (no hspd>75 gate!): bounces ALL players, bots, monsters & vehicles!
+	// Fast proximity sweep over active players and driven vehicles (no per-boulder findradius spam!)
 	if (spd > 25)
 	{
 		p = bm_player_head;
@@ -999,20 +996,18 @@ void() Bako_BoulderThink =
 						Bako_BounceTarget (self, p);
 				}
 			}
-			p = p.bm_player_next;
-		}
-
-		v = findradius (self.origin, 84);
-		while (v != world)
-		{
-			if (v != self && !v.bako_roof_hidden)
+			v = p.veh_van;
+			if (v != world && !bm_wasfreed (v) && !v.bako_roof_hidden && v.solid != SOLID_NOT)
 			{
-				if (Bako_IsVehicle (v) && v.solid != SOLID_NOT)
-					Bako_BounceTarget (self, v);
-				else if (((v.flags & (FL_CLIENT | FL_MONSTER)) || v.classname == "player") && v.health > 0)
-					Bako_BounceTarget (self, v);
+				delta = v.origin - self.origin;
+				if (fabs (delta_z) <= 96)
+				{
+					delta_z = 0;
+					if (vlen (delta) <= 96)
+						Bako_BounceTarget (self, v);
+				}
 			}
-			v = v.chain;
+			p = p.bm_player_next;
 		}
 	}
 
@@ -1552,7 +1547,8 @@ void(entity rlist) Bako_HideRubbleList =
 	{
 		r.solid = SOLID_NOT;
 		r.movetype = MOVETYPE_NONE;
-		r.model = string_null;
+		setmodel (r, "");
+		r.modelindex = 0;
 		setorigin (r, r.bako_home_org - '0 0 512');
 		r = r.bako_rubble_next;
 	}
@@ -4038,7 +4034,11 @@ void(entity g) BakoDestruct_OnGlassBreak =
 	BakoDestruct_Precache ();
 
 	if (g.bako_glass_wait > 0)
+	{
+		if (g.bako_glass_respawn_t <= 0)
+			bako_broken_glass_cnt = bako_broken_glass_cnt + 1;
 		g.bako_glass_respawn_t = time + g.bako_glass_wait;
+	}
 
 	g.count = 0;
 	g.solid = SOLID_NOT;
@@ -4168,6 +4168,8 @@ void(entity g) Bako_RestoreGlassPane =
 		p = p.bm_player_next;
 	}
 
+	if (g.bako_glass_respawn_t > 0 && bako_broken_glass_cnt > 0)
+		bako_broken_glass_cnt = bako_broken_glass_cnt - 1;
 	g.bako_glass_respawn_t = 0;
 	g.waitmin = FALSE;
 	g.health = g.bako_glass_hp;
@@ -4183,31 +4185,38 @@ void(entity g) Bako_RestoreGlassPane =
 
 void() Bako_TickGlass =
 {
-	local entity g, v, oself;
+	local entity g, p, v, oself;
 	local vector vmin, vmax;
 
 	if (bako_glass_head == world)
 		return;
 
-	g = bako_glass_head;
-	while (g != world)
+	// Only scan glass respawn timers at 2 Hz and ONLY while at least one pane is broken!
+	if (bako_broken_glass_cnt > 0 && time >= bako_glass_resp_t)
 	{
-		if (!bm_wasfreed (g))
+		bako_glass_resp_t = time + 0.50;
+		g = bako_glass_head;
+		while (g != world)
 		{
-			if (g.waitmin && g.bako_glass_respawn_t > 0 && time >= g.bako_glass_respawn_t)
-				Bako_RestoreGlassPane (g);
+			if (!bm_wasfreed (g))
+			{
+				if (g.waitmin && g.bako_glass_respawn_t > 0 && time >= g.bako_glass_respawn_t)
+					Bako_RestoreGlassPane (g);
+			}
+			g = g.bako_glass_next;
 		}
-		g = g.bako_glass_next;
 	}
 
 	if (time < bako_kart_glass_t)
 		return;
 	bako_kart_glass_t = time + 0.05;
 
-	v = nextent (world);
-	while (v != world)
+	// Walk active players' driven vehicles O(players) instead of nextent(world) over 1500+ edicts!
+	p = bm_player_head;
+	while (p != world)
 	{
-		if (v.veh_kind > 0 && v.veh_driver != world && vlen (v.velocity) > 80)
+		v = p.veh_van;
+		if (v != world && !bm_wasfreed (v) && v.veh_kind > 0 && v.veh_driver == p && vlen (v.velocity) > 80)
 		{
 			vmin = v.origin + '-58 -58 -8';
 			vmax = v.origin + '58 58 64';
@@ -4228,7 +4237,7 @@ void() Bako_TickGlass =
 				g = g.bako_glass_next;
 			}
 		}
-		v = nextent (v);
+		p = p.bm_player_next;
 	}
 };
 
@@ -4265,6 +4274,7 @@ void() Bako_ResetAllGlass =
 			Bako_RestoreGlassPane (g);
 		g = g.bako_glass_next;
 	}
+	bako_broken_glass_cnt = 0;
 };
 
 // ============================================================================

@@ -854,6 +854,8 @@ void() trigger_push =
 	{
 		self.speed = 1000;
 	}
+	self.bm_push_next = bm_push_head;
+	bm_push_head = self;
 };
 
 void() trigger_monsterjump_touch =

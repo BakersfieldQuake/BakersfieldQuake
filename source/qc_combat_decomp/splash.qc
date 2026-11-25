@@ -24,17 +24,43 @@ void(vector spot, vector splashsize) Splash_Lava_big =
 	pointparticles(particleeffectnum(/*39519i*/"lavasplashbig"), spot, VEC_ORIGIN, 1);
 };
 
+void(entity e) Splash_Register =
+{
+	if (!e || e == world || e.splash_reg)
+		return;
+	e.splash_reg = TRUE;
+	e.splash_next = splash_head;
+	splash_head = e;
+};
+
 void() CheckSplash =
 {
-	local entity checker;
+	local entity checker, prev, nxt;
 	local float check;
 
-	if ((time < splash_next_t))
+	if (!splash_head || (time < splash_next_t))
 		return;
 	splash_next_t = (time + 0.05);
-	checker = findfloat(world, cansplash, 1);
+	prev = world;
+	checker = splash_head;
 	while (checker)
 	{
+		nxt = checker.splash_next;
+		if (bm_wasfreed(checker) || checker.cansplash != 1)
+		{
+			if (!bm_wasfreed(checker))
+			{
+				checker.splash_reg = FALSE;
+				checker.splash_next = world;
+			}
+			if (prev)
+				prev.splash_next = nxt;
+			else
+				splash_head = nxt;
+			checker = nxt;
+			continue;
+		}
+		prev = checker;
 		check = pointcontents(checker.origin);
 		if ((((check == CONTENT_WATER) || (check == CONTENT_SLIME)) && (checker.splashy == 1)))
 		{
@@ -59,12 +85,13 @@ void() CheckSplash =
 			else
 			{
 				Splash_Lava(checker.origin, checker.velocity);
+				checker.cansplash = 0;
 			}
 		}
 		if ((check == CONTENT_EMPTY))
 		{
 			checker.splashy = 1;
 		}
-		checker = findfloat(checker, cansplash, 1);
+		checker = nxt;
 	}
 };

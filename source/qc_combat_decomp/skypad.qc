@@ -365,33 +365,18 @@ void(entity pad, entity e, vector prev_org) SkyPad_TrySweep =
 		SkyPad_LaunchProjectile (pad, e);
 };
 
-void(string cls) SkyPad_CheckClass =
+void(entity e) SkyPad_RegisterExtra =
 {
-	local entity e, pad;
-
-	e = find (world, classname, cls);
-	while (e != world)
-	{
-		if (time >= e.skypad_cool_t && SkyPad_IsProjectile (e))
-		{
-			pad = skypad_head;
-			while (pad != world)
-			{
-				if (SkyPad_OverlapEnt (pad, e))
-				{
-					SkyPad_LaunchProjectile (pad, e);
-					break;
-				}
-				pad = pad.skypad_next;
-			}
-		}
-		e = find (e, classname, cls);
-	}
+	if (!e || e == world || e.skypad_extra_reg)
+		return;
+	e.skypad_extra_reg = TRUE;
+	e.skypad_extra_next = skypad_extra_head;
+	skypad_extra_head = e;
 };
 
 void() SkyPad_Frame =
 {
-	local entity e, pad;
+	local entity e, pad, prev, nxt;
 
 	if (!skypad_present || skypad_head == world)
 		return;
@@ -431,10 +416,43 @@ void() SkyPad_Frame =
 		e = e.pc_spike_next;
 	}
 
-	// Non-pc_head custom projectiles using MOVETYPE_NONE / MOVETYPE_NOCLIP
-	SkyPad_CheckClass ("ec_tube");
-	SkyPad_CheckClass ("ghost_follower");
-	SkyPad_CheckClass ("face");
+	// Non-pc_head custom projectiles (ec_tube, ghost_follower, face) tracked in an intrusive list: O(active), 0 find() calls!
+	prev = world;
+	e = skypad_extra_head;
+	while (e != world)
+	{
+		nxt = e.skypad_extra_next;
+		if (bm_wasfreed (e) || !SkyPad_IsProjectile (e))
+		{
+			if (!bm_wasfreed (e))
+			{
+				e.skypad_extra_reg = FALSE;
+				e.skypad_extra_next = world;
+			}
+			if (prev != world)
+				prev.skypad_extra_next = nxt;
+			else
+				skypad_extra_head = nxt;
+		}
+		else
+		{
+			if (time >= e.skypad_cool_t)
+			{
+				pad = skypad_head;
+				while (pad != world)
+				{
+					if (SkyPad_OverlapEnt (pad, e))
+					{
+						SkyPad_LaunchProjectile (pad, e);
+						break;
+					}
+					pad = pad.skypad_next;
+				}
+			}
+			prev = e;
+		}
+		e = nxt;
+	}
 };
 
 void() SkyPad_Touch =

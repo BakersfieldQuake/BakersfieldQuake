@@ -326,43 +326,46 @@ float(entity v, entity driver) Veh_CheckPads =
 	bmax_y = bmax_y + hy;
 	bmax_z = bmax_z + ht;
 
-	e = find (world, classname, "info_skypad");
-	while (e != world)
+	if (skypad_present)
 	{
-		if (Veh_OverlapPad (bmin, bmax, e))
+		e = skypad_head;
+		while (e != world)
 		{
-			SkyPad_RaiseMaxVel ();
-			if (driver != world && driver.ishuman == 1 && !driver.skypad_vel_sent)
+			if (!bm_wasfreed (e) && Veh_OverlapPad (bmin, bmax, e))
 			{
-				driver.skypad_vel_sent = TRUE;
-				stuffcmd (driver, "sv_maxvelocity 6500\n");
+				SkyPad_RaiseMaxVel ();
+				if (driver != world && driver.ishuman == 1 && !driver.skypad_vel_sent)
+				{
+					driver.skypad_vel_sent = TRUE;
+					stuffcmd (driver, "sv_maxvelocity 6500\n");
+				}
+				vel = SkyPad_CalcVel (v.origin + '0 0 2', e.pos1, e.height);
+				v.veh_pad_cool = time + 0.65;
+				v.veh_air = TRUE;
+				v.veh_vz = vel_z;
+				v.velocity = vel;
+				Veh_ResetPadStunt (v);
+				hvel = vel;
+				hvel_z = 0;
+				if (vlen (hvel) > 120)
+					v.angles_y = vectoyaw (hvel);
+				v.veh_yawrate = 0;
+				dprint (strcat ("veh skypad: kind=", ftos (v.veh_kind), " pad_spin=", ftos (v.veh_pad_spin), " yaw=", ftos (v.angles_y), " vel=", vtos (v.velocity), "\n"));
+				setorigin (v, v.origin + '0 0 12');
+				sound7 (v, CHAN_AUTO, "skypad/launch.wav", 0.90, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
+				pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 12', '0 0 0', 1);
+				if (e.message != "" && driver != world && driver.ishuman == 1)
+					sprint (driver, strcat ("Sky Pad -> ", e.message, "\n"));
+				return TRUE;
 			}
-			vel = SkyPad_CalcVel (v.origin + '0 0 2', e.pos1, e.height);
-			v.veh_pad_cool = time + 0.65;
-			v.veh_air = TRUE;
-			v.veh_vz = vel_z;
-			v.velocity = vel;
-			Veh_ResetPadStunt (v);
-			hvel = vel;
-			hvel_z = 0;
-			if (vlen (hvel) > 120)
-				v.angles_y = vectoyaw (hvel);
-			v.veh_yawrate = 0;
-			dprint (strcat ("veh skypad: kind=", ftos (v.veh_kind), " pad_spin=", ftos (v.veh_pad_spin), " yaw=", ftos (v.angles_y), " vel=", vtos (v.velocity), "\n"));
-			setorigin (v, v.origin + '0 0 12');
-			sound7 (v, CHAN_AUTO, "skypad/launch.wav", 0.90, ATTN_NORM, SNDSPD * (0.96 + random () * 0.08));
-			pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 12', '0 0 0', 1);
-			if (e.message != "" && driver != world && driver.ishuman == 1)
-				sprint (driver, strcat ("Sky Pad -> ", e.message, "\n"));
-			return TRUE;
+			e = e.skypad_next;
 		}
-		e = find (e, classname, "info_skypad");
 	}
 
-	e = find (world, classname, "trigger_push");
+	e = bm_push_head;
 	while (e != world)
 	{
-		if (Veh_OverlapPad (bmin, bmax, e))
+		if (!bm_wasfreed (e) && Veh_OverlapPad (bmin, bmax, e))
 		{
 			spd = e.speed;
 			if (!spd)
@@ -407,7 +410,7 @@ float(entity v, entity driver) Veh_CheckPads =
 				remove (e);
 			return TRUE;
 		}
-		e = find (e, classname, "trigger_push");
+		e = e.bm_push_next;
 	}
 	return FALSE;
 };

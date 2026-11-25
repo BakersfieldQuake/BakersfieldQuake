@@ -204,6 +204,7 @@ void(vector spawn_pos, vector spawn_vel) launch_ghost_follower =
 		newmis.scale = 0.51;
 	}
 	newmis.classname = "ghost_follower";
+	SkyPad_RegisterExtra (newmis);
 	newmis.think = ghost_follower_think;
 	newmis.nextthink = (time + 0.2);
 	newmis.maxlifetime = (time + 7);

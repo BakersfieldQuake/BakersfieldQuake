@@ -1478,6 +1478,7 @@ void(entity base, float is_temp) EC_InitMonument =
 	setmodel (tube, "progs/eric_cannon.md3");
 	setsize (tube, '0 0 0', '0 0 0');
 	base.ec_tube = tube;
+	SkyPad_RegisterExtra (tube);
 
 	EC_SeatTubeOnPedestal (base);
 };

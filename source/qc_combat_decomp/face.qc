@@ -160,6 +160,7 @@ void(vector face_spawn_pos, vector face_spawn_vel, float starter) spawn_face =
 	newmis.glow_size = 666;
 	newmis.touch = FaceTouch;
 	newmis.classname = "face";
+	SkyPad_RegisterExtra (newmis);
 	if ((random() < 0.7))
 	{
 		setmodel(newmis, "progs/face1.mdl");
