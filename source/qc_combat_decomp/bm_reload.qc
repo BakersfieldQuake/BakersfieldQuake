@@ -506,7 +506,7 @@ void() BM_ViewModel =
 {
 	local string old;
 
-	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0)
+	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0 && !(M4_ShowsReload (self) || Garand_ShowsReload (self)))
 	{
 		if (!self.bm_vm_hidden && self.weaponmodel != "")
 		{

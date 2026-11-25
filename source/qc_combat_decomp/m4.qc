@@ -84,7 +84,7 @@ void() M4_VwepThink =
 	local entity p;
 
 	p = self.owner;
-	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_M4 || (p.items & IT_INVISIBILITY))
+	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_M4 || (p.items & IT_INVISIBILITY) || Veh_Driving (p) || p.veh_ride != world || JohnBird_Flying (p) || RocketRider_Flying (p) || MMTank_Driving (p) || EricCannon_Active (p) || FD_Flying (p))
 	{
 		if (p && p.m4_vwep == self)
 			p.m4_vwep = world;
@@ -101,7 +101,7 @@ void() M4_UpdateVwep =
 
 	if (!m4_pmodel_ok)
 		return;
-	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_M4 && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
+	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_M4 && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl" && !Veh_Driving (self) && self.veh_ride == world && !JohnBird_Flying (self) && !RocketRider_Flying (self) && !MMTank_Driving (self) && !EricCannon_Active (self) && !FD_Flying (self));
 	if (!show)
 	{
 		if (self.m4_vwep)
@@ -295,7 +295,9 @@ void() M4_Press =
 	self.m4_shot_n = self.m4_shot_n + 1;
 
 	dir = normalize (v_forward + (sway + crandom () * spr) * v_right + (climb + crandom () * spr) * v_up);
-	src = self.origin + self.view_ofs + (v_forward * 10);
+	src = self.origin + self.view_ofs;
+	traceline (src, src + (v_forward * 10), TRUE, self);
+	src = (trace_fraction < 1) ? (src + (v_forward * max (0, (trace_fraction * 10) - 1))) : (src + (v_forward * 10));
 	ClearMultiDamage ();
 	traceline (src, src + dir * M4_RANGE, FALSE, self);
 	dist = trace_fraction * M4_RANGE;

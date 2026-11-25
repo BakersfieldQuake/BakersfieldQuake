@@ -1720,7 +1720,7 @@ void() zombie_die =
 					matrixcounter = time + (autocvar_slowmotion_intensity * autocvar_slowmotion_duration);
 				}
 			}
-			if ((axeequipped == 1))
+			if ((self.enemy.axeequipped == 1))
 			{
 				zombie_die_newmodel_deatha1();
 			}

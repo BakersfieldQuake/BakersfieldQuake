@@ -1406,12 +1406,8 @@ void() weapon_touch =
 						{
 							if ((self.classname == "weapon_chainsaw"))
 							{
-								if ((leave && (other.items & IT_CHAINSAW)))
-								{
-									return;
-								}
-								hadammo = other.ammo_rockets;
-								new = IT_CHAINSAW;
+								// Chainsaw was removed in favor of the Bonk Hammer (IT_AXE); don't equip an invisible dead slot
+								return;
 							}
 							else
 							{

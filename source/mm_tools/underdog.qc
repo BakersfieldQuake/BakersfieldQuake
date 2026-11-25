@@ -103,6 +103,7 @@ void(entity p) Underdog_Reset =
 	p.ud_lead = 0;
 	p.ud_deficit = 0;
 	p.ud_blueshell = FALSE;
+	p.ud_laststand = FALSE;
 	// the kill-streak announcer's numbers too (bm_fun.qc), and nobody may take REVENGE on the next one in this slot
 	p.bm_streak = 0;
 	p.bm_streak_tier = 0;
@@ -189,9 +190,10 @@ void(vector org) Underdog_SpawnPinata =
 	orb.velocity = rv * 55 + '0 0 235';
 	orb.avelocity = '0 160 0';
 	orb.scale = 0.85;
-	orb.effects = EF_FULLBRIGHT | EF_DIMLIGHT;
-	orb.glow_color = 192;
-	orb.glow_size = 140;
+	orb.effects = EF_FULLBRIGHT;
+	orb.pflags = PFLAGS_FULLDYNAMIC | PFLAGS_NOSHADOW | PFLAGS_CORONA;
+	orb.light_lev = 200;
+	orb.color = '1.0 0.953 0.106';		// gold (palette 192), no shadow pass or double EF_DIMLIGHT
 	orb.cnt = time + 0.35;
 	orb.touch = Underdog_PinataTouch;
 	orb.think = SUB_Remove;
@@ -227,8 +229,10 @@ void(entity targ, entity attacker) Underdog_Killed =
 	attacker.ud_kills = attacker.ud_kills + 1;
 	attacker.ud_streak = floor (attacker.ud_streak / 2);
 	// Last Stand ends 2s after scoring a kill so it stays a comeback spark, not a multi-wipe godmode sweep
-	if (attacker.invincible_finished > time + 2 && attacker.super_damage_finished > time + 2)
+	// Only truncate when the player actually spawned with Last Stand (don't cut map-picked Quad + Pentagram)
+	if (attacker.ud_laststand && attacker.invincible_finished > time + 2 && attacker.super_damage_finished > time + 2)
 	{
+		attacker.ud_laststand = FALSE;
 		attacker.invincible_finished = time + 2;
 		attacker.super_damage_finished = time + 2;
 	}
@@ -242,7 +246,10 @@ void(entity targ, entity attacker) Underdog_Killed =
 		attacker.frags = attacker.frags + 1;
 		bprint ("^3", attacker.netname, " POPPED ", targ.netname, "'s BOUNTY PINATA! (+1 BONUS FRAG + LOOT ORB!)\n");
 		if (attacker.ishuman == 1)
+		{
 			centerprint (attacker, strcat ("^3BOUNTY PINATA! +1 BONUS FRAG!\n^2Took down ", targ.netname));
+			attacker.bm_fun_cp_t = time;
+		}
 		sound (attacker, CHAN_AUTO, "misc/talk.wav", 1, ATTN_NONE);
 		particle (targ.origin + '0 0 24', '0 0 180', 192, 64);
 		particle (targ.origin + '0 0 32', '0 0 220', 41, 48);
@@ -274,9 +281,12 @@ void(entity p) Underdog_ClearFx =
 {
 	if (p.ud_aura)
 	{
-		if (p.ud_aura.enemy)
-			remove (p.ud_aura.enemy);
-		remove (p.ud_aura);
+		if (!bm_wasfreed (p.ud_aura))
+		{
+			if (p.ud_aura.enemy && !bm_wasfreed (p.ud_aura.enemy))
+				remove (p.ud_aura.enemy);
+			remove (p.ud_aura);
+		}
 		p.ud_aura = world;
 	}
 };
@@ -305,8 +315,9 @@ void() Underdog_FxFrame =
 		return;
 	self.ud_fx_t = time + 0.05;
 	b = self.ud_aura;
-	b.glow_color = 192;		// gold
-	b.glow_size = min (80 + 25 * self.ud_heat, 400);
+	b.pflags = PFLAGS_FULLDYNAMIC | PFLAGS_NOSHADOW | PFLAGS_CORONA;
+	b.color = '1.0 0.953 0.106';		// gold (palette 192), no shadow cubemap pass
+	b.light_lev = min (80 + 25 * self.ud_heat, 400);
 	if (self.ud_tier >= 3)
 	{
 		// periodic radar beacon: pulses through walls for 1.1s every 4.5s so ambushes stay alive!
@@ -380,7 +391,7 @@ float(entity e, float n, float top) Underdog_Boost =
 	k = 0;
 	if (e.ud_deaths >= 2)
 		k = 0.6 * bound (0, (1 - (e.ud_kills + 4) / (e.ud_deaths + 4)) / 0.75, 1);
-	g = bound (0, (e.ud_deficit - 1) / (autocvar_bm_ud_span * (1 / 3 + (2 / 3) / (n - 1)) + 0.15 * max (0, top)), 1);
+	g = bound (0, (e.ud_deficit - 1) / (autocvar_bm_ud_span * (1 / 3 + (2 / 3) / max (1, n - 1)) + 0.15 * max (0, top)), 1);
 	b = 1 - (1 - a) * (1 - k) * (1 - g);
 	if (e.ud_heat > 0)
 		b = b * bound (0, 1 - e.ud_heat / 2, 1);		// a good player on a bad run is not an underdog
@@ -529,6 +540,7 @@ void() Underdog_Spawn =
 	self.ud_earned = FALSE;
 	self.ud_level = 0;
 	self.ud_blueshell = FALSE;
+	self.ud_laststand = FALSE;
 	self.max_health = 100;
 	Underdog_ClearFx (self);
 	BM_SpawnArmor ();		// green 100 for everyone (bm_match.qc)
@@ -604,6 +616,7 @@ void() Underdog_Spawn =
 	// power-ups only after a real death, so `kill` can't re-roll them
 	if (last)
 	{
+		self.ud_laststand = TRUE;
 		Underdog_GiveQuad ();
 		self.super_damage_finished = time + 7;
 		Underdog_GivePent ();

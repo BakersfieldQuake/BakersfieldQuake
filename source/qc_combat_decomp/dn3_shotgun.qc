@@ -38,6 +38,8 @@ void() DN3SG_Reset =
 	self.dn3_sg_rl_snd = 0;
 	self.dn3_st_frame = 0;
 	self.dn3_st_speed = 0;
+	if (self.viewzoom > 1.0 && !Binoc_On (self))
+		self.viewzoom = 0;
 };
 
 float(entity p) DN3SG_IsHidden =
@@ -104,7 +106,8 @@ void(vector dir) DN3SG_WallImpact =
 
 void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 {
-	local vector direction, src, tracer_org;
+	local vector eye, src, tracer_org;
+	local vector direction;
 	local float crit, i;
 	local entity shot;
 	local vector shotvector, align;
@@ -116,7 +119,9 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 		return;
 	}
 
-	src = self.origin + self.view_ofs + (v_forward * 10);
+	eye = self.origin + self.view_ofs;
+	traceline (eye, eye + (v_forward * 10), TRUE, self);
+	src = (trace_fraction < 1) ? (eye + (v_forward * max (0, (trace_fraction * 10) - 1))) : (eye + (v_forward * 10));
 	tracer_org = self.origin + self.view_ofs + (v_forward * 18) + (v_right * 4) + (v_up * -7);
 	crit = 0;
 	if (random () <= 0.01)
@@ -238,6 +243,8 @@ void() DN3SG_StartReload =
 	if (loops < 1)
 		loops = 1;
 	total = (8 * DN3SG_TIC) + (loops * 7 * DN3SG_TIC) + (8 * DN3SG_TIC);
+	if (autocvar_bm_reload_scale > 0)
+		total = total * autocvar_bm_reload_scale;
 
 	self.bm_rl_slot = BM_SSG;
 	self.bm_rl_start = time;
@@ -320,6 +327,8 @@ void() DN3SG_Frame =
 			self.dn3_sg_rl_phase = 0;
 			self.dn3_st_frame = 0;
 			self.dn3_st_speed = 0;
+			if (self.viewzoom > 1.0 && !Binoc_On (self))
+				self.viewzoom = 0;
 		}
 		return;
 	}

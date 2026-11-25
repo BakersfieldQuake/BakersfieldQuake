@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 THE M4 (see m4_defs.qc for the rules and frame map)
@@ -81,7 +84,7 @@ void() M4_VwepThink =
 	local entity p;
 
 	p = self.owner;
-	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_M4 || (p.items & IT_INVISIBILITY))
+	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_M4 || (p.items & IT_INVISIBILITY) || Veh_Driving (p) || p.veh_ride != world || JohnBird_Flying (p) || RocketRider_Flying (p) || MMTank_Driving (p) || EricCannon_Active (p) || FD_Flying (p))
 	{
 		if (p && p.m4_vwep == self)
 			p.m4_vwep = world;
@@ -98,7 +101,7 @@ void() M4_UpdateVwep =
 
 	if (!m4_pmodel_ok)
 		return;
-	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_M4 && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
+	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_M4 && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl" && !Veh_Driving (self) && self.veh_ride == world && !JohnBird_Flying (self) && !RocketRider_Flying (self) && !MMTank_Driving (self) && !EricCannon_Active (self) && !FD_Flying (self));
 	if (!show)
 	{
 		if (self.m4_vwep)
@@ -134,21 +137,24 @@ void() M4_MuzzleAndBrass =
 
 	if (self.waterlevel < 3)
 	{
-		fl = spawn ();
-		fl.movetype = 0;
-		fl.solid = 0;
-		fl.viewmodelforclient = self;
-		fl.owner = self;
-		fl.classname = "flash";
-		fl.effects = EF_ADDITIVE;
-		setmodel (fl, "progs/muzzleflash1.spr");
-		fl.scale = 0.28 + random () * 0.08;
-		fl.alpha = 0.85;
-		setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
-		// Aligned directly with the baked v_m4.md3 barrel tip [35.59, -14.67, -6.86]
-		setorigin (fl, '36.2 -14.7 -6.6');
-		fl.think = SUB_Remove;
-		fl.nextthink = time + 0.045;
+		if (self.ishuman == 1)
+		{
+			fl = spawn ();
+			fl.movetype = 0;
+			fl.solid = 0;
+			fl.viewmodelforclient = self;
+			fl.owner = self;
+			fl.classname = "flash";
+			fl.effects = EF_ADDITIVE;
+			setmodel (fl, "progs/muzzleflash1.spr");
+			fl.scale = 0.28 + random () * 0.08;
+			fl.alpha = 0.85;
+			setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
+			// Aligned directly with the baked v_m4.md3 barrel tip [35.59, -14.67, -6.86]
+			setorigin (fl, '36.2 -14.7 -6.6');
+			fl.think = SUB_Remove;
+			fl.nextthink = time + 0.045;
+		}
 
 		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 24 + v_right * 10 - v_up * 5, self.velocity * 20, 1, 0);
 	}
@@ -191,21 +197,10 @@ void() M4_MuzzleAndBrass =
 // crisp CS 1.6 wall bullet hole + directional spark burst + occasional spatialized ricochet on solid surfaces
 void(vector dir) M4_WallImpact =
 {
-	local float surfacenum, r;
-	local string tex;
+	local float r;
 
-	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
+	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos + dir * 2) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
 		return;
-	if (trace_ent == world)
-	{
-		surfacenum = getsurfacenearpoint (world, trace_endpos);
-		if (surfacenum >= 0)
-		{
-			tex = getsurfacetexture (world, surfacenum);
-			if (tex == "black" || substring (tex, 0, 3) == "sky")
-				return;
-		}
-	}
 
 	if (m4_fx_hole >= 0)
 		pointparticles (m4_fx_hole, trace_endpos, VEC_ORIGIN, 1);
@@ -216,6 +211,7 @@ void(vector dir) M4_WallImpact =
 		pointparticles (m4_fx_spark, trace_endpos + trace_plane_normal * 1.5, trace_plane_normal * 95, 1);
 	else
 		sendParticle ("TE_SPIKE", trace_endpos + trace_plane_normal * 1.5, VEC_ORIGIN, 1, 0);
+	DN3FX_OnWallImpact (trace_endpos + trace_plane_normal * 1.5, trace_plane_normal);
 
 	if (random () < 0.28)
 	{
@@ -299,19 +295,19 @@ void() M4_Press =
 	self.m4_shot_n = self.m4_shot_n + 1;
 
 	dir = normalize (v_forward + (sway + crandom () * spr) * v_right + (climb + crandom () * spr) * v_up);
-	src = self.origin + self.view_ofs + (v_forward * 10);
+	src = self.origin + self.view_ofs;
+	traceline (src, src + (v_forward * 10), TRUE, self);
+	src = (trace_fraction < 1) ? (src + (v_forward * max (0, (trace_fraction * 10) - 1))) : (src + (v_forward * 10));
 	ClearMultiDamage ();
 	traceline (src, src + dir * M4_RANGE, FALSE, self);
-	if (trace_fraction != 1)
+	dist = trace_fraction * M4_RANGE;
+	dmg = M4_DAMAGE;
+	if (dist > 1400)
+		dmg = max (M4_DAMAGE * 0.55, M4_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
+	if (!PC_TraceIntercept (self, src, trace_endpos, dmg) && trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-		{
-			dist = trace_fraction * M4_RANGE;
-			dmg = M4_DAMAGE;
-			if (dist > 1400)
-				dmg = max (M4_DAMAGE * 0.55, M4_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
 			TraceAttack (dmg, dir);
-		}
 		else
 			M4_WallImpact (dir);
 	}

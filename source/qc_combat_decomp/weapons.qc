@@ -1760,7 +1760,7 @@ void() FireBullets_Projectile =
 		launch_bullet(org, (dir + (v_right * (0 - randomdir3))));
 		launch_bullet(org, (dir + (v_right * randomdir3)));
 		launch_bullet(org, (dir + (v_right * -0.02)));
-		launch_bullet(org, (dir + v_right));
+		launch_bullet(org, (dir + (v_right * 0.02)));
 		launch_bullet(org, ((dir + (v_up * randomdir2)) + (v_right * randomdir1)));
 		launch_bullet(org, ((dir + (v_up * randomdir2)) + (v_right * 0.01)));
 		launch_bullet(org, (dir + (v_up * 0.01)));
@@ -1793,7 +1793,9 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		FireBullets_Projectile();
 		return;
 	}
-	src = self.origin + (v_forward * 10);
+	src = self.origin + self.view_ofs;
+	traceline(src, (src + (v_forward * 10)), TRUE, self);
+	src = (trace_fraction < 1) ? (src + (v_forward * max(0, (trace_fraction * 10) - 1))) : (src + (v_forward * 10));
 	if ((random() <= 0.01))
 	{
 		crit = 1;
@@ -2926,7 +2928,7 @@ void() W_FireLightning =
 	local vector face_spawn_pos;
 	local vector face_spawn_vel;
 
-	if ((self.ammo_cells < 1))
+	if ((self.ammo_cells < 0.6))
 	{
 		BM_OutOfAmmo();
 		return;
@@ -4960,7 +4962,7 @@ void() W_SetCurrentAmmo =
 			self.weaponmodel = "progs/v_hammer.mdl";
 		}
 		self.weaponframe = 0;
-		axeequipped = 1;
+		self.axeequipped = 1;
 	}
 	else
 	{
@@ -4984,7 +4986,7 @@ void() W_SetCurrentAmmo =
 				}
 				self.weaponframe = 0;
 				self.items = (self.items | IT_SHELLS);
-				axeequipped = 0;
+				self.axeequipped = 0;
 			}
 			else
 			{
@@ -4994,7 +4996,7 @@ void() W_SetCurrentAmmo =
 					self.weaponmodel = "";		// DN3DooM 2D Pump Shotgun drawn by CSQC
 					self.weaponframe = 0;
 					self.items = (self.items | IT_SHELLS);
-					axeequipped = 0;
+					self.axeequipped = 0;
 				}
 				else
 				{
@@ -5011,7 +5013,7 @@ void() W_SetCurrentAmmo =
 						}
 						self.weaponframe = 0;
 						self.items = (self.items | IT_NAILS);
-						axeequipped = 0;
+						self.axeequipped = 0;
 					}
 					else
 					{
@@ -5028,7 +5030,7 @@ void() W_SetCurrentAmmo =
 							}
 							self.weaponframe = 0;
 							self.items = (self.items | IT_NAILS);
-							axeequipped = 0;
+							self.axeequipped = 0;
 						}
 						else
 						{
@@ -5045,7 +5047,7 @@ void() W_SetCurrentAmmo =
 								}
 								self.weaponframe = 0;
 								self.items = (self.items | IT_ROCKETS);
-								axeequipped = 0;
+								self.axeequipped = 0;
 							}
 							else
 							{
@@ -5062,7 +5064,7 @@ void() W_SetCurrentAmmo =
 									}
 									self.weaponframe = 0;
 									self.items = (self.items | IT_ROCKETS);
-									axeequipped = 0;
+									self.axeequipped = 0;
 								}
 								else
 								{
@@ -5094,7 +5096,7 @@ void() W_SetCurrentAmmo =
 										}
 										self.weaponframe = 0;
 										self.items = (self.items | IT_CELLS);
-										axeequipped = 0;
+										self.axeequipped = 0;
 									}
 									else
 									{
@@ -5104,34 +5106,35 @@ void() W_SetCurrentAmmo =
 											self.weaponmodel = "progs/v_laserg.mdl";
 											self.weaponframe = 0;
 											self.items = (self.items | IT_CELLS);
+											self.axeequipped = 0;
 										}
 										else if ((self.weapon == IT_FUNGUN))
 										{
 											self.currentammo = FunGun_Ammo(self, self.fg_sel);
 											self.weaponmodel = FunGun_VModel(self.fg_sel);
 											self.weaponframe = 0;
-											axeequipped = 0;
+											self.axeequipped = 0;
 										}
 										else if ((self.weapon == IT_BANANA))
 										{
 											self.currentammo = self.bn_ammo;
 											self.weaponmodel = "";
 											self.weaponframe = 0;
-											axeequipped = 0;
+											self.axeequipped = 0;
 										}
 										else if ((self.weapon == IT_MEGAMAN))
 										{
 											self.currentammo = self.mm_ammo;
 											self.weaponmodel = MM_PickVModel();
 											self.weaponframe = 0;
-											axeequipped = 0;
+											self.axeequipped = 0;
 										}
 										else
 										{
 											self.currentammo = 0;
 											self.weaponmodel = "";
 											self.weaponframe = 0;
-											axeequipped = 0;
+											self.axeequipped = 0;
 										}
 									}
 								}
@@ -6789,7 +6792,7 @@ void() W_WeaponFrame =
 	{
 		if ((autocvar_zombienewmodelproperties >= 1))
 		{
-			if ((self.weapon == IT_AXE))
+			if ((self.weapon == IT_AXE) && !Binoc_On(self))
 			{
 				checkzombie();
 			}

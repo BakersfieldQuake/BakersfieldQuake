@@ -79,7 +79,7 @@ float invisweapon;
 void(string gibname, float dm) ThrowHeart;
 float welcomenote;
 .float welcomeshown;
-float axeequipped;
+.float axeequipped;
 .float axehitcount;
 .float burnable_corpse;
 .float pent_counter;

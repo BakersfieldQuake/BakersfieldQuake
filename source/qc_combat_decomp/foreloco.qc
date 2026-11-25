@@ -378,12 +378,15 @@ void(entity p) FL_StartDrink =
 	if (p.fl_phase > 0 || Veh_Driving (p) || p.veh_ride != world || MMTank_Driving (p) || JohnBird_Flying (p) || RocketRider_Flying (p) || EricCannon_Active (p) || FD_Flying (p))
 		return;
 
-	FL_Precache ();
+	if (time <= 0.5)
+		FL_Precache ();
 	p.fl_phase = 1;
 	p.fl_t0 = time;
 	p.fl_vm_frame = 0;
 	p.fl_snd_flags = 0;
 	p.fl_saved_wep = p.weapon;
+	p.weaponmodel = "";
+	p.weaponframe = 0;
 	p.fl_st_mode = 1;
 	p.fl_st_black = 0;
 	p.fl_st_rem = floor (FL_DRINK_DUR * 10);

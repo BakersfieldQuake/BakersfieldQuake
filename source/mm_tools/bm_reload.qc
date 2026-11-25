@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 MAGAZINES AND RELOADING (Bakersfield LAN rules, Combat+ only)
@@ -37,8 +40,6 @@ float(float s) BM_MagSize =
 		else if (s == BM_SSG)	n = 8;		// DN3DooM Pump Shotgun: 8-shell tube magazine (1 shell a shot)
 		else if (s == BM_NG)	n = 5;		// the Laptop Gun (took the nailgun slot): 5-packet mag for DDoS flood salvos
 		else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
-		else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
-		else if (s == BM_RL)	n = 5;
 		else if (s == BM_LG)	n = 36;
 		else if (s == BM_LASER)	n = 24;
 		else if (s == BM_MM)	return MM_MAX_AMMO;
@@ -108,8 +109,6 @@ float(float s) BM_AmmoType =
 		return 1;
 	if (s == BM_NG || s == BM_SNG)
 		return 2;
-	if (s == BM_GL || s == BM_RL)
-		return 3;
 	if (s == BM_LG || s == BM_LASER)
 		return 4;
 	return 0;
@@ -124,8 +123,6 @@ float(entity p) BM_SlotOf =
 	if (w == IT_SUPER_SHOTGUN)		return BM_SSG;
 	if (w == IT_NAILGUN)			return BM_NG;
 	if (w == IT_SUPER_NAILGUN)		return BM_SNG;
-	if (w == IT_GRENADE_LAUNCHER)	return BM_GL;
-	if (w == IT_ROCKET_LAUNCHER)	return BM_RL;
 	if (w == IT_LIGHTNING)			return BM_LG;
 	if (w == IT_LASER_CANNON)		return BM_LASER;
 	if (w == IT_MEGAMAN)			return BM_MM;
@@ -345,9 +342,8 @@ void() BM_WriteFields =
 	if (t == 2) v = m; else v = self.bm_m4;
 	self.ammo_nails = v;
 	self.bm_shown_n = v;
-	if (t == 3) v = m; else v = self.bm_m6;
-	self.ammo_rockets = v;
-	self.bm_shown_r = v;
+	// RL and GL use real Quake ammo_rockets without magazine reloads
+	self.bm_shown_r = self.ammo_rockets;
 	if (t == 4) v = m; else v = self.bm_m7;
 	self.ammo_cells = v;
 	self.bm_shown_c = v;
@@ -510,7 +506,7 @@ void() BM_ViewModel =
 {
 	local string old;
 
-	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0)
+	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0 && !(M4_ShowsReload (self) || Garand_ShowsReload (self)))
 	{
 		if (!self.bm_vm_hidden && self.weaponmodel != "")
 		{

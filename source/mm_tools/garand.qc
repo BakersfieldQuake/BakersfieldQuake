@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 THE M1 GARAND (see garand_defs.qc for tunables and frame map)
@@ -76,7 +79,7 @@ void() Garand_VwepThink =
 	local entity p;
 
 	p = self.owner;
-	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_GARAND || (p.items & IT_INVISIBILITY))
+	if (!p || p.health <= 0 || p.weapon != IT_FUNGUN || p.fg_sel != FG_GARAND || (p.items & IT_INVISIBILITY) || Veh_Driving (p) || p.veh_ride != world || JohnBird_Flying (p) || RocketRider_Flying (p) || MMTank_Driving (p) || EricCannon_Active (p) || FD_Flying (p))
 	{
 		if (p && p.gar_vwep == self)
 			p.gar_vwep = world;
@@ -93,7 +96,7 @@ void() Garand_UpdateVwep =
 
 	if (!gar_pmodel_ok)
 		return;
-	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_GARAND && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl");
+	show = (self.weapon == IT_FUNGUN && self.fg_sel == FG_GARAND && self.health > 0 && !(self.items & IT_INVISIBILITY) && self.model == "progs/player_torso.mdl" && !Veh_Driving (self) && self.veh_ride == world && !JohnBird_Flying (self) && !RocketRider_Flying (self) && !MMTank_Driving (self) && !EricCannon_Active (self) && !FD_Flying (self));
 	if (!show)
 	{
 		if (self.gar_vwep)
@@ -128,21 +131,24 @@ void() Garand_MuzzleAndBrass =
 
 	if (self.waterlevel < 3)
 	{
-		fl = spawn ();
-		fl.movetype = 0;
-		fl.solid = 0;
-		fl.viewmodelforclient = self;
-		fl.owner = self;
-		fl.classname = "flash";
-		fl.effects = EF_ADDITIVE;
-		setmodel (fl, "progs/muzzleflash1.spr");
-		fl.scale = 0.62 + random () * 0.14;
-		fl.alpha = 0.90;
-		setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
-		// Aligned with baked v_garand.md3 barrel tip [84.05, -7.11, -3.79]
-		setorigin (fl, '84.8 -7.1 -3.8');
-		fl.think = SUB_Remove;
-		fl.nextthink = time + 0.05;
+		if (self.ishuman == 1)
+		{
+			fl = spawn ();
+			fl.movetype = 0;
+			fl.solid = 0;
+			fl.viewmodelforclient = self;
+			fl.owner = self;
+			fl.classname = "flash";
+			fl.effects = EF_ADDITIVE;
+			setmodel (fl, "progs/muzzleflash1.spr");
+			fl.scale = 0.62 + random () * 0.14;
+			fl.alpha = 0.90;
+			setsize (fl, VEC_ORIGIN, VEC_ORIGIN);
+			// Aligned with baked v_garand.md3 barrel tip [84.05, -7.11, -3.79]
+			setorigin (fl, '84.8 -7.1 -3.8');
+			fl.think = SUB_Remove;
+			fl.nextthink = time + 0.05;
+		}
 
 		sendParticle ("nailgun_muzzleflash", (self.origin + self.view_ofs) + v_forward * 26 + v_right * 9 - v_up * 4, self.velocity * 20, 1, 0);
 	}
@@ -184,21 +190,10 @@ void() Garand_MuzzleAndBrass =
 
 void(vector dir) Garand_WallImpact =
 {
-	local float surfacenum, r;
-	local string tex;
+	local float r;
 
-	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
+	if (pointcontents (trace_endpos) == CONTENT_SKY || pointcontents (trace_endpos + dir * 2) == CONTENT_SKY || pointcontents (trace_endpos - dir * 2) == CONTENT_SKY)
 		return;
-	if (trace_ent == world)
-	{
-		surfacenum = getsurfacenearpoint (world, trace_endpos);
-		if (surfacenum >= 0)
-		{
-			tex = getsurfacetexture (world, surfacenum);
-			if (tex == "black" || substring (tex, 0, 3) == "sky")
-				return;
-		}
-	}
 
 	if (gar_fx_hole >= 0)
 		pointparticles (gar_fx_hole, trace_endpos, VEC_ORIGIN, 1);
@@ -279,19 +274,19 @@ void() Garand_Press =
 		spr = spr + GAR_SPREAD_AIR;
 
 	dir = normalize (v_forward + (crandom () * spr) * v_right + (crandom () * spr) * v_up);
-	src = self.origin + self.view_ofs + (v_forward * 10);
+	src = self.origin + self.view_ofs;
+	traceline (src, src + (v_forward * 10), TRUE, self);
+	src = (trace_fraction < 1) ? (src + (v_forward * max (0, (trace_fraction * 10) - 1))) : (src + (v_forward * 10));
 	ClearMultiDamage ();
 	traceline (src, src + dir * GAR_RANGE, FALSE, self);
-	if (trace_fraction != 1)
+	dist = trace_fraction * GAR_RANGE;
+	dmg = GAR_DAMAGE;
+	if (dist > 1400)
+		dmg = max (GAR_DAMAGE * 0.55, GAR_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
+	if (!PC_TraceIntercept (self, src, trace_endpos, dmg) && trace_fraction != 1)
 	{
 		if (trace_ent.takedamage || trace_ent.inflamed == 1)
-		{
-			dist = trace_fraction * GAR_RANGE;
-			dmg = GAR_DAMAGE;
-			if (dist > 1400)
-				dmg = max (GAR_DAMAGE * 0.55, GAR_DAMAGE * (1 - 0.45 * ((dist - 1400) / 2100)));
 			TraceAttack (dmg, dir);
-		}
 		else
 			Garand_WallImpact (dir);
 	}

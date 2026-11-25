@@ -750,6 +750,7 @@ void() WC_Think =
 	c = pointcontents (self.origin + '0 0 8');
 	if (c == CONTENT_SKY)
 	{
+		sound (self, CHAN_VOICE, "misc/null.wav", 1, ATTN_NONE);
 		remove (self);
 		return;
 	}
@@ -1041,10 +1042,12 @@ void() WC_Frame =
 	}
 	if (!self.wc_charging)
 		return;
-	if (self.health <= 0 || self.weapon != IT_FUNGUN || self.fg_sel != FG_WCANNON || time - self.wc_charging > WC_CHARGE_TIME + 1)
+	if (self.health <= 0 || self.weapon != IT_FUNGUN || self.fg_sel != FG_WCANNON || Veh_Driving (self) || self.veh_ride != world || JohnBird_Flying (self) || RocketRider_Flying (self) || MMTank_Driving (self) || EricCannon_Active (self) || FD_Flying (self) || time - self.wc_charging > WC_CHARGE_TIME + 1)
 	{
 		self.wc_charging = 0;
 		sound (self, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NONE);
+		if (self.ishuman == 1)
+			centerprint (self, "");
 		return;
 	}
 	c = (time - self.wc_charging) / WC_CHARGE_TIME;
