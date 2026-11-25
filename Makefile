@@ -9,6 +9,14 @@
 
 WORK ?= $(CURDIR)/build
 BASE := $(WORK)/base/BAKOQUAKE
+
+# Pick the base package for this OS. Release assets: BAKOQUAKE-macos-arm64.zip, BAKOQUAKE-linux-x86_64.zip.
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Darwin)
+  BASE_ZIP := BAKOQUAKE-macos-arm64.zip
+else
+  BASE_ZIP := BAKOQUAKE-linux-x86_64.zip
+endif
 PKG  := $(WORK)/pkg/BAKOQUAKE
 APP  := $(WORK)/out/BAKOQUAKE.app
 # The updater is frozen with uv's python-build-standalone 3.12 (targets macOS 11.0); build_app.sh refuses
@@ -36,12 +44,17 @@ $(BASE)/BakersfieldQuake/bakersfield.pk3:
 base:
 	@set -e; \
 	for t in $$(gh release list --exclude-drafts -L 20 --json tagName -q '.[].tagName'); do \
-	  gh release view "$$t" --json assets -q '.assets[].name' | grep -qx BAKOQUAKE-macos-arm64.zip && { tag=$$t; break; }; \
+	  gh release view "$$t" --json assets -q '.assets[].name' | grep -qx "$(BASE_ZIP)" && { tag=$$t; break; }; \
 	done; \
-	[ -n "$$tag" ] || { echo "no release with BAKOQUAKE-macos-arm64.zip"; exit 1; }; \
-	echo "base: $$tag"; \
+	[ -n "$$tag" ] || { echo "no release with $(BASE_ZIP)"; exit 1; }; \
+	url=$$(gh release view "$$tag" --json assets -q '.assets[] | select(.name=="$(BASE_ZIP)") | .apiUrl'); \
+	echo "base: $$tag ($(BASE_ZIP))"; \
 	rm -rf "$(WORK)/dl" "$(WORK)/base"; \
-	gh release download "$$tag" -p BAKOQUAKE-macos-arm64.zip -D "$(WORK)/dl"; \
-	mkdir -p "$(WORK)/base"; \
-	ditto -x -k "$(WORK)/dl/BAKOQUAKE-macos-arm64.zip" "$(WORK)/base"; \
+	mkdir -p "$(WORK)/dl" "$(WORK)/base"; \
+	curl -L --fail --retry 3 -H "Authorization: Bearer $$(gh auth token)" -H "Accept: application/octet-stream" \
+	  "$$url" -o "$(WORK)/dl/$(BASE_ZIP)"; \
+	case "$(UNAME)" in \
+	  Darwin) ditto -x -k "$(WORK)/dl/$(BASE_ZIP)" "$(WORK)/base" ;; \
+	  *)      unzip -o -q "$(WORK)/dl/$(BASE_ZIP)" -d "$(WORK)/base" ;; \
+	esac; \
 	rm -rf "$(WORK)/dl"
