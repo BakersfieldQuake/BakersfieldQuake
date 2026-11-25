@@ -2546,9 +2546,15 @@ void() PlayerPreThink =
 								if ((self.health > 0))
 								{
 									if ((autocvar_player_model == 5))
-										setmodel(self, "progs/player_torso.mdl");
+									{
+										if (self.model != "progs/player_torso.mdl")
+											setmodel(self, "progs/player_torso.mdl");
+									}
 									else
-										setmodel(self, "progs/player_id1.mdl");
+									{
+										if (self.model != "progs/player_id1.mdl")
+											setmodel(self, "progs/player_id1.mdl");
+									}
 									if ((self.items & IT_SUIT))
 									{
 										if ((autocvar_player_model == 5))
@@ -2611,17 +2617,18 @@ void() PlayerPreThink =
 	{
 		if ((self.health <= 40))
 		{
-			if ((self.health <= 20))
+			if (time >= self.bm_bleed_t)
 			{
-				Bleeding2(self);
-			}
-			else
-			{
-				Bleeding1(self);
+				self.bm_bleed_t = time + 0.125;
+				if ((self.health <= 20))
+					Bleeding2(self);
+				else
+					Bleeding1(self);
 			}
 		}
-		else
+		else if (self.bm_bleed_t > 0)
 		{
+			self.bm_bleed_t = 0;
 			Bleedingnull(self);
 		}
 	}

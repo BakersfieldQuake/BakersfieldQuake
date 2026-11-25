@@ -332,3 +332,4 @@ entity bm_push_head;
 .entity bm_push_next;
 float bako_broken_glass_cnt;
 float bako_glass_resp_t;
+.float bm_bleed_t;

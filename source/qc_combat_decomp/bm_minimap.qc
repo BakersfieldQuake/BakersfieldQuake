@@ -169,7 +169,8 @@ entity(entity p) BM_Radar_EnsureFeed =
 		f.SendEntity = BM_RadarSend;
 		p.bm_radar_ent = f;
 	}
-	setorigin (f, p.origin);
+	if (vlen (f.origin - p.origin) > 64 || f.SendFlags != 0)
+		setorigin (f, p.origin);
 	return f;
 };
 

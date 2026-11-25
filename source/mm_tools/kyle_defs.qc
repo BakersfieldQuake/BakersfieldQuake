@@ -156,6 +156,10 @@ float	ky_far_dist;
 .float	ky_clang_t;			// throttle metallic scissor bounce clang SFX
 .float	ky_range_given;		// kyle_range: auto-equipped Pocket Kyle on spawn
 .entity	ky_targ;			// latched or pursued target
+.float	ky_lock_scan_t;		// throttle KY_FindLockTarget scans while holding fire
+.entity	ky_lock_cached;		// cached lock target between throttled scans
+.float	ky_enemy_scan_t;	// throttle KY_FindNearbyEnemy scans on thrown Kyle
+.entity	ky_enemy_cached;	// cached nearby enemy between scans
 .vector	ky_reg_pos;			// unused legacy field
 
 entity	ky_range_ctrl;		// practice range controller (only active on map kyle_range)

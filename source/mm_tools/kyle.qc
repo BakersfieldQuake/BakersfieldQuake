@@ -940,22 +940,50 @@ entity() KY_FindNearbyEnemy =
 	local entity e, best;
 	local float bd, d;
 
+	if (time < self.ky_enemy_scan_t)
+	{
+		if (self.ky_enemy_cached != world && !bm_wasfreed (self.ky_enemy_cached) && KY_IsValidTarget (self.owner, self.ky_enemy_cached))
+			return self.ky_enemy_cached;
+	}
+	self.ky_enemy_scan_t = time + 0.10;
+
 	best = world;
 	bd = 720;
-	e = findradius (self.origin, bd);
-	while (e)
+	if (deathmatch)
 	{
-		if (KY_IsValidTarget (self.owner, e))
+		e = bm_player_head;
+		while (e)
 		{
-			d = vlen (e.origin - self.origin);
-			if (d < bd)
+			if (KY_IsValidTarget (self.owner, e))
 			{
-				bd = d;
-				best = e;
+				d = vlen (e.origin - self.origin);
+				if (d < bd)
+				{
+					bd = d;
+					best = e;
+				}
 			}
+			e = e.bm_player_next;
 		}
-		e = e.chain;
 	}
+	else
+	{
+		e = findradius (self.origin, bd);
+		while (e)
+		{
+			if (KY_IsValidTarget (self.owner, e))
+			{
+				d = vlen (e.origin - self.origin);
+				if (d < bd)
+				{
+					bd = d;
+					best = e;
+				}
+			}
+			e = e.chain;
+		}
+	}
+	self.ky_enemy_cached = best;
 	return best;
 };
 
@@ -1597,10 +1625,17 @@ void() KY_Frame =
 		KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.50, 0.96 + 0.20 * max (self.ky_lock_prog, self.ky_windup), KY_ATTN_SNIP);
 	}
 
-	// Dual Hold-Fire Behavior:
-	//   A) Aiming at a Winged John Bird / sky vehicle INSIDE hairspray-counter range (<= 780u) -> DEDICATED BIRD LOCK-ON!
-	//   B) Aiming anywhere else (or bird > 780u away) -> WIND UP THROW POWER to throw Kyle farther!
-	t = KY_FindLockTarget (self);
+	// Dual Hold-Fire Behavior (throttled to ~12.5 Hz to avoid 72-100 Hz find/findradius scans while holding fire)
+	if (time >= self.ky_lock_scan_t)
+	{
+		self.ky_lock_scan_t = time + 0.08;
+		self.ky_lock_cached = KY_FindLockTarget (self);
+	}
+	else if (self.ky_lock_cached != world && (bm_wasfreed (self.ky_lock_cached) || self.ky_lock_cached.health <= 0))
+	{
+		self.ky_lock_cached = world;
+	}
+	t = self.ky_lock_cached;
 	if (t != world)
 	{
 		if (!self.ky_bird_locking && time >= self.ky_lock_snd_t)

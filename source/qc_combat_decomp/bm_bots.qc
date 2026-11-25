@@ -1868,13 +1868,13 @@ void() BM_BotPostAI =
 			}
 			else if (time >= self.bm_bot_repick_t)
 			{
+				self.bm_bot_repick_t = time + 0.25;
 				// stairs / ramps / curbs blocked this flat probe every frame: re-scan only if the slope check fails too
 				traceline (self.origin + '0 0 18', self.origin + '0 0 18' + self.bm_bot_free_dir * 84, TRUE, self);
 				if (trace_fraction < 0.85 && !BM_BotSlopeOpen (self.bm_bot_free_dir))
 				{
 					self.bm_bot_free_dir = BM_BotPickOpenDir (TRUE, TRUE, world);
 					self.bm_bot_free_t = time + 0.90 + random () * 0.70;
-					self.bm_bot_repick_t = time + 0.25;
 				}
 			}
 			self.b_angle_y = vectoyaw (self.bm_bot_free_dir);

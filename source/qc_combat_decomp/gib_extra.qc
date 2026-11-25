@@ -152,7 +152,9 @@ void(float del) spawn_bloodpool =
 
 void() fire_burn_out =
 {
+	local float pc;
 
+	pc = pointcontents(self.origin);
 	if ((cvar("gl_flashblend") == 1))
 	{
 		self.pflags = 3;
@@ -164,12 +166,12 @@ void() fire_burn_out =
 	self.spintimer = (self.spintimer + 1);
 	self.think = fire_burn_out;
 	self.nextthink = (time + 0.1);
-	if ((self.spintimer < 240) && (time >= self.dn3fx_fire_t) && (pointcontents(self.origin) != CONTENT_WATER) && (pointcontents(self.origin) != CONTENT_SLIME))
+	if ((self.spintimer < 240) && (time >= self.dn3fx_fire_t) && (pc != CONTENT_WATER) && (pc != CONTENT_SLIME))
 	{
-		self.dn3fx_fire_t = time + 0.42;
+		self.dn3fx_fire_t = time + 0.95;
 		DN3FX_OnFire(self.origin, '0 0 18', 0.85, FALSE);
 	}
-	if ((((pointcontents(self.origin) == CONTENT_WATER) || (pointcontents(self.origin) == CONTENT_SLIME)) || (pointcontents(self.origin) == CONTENT_LAVA)))
+	if (((pc == CONTENT_WATER) || (pc == CONTENT_SLIME) || (pc == CONTENT_LAVA)))
 	{
 		self.pflags = 3;
 	}
@@ -238,7 +240,7 @@ void() spawn_fire =
 	fire.traileffectnum = particleeffectnum(/*15061i*/"rocket_burn");
 	if ((((pointcontents(fire.origin) == CONTENT_WATER) || (pointcontents(fire.origin) == CONTENT_SLIME)) || (pointcontents(fire.origin) == CONTENT_LAVA)))
 	{
-		fire.traileffectnum = particleeffectnum(/*1i*/"");
+		fire.traileffectnum = 0;
 		fire.spintimer = 379;
 	}
 	else
@@ -283,8 +285,12 @@ void() burngib_end_think =
 {
 	self.traileffectnum = particleeffectnum(/*15169i*/"charred_gib");
 	self.pflags = 3;
-	self.light_lev = 0;
-	LIGHT_COUNT = LIGHT_COUNT - 1;
+	if (self.light_lev > 0)
+	{
+		self.light_lev = 0;
+		if (LIGHT_COUNT > 0)
+			LIGHT_COUNT = LIGHT_COUNT - 1;
+	}
 	self.colormod = '0.15 0.2 0.2';
 };
 

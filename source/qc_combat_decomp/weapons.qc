@@ -2006,7 +2006,7 @@ void() updateSNG =
 	self.weapon_anim_z_angles_downwards = self.owner.weapon_anim_z_angles_downwards;
 	self.frame = self.owner.weaponframe;
 	self.think = updateSNG;
-	self.nextthink = time;
+	self.nextthink = time + 0.05;
 };
 
 void() SNGHeater =
@@ -2188,21 +2188,24 @@ void() screenshake =
 		remove(self);
 		return;
 	}
-	plyr = findradius(self.origin, 600);
+	plyr = bm_player_head;
 	while (plyr)
 	{
-		if ((plyr.flags & FL_CLIENT))
+		if (plyr.ishuman == 1)
 		{
 			d = vlen((self.origin - plyr.origin));
-			d = (1300 - d) / 180;
-			if ((d > 0))
+			if (d <= 600)
 			{
-				plyr.punchangle_x = (-1 * (((random() * 2) + -1) + (0.05 * d)));
-				plyr.punchangle_y = (-1 * (((random() * 2) + -1) + (0.05 * d)));
-				plyr.punchangle_z = (-1 * (((random() * 4) + -2) + (0.05 * d)));
+				d = (1300 - d) / 180;
+				if ((d > 0))
+				{
+					plyr.punchangle_x = (-1 * (((random() * 2) + -1) + (0.05 * d)));
+					plyr.punchangle_y = (-1 * (((random() * 2) + -1) + (0.05 * d)));
+					plyr.punchangle_z = (-1 * (((random() * 4) + -2) + (0.05 * d)));
+				}
 			}
 		}
-		plyr = plyr.chain;
+		plyr = plyr.bm_player_next;
 	}
 	self.nextthink = (time + 0.1);
 	self.think = screenshake;

@@ -142,18 +142,18 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 			}
 		}
 
-		if (autocvar_gyroset != 0 || gyro_objectlist_head)
-		{
-			align = dir + (v_up * 0.25);
-			traceline (self.origin, self.origin + (align * 200), FALSE, self);
-			shotvector = (trace_endpos - self.origin) + (normalize (dir) * 80);
-			shot = Gyro_Force_Create ("gunshot", self.origin);
-			Gyro_Force_ApplyFalloff_ConeLinear (shot, shotvector, 18, 18);
-			Gyro_Force_ApplyAffector_Directional (shot, shotvector, 95, FALSE);
-			Gyro_Force_AddProperty_Instant (shot);
-			Gyro_Force_Ignore (shot, self);
-		}
 		i = i + 1;
+	}
+	if (autocvar_gyroset != 0 || gyro_objectlist_head)
+	{
+		align = dir + (v_up * 0.25);
+		traceline (self.origin, self.origin + (align * 200), FALSE, self);
+		shotvector = (trace_endpos - self.origin) + (normalize (dir) * 80);
+		shot = Gyro_Force_Create ("gunshot", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear (shot, shotvector, 18, 18);
+		Gyro_Force_ApplyAffector_Directional (shot, shotvector, 95, FALSE);
+		Gyro_Force_AddProperty_Instant (shot);
+		Gyro_Force_Ignore (shot, self);
 	}
 	W_BulletSplash (dir);
 	ApplyMultiDamage ();

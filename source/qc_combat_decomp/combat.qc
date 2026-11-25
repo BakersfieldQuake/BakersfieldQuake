@@ -466,16 +466,19 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 	if (damage >= 25)
 		BM_Radar_Ping(attacker, inflictor.origin, BM_RPK_BLAST);
 
-	explo = Gyro_Force_Create("explosion", inflictor.origin);
-	Gyro_Force_ApplyFalloff_AreaQuadratic(explo, ('4 4 4' * damage));
-	Gyro_Force_ApplyAffector_Point(explo, '0 0 -24', '1 1 1', (damage * 6.25), FALSE);
-	Gyro_Force_AddProperty_Instant(explo);
-	Gyro_Force_AddProperty_AirOnly(explo);
-	explo = Gyro_Force_Create("explosion", inflictor.origin);
-	Gyro_Force_ApplyFalloff_AreaLinear(explo, ('2 2 2' * damage));
-	Gyro_Force_ApplyAffector_Point(explo, '0 0 -24', '1 1 1', (damage * 3), FALSE);
-	Gyro_Force_AddProperty_Instant(explo);
-	Gyro_Force_AddProperty_WaterOnly(explo);
+	if (autocvar_gyroset != 0 || gyro_objectlist_head)
+	{
+		explo = Gyro_Force_Create("explosion", inflictor.origin);
+		Gyro_Force_ApplyFalloff_AreaQuadratic(explo, ('4 4 4' * damage));
+		Gyro_Force_ApplyAffector_Point(explo, '0 0 -24', '1 1 1', (damage * 6.25), FALSE);
+		Gyro_Force_AddProperty_Instant(explo);
+		Gyro_Force_AddProperty_AirOnly(explo);
+		explo = Gyro_Force_Create("explosion", inflictor.origin);
+		Gyro_Force_ApplyFalloff_AreaLinear(explo, ('2 2 2' * damage));
+		Gyro_Force_ApplyAffector_Point(explo, '0 0 -24', '1 1 1', (damage * 3), FALSE);
+		Gyro_Force_AddProperty_Instant(explo);
+		Gyro_Force_AddProperty_WaterOnly(explo);
+	}
 	if ((damage < 50))
 	{
 		radboost = damage * 0.65;
