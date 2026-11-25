@@ -1429,14 +1429,15 @@ void() PutClientInServer =
 		return;
 	}
 
-	if (((!deathmatch && !coop) || ((deathmatch || coop) && !IN_SLOWMO)))
+	if (((!deathmatch && !coop) || ((deathmatch || coop) && !IN_SLOWMO)) && (autocvar_slowmo != 1))
 	{
 		localcmd("slowmo 1\n");
 	}
-	stuffcmd(self, "v_psycho 0\n");
+	if (self.ishuman == 1)
+		stuffcmd(self, "v_psycho 0\n");
 	self.bm_psycho_sent = 0;
 	self.bm_xh_key = 0;
-	if (autocvar_chasecam_death_view)
+	if (autocvar_chasecam_death_view && (self.ishuman == 1))
 	{
 		stuffcmd(self, "chase_active 0\n");
 		stuffcmd(self, "chase_back 65\n");
@@ -1689,7 +1690,7 @@ void() PutClientInServer =
 	{
 		spawn_tdeath(self.origin, self);
 	}
-	if (!autocvar_ent_fog)
+	if (!autocvar_ent_fog && !deathmatch && (self.ishuman == 1))
 	{
 		localcmd("fog 0\n");
 	}
@@ -2501,7 +2502,7 @@ void() PlayerPreThink =
 			self.PLR_SNDSPD = 100;
 		}
 	}
-	if ((autocvar_coop_life_pool && (self.health > 0)))
+	if ((autocvar_coop_life_pool && (self.health > 0)) && !Veh_Driving(self) && (self.veh_ride == world) && !JohnBird_Flying(self) && !RocketRider_Flying(self) && !MMTank_Driving(self) && !EricCannon_Active(self) && !FD_Flying(self))
 	{
 		self.clientcamera = self;
 	}
@@ -3914,24 +3915,33 @@ void() ClientDisconnect =
 	self.v_weapon_position_helper = 0;		// his viewmodel entities remove themselves; a newcomer in the slot spawns fresh ones
 	self.quad_v_weapon_position_helper = 0;
 	self.ctf_color_side = 0;		// CTF: the next client in this slot gets his team colours stuffed again
+	self.bm_voted = 0;
+	self.bm_vote_cool = 0;
+	self.jb_cooldown_t = 0;
+	self.bako_shake_cur = '0 0 0';
+	self.veh_hint_shown = 0;
+	self.bm_rl_slot = 0;
+	self.bm_rl_quiet = 0;
+	self.axeequipped = 0;
+	DN3SG_Reset();
 	self.classname = "";		// a leaver's body must not stay in every find(world, classname, "player") loop: frags, leader, player count
 	self.health = 0;
 	self.takedamage = DAMAGE_NO;	// nor be a body that can be shot, or homed on, until the slot is reused
 	self.solid = SOLID_NOT;
 	self.movetype = MOVETYPE_NONE;
 	self.modelindex = 0;
-	if ((autocvar_player_changes_shirt_color_according_to_used_armor && !deathmatch))
+	if ((autocvar_player_changes_shirt_color_according_to_used_armor && !deathmatch && (self.ishuman == 1)))
 	{
 		stuffcmd(self, "topcolor 2\n");
 	}
-	if (autocvar_chasecam_death_view)
+	if (autocvar_chasecam_death_view && (self.ishuman == 1))
 	{
 		stuffcmd(self, "chase_active 0\n");
 		stuffcmd(self, "chase_back 65\n");
 		stuffcmd(self, "chase_up 10\n");
 		stuffcmd(self, "chase_overhead 0\n");
 	}
-	if (((autocvar_weapon_range_crosshair || autocvar_player_health_crosshair) || autocvar_monster_health_crosshair))
+	if (((autocvar_weapon_range_crosshair || autocvar_player_health_crosshair) || autocvar_monster_health_crosshair) && (self.ishuman == 1))
 	{
 		stuffcmd(self, "crosshair_color_red 1\n");
 		stuffcmd(self, "crosshair_color_green 0\n");

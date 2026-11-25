@@ -1,4 +1,6 @@
-// STALE COPY - NOT BUILT (2026-11-18). build_combat.py no longer copies this file: the live version is source/qc_combat_decomp/bm_match.qc. Edit that one.
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 MATCH RULES (Bakersfield LAN rules, Combat+ only)
@@ -62,21 +64,24 @@ void() BM_Precache =
 		cvar_set ("sv_maxvelocity", cvar_string ("bm_maxvel_saved"));
 		cvar_set ("bm_maxvel_saved", "0");
 	}
-	if (autocvar_bm_newbie > 0)
-		precache_sound ("funny/newbie.wav");
-	if (autocvar_bm_fun)
-		BM_Fun_Precache ();
+	// Unconditionally precache jetpack, newbie, and announcer clips in worldspawn so bots on maps without
+	// item_jetpack/item_armor2 (e.g. terminal21, ooika_lawrenceville) and mid-map cvar toggles never precache post-spawn
+	Jetpack_Precache ();
+	precache_sound ("funny/newbie.wav");
+	BM_Fun_Precache ();
 	// Lazy sprite loading: David, Daniel, GreenSuit, RobeGuy and the crowd are about 1 GB of 32-bit sprites. Each of them
 	// precaches itself where it is used (summon impulses, map entities, npc_crowd), so a map that never shows them no longer
 	// loads them. Only the fox crowd is spawned by code after load, so fox still loads its crowd here.
-	RandomNPCs_Precache ();
+	// The random NPCs, the Eric cannon (and its LAN props), the Mega Man tank and the sky pads are map-placed or summoned by
+	// test impulses, and each of them precaches itself in its own init (RandomNPC_InitCommon, EC_InitMonument, Lan_InitProp,
+	// MMT_InitTank, the sky pad spawn function). Loading all of them here cost every map about 70 models and 170 MB of
+	// textures it never showed (2026-11-18 load audit), so a map that places none of them no longer loads them.
 	if (world.model == "maps/fox.bsp")
 		Crowd_Precache ();
 	Soi6_Precache ();
 	JohnBird_Precache ();
-	EricCannon_Precache ();
-	MMTank_Precache ();
-	SkyPad_Precache ();
+	RocketRider_Precache ();
+	precache_sound ("items/r_item1.wav");	// skeet reward sound (proj_collide.qc); maps without health items never precached it
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push
@@ -102,7 +107,7 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 				|| inflictor.classname == "eric_cannon_blast"
 				|| inflictor.classname == "mm_tank_bar" || inflictor.classname == "mm_tank_blast"
 				|| (inflictor.classname == "building_sentrygun" && inflictor.health <= 0)
-				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.veh_kind > 0)
+				|| inflictor.classname == "misc_vehicle_johnbird" || inflictor.classname == "misc_vehicle_rocketrider" || inflictor.veh_kind > 0)
 			{
 				targ.bm_last_hit_explosive = TRUE;
 			}
@@ -334,7 +339,8 @@ void() BM_LifeFrame =
 	if (self.fg_ammo6 >= 1 && self.bm_rl_slot != BM_FG6)		tmask = tmask | 32;
 	if (time >= self.jb_cooldown_t)								tmask = tmask | 64;
 	if (self.ud_blueshell)										tmask = tmask | 128;
-	if (self.veh_van != world || self.veh_ride != world)		tmask = tmask | 256;
+	if (self.veh_van != world || self.veh_ride != world || RocketRider_Flying (self))		tmask = tmask | 256;
+	if (Veh_Driving (self) || RocketRider_Flying (self))									tmask = tmask | 512;
 	self.bm_st_toymask = tmask;
 	self.bm_st_toycd = max (0, ceil (self.jb_cooldown_t - time));
 
@@ -574,6 +580,35 @@ void() BM_Stats =
 	clientstat (90, 2, mmt_st_ex);
 	clientstat (91, 2, mmt_st_ey);
 	clientstat (92, 2, mmt_st_ez);
+	clientstat (93, 2, jb_st_active);		// Winged John: 0=off, 1=3rd-person, 2=1st-person
+	clientstat (94, 2, jb_st_variant);		// Winged John combat variant 1..3
+	clientstat (95, 2, jb_st_combat);		// Winged John combat flags (1=combat, 2=M1, 4=M3/R, 16=Shift boost)
+	clientstat (96, 2, jb_st_status);		// Winged John / player status (1=slowed, 2=burning, 4=low HP <=200)
+	clientstat (97, 2, jb_st_boost);		// Winged John boost gauge 0..100
+	clientstat (98, 2, jb_st_hp);			// Winged John HP 0..500
+	clientstat (99, 2, jb_st_hit);			// Winged John hit-confirm counter
+	clientstat (100, 2, jb_st_ammo);		// Winged John hairspray cans remaining 0..JB_MAX_AMMO
+	clientstat (101, 2, jb_st_ammoprog);	// Winged John next-can restock progress 0..100
+	clientstat (102, 2, jb_st_speed);		// Winged John airspeed u/s
+	clientstat (103, 2, ky_st_mode);		// Pocket Kyle HUD: 0=off, 1=windup, 2=locking bird, 3=locked, 4=bird too far
+	clientstat (104, 2, ky_st_prog);		// Pocket Kyle HUD: 0..100 charge or lock progress
+	clientstat (105, 2, ky_st_dist);		// Pocket Kyle HUD: distance to bird/sky vehicle in units
+	clientstat (106, 2, ky_st_tx);			// Pocket Kyle HUD: targeted bird world X
+	clientstat (107, 2, ky_st_ty);			// Pocket Kyle HUD: targeted bird world Y
+	clientstat (108, 2, ky_st_tz);			// Pocket Kyle HUD: targeted bird world Z
+	clientstat (109, 2, gk_st_mode);		// Go-Kart rocket HUD: 0=off, 1=charging, 2=armed, 3=low nitro, 4=reloading
+	clientstat (110, 2, gk_st_prog);		// Go-Kart rocket HUD: 0..100 progress
+	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
+	clientstat (112, 2, dn3_st_frame);		// DN3DooM Pump Shotgun CSQC 2D sprite frame + flags
+	clientstat (113, 2, dn3_st_speed);		// DN3DooM Pump Shotgun horizontal speed for walk bob
+	clientstat (114, 2, fl_st_black);		// ForeLoco screen blackout alpha 0..100
+	clientstat (115, 2, fl_st_mode);		// ForeLoco phase: 0=off, 1=drinking, 2=blackout, 3=hospital bed
+	clientstat (116, 2, fl_st_rem);			// ForeLoco remaining time in tenths of a second
+	clientstat (117, 2, fl_st_speed);		// ForeLoco hospital bed speed u/s
+	clientstat (118, 2, fl_st_flags);		// ForeLoco invuln/orbit/boost flags + ram KO count
+	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
+	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
+	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
 };
 
 float() BM_CountPlayers =
@@ -627,7 +662,7 @@ float() BM_DummyBot =
 {
 	local float dir, k;
 
-	if (!BM_DummyMap ())
+	if (!BM_DummyMap () && !(practice_active && !practice_live_fire))
 		return FALSE;
 	self.button0 = 0;
 	self.button2 = 0;
@@ -744,7 +779,7 @@ string() BM_VoteMapList =
 	s = cvar_string ("bm_votemaps");
 	if (s != "")
 		return s;
-	return "soi6 soicowboy_bkk bakersfielddowntown morrorock bklan6 dm6";
+	return "soi6 soicowboy_bkk bakersfielddowntown bakersfieldish terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6";
 };
 
 void(entity e, string m) BM_VoteStart =
@@ -929,6 +964,8 @@ void(string s) SV_ParseClientCommand =
 		sprint (self, strcat ("Mega Man Tank boom pool mask=", ftos (floor (autocvar_mm_tank_boom_mask)), " (packs: ", MMT_BoomMaskSummary (autocvar_mm_tank_boom_mask), ")\n"));
 		return;
 	}
+	if (BakoDestruct_ClientCmd (self, n))
+		return;
 	clientcommand (self, s);
 };
 
@@ -977,6 +1014,8 @@ void() BM_StartFrame =
 			else
 				tail.bm_player_next = p;
 			tail = p;
+			if (p.ishuman == 1)
+				BakoDestruct_UpdatePlayerStats (p);
 		}
 		if (cno < 16)
 		{
@@ -999,10 +1038,12 @@ void() BM_StartFrame =
 	Underdog_Update ();
 	Crowd_Tick ();
 	Soi6_Tick ();
+	RocketRider_MapTick ();
 	MMTank_StartFrame ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
 	BM_ObsCheckDiscard ();
+	BM_Radar_Tick ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
 		bm_debug_t = time + 2;
@@ -1019,8 +1060,10 @@ void() BM_StartFrame =
 		return;
 	// leave bm_bot_reserve slots open (LAN too): a joining human otherwise lands in a bot's slot,
 	// and on a public server the reserve rule would kick every bot this adds
-	if (want > max_clients - autocvar_bm_bot_reserve)
-		want = max_clients - autocvar_bm_bot_reserve;
+	// observers hold a slot but are not in BM_CountPlayers: subtract them too, or the public
+	// reserve kick (which does) removes each bot this adds, forever
+	if (want > max_clients - autocvar_bm_bot_reserve - bm_obs_count)
+		want = max_clients - autocvar_bm_bot_reserve - bm_obs_count;
 	n = BM_CountPlayers ();
 	if (n < 1 && !autocvar_bm_botfill_empty)
 		return;		// nobody here yet: don't fill an empty server
@@ -1185,7 +1228,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -1197,6 +1240,7 @@ void(entity p) BM_ClientGone =
 	local entity e, nx, me;
 
 	NS_ClientGone (p);
+	KY_CleanupOwner (p);
 	FD_Reset (p);
 	me = self;
 	e = find (world, classname, "pickle");
@@ -1252,6 +1296,30 @@ void(entity p) BM_ClientGone =
 		}
 		e = nx;
 	}
+	// Pink Ladies (milky.qc) and in-flight Dookie canisters (dookie.qc) leave with their owner
+	e = find (world, classname, "milky");
+	while (e)
+	{
+		nx = find (e, classname, "milky");
+		if (e.milky_owner == p)
+		{
+			sound (e, CHAN_BODY, "misc/null.wav", 0, ATTN_NONE);
+			remove (e);
+		}
+		e = nx;
+	}
+	p.milky_active = world;
+	e = find (world, classname, "dookie_shot");
+	while (e)
+	{
+		nx = find (e, classname, "dookie_shot");
+		if (e.owner == p)
+		{
+			sound (e, CHAN_BODY, "misc/null.wav", 0, ATTN_NONE);
+			remove (e);
+		}
+		e = nx;
+	}
 	// a laptop shock from the leaver stops (the zap damage would otherwise go to whoever reuses the slot)
 	e = find (world, classname, "player");
 	while (e)
@@ -1267,6 +1335,9 @@ void(entity p) BM_ClientGone =
 };
 
 // ---------------------------------------------------------------- server observer / auto-director camera
+var float autocvar_bm_obs_qualify_sec = 15;			// >= 2 humans for this long before an observer demo is kept
+float autocvar_sv_autodemo_perclient_discardable;		// engine cvar
+
 void(entity e) BM_ObsActivate =
 {
 	local entity me;
@@ -1275,10 +1346,21 @@ void(entity e) BM_ObsActivate =
 	self = e;
 	if (!e.bm_obs)
 	{
+		// out of any van / bird / cannon / tank first (self = e, classname still "player" so the
+		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
+		Veh_ClientGone ();
+		FL_Reset (e);
+		JohnBird_ClientGone ();
+		RocketRider_ClientGone ();
+		EricCannon_ClientGone ();
+		MMTank_ClientGone ();
 		Underdog_ClearFx (e);
 		Underdog_Reset (e);
+		PC_ResetPlayer (e);
 		FD_Reset (e);
+		DN3SG_Reset ();
 		BM_ClientGone (e);
+		BM_Radar_ClientGone (e);
 	}
 	if (e.bm_aura)
 	{
@@ -1311,7 +1393,7 @@ void(entity e) BM_ObsActivate =
 	e.bm_st_menubg = 0;
 	e.v_weapon_position_helper = 0;
 	e.quad_v_weapon_position_helper = 0;
-	if (bm_obs_qualify_t < max (1, cvar ("bm_obs_qualify_sec")))
+	if (bm_obs_qualify_t < max (1, autocvar_bm_obs_qualify_sec))
 		e.discardabledemo = 1;
 	else
 		e.discardabledemo = 0;
@@ -1412,6 +1494,9 @@ void() BM_ObsCheckDiscard =
 	else
 		dt = bound (0, time - bm_obs_frame_t, 0.1);
 	bm_obs_frame_t = time;
+	// no observer: nothing to qualify, and humans already got discardabledemo 1 in ClientConnect
+	if (bm_obs_count <= 0)
+		return;
 
 	hn = 0;
 	p = bm_player_head;
@@ -1425,10 +1510,10 @@ void() BM_ObsCheckDiscard =
 	if (hn >= 2 && bm_obs_count > 0 && !intermission_running)
 		bm_obs_qualify_t = bm_obs_qualify_t + dt;
 
-	if (cvar ("sv_autodemo_perclient_discardable") <= 0)
+	if (autocvar_sv_autodemo_perclient_discardable <= 0)
 		return;
 
-	need_sec = max (1, cvar ("bm_obs_qualify_sec"));
+	need_sec = max (1, autocvar_bm_obs_qualify_sec);
 	keep = (bm_obs_qualify_t >= need_sec);
 
 	cno = 0;
@@ -1492,6 +1577,21 @@ void() BM_ObsFrame =
 	self.milk_st = 0;
 	self.fd_st_mode = 0;
 	self.mmt_st_active = 0;
+	self.jb_st_active = 0;
+	self.ky_st_mode = 0;
+	self.gk_st_mode = 0;
+	self.gk_st_prog = 0;
+	self.fl_st_black = 0;
+	self.fl_st_mode = 0;
+	self.fl_st_rem = 0;
+	self.fl_st_speed = 0;
+	self.fl_st_flags = 0;
+	self.fl_st_anim = 0;
+	self.dn3_st_frame = 0;
+	self.dn3_st_speed = 0;
+	self.bako_st_padre_pct = 101;
+	self.bako_st_event = 0;
+	self.gk_st_nitro = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;
 	self.bm_st_playermask = bm_playermask_cache;

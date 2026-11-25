@@ -1349,13 +1349,16 @@ void(entity e) BM_ObsActivate =
 		// out of any van / bird / cannon / tank first (self = e, classname still "player" so the
 		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
 		Veh_ClientGone ();
+		FL_Reset (e);
 		JohnBird_ClientGone ();
 		RocketRider_ClientGone ();
 		EricCannon_ClientGone ();
 		MMTank_ClientGone ();
 		Underdog_ClearFx (e);
 		Underdog_Reset (e);
+		PC_ResetPlayer (e);
 		FD_Reset (e);
+		DN3SG_Reset ();
 		BM_ClientGone (e);
 		BM_Radar_ClientGone (e);
 	}
@@ -1578,6 +1581,16 @@ void() BM_ObsFrame =
 	self.ky_st_mode = 0;
 	self.gk_st_mode = 0;
 	self.gk_st_prog = 0;
+	self.fl_st_black = 0;
+	self.fl_st_mode = 0;
+	self.fl_st_rem = 0;
+	self.fl_st_speed = 0;
+	self.fl_st_flags = 0;
+	self.fl_st_anim = 0;
+	self.dn3_st_frame = 0;
+	self.dn3_st_speed = 0;
+	self.bako_st_padre_pct = 101;
+	self.bako_st_event = 0;
 	self.gk_st_nitro = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;
