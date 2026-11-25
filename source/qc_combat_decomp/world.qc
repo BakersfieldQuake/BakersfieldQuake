@@ -833,7 +833,6 @@ void() worldspawn =
 	precache_model("progs/v_nade.mdl");
 	precache_model("progs/p_shot.md3");
 	precache_model("progs/p_saw.md3");
-	precache_model("progs/p_nail.md3");
 	precache_model("progs/p_rock.md3");
 	precache_model("progs/p_ssg.md3");
 	precache_model("progs/QC/p_ssg.md3");

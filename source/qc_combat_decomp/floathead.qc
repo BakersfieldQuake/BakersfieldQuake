@@ -124,8 +124,6 @@ void() FloatHead_Precache =
 	precache_model ("progs/robhead_proj.spr32");
 	precache_model ("progs/robhead_impact.spr32");
 	precache_model ("progs/s_bubble.spr");
-	precache_sound ("robhead/sight1.wav");
-	precache_sound ("robhead/sight2.wav");
 	precache_sound ("robhead/charge.wav");
 	precache_sound ("robhead/pain.wav");
 	precache_sound ("robhead/idle.wav");
