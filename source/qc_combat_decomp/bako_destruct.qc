@@ -3771,16 +3771,14 @@ void() Bako_TickPadre =
 // Emit dense warm beige-tan dust veil covering BOTH fallen Sign towers (west & east) AND the 80-ft center span!
 void(vector p_west, vector p_east, float spd) Bako_EmitSignFullWidthDust =
 {
-	Bako_EmitLineDustSurge (p_west, p_east, '0 1 0', 12, spd);
+	Bako_EmitLineDustSurge (p_west, p_east, '0 1 0', 6, spd);
 	if (bako_fx_dust_surge > 0)
 	{
-		// Extra dedicated dust billows right around the foreground West tower AND East tower footprints!
-		pointparticles (bako_fx_dust_surge, p_west + '24 -70 22', '-180 -140 36', 2);
-		pointparticles (bako_fx_dust_surge, p_west + '24 65 22', '-190 160 36', 2);
-		pointparticles (bako_fx_dust_surge, p_west + '-45 0 26', '-260 40 32', 2);
-		pointparticles (bako_fx_dust_surge, p_east + '-24 -70 22', '180 -140 36', 2);
-		pointparticles (bako_fx_dust_surge, p_east + '-24 65 22', '190 160 36', 2);
-		pointparticles (bako_fx_dust_surge, p_east + '45 0 26', '260 40 32', 2);
+		// Focused dust billows around the foreground West tower AND East tower footprints
+		pointparticles (bako_fx_dust_surge, p_west + '24 -70 22', '-180 -140 36', 1);
+		pointparticles (bako_fx_dust_surge, p_west + '-45 0 26', '-260 40 32', 1);
+		pointparticles (bako_fx_dust_surge, p_east + '-24 -70 22', '180 -140 36', 1);
+		pointparticles (bako_fx_dust_surge, p_east + '45 0 26', '260 40 32', 1);
 	}
 };
 
@@ -3855,21 +3853,21 @@ void() Bako_TickSign =
 						Bako_BigExplosion (p_west + '36 0 24', '-0.45 0.85 0.25', 0.96, 24000, 0, BAKO_GRP_SIGN);
 						Bako_BigExplosion (p_east + '-36 0 24', '0.45 0.85 0.25', 0.96, 24000, 0, BAKO_GRP_SIGN);
 						Bako_BigExplosion (slam_pt + '0 0 28', '0 0.9 0.35', 1.0, 24000, 0, BAKO_GRP_SIGN);
-						for (i = 0; i < 6; i = i + 1)
+						for (i = 0; i < 4; i = i + 1)
 						{
-							sp_pt = p_west + (p_east - p_west) * (i / 5.0) + '0 0 22';
+							sp_pt = p_west + (p_east - p_west) * (i / 3.0) + '0 0 22';
 							if (bako_fx_sign_sparks > 0)
-								pointparticles (bako_fx_sign_sparks, sp_pt, '0 80 120', 2);
+								pointparticles (bako_fx_sign_sparks, sp_pt, '0 80 120', 1);
 							if (bako_fx_glass_sparkle > 0)
-								pointparticles (bako_fx_glass_sparkle, sp_pt, '0 90 95', 2);
+								pointparticles (bako_fx_glass_sparkle, sp_pt, '0 90 95', 1);
 						}
-						// Generous non-burning concrete/stucco chunks & glinting neon glass shards!
-						Bako_BurstDebris (p_west + '36 0 26', '-0.45 0.88 0.25', 8, 390, 0, BAKO_GRP_SIGN);
-						Bako_BurstDebris (p_east + '-36 0 26', '0.45 0.88 0.25', 8, 390, 0, BAKO_GRP_SIGN);
-						Bako_BurstDebris (slam_pt + '0 0 26', '0 1 0.25', 5, 390, max (30, autocvar_bako_sign_rubble_t), BAKO_GRP_SIGN);
-						for (i = 0; i < 14; i = i + 1)
+						// Concrete/stucco chunks & glinting neon glass shards
+						Bako_BurstDebris (p_west + '36 0 26', '-0.45 0.88 0.25', 4, 390, 0, BAKO_GRP_SIGN);
+						Bako_BurstDebris (p_east + '-36 0 26', '0.45 0.88 0.25', 4, 390, 0, BAKO_GRP_SIGN);
+						Bako_BurstDebris (slam_pt + '0 0 26', '0 1 0.25', 3, 390, max (30, autocvar_bako_sign_rubble_t), BAKO_GRP_SIGN);
+						for (i = 0; i < 10; i = i + 1)
 						{
-							sp_pt = p_west + (p_east - p_west) * (i / 13.0) + '0 0 26';
+							sp_pt = p_west + (p_east - p_west) * (i / 9.0) + '0 0 26';
 							svel = ('1 0 0' * crandom () * 220) + ('0 1 0' * (140 + random () * 180)) + ('0 0 1' * (110 + random () * 160));
 							Bako_SpawnGlassShard (sp_pt, svel, 0.90 + random () * 0.38, i);
 						}
