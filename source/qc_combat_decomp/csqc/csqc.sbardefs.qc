@@ -36,9 +36,17 @@ void(vector pos, float char, float alph) Sbar_DrawCharacter =
 	drawfont = old_font;
 };
 
+float bm_ui_font_cvar_val;
+float bm_ui_font_cvar_t;
+
 float() BM_GetUIFont =
 {
-	if (cvar("bm_ui_font") == 0)
+	if (time >= bm_ui_font_cvar_t || bm_ui_font_cvar_t <= 0)
+	{
+		bm_ui_font_cvar_t = time + 0.25;
+		bm_ui_font_cvar_val = cvar("bm_ui_font");
+	}
+	if (bm_ui_font_cvar_val == 0)
 		return 0;
 	if (!bm_ui_font_checked)
 	{

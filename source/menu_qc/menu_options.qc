@@ -543,13 +543,31 @@ string(float tab, float idx) BM_Opt_BindCmd =
 	return "impulse 68";
 };
 
+string g_opt_bk_cmd[20];
+string g_opt_bk_val[20];
+float  g_opt_bk_t[20];
+float  g_opt_bk_rev;
+float  g_opt_bk_next;
+
 string(string cmd, float bmap) BM_Opt_GetBoundKeys =
 {
 	local string raw, out, kname, kb;
-	local float n, i, kn;
+	local float n, i, kn, rev, slot;
 
 	if (bmap != 0)
 	{
+		rev = cvar("bm_veh_rev");
+		if (rev != g_opt_bk_rev)
+		{
+			g_opt_bk_rev = rev;
+			for (i = 0; i < 20; i = i + 1)
+				g_opt_bk_t[i] = 0;
+		}
+		for (i = 0; i < 20; i = i + 1)
+		{
+			if (g_opt_bk_t[i] > time && g_opt_bk_cmd[i] == cmd)
+				return g_opt_bk_val[i];
+		}
 		out = "";
 		for (i = 1; i < 768; i = i + 1)
 		{
@@ -567,7 +585,18 @@ string(string cmd, float bmap) BM_Opt_GetBoundKeys =
 			}
 		}
 		if (out == "")
-			return "UNBOUND";
+			out = "UNBOUND";
+		slot = g_opt_bk_next;
+		g_opt_bk_next = slot + 1;
+		if (g_opt_bk_next >= 20)
+			g_opt_bk_next = 0;
+		if (g_opt_bk_cmd[slot] != "")
+			strunzone(g_opt_bk_cmd[slot]);
+		if (g_opt_bk_val[slot] != "")
+			strunzone(g_opt_bk_val[slot]);
+		g_opt_bk_cmd[slot] = strzone(cmd);
+		g_opt_bk_val[slot] = strzone(out);
+		g_opt_bk_t[slot] = time + 0.35;
 		return out;
 	}
 

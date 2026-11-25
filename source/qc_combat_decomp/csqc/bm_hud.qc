@@ -539,11 +539,18 @@ void(float w, float h) BM_DrawPlayerTags =
 	}
 };
 
-// Resolves the first bound key label for a command on the active bindmap (bindmap 1 while driving with bm_veh_config 1)
+// Cached keybind label resolver: avoids scanning 767 keybinds per call (up to 3,068 calls/frame in vehicles!)
+string bm_bl_cmd[8];
+float  bm_bl_bmap[8];
+string bm_bl_val[8];
+float  bm_bl_t[8];
+float  bm_bl_rev;
+float  bm_bl_next;
+
 string(string cmd, string fallback) BM_ActiveBindLabel =
 {
-	local float bmap, n, i, kn, tmask, mmt_on, jb_on;
-	local string raw, kname, kb;
+	local float bmap, n, i, kn, tmask, mmt_on, jb_on, rev, slot;
+	local string raw, kname, kb, resolved;
 
 	bmap = 0;
 	if (cvar ("bm_veh_config") != 0)
@@ -554,6 +561,20 @@ string(string cmd, string fallback) BM_ActiveBindLabel =
 		if ((tmask & 512) != 0 || mmt_on > 0 || jb_on > 0)
 			bmap = 1;
 	}
+	rev = cvar ("bm_veh_rev");
+	if (rev != bm_bl_rev)
+	{
+		bm_bl_rev = rev;
+		for (i = 0; i < 8; i = i + 1)
+			bm_bl_t[i] = 0;
+	}
+	for (i = 0; i < 8; i = i + 1)
+	{
+		if (bm_bl_t[i] > time && bm_bl_bmap[i] == bmap && bm_bl_cmd[i] == cmd)
+			return (bm_bl_val[i] != "") ? bm_bl_val[i] : fallback;
+	}
+
+	resolved = "";
 	if (bmap != 0)
 	{
 		for (i = 1; i < 768; i = i + 1)
@@ -564,27 +585,49 @@ string(string cmd, string fallback) BM_ActiveBindLabel =
 				kname = keynumtostring (i);
 				kname = strtoupper (kname);
 				if (kname != "")
-					return kname;
+				{
+					resolved = kname;
+					break;
+				}
 			}
 		}
-		return fallback;
 	}
-	raw = findkeysforcommand (cmd, 0);
-	if (raw == "")
-		return fallback;
-	n = tokenize (raw);
-	for (i = 0; i < n; i = i + 1)
+	else
 	{
-		kn = stof (argv (i));
-		if (kn > 0)
+		raw = findkeysforcommand (cmd, 0);
+		if (raw != "")
 		{
-			kname = keynumtostring (kn);
-			kname = strtoupper (kname);
-			if (kname != "")
-				return kname;
+			n = tokenize (raw);
+			for (i = 0; i < n; i = i + 1)
+			{
+				kn = stof (argv (i));
+				if (kn > 0)
+				{
+					kname = keynumtostring (kn);
+					kname = strtoupper (kname);
+					if (kname != "")
+					{
+						resolved = kname;
+						break;
+					}
+				}
+			}
 		}
 	}
-	return fallback;
+
+	slot = bm_bl_next;
+	bm_bl_next = slot + 1;
+	if (bm_bl_next >= 8)
+		bm_bl_next = 0;
+	if (bm_bl_cmd[slot] != "")
+		strunzone (bm_bl_cmd[slot]);
+	if (bm_bl_val[slot] != "")
+		strunzone (bm_bl_val[slot]);
+	bm_bl_cmd[slot] = strzone (cmd);
+	bm_bl_val[slot] = (resolved != "") ? strzone (resolved) : "";
+	bm_bl_bmap[slot] = bmap;
+	bm_bl_t[slot] = time + 0.50;
+	return (resolved != "") ? resolved : fallback;
 };
 
 // top-right Flying Blue Shell ready banner & bottom-right vehicle Bail/Camera prompt (fun-gun toy dock bar removed)

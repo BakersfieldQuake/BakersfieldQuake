@@ -105,6 +105,28 @@ void(string shd, vector p0, vector p1, vector p2, vector col, float a) MM_Tri2D 
 	R_EndPolygon ();
 };
 
+float mm_uc_ready;
+float mm_uc_x[25];
+float mm_uc_y[25];
+float mm_base_precached;
+
+void() MM_InitUnitCircle =
+{
+	local float i, ang;
+
+	if (mm_uc_ready)
+		return;
+	mm_uc_ready = TRUE;
+	i = 0;
+	while (i <= 24)
+	{
+		ang = i * (6.2831853 / 24);
+		mm_uc_x[i] = cos (ang);
+		mm_uc_y[i] = sin (ang);
+		i = i + 1;
+	}
+};
+
 void(float cx, float cy, float rad, float segs, vector col, float a) MM_FillCircle =
 {
 	local float i, a0, step;
@@ -112,14 +134,36 @@ void(float cx, float cy, float rad, float segs, vector col, float a) MM_FillCirc
 
 	if (rad <= 0.5 || a <= 0.01)
 		return;
+	p_z = 0;
+	if (segs == 32 || segs == 24)
+	{
+		MM_InitUnitCircle ();
+		R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
+		p_x = cx;
+		p_y = cy;
+		R_PolygonVertex (p, '0.5 0.5 0', col, a);
+		i = 0;
+		while (i <= 24)
+		{
+			p_x = cx + mm_uc_x[i] * rad;
+			p_y = cy + mm_uc_y[i] * rad;
+			R_PolygonVertex (p, '0.5 0.5 0', col, a);
+			i = i + 1;
+		}
+		R_EndPolygon ();
+		return;
+	}
 	step = 6.2831853 / segs;
 	R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
-	R_PolygonVertex (MM_Vec2 (cx, cy), '0.5 0.5 0', col, a);
+	p_x = cx;
+	p_y = cy;
+	R_PolygonVertex (p, '0.5 0.5 0', col, a);
 	i = 0;
 	while (i <= segs)
 	{
 		a0 = i * step;
-		p = MM_Vec2 (cx + MM_Cos (a0) * rad, cy + MM_Sin (a0) * rad);
+		p_x = cx + cos (a0) * rad;
+		p_y = cy + sin (a0) * rad;
 		R_PolygonVertex (p, '0.5 0.5 0', col, a);
 		i = i + 1;
 	}
@@ -359,9 +403,13 @@ void() MM_EnsureMap =
 	local string m, shd, png;
 	local vector sz;
 
-	precache_pic ("gfx/minimap/white");
-	precache_pic ("gfx/minimap/heat");
-	precache_pic ("gfx/minimap/rim");
+	if (!mm_base_precached)
+	{
+		mm_base_precached = TRUE;
+		precache_pic ("gfx/minimap/white");
+		precache_pic ("gfx/minimap/heat");
+		precache_pic ("gfx/minimap/rim");
+	}
 
 	if (mapname == "")
 		return;
@@ -465,15 +513,16 @@ float(float w, float h) BM_MinimapTopY =
 	return mm_cy - mm_rad - 14;
 };
 
-// Rotated & circularly-clipped CoD floorplan blueprint via 32-slice 2D polygon fan
+// Rotated & circularly-clipped CoD floorplan blueprint via precomputed 24-slice 2D polygon fan
 void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, float alpha_mul, float bg_alpha) MM_DrawRotatedBlueprint =
 {
-	local float span, yrad, fwd_x, fwd_y, right_x, right_y;
-	local float uc, vc, i, step, ang, sx, sy, wx, wy, u, v, map_a;
+	local float span, yrad, fwd_x, fwd_y, right_x, right_y, inv_span, r_in, k_uv;
+	local float uc, vc, i, ux, uy, sx, sy, wx, wy, map_a, base_x, base_y;
+	local vector p, uv;
 
 	// Dark smoky circular disc backing
 	if (bg_alpha > 0.01)
-		MM_FillCircle (cx, cy, rad - 0.5, 32, '0.05 0.06 0.07', bg_alpha);
+		MM_FillCircle (cx, cy, rad - 0.5, 24, '0.05 0.06 0.07', bg_alpha);
 
 	if (!mm_has_pic || mm_map_half <= 0)
 	{
@@ -481,31 +530,43 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 		return;
 	}
 
+	MM_InitUnitCircle ();
 	map_a = 0.92 * alpha_mul;
 	span = 2 * mm_map_half;
+	inv_span = 1.0 / span;
 	yrad = yaw_deg * BM_MM_DEG2RAD;
-	fwd_x = MM_Cos (yrad);
-	fwd_y = MM_Sin (yrad);
+	fwd_x = cos (yrad);
+	fwd_y = sin (yrad);
 	right_x = fwd_y;
 	right_y = 0 - fwd_x;
 
-	uc = (porg_x - (mm_map_cx - mm_map_half)) / span;
-	vc = ((mm_map_cy + mm_map_half) - porg_y) / span;
+	base_x = mm_map_cx - mm_map_half;
+	base_y = mm_map_cy + mm_map_half;
+	uc = (porg_x - base_x) * inv_span;
+	vc = (base_y - porg_y) * inv_span;
+	r_in = rad - 1.0;
+	k_uv = (r_in / rad) * range;
 
-	step = 6.2831853 / 32;
+	p_z = 0;
+	uv_z = 0;
 	R_BeginPolygon (mm_cur_shader, 0, TRUE);
-	R_PolygonVertex (MM_Vec2 (cx, cy), MM_Vec2 (uc, vc), '1 1 1', map_a);
+	p_x = cx; p_y = cy;
+	uv_x = uc; uv_y = vc;
+	R_PolygonVertex (p, uv, '1 1 1', map_a);
 	i = 0;
-	while (i <= 32)
+	while (i <= 24)
 	{
-		ang = i * step;
-		sx = MM_Cos (ang) * (rad - 1.0);
-		sy = MM_Sin (ang) * (rad - 1.0);
-		wx = porg_x + (sx / rad) * range * right_x + ((0 - sy) / rad) * range * fwd_x;
-		wy = porg_y + (sx / rad) * range * right_y + ((0 - sy) / rad) * range * fwd_y;
-		u = (wx - (mm_map_cx - mm_map_half)) / span;
-		v = ((mm_map_cy + mm_map_half) - wy) / span;
-		R_PolygonVertex (MM_Vec2 (cx + sx, cy + sy), MM_Vec2 (u, v), '1 1 1', map_a);
+		ux = mm_uc_x[i];
+		uy = mm_uc_y[i];
+		sx = ux * r_in;
+		sy = uy * r_in;
+		wx = porg_x + (ux * right_x - uy * fwd_x) * k_uv;
+		wy = porg_y + (ux * right_y - uy * fwd_y) * k_uv;
+		p_x = cx + sx;
+		p_y = cy + sy;
+		uv_x = (wx - base_x) * inv_span;
+		uv_y = (base_y - wy) * inv_span;
+		R_PolygonVertex (p, uv, '1 1 1', map_a);
 		i = i + 1;
 	}
 	R_EndPolygon ();
