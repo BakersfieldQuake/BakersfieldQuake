@@ -393,9 +393,7 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 	else if (magmax > 0)
 	{
 		mag_frac = mag / magmax;
-		mag_low = 6;
-		if (slot == 18)
-			mag_low = 2;
+		mag_low = max(1, floor(magmax * 0.25));
 		bar_col = '0.26 0.88 1.0';
 		if (mag <= mag_low)
 			bar_col = '1.0 0.34 0.36';

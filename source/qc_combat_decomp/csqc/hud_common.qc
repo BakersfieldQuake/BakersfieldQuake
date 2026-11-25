@@ -402,22 +402,38 @@ float(float it_flags) HUD_GetArmorMax =
 
 string(float slot, float active_weap) HUD_GetWeaponName =
 {
+	if (slot == 9)
+		return "MEGA MAN";
+	if (slot == 10)
+		return "ROB DOB DRONE";
+	if (slot == 11)
+		return "GREEN JAR";
+	if (slot == 12)
+		return "PICKLE SURPRISE";
+	if (slot == 13)
+		return "NETSEND PC";
+	if (slot == 14)
+		return "DOOKIE BAZOOKA";
+	if (slot == 15)
+		return "WHEELMAN CANNON";
 	if (slot == 16)
 		return "M4A1";
+	if (slot == 17)
+		return "POCKET KYLE";
 	if (slot == 18)
-		return "GARAND";
+		return "M1 GARAND";
 	if (active_weap == IT_CHAINSAW)
 		return "CHAINSAW";
 	if (active_weap == IT_AXE)
-		return "AXE";
+		return "BONK HAMMER";
 	if (active_weap == IT_SHOTGUN)
 		return "SHOTGUN";
 	if (active_weap == IT_SUPER_SHOTGUN)
 		return "PUMP SHOTGUN";
 	if (active_weap == IT_NAILGUN)
-		return "NAILGUN";
+		return "LAPTOP GUN";
 	if (active_weap == IT_SUPER_NAILGUN)
-		return "SUPER NAILGUN";
+		return "MILKY GUN";
 	if (active_weap == IT_GRENADE_LAUNCHER)
 		return "GRENADE LAUNCHER";
 	if (active_weap == IT_ROCKET_LAUNCHER)
@@ -426,6 +442,8 @@ string(float slot, float active_weap) HUD_GetWeaponName =
 		return "THUNDERBOLT";
 	if (active_weap == IT_LASER_CANNON)
 		return "LASER CANNON";
+	if (active_weap == 131072)
+		return "BANANA GUN";
 	return "WEAPON";
 };
 

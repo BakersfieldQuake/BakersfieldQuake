@@ -736,9 +736,9 @@ void() loadScreenSize =
 		return;
 	aspect = vw / vh;
 	cw = cvar("vid_conwidth");
-	if ((aspect != 1.33333))
+	if ((aspect >= 1.45))
 	{
-		if ((cw == 624))
+		if ((cw <= 624))
 		{
 			sliderPos = 0;
 			wepbar_offset = VEC_0;
@@ -778,10 +778,20 @@ void() loadScreenSize =
 			sliderPos = 7;
 			wepbar_offset = '245 85 0';
 		}
+		else
+		{
+			sliderPos = 1;
+			wepbar_offset = VEC_0;
+		}
 	}
 	else
 	{
-		if ((cw == 632))
+		if ((cw < 632))
+		{
+			sliderPos = 0;
+			wepbar_offset = VEC_0;
+		}
+		else if ((cw == 632))
 		{
 			sliderPos = 0;
 			wepbar_offset = '0 90 0';
@@ -820,6 +830,11 @@ void() loadScreenSize =
 		{
 			sliderPos = 7;
 			wepbar_offset = '95 225 0';
+		}
+		else
+		{
+			sliderPos = 0;
+			wepbar_offset = VEC_0;
 		}
 	}
 };

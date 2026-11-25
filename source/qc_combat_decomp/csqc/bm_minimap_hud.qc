@@ -493,6 +493,16 @@ void(float w, float h) MM_ComputeLayout =
 		// Clear the bottom-left Route 99 / Cyberpop card (h - 66 .. h - 14)
 		mm_cy = h - 70 - rad - max (0, y_ofs - 8);
 	}
+	else if (hs == 1 && (x_left + rad * 2 + 4) > (w * 0.5 - 156))
+	{
+		// Narrow aspect (4:3 / 16:10): step cleanly above Style 1 bottom island pill
+		mm_cy = h - 62 - rad - max (0, y_ofs - 8);
+	}
+	else if (hs == 4 && (x_left + rad * 2 + 4) > (w * 0.5 - 138))
+	{
+		// Narrow aspect (4:3 / 16:10): step cleanly above Style 4 bottom vitals bar
+		mm_cy = h - 54 - rad - max (0, y_ofs - 8);
+	}
 	else if (hs == 0 && (sl == 16 || sl == 18) && (x_left + rad * 2) > (w * 0.5 - 222) && y_ofs < 46)
 	{
 		// Classic HUD with both Jetpack + M4/Garand tile active: step cleanly above the tile

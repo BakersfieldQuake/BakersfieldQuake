@@ -112,22 +112,38 @@ Compact esports short tag for the active weapon.
 */
 string(float slot, float active_weap) S4_GetWeaponTag =
 {
+	if (slot == 9)
+		return "MEGA";
+	if (slot == 10)
+		return "ROBDob";
+	if (slot == 11)
+		return "G-JAR";
+	if (slot == 12)
+		return "PICKLE";
+	if (slot == 13)
+		return "NETSND";
+	if (slot == 14)
+		return "DOOKIE";
+	if (slot == 15)
+		return "WHEELS";
 	if (slot == 16)
 		return "M4A1";
+	if (slot == 17)
+		return "KYLE";
 	if (slot == 18)
 		return "GARAND";
 	if (active_weap == IT_CHAINSAW)
 		return "SAW";
 	if (active_weap == IT_AXE)
-		return "AXE";
+		return "BONK";
 	if (active_weap == IT_SHOTGUN)
 		return "SG";
 	if (active_weap == IT_SUPER_SHOTGUN)
 		return "PUMP";
 	if (active_weap == IT_NAILGUN)
-		return "NG";
+		return "LAPTOP";
 	if (active_weap == IT_SUPER_NAILGUN)
-		return "SNG";
+		return "MILKY";
 	if (active_weap == IT_GRENADE_LAUNCHER)
 		return "GL";
 	if (active_weap == IT_ROCKET_LAUNCHER)
@@ -136,6 +152,8 @@ string(float slot, float active_weap) S4_GetWeaponTag =
 		return "LG";
 	if (active_weap == IT_LASER_CANNON)
 		return "LASER";
+	if (active_weap == 131072)
+		return "BANANA";
 	return "WEAP";
 };
 

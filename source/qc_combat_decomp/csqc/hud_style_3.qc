@@ -208,7 +208,7 @@ void(float w, float h, float hp, float armor, float it_flags, float active_ammo,
 
 	lx = 10;
 	ly = h - 66;
-	lw = 232;
+	lw = min(232, floor((w - 28) * 0.5));
 	lh = 52;
 
 	// Outer chamfered obsidian-blue shell (top-right angled bevel)
@@ -310,12 +310,12 @@ void(float w, float h, float hp, float armor, float it_flags, float active_ammo,
 
 	if (armor > 0)
 	{
-		HUD3_DrawShadowText((vx + 110) * '1 0 0' + (ly + 15.5) * '0 1 0', ap_tag, '4.5 4.5 0', c_ap, 0.95 * a);
+		HUD3_DrawShadowText((vx + min(110, vw - 52)) * '1 0 0' + (ly + 15.5) * '0 1 0', ap_tag, '4.5 4.5 0', c_ap, 0.95 * a);
 		HUD3_DrawRightShadowText((vx + vw) * '1 0 0' + (ly + 14.5) * '0 1 0', ftos(armor), '18 18 0', arm_col, 0.98 * a);
 	}
 	else
 	{
-		HUD3_DrawShadowText((vx + 110) * '1 0 0' + (ly + 15.5) * '0 1 0', "AP", '4.5 4.5 0', '0.42 0.48 0.64', 0.65 * a);
+		HUD3_DrawShadowText((vx + min(110, vw - 52)) * '1 0 0' + (ly + 15.5) * '0 1 0', "AP", '4.5 4.5 0', '0.42 0.48 0.64', 0.65 * a);
 		HUD3_DrawRightShadowText((vx + vw) * '1 0 0' + (ly + 14.5) * '0 1 0', "0", '18 18 0', arm_col, 0.72 * a);
 	}
 
@@ -362,7 +362,7 @@ void(float w, float h, float slot, float active_weap, float active_ammo, float i
 	c_white = '1 1 1';
 	c_muted = '0.42 0.48 0.64';
 
-	rw = 232;
+	rw = min(232, floor((w - 28) * 0.5));
 	rh = 52;
 	rx = w - rw - 10;
 	ry = h - 66;

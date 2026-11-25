@@ -92,7 +92,10 @@ void(float w, float h, float hp) JP_DrawHUD =
 	tw = 22;
 	th = 92;
 	x0 = 6;				// against the left edge of the screen, above Combat+'s status bar (which starts about 54 units from the bottom)
-	y0 = h - 167;
+	if (cvar ("bm_hud_style") == 2 || cvar ("bm_hud_style") == 3)
+		y0 = h - 180;
+	else
+		y0 = h - 167;
 
 	// the glass: a faint blue inside, a white edge, a rim and cap
 	edge = '0.8 0.95 1';
@@ -908,11 +911,8 @@ void(float raw_w, float raw_h) GK_DrawHUD =
 	drawfill ([cx - th * 0.5, cy - gap - arm, 0], [th, arm, 0], col, 0.95, 0);
 	drawfill ([cx - th * 0.5, cy + gap, 0], [th, arm, 0], col, 0.95, 0);
 
-	// Compact bottom-right status badge (keeps center driving view unobstructed)
+	// Compact bottom-right status badge (keeps center driving view unobstructed; minimap is bottom-left)
 	base = BM_CornerBottomY (h);
-	mtop = BM_MinimapTopY (w, h);
-	if (mtop > 0 && mtop < base)
-		base = mtop;
 	bw = 74;
 	bh = 3;
 	x0 = w - bw - 8;
@@ -1197,8 +1197,13 @@ void(float w, float h) FL_DrawHUD =
 
 		s1 = strcat ("^2FORELOCO: ^3ERIC HOSPITAL BED  ^7", ts, tags);
 		s2 = strcat ("^3SPEED: ^7", ftos (mph), " MPH", boosted ? " ^2[TURBO!]" : "", "  ^3[SHIFT]^7 TURBO  ^3[SPACE]^7 JUMP  ^3[M1]^7 BEDPANS/HORN  ^3[H]^7 BAIL");
+		local float fl_sc2, fl_w2;
+		fl_sc2 = 6.0;
+		fl_w2 = BM_UIStringWidth (s2, TRUE, [fl_sc2, fl_sc2, 0]);
+		if (fl_w2 > w - 20 && fl_w2 > 0)
+			fl_sc2 = max (3.8, fl_sc2 * ((w - 20) / fl_w2));
 		BM_DrawColorShadow (10, y0, s1, 6.4, 0.98);
-		BM_DrawColorShadow (10, y0 + 12, s2, 6.0, 0.96);
+		BM_DrawColorShadow (10, y0 + 12, s2, fl_sc2, 0.96);
 	}
 	else if (mode == 1)
 	{
