@@ -226,6 +226,7 @@ jobs:
         run: |
           for f in repo/launchers/*; do
             if ! cmp -s "$f" "out/BAKOQUAKE/$(basename "$f")"; then echo "updated $(basename "$f")"; fi
+            chmod 755 "$f"
             cp "$f" out/BAKOQUAKE/
           done
 
