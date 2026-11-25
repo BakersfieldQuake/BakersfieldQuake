@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 SOI 6 ENTERTAINERS (maps/soi6.bsp)
@@ -326,6 +329,8 @@ float() Soi6_Customize =
 	local float dx, dy, rel, d, elapsed, f;
 
 	// Fast 2D XY distance cull keeps dense NPC crowds smooth over network & GPU
+	if (other.ishuman != 1)
+		return FALSE;
 	dx = other.origin_x - self.origin_x;
 	if (dx > 1050 || dx < -1050)
 		return FALSE;
@@ -333,8 +338,6 @@ float() Soi6_Customize =
 	if (dy > 1050 || dy < -1050)
 		return FALSE;
 	if ((dx * dx + dy * dy) > 1102500)
-		return FALSE;
-	if (other.ishuman != 1)
 		return FALSE;
 
 	// Face the viewer's POSITION, in 3 degree steps. Facing his view angle (other.v_angle_y) changed this entity for him on

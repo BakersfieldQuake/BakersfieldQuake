@@ -517,6 +517,26 @@ void() misc_model_off =
 	self.solid = 0;
 };
 
+float() misc_model_indoor_customize =
+{
+	local vector vorg;
+	local float dx, dy, dz;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	dx = vorg_x - self.origin_x;
+	if (dx > 1800 || dx < -1800)
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > 1800 || dy < -1800)
+		return FALSE;
+	dz = vorg_z - self.origin_z;
+	if (dz > 650 || dz < -650)
+		return FALSE;
+	return TRUE;
+};
+
 void() misc_model =
 {
 
@@ -599,6 +619,8 @@ void() misc_model =
 	{
 		self.use = entity_state_use;
 	}
+	if (substring(self.mdl, 0, 14) == "progs/fox/pad_" || substring(self.mdl, 0, 20) == "progs/fox/fox_chande")
+		self.customizeentityforclient = misc_model_indoor_customize;
 	self.estate_on = misc_model_on;
 	self.estate_off = misc_model_off;
 	if ((self.spawnflags & 65))

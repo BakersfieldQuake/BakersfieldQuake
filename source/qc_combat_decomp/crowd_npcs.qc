@@ -188,7 +188,18 @@ float(float k) CN_DeathBase =
 // the picture a sprite shows each viewer: its side facing them (8 views)
 float() CN_Customize =
 {
-	local float rel, d, k, n, fps;
+	local float rel, d, k, n, fps, dx, dy;
+	local vector vorg;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	dx = vorg_x - self.origin_x;
+	if (dx > 2000 || dx < -2000)
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > 2000 || dy < -2000)
+		return FALSE;
 
 	if (self.cn_ftime != time || !self.cn_fstep)
 	{

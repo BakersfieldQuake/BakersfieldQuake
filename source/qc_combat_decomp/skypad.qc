@@ -499,6 +499,40 @@ void() SkyPad_Touch =
 		sprint (other, strcat ("Sky Pad -> ", self.message, "\n"));
 };
 
+float() SkyPad_FxCustomize =
+{
+	local vector vorg;
+	local float dx, dy;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	dx = vorg_x - self.origin_x;
+	if (dx > 2400 || dx < -2400)
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > 2400 || dy < -2400)
+		return FALSE;
+	return TRUE;
+};
+
+float() SkyPad_CoreCustomize =
+{
+	local vector vorg;
+	local float dx, dy;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	dx = vorg_x - self.origin_x;
+	if (dx > 1600 || dx < -1600)
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > 1600 || dy < -1600)
+		return FALSE;
+	return TRUE;
+};
+
 void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 {
 	local entity base, ring, dome, beam, core;
@@ -523,6 +557,7 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	base.colormod = '1.25 1.32 1.45';
 	p_z = flz + 0.5;
 	setorigin (base, p);
+	base.customizeentityforclient = SkyPad_FxCustomize;
 
 	// 2. Animated electric energy ring flush on the pavement
 	ring = spawn ();
@@ -538,6 +573,7 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	ring.alpha = 0.92;
 	p_z = flz + 3;
 	setorigin (ring, p);
+	ring.customizeentityforclient = SkyPad_FxCustomize;
 
 	// 3. Spinning translucent energy vortex dome
 	dome = spawn ();
@@ -553,6 +589,7 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	dome.avelocity = '0 105 0';
 	p_z = flz + 24;
 	setorigin (dome, p);
+	dome.customizeentityforclient = SkyPad_FxCustomize;
 
 	// 4. Directional trajectory beam pointing along the launch arc
 	beam = spawn ();
@@ -568,6 +605,7 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	beam.alpha = 0.85;
 	p_z = flz + 18;
 	setorigin (beam, p);
+	beam.customizeentityforclient = SkyPad_FxCustomize;
 
 	// 5. Glowing core sprite casting warm-gold street glow without lightmap rebake
 	core = spawn ();
@@ -584,6 +622,7 @@ void(vector org, vector v_nom) SkyPad_SpawnVisuals =
 	core.color = '1 0 0';		// matches palette 251 glow_color without shadow cubemap pass
 	p_z = flz + 18;
 	setorigin (core, p);
+	core.customizeentityforclient = SkyPad_CoreCustomize;
 };
 
 void() info_skypad =

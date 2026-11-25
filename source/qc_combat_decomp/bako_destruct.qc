@@ -1223,7 +1223,7 @@ entity(vector org, vector vel, float sc, float idx) Bako_SpawnGlassShard =
 {
 	local entity d, e, oldest;
 
-	if (bako_shard_count >= 52)
+	if (bako_shard_count >= 24)
 	{
 		oldest = world;
 		e = find (world, classname, "bako_glass_shard");
@@ -1243,7 +1243,8 @@ entity(vector org, vector vel, float sc, float idx) Bako_SpawnGlassShard =
 	d = spawn ();
 	d.classname = "bako_glass_shard";
 	d.movetype = MOVETYPE_BOUNCE;
-	d.solid = SOLID_TRIGGER;
+	d.solid = SOLID_NOT;
+	d.effects = EF_FULLBRIGHT;
 	d.bouncefactor = 0.44;
 	d.bouncestop = 0.05;
 	d.gravity = 0.90;
@@ -4085,15 +4086,15 @@ void(entity g) BakoDestruct_OnGlassBreak =
 		pointparticles (bako_fx_glass_sparkle, pctr - out_dir * 12, (VEC_ORIGIN - out_dir) * 140 + '0 0 32', 1);
 	}
 
-	// Spray 20 faceted semi-translucent crystalline shards (180-380 u/s, smooth ~1.5s fade-out!)
-	n_shards = 20;
+	// Spray 8 faceted semi-translucent crystalline shards (180-380 u/s, smooth ~1.5s fade-out)
+	n_shards = 8;
 	for (i = 0; i < n_shards; i = i + 1)
 	{
 		sorg_x = pmin_x + (0.12 + random () * 0.76) * max (4, span_x);
 		sorg_y = pmin_y + (0.12 + random () * 0.76) * max (4, span_y);
 		sorg_z = pmin_z + (0.12 + random () * 0.76) * max (4, span_z);
 		spd = 180 + random () * 200;
-		if (i < 14)
+		if (i < 6)
 		{
 			sorg = sorg + out_dir * 6;
 			svel = out_dir * spd + side_v * (crandom () * 165) + '0 0 1' * (55 + random () * 140);

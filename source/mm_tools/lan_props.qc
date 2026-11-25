@@ -1,3 +1,6 @@
+#ifndef COMBATPLUS
+#define COMBATPLUS
+#endif
 /*
 ================
 EXPLODABLE 3D LAN PARTY PROPS - implementation (Combat+)
@@ -698,6 +701,27 @@ void() Lan_RespawnThink =
 	Lan_RestoreProp (self);
 };
 
+// Distance cull high-poly indoor LAN desks/props (e.g. 23k-tri qdesk_b in Dagny's upstairs office)
+float() Lan_Customize =
+{
+	local vector vorg;
+	local float dx, dy, dz;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	dx = vorg_x - self.origin_x;
+	if (dx > 1600 || dx < -1600)
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > 1600 || dy < -1600)
+		return FALSE;
+	dz = vorg_z - self.origin_z;
+	if (dz > 550 || dz < -550)
+		return FALSE;
+	return TRUE;
+};
+
 void(entity e, float kind) Lan_InitProp =
 {
 	local float v, h;
@@ -757,6 +781,7 @@ void(entity e, float kind) Lan_InitProp =
 	// Nudge floor-level props +0.2u so DarkPlaces lightpoint always samples above the BSP floor plane
 	e.lan_spawn_org = e.origin + '0 0 0.2';
 	e.lan_spawn_ang = e.angles;
+	e.customizeentityforclient = Lan_Customize;
 	Lan_RestoreProp (e);
 };
 

@@ -1918,6 +1918,33 @@ void() Veh_Think =
 
 // ---------------------------------------------------------------- Initialization & Map Spawn Functions
 
+// Fast box distance cull so parked high-poly vehicles & go-karts (11k-21k tris each) across huge maps
+// do not send/animate/trace for distant players or bots.
+float() Veh_Customize =
+{
+	local vector vorg;
+	local float lim, dx, dy;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	if (other.veh_van == self || other.veh_ride == self)
+		return TRUE;
+	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
+	if (self.veh_driver != world)
+		lim = 4800;
+	else if (Veh_IsKart (self.veh_kind))
+		lim = 2400;
+	else
+		lim = 3200;
+	dx = vorg_x - self.origin_x;
+	if (dx > lim || dx < (0 - lim))
+		return FALSE;
+	dy = vorg_y - self.origin_y;
+	if (dy > lim || dy < (0 - lim))
+		return FALSE;
+	return TRUE;
+};
+
 void(entity v, float kind) Veh_InitEntity =
 {
 	local vector org_top;
@@ -1963,6 +1990,8 @@ void(entity v, float kind) Veh_InitEntity =
 	v.veh_chain_t = 0;
 	v.veh_coast_until = 0;
 	v.veh_pad_cool = 0;
+	if (kind != VEH_FORELOCO)
+		v.customizeentityforclient = Veh_Customize;
 	v.veh_pad_scan_t = 0;
 	v.veh_pad_spin = FALSE;
 	v.veh_pad_launch_t = 0;
