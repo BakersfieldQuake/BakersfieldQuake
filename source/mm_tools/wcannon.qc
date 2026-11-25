@@ -42,7 +42,6 @@ void() WC_Precache =
 	precache_sound ("wcannon/wc_charge.wav");
 	precache_sound ("wcannon/wc_shoot.wav");
 	precache_sound ("wcannon/wc_scream.wav");
-	precache_sound ("wcannon/wc_boom.wav");
 	precache_sound ("wcannon/wc_lboom1.wav");
 	precache_sound ("wcannon/wc_lboom2.wav");
 	precache_sound ("wcannon/wc_lboom3.wav");

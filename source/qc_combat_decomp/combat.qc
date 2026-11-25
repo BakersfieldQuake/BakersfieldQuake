@@ -119,8 +119,24 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 			targ.veh_pain_snd_t = time + 0.16;
 			sound7(targ, CHAN_BODY, "foreloco/boing_hit.wav", 0.72, ATTN_NORM, 98 + random() * 18);
 		}
+		// one hit per projectile/explosion per frame (hitscan has inflictor == attacker and is left alone): a rocket on the bed and its splash on him were both applied (audit 2026-11-26)
+		if (((inflictor != world) && (inflictor != attacker) && (targ.veh_driver.bm_hit_infl == inflictor) && (targ.veh_driver.bm_hit_infl_t == time)))
+		{
+			return;
+		}
+		targ.veh_driver.bm_hit_infl = inflictor;
+		targ.veh_driver.bm_hit_infl_t = time;
 		T_Damage(targ.veh_driver, inflictor, attacker, damage);
 		return;
+	}
+	if (((targ.veh_van != world) && (targ.veh_van.veh_kind == VEH_FORELOCO) && (targ.veh_van.veh_driver == targ) && (inflictor != world) && (inflictor != attacker)))
+	{
+		if (((targ.bm_hit_infl == inflictor) && (targ.bm_hit_infl_t == time)))
+		{
+			return;
+		}
+		targ.bm_hit_infl = inflictor;
+		targ.bm_hit_infl_t = time;
 	}
 	if (((targ.veh_van != world) && (targ.veh_van.veh_state != VEH_STATE_WRECK) && (targ.veh_van.veh_kind != VEH_FORELOCO)))
 	{
@@ -131,7 +147,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 			return;
 		}
 	}
-	if (((targ.mmt_tank != world) && (targ.mmt_tank.mmt_state != MMT_STATE_WRECK) && (inflictor.classname != "mm_tank_blast")))
+	if (((targ.mmt_tank != world) && (targ.mmt_tank.mmt_state != MMT_STATE_WRECK) && (inflictor.classname != "mm_tank_eject")))
 	{
 		// Mega Man Tank hull absorbs external fire for its driver until destroyed
 		if ((targ.mmt_tank.mmt_driver == targ))

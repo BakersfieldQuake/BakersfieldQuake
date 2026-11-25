@@ -785,6 +785,8 @@ void(entity p, vector boom_org) EC_KillPilot =
 	T_Damage (p, inf, p, 1000);
 	ec_inflicting = 0;
 	remove (inf);
+	if (p.health > 0 && !EC_SpotClear (p, p.origin))
+		setorigin (p, boom_org + '0 0 72');	// survived (pentagram/god): don't leave him in the wall (audit 2026-11-26)
 };
 
 // Multi-stage nuclear detonation: blinding flash, expanding shockwave, rising mushroom cloud, 750u tactical blast & boosted PC fountain

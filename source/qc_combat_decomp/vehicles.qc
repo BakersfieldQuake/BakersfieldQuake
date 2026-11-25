@@ -49,7 +49,6 @@ void() Vehicles_Precache =
 	precache_model ("progs/veh_shrap2.md3");
 	precache_model ("progs/veh_shrap3.md3");
 	precache_model ("progs/veh_shrap4.md3");
-	precache_model ("progs/veh_blast.md3");
 	precache_model ("progs/s_explodbig.spr");
 	precache_sound ("weapons/explodedist.wav");
 
@@ -1931,7 +1930,7 @@ float() Veh_Customize =
 	local vector vorg;
 	local float lim, dx, dy;
 
-	if (other.ishuman != 1)
+	if (other.ishuman == 0)		// bots see nothing; humans (1) and observers (3) see vehicles (audit 2026-11-26)
 		return FALSE;
 	if (other.veh_van == self || other.veh_ride == self)
 		return TRUE;

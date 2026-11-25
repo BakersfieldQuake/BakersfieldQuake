@@ -91,7 +91,6 @@ void() SpruceTower_Precache =
 
 	RandomNPCs_Precache ();
 	Vehicles_Precache ();
-	precache_model ("progs/veh_blast.md3");
 	precache_model ("progs/veh_shrap1.md3");
 	precache_model ("progs/veh_shrap2.md3");
 	precache_model ("progs/veh_shrap3.md3");

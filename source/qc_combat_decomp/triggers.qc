@@ -823,7 +823,7 @@ void() trigger_push_touch =
 	}
 	else
 	{
-		if ((other.health > 0))
+		if (((other.health > 0) && (other.classname != "robdob")))	// the drone was thrown at ~10,000 u/s (audit 2026-11-26)
 		{
 			other.velocity = ((self.speed * self.movedir) * 10);
 			if ((other.classname == "player"))

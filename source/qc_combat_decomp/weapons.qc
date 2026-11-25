@@ -5394,7 +5394,7 @@ void(float checkgrunt) casing =
 		shellcasing.SendEntity = casing_sendtocsqc;
 		shellcasing.SendFlags = (shellcasing.SendFlags | 1);
 		shellcasing.think = SUB_Remove;
-		shellcasing.nextthink = (time + 0.01);
+		shellcasing.nextthink = (time + 0.1);	// one tick was lost when a client's packet was held back (audit 2026-11-26)
 		return;
 	}
 	shellcasing.avelocity = ('390 322 290' + (randomvec() * 44));
@@ -5454,7 +5454,7 @@ void(float checkgrunt) nailcasing =
 		nailcasing.SendEntity = casing_sendtocsqc;
 		nailcasing.SendFlags = (nailcasing.SendFlags | 1);
 		nailcasing.think = SUB_Remove;
-		nailcasing.nextthink = (time + 0.01);
+		nailcasing.nextthink = (time + 0.1);	// was one tick (audit 2026-11-26)
 		return;
 	}
 	nailcasing.avelocity = ('390 222 400' + (randomvec() * 44));

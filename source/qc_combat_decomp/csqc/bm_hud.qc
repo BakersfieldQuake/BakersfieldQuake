@@ -1498,18 +1498,14 @@ void() BM_IntroPrecache =
 	bm_tag_font = findfont ("Roboto");
 	if (bm_tag_font < 0)
 		bm_tag_font = 0;
-	precache_model ("progs/v_robdob.mdl");
 	precache_model ("progs/v_pickle.md3");
 	precache_model ("progs/v_wewcannon.md3");
 	precache_model ("progs/v_milky.md3");
-	precache_model ("progs/v_span.mdl");
-	precache_model ("progs/v_srifle.mdl");
 	precache_model ("progs/v_hammer.mdl");
 	precache_model ("progs/v_netsend.md3");
 	precache_model ("progs/ltg_v3d.md3");
 	precache_model ("progs/v_mm_cannon.md3");
 	precache_model ("progs/v_mm_slingshot.md3");
-	precache_model ("progs/v_googun.md3");
 	precache_model ("progs/v_m4.md3");
 };
 

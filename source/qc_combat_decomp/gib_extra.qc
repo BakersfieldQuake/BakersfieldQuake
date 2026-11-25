@@ -316,6 +316,42 @@ void() burngib_think =
 	self.colormod = '0.35 0.4 0.4';
 };
 
+// Deathmatch burning gibs (audit 2026-11-26): the single-player burn-out (burngib_init) only runs outside deathmatch,
+// so in deathmatch a burning gib kept its ~184 particles/s flame trail and light for its whole 30-40 s life.
+// Burn for 6 s, die down for 4 s, then smoulder until the gib's normal fade, which is kept.
+void() BM_DMBurnGib_Out =
+{
+	self.traileffectnum = particleeffectnum("charred_gib");
+	self.colormod = '0.15 0.2 0.2';
+	self.think = self.bm_gib_fade_fn;
+	if (self.bm_gib_fade_at < 0)
+		self.nextthink = -1;
+	else if (self.bm_gib_fade_at > time + 0.1)
+		self.nextthink = self.bm_gib_fade_at;
+	else
+		self.nextthink = time + 0.1;
+};
+
+void() BM_DMBurnGib_Fade =
+{
+	self.traileffectnum = particleeffectnum("burning_gib_fade");
+	self.colormod = '0.35 0.4 0.4';
+	self.think = BM_DMBurnGib_Out;
+	self.nextthink = time + 4;
+};
+
+void(entity g) BM_DMBurnGib =
+{
+	if (!deathmatch && !coop)
+		return;
+	if (g.traileffectnum != particleeffectnum("burning_gib"))
+		return;
+	g.bm_gib_fade_fn = g.think;
+	g.bm_gib_fade_at = g.nextthink;
+	g.think = BM_DMBurnGib_Fade;
+	g.nextthink = time + 6;
+};
+
 void() burngib_init =
 {
 	if ((LIGHT_COUNT < 6))

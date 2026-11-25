@@ -180,6 +180,9 @@ jobs:
       - name: Patch Dagny's upstairs LAN party into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/patch_dagnys_lan_bsp.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
 
+      - name: Patch the sunny blue sky into bakersfieldish.bsp
+        run: python -I repo/source/mm_tools/patch_bakersfieldish_sky.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.bsp
+
       - name: Patch ForeLoco powerups into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/foreloco/patch_foreloco_maps.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
 

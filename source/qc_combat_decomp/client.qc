@@ -805,6 +805,27 @@ void() execute_changelevel =
 	self.nextthink = (time + 0.1);
 };
 
+// a client that finishes connecting during intermission joins it (SVC_INTERMISSION went out once, to the players then)
+void(entity p) BM_JoinIntermission =
+{
+	local entity pos;
+
+	pos = FindIntermission();
+	p.view_ofs = VEC_ORIGIN;
+	p.angles = p.v_angle = pos.mangle;
+	p.fixangle = TRUE;
+	p.takedamage = 0;
+	p.solid = 0;
+	p.movetype = 0;
+	p.modelindex = 0;
+	setorigin(p, pos.origin);
+	if ((clienttype(p) == FD_CLIENTTYPE_REAL))	// bots have no connection (an MSG_ONE to them can fall back to a broadcast)
+	{
+		msg_entity = p;
+		WriteByte(MSG_ONE, SVC_INTERMISSION);
+	}
+};
+
 void() savepos_clevel =
 {
 	if ((!self.issaved && (self.ltime == 0)))
@@ -1771,6 +1792,8 @@ void() PutClientInServer =
 	BM_PlayerSpawned();	// spawn protection
 	FloatHead_StartSpawner();	// floating heads in deathmatch (floathead.qc)
 	Spawn_CheckKart(self, spot);	// some Downtown spawns start in a go-kart
+	if (intermission_running)
+		BM_JoinIntermission(self);	// audit 2026-11-26
 };
 
 void() info_player_start =
@@ -2837,7 +2860,7 @@ void() PlayerPreThink =
 	}
 	if ((!matrixcounter && (autocvar_sv_cheats != 1)))
 	{
-		if ((!self.slowmo_timer && (autocvar_slowmo != 1)))
+		if ((!self.slowmo_timer && !IN_SLOWMO && (autocvar_slowmo != 1)))
 		{
 			cvar_set("slowmo", "1");
 		}

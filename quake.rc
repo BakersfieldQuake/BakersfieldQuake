@@ -90,8 +90,8 @@ exec personal_post.cfg
 // config.cfg. bm_up_N means "upgrade a player who is at version N". A brand new player (0) gets bm_binds.cfg and jumps
 // straight to the latest version (skipping legacy unbinds in bm_up_legacy.cfg); anyone at 1..11 gets the folded v1-v12
 // history (bm_up_legacy.cfg) once, then steps through bm_up_13/14.
-// To ship a new migration: write bm_up_15.cfg, change bm_up_14 to "exec bm_up_15.cfg; bm_up_15", and add
-// alias bm_up_15 "seta bm_defver 15" (plus update bm_binds.cfg for new players). One line and one file per migration.
+// To ship a new migration: write bm_up_16.cfg, change bm_up_15 to "exec bm_up_16.cfg; bm_up_16", and add
+// alias bm_up_16 "seta bm_defver 16" (plus update bm_binds.cfg for new players). One line and one file per migration.
 alias bm_old "exec bm_up_legacy.cfg; bm_up_12"
 alias bm_up_0 "exec bm_binds.cfg; bm_up_14"
 alias bm_up_1 bm_old
@@ -107,7 +107,8 @@ alias bm_up_10 bm_old
 alias bm_up_11 bm_old
 alias bm_up_12 "exec bm_up_13.cfg; bm_up_13"
 alias bm_up_13 "exec bm_up_14.cfg; bm_up_14"
-alias bm_up_14 "seta bm_defver 14"
+alias bm_up_14 "exec bm_up_15.cfg; bm_up_15"
+alias bm_up_15 "seta bm_defver 15"
 bm_up_$bm_defver
 
 // Always start in FPS bindmap 0, and re-apply user vehicle_binds.cfg if present (survives bm_binds.cfg unbindall)
