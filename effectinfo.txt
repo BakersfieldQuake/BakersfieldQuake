@@ -1326,6 +1326,7 @@ originjitter 5 5 3
 velocityjitter 10 10 20 
 bounce 0 
 lightradius 100 
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.7 0.2 0
 lighttime 0         
 
@@ -1710,6 +1711,7 @@ size 2 4
 alpha 16 24 16   
 velocityjitter 70 70 70
 lightradius 190   
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lighttime 0         
 lightcolor 0 0.8 0.4 
 
@@ -6684,6 +6686,7 @@ alpha 120 256 470
 velocityjitter 3 3 3    
 originjitter 5 5 5
 lightradius 200
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lighttime 0
 lightcolor 3.0 1.5 0.5
 
@@ -9462,6 +9465,7 @@ bounce -1
 airfriction 1
 liquidfriction 4
 lightradius 30               
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lighttime 0                   
 lightcolor 1 0.3 0            
 velocityjitter 64 64 64
@@ -10234,6 +10238,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 40 40 20
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.2 0.3607 1
 
 
@@ -10254,6 +10259,7 @@ originjitter 0 0 15
 velocityjitter 10 10 5
 airfriction -0.5
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.2 0.3607 1
 */
 
@@ -10274,6 +10280,7 @@ originoffset 0 0 10
 originjitter 3 3 15
 velocityjitter 30 30 20
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.2 0.3607 1
 
 /*
@@ -10293,6 +10300,7 @@ originjitter 3 3 15
 velocityjitter 35 35 21
 airfriction -0.5
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.2 0.3607 1
 */
 
@@ -10316,6 +10324,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 40 40 20
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor .3 0.6 2
 
 /*
@@ -10335,6 +10344,7 @@ originjitter 3 3 12
 velocityjitter 5 5 2
 airfriction -0.5
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.2 0.3607 1
 */
 
@@ -10359,6 +10369,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 40 40 20
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.4352 0.0588 0
 
 /*
@@ -10378,6 +10389,7 @@ originjitter 0 0 15
 velocityjitter 10 10 5
 airfriction -0.5
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.4352 0.0588 0
 */
 
@@ -10399,6 +10411,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 40 40 20
 lightradius 110        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.4352 0.0588 0
 
 //gold key card effect
@@ -10419,6 +10432,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 40 40 20
 lightradius 110       
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 .8 0
 
 
@@ -10441,6 +10455,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 30 30 30
 lightradius 160        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.408 0.133 0.545
 
 /*
@@ -10480,6 +10495,7 @@ originjitter 5 5 0
 originoffset 0 0 17
 velocityjitter 70 70 70
 lightradius 160        
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 1
 
 //------------------------------//
@@ -11088,6 +11104,7 @@ velocityjitter 30 30 30
 //ring of invisibility - yellow light
 effect ring
 lightradius 50
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 0.7 0.25
 */
 
@@ -11201,6 +11218,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 
@@ -11235,6 +11253,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 
@@ -11269,6 +11288,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 
@@ -12263,6 +12283,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12281,6 +12302,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12299,6 +12321,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12317,6 +12340,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12335,6 +12359,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12353,6 +12378,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12371,6 +12397,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12389,6 +12416,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12407,6 +12435,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12425,6 +12454,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12443,6 +12473,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12461,6 +12492,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12479,6 +12511,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12497,6 +12530,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12515,6 +12549,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12533,6 +12568,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12551,6 +12587,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12569,6 +12606,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12587,6 +12625,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 //green armor lower sparks
@@ -12605,6 +12644,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.108 0.545 0.3411
 
 
@@ -13594,6 +13634,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13612,6 +13653,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13630,6 +13672,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13648,6 +13691,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13666,6 +13710,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13684,6 +13729,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13702,6 +13748,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13720,6 +13767,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13738,6 +13786,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13756,6 +13805,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13774,6 +13824,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13792,6 +13843,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13810,6 +13862,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13828,6 +13881,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13846,6 +13900,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13864,6 +13919,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13882,6 +13938,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13900,6 +13957,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13918,6 +13976,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 //yellow armor lower sparks
@@ -13936,6 +13995,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 1 1 0.121
 
 
@@ -14923,6 +14983,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -14941,6 +15002,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -14959,6 +15021,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -14977,6 +15040,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -14995,6 +15059,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15013,6 +15078,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15031,6 +15097,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15049,6 +15116,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15067,6 +15135,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15085,6 +15154,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15103,6 +15173,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15121,6 +15192,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15139,6 +15211,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15157,6 +15230,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15175,6 +15249,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15193,6 +15268,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15211,6 +15287,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15229,6 +15306,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15247,6 +15325,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 //red armor lower sparks
@@ -15265,6 +15344,7 @@ originoffset 0 0 10
 velocityoffset 1 1 -17
 airfriction -0.6
 lightradius 100
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor 0.698 0.1333 0.1333
 
 
@@ -15383,6 +15463,7 @@ gravity -0.25
 notunderwater 
 color 0xff0000 0xe3974f
 lightradius 50 
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor .9 .4 0 
 lighttime 0
 
@@ -15535,6 +15616,7 @@ gravity -0.25
 notunderwater 
 color 0xff0000 0xe3974f
 lightradius 50 
+lightshadow 0	// audit 2026-11-26: engine default is 1 (a shadow map per light when dlight shadows are on)
 lightcolor .9 .4 0 
 lighttime 0
 
