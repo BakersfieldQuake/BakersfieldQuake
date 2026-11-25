@@ -17,6 +17,35 @@ void() PD_Precache =
 	precache_model("progs/gib_id1_leg_r.mdl");
 };
 
+void() PD_Reset =
+{
+	self.pd_anim = 0;
+	self.pd_end_frame = 0;
+	self.pd_gib_flags = 0;
+	self.pd_slide_vel = '0 0 0';
+	self.pd_slide_t = 0;
+};
+
+void() PD_PlayerCorpseFade =
+{
+	self.alpha = (self.alpha - 0.08);
+	if ((self.alpha <= 0.05))
+	{
+		bodyque_clear();
+		return;
+	}
+	self.think = PD_PlayerCorpseFade;
+	self.nextthink = (time + 0.1);
+};
+
+void() PD_PlayerCorpseWait =
+{
+	if ((self.alpha <= 0))
+		self.alpha = 1;
+	self.think = PD_PlayerCorpseFade;
+	self.nextthink = (time + 0.1);
+};
+
 void(string gibname, vector local_ofs, vector local_vel, float keep_colormap) PD_SpawnClassicGib =
 {
 	local entity g;
@@ -97,6 +126,9 @@ vector() PD_KnockbackDir =
 
 void() PD_AnimTick =
 {
+	if ((self.deadflag != DEAD_DYING))
+		return;
+
 	if ((self.pd_anim == 3))
 	{
 		if (((self.pd_gib_flags & 1) && (self.frame >= PD_LIMBS_OFF_GIB_ARM_F)))

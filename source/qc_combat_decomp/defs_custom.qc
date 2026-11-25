@@ -11986,4 +11986,6 @@ void(entity inflictor, entity attacker, float damage, entity direct_other) Spruc
 
 // ---- Classic Ranger custom death animations (player_deaths.qc)
 void() PD_Precache;
+void() PD_Reset;
 float() PD_TryCustomPlayerDeath;
+void() PD_PlayerCorpseWait;

@@ -1477,6 +1477,7 @@ void() PutClientInServer =
 	self.traileffectnum = 0;
 	self.gravity = 1;
 	self.avelocity = VEC_ORIGIN;
+	PD_Reset();
 	Gyro_Object_ClearPhysics(self);
 	if (((((autocvar_coop_life_pool == 1) && coop) && (self.health > 0)) && (self.lives == 0)))
 	{

@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake · Classic Quake Guy Death Animation Voting Studio</title>
+<style>
+:root {
+  --bg: #080b12;
+  --panel: rgba(14, 19, 30, 0.90);
+  --panel-solid: #101624;
+  --line: rgba(255, 255, 255, 0.11);
+  --line-hi: rgba(255, 180, 84, 0.55);
+  --win: #34d399;
+  --win-bg: rgba(52, 211, 153, 0.16);
+  --amber: #ffb454;
+  --amber-ink: #1b1002;
+  --cyan: #38bdf8;
+  --pink: #fb7185;
+  --text: #edf2fb;
+  --muted: #93a3b8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13.5px/1.42 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+canvas#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #080b12;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--amber);
+}
+#loading.done { display: none; }
+
+main#page {
+  position: relative;
+  z-index: 1;
+  max-width: 1660px;
+  margin: 0 auto;
+  padding: 0 20px 128px;
+}
+body.detail-open main#page { visibility: hidden; }
+body.detail-open { overflow: hidden; }
+
+header.hero {
+  padding: 16px 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.kicker {
+  margin: 0 0 2px;
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(20px, 2.2vw, 27px);
+  font-weight: 850;
+  letter-spacing: -0.015em;
+}
+.sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.14s ease;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.11); border-color: rgba(255,255,255,0.24); }
+.btn.active {
+  background: var(--amber);
+  color: var(--amber-ink);
+  border-color: var(--amber);
+}
+.btn.win {
+  background: var(--win-bg);
+  color: var(--win);
+  border-color: rgba(52, 211, 153, 0.55);
+}
+.btn.win.picked {
+  background: var(--win);
+  color: #042116;
+  border-color: var(--win);
+}
+.sep { width: 1px; height: 22px; background: var(--line); margin: 0 2px; }
+
+section.cat {
+  margin-top: 22px;
+}
+.cat-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+.cat-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.badge.ai {
+  background: rgba(251, 113, 133, 0.16);
+  color: var(--pink);
+  border-color: rgba(251, 113, 133, 0.38);
+}
+.cat-summary {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1120px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px)  { .grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.card.picked {
+  border-color: var(--win);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.vp {
+  position: relative;
+  height: 290px;
+  cursor: grab;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+}
+.vp:active { cursor: grabbing; }
+.vp-hud {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  font-size: 11px;
+  color: rgba(237, 242, 251, 0.78);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+}
+.vp-pill {
+  background: rgba(8, 11, 18, 0.68);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.card-body {
+  background: var(--panel);
+  padding: 11px 13px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.card-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 780;
+}
+.card-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.4px;
+  line-height: 1.4;
+  flex: 1;
+}
+.card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 2px;
+}
+.card-actions .btn.win { flex: 1; }
+
+/* Bottom Sticky Vote Dock */
+footer.dock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  background: rgba(10, 14, 23, 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding: 10px 20px;
+}
+.dock-inner {
+  max-width: 1660px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.picks-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.chip {
+  font-size: 11.5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: #b7f7dc;
+}
+.dock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Detail Modal */
+#modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  background: rgba(6, 8, 14, 0.45);
+}
+#modal.open { display: flex; }
+.modal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(10, 14, 23, 0.90);
+  border-bottom: 1px solid var(--line);
+  gap: 12px;
+}
+.modal-vp {
+  flex: 1;
+  position: relative;
+  cursor: grab;
+}
+.modal-vp:active { cursor: grabbing; }
+.modal-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 20px;
+  background: rgba(10, 14, 23, 0.94);
+  border-top: 1px solid var(--line);
+}
+input[type="range"] {
+  accent-color: var(--amber);
+  flex: 1;
+  min-width: 180px;
+}
+.toast {
+  position: fixed;
+  bottom: 74px;
+  right: 22px;
+  z-index: 80;
+  background: #142b23;
+  color: #9bf3cf;
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 650;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: 0.18s ease;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="loading">Decompressing Quake Ranger 3D Death Animations...</div>
+
+<main id="page">
+  <header class="hero">
+    <div class="hero-left">
+      <p class="kicker">BakersfieldQuake · progs/player_id1.mdl · 20 fps + 60 fps lerp</p>
+      <h1>Classic Quake Guy — Death Animation Voting Studio</h1>
+      <p class="sub">Drag any 3D viewport to orbit. Compare 3 variations for each of the 6 multiplayer death styles, inspect in fullscreen, and vote your 6 winners.</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn active" id="btnPlay">Pause</button>
+      <button class="btn" data-spd="0.25">0.25×</button>
+      <button class="btn" data-spd="0.5">0.5×</button>
+      <button class="btn active" data-spd="1">1×</button>
+      <button class="btn" data-spd="1.5">1.5×</button>
+      <div class="sep"></div>
+      <button class="btn active" id="btnTraj">Map Flight/Slide</button>
+      <button class="btn active" id="btnGibs">Gibs & Blood</button>
+      <button class="btn" id="btnWire">Wireframe</button>
+      <button class="btn" id="btnGhost">Stand1 Ghost</button>
+    </div>
+  </header>
+  <div id="cats"></div>
+</main>
+
+<footer class="dock">
+  <div class="dock-inner">
+    <div class="picks-chips" id="picksChips"></div>
+    <div class="dock-actions">
+      <button class="btn" id="btnCopySummary">Copy Summary</button>
+      <button class="btn" id="btnCopyCmd">Copy Rebuild Cmd</button>
+      <button class="btn active" id="btnDownloadJson">Download votes.json</button>
+    </div>
+  </div>
+</footer>
+
+<div id="modal">
+  <div class="modal-top">
+    <div>
+      <div class="kicker" id="mCat"></div>
+      <div style="font-size:17px;font-weight:800" id="mTitle"></div>
+      <div class="sub" id="mDesc"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn win" id="mVote">Vote Winner</button>
+      <button class="btn" id="mClose">Close (Esc)</button>
+    </div>
+  </div>
+  <div class="modal-vp" id="modalVp"></div>
+  <div class="modal-bottom">
+    <button class="btn active" id="mPlay">Pause</button>
+    <button class="btn" id="mPrev">◀ Frame</button>
+    <button class="btn" id="mNext">Frame ▶</button>
+    <input type="range" id="mScrub" min="0" max="1" step="0.002" value="0">
+    <span class="mono" id="mFrameTxt" style="min-width:110px;text-align:right"></span>
+    <span class="sub" style="margin:0">Drag to orbit · Scroll to zoom</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = __PAYLOAD_JSON__;
+
+// ---------------------------------------------------------------------------
+// Minimal Matrix / Camera Helpers (Z-up Quake space)
+// ---------------------------------------------------------------------------
+function mat4Persp(fovDeg, aspect, near, far) {
+  const f = 1 / Math.tan(fovDeg * Math.PI / 360);
+  const nf = 1 / (near - far);
+  return new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) * nf, -1,
+    0, 0, 2 * far * near * nf, 0,
+  ]);
+}
+function mat4LookAt(eye, ctr, up) {
+  let zx = eye[0] - ctr[0], zy = eye[1] - ctr[1], zz = eye[2] - ctr[2];
+  let zl = Math.hypot(zx, zy, zz) || 1; zx /= zl; zy /= zl; zz /= zl;
+  let xx = up[1] * zz - up[2] * zy, xy = up[2] * zx - up[0] * zz, xz = up[0] * zy - up[1] * zx;
+  let xl = Math.hypot(xx, xy, xz) || 1; xx /= xl; xy /= xl; xz /= xl;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  return new Float32Array([
+    xx, yx, zx, 0,
+    xy, yy, zy, 0,
+    xz, yz, zz, 0,
+    -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+    -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+    -(zx * eye[0] + zy * eye[1] + zz * eye[2]),
+    1,
+  ]);
+}
+function mul4(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+    }
+  }
+  return o;
+}
+function mat4Model(pos, rotDeg) {
+  const rx = rotDeg[0] * Math.PI / 180, ry = rotDeg[1] * Math.PI / 180, rz = rotDeg[2] * Math.PI / 180;
+  const cx = Math.cos(rx), sx = Math.sin(rx);
+  const cy = Math.cos(ry), sy = Math.sin(ry);
+  const cz = Math.cos(rz), sz = Math.sin(rz);
+  // Rz * Ry * Rx
+  const m00 = cz * cy, m01 = cz * sy * sx - sz * cx, m02 = cz * sy * cx + sz * sx;
+  const m10 = sz * cy, m11 = sz * sy * sx + cz * cx, m12 = sz * sy * cx - cz * sx;
+  const m20 = -sy,     m21 = cy * sx,                m22 = cy * cx;
+  return new Float32Array([
+    m00, m10, m20, 0,
+    m01, m11, m21, 0,
+    m02, m12, m22, 0,
+    pos[0], pos[1], pos[2], 1,
+  ]);
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+(() => {
+  try {
+  document.getElementById("loading").classList.add("done");
+
+  const STORE_KEY = "bq_player_death_votes_v1";
+  let picks = Object.assign({}, DATA.default_picks);
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+    for (const k of Object.keys(picks)) if (saved[k]) picks[k] = saved[k];
+  } catch (_) {}
+
+  const animMap = {};
+  for (const a of DATA.anims) animMap[a.id] = a;
+
+  const state = {
+    playing: true,
+    speed: 1.0,
+    showTraj: true,
+    showGibs: true,
+    wireframe: false,
+    ghost: false,
+    modalAnim: null,
+    modalTime: 0,
+    modalPlaying: true,
+    modalCam: { yaw: -125, pitch: 18, dist: 105 },
+  };
+
+  // Build UI cards
+  const catsEl = document.getElementById("cats");
+  const cards = [];
+
+  for (const cat of DATA.categories) {
+    const sec = document.createElement("section");
+    sec.className = "cat";
+    const isAi = cat.badge.startsWith("AI");
+    sec.innerHTML = `
+      <div class="cat-head">
+        <h2>${cat.label}</h2>
+        <span class="badge ${isAi ? "ai" : ""}">${cat.badge}</span>
+        <span class="cat-summary">${cat.summary}</span>
+      </div>
+      <div class="grid"></div>
+    `;
+    const grid = sec.querySelector(".grid");
+    const cAnims = DATA.anims.filter(a => a.cat === cat.cat);
+    for (const a of cAnims) {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.dataset.animId = a.id;
+      card.dataset.cat = a.cat;
+      card.innerHTML = `
+        <div class="vp">
+          <div class="vp-hud">
+            <span class="vp-pill mono">${a.frames.length}f · ${(a.frames.length / a.fps).toFixed(2)}s</span>
+            <span class="vp-pill mono vp-f">f0</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title-row">
+            <h3 class="card-title">${a.title}</h3>
+          </div>
+          <p class="card-desc">${a.desc}</p>
+          <div class="card-actions">
+            <button class="btn win" data-vote="${a.id}">Vote Winner</button>
+            <button class="btn" data-inspect="${a.id}">Inspect 3D</button>
+          </div>
+        </div>
+      `;
+      const vp = card.querySelector(".vp");
+      const entry = {
+        anim: a,
+        card,
+        vp,
+        fLabel: card.querySelector(".vp-f"),
+        cam: { yaw: -126, pitch: 18, dist: 108 },
+      };
+      // Orbit drag on card viewport
+      let drag = null;
+      vp.addEventListener("pointerdown", e => {
+        drag = { x: e.clientX, y: e.clientY, yaw: entry.cam.yaw, pitch: entry.cam.pitch };
+        vp.setPointerCapture(e.pointerId);
+      });
+      vp.addEventListener("pointermove", e => {
+        if (!drag) return;
+        entry.cam.yaw = drag.yaw - (e.clientX - drag.x) * 0.65;
+        entry.cam.pitch = Math.max(-55, Math.min(80, drag.pitch + (e.clientY - drag.y) * 0.45));
+      });
+      vp.addEventListener("pointerup", () => { drag = null; });
+      vp.addEventListener("dblclick", () => { entry.cam = { yaw: -126, pitch: 18, dist: 108 }; });
+
+      card.querySelector("[data-vote]").addEventListener("click", () => setVote(a.cat, a.id));
+      card.querySelector("[data-inspect]").addEventListener("click", () => openModal(a.id));
+      cards.push(entry);
+      grid.appendChild(card);
+    }
+    catsEl.appendChild(sec);
+  }
+
+  function refreshVotesUI() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(picks)); } catch (_) {}
+    for (const c of cards) {
+      const won = picks[c.anim.cat] === c.anim.id;
+      c.card.classList.toggle("picked", won);
+      const vb = c.card.querySelector("[data-vote]");
+      vb.classList.toggle("picked", won);
+      vb.textContent = won ? "✓ Winner Selected" : "Vote Winner";
+    }
+    if (state.modalAnim) {
+      const won = picks[state.modalAnim.cat] === state.modalAnim.id;
+      const mv = document.getElementById("mVote");
+      mv.classList.toggle("picked", won);
+      mv.textContent = won ? "✓ Winner Selected" : "Vote Winner";
+    }
+    const chips = document.getElementById("picksChips");
+    chips.innerHTML = DATA.categories.map(c => {
+      const id = picks[c.cat];
+      return `<span class="chip mono">${c.cat}: <b>${id}</b></span>`;
+    }).join("");
+  }
+  function setVote(cat, id) {
+    picks[cat] = id;
+    refreshVotesUI();
+    showToast(`Voted ${id} for ${cat}`);
+  }
+  refreshVotesUI();
+
+  // Toolbar bindings
+  const btnPlay = document.getElementById("btnPlay");
+  btnPlay.addEventListener("click", () => {
+    state.playing = !state.playing;
+    btnPlay.textContent = state.playing ? "Pause" : "Play";
+    btnPlay.classList.toggle("active", state.playing);
+  });
+  document.querySelectorAll("[data-spd]").forEach(b => {
+    b.addEventListener("click", () => {
+      state.speed = parseFloat(b.dataset.spd);
+      document.querySelectorAll("[data-spd]").forEach(x => x.classList.toggle("active", x === b));
+    });
+  });
+  for (const [id, key] of [["btnTraj", "showTraj"], ["btnGibs", "showGibs"], ["btnWire", "wireframe"], ["btnGhost", "ghost"]]) {
+    const el = document.getElementById(id);
+    el.addEventListener("click", () => {
+      state[key] = !state[key];
+      el.classList.toggle("active", state[key]);
+    });
+  }
+
+  // Export & Copy buttons
+  document.getElementById("btnCopyCmd").addEventListener("click", async () => {
+    const cmd = `python -E -P source/mm_tools/build_player_deaths.py --picks ${DATA.categories.map(c => picks[c.cat]).join(",")}`;
+    await navigator.clipboard.writeText(cmd);
+    showToast("Copied rebuild command to clipboard!");
+  });
+  document.getElementById("btnCopySummary").addEventListener("click", async () => {
+    const lines = DATA.categories.map(c => `${c.label}: ${picks[c.cat]} (${animMap[picks[c.cat]].title})`);
+    await navigator.clipboard.writeText(lines.join("\n"));
+    showToast("Copied vote summary to clipboard!");
+  });
+  document.getElementById("btnDownloadJson").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ picks }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "player_death_votes.json"; a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded player_death_votes.json");
+  });
+
+  // Modal Inspector
+  const modal = document.getElementById("modal");
+  const modalVp = document.getElementById("modalVp");
+  const mScrub = document.getElementById("mScrub");
+  const mFrameTxt = document.getElementById("mFrameTxt");
+  const mPlay = document.getElementById("mPlay");
+  function openModal(animId) {
+    const a = animMap[animId];
+    state.modalAnim = a;
+    state.modalTime = 0;
+    state.modalPlaying = true;
+    mPlay.textContent = "Pause";
+    mPlay.classList.add("active");
+    document.getElementById("mCat").textContent = `${a.cat_label} · ${a.badge}`;
+    document.getElementById("mTitle").textContent = a.title;
+    document.getElementById("mDesc").textContent = a.desc;
+    modal.classList.add("open");
+    document.body.classList.add("detail-open");
+    refreshVotesUI();
+  }
+  function closeModal() {
+    state.modalAnim = null;
+    modal.classList.remove("open");
+    document.body.classList.remove("detail-open");
+  }
+  document.getElementById("mClose").addEventListener("click", closeModal);
+  document.getElementById("mVote").addEventListener("click", () => {
+    if (state.modalAnim) setVote(state.modalAnim.cat, state.modalAnim.id);
+  });
+  window.addEventListener("keydown", e => { if (e.key === "Escape" && state.modalAnim) closeModal(); });
+  mPlay.addEventListener("click", () => {
+    state.modalPlaying = !state.modalPlaying;
+    mPlay.textContent = state.modalPlaying ? "Pause" : "Play";
+    mPlay.classList.toggle("active", state.modalPlaying);
+  });
+  mScrub.addEventListener("input", () => {
+    if (!state.modalAnim) return;
+    state.modalPlaying = false;
+    mPlay.textContent = "Play";
+    mPlay.classList.remove("active");
+    const dur = (state.modalAnim.frames.length - 1) / state.modalAnim.fps;
+    state.modalTime = parseFloat(mScrub.value) * dur;
+  });
+  document.getElementById("mPrev").addEventListener("click", () => {
+    if (!state.modalAnim) return;
+    state.modalPlaying = false;
+    mPlay.textContent = "Play";
+    mPlay.classList.remove("active");
+    const fi = Math.max(0, Math.round(state.modalTime * state.modalAnim.fps) - 1);
+    state.modalTime = fi / state.modalAnim.fps;
+  });
+  document.getElementById("mNext").addEventListener("click", () => {
+    if (!state.modalAnim) return;
+    state.modalPlaying = false;
+    mPlay.textContent = "Play";
+    mPlay.classList.remove("active");
+    const fi = Math.min(state.modalAnim.frames.length - 1, Math.round(state.modalTime * state.modalAnim.fps) + 1);
+    state.modalTime = fi / state.modalAnim.fps;
+  });
+  let mDrag = null;
+  modalVp.addEventListener("pointerdown", e => {
+    mDrag = { x: e.clientX, y: e.clientY, yaw: state.modalCam.yaw, pitch: state.modalCam.pitch };
+    modalVp.setPointerCapture(e.pointerId);
+  });
+  modalVp.addEventListener("pointermove", e => {
+    if (!mDrag) return;
+    state.modalCam.yaw = mDrag.yaw - (e.clientX - mDrag.x) * 0.55;
+    state.modalCam.pitch = Math.max(-55, Math.min(82, mDrag.pitch + (e.clientY - mDrag.y) * 0.45));
+  });
+  modalVp.addEventListener("pointerup", () => { mDrag = null; });
+  modalVp.addEventListener("wheel", e => {
+    e.preventDefault();
+    state.modalCam.dist = Math.max(48, Math.min(260, state.modalCam.dist + e.deltaY * 0.12));
+  }, { passive: false });
+
+  // ---------------------------------------------------------------------------
+  // WebGL2 Renderer
+  // ---------------------------------------------------------------------------
+  const canvas = document.getElementById("gl");
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: false });
+  if (!gl) { alert("WebGL2 required"); return; }
+
+  const vsSrc = `#version 300 es
+  layout(location=0) in vec3 aPos;
+  layout(location=1) in vec3 aNorm;
+  layout(location=2) in vec2 aUv;
+  uniform mat4 uMvp;
+  uniform mat4 uModel;
+  out vec3 vNorm;
+  out vec2 vUv;
+  void main() {
+    gl_Position = uMvp * vec4(aPos, 1.0);
+    vNorm = mat3(uModel) * aNorm;
+    vUv = aUv;
+  }`;
+  const fsSrc = `#version 300 es
+  precision highp float;
+  in vec3 vNorm;
+  in vec2 vUv;
+  uniform sampler2D uTex;
+  uniform vec4 uTint;
+  uniform int uFlat;
+  out vec4 oCol;
+  void main() {
+    if (uFlat == 1) { oCol = uTint; return; }
+    vec3 n = normalize(vNorm);
+    vec3 l1 = normalize(vec3(0.55, 0.42, 0.72));
+    vec3 l2 = normalize(vec3(-0.6, -0.5, 0.35));
+    float d = max(dot(n, l1), 0.0) * 0.95 + max(dot(n, l2), 0.0) * 0.42 + 0.52;
+    vec4 tex = texture(uTex, vUv);
+    oCol = vec4(tex.rgb * d * uTint.rgb, uTint.a);
+  }`;
+  function compile(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const loc = {
+    mvp: gl.getUniformLocation(prog, "uMvp"),
+    model: gl.getUniformLocation(prog, "uModel"),
+    tex: gl.getUniformLocation(prog, "uTex"),
+    tint: gl.getUniformLocation(prog, "uTint"),
+    flat: gl.getUniformLocation(prog, "uFlat"),
+  };
+
+  function makeTex(src) {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([140, 110, 85, 255]));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    };
+    img.src = src;
+    return t;
+  }
+
+  // Unrolled vertex buffer builder for crisp per-face / smooth shading
+  function createMeshResources(tris, uvArr, texSrc) {
+    const nIdx = tris.length;
+    const uvs = new Float32Array(nIdx * 2);
+    for (let i = 0; i < nIdx; i++) {
+      const vi = tris[i];
+      uvs[i * 2] = uvArr[vi * 2];
+      uvs[i * 2 + 1] = uvArr[vi * 2 + 1];
+    }
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const posBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, nIdx * 3 * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    const nrmBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nrmBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, nIdx * 3 * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+    const uvBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+
+    return {
+      vao, posBuf, nrmBuf,
+      tris,
+      nIdx,
+      posScratch: new Float32Array(nIdx * 3),
+      nrmScratch: new Float32Array(nIdx * 3),
+      tex: makeTex(texSrc),
+    };
+  }
+
+  function updateAndDrawMesh(res, vertsFlat, vpMat, modelMat, tint, wire) {
+    const tris = res.tris, ps = res.posScratch, ns = res.nrmScratch, n = res.nIdx;
+    // Accumulate smooth vertex normals over shared indices
+    const vNorm = new Float32Array(vertsFlat.length);
+    for (let i = 0; i < n; i += 3) {
+      const i0 = tris[i] * 3, i1 = tris[i + 1] * 3, i2 = tris[i + 2] * 3;
+      const ax = vertsFlat[i1] - vertsFlat[i0], ay = vertsFlat[i1 + 1] - vertsFlat[i0 + 1], az = vertsFlat[i1 + 2] - vertsFlat[i0 + 2];
+      const bx = vertsFlat[i2] - vertsFlat[i0], by = vertsFlat[i2 + 1] - vertsFlat[i0 + 1], bz = vertsFlat[i2 + 2] - vertsFlat[i0 + 2];
+      const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+      vNorm[i0] += nx; vNorm[i0 + 1] += ny; vNorm[i0 + 2] += nz;
+      vNorm[i1] += nx; vNorm[i1 + 1] += ny; vNorm[i1 + 2] += nz;
+      vNorm[i2] += nx; vNorm[i2 + 1] += ny; vNorm[i2 + 2] += nz;
+    }
+    for (let i = 0; i < n; i++) {
+      const vi = tris[i] * 3;
+      ps[i * 3] = vertsFlat[vi]; ps[i * 3 + 1] = vertsFlat[vi + 1]; ps[i * 3 + 2] = vertsFlat[vi + 2];
+      const lx = vNorm[vi], ly = vNorm[vi + 1], lz = vNorm[vi + 2];
+      const ll = Math.hypot(lx, ly, lz) || 1;
+      ns[i * 3] = lx / ll; ns[i * 3 + 1] = ly / ll; ns[i * 3 + 2] = lz / ll;
+    }
+    gl.bindVertexArray(res.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, res.posBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, ps);
+    gl.bindBuffer(gl.ARRAY_BUFFER, res.nrmBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, ns);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, res.tex);
+    gl.uniform1i(loc.tex, 0);
+    gl.uniformMatrix4fv(loc.model, false, modelMat);
+    gl.uniformMatrix4fv(loc.mvp, false, mul4(vpMat, modelMat));
+    gl.uniform4fv(loc.tint, tint);
+    gl.uniform1i(loc.flat, 0);
+    gl.drawArrays(wire ? gl.LINES : gl.TRIANGLES, 0, n);
+  }
+
+  const playerMesh = createMeshResources(DATA.player.tris, DATA.player.uv, DATA.player.skin);
+  const gibMeshes = {};
+  for (const [k, g] of Object.entries(DATA.gibs)) {
+    gibMeshes[k] = createMeshResources(g.tris, g.uv, g.skin);
+  }
+
+  // Floor grid & tiny blood drop cube mesh
+  const gridVerts = [];
+  for (let i = -360; i <= 180; i += 24) {
+    gridVerts.push(i, -144, -24,  i, 144, -24);
+  }
+  for (let j = -144; j <= 144; j += 24) {
+    gridVerts.push(-360, j, -24,  180, j, -24);
+  }
+  const gridVao = gl.createVertexArray();
+  gl.bindVertexArray(gridVao);
+  const gridBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gridVerts), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  // Simple octahedron blood droplet for gib trails
+  const dropVerts = new Float32Array([
+    0,0,1.2,  1,0,0,  0,1,0,   0,0,1.2,  0,1,0, -1,0,0,
+    0,0,1.2, -1,0,0,  0,-1,0,  0,0,1.2,  0,-1,0, 1,0,0,
+    0,0,-1.2, 0,1,0,  1,0,0,   0,0,-1.2,-1,0,0,  0,1,0,
+    0,0,-1.2, 0,-1,0,-1,0,0,   0,0,-1.2, 1,0,0,  0,-1,0,
+  ]);
+  const dropVao = gl.createVertexArray();
+  gl.bindVertexArray(dropVao);
+  const dropBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, dropBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, dropVerts, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  const idMat = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+  const interpPos = new Float32Array(DATA.player.nverts * 3);
+  const PAUSE_END = 0.75; // hold final dead pose 0.75s before looping
+
+  function sampleAnimAt(a, rawT) {
+    const dur = (a.frames.length - 1) / a.fps;
+    const cycle = dur + PAUSE_END;
+    const lt = ((rawT % cycle) + cycle) % cycle;
+    const clampedT = Math.max(0, Math.min(lt, dur));
+    const fFloat = clampedT * a.fps;
+    const f0 = Math.max(0, Math.min(a.frames.length - 1, Math.floor(fFloat)));
+    const f1 = Math.max(0, Math.min(a.frames.length - 1, f0 + 1));
+    const alpha = fFloat - f0;
+
+    const fr0 = a.frames[f0], fr1 = a.frames[f1];
+    for (let i = 0; i < interpPos.length; i++) {
+      interpPos[i] = fr0[i] + (fr1[i] - fr0[i]) * alpha;
+    }
+
+    let wx = 0, wy = 0, wz = 0;
+    if (state.showTraj && a.traj && a.traj.length) {
+      const p0 = a.traj[f0], p1 = a.traj[f1];
+      wx = p0.x + (p1.x - p0.x) * alpha;
+      wy = p0.y + (p1.y - p0.y) * alpha;
+      wz = p0.z + (p1.z - p0.z) * alpha;
+    }
+    return { f0, alpha, dur, clampedT, u: clampedT / Math.max(0.001, dur), wx, wy, wz };
+  }
+
+  function drawScene(vpEl, anim, cam, tVal, frameBadgeEl) {
+    const r = vpEl.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > window.innerHeight) return;
+    const dpr = window.devicePixelRatio || 1;
+    const x = Math.round(r.left * dpr);
+    const y = Math.round((window.innerHeight - r.bottom) * dpr);
+    const w = Math.round(r.width * dpr);
+    const h = Math.round(r.height * dpr);
+
+    gl.viewport(x, y, w, h);
+    gl.scissor(x, y, w, h);
+    gl.clearColor(0.055, 0.074, 0.115, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const s = sampleAnimAt(anim, tVal);
+    if (frameBadgeEl) frameBadgeEl.textContent = `f${s.f0}/${anim.frames.length - 1}`;
+
+    // Smoothly track horizontal flight so guy never flies off-screen
+    const focusX = s.wx * 0.88;
+    const focusZ = 4.0 + s.wz * 0.60;
+    const yr = cam.yaw * Math.PI / 180;
+    const pr = cam.pitch * Math.PI / 180;
+    const eye = [
+      focusX + cam.dist * Math.cos(pr) * Math.cos(yr),
+      cam.dist * Math.cos(pr) * Math.sin(yr),
+      focusZ + cam.dist * Math.sin(pr),
+    ];
+    const vp = mul4(mat4Persp(44, w / h, 2, 1600), mat4LookAt(eye, [focusX, 0, focusZ], [0, 0, 1]));
+
+    // Draw floor grid
+    gl.bindVertexArray(gridVao);
+    gl.uniformMatrix4fv(loc.model, false, idMat);
+    gl.uniformMatrix4fv(loc.mvp, false, vp);
+    gl.uniform4f(loc.tint, 0.22, 0.29, 0.42, 1.0);
+    gl.uniform1i(loc.flat, 1);
+    gl.drawArrays(gl.LINES, 0, gridVerts.length / 3);
+
+    // Draw Stand1 Ghost
+    if (state.ghost) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      updateAndDrawMesh(playerMesh, DATA.player.stand1, vp, idMat, [0.35, 0.80, 1.0, 0.26], false);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
+
+    // Draw animated Ranger
+    const mMain = mat4Model([s.wx, s.wy, s.wz], [0, 0, 0]);
+    updateAndDrawMesh(playerMesh, interpPos, vp, mMain, [1, 1, 1, 1], state.wireframe);
+
+    // Draw flying gibs & blood particles
+    if (state.showGibs && anim.gibs && anim.gibs.length) {
+      const grav = 680.0;
+      for (const g of anim.gibs) {
+        const startSec = g.start_t * s.dur;
+        const dt = s.clampedT - startSec;
+        if (dt < 0) continue;
+        // Ballistic with floor bounce at z = -20
+        let gx = s.wx + g.pos[0] + g.vel[0] * dt * 0.42;
+        let gy = s.wy + g.pos[1] + g.vel[1] * dt * 0.42;
+        let gz = s.wz + g.pos[2] + g.vel[2] * dt * 0.65 - 0.5 * grav * dt * dt * 0.55;
+        if (gz < -20.0) {
+          const excess = -20.0 - gz;
+          gz = -20.0 + Math.abs(Math.sin(excess * 0.12)) * 8.0 * Math.exp(-dt * 2.5);
+          // Slow down horizontal skid after ground hit
+          gx = s.wx + g.pos[0] + g.vel[0] * (dt * 0.30);
+          gy = s.wy + g.pos[1] + g.vel[1] * (dt * 0.30);
+        }
+        const rot = [g.avel[0] * dt, g.avel[1] * dt, g.avel[2] * dt];
+        const gm = gibMeshes[g.part];
+        if (gm) {
+          updateAndDrawMesh(gm, DATA.gibs[g.part].verts, vp, mat4Model([gx, gy, gz], rot), [1, 1, 1, 1], state.wireframe);
+        }
+        // 4 blood droplets along trajectory
+        gl.bindVertexArray(dropVao);
+        gl.uniform1i(loc.flat, 1);
+        gl.uniform4f(loc.tint, 0.78, 0.06, 0.06, 1.0);
+        for (let k = 1; k <= 4; k++) {
+          const bdt = Math.max(0, dt - k * 0.045);
+          const bx = s.wx + g.pos[0] + g.vel[0] * bdt * 0.38;
+          const by = s.wy + g.pos[1] + g.vel[1] * bdt * 0.38;
+          const bz = Math.max(-23.0, s.wz + g.pos[2] + g.vel[2] * bdt * 0.65 - 0.5 * grav * bdt * bdt * 0.55);
+          const dm = mat4Model([bx, by, bz], [k * 40, k * 70, 0]);
+          gl.uniformMatrix4fv(loc.model, false, dm);
+          gl.uniformMatrix4fv(loc.mvp, false, mul4(vp, dm));
+          gl.drawArrays(gl.TRIANGLES, 0, dropVerts.length / 3);
+        }
+      }
+    }
+    return s;
+  }
+
+  let simTime = 0;
+  let lastTs = null;
+  function tick(now) {
+    const dt = lastTs === null ? 0 : Math.max(0, Math.min(0.05, (now - lastTs) / 1000));
+    lastTs = now;
+    if (state.playing) simTime += dt * state.speed;
+    if (state.modalAnim && state.modalPlaying) state.modalTime += dt * state.speed;
+
+    const dpr = window.devicePixelRatio || 1;
+    const cw = Math.round(window.innerWidth * dpr);
+    const ch = Math.round(window.innerHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, cw, ch);
+    gl.clearColor(0.031, 0.043, 0.071, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.SCISSOR_TEST);
+
+    if (state.modalAnim) {
+      const s = drawScene(modalVp, state.modalAnim, state.modalCam, state.modalTime, null);
+      if (s) {
+        mScrub.value = s.u;
+        mFrameTxt.textContent = `f${s.f0} / ${state.modalAnim.frames.length - 1}`;
+      }
+    } else {
+      for (const c of cards) {
+        drawScene(c.vp, c.anim, c.cam, simTime, c.fLabel);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  } catch (err) {
+    const ld = document.getElementById("loading");
+    ld.classList.remove("done");
+    ld.textContent = "Failed to initialize 3D viewer: " + (err && err.message ? err.message : String(err));
+  }
+})();
+</script>
+</body>
+</html>

@@ -1162,15 +1162,29 @@ void(entity ent, float hp, string headmdl) CopyToBodyQue =
 		bodyque_head.th_pain = corpse_pain;
 		bodyque_head.semisolid = "y";
 		has_semisolids = 1;
+		bodyque_head.movetype = MOVETYPE_STEP;
 	}
-	bodyque_head.movetype = MOVETYPE_STEP;
-	bodyque_head.netname = headmdl;
-	bodyque_head = bodyque_head.owner;
+	else
+	{
+		// Multiplayer/coop player corpses settle to the floor, stay briefly, then fade and clear
+		bodyque_head.health = 0;
+		bodyque_head.takedamage = DAMAGE_NO;
+		bodyque_head.th_die = SUB_Null;
+		bodyque_head.th_pain = bodyque_nopain;
+		bodyque_head.semisolid = "n";
+		bodyque_head.alpha = 1;
+		bodyque_head.traileffectnum = 0;
+		bodyque_head.movetype = MOVETYPE_TOSS;
+		bodyque_head.think = PD_PlayerCorpseWait;
+		bodyque_head.nextthink = (time + 5);
+	}
 	bodyque_head.solid = SOLID_CORPSE;
+	bodyque_head.netname = headmdl;
 	if ((bodyque_head.model == "progs/player_torso.mdl"))
 	{
 		bodyque_head.movetype = 0;
 	}
+	bodyque_head = bodyque_head.owner;
 };
 
 void() rigged =

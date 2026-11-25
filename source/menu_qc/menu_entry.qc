@@ -246,15 +246,27 @@ void(float key, float ascii) m_keyup =
 	}
 };
 
-void(vector screensize, float opaque) m_drawloading =
+float(vector screensize, float opaque) m_drawloading =
 {
-	local float lw, lh;
+	local float lw, lh, minify;
 
-	lw = screensize_x;
-	lh = screensize_y;
-	if (lw <= 0) lw = stof(cvar_string("vid_conwidth"));
-	if (lh <= 0) lh = stof(cvar_string("vid_conheight"));
+	// Zircon binds the 2D ortho viewport to (scale_width_360, scale_height_360)
+	// before SCR_DrawLoadingScreen(), then sets vid_conwidth/screensize to
+	// (vid.width, vid.height) without calling R_SetViewport. Scale back via
+	// vid_minification_factor so the loading screen fills 100% of the canvas.
+	minify = stof(cvar_string("vid_minification_factor"));
+	if (minify > 0 && minify <= 1.0 && screensize_x > 0 && screensize_y > 0)
+	{
+		lw = floor(screensize_x * minify);
+		lh = floor(screensize_y * minify);
+	}
+	else
+	{
+		lw = (g_vw > 0) ? g_vw : ((screensize_x > 0) ? screensize_x : stof(cvar_string("vid_conwidth")));
+		lh = (g_vh > 0) ? g_vh : ((screensize_y > 0) ? screensize_y : stof(cvar_string("vid_conheight")));
+	}
 	if (lw <= 0) lw = 640;
 	if (lh <= 0) lh = 360;
 	BM_Loading_Draw(lw, lh);
+	return 1;
 };
