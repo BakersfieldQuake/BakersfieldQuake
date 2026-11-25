@@ -4,9 +4,9 @@
 Never touches bakersfield.pk3 or quake15/q15.pk3, and writes ZERO loose files
 into repo `gfx/`.
 
-Packages the 4 borderless Super-Mario-Kart-style loading screen backdrops and
+Packages the 6 borderless Bakersfield Quake loading screen backdrops and
 animated MenuQC sprite assets:
-  - gfx/loading/bg_1.png .. bg_4.png  (1280x720 borderless hero illustrations)
+  - gfx/loading/bg_1.png .. bg_6.png  (1280x720 borderless hero illustrations)
   - gfx/loading/rob_drone.png         (128x128 Rob Drone sprite extracted from bakersfield.pk3)
   - gfx/loading/rocket_r.png          (96x40 right-facing cartoon/Quake rocket)
   - gfx/loading/rocket_l.png          (96x40 left-facing cartoon/Quake rocket)
@@ -209,7 +209,7 @@ def _collect_entries(base_pk3: Path) -> dict[str, bytes]:
         raise FileNotFoundError(f"Missing base bakersfield.pk3: {base_pk3}")
 
     entries: dict[str, bytes] = {}
-    for idx in range(1, 5):
+    for idx in range(1, 7):
         bg_path = ASSETS_DIR / f"loading_bg_{idx}.png"
         if not bg_path.is_file():
             raise FileNotFoundError(f"Missing loading backdrop: {bg_path}")

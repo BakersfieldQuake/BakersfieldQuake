@@ -1,6 +1,6 @@
 // BakersfieldQuake MenuQC - Animated Borderless Multi-Scene Loading Screen
 
-float LOAD_BG_COUNT = 4;
+float LOAD_BG_COUNT = 6;
 
 void() BM_Loading_Precache =
 {
@@ -8,6 +8,8 @@ void() BM_Loading_Precache =
 	precache_pic("gfx/loading/bg_2.png");
 	precache_pic("gfx/loading/bg_3.png");
 	precache_pic("gfx/loading/bg_4.png");
+	precache_pic("gfx/loading/bg_5.png");
+	precache_pic("gfx/loading/bg_6.png");
 };
 
 float() BM_Loading_PickNextBg =
@@ -53,6 +55,8 @@ string(float idx) BM_Loading_BgPic =
 	if (idx == 2) return "gfx/loading/bg_2.png";
 	if (idx == 3) return "gfx/loading/bg_3.png";
 	if (idx == 4) return "gfx/loading/bg_4.png";
+	if (idx == 5) return "gfx/loading/bg_5.png";
+	if (idx == 6) return "gfx/loading/bg_6.png";
 	return "gfx/loading/bg_1.png";
 };
 
@@ -65,6 +69,7 @@ string(string bsp) BM_Loading_PrettyMap =
 	if (m == "soi6") return "SOI 6";
 	if (m == "soicowboy_bkk") return "SOI COWBOY BKK";
 	if (m == "bakersfielddowntown") return "BAKERSFIELD DOWNTOWN";
+	if (m == "bakersfieldish") return "BAKERSFIELD-ISH";
 	if (m == "morrorock") return "MORRO ROCK";
 	if (m == "bklan6") return "BKLAN 6";
 	if (m == "spruce") return "SPRUCE ST";
@@ -80,11 +85,11 @@ string(float idx) BM_Loading_Tip =
 	if (idx == 1) return "Greenman's jar never washes off.";
 	if (idx == 2) return "Rob Drone is judging your aim.";
 	if (idx == 3) return "John Bird is circling overhead!";
-	if (idx == 4) return "Hold crouch to drift Go-Karts!";
-	if (idx == 5) return "Pumping eric.mdl to peak velocity...";
-	if (idx == 6) return "Press G for questionable firepower.";
+	if (idx == 4) return "Kyle's giant scissors cut through armor.";
+	if (idx == 5) return "Eric's internet just lagged again.";
+	if (idx == 6) return "Incoming Dookie projectile - take cover!";
 	if (idx == 7) return "Wheelman & Mega Man cleared for takeoff.";
-	if (idx == 8) return "Tip: Don't ride an enemy rocket.";
+	if (idx == 8) return "Pickle Surprise awaits!";
 	return "Warming up under the Bakersfield Sign...";
 };
 
