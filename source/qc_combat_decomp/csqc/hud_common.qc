@@ -619,6 +619,7 @@ void(float w, float h, float hp) HUD_DrawStatusBanners =
 		BM_ShadowColorRight(w - 8, bm_topright_y, "^2+ regen", 5, 0.65 + 0.25 * f);
 		bm_topright_y = bm_topright_y + 9;
 	}
+	BM_DrawBakoDestructHUD(w);
 };
 
 /*

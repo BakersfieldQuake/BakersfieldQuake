@@ -894,6 +894,7 @@ void() StartFrame =
 	BotFrame();
 	BM_StartFrame();
 	SkyPad_Frame();
+	BakoDestruct_Frame();
 	PC_Frame();
 	CheckSplash();
 	teamplay = autocvar_teamplay;

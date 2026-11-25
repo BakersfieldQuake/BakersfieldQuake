@@ -188,6 +188,25 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		Spruce_TowerHit(targ, _wt_hit, inflictor, attacker, damage);
 		return;
 	}
+	if ((targ.bako_group > 0) || (targ.classname == "func_breakable"))
+	{
+		if ((inflictor.classname == "teledeath") || (inflictor.classname == "teledeath2")
+			|| (attacker.classname == "teledeath") || (attacker.classname == "teledeath2")
+			|| (damage >= 40000))
+			return;
+	}
+	if ((targ.bako_group >= BAKO_GRP_FOX && targ.bako_group <= BAKO_GRP_SIGN))
+	{
+		local vector _bk_hit;
+		if ((inflictor != world) && (inflictor != attacker))
+			_bk_hit = inflictor.origin;
+		else if ((trace_ent == targ))
+			_bk_hit = trace_endpos;
+		else
+			_bk_hit = ((targ.absmin + targ.absmax) * 0.5);
+		BakoDestruct_OnDamage(targ, _bk_hit, inflictor, attacker, damage);
+		return;
+	}
 	if ((targ.classname == "misc_vehicle_johnbird"))
 	{
 		if (((attacker != world) && (attacker == targ.jb_pilot)))
@@ -474,7 +493,7 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 	{
 		if ((head != ignore))
 		{
-			if (head.takedamage)
+			if (head.takedamage && (head.bako_group == 0))
 			{
 				if ((inflictor.deathtype == "exploding"))
 				{
@@ -523,6 +542,7 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 		}
 		head = head.chain;
 	}
+	BakoDestruct_RadiusSplash(inflictor.origin, ((damage + 40) + radboost), damage, inflictor, attacker, FALSE);
 };
 
 void(entity attacker, float damage) T_BeamDamage =

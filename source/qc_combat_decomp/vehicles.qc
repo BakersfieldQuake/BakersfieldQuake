@@ -2212,6 +2212,7 @@ void() Vehicles_Impulse =
 	RocketRider_Impulse ();
 	EricCannon_Impulse ();
 	MMTank_Impulse ();
+	BakoDestruct_Impulse ();
 	if (!self.impulse)
 		return;
 	// 86 = get in (when standing beside Eric Deason Cannon, Mega Man Tank, Classic Quake Rocket, perched Winged John, or van driver's seat), 87 = camera,

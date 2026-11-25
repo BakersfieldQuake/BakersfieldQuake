@@ -1581,9 +1581,9 @@ float(entity p, entity v, float dt) GK_DriveFrame =
 			}
 		}
 
-		// Try curb-step / low-pipe climbing (+24u step-up) on world BSP geometry only, preserving hit globals on failure!
+		// Try curb-step / low-pipe / BSP ramp climbing (+24u step-up) on world and SOLID_BSP geometry, preserving hit globals on failure!
 		climbed = FALSE;
-		if (vd_hitent == world)
+		if (vd_hitent == world || vd_hitent.solid == SOLID_BSP)
 		{
 			local vector saved_norm, saved_pos;
 			local entity saved_ent;

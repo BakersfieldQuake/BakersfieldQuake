@@ -135,6 +135,10 @@ void() funcbreakable_use =
 		particleeffectnum(/*18343i*/"glass_break");
 		pointparticles(particleeffectnum(/*18343i*/"glass_break"), self.attachment.origin, VEC_ORIGIN, 1);
 	}
+	if ((self.style == BTYPE_GLASS))
+	{
+		BakoDestruct_OnGlassBreak(self);
+	}
 	if ((self.classtype == CT_FUNCBREAK))
 	{
 		self.waitmin = TRUE;
@@ -342,6 +346,12 @@ void() funcbreakable_use =
 
 void() funcbreakable_touch =
 {
+	if (BakoDestruct_GlassTouchCheck(self, other))
+	{
+		self.activate = other;
+		self.use();
+		return;
+	}
 	if (!(other.flags & FL_MONSTER))
 	{
 		return;
@@ -1451,7 +1461,14 @@ void() breakable_on =
 	}
 	else
 	{
-		self.takedamage = DAMAGE_YES;
+		if ((self.style == BTYPE_GLASS))
+		{
+			self.takedamage = DAMAGE_AIM;
+		}
+		else
+		{
+			self.takedamage = DAMAGE_YES;
+		}
 		self.th_pain = funcbreakable_th_pain;
 		self.th_die = funcbreakable_death;
 		self.bleedcolour = self.pos1_x;
@@ -1465,9 +1482,13 @@ void() breakable_on =
 		}
 	}
 	self.use = funcbreakable_use;
-	if (self.brktrigjump)
+	if ((self.brktrigjump || (self.style == BTYPE_GLASS)))
 	{
 		self.touch = funcbreakable_touch;
+	}
+	if (((self.style == BTYPE_GLASS) && !self.bako_group))
+	{
+		BakoDestruct_RegisterGlass(self);
 	}
 };
 
@@ -1492,6 +1513,10 @@ void() func_breakable =
 	self.classtype = CT_FUNCBREAK;
 	self.classgroup = CG_BREAKABLE;
 	self.bsporigin = TRUE;
+	if ((self.style == BTYPE_GLASS))
+	{
+		self.bako_glass_wait = self.wait;
+	}
 	self.wait = -1;
 	if ((self.spawnflags & BREAK_STARTOFF))
 	{

@@ -162,6 +162,7 @@ void() CSQC_Init =
 	registercvar("bm_minimap_rotate", "1");
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
+	registercommand("bako_cmd");
 	registercvar("bm_veh_config", "0");
 	registercvar("bm_veh_init", "0");
 	registercvar("bm_veh_rev", "0");
@@ -497,6 +498,11 @@ void(float w, float h) CSQC_UpdateView =
 				else
 				{
 					BM_DrawCenterPrint(cw, ch);
+					if (!intermission && !finale && !inMenu)
+					{
+						bm_topright_y = 8;
+						BM_DrawBakoDestructHUD(cw);
+					}
 				}
 				if (!intermission && !finale && !inMenu)
 				{
@@ -605,6 +611,14 @@ void() CSQC_Ent_Remove =
 
 float(string strCommand) CSQC_ConsoleCommand =
 {
+	local float n;
+
+	n = tokenize(strCommand);
+	if (n >= 1 && strtolower(argv(0)) == "bako_cmd")
+	{
+		localcmd(strcat("cmd ", strCommand, "\n"));
+		return (1);
+	}
 	return (0);
 };
 

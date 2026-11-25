@@ -200,6 +200,10 @@ void() spawn_fire =
 {
 	local entity fire;
 
+	if (bako_present)
+	{
+		return;
+	}
 	if ((coop && ((random() * 100) > 15)))
 	{
 		return;
@@ -354,7 +358,6 @@ void() play_gibsound =
 			sound7(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM, SNDSPD);
 		}
 	}
-	DN3FX_OnGib(self);
 };
 
 float(entity to, float sendFlags) sprite_sendtocsqc =

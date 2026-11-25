@@ -670,7 +670,7 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 	head = findradius (inflictor.origin, blast_rad);
 	while (head)
 	{
-		if (head != ignore && head.takedamage)
+		if (head != ignore && head.takedamage && head.bako_group == 0)
 		{
 			org = head.origin + ((head.mins + head.maxs) * 0.5);
 			dist = vlen (inflictor.origin - org);
@@ -702,6 +702,7 @@ void(entity inflictor, entity attacker, float peak_dmg, float blast_rad, entity 
 		}
 		head = head.chain;
 	}
+	BakoDestruct_RadiusSplash (inflictor.origin, blast_rad, peak_dmg, inflictor, attacker, TRUE);
 };
 
 void() EC_NukeThink =

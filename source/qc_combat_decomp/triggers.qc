@@ -286,6 +286,10 @@ void() tdeath_touch =
 	{
 		return;
 	}
+	if ((other.bako_group > 0) || (other.classname == "func_breakable"))
+	{
+		return;
+	}
 	if ((other.classname == "player"))
 	{
 		if ((other.invincible_finished > time))

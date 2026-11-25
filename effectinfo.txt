@@ -22125,3 +22125,374 @@ trailspacing 42
 originjitter 1.2 1.2 1.2
 velocityjitter 6 6 6
 
+// ---- Bakersfield-ish Destructible Landmarks FX (bako_destruct.qc) begin
+// NOTE: All dust/smoke clouds strictly use `type alphastatic` + `blend alpha` (ZERO `blend add`,
+// ZERO fullbright whiteout!) with warm matte Bakersfield stucco/concrete colors calibrated for
+// ~2x daylight exposure, strict alpha <= 118, 8-10s street linger, and velocitymultiplier so
+// radial street base surges roll 400-650u down H St, 18th St & 20th St!
+
+// ---- Ground-hugging radial street base-surge warm tan concrete dust (rolls 400-650u, 8-10s linger!)
+effect bako_demolition_dust_surge
+notunderwater
+count 16
+type alphastatic
+blend alpha
+tex 0 7
+color 0x826f58 0xa69076
+size 58 94
+sizeincrease 50
+alpha 68 112 12
+time 7.8 10.4
+originjitter 52 52 18
+velocitymultiplier 1.0
+velocityoffset 0 0 24
+velocityjitter 115 115 32
+gravity 0.025
+airfriction 1.48
+rotate -45 45 -26 26
+
+effect bako_demolition_dust_surge
+notunderwater
+count 11
+type alphastatic
+blend alpha
+tex 0 7
+color 0x463d34 0x625548
+size 46 78
+sizeincrease 42
+alpha 62 98 13
+time 7.2 9.6
+originjitter 44 44 20
+velocitymultiplier 0.80
+velocityoffset 0 0 40
+velocityjitter 95 95 36
+gravity 0.01
+airfriction 1.45
+rotate -40 40 -22 22
+
+// ---- Floor-seam horizontal piston dust jets & billowing matte masonry plumes during collapse
+effect bako_collapse_plume
+notunderwater
+count 14
+type alphastatic
+blend alpha
+tex 0 7
+color 0x7c6b56 0xa08c72
+size 40 68
+sizeincrease 44
+alpha 64 106 15
+time 5.8 7.8
+originjitter 38 38 18
+velocitymultiplier 1.0
+velocityoffset 0 0 34
+velocityjitter 100 100 40
+gravity 0.01
+airfriction 1.48
+rotate -45 45 -28 28
+
+effect bako_collapse_plume
+notunderwater
+count 9
+type alphastatic
+blend alpha
+tex 0 7
+color 0x423a32 0x5c5146
+size 30 52
+sizeincrease 34
+alpha 58 94 16
+time 5.2 7.0
+originjitter 34 34 18
+velocitymultiplier 0.76
+velocityoffset 0 0 50
+velocityjitter 80 80 36
+gravity -0.015
+airfriction 1.44
+rotate -35 35 -24 24
+
+// ---- Clearly visible dark-grey rising window smoke vents for Padre Hotel progressive damage (75% / 50% / 25% HP)
+effect bako_window_smoke
+notunderwater
+count 10
+type alphastatic
+blend alpha
+tex 0 7
+color 0x221f1c 0x48423c
+size 28 46
+sizeincrease 32
+alpha 84 118 22
+time 4.2 5.8
+originjitter 20 20 14
+velocitymultiplier 0.72
+velocityoffset 0 0 92
+velocityjitter 46 46 28
+gravity -0.05
+airfriction 1.10
+rotate -35 35 -22 22
+
+// ---- Flying plaster, brick dust & matte dark masonry chips bursting from fracturing seams
+effect bako_masonry_burst
+notunderwater
+count 15
+type alphastatic
+blend alpha
+tex 8 15
+color 0x624d3d 0x8c7862
+size 14 24
+sizeincrease 14
+alpha 82 114 36
+time 2.6 3.8
+originjitter 32 32 18
+velocitymultiplier 0.78
+velocityoffset 0 0 110
+velocityjitter 240 240 140
+gravity 0.68
+bounce 0.35
+airfriction 0.65
+rotate -60 60 -45 45
+
+effect bako_masonry_burst
+notunderwater
+count 16
+type alphastatic
+blend alpha
+tex 43 45
+color 0x443b34 0x74685c
+size 3.6 6.8
+alpha 200 245 72
+time 2.2 3.4
+originjitter 28 28 18
+velocitymultiplier 0.85
+velocityoffset 0 0 165
+velocityjitter 320 320 190
+gravity 0.96
+bounce 0.45
+airfriction 0.25
+rotate -80 80 -60 60
+
+// ---- Crisp controlled-demolition charge pop (bright 0.45s amber blast flash + punchy dark-grey smoke jet)
+effect bako_charge_pop
+lightradius 380
+lightradiusfade 980
+lightcolor 2.2 1.35 0.48
+lightshadow 0
+
+effect bako_charge_pop
+notunderwater
+count 12
+type alphastatic
+blend add
+tex 0 7
+color 0xff9228 0xffe488
+size 28 48
+sizeincrease 72
+alpha 190 240 480
+time 0.34 0.50
+originjitter 18 18 14
+velocitymultiplier 0.55
+velocityjitter 100 100 75
+airfriction 2.3
+
+effect bako_charge_pop
+notunderwater
+count 18
+type alphastatic
+blend alpha
+tex 0 7
+color 0x282420 0x585046
+size 34 56
+sizeincrease 40
+alpha 86 118 26
+time 3.2 4.6
+originjitter 24 24 16
+velocitymultiplier 1.0
+velocityoffset 0 0 46
+velocityjitter 130 130 68
+gravity -0.02
+airfriction 1.55
+rotate -40 40 -26 26
+
+// ---- Heavy non-blinding multi-point structural demolition blast (vivid orange fireball + embers + matte smoke <= 112 alpha)
+effect bako_big_boom
+lightradius 560
+lightradiusfade 1150
+lightcolor 2.8 1.48 0.44
+lightshadow 0
+
+effect bako_big_boom
+notunderwater
+count 18
+type alphastatic
+blend add
+tex 0 7
+color 0xff6210 0xffd258
+size 42 74
+sizeincrease 96
+alpha 185 235 390
+time 0.42 0.62
+originjitter 26 26 20
+velocitymultiplier 0.65
+velocityoffset 0 0 45
+velocityjitter 155 155 115
+airfriction 2.1
+
+effect bako_big_boom
+notunderwater
+count 28
+type spark
+tex 40 40
+color 0xff8418 0xffe872
+size 2.0 4.0
+stretchfactor 2.4
+alpha 225 256 145
+time 1.0 1.9
+originjitter 26 26 20
+velocitymultiplier 0.75
+velocityoffset 0 0 135
+velocityjitter 310 310 210
+gravity 0.86
+bounce 0.46
+airfriction 0.30
+
+effect bako_big_boom
+notunderwater
+count 20
+type alphastatic
+blend alpha
+tex 0 7
+color 0x26221e 0x5c5044
+size 44 74
+sizeincrease 56
+alpha 78 112 22
+time 4.0 5.6
+originjitter 30 30 22
+velocitymultiplier 0.90
+velocityoffset 0 0 65
+velocityjitter 145 145 80
+gravity -0.015
+airfriction 1.48
+rotate -45 45 -28 28
+
+// ---- Vivid blue-gold neon electrical arcs for Bakersfield Sign & Fox Clock shattering
+effect bako_sign_sparks
+lightradius 240
+lightradiusfade 680
+lightcolor 0.75 1.35 2.25
+lightshadow 0
+
+effect bako_sign_sparks
+notunderwater
+count 34
+type spark
+tex 40 40
+color 0x42d4ff 0xffe668
+size 1.8 3.6
+stretchfactor 2.2
+alpha 220 256 130
+time 1.2 2.1
+originjitter 24 24 18
+velocitymultiplier 0.65
+velocityoffset 0 0 105
+velocityjitter 290 290 210
+gravity 0.85
+bounce 0.55
+airfriction 0.35
+
+// ---- Golden construction welding sparks & warm arc glow during Fox Theater bottom-up rebuild
+effect bako_rebuild_weld
+lightradius 240
+lightradiusfade 560
+lightcolor 2.4 1.55 0.42
+lightshadow 0
+
+effect bako_rebuild_weld
+notunderwater
+count 34
+type spark
+tex 40 40
+color 0xff9818 0xfff29a
+size 1.9 3.8
+stretchfactor 2.5
+alpha 228 256 135
+time 0.95 1.75
+originjitter 20 20 14
+velocitymultiplier 0.55
+velocityoffset 0 0 95
+velocityjitter 255 255 180
+gravity 0.92
+bounce 0.52
+airfriction 0.30
+
+effect bako_rebuild_weld
+notunderwater
+count 3
+type alphastatic
+blend add
+tex 0 7
+color 0xffa828 0xffe888
+size 14 22
+sizeincrease 12
+alpha 135 185 380
+time 0.25 0.42
+originjitter 8 8 8
+velocityjitter 24 24 24
+airfriction 2.5
+
+// ---- Trailing matte concrete dust behind rolling street boulders & Fox rebuild joints
+effect bako_rock_dust
+notunderwater
+count 6
+type alphastatic
+blend alpha
+tex 0 7
+color 0x766654 0x9a8872
+size 18 30
+sizeincrease 24
+alpha 64 98 38
+time 1.8 2.8
+originjitter 12 12 8
+velocitymultiplier 0.50
+velocityoffset 0 0 26
+velocityjitter 48 48 22
+gravity 0.02
+airfriction 1.65
+rotate -40 40 -24 24
+
+// ---- Pure cool silver-white / pale-cyan crystalline glass fracture sparkle mist (ZERO yellow/soot!)
+effect bako_glass_sparkle
+notunderwater
+count 30
+type spark
+tex 40 40
+color 0x9cd8f4 0xdcf4ff
+size 1.2 2.4
+stretchfactor 1.2
+alpha 190 240 210
+time 0.55 0.95
+originjitter 20 20 20
+velocitymultiplier 0.85
+velocityoffset 0 0 42
+velocityjitter 195 195 145
+gravity 0.82
+bounce 0.45
+airfriction 0.45
+
+effect bako_glass_sparkle
+notunderwater
+count 12
+type alphastatic
+blend alpha
+tex 0 7
+color 0x7aa4be 0xaecfe4
+size 10 18
+sizeincrease 16
+alpha 48 78 96
+time 0.55 0.95
+originjitter 18 18 18
+velocitymultiplier 0.50
+velocityjitter 105 105 78
+gravity 0.04
+airfriction 2.2
+rotate -40 40 -25 25
+// ---- Bakersfield-ish Destructible Landmarks FX end
+
+

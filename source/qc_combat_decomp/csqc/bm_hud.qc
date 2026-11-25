@@ -36,6 +36,9 @@ float	BMST_TOYMASK	= 78;		// bitmask of ready fun-gun superweapons & Winged John
 float	BMST_TOYCD		= 79;		// Winged John summon cooldown remaining (seconds)
 float	BMST_PLAYERMASK	= 80;		// bitmask of live visible human players in slots 0..15
 float	BMST_INTRO		= 69;
+float	BMST_BAKO_PADRE	= 120;		// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
+float	BMST_BAKO_EVENT	= 121;		// Bakersfield-ish active collapse/rebuild event code
+void(float w) BM_DrawBakoDestructHUD;
 
 // intro.dem screen milk drips (live gameplay bursts use 3D world milk only, with no white flash or HUD overlay)
 void(float w, float h) Milk_DrawHUD =
@@ -1322,6 +1325,82 @@ void(float w, float h) BM_DrawHUD =
 		BM_ShadowColorRight (w - 8, bm_topright_y, "^2+ regen", 5, 0.65 + 0.25 * f);
 		bm_topright_y = bm_topright_y + row_step;
 	}
+	BM_DrawBakoDestructHUD (w);
+};
+
+// Top-right corner text-only status & milestone toasts for Bakersfield-ish destructibles
+// (pure ASCII, zero boxes, stacks cleanly on bm_topright_y completely clear of center & minimap)
+void(float w) BM_DrawBakoDestructHUD =
+{
+	local float pct, ev, pw, row_step, cw;
+	local string col, s, msg;
+	local vector bar_col;
+
+	cw = cvar ("vid_conwidth");
+	if (cw > 0)
+		w = cw;
+	pct = getstati (BMST_BAKO_PADRE);
+	ev = getstati (BMST_BAKO_EVENT);
+	row_step = (BM_GetUIFont () > 0) ? 11 : 9;
+
+	if (pct >= 1 && pct <= 99)
+	{
+		if (pct <= 25)
+		{
+			col = "^1";
+			bar_col = '1 0.25 0.18';
+		}
+		else if (pct <= 50)
+		{
+			col = "^xf82";
+			bar_col = '1 0.56 0.15';
+		}
+		else
+		{
+			col = "^3";
+			bar_col = '1 0.85 0.30';
+		}
+		s = strcat (col, "PADRE HOTEL ^7", ftos (pct), "%");
+		BM_ShadowColorRight (w - 8, bm_topright_y, s, 5, 0.92);
+		pw = 54;
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + row_step - 1) * '0 1 0', pw * '1 0 0' + '0 1 0', bar_col, 0.24, 0);
+		drawfill ((w - 8 - pw) * '1 0 0' + (bm_topright_y + row_step - 1) * '0 1 0', (pw * pct / 100) * '1 0 0' + '0 1 0', bar_col, 0.94, 0);
+		bm_topright_y = bm_topright_y + row_step + 3;
+	}
+
+	msg = "";
+	if (ev == 1)
+		msg = "^3FOX CLOCK HIT - TOWER COLLAPSING!";
+	else if (ev == 2)
+		msg = "^1PADRE HOTEL GOING DOWN!";
+	else if (ev == 3)
+		msg = "^3BAKERSFIELD SIGN TOPPLING!";
+	else if (ev == 4)
+		msg = "^3FOX COLLAPSED - CLIMB THE RUBBLE!";
+	else if (ev == 5)
+		msg = "^1PADRE FALLEN - WATCH FOR BOULDERS!";
+	else if (ev == 6)
+		msg = "^3SIGN DOWN ON H ST - RAMP OVER IT!";
+	else if (ev == 7)
+		msg = "^2FOX THEATER RESTORED!";
+	else if (ev == 8)
+		msg = "^2PADRE HOTEL RESTORED!";
+	else if (ev == 9)
+		msg = "^2BAKERSFIELD SIGN RESTORED!";
+	else if (ev == 11)
+		msg = "^3PADRE FACADE CRACKING (75%)";
+	else if (ev == 12)
+		msg = "^xf82PADRE STRUCTURE WEAKENING (50%)";
+	else if (ev == 13)
+		msg = "^1PADRE CRITICAL - ABOUT TO FALL!";
+	else if (ev >= 100 && ev <= 200)
+		msg = strcat ("^2FOX REBUILDING ^7", ftos (ev - 100), "%");
+
+	if (msg != "")
+	{
+		BM_ShadowColorRight (w - 8, bm_topright_y, msg, 5, 0.92);
+		bm_topright_y = bm_topright_y + row_step;
+	}
 };
 
 
@@ -1503,7 +1582,8 @@ void() BM_UpdateMenuBgCam =
 		look = cpos + '1200 0 -48';
 		look_y = -1417 + 180 * BM_Sin (time * 0.13);
 	}
-	else if (mapname == "bakersfielddowntown" || world.model == "maps/bakersfielddowntown.bsp")
+	else if (mapname == "bakersfielddowntown" || world.model == "maps/bakersfielddowntown.bsp"
+		|| mapname == "bakersfieldish" || world.model == "maps/bakersfieldish.bsp")
 	{
 		u = 0.5 - 0.5 * BM_Cos (time * 0.10);
 		cpos = BM_IntroLerp ('-8380 1780 210', '-8490 2440 340', u);

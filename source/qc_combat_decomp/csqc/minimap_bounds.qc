@@ -14,7 +14,7 @@ float(string mname) BM_MinimapLookupBounds =
 		mm_map_half = 1032.96;
 		return TRUE;
 	}
-	if (mname == "bakersfielddowntown")
+	if (mname == "bakersfielddowntown" || mname == "bakersfieldish")
 	{
 		mm_map_cx = -6360.00;
 		mm_map_cy = -330.00;

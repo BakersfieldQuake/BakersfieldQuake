@@ -153,7 +153,7 @@ void() Crowd_Precache =
 	k = 1;
 	while (k <= CN_KINDS)
 	{
-		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp")		// 60 MB of HD sprites: fox + downtown
+		if (k < CN_FIRST_HD || k >= CN_FIRST_MD3 || world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/bakersfieldish.bsp")		// 60 MB of HD sprites: fox + downtown
 			precache_model (CN_Model (k));
 		s = CN_FleeSound (k);
 		precache_sound (s);
@@ -263,7 +263,7 @@ float() CN_CustomizeKeep =
 
 float() CN_HdOk =
 {
-	return (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
+	return (world.model == "maps/fox.bsp" || world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/bakersfieldish.bsp");
 };
 
 float(float idx) CN_MapSafeKind =

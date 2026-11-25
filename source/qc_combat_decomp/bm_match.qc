@@ -607,6 +607,8 @@ void() BM_Stats =
 	clientstat (117, 2, fl_st_speed);		// ForeLoco hospital bed speed u/s
 	clientstat (118, 2, fl_st_flags);		// ForeLoco invuln/orbit/boost flags + ram KO count
 	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
+	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
+	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
 };
 
 float() BM_CountPlayers =
@@ -777,7 +779,7 @@ string() BM_VoteMapList =
 	s = cvar_string ("bm_votemaps");
 	if (s != "")
 		return s;
-	return "soi6 soicowboy_bkk bakersfielddowntown terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6";
+	return "soi6 soicowboy_bkk bakersfielddowntown bakersfieldish terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6";
 };
 
 void(entity e, string m) BM_VoteStart =
@@ -962,6 +964,8 @@ void(string s) SV_ParseClientCommand =
 		sprint (self, strcat ("Mega Man Tank boom pool mask=", ftos (floor (autocvar_mm_tank_boom_mask)), " (packs: ", MMT_BoomMaskSummary (autocvar_mm_tank_boom_mask), ")\n"));
 		return;
 	}
+	if (BakoDestruct_ClientCmd (self, n))
+		return;
 	clientcommand (self, s);
 };
 
@@ -1010,6 +1014,8 @@ void() BM_StartFrame =
 			else
 				tail.bm_player_next = p;
 			tail = p;
+			if (p.ishuman == 1)
+				BakoDestruct_UpdatePlayerStats (p);
 		}
 		if (cno < 16)
 		{

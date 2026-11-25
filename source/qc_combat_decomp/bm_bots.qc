@@ -889,8 +889,8 @@ void() BM_BotSpawnLoadout =
 // -> map units X [-14100, 1380], Y [-7380, 6720]. Guard out-of-window nodes so bots never path into the eastern void.
 float(vector org) BM_DtWayInBounds =
 {
-	if (world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/downtownsmall.bsp"
-		|| mapname == "bakersfielddowntown" || mapname == "downtownsmall")
+	if (world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/bakersfieldish.bsp" || world.model == "maps/downtownsmall.bsp"
+		|| mapname == "bakersfielddowntown" || mapname == "bakersfieldish" || mapname == "downtownsmall")
 	{
 		if (org_x < -14100 || org_x > 1380 || org_y < -7380 || org_y > 6720)
 			return FALSE;
@@ -1273,8 +1273,8 @@ void() BM_BuildDowntownWaypoints =
 
 float() BM_IsDowntownMap =
 {
-	return (mapname == "downtown" || mapname == "downtownsmall" || mapname == "bakersfielddowntown"
-		|| world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp");
+	return (mapname == "downtown" || mapname == "downtownsmall" || mapname == "bakersfielddowntown" || mapname == "bakersfieldish"
+		|| world.model == "maps/downtown.bsp" || world.model == "maps/downtownsmall.bsp" || world.model == "maps/bakersfielddowntown.bsp" || world.model == "maps/bakersfieldish.bsp");
 };
 
 // BM_IsDowntownMap, cached (BM_BotPostAI runs it per bot per frame)

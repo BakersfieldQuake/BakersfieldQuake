@@ -732,6 +732,29 @@ void() W_FireAxe =
 			T_Damage(trace_ent, self, self, (autocvar_player_axe * (autocvar_berserkmode - berserkrand)));
 			return;
 		}
+		if ((trace_ent.bako_group > 0) || (trace_ent.classname == "func_breakable") || (trace_ent.classtype == CT_FUNCBREAK))
+		{
+			if ((trace_ent.bako_material == BAKO_MAT_GLASS) || (trace_ent.style == BTYPE_GLASS))
+			{
+				if (bako_fx_glass_sparkle > 0)
+					pointparticles(bako_fx_glass_sparkle, org, '0 0 36', 1);
+				sound(self, CHAN_WEAPON, "break/glass_i1.wav", 0.85, ATTN_NORM);
+			}
+			else if (trace_ent.bako_material == BAKO_MAT_METAL)
+			{
+				if (bako_fx_sign_sparks > 0)
+					pointparticles(bako_fx_sign_sparks, org, '0 0 42', 1);
+				sound(self, CHAN_WEAPON, "vehicles/hit_metal1.wav", 0.85, ATTN_NORM);
+			}
+			else
+			{
+				if (bako_fx_rock_dust > 0)
+					pointparticles(bako_fx_rock_dust, org, '0 0 30', 1);
+				sound(self, CHAN_WEAPON, "break/rock_impact.wav", 0.85, ATTN_NORM);
+			}
+			T_Damage(trace_ent, self, self, (autocvar_player_axe * (autocvar_berserkmode - berserkrand)));
+			return;
+		}
 		trace_ent.axhitme = 1;
 		SpawnBlood(org, VEC_ORIGIN, 20);
 		SpawnMeatSpray(((self.origin + (v_forward * 30)) + (v_up * -10)), ((v_right * -75) + (v_up * -10)));
@@ -1039,7 +1062,6 @@ void(vector org, vector vel, float damage) SpawnBlood =
 	if ((trace_ent.dodge_finished < time))
 	{
 		particle(org, (vel * 0.1), 73, (damage * 2));
-		DN3FX_OnBlood(trace_ent, org, vel, damage);
 	}
 };
 
@@ -1091,7 +1113,7 @@ void() W_FireSaw =
 			self.chsaw_dir_z = 0;
 			self.chsaw_dir = normalize (self.chsaw_dir);
 		}
-		if (((trace_ent.classname == "func_breakable") || (trace_ent.classname == "light_fluoropost") || (trace_ent.lan_kind > 0)))
+		if (((trace_ent.classname == "func_breakable") || (trace_ent.classname == "light_fluoropost") || (trace_ent.lan_kind > 0) || (trace_ent.bako_material > 0)))
 		{
 			sendParticle("TE_SUPERSPIKE", org, VEC_ORIGIN, 1, 0);
 		}
@@ -1151,7 +1173,7 @@ void() W_FireSaw =
 		{
 			trace_ent.velocity = (trace_ent.velocity * 0.5);
 		}
-		if (((trace_ent.classname != "func_breakable") && (trace_ent.classname != "light_fluoropost") && !trace_ent.lan_kind))
+		if (((trace_ent.classname != "func_breakable") && (trace_ent.classname != "light_fluoropost") && !trace_ent.lan_kind && !trace_ent.bako_material))
 		{
 			sound7(self, CHAN_WEAPON, "weapons/sawguts.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
 		}
@@ -1297,6 +1319,12 @@ void(float damage, vector dir) TraceAttack =
 		if (trace_ent.lan_kind)
 		{
 			sendParticle("TE_GUNSHOT", org, VEC_ORIGIN, 1, 0);
+			AddMultiDamage(trace_ent, damage);
+			return;
+		}
+		if (trace_ent.bako_material == BAKO_MAT_GLASS || (trace_ent.classname == "func_breakable" && trace_ent.style == BTYPE_GLASS))
+		{
+			pointparticles(particleeffectnum("bako_glass_sparkle"), org, trace_plane_normal * 110, 1);
 			AddMultiDamage(trace_ent, damage);
 			return;
 		}
@@ -2315,7 +2343,7 @@ void() T_MissileTouch =
 		other.nextthink = time;
 		other.think = other.th_die;
 	}
-	if (((random() * 100) < 20))
+	if (!bako_present && other.bako_group == 0 && ((random() * 100) < 20))
 	{
 		spawn_fire();
 	}
@@ -4203,7 +4231,6 @@ void() spike_touch =
 				{
 					sendParticle("TE_SPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
-				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_nailgun);
 				T_Damage(other, self, self.owner, autocvar_player_nailgun);
 				remove(self);
 				return;
@@ -4229,6 +4256,18 @@ void() spike_touch =
 			remove(self);
 			return;
 		}
+		if (other.bako_group > 0)
+		{
+			if ((other.bako_material == BAKO_MAT_GLASS) && (bako_fx_glass_sparkle > 0))
+				pointparticles(bako_fx_glass_sparkle, self.origin, '0 0 36', 1);
+			else if ((other.bako_material == BAKO_MAT_METAL) && (bako_fx_sign_sparks > 0))
+				pointparticles(bako_fx_sign_sparks, self.origin, '0 0 40', 1);
+			else if (bako_fx_rock_dust > 0)
+				pointparticles(bako_fx_rock_dust, self.origin, '0 0 28', 1);
+			T_Damage(other, self, self.owner, autocvar_player_nailgun);
+			remove(self);
+			return;
+		}
 		if ((other.classname == "monster_spider"))
 		{
 			resist = autocvar_spider_attack_resistance * 0.01;
@@ -4249,7 +4288,6 @@ void() spike_touch =
 				pointparticles(particleeffectnum(/*25865i*/"blood_saw"), self.origin, VEC_ORIGIN, 1);
 				spawn_touchblood(14);
 			}
-			DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_nailgun);
 			T_Damage(other, self, self.owner, autocvar_player_nailgun);
 		}
 		if ((autocvar_fleshsplat == 1))
@@ -4594,7 +4632,6 @@ void() superspike_touch =
 				{
 					sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
 				}
-				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_supernailgun);
 				T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 				remove(self);
 				return;
@@ -4609,6 +4646,18 @@ void() superspike_touch =
 		if (other.lan_kind)
 		{
 			sendParticle("TE_SUPERSPIKE", self.origin, VEC_ORIGIN, 1, 0);
+			T_Damage(other, self, self.owner, autocvar_player_supernailgun);
+			remove(self);
+			return;
+		}
+		if (other.bako_group > 0)
+		{
+			if ((other.bako_material == BAKO_MAT_GLASS) && (bako_fx_glass_sparkle > 0))
+				pointparticles(bako_fx_glass_sparkle, self.origin, '0 0 36', 1);
+			else if ((other.bako_material == BAKO_MAT_METAL) && (bako_fx_sign_sparks > 0))
+				pointparticles(bako_fx_sign_sparks, self.origin, '0 0 40', 1);
+			else if (bako_fx_rock_dust > 0)
+				pointparticles(bako_fx_rock_dust, self.origin, '0 0 28', 1);
 			T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 			remove(self);
 			return;
@@ -4642,7 +4691,6 @@ void() superspike_touch =
 					pointparticles(particleeffectnum(/*25865i*/"blood_saw"), self.origin, VEC_ORIGIN, 1);
 					spawn_touchblood(16);
 				}
-				DN3FX_OnBlood(other, self.origin, self.velocity, autocvar_player_supernailgun);
 				T_Damage(other, self, self.owner, autocvar_player_supernailgun);
 			}
 		}

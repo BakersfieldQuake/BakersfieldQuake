@@ -37,6 +37,7 @@ eric_cannon_defs.qc
 mm_tank_defs.qc
 bm_minimap_defs.qc
 proj_collide_defs.qc
+bako_destruct_defs.qc
 waypoints.map_dm1.qc
 waypoints.map_dm2.qc
 waypoints.map_dm3.qc
@@ -135,6 +136,7 @@ bklan_tv.qc
 bklan_movers.qc
 traffic_cars.qc
 spruce_tower.qc
+bako_destruct.qc
 spruce_bus.qc
 lan_props.qc
 bicycles.qc

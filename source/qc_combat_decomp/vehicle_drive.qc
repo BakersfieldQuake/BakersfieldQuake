@@ -601,8 +601,8 @@ void(entity v, vector org, float yaw) Veh_GroundSample =
 		p_z = org_z + 24;
 		q = p;
 		q_z = org_z - 48;
-		traceline (p, q, 3, v);		// 3 = world only: parked vehicles' boxes and bodies are not road
-		if (!trace_startsolid && trace_fraction < 1 && trace_plane_normal_z > 0.5)
+		tracebox (p, '-2 -2 0', '2 2 2', q, 1, v);		// MOVE_NOMONSTERS + Hull 1: hits worldspawn & SOLID_BSP ramps/rubble/roofs (incl. clip ramps), skips parked BBOX vehicles
+		if (!trace_startsolid && trace_fraction < 1 && trace_plane_normal_z > 0.5 && (trace_ent == world || trace_ent.solid == SOLID_BSP))
 		{
 			hh = trace_endpos_z;
 			vd_found = vd_found + 1;
