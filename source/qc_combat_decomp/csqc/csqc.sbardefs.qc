@@ -581,9 +581,14 @@ void(vector color) DrawLevelName =
 	else
 		a = 0.75;
 
+	local float prot, hst;
 	warm = getstati(59);
+	prot = getstati(55);
+	hst = cvar("bm_hud_style");
 	y = 12;
-	if (warm)
+	if (hst > 0 || prot > 0)
+		y = 28;
+	else if (warm)
 		y = 22;
 	pos = ((w - wd) * 0.5) * '1 0 0' + y * '0 1 0';
 	drawstring(pos + '0.7 0.7 0', world.message, sv, '0 0 0', a * 0.85, DRAWFLAG_NORMAL);

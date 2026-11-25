@@ -208,11 +208,14 @@ entity	bako_sign_rubble_list;
 vector	bako_sign_ctr;
 float	bako_sign_piece_cnt;
 
-// Active debris pools
+// Active debris pools & crash FX throttles
 float	bako_boulder_count;
 float	bako_chunk_count;
 float	bako_shard_count;
 float	bako_kart_glass_t;
+float	bako_padre_veil_t;
+float	bako_fox_veil_t;
+float	bako_last_boom_dlight_t;
 
 // Cached effectinfo indices
 float	bako_fx_dust_surge;

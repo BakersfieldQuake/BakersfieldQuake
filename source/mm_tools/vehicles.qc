@@ -1955,7 +1955,7 @@ void(entity v, float kind) Veh_InitEntity =
 {
 	local vector org_top;
 
-	if (time <= 0.5)
+	if (!v.veh_temp || time <= 1.1)
 	{
 		Vehicles_Precache ();
 		if (Veh_IsKart (kind))

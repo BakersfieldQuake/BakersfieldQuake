@@ -313,9 +313,9 @@ void(vector org, vector bmin, vector bmax, float spd) Bako_EmitDustRing =
 	rx = max (120, span_x * 0.96);
 	ry = max (120, span_y * 0.96);
 
-	for (i = 0; i < 12; i = i + 1)
+	for (i = 0; i < 8; i = i + 1)
 	{
-		ang = (i * 30 + random () * 16) * 0.01745329;
+		ang = (i * 45 + random () * 18) * 0.01745329;
 		rdir_x = Bako_CosRad (ang);
 		rdir_y = Bako_SinRad (ang);
 		rdir_z = 0;
@@ -955,9 +955,9 @@ void() Bako_BoulderThink =
 			self.velocity_y = self.velocity_y * 0.986;
 			self.avelocity_x = 0 - self.velocity_y * 1.95;
 			self.avelocity_y = self.velocity_x * 1.95;
-			if (time >= self.bako_boulder_dust_t && hspd > 80)
+			if (time >= self.bako_boulder_dust_t && hspd > 160)
 			{
-				self.bako_boulder_dust_t = time + 0.16;
+				self.bako_boulder_dust_t = time + 0.30;
 				if (bako_fx_rock_dust > 0)
 					pointparticles (bako_fx_rock_dust, self.origin - '0 0 10', '0 0 20', 1);
 			}
@@ -1011,14 +1011,14 @@ void() Bako_BoulderThink =
 		}
 	}
 
-	self.nextthink = time + 0.05;
+	self.nextthink = time + 0.08;
 };
 
 entity(vector org, vector vel, float sc, float life, float idx, float grp) Bako_SpawnBoulder =
 {
 	local entity d, e, oldest;
 
-	if (bako_boulder_count >= 36)
+	if (bako_boulder_count >= 18)
 	{
 		oldest = world;
 		e = find (world, classname, "bako_boulder");
@@ -1121,7 +1121,7 @@ entity(vector org, vector vel, float sc, float life, float idx, float grp) Bako_
 {
 	local entity d, e, oldest;
 
-	if (bako_chunk_count >= 48)
+	if (bako_chunk_count >= 18)
 	{
 		oldest = world;
 		e = find (world, classname, "bako_chunk");
@@ -1211,14 +1211,14 @@ void() Bako_GlassShardThink =
 		if (vlen (self.avelocity) < 18)
 			self.avelocity = VEC_ORIGIN;
 	}
-	self.nextthink = time + 0.05;
+	self.nextthink = time + 0.08;
 };
 
 entity(vector org, vector vel, float sc, float idx) Bako_SpawnGlassShard =
 {
 	local entity d, e, oldest;
 
-	if (bako_shard_count >= 24)
+	if (bako_shard_count >= 16)
 	{
 		oldest = world;
 		e = find (world, classname, "bako_glass_shard");
@@ -1257,7 +1257,7 @@ entity(vector org, vector vel, float sc, float idx) Bako_SpawnGlassShard =
 	d.bako_boulder_life = 1.30 + random () * 0.38;
 	d.touch = Bako_GlassShardTouch;
 	d.think = Bako_GlassShardThink;
-	d.nextthink = time + 0.05;
+	d.nextthink = time + 0.08;
 	setmodel (d, Bako_GlassShardModel (idx));
 	setsize (d, '-4 -4 -4', '4 4 4');
 	setorigin (d, org);
@@ -1321,10 +1321,10 @@ void(vector org, vector out_dir, float cnt, float spd, float boulder_life, float
 		v = out_dir * (spd * (0.68 + random () * 0.58))
 			+ ('1 0 0' * crandom () + '0 1 0' * crandom ()) * (spd * 0.52)
 			+ '0 0 1' * (140 + random () * (spd * 0.42));
-		if (i < 2 && boulder_life > 0)
+		if (i < 1 && boulder_life > 0)
 			Bako_SpawnBoulder (jorg, v, 0.88 + random () * 0.48, boulder_life, floor (random () * 4), grp);
 		else
-			Bako_SpawnMasonryChunk (jorg, v, 0.58 + random () * 0.44, 14.0 + random () * 6.0, i, grp);
+			Bako_SpawnMasonryChunk (jorg, v, 0.58 + random () * 0.44, 5.5 + random () * 2.5, i, grp);
 	}
 };
 
@@ -1362,7 +1362,7 @@ void(float wave_idx) Bako_SpawnPadreBoulderWave =
 	}
 
 	life = max (35, autocvar_bako_padre_rubble_t);
-	n = 8;
+	n = 5;
 
 	for (i = 0; i < n; i = i + 1)
 	{
@@ -1377,10 +1377,10 @@ void(float wave_idx) Bako_SpawnPadreBoulderWave =
 		}
 		else
 		{
-			if (i < 5)
-				ang = (-125 + i * 54 + wave_idx * 11 + crandom () * 10) * 0.01745329;
+			if (i < 3)
+				ang = (-115 + i * 75 + wave_idx * 14 + crandom () * 10) * 0.01745329;
 			else
-				ang = (130 + (i - 5) * 42 + wave_idx * 14 + crandom () * 12) * 0.01745329;
+				ang = (115 + (i - 3) * 65 + wave_idx * 14 + crandom () * 12) * 0.01745329;
 			dir_x = Bako_CosRad (ang);
 			dir_y = Bako_SinRad (ang);
 			dir_z = 0;
@@ -1563,23 +1563,25 @@ void(entity rlist, float lift_frac, float make_solid) Bako_PositionRubbleList =
 	r = rlist;
 	while (r != world)
 	{
+		if (make_solid && r.solid == SOLID_BSP)
+		{
+			r = r.bako_rubble_next;
+			continue;
+		}
 		if (r.model == string_null || r.model == "")
 			setmodel (r, r.mdl);
 		r.angles = r.bako_home_ang;
 		r.movetype = MOVETYPE_PUSH;
-		setorigin (r, r.bako_home_org - '0 0 1' * drop_z);
 		if (make_solid)
 		{
-			if (r.solid != SOLID_BSP)
-			{
-				r.solid = SOLID_BSP;
-				setorigin (r, r.bako_home_org);
-				Bako_LiftPlayersOnto (r);
-			}
+			r.solid = SOLID_BSP;
+			setorigin (r, r.bako_home_org);
+			Bako_LiftPlayersOnto (r);
 		}
 		else
 		{
 			r.solid = SOLID_NOT;
+			setorigin (r, r.bako_home_org - '0 0 1' * drop_z);
 		}
 		r = r.bako_rubble_next;
 	}
@@ -1651,14 +1653,20 @@ void(vector org, vector out_dir, float vol, float shake_rad, float shake_str, fl
 	else
 		dir = normalize (dir);
 
-	if (bako_fx_big_boom > 0)
+	if (bako_fx_big_boom > 0 && time >= bako_last_boom_dlight_t)
+	{
+		bako_last_boom_dlight_t = time + 0.22;
 		pointparticles (bako_fx_big_boom, org, dir * 240 + '0 0 55', 1);
-	else if (bako_fx_charge_pop > 0)
-		pointparticles (bako_fx_charge_pop, org, dir * 240 + '0 0 45', 2);
+		Bako_BurstDebris (org, dir + '0 0 0.25', 2, 420, (grp == BAKO_GRP_PADRE) ? 60 : 0, grp);
+	}
+	else
+	{
+		if (bako_fx_charge_pop > 0)
+			pointparticles (bako_fx_charge_pop, org, dir * 240 + '0 0 45', 1);
+		Bako_BurstDebris (org, dir + '0 0 0.25', 2, 380, 0, grp);
+	}
 	if (bako_fx_masonry_burst > 0)
 		pointparticles (bako_fx_masonry_burst, org, dir * 260 + '0 0 95', 1);
-
-	Bako_BurstDebris (org, dir + '0 0 0.25', 4, 420, (grp == BAKO_GRP_PADRE) ? 60 : 0, grp);
 
 	r = random ();
 	if (r < 0.38)
@@ -1980,7 +1988,7 @@ void(entity plist, float grp, vector ctr, float bmin_z) Bako_TickEarlyPieceList 
 				}
 				if (u >= 0.70 && time >= e.bako_piece_fx_t)
 				{
-					e.bako_piece_fx_t = time + 0.18;
+					e.bako_piece_fx_t = time + 0.48;
 					if (grp == BAKO_GRP_FOX && e == bako_fox_twr_hi)
 						Bako_VeilFoxTowerUpper (e, ctr);
 					else
@@ -2013,7 +2021,7 @@ void(entity plist, float grp, vector ctr, float bmin_z) Bako_TickEarlyPieceList 
 				setorigin (e, e.bako_piece_hit_pos - '0 0 320' * bury_u);
 				if (time >= e.bako_piece_fx_t)
 				{
-					e.bako_piece_fx_t = time + 0.20;
+					e.bako_piece_fx_t = time + 0.48;
 					if (grp == BAKO_GRP_FOX && e == bako_fox_twr_hi)
 						Bako_VeilFoxTowerUpper (e, ctr);
 					else
@@ -2800,20 +2808,23 @@ void(entity e, vector ctr_ref) Bako_VeilPieceLanding =
 
 	if (bako_fx_dust_surge > 0)
 	{
-		pointparticles (bako_fx_dust_surge, pctr, rdir * 340 + '0 0 36', 2);
+		pointparticles (bako_fx_dust_surge, pctr, rdir * 340 + '0 0 36', 1);
 		p0 = e.absmin; p0_z = ctr_ref_z + 24;
 		p1 = e.absmax; p1_z = ctr_ref_z + 24;
-		pointparticles (bako_fx_dust_surge, p0 + (p1 - p0) * 0.25, rdir * 280 + '0 0 42', 1);
-		pointparticles (bako_fx_dust_surge, p0 + (p1 - p0) * 0.75, rdir * 280 + '0 0 42', 1);
+		pointparticles (bako_fx_dust_surge, p0 + (p1 - p0) * 0.50, rdir * 280 + '0 0 42', 1);
 	}
 	if (bako_fx_collapse_plume > 0)
-		pointparticles (bako_fx_collapse_plume, pctr + '0 0 48', rdir * 220 + '0 0 65', 2);
+		pointparticles (bako_fx_collapse_plume, pctr + '0 0 48', rdir * 220 + '0 0 65', 1);
 };
 
 // Full-length warm-tan dust curtain along Fox tower_upper's actual tilted axis (belfry base -> mid -> blue dome tip!)
 void(entity hi, vector ctr_ref) Bako_VeilFoxTowerUpper =
 {
 	local vector p0, p1, p2, rdir;
+
+	if (time < bako_fox_veil_t)
+		return;
+	bako_fox_veil_t = time + 0.34;
 
 	makevectors (hi.angles);
 	p0 = hi.origin + v_up * 120;
@@ -2830,16 +2841,11 @@ void(entity hi, vector ctr_ref) Bako_VeilFoxTowerUpper =
 
 	if (bako_fx_dust_surge > 0)
 	{
-		pointparticles (bako_fx_dust_surge, p0, rdir * 310 + '0 0 42', 2);
-		pointparticles (bako_fx_dust_surge, p1, rdir * 350 + '0 0 46', 2);
-		pointparticles (bako_fx_dust_surge, p2, rdir * 390 + '0 0 46', 2);
-		pointparticles (bako_fx_dust_surge, p2 + '0 -48 10', '90 -240 42', 1);
+		pointparticles (bako_fx_dust_surge, p1, rdir * 350 + '0 0 46', 1);
+		pointparticles (bako_fx_dust_surge, p2, rdir * 390 + '0 0 46', 1);
 	}
 	if (bako_fx_collapse_plume > 0)
-	{
-		pointparticles (bako_fx_collapse_plume, p1 + '0 0 36', rdir * 210 + '0 0 64', 2);
-		pointparticles (bako_fx_collapse_plume, p2 + '0 0 36', rdir * 240 + '0 0 68', 2);
-	}
+		pointparticles (bako_fx_collapse_plume, p2 + '0 0 36', rdir * 240 + '0 0 68', 1);
 };
 
 void() Bako_TickFox =
@@ -2915,12 +2921,12 @@ void() Bako_TickFox =
 					// Pre-veil landing spot as piece plunges into final 18% of its drop!
 					if (u >= 0.82 && time >= e.bako_piece_fx_t)
 					{
-						e.bako_piece_fx_t = time + 0.22;
+						e.bako_piece_fx_t = time + 0.42;
 						Bako_VeilPieceLanding (e, bako_fox_ctr);
 					}
 					else if (time >= e.bako_piece_fx_t)
 					{
-						e.bako_piece_fx_t = time + 0.26;
+						e.bako_piece_fx_t = time + 0.48;
 						pctr = (e.absmin + e.absmax) * 0.5;
 						rdir = pctr - bako_fox_ctr;
 						rdir_z = 0;
@@ -2955,11 +2961,16 @@ void() Bako_TickFox =
 						rdir_z = 0;
 						if (vlen (rdir) < 8) rdir = '0.7 -0.7 0';
 						rdir = normalize (rdir);
-						if (bako_fx_big_boom > 0)
+						if (bako_fx_big_boom > 0 && time >= bako_last_boom_dlight_t)
+						{
+							bako_last_boom_dlight_t = time + 0.22;
 							pointparticles (bako_fx_big_boom, pctr + '0 0 24', rdir * 260 + '0 0 80', 1);
+						}
+						else if (bako_fx_charge_pop > 0)
+							pointparticles (bako_fx_charge_pop, pctr + '0 0 24', rdir * 220 + '0 0 60', 1);
 						if (bako_fx_masonry_burst > 0)
-							pointparticles (bako_fx_masonry_burst, pctr + '0 0 24', rdir * 260 + '0 0 120', 2);
-						Bako_BurstDebris (pctr + '0 0 24', rdir + '0 0 0.25', 5, 560, 75, BAKO_GRP_FOX);
+							pointparticles (bako_fx_masonry_burst, pctr + '0 0 24', rdir * 260 + '0 0 120', 1);
+						Bako_BurstDebris (pctr + '0 0 24', rdir + '0 0 0.25', 3, 560, 75, BAKO_GRP_FOX);
 						Bako_SoundAt (pctr, CHAN_AUTO, "vehicles/car_boom2.wav", 0.96, 0.14, 88 + random () * 12);
 						Bako_SoundAt (pctr, CHAN_BODY, "break/rock_impact.wav", 0.95, 0.14, 84 + random () * 16);
 						Bako_SafeShake (pctr, 24000, 0.92, 220);
@@ -2969,7 +2980,7 @@ void() Bako_TickFox =
 					// Keep heavy dust curtain billowing directly over piece while burying into rubble!
 					if (time >= e.bako_piece_fx_t)
 					{
-						e.bako_piece_fx_t = time + 0.22;
+						e.bako_piece_fx_t = time + 0.42;
 						Bako_VeilPieceLanding (e, bako_fox_ctr);
 					}
 					setorigin (e, e.bako_piece_hit_pos - '0 0 260' * bury_u);
@@ -3030,13 +3041,13 @@ void() Bako_TickFox =
 						{
 							if (u_low >= 0.68)
 							{
-								hi.bako_piece_fx_t = time + 0.15;
+								hi.bako_piece_fx_t = time + 0.34;
 								Bako_VeilFoxTowerUpper (hi, bako_fox_ctr);
 							}
 							else
 							{
 								// Brief falling stucco dust strictly at the moving fracture collar (ZERO high sky puffball!)
-								hi.bako_piece_fx_t = time + 0.24;
+								hi.bako_piece_fx_t = time + 0.48;
 								if (bako_fx_rock_dust > 0)
 									pointparticles (bako_fx_rock_dust, collar, '70 -50 -95', 1);
 								if (u_low >= 0.38 && random () < 0.55 && bako_fx_masonry_burst > 0)
@@ -3055,14 +3066,14 @@ void() Bako_TickFox =
 							hi.bako_piece_hit_ang = hi.angles;
 							Bako_VeilFoxTowerUpper (hi, bako_fox_ctr);
 							makevectors (hi.angles);
-							Bako_BurstDebris (hi.origin + v_up * 320, '0.72 -0.68 0.25', 6, 520, 65, BAKO_GRP_FOX);
+							Bako_BurstDebris (hi.origin + v_up * 320, '0.72 -0.68 0.25', 3, 520, 65, BAKO_GRP_FOX);
 						}
 						bury_u = Bako_Clamp01 ((time - hi.bako_piece_bury_t) / 0.72);
 						setorigin (hi, hi.bako_piece_hit_pos - '0 0 420' * bury_u);
 						hi.angles = hi.bako_piece_hit_ang + '8 0 3' * bury_u;
 						if (time >= hi.bako_piece_fx_t)
 						{
-							hi.bako_piece_fx_t = time + 0.15;
+							hi.bako_piece_fx_t = time + 0.34;
 							Bako_VeilFoxTowerUpper (hi, bako_fox_ctr);
 						}
 						if (bury_u >= 1.0)
@@ -3094,7 +3105,7 @@ void() Bako_TickFox =
 		// Ground-hugging radial street base surge down H St & 20th St during heavy slams
 		if (dt >= 3.2 && dt <= bako_fox_collapse_dur - 0.4 && time >= bako_fox_fx_t)
 		{
-			bako_fox_fx_t = time + 0.60;
+			bako_fox_fx_t = time + 0.90;
 			if (bako_fox_rubble_list != world)
 				Bako_EmitDustRing (bako_fox_ctr, bako_fox_rubble_list.bako_home_min, bako_fox_rubble_list.bako_home_max, 400);
 		}
@@ -3256,7 +3267,7 @@ void() Bako_TickFox =
 		// Continuous golden welding sparks along EVERY currently rising piece (marquee, facades, tower_lower, tower_upper!)
 		if (dt >= 3.4 * rb_scale && time >= bako_fox_rb_snd_t)
 		{
-			bako_fox_rb_snd_t = time + 0.22;
+			bako_fox_rb_snd_t = time + 0.45;
 			e = bako_fox_pieces;
 			while (e != world)
 			{
@@ -3267,22 +3278,12 @@ void() Bako_TickFox =
 					weld_pt_y = e.absmin_y + (random () * 0.55) * max (32, e.absmax_y - e.absmin_y);
 					weld_pt_z = max (bako_fox_ctr_z + 24, e.absmin_z + (0.15 + random () * 0.55) * max (32, e.absmax_z - e.absmin_z));
 					if (bako_fx_rebuild_weld > 0)
-						pointparticles (bako_fx_rebuild_weld, weld_pt, '95 -95 95', 2);
+						pointparticles (bako_fx_rebuild_weld, weld_pt, '95 -95 95', 1);
 					if (bako_fx_rock_dust > 0)
 						pointparticles (bako_fx_rock_dust, weld_pt - '0 0 20', '45 -45 38', 1);
-					// Dense golden collar-seam & belfry weld sparks while cupola gently lowers & fades in above FOX!
-					if (e == bako_fox_twr_hi)
-					{
-						if (bako_fx_rebuild_weld > 0)
-						{
-							pointparticles (bako_fx_rebuild_weld, e.bako_home_org + '48 -48 12', '110 -110 85', 2);
-							pointparticles (bako_fx_rebuild_weld, e.bako_home_org + '54 14 16', '95 40 80', 2);
-							pointparticles (bako_fx_rebuild_weld, e.bako_home_org + '-12 -54 16', '-40 -95 80', 2);
-							pointparticles (bako_fx_rebuild_weld, e.origin + '32 -32 180', '85 -85 75', 2);
-						}
-						if (bako_fx_rock_dust > 0)
-							pointparticles (bako_fx_rock_dust, e.bako_home_org + '36 -36 10', '55 -55 40', 2);
-					}
+					// Golden collar-seam weld sparks while cupola gently lowers & fades in above FOX!
+					if (e == bako_fox_twr_hi && bako_fx_rebuild_weld > 0)
+						pointparticles (bako_fx_rebuild_weld, e.bako_home_org + '48 -48 12', '110 -110 85', 1);
 				}
 				e = e.bako_piece_next;
 			}
@@ -3312,24 +3313,22 @@ void(float heavy) Bako_EmitPadreCenterVeil =
 {
 	local vector base;
 
+	if (time < bako_padre_veil_t)
+		return;
+	bako_padre_veil_t = time + 0.55;
+
 	base = bako_padre_ctr;
 	base_z = bako_padre_bmin_z + 24;
 
 	if (bako_fx_dust_surge > 0)
 	{
-		pointparticles (bako_fx_dust_surge, base + '0 0 18', '180 -180 48', heavy ? 2 : 1);
-		pointparticles (bako_fx_dust_surge, base + '180 -160 12', '340 -260 44', heavy ? 2 : 1);
-		pointparticles (bako_fx_dust_surge, base + '240 -30 14', '390 -90 42', 1);
-		pointparticles (bako_fx_dust_surge, base + '40 -240 14', '90 -390 42', 1);
+		pointparticles (bako_fx_dust_surge, base + '0 0 18', '180 -180 48', 1);
+		pointparticles (bako_fx_dust_surge, base + '180 -160 12', '340 -260 44', 1);
 		if (heavy)
-			pointparticles (bako_fx_dust_surge, base + '-110 80 18', '-220 180 48', 2);
+			pointparticles (bako_fx_dust_surge, base + '-110 80 18', '-220 180 48', 1);
 	}
 	if (bako_fx_collapse_plume > 0)
-	{
-		pointparticles (bako_fx_collapse_plume, base + '90 -90 64', '160 -160 58', heavy ? 2 : 1);
-		if (heavy)
-			pointparticles (bako_fx_collapse_plume, base + '190 -180 56', '240 -220 52', 2);
-	}
+		pointparticles (bako_fx_collapse_plume, base + '90 -90 64', '160 -160 58', 1);
 };
 
 void() Bako_TickPadre =
@@ -3525,7 +3524,7 @@ void() Bako_TickPadre =
 					// Horizontal upper floor-seam piston dust jets strictly clamped below live descending roofline!
 					if (time >= e.bako_piece_fx_t)
 					{
-						e.bako_piece_fx_t = time + 0.24;
+						e.bako_piece_fx_t = time + 0.48;
 						pctr = (e.absmin + e.absmax) * 0.5;
 						if (random () < 0.5)
 						{
@@ -3543,10 +3542,10 @@ void() Bako_TickPadre =
 						rdir = normalize (rdir);
 						if (bako_fx_collapse_plume > 0)
 							pointparticles (bako_fx_collapse_plume, vpos, rdir * 380 + '0 0 4', 1);
-						if (random () < 0.55 && bako_fx_masonry_burst > 0)
+						if (random () < 0.40 && bako_fx_masonry_burst > 0)
 							pointparticles (bako_fx_masonry_burst, vpos, rdir * 270 + '0 0 55', 1);
-						if (random () < 0.35)
-							Bako_SpawnMasonryChunk (vpos, rdir * 330 + '0 0 95', 0.62 + random () * 0.42, 12.0, floor (random () * 4), BAKO_GRP_PADRE);
+						if (random () < 0.20)
+							Bako_SpawnMasonryChunk (vpos, rdir * 330 + '0 0 95', 0.62 + random () * 0.42, 5.5, floor (random () * 4), BAKO_GRP_PADRE);
 					}
 				}
 				else
@@ -3566,7 +3565,7 @@ void() Bako_TickPadre =
 						if (vlen (rdir) < 8) rdir = '0.7 -0.7 0';
 						rdir = normalize (rdir);
 						if (bako_fx_masonry_burst > 0)
-							pointparticles (bako_fx_masonry_burst, pctr + '0 0 32', rdir * 280 + '0 0 95', 2);
+							pointparticles (bako_fx_masonry_burst, pctr + '0 0 32', rdir * 280 + '0 0 95', 1);
 						Bako_SoundAt (pctr, CHAN_AUTO, "vehicles/car_boom2.wav", 0.94, 0.12, 82 + random () * 14);
 						Bako_SoundAt (pctr, CHAN_BODY, "break/rock_impact.wav", 0.92, 0.14, 80 + random () * 16);
 						Bako_SafeShake (pctr, 24000, 0.86, 220);
@@ -3575,7 +3574,7 @@ void() Bako_TickPadre =
 					bury_u = Bako_Clamp01 ((time - e.bako_piece_bury_t) / 0.85);
 					if (time >= e.bako_piece_fx_t)
 					{
-						e.bako_piece_fx_t = time + 0.22;
+						e.bako_piece_fx_t = time + 0.48;
 						Bako_VeilPieceLanding (e, bako_padre_ctr);
 					}
 					setorigin (e, e.bako_piece_hit_pos - '0 0 340' * bury_u);
@@ -3648,7 +3647,7 @@ void() Bako_TickPadre =
 		// Wide ground-hugging radial street base surge (+25% reach down H St & 18th St!) + continuous center veil!
 		if (dt >= 4.2 && time >= bako_padre_fx_t)
 		{
-			bako_padre_fx_t = time + 0.50;
+			bako_padre_fx_t = time + 0.85;
 			if (bako_padre_rubble_list != world)
 				Bako_EmitDustRing (bako_padre_ctr, bako_padre_rubble_list.bako_home_min, bako_padre_rubble_list.bako_home_max, 570);
 			else
@@ -4363,6 +4362,9 @@ void() Bako_ResetAll =
 	bako_toast_code = 0;
 	bako_toast_end = 0;
 	bako_eq_amp = 0;
+	bako_padre_veil_t = 0;
+	bako_fox_veil_t = 0;
+	bako_last_boom_dlight_t = 0;
 	p = bm_player_head;
 	while (p)
 	{

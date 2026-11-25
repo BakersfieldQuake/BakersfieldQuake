@@ -378,7 +378,7 @@ void(entity p) FL_StartDrink =
 	if (p.fl_phase > 0 || Veh_Driving (p) || p.veh_ride != world || MMTank_Driving (p) || JohnBird_Flying (p) || RocketRider_Flying (p) || EricCannon_Active (p) || FD_Flying (p))
 		return;
 
-	if (time <= 0.5)
+	if (time <= 1.1)
 		FL_Precache ();
 	p.fl_phase = 1;
 	p.fl_t0 = time;
