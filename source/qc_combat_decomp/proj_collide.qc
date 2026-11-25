@@ -978,12 +978,13 @@ void() PC_PruneLists =
 
 void() PC_SweepSpikes =
 {
-	local entity spk, e;
+	local entity spk, nxt, e;
 	local float r2;
 
 	spk = pc_spike_head;
 	while (spk)
 	{
+		nxt = spk.pc_spike_next;
 		if (spk.owner != world && spk.owner.classname == "player" && spk.solid != SOLID_NOT)
 		{
 			e = pc_head;
@@ -1003,7 +1004,7 @@ void() PC_SweepSpikes =
 				e = e.pc_next;
 			}
 		}
-		spk = spk.pc_spike_next;
+		spk = nxt;
 	}
 };
 

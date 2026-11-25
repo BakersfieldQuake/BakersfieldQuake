@@ -281,9 +281,12 @@ void(entity p) Underdog_ClearFx =
 {
 	if (p.ud_aura)
 	{
-		if (p.ud_aura.enemy)
-			remove (p.ud_aura.enemy);
-		remove (p.ud_aura);
+		if (!bm_wasfreed (p.ud_aura))
+		{
+			if (p.ud_aura.enemy && !bm_wasfreed (p.ud_aura.enemy))
+				remove (p.ud_aura.enemy);
+			remove (p.ud_aura);
+		}
 		p.ud_aura = world;
 	}
 };
@@ -388,7 +391,7 @@ float(entity e, float n, float top) Underdog_Boost =
 	k = 0;
 	if (e.ud_deaths >= 2)
 		k = 0.6 * bound (0, (1 - (e.ud_kills + 4) / (e.ud_deaths + 4)) / 0.75, 1);
-	g = bound (0, (e.ud_deficit - 1) / (autocvar_bm_ud_span * (1 / 3 + (2 / 3) / (n - 1)) + 0.15 * max (0, top)), 1);
+	g = bound (0, (e.ud_deficit - 1) / (autocvar_bm_ud_span * (1 / 3 + (2 / 3) / max (1, n - 1)) + 0.15 * max (0, top)), 1);
 	b = 1 - (1 - a) * (1 - k) * (1 - g);
 	if (e.ud_heat > 0)
 		b = b * bound (0, 1 - e.ud_heat / 2, 1);		// a good player on a bad run is not an underdog

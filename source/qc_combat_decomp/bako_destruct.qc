@@ -4031,8 +4031,6 @@ void(entity g) BakoDestruct_OnGlassBreak =
 	if (!g || g.style != BTYPE_GLASS)
 		return;
 
-	BakoDestruct_Precache ();
-
 	if (g.bako_glass_wait > 0)
 	{
 		if (g.bako_glass_respawn_t <= 0)
@@ -4557,36 +4555,38 @@ float(entity p, float n) BakoDestruct_ClientCmd =
 
 void() BakoDestruct_Impulse =
 {
-	if (self.impulse < 135 || self.impulse > 140)
+	if (!bako_present)
+		return;
+	if (self.impulse < 150 || self.impulse > 155)
 		return;
 	if (!autocvar_sv_cheats && deathmatch)
 		return;
 
-	if (self.impulse == 135)
+	if (self.impulse == 150)
 	{
 		if (bako_fox_state != BAKO_ST_INTACT) Bako_ResetFoxIntact ();
 		Bako_TriggerFoxCollapse ();
 	}
-	else if (self.impulse == 136)
+	else if (self.impulse == 151)
 	{
 		if (bako_padre_state != BAKO_ST_INTACT) Bako_ResetPadreIntact ();
 		Bako_TriggerPadreCollapse ();
 	}
-	else if (self.impulse == 137)
+	else if (self.impulse == 152)
 	{
 		if (bako_sign_state != BAKO_ST_INTACT) Bako_ResetSignIntact ();
 		Bako_TriggerSignCollapse ();
 	}
-	else if (self.impulse == 138)
+	else if (self.impulse == 153)
 	{
 		Bako_SnapCollapsed (BAKO_GRP_FOX);
 		Bako_StartFoxRebuild ();
 	}
-	else if (self.impulse == 139)
+	else if (self.impulse == 154)
 	{
 		Bako_ResetAll ();
 	}
-	else if (self.impulse == 140)
+	else if (self.impulse == 155)
 	{
 		Bako_SnapCollapsed (0);
 	}

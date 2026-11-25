@@ -53,9 +53,9 @@ void(string gibname, vector local_ofs, vector local_vel, float keep_colormap) PD
 
 	makevectors(self.angles);
 	g = spawn();
-	g.origin = self.origin + (v_forward * local_ofs_x) + (v_right * (-local_ofs_y)) + ('0 0 1' * local_ofs_z);
 	setmodel(g, gibname);
 	setsize(g, '-8 -8 -8', '8 8 8');
+	setorigin(g, self.origin + (v_forward * local_ofs_x) + (v_right * (-local_ofs_y)) + ('0 0 1' * local_ofs_z));
 	g.cansplash = TRUE;
 	g.velocity = (v_forward * local_vel_x) + (v_right * (-local_vel_y)) + ('0 0 1' * local_vel_z);
 	g.velocity = g.velocity + (self.velocity * 0.35);
@@ -92,7 +92,6 @@ void(string gibname, vector local_ofs, vector local_vel, float keep_colormap) PD
 		}
 		else
 		{
-			precache_sound("player/gibexplode.wav");
 			g.think = gibsfade_blood;
 			g.ltime = time;
 			g.nextthink = ((time + gibsfadetime) + (random() * 8));

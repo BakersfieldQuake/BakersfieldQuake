@@ -260,21 +260,6 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 			}
 		}
 	}
-	save = ceil((targ.armortype * damage));
-	if ((save >= targ.armorvalue))
-	{
-		save = targ.armorvalue;
-		targ.armortype = 0;
-		targ.items = (targ.items - (targ.items & 57344));
-	}
-	targ.armorvalue = (targ.armorvalue - save);
-	take = ceil((damage - save));
-	if ((targ.flags & FL_CLIENT))
-	{
-		targ.dmg_take = (targ.dmg_take + take);
-		targ.dmg_save = (targ.dmg_save + save);
-		targ.dmg_inflictor = inflictor;
-	}
 	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)) && !(targ.veh_kind == VEH_FORELOCO && targ.invincible_finished >= time))
 	{
 		if (((fg_inflicting == FG_GARAND) && (bm_kb > 20)))
@@ -309,6 +294,21 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	if (((((teamplay == 1) || CTF_ENABLED) && (targ.team > 0)) && (targ.team == attacker.team) && (targ != attacker)))
 	{
 		return;
+	}
+	save = ceil((targ.armortype * damage));
+	if ((save >= targ.armorvalue))
+	{
+		save = targ.armorvalue;
+		targ.armortype = 0;
+		targ.items = (targ.items - (targ.items & 57344));
+	}
+	targ.armorvalue = (targ.armorvalue - save);
+	take = ceil((damage - save));
+	if ((targ.flags & FL_CLIENT))
+	{
+		targ.dmg_take = (targ.dmg_take + take);
+		targ.dmg_save = (targ.dmg_save + save);
+		targ.dmg_inflictor = inflictor;
 	}
 	if ((take > 0) && (targ.classname == "player"))
 	{
@@ -522,22 +522,18 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 				}
 				if ((points > 0))
 				{
-					if ((self.owner.classname == "monster_oldone_tentacle"))
+					if (!((self.owner.classname == "monster_oldone_tentacle") && (head.classname == "monster_oldone_tentacle")))
 					{
-						if ((head.classname == "monster_oldone_tentacle"))
+						if (CanDamage(head, inflictor))
 						{
-							return;
-						}
-					}
-					if (CanDamage(head, inflictor))
-					{
-						if (((head.classname == "monster_shambler") || (head.classname == "monster_hell_knight2")))
-						{
-							T_Damage(head, inflictor, attacker, (points * 0.65));
-						}
-						else
-						{
-							T_Damage(head, inflictor, attacker, points);
+							if (((head.classname == "monster_shambler") || (head.classname == "monster_hell_knight2")))
+							{
+								T_Damage(head, inflictor, attacker, (points * 0.65));
+							}
+							else
+							{
+								T_Damage(head, inflictor, attacker, points);
+							}
 						}
 					}
 				}

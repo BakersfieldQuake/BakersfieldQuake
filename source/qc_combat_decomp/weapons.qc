@@ -80,6 +80,10 @@ void() W_Precache =
 	precache_sound("hook/chain2.wav");
 	precache_sound("hook/launch.wav");
 	precache_sound("hook/retract.wav");
+	precache_sound("player/gibexplode.wav");
+	precache_sound("break/glass_i1.wav");
+	precache_sound("vehicles/hit_metal1.wav");
+	precache_sound("break/rock_impact.wav");
 };
 
 void() gib_stuck_think =

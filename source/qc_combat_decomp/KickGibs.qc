@@ -571,7 +571,6 @@ void() kick_touch6temp =
 
 void() heart_dies =
 {
-	precache_sound("player/gibexplode.wav");
 	self.scale = 1;
 	self.gravity = 1;
 	self.think = gib_heart_stop_beating;

@@ -1955,18 +1955,21 @@ void(entity v, float kind) Veh_InitEntity =
 {
 	local vector org_top;
 
-	Vehicles_Precache ();
-	if (Veh_IsKart (kind))
-		GK_Precache ();
-	// only the kinds this map actually spawns: the body, its wreck and the parts it throws when it blows up
-	// (kinds without parts of their own, the golf cart and the karts, use the coupe's)
-	precache_model (Veh_IntactModel (kind));
-	precache_model (Veh_WreckModel (kind));
-	precache_model (Veh_WheelModel (kind));
-	precache_model (Veh_HoodModel (kind));
-	precache_model (Veh_DoorModel (kind));
-	precache_model (Veh_ExtraModel (kind));
-	precache_model (Veh_BumperModel (kind));
+	if (time <= 0.5)
+	{
+		Vehicles_Precache ();
+		if (Veh_IsKart (kind))
+			GK_Precache ();
+		// only the kinds this map actually spawns: the body, its wreck and the parts it throws when it blows up
+		// (kinds without parts of their own, the golf cart and the karts, use the coupe's)
+		precache_model (Veh_IntactModel (kind));
+		precache_model (Veh_WreckModel (kind));
+		precache_model (Veh_WheelModel (kind));
+		precache_model (Veh_HoodModel (kind));
+		precache_model (Veh_DoorModel (kind));
+		precache_model (Veh_ExtraModel (kind));
+		precache_model (Veh_BumperModel (kind));
+	}
 	veh_has_vans = TRUE;
 	v.veh_kind = kind;
 	v.veh_state = VEH_STATE_IDLE;

@@ -2121,7 +2121,6 @@ void(string gibname, float dm) ThrowGib =
 		}
 		else
 		{
-			precache_sound("player/gibexplode.wav");
 			new.think = gibsfade_blood;
 			new.ltime = time;
 			new.nextthink = ((time + gibsfadetime) + (random() * 10));
@@ -2190,7 +2189,6 @@ void(string gibname, float dm, float skincolor) ThrowGibSpider =
 		}
 		else
 		{
-			precache_sound("player/gibexplode.wav");
 			new.think = gibsfade_blood;
 			new.ltime = time;
 			new.nextthink = ((time + gibsfadetime) + (random() * 10));
@@ -2230,7 +2228,6 @@ void() gib_heart_stop_beating =
 		}
 		else
 		{
-			precache_sound("player/gibexplode.wav");
 			self.think = gibsfade_blood;
 			self.ltime = time;
 			self.nextthink = (time + gibsfadetime);
@@ -2247,7 +2244,6 @@ void() gib_heart_movement2 =
 	{
 		self.scale = 1;
 		self.traileffectnum = particleeffectnum(/*45883i*/"gib_heart_nobeating");
-		precache_sound("player/gibexplode.wav");
 		self.think = gib_heart_stop_beating;
 		self.nextthink = time;
 		return;

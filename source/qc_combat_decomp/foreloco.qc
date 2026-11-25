@@ -29,6 +29,16 @@ void() FL_Precache =
 	precache_sound ("foreloco/boing_hit.wav");
 	precache_sound ("foreloco/bed_jump.wav");
 	precache_sound ("foreloco/bed_boost.wav");
+
+	Vehicles_Precache ();
+	GK_Precache ();
+	precache_model (Veh_IntactModel (VEH_FORELOCO));
+	precache_model (Veh_WreckModel (VEH_FORELOCO));
+	precache_model (Veh_WheelModel (VEH_FORELOCO));
+	precache_model (Veh_HoodModel (VEH_FORELOCO));
+	precache_model (Veh_DoorModel (VEH_FORELOCO));
+	precache_model (Veh_ExtraModel (VEH_FORELOCO));
+	precache_model (Veh_BumperModel (VEH_FORELOCO));
 };
 
 void(entity p) FL_Reset =
@@ -599,7 +609,7 @@ void() FL_Impulse =
 
 	if (!autocvar_sv_cheats)
 		return;
-	if (self.impulse == 145)
+	if (self.impulse == 156)
 	{
 		self.impulse = 0;
 		makevectors ('0 1 0' * self.v_angle_y);
@@ -615,7 +625,7 @@ void() FL_Impulse =
 		sprint (self, "Spawned Watermelon ForeLoco!\n");
 		return;
 	}
-	if (self.impulse == 146)
+	if (self.impulse == 157)
 	{
 		self.impulse = 0;
 		FL_StartDrink (self);
