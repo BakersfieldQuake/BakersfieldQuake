@@ -246,11 +246,15 @@ void(float key, float ascii) m_keyup =
 	}
 };
 
-void(float width, float height, float defwidth, float defheight) m_drawloading =
+void(vector screensize, float opaque) m_drawloading =
 {
 	local float lw, lh;
 
-	lw = (defwidth > 0) ? defwidth : 640;
-	lh = (defheight > 0) ? defheight : 360;
+	lw = screensize_x;
+	lh = screensize_y;
+	if (lw <= 0) lw = stof(cvar_string("vid_conwidth"));
+	if (lh <= 0) lh = stof(cvar_string("vid_conheight"));
+	if (lw <= 0) lw = 640;
+	if (lh <= 0) lh = 360;
 	BM_Loading_Draw(lw, lh);
 };

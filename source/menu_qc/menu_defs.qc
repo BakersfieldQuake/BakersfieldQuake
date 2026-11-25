@@ -270,7 +270,7 @@ void(float key, float ascii) m_keyup;
 void(float mode) m_toggle;
 void() m_newmap;
 float(float entry) m_gethostcachecategory;
-void(float width, float height, float defwidth, float defheight) m_drawloading;
+void(vector screensize, float opaque) m_drawloading;
 void(float id, float status, string data) URI_Get_Callback;
 
 // Loading screen module
