@@ -144,6 +144,25 @@ if [ -n "${BQ_PICK_CFG:-}" ]; then
     PICKARGS=(+exec "$BQ_PICK_CFG")
 fi
 
+# On Linux X11, SDL2 exclusive fullscreen (vid_desktopfullscreen 0) calls XRandR CRTC mode switches
+# that can crash darkplaces-sdl with BadRRCrtc on multi-monitor NVIDIA setups and leave displays off.
+# Map "fullscreen" to desktop fullscreen (primary native) or positioned borderless (secondary / scaled),
+# and keep SDL from minimizing on focus loss.
+_bq_x11=0
+if [ "$(uname)" = Linux ] && [ -n "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    _bq_x11=1
+    export SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS="${SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS:-0}"
+    if [ "${BQ_PICK_MODE:-}" = fullscreen ]; then
+        if [ "${BQ_PICK_MON_PRIMARY:-0}" = 1 ] \
+                && [ -n "${BQ_PICK_WIDTH:-}" ] && [ -n "${BQ_PICK_MON_W:-}" ] \
+                && [ "$BQ_PICK_WIDTH" = "$BQ_PICK_MON_W" ] && [ "$BQ_PICK_HEIGHT" = "$BQ_PICK_MON_H" ]; then
+            PICKARGS+=(+vid_fullscreen 1 +vid_desktopfullscreen 1 +vid_borderless 0)
+        else
+            PICKARGS+=(+vid_fullscreen 0 +vid_desktopfullscreen 0 +vid_borderless 1)
+        fi
+    fi
+fi
+
 TIERARGS=()
 case "$TIER" in
     safemode) TIERARGS=(+exec safemode.cfg) ;;
@@ -167,6 +186,49 @@ fi
 # shellcheck disable=SC2086
 "$ENGINE" "${COMMON[@]}" +log_file bq_game.log ${FIRST[@]+"${FIRST[@]}"} ${PICKARGS[@]+"${PICKARGS[@]}"} ${TIERARGS[@]+"${TIERARGS[@]}"} ${COMBAT_ARGS:-} ${JOIN[@]+"${JOIN[@]}"} &
 GAME=$!
+
+# Place the game window onto the monitor selected in the picker on Linux X11 (darkplaces-sdl has no display index cvar).
+_bq_place_x11_window() {
+    [ "$_bq_x11" = 1 ] || return 0
+    [ -n "${BQ_PICK_MON_X:-}" ] && [ -n "${BQ_PICK_MON_Y:-}" ] || return 0
+    [ -n "${BQ_PICK_MON_W:-}" ] && [ -n "${BQ_PICK_MON_H:-}" ] || return 0
+    command -v xdotool >/dev/null 2>&1 || return 0
+
+    local mx="$BQ_PICK_MON_X" my="$BQ_PICK_MON_Y" mw="$BQ_PICK_MON_W" mh="$BQ_PICK_MON_H"
+    local w="${BQ_PICK_WIDTH:-$mw}" h="${BQ_PICK_HEIGHT:-$mh}"
+    local mode="${BQ_PICK_MODE:-borderless}" prim="${BQ_PICK_MON_PRIMARY:-1}"
+    local i wid=""
+    for i in $(seq 1 50); do
+        kill -0 "$GAME" 2>/dev/null || return 0
+        wid="$(xdotool search --pid "$GAME" --onlyvisible 2>/dev/null | head -1)"
+        [ -n "$wid" ] && break
+        sleep 0.2
+    done
+    [ -n "$wid" ] || return 0
+    sleep 0.2
+
+    # Skip moving if desktop fullscreen already spans the primary monitor natively.
+    if [ "$prim" = 1 ] && [ "$w" = "$mw" ] && [ "$h" = "$mh" ] && [ "$mode" != windowed ]; then
+        return 0
+    fi
+
+    local tx="$mx" ty="$my"
+    if [ "$w" -lt "$mw" ] 2>/dev/null || [ "$h" -lt "$mh" ] 2>/dev/null; then
+        tx=$(( mx + (mw - w) / 2 ))
+        ty=$(( my + (mh - h) / 2 ))
+        [ "$tx" -lt "$mx" ] && tx="$mx"
+        [ "$ty" -lt "$my" ] && ty="$my"
+    fi
+
+    if command -v wmctrl >/dev/null 2>&1; then
+        wmctrl -i -r "$wid" -b remove,fullscreen,maximized_vert,maximized_horz 2>/dev/null || true
+    fi
+    xdotool windowmove --sync "$wid" "$tx" "$ty" 2>/dev/null || true
+    if [ "$w" = "$mw" ] && [ "$h" = "$mh" ] && [ "$mode" != windowed ] && command -v wmctrl >/dev/null 2>&1; then
+        wmctrl -i -r "$wid" -b add,fullscreen 2>/dev/null || true
+    fi
+}
+_bq_place_x11_window &
 
 # Keep lan_server.cfg fresh until the game exits, so F3 works.
 if command -v python3 >/dev/null 2>&1 && [ -f "$SCAN" ]; then
