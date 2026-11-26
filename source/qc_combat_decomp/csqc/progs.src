@@ -16,6 +16,7 @@ robhead_xray.qc
 minimap_bounds.qc
 bm_minimap_hud.qc
 john_bird_hud.qc
+cyrax_hud.qc
 hud_common.qc
 hud_style_1.qc
 hud_style_2.qc

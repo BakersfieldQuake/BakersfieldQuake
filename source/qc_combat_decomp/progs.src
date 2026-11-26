@@ -31,6 +31,7 @@ milky_defs.qc
 vehicles_defs.qc
 foreloco_defs.qc
 john_bird_defs.qc
+cyrax_defs.qc
 rocket_rider_defs.qc
 lan_props_defs.qc
 bicycles_defs.qc
@@ -129,6 +130,7 @@ vehicle_drive.qc
 gokart.qc
 foreloco.qc
 john_bird.qc
+cyrax.qc
 rocket_rider.qc
 bklan_tv_data.qc
 bklan_tv.qc

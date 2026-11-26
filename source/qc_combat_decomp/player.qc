@@ -261,7 +261,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 			self.weapontimer = 0;
 		}
 	}
-	if ((!(self.flags & FL_ONGROUND) && (self.weapon != IT_AXE)))
+	if ((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)))
 	{
 		self.frame = (247 + self.walkframe);
 		self.walkframe = (self.walkframe + 1);
@@ -272,7 +272,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 		self.weaponframe = 0;
 		return;
 	}
-	if ((self.weapon == IT_AXE))
+	if (Player_IsHandheldPose(self))
 	{
 		if (!(self.flags & FL_ONGROUND))
 		{
@@ -326,7 +326,7 @@ void() player_swim = [ 207, player_swim ]
 		{
 			self.walkframe = 0;
 		}
-		if ((self.weapon == IT_AXE))
+		if (Player_IsHandheldPose(self))
 		{
 			self.frame = (214 + self.walkframe);
 		}
@@ -508,7 +508,7 @@ void() player_run = [ 6, player_run ]
 			self.weapontimer = 0;
 		}
 	}
-	if ((!(self.flags & FL_ONGROUND) && (self.weapon != IT_AXE)))
+	if ((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)))
 	{
 		if ((self.walkframe >= 6))
 		{
@@ -548,7 +548,7 @@ void() player_run = [ 6, player_run ]
 			self.weaponframe = 0;
 		}
 	}
-	if ((self.weapon == IT_AXE))
+	if (Player_IsHandheldPose(self))
 	{
 		if (!(self.flags & FL_ONGROUND))
 		{
@@ -1486,6 +1486,12 @@ void() player_mm4 = [ 110, player_mm5 ] {};
 void() player_mm5 = [ 111, player_mm6 ] {};
 void() player_mm6 = [ 112, player_run ] {};
 
+// One-handed throw swing for handheld items (axatt1..4 without W_FireAxe)
+void() player_throw1 = [ 119, player_throw2 ] {};
+void() player_throw2 = [ 120, player_throw3 ] {};
+void() player_throw3 = [ 121, player_throw4 ] {};
+void() player_throw4 = [ 122, player_run ] {};
+
 void() PainSound =
 {
 	local float rs;
@@ -1621,7 +1627,7 @@ void() player_pain6 = [ 40, player_run ]
 
 void() player_jump =
 {
-	if ((self.weapon == IT_AXE))
+	if (Player_IsHandheldPose(self))
 	{
 		self.frame = 243;
 	}
@@ -1668,7 +1674,7 @@ void() player_pain =
 	{
 		return;
 	}
-	if ((self.weapon == IT_AXE))
+	if (Player_IsHandheldPose(self))
 	{
 		player_axpain1();
 	}
@@ -2623,6 +2629,7 @@ void() PlayerDie =
 	local entity bed;
 
 	FunGun_PlayerDie();
+	HeldVwep_Clear(self);
 	// killed riding Eric's hospital bed: get out of it (and remove it) before the death sets up the body
 	bed = self.veh_van;
 	if (((bed != world) && (bed.veh_driver == self) && (bed.veh_kind == VEH_FORELOCO)))

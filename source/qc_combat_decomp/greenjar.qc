@@ -1083,7 +1083,7 @@ void() GJ_BeginThrow =
 	self.gj_throw_at = time + GJ_THROW_DELAY;
 	self.punchangle_x = -2.4;
 	self.punchangle_z = 1.8;
-	player_mm1 ();
+	player_throw1 ();
 	FG_Snd (self, CHAN_WEAPON, "greenjar/jar_throw.wav", 1.0, 1.0);
 	self.attack_finished = time + GJ_THROW_DELAY + GJ_FOLLOW_TIME + GJ_RAISE_TIME;
 };

@@ -98,7 +98,7 @@ void() UpdateAxeFrames =
 	{
 		self.alpha = 1;
 	}
-	if ((self.owner.throwing == 0))
+	if ((self.owner.throwing == 0) && (self.owner.weapon == IT_AXE))
 	{
 		setmodel(self, "progs/p_axe.md3");
 	}
@@ -169,6 +169,316 @@ void() AttachVAxe =
 		setattachment(vwep2, self, /*24094i*/"Axe");
 	else
 		setattachment(vwep2, self, "");
+};
+
+float HELD_NONE     = 0;
+float HELD_MILKY    = 1;
+float HELD_PICKLE   = 2;
+float HELD_GREENJAR = 3;
+float HELD_KYLE     = 4;
+float HELD_NETSEND  = 5;
+float HELD_MEGAMAN  = 6;
+float HELD_DOB      = 7;
+
+float(entity p) HeldVwep_Kind =
+{
+	if (p.weapon == IT_SUPER_NAILGUN)
+		return HELD_MILKY;
+	if (p.weapon == IT_MEGAMAN)
+		return HELD_MEGAMAN;
+	if (p.weapon == IT_FUNGUN)
+	{
+		if (p.fg_sel == FG_PICKLE)
+			return HELD_PICKLE;
+		if (p.fg_sel == FG_PONG)
+			return HELD_GREENJAR;
+		if (p.fg_sel == FG_KYLE)
+			return HELD_KYLE;
+		if (p.fg_sel == FG_NETSEND)
+			return HELD_NETSEND;
+		if (p.fg_sel == FG_DOB)
+			return HELD_DOB;
+	}
+	return HELD_NONE;
+};
+
+float(entity p) Player_IsHandheldPose =
+{
+	return (p.weapon == IT_AXE || HeldVwep_Kind(p) != HELD_NONE);
+};
+
+float() HeldVwep_ShowAll =
+{
+	return TRUE;
+};
+
+float(entity viewer, entity holder) HeldVwep_RelYaw =
+{
+	local vector delta;
+	local float v, a;
+
+	delta = (viewer.origin + viewer.view_ofs) - holder.origin;
+	delta_z = 0;
+	if (vlen(delta) > 16)
+		v = vectoyaw(delta);
+	else
+		v = viewer.v_angle_y + 180;
+	a = v - holder.angles_y;
+	return a - 360 * floor(a / 360);
+};
+
+float() HeldVwep_PinkLadyCustomize =
+{
+	local float a;
+
+	if (!self.owner)
+		return FALSE;
+	a = HeldVwep_RelYaw(other, self.owner);
+	self.frame = 0;
+	self.skin = floor(a / 22.5 + 0.5);
+	if (self.skin > 15)
+		self.skin = 0;
+	if (other.classname == "player")
+		self.angles_y = other.v_angle_y - self.owner.angles_y;
+	else
+		self.angles_y = (vectoyaw(other.origin - self.owner.origin) + 180) - self.owner.angles_y;
+	self.angles_x = 0;
+	self.angles_z = 0;
+	return TRUE;
+};
+
+float() HeldVwep_KyleCustomize =
+{
+	local float rel, d, base, fps, k;
+
+	if (!self.owner)
+		return FALSE;
+	rel = HeldVwep_RelYaw(other, self.owner);
+	d = floor(rel / 45.0 + 0.5);
+	if (d >= 8)
+		d = 0;
+	if (self.owner.ky_locking > 0)
+	{
+		base = 64;
+		fps = 13;
+	}
+	else
+	{
+		base = 192;
+		fps = 8;
+	}
+	k = floor(time * fps);
+	k = k - 8 * floor(k / 8);
+	self.frame = base + d * 8 + k;
+	return TRUE;
+};
+
+float() HeldVwep_RobCustomize =
+{
+	local float rel, d;
+
+	if (!self.owner)
+		return FALSE;
+	rel = HeldVwep_RelYaw(other, self.owner);
+	d = floor(rel / 22.5 + 0.5);
+	if (d >= 16)
+		d = 0;
+	self.frame = d;
+	return TRUE;
+};
+
+float(entity p, float kind) HeldVwep_ShouldShow =
+{
+	if (kind == HELD_NONE)
+		return FALSE;
+	if (p.health <= 0 || p.deadflag || intermission_running)
+		return FALSE;
+	if ((p.items & IT_INVISIBILITY) || (p.effects & EF_NODRAW))
+		return FALSE;
+	if (p.model != "progs/player_id1.mdl" && p.model != "progs/player_torso.mdl")
+		return FALSE;
+	if (p.throwing == 1 || Binoc_On(p) || p.fl_phase == 1 || p.fl_phase == 2)
+		return FALSE;
+	if (p.bm_rl_slot && p.health > 0 && !(M4_ShowsReload(p) || Garand_ShowsReload(p)))
+		return FALSE;
+	if (FD_Flying(p) || Veh_Driving(p) || p.veh_ride != world || JohnBird_Flying(p) || RocketRider_Flying(p) || MMTank_Driving(p) || EricCannon_Active(p))
+		return FALSE;
+
+	if (kind == HELD_MILKY)
+		return (p.ammo_nails >= 1 && !Milky_Out(p) && time >= p.milky_hide && !(p.milky_threw > 0 && time < p.milky_threw + MILKY_FLYOUT));
+	if (kind == HELD_PICKLE)
+		return (FunGun_Ammo(p, FG_PICKLE) >= 1 || p.pk_throw_at > 0);
+	if (kind == HELD_GREENJAR)
+		return (FunGun_Ammo(p, FG_PONG) >= 1 || cvar("gj_test") > 0 || p.gj_shaking > 0 || p.gj_throw_at > 0);
+	if (kind == HELD_KYLE)
+		return (FunGun_Ammo(p, FG_KYLE) >= 1 || p.ky_locking > 0 || p.ky_throw_at > 0);
+	if (kind == HELD_NETSEND)
+		return (FunGun_Ammo(p, FG_NETSEND) >= 1 || p.ns_throw_at > 0);
+	if (kind == HELD_MEGAMAN)
+		return (p.mm_ammo >= 1 && !(p.mm_fire_t && time - p.mm_fire_t > 0.15 && time - p.mm_fire_t < 0.6));
+	if (kind == HELD_DOB)
+		return (FunGun_Ammo(p, FG_DOB) >= 1 || (p.rh_charging > 0 && p.rh_charge_gun == FG_DOB) || (p.rh_throw_at > 0 && p.rh_throw_gun == FG_DOB));
+	return FALSE;
+};
+
+void(entity e, float kind) HeldVwep_ApplyConfig =
+{
+	local string mdl;
+
+	mdl = "";
+	e.held_vwep_kind = kind;
+	e.frame = 0;
+	e.skin = 0;
+	e.angles = '0 0 0';
+	e.held_vwep_org = '14 -12 8';
+	e.scale = 1.0;
+	e.customizeentityforclient = HeldVwep_ShowAll;
+
+	if (kind == HELD_MILKY)
+	{
+		mdl = "progs/pinklady.md3";
+		e.scale = 0.90;
+		e.held_vwep_org = '14 -12 9';
+		e.customizeentityforclient = HeldVwep_PinkLadyCustomize;
+	}
+	else if (kind == HELD_PICKLE)
+	{
+		mdl = "progs/pickle_bomb.md3";
+		e.scale = 1.0;
+		e.held_vwep_org = '14 -12 7';
+		e.angles = '0 90 45';
+	}
+	else if (kind == HELD_GREENJAR)
+	{
+		mdl = "progs/greenjar_proj.spr32";
+		e.scale = 0.22;
+		e.held_vwep_org = '14 -12 8';
+	}
+	else if (kind == HELD_KYLE)
+	{
+		mdl = "progs/kyle_proj.spr32";
+		e.scale = 0.15;
+		e.held_vwep_org = '14 -12 9';
+		e.customizeentityforclient = HeldVwep_KyleCustomize;
+	}
+	else if (kind == HELD_NETSEND)
+	{
+		mdl = "progs/netsend_sentry_floppy.md3";
+		e.scale = 1.6;
+		e.held_vwep_org = '14 -12 8';
+		e.angles = '70 0 20';
+	}
+	else if (kind == HELD_MEGAMAN)
+	{
+		mdl = "progs/megaman.md3";
+		e.scale = 0.55;
+		e.held_vwep_org = '14 -12 4';
+	}
+	else if (kind == HELD_DOB)
+	{
+		mdl = "progs/robhead_proj.spr32";
+		e.scale = 0.18;
+		e.held_vwep_org = '14 -12 9';
+		e.customizeentityforclient = HeldVwep_RobCustomize;
+	}
+
+	e.origin = e.held_vwep_org;
+	setmodel(e, mdl);
+};
+
+void() HeldVwep_Think =
+{
+	local entity p;
+	local float kind, s, f;
+
+	p = self.owner;
+	if (!p || p.held_vwep != self || p.classname != "player" || p.health <= 0 || p.deadflag)
+	{
+		if (p && p.held_vwep == self)
+			p.held_vwep = world;
+		remove(self);
+		return;
+	}
+
+	kind = self.held_vwep_kind;
+	self.origin = self.held_vwep_org;
+	if (kind == HELD_MILKY)
+	{
+		s = sin(time * 4.2);
+		self.origin_z = self.origin_z + s * 1.3;
+	}
+	else if (kind == HELD_GREENJAR)
+	{
+		f = floor(time * 20);
+		self.frame = f - 16 * floor(f / 16);
+		if (p.gj_shaking > 0)
+		{
+			s = sin(time * 40);
+			self.origin_z = self.origin_z + s * 1.8;
+		}
+	}
+	else if (kind == HELD_MEGAMAN)
+	{
+		f = floor(time * 12);
+		self.frame = f - 16 * floor(f / 16);
+		s = sin(time * 6.3);
+		self.origin_z = self.origin_z + s * 1.0;
+	}
+	else if (kind == HELD_DOB)
+	{
+		s = sin(time * 5.0);
+		self.origin_z = self.origin_z + s * 1.1;
+	}
+
+	if (p.items & IT_QUAD)
+		self.effects = EF_NOSHADOW;
+	else
+		self.effects = 0;
+
+	self.nextthink = time + 0.05;
+};
+
+void(entity p) HeldVwep_Clear =
+{
+	if (p.held_vwep)
+	{
+		if (p.held_vwep.classname == "held_vwep" && p.held_vwep.owner == p)
+			remove(p.held_vwep);
+		p.held_vwep = world;
+	}
+};
+
+void() HeldVwep_Update =
+{
+	local entity e;
+	local float kind;
+
+	kind = HeldVwep_Kind(self);
+	if (!HeldVwep_ShouldShow(self, kind))
+	{
+		HeldVwep_Clear(self);
+		return;
+	}
+
+	e = self.held_vwep;
+	if (!e)
+	{
+		e = spawn();
+		e.classname = "held_vwep";
+		e.owner = self;
+		e.exteriormodeltoclient = self;
+		e.solid = SOLID_NOT;
+		e.movetype = MOVETYPE_NOCLIP;
+		setattachment(e, self, "");
+		e.think = HeldVwep_Think;
+		e.nextthink = time + 0.05;
+		self.held_vwep = e;
+		HeldVwep_ApplyConfig(e, kind);
+	}
+	else if (e.held_vwep_kind != kind)
+	{
+		HeldVwep_ApplyConfig(e, kind);
+	}
 };
 
 float(vector tor_ang) defineLmax =
@@ -3151,6 +3461,7 @@ void() PlayerPreThink =
 	{
 		self.velocity = VEC_ORIGIN;
 	}
+	Cyrax_VictimPreThink();
 	if (self.button2)
 	{
 		PlayerJump();
@@ -4126,6 +4437,7 @@ void() ClientDisconnect =
 	FD_Reset(self);				// a Rob Dob pilot's head would hum on, orphaned
 	BM_ClientGone(self);		// NetSend PCs, armed pickles, Mega Men: they must not shoot on in an empty (or reused) slot's name
 	BM_Radar_ClientGone(self);
+	HeldVwep_Clear(self);
 	if (self.bm_aura)
 	{
 		if (!bm_wasfreed(self.bm_aura) && self.bm_aura.classname == "bm_aura" && self.bm_aura.owner == self)

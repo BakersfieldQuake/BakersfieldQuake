@@ -6695,9 +6695,13 @@ void() W_WeaponFrame =
 	Milky_PlayerFrame();	// breadcrumbs for the ladies, sliding on milk (milky.qc)
 	Jetpack_Frame();	// switch on/off, hover, climb (jetpack.qc)
 	Hammer_PlayerFrame();	// charge, swing, spin (hammer.qc)
+	Cyrax_BonkFrame();		// Cyrax Net Bonk-Launch hammer windup & Tier-3 swing (cyrax.qc)
 	BM_PredictFrame();	// no client prediction while the server drives your speed (bm_match.qc)
+	if (Cyrax_VictimWeaponFrame())
+		return;				// netted victim: stunned & visually locked to Bonk Axe (cyrax.qc)
 	LtGun_PlayerFrame();	// the laptop's held model and the shock (ltgun.qc)
 	DN3SG_Frame();			// DN3DooM Pump Shotgun 2D sprite frame, pump timing, reload & pitch kick (dn3_shotgun.qc)
+	HeldVwep_Update();		// third-person handheld item / miniature Pink Lady attachment
 	if (self.deadflag || (self.health <= 0))
 	{
 		PC_PlayerFrame();
@@ -6893,7 +6897,7 @@ void() W_WeaponFrame =
 	{
 		return;	// the sniper rifle charges while fire is held and shoots on release (sniper.qc)
 	}
-	if (self.button0)
+	if (self.button0 && !self.cy_bonk_phase && self.cy_hold_targ == world)
 	{
 		SuperDamageSound();
 		W_Attack();

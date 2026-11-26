@@ -57,7 +57,7 @@ void() RH_BeginDroneLaunch =
 
 	self.punchangle_x = -2.2;
 	self.punchangle_z = 1.6;
-	player_mm1 ();
+	player_throw1 ();
 	FG_Snd (self, CHAN_WEAPON, "weapons/pkup.wav", 0.85, 1.25);
 	self.attack_finished = time + RH_DRONE_DELAY + (RH_FOLLOW_TIME + RH_RAISE_TIME) / RH_DRONE_ANIM_SPEED;
 };

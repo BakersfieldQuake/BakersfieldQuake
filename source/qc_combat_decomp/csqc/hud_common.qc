@@ -422,6 +422,8 @@ string(float slot, float active_weap) HUD_GetWeaponName =
 		return "POCKET KYLE";
 	if (slot == 18)
 		return "M1 GARAND";
+	if (slot == 19)
+		return "CYRAX NET";
 	if (active_weap == IT_CHAINSAW)
 		return "CHAINSAW";
 	if (active_weap == IT_AXE)

@@ -1867,6 +1867,39 @@ float() JohnBird_Frame =
 	if (dt > 0.05)
 		dt = 0.05;
 
+	if (jb.cy_trapped_by != world)
+	{
+		if (bm_wasfreed (jb.cy_trapped_by) || jb.cy_trapped_by.classname != "player"
+			|| jb.cy_trapped_by.health <= 0 || jb.cy_trapped_by.cy_hold_targ != jb || time >= jb.cy_trapped_end)
+		{
+			Cyrax_ReleaseTargetEntity (jb);
+		}
+		else
+		{
+			self.impulse = 0;
+			self.button0 = 0;
+			self.button2 = 0;
+			self.button4 = 0;
+			self.velocity = '0 0 0';
+			jb.velocity = '0 0 0';
+			jb.jb_boosting = FALSE;
+			jb.jb_hurt_until = time + 0.12;
+			setorigin (self, jb.origin + '0 0 20');
+			JB_UpdateCamera (self, jb);
+			JB_UpdateProps (jb, self, FALSE, 1, FALSE);
+			JB_UpdateBirdDebuffs (jb);
+			JB_UpdateAnimAndAudio (jb, dt, 0, 1, FALSE);
+			if (self.ishuman == 1)
+			{
+				self.jb_st_active = (self.jb_cam_mode == 1) ? 2 : 1;
+				self.jb_st_combat = 0;
+				self.jb_st_hp = max (0, ceil (jb.health));
+				self.jb_st_speed = 0;
+			}
+			return TRUE;
+		}
+	}
+
 	// Handle dismount (H = 86, P = 98), camera toggle (K = 87), V (20), cheats (97, 99)
 	if (self.impulse == 86 || self.impulse == 98)
 	{
@@ -1987,9 +2020,9 @@ float() JohnBird_Frame =
 	if (time < jb.pc_poop_t)
 		slow_mult = min (slow_mult, PC_POOP_SLOW_MULT);
 
-	if (time < jb.jb_skypad_until)
+	if (time < jb.jb_skypad_until || time < jb.cy_launch_until)
 	{
-		// Preserve high-speed SkyPad ballistic momentum with gravity + light air-steering
+		// Preserve high-speed SkyPad / Cyrax Bonk-Launch ballistic momentum with gravity + light air-steering
 		grav = cvar ("sv_gravity");
 		if (grav <= 10)
 			grav = 800;
@@ -2261,6 +2294,24 @@ void() JB_AutopilotThink =
 
 	if (self.health <= 0 || self.jb_dying)
 		return;
+	if (self.cy_trapped_by != world)
+	{
+		if (bm_wasfreed (self.cy_trapped_by) || self.cy_trapped_by.classname != "player"
+			|| self.cy_trapped_by.health <= 0 || self.cy_trapped_by.cy_hold_targ != self || time >= self.cy_trapped_end)
+		{
+			Cyrax_ReleaseTargetEntity (self);
+		}
+		else
+		{
+			self.velocity = '0 0 0';
+			self.jb_hurt_until = time + 0.12;
+			JB_UpdateProps (self, world, FALSE, 1, FALSE);
+			JB_UpdateBirdDebuffs (self);
+			JB_UpdateAnimAndAudio (self, 0.05, 0, 1, FALSE);
+			self.nextthink = time + 0.05;
+			return;
+		}
+	}
 	if (!self.jb_ai || self.jb_pilot != world)
 	{
 		self.think = JB_IdleThink;
@@ -2329,7 +2380,7 @@ void() JB_AutopilotThink =
 	if (time < self.pc_poop_t)
 		slow_mult = min (slow_mult, PC_POOP_SLOW_MULT);
 	JB_CheckSkyPads (self, world);
-	if (time < self.jb_skypad_until)
+	if (time < self.jb_skypad_until || time < self.cy_launch_until)
 	{
 		local float grav;
 		grav = cvar ("sv_gravity");
@@ -2402,6 +2453,33 @@ void() JB_IdleThink =
 
 	if (self.health <= 0)
 		return;
+
+	if (self.cy_trapped_by != world)
+	{
+		if (bm_wasfreed (self.cy_trapped_by) || self.cy_trapped_by.classname != "player"
+			|| self.cy_trapped_by.health <= 0 || self.cy_trapped_by.cy_hold_targ != self || time >= self.cy_trapped_end)
+		{
+			Cyrax_ReleaseTargetEntity (self);
+		}
+		else
+		{
+			self.velocity = '0 0 0';
+			self.jb_hurt_until = time + 0.12;
+			JB_UpdateAnimAndAudio (self, 0.05, 0, 1, FALSE);
+			self.nextthink = time + 0.05;
+			return;
+		}
+	}
+
+	if (time < self.cy_launch_until && self.jb_pilot == world && !self.jb_ai)
+	{
+		self.velocity_z = self.velocity_z - 600 * 0.05;
+		JB_SlideMove (self, world, 0.05);
+		self.jb_hurt_until = time + 0.12;
+		JB_UpdateAnimAndAudio (self, 0.05, 0, 1, FALSE);
+		self.nextthink = time + 0.05;
+		return;
+	}
 
 	p = self.jb_pilot;
 	if (p != world)
@@ -2526,6 +2604,8 @@ void() JB_Die =
 	if (self.jb_dying)
 		return;
 	self.jb_dying = TRUE;
+	if (self.cy_trapped_by != world)
+		Cyrax_ReleaseTargetEntity (self);
 	self.takedamage = DAMAGE_NO;
 	self.solid = SOLID_NOT;
 	self.touch = SUB_Null;

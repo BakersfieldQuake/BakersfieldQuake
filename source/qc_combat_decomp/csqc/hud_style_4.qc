@@ -132,6 +132,8 @@ string(float slot, float active_weap) S4_GetWeaponTag =
 		return "KYLE";
 	if (slot == 18)
 		return "GARAND";
+	if (slot == 19)
+		return "CYRAX";
 	if (active_weap == IT_CHAINSAW)
 		return "SAW";
 	if (active_weap == IT_AXE)

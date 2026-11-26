@@ -618,6 +618,11 @@ void() BM_Stats =
 	clientstat (125, 2, gk_st_tx);			// Go-Kart heat-seeker: target world X
 	clientstat (126, 2, gk_st_ty);			// Go-Kart heat-seeker: target world Y
 	clientstat (127, 2, gk_st_tz);			// Go-Kart heat-seeker: target world Z
+	clientstat (128, 2, cy_st_mode);		// Cyrax Net HUD: 0=off, 1=charging, 2=pulling, 3=holding, 4=trapped
+	clientstat (129, 2, cy_st_prog);		// Cyrax Net HUD: 0..100 charge % or 0..300 remaining tenths
+	clientstat (130, 2, cy_st_flash);		// Cyrax Net HUD: incremented on each capture for green edge flash
+	clientstat (131, 2, cy_st_kind);		// Cyrax Net HUD: 0=player/bot, 1=Winged John Bird, 2=Milky Grenade
+	clientstat (132, 2, cy_st_dist);		// Cyrax Net HUD: distance in units to captured target
 	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
 	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
@@ -1240,7 +1245,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t || self.cy_trapped_by != world || time < self.cy_launch_until))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -1253,6 +1258,7 @@ void(entity p) BM_ClientGone =
 
 	NS_ClientGone (p);
 	KY_CleanupOwner (p);
+	Cyrax_ClientGone (p);
 	FD_Reset (p);
 	// a burning van or tank credited its kill to whoever got this slot next (audit 2026-11-26)
 	e = nextent (world);

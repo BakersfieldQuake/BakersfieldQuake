@@ -509,6 +509,7 @@ void(float w, float h) CSQC_UpdateView =
 					KY_DrawHUD(cw, ch);
 					GK_DrawHUD(cw, ch);
 					JB_DrawHUD(w, h);
+					CY_DrawHUD(cw, ch);
 					FL_DrawHUD(cw, ch);
 					BM_DrawMinimap(w, h);
 				}

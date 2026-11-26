@@ -98,15 +98,15 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	// M4 / (unused) / Garand
-float	BM_SLOTS	= 18;
+float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	float	BM_FG10		= 19;	// M4 / Kyle / Garand / Cyrax
+float	BM_SLOTS	= 19;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
 
 float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 
 .float	bm_m1, bm_m2, bm_m3, bm_m4, bm_m5, bm_m6, bm_m7, bm_m8;		// stock gun magazines (ammo units)
-.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16, bm_a17, bm_a18;	// holstered refill, fractional
+.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16, bm_a17, bm_a18, bm_a19;	// holstered refill, fractional
 .float	bm_ns_n, bm_ns_t;	// bots: NetSend PC count and when it was last counted (BM_BotNSCount)
 .float	bm_init;			// magazines have been filled since connecting
 .float	bm_slot;			// slot whose magazine is in the ammo_* field right now
@@ -154,6 +154,11 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	gk_st_tx;			// Go-Kart rocket HUD: locked target world X (stat 121)
 .float	gk_st_ty;			// ...Y (stat 122)
 .float	gk_st_tz;			// ...Z (stat 123)
+.float	cy_st_mode;			// Cyrax Net HUD: 0=off, 1=charging, 2=pulling, 3=holding, 4=trapped (stat 128)
+.float	cy_st_prog;			// Cyrax Net HUD: 0..100 charge % or 0..300 remaining tenths (stat 129)
+.float	cy_st_flash;		// Cyrax Net HUD: incremented on each capture for green edge flash (stat 130)
+.float	cy_st_kind;			// Cyrax Net HUD: 0=player/bot, 1=Winged John Bird, 2=Milky Grenade (stat 131)
+.float	cy_st_dist;			// Cyrax Net HUD: distance in units to captured target (stat 132)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until

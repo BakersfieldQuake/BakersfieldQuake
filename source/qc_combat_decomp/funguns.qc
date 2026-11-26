@@ -17,6 +17,7 @@ void() FunGun_Precache =
 	WC_Precache ();
 	M4_Precache ();
 	Garand_Precache ();
+	Cyrax_Precache ();
 	if (autocvar_bm_preload && deathmatch)
 	{
 		WC_PrecacheSprites ();
@@ -48,6 +49,8 @@ string(float g) FunGun_VModel =
 		return M4_VModel ();
 	if (g == FG_GARAND)
 		return Garand_VModel ();
+	if (g == FG_CYRAX)
+		return "";		// progs/v_cyrax.md3 skins 0..55 are driven by cyrax.qc Cyrax_EnsureVM
 	if (g == FG_PONG)
 	{
 		p = self;
@@ -85,6 +88,8 @@ string(float g) FunGun_ShortName =
 		return "M4A1";
 	if (g == FG_GARAND)
 		return "M1 Garand";
+	if (g == FG_CYRAX)
+		return "Cyrax Net";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon";
 	if (g == FG_DOOKIE)
@@ -106,6 +111,8 @@ string(float g) FunGun_Name =
 		return "M4A1 - automatic rifle (R reloads)";
 	if (g == FG_GARAND)
 		return "M1 Garand - semi-auto rifle (R reloads)";
+	if (g == FG_CYRAX)
+		return "Cyrax Net - hold fire 1.8s to fire net, click to Bonk Launch!";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon - hold fire to charge";
 	if (g == FG_DOOKIE)
@@ -136,6 +143,8 @@ string(float g) FunGun_Death1 =
 		return " was lit up by ";
 	if (g == FG_GARAND)
 		return " was picked off by ";
+	if (g == FG_CYRAX)
+		return " got Cyrax-netted & bonked by ";
 	return " walked into ";
 };
 
@@ -159,6 +168,8 @@ string(float g) FunGun_Death2 =
 		return "'s M4\n";
 	if (g == FG_GARAND)
 		return "'s M1 Garand\n";
+	if (g == FG_CYRAX)
+		return "'s Cyrax Net\n";
 	return "\n";
 };
 
@@ -180,6 +191,8 @@ float(float g) FunGun_Max =
 		return FG_KYLE_MAX;
 	if (g == FG_GARAND)
 		return FG_GARAND_MAX;
+	if (g == FG_CYRAX)
+		return FG_CYRAX_MAX;
 	return FG_PICKLE_MAX;
 };
 
@@ -201,6 +214,8 @@ float(float g) FunGun_RegenTime =
 		return FG_KYLE_REGEN;
 	if (g == FG_GARAND)
 		return FG_GARAND_REGEN;
+	if (g == FG_CYRAX)
+		return FG_CYRAX_REGEN;
 	return FG_PICKLE_REGEN;
 };
 
@@ -222,6 +237,8 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo8;
 	if (g == FG_GARAND)
 		return p.fg_ammo9;
+	if (g == FG_CYRAX)
+		return p.fg_ammo10;
 	return p.fg_ammo3;
 };
 
@@ -243,6 +260,8 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo8 = v;
 	else if (g == FG_GARAND)
 		p.fg_ammo9 = v;
+	else if (g == FG_CYRAX)
+		p.fg_ammo10 = v;
 	else
 		p.fg_ammo3 = v;
 	if (p.weapon == IT_FUNGUN && p.fg_sel == g)
@@ -267,6 +286,8 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen8;
 	if (g == FG_GARAND)
 		return p.fg_regen9;
+	if (g == FG_CYRAX)
+		return p.fg_regen10;
 	return p.fg_regen3;
 };
 
@@ -288,6 +309,8 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen8 = v;
 	else if (g == FG_GARAND)
 		p.fg_regen9 = v;
+	else if (g == FG_CYRAX)
+		p.fg_regen10 = v;
 	else
 		p.fg_regen3 = v;
 };
@@ -358,6 +381,8 @@ void() FunGun_Attack =
 	a = FunGun_Ammo (self, g);
 	if (g == FG_PONG && a < 1 && cvar ("gj_test"))
 		a = 1;		// gj_test: Jar o' Green Guys never runs dry during testing
+	if (g == FG_CYRAX && a < 1 && (autocvar_cyrax_test != 0 || cvar ("cyrax_test") != 0))
+		a = 1;
 	if (a < 1)
 	{
 		if (!self.fg_dry_held)
@@ -375,12 +400,19 @@ void() FunGun_Attack =
 				centerprint (self, "The cannon is still reloading\n");
 			if (g == FG_DOB)
 				centerprint (self, "The Rob Drone is still recharging\n");
+			if (g == FG_CYRAX)
+				centerprint (self, "The Cyrax Net is still recharging\n");
 			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
 		}
 		self.attack_finished = time + 0.3;
 		return;
 	}
 	self.fg_dry_held = FALSE;
+	if (g == FG_CYRAX)
+	{
+		Cyrax_Press ();		// holds fire 1.8s to launch net (cyrax.qc)
+		return;
+	}
 	if (g == FG_PONG)
 	{
 		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)
@@ -414,7 +446,7 @@ void() FunGun_Attack =
 		self.ns_fire_t = time;
 		self.ns_throw_at = time + NS_THROW_DELAY;		// the hand lets go at the release frame (netsend_diskvm.qc)
 		FG_Snd (self, CHAN_VOICE, "netsend/wheres_disk.wav", 1, 1);		// "David! Where's the disk?"
-		player_mm1 ();
+		player_throw1 ();
 		self.attack_finished = time + 1;
 		return;
 	}
@@ -422,7 +454,7 @@ void() FunGun_Attack =
 	FunGun_Lock (g);
 	self.fg_fire_t = time;
 	self.bm_lastshot = time + 0.7;		// keep bm_idle_reload from putting the gun away mid-throw (bm_reload.qc)
-	player_mm1 ();		// the rocket firing pose
+	player_throw1 ();		// one-handed throw pose
 	self.pk_fire_t = time;
 	self.pk_throw_at = time + PK_THROW_DELAY;		// brutal choke-windup + forward whip; Pk_Launch() fires as the claw snaps open
 	self.punchangle_x = -2.8;				// upward head cock during brutal windup
@@ -442,7 +474,8 @@ float(float g) FunGun_Bit =
 	if (g == 6) return 32;
 	if (g == 7) return 64;
 	if (g == 8) return 128;
-	return 256;
+	if (g == 9) return 256;
+	return 512;
 };
 
 float(float g) FunGun_Impulse =
@@ -531,6 +564,7 @@ void(entity p) FunGun_Give =
 	DK_ResetPlayer (p);
 	KY_ResetPlayer (p);
 	RH_ResetPlayer (p);
+	Cyrax_ResetPlayer (p);
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
 	p.m4_shot_n = 0;
@@ -777,6 +811,7 @@ void() FunGun_ViewFrame =
 	DK_Frame ();		// the Dookie Bazooka winds up and blasts (dookie.qc)
 	KY_Frame ();		// The Pocket Kyle locks on and yeets Kyle (kyle.qc)
 	RH_Frame ();		// the Rob Head winds up and throws (robhead.qc)
+	Cyrax_Frame ();		// Cyrax Net charges, fires, pulls, holds, and Bonk-Launches (cyrax.qc)
 	if (!self.button0)
 		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
 	g = 1;
@@ -847,6 +882,7 @@ void() FunGun_PlayerDie =
 	GJ_ResetPlayer (self);
 	KY_ResetPlayer (self);
 	RH_ResetPlayer (self);
+	Cyrax_ResetPlayer (self);
 	if (EricCannon_Active (self))
 		EricCannon_Reset (self);
 	if (self.wc_charging)
