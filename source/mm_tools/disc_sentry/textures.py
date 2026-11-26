@@ -228,19 +228,19 @@ def build_concept_body_texture(concept_id: str, out_dir: str) -> str:
 
 
 def build_leds_texture(out_dir: str) -> str:
-    im = Image.new("RGB", (256, 256), (12, 12, 14))
+    im = Image.new("RGB", (256, 256), (0, 0, 0))
     dr = ImageDraw.Draw(im)
 
     def radial(x0: int, y0: int, edge: Tuple[int, int, int], core: Tuple[int, int, int]) -> None:
         for r in range(60, 0, -1):
             t = 1.0 - (r / 60.0)
-            col = tuple(int(round(edge[k] + (core[k] - edge[k]) * (t ** 1.3))) for k in range(3))
+            col = tuple(int(round(edge[k] + (core[k] - edge[k]) * (t ** 1.15))) for k in range(3))
             dr.ellipse([x0 + 64 - r, y0 + 64 - r, x0 + 64 + r, y0 + 64 + r], fill=col)
 
-    radial(0, 0, (16, 110, 28), (118, 255, 138))
-    radial(128, 0, (132, 64, 8), (255, 206, 68))
-    radial(0, 128, (142, 14, 14), (255, 72, 64))
-    radial(128, 128, (16, 120, 180), (140, 245, 255))
+    radial(0, 0, (16, 128, 32), (138, 255, 158))
+    radial(128, 0, (148, 74, 10), (255, 224, 88))
+    radial(0, 128, (158, 18, 18), (255, 86, 76))
+    radial(128, 128, (24, 175, 235), (210, 255, 255))
 
     path = os.path.join(out_dir, "ds_leds.png")
     im.save(path, "PNG", optimize=True)
@@ -252,7 +252,7 @@ def build_floppy_texture(concept_id: str, out_dir: str) -> str:
     grain = _fbm(H, W, seed=700 + sum(ord(c) for c in concept_id), octaves=(2, 4, 8, 16))
     specs = {
         "retro":   ((38, 42, 50),   (242, 236, 218), (212, 52, 42), "LOL.BAT",     "AUTOSENTRY // 1.44M"),
-        "classic": ((26, 68, 152),  (246, 244, 232), (38, 92, 188), "BOOT_95.DSK", "VERBATIM // 2HD"),
+        "classic": ((34, 106, 238), (246, 250, 255), (20, 212, 148), "BOOT_95.DSK", "VERBATIM // 3X TURBO"),
         "badass":  ((28, 30, 36),   (228, 224, 216), (176, 22, 26), "KILL_32.EXE", "ARMOR-PIERCING 3.5\""),
         "msdos":   ((212, 204, 182),(248, 246, 238), (206, 46, 34), "MS-DOS 6.22", "FORMAT C: /S // DISK1"),
     }
@@ -265,10 +265,11 @@ def build_floppy_texture(concept_id: str, out_dir: str) -> str:
     dr = ImageDraw.Draw(im)
 
     # Q1: Front Face
-    dr.rectangle([4, 4, 251, 251], outline=(112, 118, 128), width=2)
+    edge_col = (92, 248, 255) if concept_id == "classic" else (112, 118, 128)
+    dr.rectangle([4, 4, 251, 251], outline=edge_col, width=4 if concept_id == "classic" else 2)
     dr.rectangle([40, 0, 214, 78], fill=(22, 24, 28), outline=(14, 16, 20), width=2)
     dr.polygon([(20, 16), (30, 34), (10, 34)], fill=(120, 126, 138))
-    dr.text((222, 16), "HD", fill=(142, 148, 160), font=_font(13, bold=True))
+    dr.text((222, 16), "HD", fill=(162, 248, 255) if concept_id == "classic" else (142, 148, 160), font=_font(13, bold=True))
     dr.rounded_rectangle([24, 84, 232, 242], radius=8, fill=lbl_bg, outline=(160, 156, 144), width=2)
     dr.rounded_rectangle([26, 86, 230, 112], radius=6, fill=stripe_rgb)
     dr.rectangle([26, 98, 230, 112], fill=stripe_rgb)
@@ -281,7 +282,7 @@ def build_floppy_texture(concept_id: str, out_dir: str) -> str:
     dr.rectangle([232, 218, 246, 238], fill=(12, 12, 14), outline=(92, 96, 106))
 
     # Q2: Back Face + Spindle Hub
-    dr.rectangle([259, 4, 507, 251], outline=(112, 118, 128), width=2)
+    dr.rectangle([259, 4, 507, 251], outline=edge_col, width=4 if concept_id == "classic" else 2)
     dr.rectangle([292, 0, 476, 82], fill=(22, 24, 28), outline=(14, 16, 20), width=2)
     cx, cy = 384, 156
     dr.ellipse([cx - 56, cy - 56, cx + 56, cy + 56], fill=(18, 20, 24), outline=(96, 102, 114), width=2)
@@ -460,15 +461,15 @@ def build_crt_screens_for_concept(concept_id: str, out_dir: str) -> Dict[str, st
     paths["active"] = p
 
     # 4. FIRE
-    base_f = _crt_base((42.0, 12.0, 6.0) if concept_id != "msdos" else (12.0, 32.0, 72.0))
+    base_f = _crt_base((48.0, 14.0, 8.0) if concept_id != "msdos" else (12.0, 32.0, 72.0))
     tf = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     tdf = ImageDraw.Draw(tf)
-    tdf.rectangle([18, 18, W - 18, H - 18], outline=(255, 196, 64, 255), width=10)
-    tdf.rectangle([28, 176, W - 28, 336], fill=(224, 38, 28, 240))
+    tdf.rectangle([18, 18, W - 18, H - 18], outline=(80, 255, 220, 255), width=10)
+    tdf.rectangle([28, 176, W - 28, 336], fill=(224, 38, 28, 245))
     tdf.text((46, 200), "FIRING FLOPPIES!", fill=(255, 255, 255, 255), font=f_huge)
-    tdf.text((66, 272), ">>> HIGH-RPM EJECT <<<", fill=(255, 232, 112, 255), font=f_big)
-    tdf.text((38, 66), "C:\\> NET SEND * DIE" if concept_id == "msdos" else "TARGET LOCKED // AUTO", fill=p_hi, font=f_big)
-    tdf.text((44, 404), "OVERDRIVE  //  1.44MB STORM", fill=(255, 192, 64, 255), font=f_med)
+    tdf.text((66, 272), ">>> HYPER EJECT 3X <<<", fill=(140, 255, 245, 255), font=f_big)
+    tdf.text((38, 66), "C:\\> NET SEND * DIE" if concept_id == "msdos" else "TARGET LOCKED // 600 RPM", fill=(130, 255, 190, 255), font=f_big)
+    tdf.text((44, 404), "3X OVERDRIVE  //  1.44MB STORM", fill=(255, 212, 84, 255), font=f_med)
     im_f = _finish_crt(base_f, tf, scan_str=0.18)
     p = os.path.join(out_dir, f"ds_{concept_id}_scr_fire.png")
     im_f.save(p, "PNG", optimize=True)

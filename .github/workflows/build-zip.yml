@@ -911,7 +911,7 @@ jobs:
                       "progs/ds_classic_scr_active.png",
                       "progs/ds_classic_scr_fire.png",
                       "scripts/netsend_sentry.shader",
-                      "sound/netsend/sentry_deploy.wav",
+                      "sound/netsend/disk_throw.wav", "sound/netsend/sentry_deploy.wav",
                       "sound/netsend/sentry_spot.wav",
                       "sound/netsend/sentry_fire.wav",
                       "sound/netsend/sentry_explode.wav",

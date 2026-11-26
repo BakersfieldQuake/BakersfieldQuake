@@ -483,8 +483,8 @@ def _build_turret_geometry(concept_id: str) -> Dict:
         leds_static.add_box(+9.15, +9.35, +6.8, +7.6, 22.8, 23.6, UV_LED_GRN)   # Power LED
         leds_static.add_box(+9.15, +9.35, -5.6, -4.6, 33.4, 34.1, UV_LED_AMB)  # Floppy activity LED
         leds_static.add_sphere((+8.9, -8.2, 42.2), 0.72, UV_LED_GRN, stacks=6, slices=8)
-        _add_muzzle_flash_cone(muzzle_l, (+20.4, +12.6, 31.0), 1.6, 4.6, UV_LED_AMB)
-        _add_muzzle_flash_cone(muzzle_r, (+20.4, -12.6, 31.0), 1.6, 4.6, UV_LED_AMB)
+        _add_muzzle_flash_cone(muzzle_l, (+20.4, +12.6, 31.0), 2.8, 8.2, UV_LED_CYN)
+        _add_muzzle_flash_cone(muzzle_r, (+20.4, -12.6, 31.0), 2.8, 8.2, UV_LED_CYN)
         crt_piv = (0.0, 0.0, 39.2)
         muzzle_pts = [(+20.8, +12.6, 31.0), (+20.8, -12.6, 31.0)]
         yc_l, zc_gun = 12.6, 31.0
@@ -629,18 +629,18 @@ def _build_turret_geometry(concept_id: str) -> Dict:
         else:
             k = fi - 16
             ph = 2.0 * math.pi * (k / 8.0)
-            alt_l = 1.0 if (k % 2 == 0) else 0.2
-            alt_r = 1.0 if (k % 2 == 1) else 0.2
-            recoil_mag = 3.2 if concept_id == "msdos" else 2.6
+            alt_l = (1.0, 0.70, 0.35, 0.10)[k] if k < 4 else 0.0
+            alt_r = (1.0, 0.70, 0.35, 0.10)[k - 4] if k >= 4 else 0.0
+            recoil_mag = 3.2 if concept_id == "msdos" else 2.8
             gl_off = (-recoil_mag * alt_l, 0.0, 0.0)
             gr_off = (-recoil_mag * alt_r, 0.0, 0.0)
             t_off = (-0.55 * max(alt_l, alt_r), 0.0, -0.25 * math.sin(ph * 2.0))
-            crt_pitch = -2.0 * math.sin(ph * 2.0)
+            crt_pitch = -2.2 * max(alt_l, alt_r)
             rot_l_ang = k * 45.0
             rot_r_ang = -k * 45.0
             ex_off = (0.0, 0.0, 0.55 * math.sin(ph * 2.0))
-            ml_sc = 1.05 if (k in (0, 1)) else 0.001
-            mr_sc = 1.05 if (k in (4, 5)) else 0.001
+            ml_sc = (1.35, 0.90, 0.45, 0.001)[k] if k < 4 else 0.001
+            mr_sc = (1.35, 0.90, 0.45, 0.001)[k - 4] if k >= 4 else 0.001
 
         body_frames_lists[0].append(xform_part_vn(tower, offset=t_off, pivot=(0.0, 0.0, 20.0), scale=t_scale))
         body_frames_lists[1].append(xform_part_vn(crt_case, offset=crt_off, ry=crt_pitch, pivot=crt_piv, scale=crt_scale))
@@ -677,7 +677,7 @@ def _build_turret_geometry(concept_id: str) -> Dict:
 
 
 def build_floppy_md3(concept_id: str) -> Dict:
-    raw = build_floppy_disk_mesh(half_w=3.2, half_h=3.4, half_t=0.25)
+    raw = build_floppy_disk_mesh(half_w=3.8, half_h=4.0, half_t=0.28)
     frames, fnames = [], []
     for fi in range(8):
         if fi == 0:

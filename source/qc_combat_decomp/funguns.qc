@@ -442,7 +442,6 @@ void() FunGun_Attack =
 		self.fg_fire_t = time;
 		self.ns_fire_t = time;
 		self.ns_throw_at = time + NS_THROW_DELAY;		// the hand lets go at the release frame (netsend_diskvm.qc)
-		FG_Snd (self, CHAN_VOICE, "netsend/wheres_disk.wav", 1, 1);		// "David! Where's the disk?"
 		player_throw1 ();
 		self.attack_finished = time + 1;
 		return;

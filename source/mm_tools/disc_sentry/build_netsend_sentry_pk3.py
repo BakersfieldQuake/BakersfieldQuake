@@ -9,7 +9,7 @@ Generates all assets directly from source (zero committed binary blobs):
   - progs/ds_classic_body.png, progs/ds_classic_floppy.png, progs/ds_leds.png
   - progs/ds_classic_scr_{off,static,active,fire,fatal}.png
   - scripts/netsend_sentry.shader    (LF newlines)
-  - sound/netsend/sentry_deploy.wav, sentry_spot.wav, sentry_fire.wav, sentry_explode.wav, floppy_bounce.wav
+  - sound/netsend/disk_throw.wav, sentry_deploy.wav, sentry_spot.wav, sentry_fire.wav, sentry_explode.wav, floppy_bounce.wav
 
 Usage:
   python -I source/mm_tools/disc_sentry/build_netsend_sentry_pk3.py [--out PATH] [--verify-repro]
@@ -82,6 +82,7 @@ progs/ds_leds
 \tcull none
 \t{
 \t\tmap progs/ds_leds.png
+\t\tblendfunc add
 \t\trgbGen identity
 \t}
 }
@@ -118,7 +119,7 @@ progs/ds_classic_scr_fire
 \tcull none
 \t{
 \t\tmap progs/ds_classic_scr_fire.png
-\t\trgbGen identity
+\t\trgbGen wave sin 0.88 0.12 0 10
 \t}
 }
 
@@ -241,8 +242,9 @@ def collect_entries() -> Dict[str, bytes]:
             raise ValueError("Shader script must use LF newlines")
         entries["scripts/netsend_sentry.shader"] = SHADER_TEXT.encode("ascii")
 
-        # 5. Scary 22050Hz mono PCM SFX
-        entries["sound/netsend/sentry_deploy.wav"] = _wav_bytes(build_sounds.synth_activate_deploy())
+        # 5. 22050Hz mono PCM SFX
+        entries["sound/netsend/sentry_deploy.wav"] = _wav_bytes(build_sounds.synth_dialup_deploy())
+        entries["sound/netsend/disk_throw.wav"] = _wav_bytes(build_sounds.synth_dart_throw())
         entries["sound/netsend/sentry_spot.wav"] = _wav_bytes(build_sounds.synth_spot_klaxon())
         entries["sound/netsend/sentry_fire.wav"] = _wav_bytes(build_sounds.synth_fire_heavy())
         entries["sound/netsend/sentry_explode.wav"] = _wav_bytes(build_sounds.synth_explode_mega())

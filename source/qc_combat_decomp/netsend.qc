@@ -27,6 +27,7 @@ void() NS_Precache =
 	precache_model ("progs/netsend_arc.md3");
 	precache_sound ("netsend/ns_beep.wav");
 	precache_sound ("netsend/wheres_disk.wav");
+	precache_sound ("netsend/disk_throw.wav");
 	precache_sound ("netsend/sentry_deploy.wav");
 	precache_sound ("netsend/sentry_spot.wav");
 	precache_sound ("netsend/sentry_fire.wav");
@@ -254,6 +255,7 @@ void() NS_ArcOn =
 	a.classname = "netsend_arc";
 	a.movetype = MOVETYPE_NONE;
 	a.solid = SOLID_NOT;
+	a.effects = EF_FULLBRIGHT;
 	setmodel (a, "progs/netsend_arc.md3");
 	setorigin (a, self.origin);
 	a.angles = self.angles;
@@ -332,7 +334,8 @@ void() NS_LaserTouch =
 		return;
 	}
 	pointparticles (particleeffectnum ("netsend_laserhit"), self.origin - normalize (self.velocity) * 4, VEC_ORIGIN, 1);
-	FG_Snd (self, CHAN_AUTO, "netsend/floppy_bounce.wav", 0.45, 1.5);
+	FG_Snd (self, CHAN_AUTO, "netsend/floppy_bounce.wav", 0.30, 1.8);
+	self.effects = 0;
 	self.movetype = MOVETYPE_BOUNCE;
 	self.solid = SOLID_TRIGGER;
 	self.bouncefactor = 0.65;
@@ -342,7 +345,7 @@ void() NS_LaserTouch =
 	self.pain_finished = time + 0.18;
 	self.touch = NS_FloppyDebrisTouch;
 	self.think = SUB_Remove;
-	self.nextthink = time + 1.1;
+	self.nextthink = time + 0.85;
 };
 
 // launches a spinning 3D 3.5" floppy disk projectile from the active speaker-cannon muzzle along 'dir'
@@ -356,17 +359,18 @@ void(vector org, vector dir) NS_FloppyShot =
 	l.enemy = self.owner;	// frags go to whoever threw the disk
 	l.movetype = MOVETYPE_FLYMISSILE;
 	l.solid = SOLID_BBOX;
+	l.effects = EF_FULLBRIGHT;
 	setmodel (l, "progs/netsend_sentry_floppy.md3");
 	setsize (l, VEC_ORIGIN, VEC_ORIGIN);
 	setorigin (l, org);
-	l.traileffectnum = particleeffectnum ("netsend_laser");
 	l.velocity = dir * NS_LASER_SPEED;
 	l.angles = vectoangles (l.velocity);
-	l.avelocity_y = 1080;
+	l.avelocity_y = 1440;
 	l.frame = 0;
 	l.touch = NS_LaserTouch;
 	l.think = SUB_Remove;
 	l.nextthink = time + 3;
+	pointparticles (particleeffectnum ("netsend_muzzle"), org, VEC_ORIGIN, 1);
 };
 
 // the sentry's head: 'cur' turned toward 'want' (degrees), at most 'step' of it, the short way round
@@ -423,9 +427,10 @@ void() NS_Sentry =
 			self.ns_muzzle = 1 - self.ns_muzzle;
 			muzzle_org = self.origin + v_forward * 21 + v_right * sy + '0 0 31';
 			dir = normalize (e.origin + '0 0 16' - muzzle_org);
-			dir = normalize (dir + (random () - 0.5) * '0.05 0 0' + (random () - 0.5) * '0 0.05 0');
+			dir = normalize (dir + (random () - 0.5) * '0.055 0 0' + (random () - 0.5) * '0 0.055 0' + (random () - 0.5) * '0 0 0.025');
 			NS_FloppyShot (muzzle_org, dir);
-			FG_Snd (self, CHAN_WEAPON, "netsend/sentry_fire.wav", 0.9, ATTN_NORM);
+			FG_Snd (self, CHAN_WEAPON, "netsend/sentry_fire.wav", 0.85, ATTN_NORM);
+			self.ns_shot_t = time;
 			self.ns_laser_t = time + NS_LASER_GAP;
 		}
 		return;
@@ -452,7 +457,7 @@ void() NS_ScreenSync =
 // - Turret skins: 0=active, 1=off, 2=static, 3=fire, 4=fatal
 void() NS_Think =
 {
-	local float age, f, tf, tskin;
+	local float age, f, tf, tskin, dt, stp;
 	local entity tur;
 
 	if (self.owner.classname != "player")
@@ -484,6 +489,10 @@ void() NS_Think =
 			self.ns_state = 4;
 			self.ns_t = time;
 			self.ns_next = time + 0.5;
+			self.ns_zap_t = time + 0.15;
+			if (!self.ns_arc)
+				NS_ArcOn ();
+			pointparticles (particleeffectnum ("netsend_zap"), self.origin + '0 0 38', VEC_ORIGIN, 1);
 		}
 	}
 	else if (self.ns_state == 4)
@@ -493,11 +502,17 @@ void() NS_Think =
 		if (time >= self.ns_next)
 			NS_Send ();
 
-		if (time - self.ns_laser_t < 0.25)
+		if (self.ns_shot_t > 0 && time - self.ns_shot_t < 0.14)
 		{
-			tf = floor ((time - self.ns_laser_t) * 32);
-			tf = 16 + tf - 8 * floor (tf / 8);		// 16..23 barrel recoil + muzzle flash
-			tskin = 3;		// CRT fire flash
+			dt = time - self.ns_shot_t;
+			stp = floor (dt * 40);
+			if (stp > 3)
+				stp = 3;
+			if (self.ns_muzzle == 1)
+				tf = 16 + stp;		// left barrel just fired: frames 16..19
+			else
+				tf = 20 + stp;		// right barrel just fired: frames 20..23
+			tskin = 3;				// CRT overdrive fire flash
 		}
 		else
 		{
@@ -507,6 +522,14 @@ void() NS_Think =
 				tskin = 4;	// fatal warning CRT
 			else
 				tskin = 0;	// active green/amber BIOS sweep
+		}
+		if (time >= self.ns_zap_t)
+		{
+			pointparticles (particleeffectnum ("netsend_zap"), self.origin + '0 0 36', VEC_ORIGIN, 1);
+			if (self.ns_shot_t > 0 && time - self.ns_shot_t < 0.25)
+				self.ns_zap_t = time + 0.18;
+			else
+				self.ns_zap_t = time + 0.45;
 		}
 	}
 
@@ -524,8 +547,8 @@ void() NS_Think =
 			self.ns_arc.angles = tur.angles;
 		else
 			self.ns_arc.angles = self.angles;
-		f = floor (time * 15);
-		self.ns_arc.frame = f - 8 * floor (f / 8);		// the 8 arcs, cycled
+		f = floor (time * 20);
+		self.ns_arc.frame = f - 8 * floor (f / 8);		// the 8 arcs, cycled crisply
 	}
 };
 
@@ -575,7 +598,8 @@ void(vector spot) NS_Stick =
 	NS_ScreenSync ();
 
 	pointparticles (particleeffectnum ("netsend_pop"), spot + '0 0 8', VEC_ORIGIN, 1);
-	FG_Snd (self, CHAN_VOICE, "netsend/sentry_deploy.wav", 1, ATTN_NORM);
+	self.ns_spott = time + 2.6;		// let the AOL dial-up deploy handshake finish before target klaxon
+	FG_Snd (self, CHAN_AUTO, "netsend/sentry_deploy.wav", 1, ATTN_NORM);
 };
 
 // the disk in the air: lost if it has not stuck after NS_LIFE_DISK seconds (the magazine gets it back)
@@ -668,6 +692,7 @@ void() NS_Throw =
 	tracebox (m, '-5 -5 -1', '5 5 1', m + v_right * 6, TRUE, self);
 	setorigin (d, trace_endpos);
 	PC_Register (d, PC_KIND_LIGHT, 20);
+	FG_Snd (self, CHAN_WEAPON, "netsend/disk_throw.wav", 1, ATTN_NORM);
 	self.punchangle_x = -4;
 };
 

@@ -34,9 +34,9 @@ float	NS_TURN			= 240;		// degrees a second the PC turns to face its target (the
 float	NS_AIM			= 12;		// it fires once it faces its target within this many degrees
 float	NS_SCAN_ARC		= 60;		// with nobody in sight it sweeps this many degrees each side of where it faced when it landed
 float	NS_SCAN_RATE	= 1.2;		// radians a second of that sweep
-float	NS_LASER_GAP	= 0.28;		// seconds between two 3.5" floppy disk shots (~32 DPS)
-float	NS_LASER_DMG	= 9;		// per razor floppy hit
-float	NS_LASER_SPEED	= 1150;
+float	NS_LASER_GAP	= 0.09;		// seconds between two 3.5" floppy disk shots (3x faster: 0.10s cadence / 10 discs/sec at 20Hz think, ~30 DPS)
+float	NS_LASER_DMG	= 3;		// per razor floppy hit (1/3 damage at 3x fire rate -> ~30 DPS unchanged)
+float	NS_LASER_SPEED	= 1200;
 
 .float	ns_state;		// PC: 2 materializing, 3 booting, 4 sending, for good (the disk in the air has none)
 .float	ns_t;			// PC: when the current state began
@@ -53,6 +53,8 @@ float	NS_LASER_SPEED	= 1150;
 .float	ns_yaw0;		// PC: where it faced when it landed (the middle of its sweep)
 .float	ns_spott;		// PC: cooldown before next target-lock klaxon
 .float	ns_muzzle;		// PC: alternates left/right speaker-cannon barrel (0/1)
+.float	ns_shot_t;		// PC: timestamp of most recent floppy shot (drives per-shot recoil & flash)
+.float	ns_zap_t;		// PC: next ambient electric spark burst timestamp
 
 // the held disk (v_netsend.md3 is THE DISK: one card, its skin picks the frame; build_netsend_disk_view.py, frame map in
 // netsend_diskvm.qc). It rests, does a trick now and then, throws, drops away and a new disk comes up

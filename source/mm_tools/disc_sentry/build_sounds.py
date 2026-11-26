@@ -1,7 +1,8 @@
 """Synthesize over-the-top, scary, aggressive sound effects for the Disc Sentry Gun.
 
 Outputs 22050 Hz, 16-bit mono PCM WAVs to source/mm_tools/out/disc_sentry/sounds/:
-  - activate_deploy.wav  (Disc slam -> CRT degauss BWOOOOM -> hydraulic leg locks -> demonic BIOS roar)
+  - dialup_deploy.wav    (AOL-style dial-up connect: dial tone, digits, answer tone, handshake, screech)
+  - dart_throw.wav       (thrown-dart fwip)
   - spot_klaxon.wav      (Aggressive target-acquisition radar klaxon + servo snap)
   - fire_heavy.wav       (Over-the-top floppy cannon blast + sub-thump + spinning disc whiz)
   - fire_msdos_mg.wav    (Ferocious rapid-fire MS-DOS machine gun floppy shredder bark)
@@ -122,53 +123,73 @@ def synth_floppy_clatter(seed: int = 11) -> np.ndarray:
     return _fade(_saturate(out, 1.8), 0.001, 0.025)
 
 
-def synth_activate_deploy() -> np.ndarray:
+def synth_dialup_deploy() -> np.ndarray:
+    """AOL-style dial-up connect, squeezed into the 2.6 s netsend.qc waits before the klaxon:
+    dial tone, touch-tone digits, answer tone, handshake warbles, then the carrier screech."""
     rng = np.random.default_rng(101)
-    out = np.zeros(int(1.70 * SR), dtype=np.float32)
+    out = np.zeros(int(2.55 * SR), dtype=np.float32)
 
-    # 1. Disc slam onto floor (0.00s)
-    ts = _t(0.18)
-    slam = _sweep_sine(ts, 210.0, 44.0) * np.exp(-ts * 24.0)
-    slam += _bp(rng.standard_normal(len(ts)), 400, 3600) * np.exp(-ts * 45.0) * 0.65
-    out = _mix_at(out, _saturate(slam, 2.5), 0.0, 0.95)
+    def tone(dur: float, *freqs: float) -> np.ndarray:
+        t = _t(dur)
+        y = sum(np.sin(2.0 * np.pi * f * t) for f in freqs) / len(freqs)
+        return _fade(y.astype(np.float32), 0.004, 0.006)
 
-    # 2. Terrifying CRT High-Voltage Degauss BWOOOONG + Flyback Scream (0.14s .. 0.95s)
-    td = _t(0.90)
-    env_d = np.sin(np.pi * np.clip(td / 0.14, 0.0, 1.0)) * np.exp(-np.maximum(0.0, td - 0.10) * 3.4)
-    wob = np.sin(2.0 * np.pi * 11.0 * td) * 14.0
-    degauss = (
-        0.55 * np.sin(2.0 * np.pi * (62.0 + wob * 0.3) * td)
-        + 0.45 * np.sin(2.0 * np.pi * (124.0 + wob) * td)
-        + 0.30 * np.sign(np.sin(2.0 * np.pi * 186.0 * td))
-    ) * env_d
-    # High-voltage CRT flyback whine sweeping down angrily
-    flyback = _sweep_sine(td, 6400.0, 1850.0) * np.exp(-td * 4.5) * 0.32
-    arc = _bp(rng.standard_normal(len(td)), 1800, 6800) * (np.sin(2.0 * np.pi * 28.0 * td) > 0.2) * np.exp(-td * 4.0) * 0.45
-    out = _mix_at(out, _saturate(degauss * 1.4 + flyback + arc, 2.2), 0.14, 0.92)
+    # dial tone
+    out = _mix_at(out, tone(0.28, 350.0, 440.0), 0.00, 0.75)
 
-    # 3. Three heavy hydraulic tripod leg slams (0.50s, 0.64s, 0.78s)
-    for idx, t_leg in enumerate((0.50, 0.64, 0.78)):
-        tl = _t(0.18)
-        f_top = 260.0 + idx * 35.0
-        clank = _sweep_sine(tl, f_top, 42.0) * np.exp(-tl * 26.0)
-        clank += _bp(rng.standard_normal(len(tl)), 900, 4800) * np.exp(-tl * 55.0) * 0.7
-        clank += np.sin(2.0 * np.pi * (520.0 + idx * 60.0) * tl) * np.exp(-tl * 38.0) * 0.45
-        out = _mix_at(out, _saturate(clank, 2.8), t_leg, 0.85)
+    # seven touch-tone digits
+    dtmf = ((697, 1336), (770, 1209), (852, 1477), (697, 1209), (941, 1336), (770, 1477), (852, 1336))
+    for i, (lo, hi) in enumerate(dtmf):
+        out = _mix_at(out, tone(0.052, lo, hi), 0.31 + i * 0.072, 0.80)
 
-    # 4. Aggressive Distorted BIOS-from-Hell Triple Surge + Servo Lock (0.98s .. 1.62s)
-    tb = _t(0.62)
-    servo = _sweep_sine(tb, 140.0, 740.0) * np.exp(-tb * 3.8) * 0.42
-    out = _mix_at(out, _saturate(servo, 2.0), 0.96, 0.8)
-    for bi, freq in enumerate((220.0, 330.0, 440.0)):
-        tp = _t(0.14)
-        tone = (
-            np.sign(np.sin(2.0 * np.pi * freq * tp)) * 0.55
-            + np.sin(2.0 * np.pi * (freq * 0.5) * tp) * 0.55
-            + np.sin(2.0 * np.pi * (freq * 1.505) * tp) * 0.35
-        ) * np.exp(-tp * 14.0)
-        out = _mix_at(out, _saturate(_bitcrush(tone, 14, 2), 2.4), 1.06 + bi * 0.14, 0.78)
+    # the answering modem: 2100 Hz with its phase flipping
+    ta = _t(0.34)
+    flip = np.where((ta // 0.11) % 2 == 0, 1.0, -1.0)
+    answer = (flip * np.sin(2.0 * np.pi * 2100.0 * ta)).astype(np.float32)
+    out = _mix_at(out, _fade(answer, 0.006, 0.008), 0.84, 0.60)
 
-    return _fade(out, 0.003, 0.06)
+    # handshake: the two "bong" chords, then a fast two-tone warble
+    out = _mix_at(out, tone(0.13, 1375.0, 2002.0), 1.20, 0.80)
+    out = _mix_at(out, tone(0.13, 1529.0, 2225.0), 1.34, 0.80)
+    tw = _t(0.24)
+    freq = np.where(np.sin(2.0 * np.pi * 34.0 * tw) > 0, 1180.0, 980.0) + 900.0 * (np.sin(2.0 * np.pi * 8.0 * tw) > 0.6)
+    warble = np.sin(2.0 * np.pi * np.cumsum(freq) / SR).astype(np.float32)
+    out = _mix_at(out, _fade(warble, 0.004, 0.008), 1.49, 0.70)
+
+    # training screech: scrambled-data hiss over the carriers, in two surges
+    ts = _t(0.80)
+    hiss = _bp(rng.standard_normal(len(ts)), 900.0, 3200.0)
+    hiss /= np.max(np.abs(hiss))
+    carriers = np.sin(2.0 * np.pi * 1800.0 * ts) * 0.35 + np.sin(2.0 * np.pi * 2400.0 * ts) * 0.22
+    swell = np.where(ts < 0.30, 0.65, 1.0) * (0.88 + 0.12 * np.sin(2.0 * np.pi * 21.0 * ts))
+    screech = _saturate((hiss * 1.1 + carriers) * swell, 1.6)
+    out = _mix_at(out, _fade(screech, 0.008, 0.07), 1.74, 0.78)
+
+    # telephone-line bandwidth (a hard 300..3400 Hz limit; the first-order _bp is too gentle for this)
+    spec = np.fft.rfft(out)
+    f = np.fft.rfftfreq(len(out), 1.0 / SR)
+    spec *= np.clip((f - 220.0) / 100.0, 0.0, 1.0) * np.clip((3700.0 - f) / 300.0, 0.0, 1.0)
+    out = np.fft.irfft(spec, n=len(out))
+    return _fade((out * (0.9 / np.max(np.abs(out)))).astype(np.float32), 0.003, 0.05)
+
+
+def synth_dart_throw() -> np.ndarray:
+    """A thrown dart: a tiny flick off the fingers, then a short airy "fwip" that rises and falls away."""
+    rng = np.random.default_rng(606)
+    t = _t(0.26)
+    noise = rng.standard_normal(len(t)).astype(np.float32)
+    # air rush: a narrow noise band whose pitch sweeps up fast, then drops as the dart leaves
+    low = _bp(noise, 700.0, 1700.0)
+    high = _bp(noise, 2200.0, 5200.0)
+    blend = np.exp(-(((t - 0.075) / 0.045) ** 2))
+    env = np.exp(-(((t - 0.080) / np.where(t < 0.080, 0.032, 0.058)) ** 2))
+    rush = (low * (1.0 - blend) + high * blend * 1.3) * env
+    rush /= np.max(np.abs(rush))
+    tf = _t(0.018)
+    flick = _bp(rng.standard_normal(len(tf)), 1800.0, 6000.0) * np.exp(-tf * 320.0)
+    flick /= np.max(np.abs(flick))
+    out = _mix_at(rush.astype(np.float32), flick, 0.0, 0.45)
+    return _fade((out * (0.9 / np.max(np.abs(out)))).astype(np.float32), 0.001, 0.04)
 
 
 def synth_spot_klaxon() -> np.ndarray:
@@ -198,15 +219,14 @@ def synth_spot_klaxon() -> np.ndarray:
 
 def synth_fire_heavy() -> np.ndarray:
     rng = np.random.default_rng(303)
-    t = _t(0.38)
-    # Huge sub-bass cannon punch + industrial bolt slam
-    sub = _sweep_sine(t, 175.0, 34.0) * np.exp(-t * 16.0) * 1.25
-    bolt = _bp(rng.standard_normal(len(t)), 280, 4200) * np.exp(-t * 36.0) * 0.95
-    # Digital shredder crunch + spinning aerodynamic floppy whoosh
-    crunch = _bitcrush(np.sin(2.0 * np.pi * 240.0 * t + 3.2 * np.sin(2.0 * np.pi * 58.0 * t)), 10, 3) * np.exp(-t * 22.0) * 0.65
-    whiz = _bp(rng.standard_normal(len(t)), 1400, 6500) * np.exp(-np.maximum(0.0, t - 0.03) * 14.0) * (0.6 + 0.4 * np.sin(2.0 * np.pi * 42.0 * t)) * 0.55
-    sig = _saturate(sub + bolt + crunch + whiz, 2.6)
-    return _fade(sig, 0.001, 0.04)
+    t = _t(0.16)
+    # Snappy rapid-fire sub-punch + mechanical bolt slam + high-RPM floppy whiz
+    sub = _sweep_sine(t, 210.0, 42.0) * np.exp(-t * 28.0) * 1.25
+    bolt = _bp(rng.standard_normal(len(t)), 360, 4800) * np.exp(-t * 48.0) * 1.0
+    crunch = _bitcrush(np.sin(2.0 * np.pi * 310.0 * t + 3.0 * np.sin(2.0 * np.pi * 72.0 * t)), 12, 2) * np.exp(-t * 30.0) * 0.6
+    whiz = _bp(rng.standard_normal(len(t)), 1600, 6800) * np.exp(-np.maximum(0.0, t - 0.015) * 26.0) * (0.65 + 0.35 * np.sin(2.0 * np.pi * 55.0 * t)) * 0.55
+    sig = _saturate(sub + bolt + crunch + whiz, 2.7)
+    return _fade(sig, 0.001, 0.025)
 
 
 def synth_fire_msdos_mg() -> np.ndarray:
@@ -276,7 +296,8 @@ def synth_explode_mega() -> np.ndarray:
 def build_all_sounds() -> Dict:
     os.makedirs(OUT_DIR, exist_ok=True)
     specs = [
-        ("activate", "activate_deploy.wav", "Throw-to-Sentry Transform (CRT Degauss + Hydraulic Slams + BIOS Roar)", synth_activate_deploy()),
+        ("activate", "dialup_deploy.wav", "Sentry spawn (AOL-style dial-up connect)", synth_dialup_deploy()),
+        ("throw", "dart_throw.wav", "Disk throw (thrown-dart fwip)", synth_dart_throw()),
         ("spot", "spot_klaxon.wav", "Aggressive Target Lock Klaxon (Radar Screech + Sub Growl)", synth_spot_klaxon()),
         ("fire_heavy", "fire_heavy.wav", "Heavy Floppy Cannon Blast (Sub-Thump + Bolt Slam + Disc Whiz)", synth_fire_heavy()),
         ("fire_msdos", "fire_msdos_mg.wav", "MS-DOS Machine Gun Floppy Shredder (High-RPM Industrial Bark)", synth_fire_msdos_mg()),

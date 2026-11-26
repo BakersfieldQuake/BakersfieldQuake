@@ -78,30 +78,107 @@ lightradiusfade 1100
 lightcolor 0.22 0.52 0.72
 lightshadow 0
 
-// the PC's green lasers (owner's review 2026-10-31: "shoot little green lasers at everybody ... spin and shoot them like nails")
+// the PC's rapid-fire 3.5" floppy muzzle burst, neon plasma/spark trail, and impact shower
+effect netsend_muzzle
+notunderwater
+count 18
+type spark
+tex 40 40
+color 0x38ff80 0x80ffff
+size 1.8 3.2
+stretchfactor 1.6
+alpha 230 256 850
+time 0.10 0.22
+originjitter 2 2 2
+velocitymultiplier 0.75
+velocityjitter 95 95 95
+airfriction 3.5
+
+effect netsend_muzzle
+notunderwater
+count 5
+type alphastatic
+blend add
+tex 63 63
+color 0x50ffe0 0xd8ffff
+size 7 13
+sizeincrease 26
+alpha 170 235 900
+time 0.08 0.16
+originjitter 3 3 3
+velocitymultiplier 0.25
+velocityjitter 45 45 45
+airfriction 4.5
+
+effect netsend_muzzle
+lightradius 145
+lightradiusfade 1500
+lightcolor 0.25 1.35 1.05
+lightshadow 0
+
 effect netsend_laser
+trailspacing 10
+type spark
+tex 40 40
+color 0x20ff70 0x70ffff
+size 2.0 3.4
+alpha 210 256 820
+time 0.14 0.28
+stretchfactor 1.8
+originjitter 1.5 1.5 1.5
+velocityjitter 22 22 22
+airfriction 2.2
+
+effect netsend_laser
+trailspacing 14
+type alphastatic
+blend add
+tex 63 63
+color 0x30ff90 0x50e0ff
+size 5.0 8.5
+sizeincrease -14
+alpha 105 155 520
+time 0.12 0.22
+originjitter 1 1 1
+airfriction 3.0
+
+effect netsend_laser
+lightradius 65
+lightcolor 0.2 1.2 0.75
+lighttime 0.07
+lightshadow 0
+
+effect netsend_laserhit
 count 22
 type spark
 tex 40 40
-color 0x20d020 0x60ff60
-size 2.5 3.5
-alpha 180 256 900
+color 0x30ff78 0x88ffff
+size 1.6 3.0
 stretchfactor 1.5
-originjitter 0.5 0.5 0.5
-lightradius 60
-lightcolor 0.2 1 0.2
+alpha 220 256 760
+time 0.18 0.38
+velocityjitter 180 180 180
+gravity 0.55
+bounce 1.2
+airfriction 1.2
 
 effect netsend_laserhit
-count 14
-type spark
-tex 40 40
-color 0x20d020 0x80ff80
-size 1.5 2.5
-alpha 200 256 700
-velocityjitter 140 140 140
-gravity 0.6
-bounce 1.2
-lightradius 90
-lightcolor 0.2 1 0.2
-lighttime 0.2
+count 6
+type alphastatic
+blend add
+tex 63 63
+color 0x48ffb8 0xd8ffff
+size 8 15
+sizeincrease 28
+alpha 180 245 880
+time 0.10 0.20
+originjitter 4 4 4
+velocityjitter 60 60 60
+airfriction 4.0
+
+effect netsend_laserhit
+lightradius 115
+lightcolor 0.25 1.35 0.9
+lighttime 0.14
+lightshadow 0
 
