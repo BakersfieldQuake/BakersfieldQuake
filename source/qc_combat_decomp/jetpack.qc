@@ -124,9 +124,40 @@ void() Jetpack_Place =
 	remove (self);
 };
 
+// A pickup is 13k triangles with an animated idle; past JP_PICKUP_VIEW units (36 units tall: ~6 pixels at 720p) it is
+// neither sent to nor drawn by that viewer. Morro Rock's 32 pickups cost ~2.4 ms of drawing a frame (2026-11-26b).
+float JP_PICKUP_VIEW = 2000;
+
+float() Jetpack_PickupCustomize =
+{
+	local vector d;
+
+	if (other.ishuman != 1)
+		return FALSE;
+	d = ((other.clientcamera != world) ? other.clientcamera.origin : other.origin) - self.origin;
+	return (d * d < JP_PICKUP_VIEW * JP_PICKUP_VIEW);
+};
+
+// The worn pack is the same 13k-triangle animated model at scale 0.7 (17 units tall): past JP_WORN_VIEW units it is
+// about 4 pixels, so other viewers stop getting it. It is attached, so its origin is an offset: measure from the wearer.
+float JP_WORN_VIEW = 1500;
+
+float() Jetpack_WornCustomize =
+{
+	local vector d;
+
+	if (other == self.owner)
+		return TRUE;		// your own chase view
+	if (other.ishuman != 1)
+		return FALSE;
+	d = ((other.clientcamera != world) ? other.clientcamera.origin : other.origin) - self.owner.origin;
+	return (d * d < JP_WORN_VIEW * JP_WORN_VIEW);
+};
+
 // Standalone map entity: item_jetpack
 void() item_jetpack =
 {
+	self.customizeentityforclient = Jetpack_PickupCustomize;
 	Jetpack_Precache ();
 	self.classname = "item_jetpack";
 	self.scale = 1.5;
@@ -152,6 +183,7 @@ void(entity armor) Jetpack_ForArmor =
 	j = spawn ();
 	j.classname = "item_jetpack";
 	j.jp_armor = armor;
+	j.customizeentityforclient = Jetpack_PickupCustomize;
 	setorigin (j, armor.origin);
 	setmodel (j, "progs/jetpack.md3");
 	j.solid = SOLID_NOT;
@@ -312,6 +344,7 @@ void() Jetpack_WornFrame =
 	e.angles = '0 0 0';
 	e.think = Jetpack_WornThink;
 	e.nextthink = time + 0.05;
+	e.customizeentityforclient = Jetpack_WornCustomize;
 	setmodel (e, "progs/jetpack.md3");
 	self.jp_worn = e;
 };
