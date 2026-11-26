@@ -121,6 +121,13 @@ void(entity e, float waterwalk) walksound =
 	}
 };
 
+float(entity p) Player_HasJumpFrames =
+{
+	// Classic 1996 Quake Ranger (progs/player_id1.mdl) has no jump frames (243..254 are stand1 padding);
+	// like vanilla Quake, keep the normal run/stand animations in mid-air instead of freezing.
+	return (p.model != "progs/player_id1.mdl");
+};
+
 void() player_stand1 = [ 17, player_stand1 ]
 {
 	if ((self.velocity_x || self.velocity_y))
@@ -158,7 +165,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 		}
 		else
 		{
-			if (!(self.flags & FL_ONGROUND))
+			if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 			{
 				self.frame = (247 + self.walkframe);
 				self.walkframe = (self.walkframe + 1);
@@ -193,7 +200,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 			self.weapontimer = 0;
 			self.spindown = 0;
 		}
-		if ((self.walkframe == 5))
+		if ((self.walkframe >= 5))
 		{
 			self.walkframe = 0;
 		}
@@ -204,7 +211,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 		}
 		else
 		{
-			if (!(self.flags & FL_ONGROUND))
+			if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 			{
 				if ((self.walkframe >= 5))
 				{
@@ -261,7 +268,7 @@ void() player_stand1 = [ 17, player_stand1 ]
 			self.weapontimer = 0;
 		}
 	}
-	if ((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)))
+	if (((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)) && Player_HasJumpFrames(self)))
 	{
 		self.frame = (247 + self.walkframe);
 		self.walkframe = (self.walkframe + 1);
@@ -274,15 +281,14 @@ void() player_stand1 = [ 17, player_stand1 ]
 	}
 	if (Player_IsHandheldPose(self))
 	{
-		if (!(self.flags & FL_ONGROUND))
+		if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 		{
+			if ((self.walkframe >= 4))
+			{
+				self.walkframe = 3;
+			}
 			self.frame = (243 + self.walkframe);
 			self.walkframe = (self.walkframe + 1);
-			if ((self.walkframe >= 5))
-			{
-				self.walkframe = 4;
-				self.frame = 246;
-			}
 			return;
 		}
 		if ((self.walkframe >= 12))
@@ -389,7 +395,7 @@ void() player_run = [ 6, player_run ]
 		}
 		else
 		{
-			if (!(self.flags & FL_ONGROUND))
+			if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 			{
 				self.frame = (247 + self.walkframe);
 				self.walkframe = (self.walkframe + 1);
@@ -435,7 +441,7 @@ void() player_run = [ 6, player_run ]
 		}
 		else
 		{
-			if (!(self.flags & FL_ONGROUND))
+			if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 			{
 				self.frame = (247 + self.walkframe);
 				self.walkframe = (self.walkframe + 1);
@@ -508,7 +514,7 @@ void() player_run = [ 6, player_run ]
 			self.weapontimer = 0;
 		}
 	}
-	if ((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)))
+	if (((!(self.flags & FL_ONGROUND) && !Player_IsHandheldPose(self)) && Player_HasJumpFrames(self)))
 	{
 		if ((self.walkframe >= 6))
 		{
@@ -550,18 +556,17 @@ void() player_run = [ 6, player_run ]
 	}
 	if (Player_IsHandheldPose(self))
 	{
-		if (!(self.flags & FL_ONGROUND))
+		if ((!(self.flags & FL_ONGROUND) && Player_HasJumpFrames(self)))
 		{
+			if ((self.walkframe >= 4))
+			{
+				self.walkframe = 3;
+			}
 			self.frame = (243 + self.walkframe);
 			self.walkframe = (self.walkframe + 1);
-			if ((self.walkframe >= 5))
-			{
-				self.walkframe = 4;
-				self.frame = 246;
-			}
 			return;
 		}
-		if ((self.walkframe == 6))
+		if ((self.walkframe >= 6))
 		{
 			self.walkframe = 0;
 		}
@@ -569,7 +574,7 @@ void() player_run = [ 6, player_run ]
 	}
 	else
 	{
-		if ((self.walkframe == 6))
+		if ((self.walkframe >= 6))
 		{
 			self.walkframe = 0;
 		}
@@ -1627,6 +1632,11 @@ void() player_pain6 = [ 40, player_run ]
 
 void() player_jump =
 {
+	if (!Player_HasJumpFrames(self))
+	{
+		return;
+	}
+	self.walkframe = 1;
 	if (Player_IsHandheldPose(self))
 	{
 		self.frame = 243;
@@ -1635,7 +1645,10 @@ void() player_jump =
 	{
 		self.frame = 247;
 	}
-	self.frame = (self.frame + 1);
+	if ((((self.think == player_run) || (self.think == player_stand1)) && (self.nextthink < (time + 0.04))))
+	{
+		self.nextthink = (time + 0.06);
+	}
 };
 
 void() player_axpain1 = [ 29, player_axpain2 ]
