@@ -271,6 +271,11 @@ void() ReeseIce_Think =
 
 void() npc_reeseice =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	ReeseIce_Precache();
 	self.classname = "npc_reeseice";
 	self.solid = SOLID_BBOX;

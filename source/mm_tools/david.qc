@@ -880,6 +880,11 @@ void() npc_david_squad =
 {
 	local vector flat_ang;
 	local entity dv, w1, w2, w3;
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 
 	David_Precache();
 	flat_ang = '0 0 0';

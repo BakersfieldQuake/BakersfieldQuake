@@ -726,6 +726,11 @@ void() CN_MapStart =
 // Map-placed street crowd entity (e.g. downtown hotspots): origin = player-height home spot, npc_radius = wander radius
 void() npc_crowd =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	Crowd_Precache ();		// a map that places a crowd member loads the sprites; other maps do not (see BM_Precache)
 	self.classname = "npc_crowd";
 	self.npc_home = self.origin;
@@ -766,7 +771,7 @@ void() Crowd_Tick =
 	if (crowd_done || time < 1)
 		return;
 	crowd_done = TRUE;
-	if (!autocvar_crowd_on)
+	if (!autocvar_crowd_on || !autocvar_bm_npcs)		// bm_npcs 0: no crowd (2026-11-26)
 		return;
 	if (mapname == "fox")
 		Crowd_SpawnFox ();

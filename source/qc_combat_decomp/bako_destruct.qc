@@ -2187,7 +2187,8 @@ void() Bako_StartFoxRebuild =
 		bako_fox_clock_ent.angles = bako_fox_clock_ent.bako_home_ang;
 		setorigin (bako_fox_clock_ent, bako_fox_clock_ent.bako_home_org - '0 0 1400');
 	}
-	Bako_SpawnFoxCrew ();
+	if (autocvar_bm_npcs)		// the repair crew are NPCs too: none unless bm_npcs 1 (2026-11-26)
+		Bako_SpawnFoxCrew ();
 };
 
 void() Bako_ResetPadreIntact =

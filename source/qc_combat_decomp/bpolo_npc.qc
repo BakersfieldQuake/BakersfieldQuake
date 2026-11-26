@@ -357,6 +357,11 @@ void(vector pos, float yaw_deg) Bpolo_Setup =
 
 void() npc_rogerver =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	if (!bpolo_precached)
 		Bpolo_Precache ();
 	self.npc_home = self.origin;
@@ -372,6 +377,11 @@ void() monster_rogerver =
 
 void() npc_bpolo =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	npc_rogerver ();
 };
 

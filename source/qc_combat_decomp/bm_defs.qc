@@ -38,6 +38,13 @@ var float	autocvar_bm_intermission	= 10;		// deathmatch intermission seconds bef
 var float	autocvar_bm_botfill			= 0;		// keep adding FrikBots until there are this many players
 var float	autocvar_bm_botfill_empty	= 0;		// 1 = fill even with nobody connected (testing)
 var float	autocvar_bm_vote			= 1;		// 1 = players can vote on the map ("vote map fox" in chat, then vote yes / vote no)
+var float	autocvar_bm_npcs			= 0;		// 1 = maps get their NPCs (street crowd, bar crowd, bosses, the Fox repair crew); 0 = none (2026-11-26)
+var float	autocvar_bm_traffic			= 0;		// 1 = AI cars and the spruce school bus drive around; 0 = clear streets (2026-11-26)
+
+// Map-placed NPCs and traffic: off unless bm_npcs / bm_traffic. Map entities spawn before the first server frame
+// (framecount 0); the cheat summon impulses call the same spawn functions later, so those still work.
+float() BM_NoMapNPC = { return (!autocvar_bm_npcs && !framecount); };
+float() BM_NoMapTraffic = { return (!autocvar_bm_traffic && !framecount); };
 var float	autocvar_bm_votetime		= 30;		// seconds a vote stays open
 var float	autocvar_bm_votecool		= 60;		// seconds before the same player can call another vote
 var float	autocvar_bm_debug			= 0;		// 1 = print every player's magazine / reload / frag-gap state every 2 s

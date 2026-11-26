@@ -380,6 +380,11 @@ void() Beerguy_Respawn =
 
 void() npc_beerguy =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	if (!beer_precached)
 		Beerguy_Precache ();
 	self.npc_home = self.origin;
@@ -395,6 +400,11 @@ void() monster_beerguy =
 
 void() npc_tim =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	npc_beerguy ();
 };
 
@@ -405,6 +415,11 @@ void() monster_tim =
 
 void() npc_timblackburn =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	npc_beerguy ();
 };
 

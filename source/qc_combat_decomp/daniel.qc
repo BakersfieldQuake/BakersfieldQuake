@@ -999,6 +999,11 @@ entity(vector pos, float yaw_ang, entity target_dn) Dad4AM_SpawnOne =
 
 void() monster_daniel =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	Daniel_Precache();
 	self.dn_home = self.origin;
 	setmodel(self, "progs/daniel.spr32");

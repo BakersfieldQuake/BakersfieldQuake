@@ -179,6 +179,11 @@ void() bk_cruiser =
 {
 	local entity g;
 
+	if (BM_NoMapTraffic ())		// clear streets unless bm_traffic 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	self.bk_kind = self.cnt;
 	if (self.bk_kind != BK_POD)
 	{

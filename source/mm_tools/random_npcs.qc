@@ -605,24 +605,44 @@ void(float kind) RandomNPC_InitCommon =
 
 void() npc_random_guy =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	self.classname = "npc_random_guy";
 	RandomNPC_InitCommon(RNPC_RANDGUY);
 };
 
 void() npc_afro_guy =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	self.classname = "npc_afro_guy";
 	RandomNPC_InitCommon(RNPC_AFROGUY);
 };
 
 void() npc_random_lady =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	self.classname = "npc_random_lady";
 	RandomNPC_InitCommon(RNPC_LADY);
 };
 
 void() npc_fat_guy =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	self.classname = "npc_fat_guy";
 	RandomNPC_InitCommon(RNPC_FATGUY);
 };
@@ -630,6 +650,11 @@ void() npc_fat_guy =
 void() npc_random_person =
 {
 	local float r;
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 
 	r = random();
 	if (r < 0.25)

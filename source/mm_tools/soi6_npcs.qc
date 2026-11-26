@@ -1546,6 +1546,11 @@ Keys:
 void() npc_soi6 =
 {
 	local float cid, init_st;
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 
 	if (!autocvar_bm_soi6_npcs)
 	{
@@ -1626,7 +1631,7 @@ void() Soi6_Tick =
 	if (world.model != "maps/soi6.bsp" && world.model != "maps/soicowboy_bkk.bsp")
 		return;
 
-	if (world.model == "maps/soi6.bsp" && !soi6_spawned && time >= 0.8)
+	if (world.model == "maps/soi6.bsp" && !soi6_spawned && time >= 0.8 && autocvar_bm_npcs)		// bm_npcs 0: no street crowd (2026-11-26)
 	{
 		soi6_spawned = 1;
 		Soi6_PopulateStreet ();

@@ -299,6 +299,11 @@ void() misc_traffic_car =
 	local float kind, hash, dt;
 	local string mdl;
 	local vector dims, span;
+	if (BM_NoMapTraffic ())		// clear streets unless bm_traffic 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 
 	// playtest: no randomly driving cars on Bakersfield Downtown
 	if (mapname == "bakersfielddowntown" || mapname == "bakersfielddowntown_lite")

@@ -362,6 +362,11 @@ void() SB_ManagerThink =
 
 void() misc_spruce_bus_manager =
 {
+	if (BM_NoMapTraffic ())		// clear streets unless bm_traffic 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	Vehicles_Precache ();
 	precache_model ("progs/veh_schoolbus.md3");	// SB_SpawnBus sets it directly; vehicle bodies are precached per kind now
 	precache_model ("progs/veh_schoolbus_wreck.md3");

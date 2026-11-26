@@ -592,6 +592,11 @@ void() GreenSuit_Think =
 
 void() npc_greensuit_wheelman =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	GreenSuit_Precache();
 	self.classname = "npc_greensuit_wheelman";
 	setmodel(self, "progs/greensuit_wheelman.spr32");
@@ -957,6 +962,11 @@ void() RobeGuy_Think =
 
 void() npc_robeguy =
 {
+	if (BM_NoMapNPC ())		// no map NPCs unless bm_npcs 1 (2026-11-26)
+	{
+		remove (self);
+		return;
+	}
 	RobeGuy_Precache();
 	self.classname = "npc_robeguy";
 	setmodel(self, "progs/robeguy.spr32");
