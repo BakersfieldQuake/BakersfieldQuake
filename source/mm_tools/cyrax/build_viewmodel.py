@@ -11,7 +11,7 @@ source/mm_tools/cyrax/assets/src_keyframes/:
 
 Keys white studio backdrop + enclosed piston gaps cleanly with anti-aliased alpha
 and RGB edge bleeding (zero white halo), scales to ~0.76x tucked bottom-right at
-crisp 896x546 resolution, and smoothly cross-blends & animates 68 skins (0..67):
+crisp 896x546 resolution, and animates 68 skins (0..67) with hard pose cuts (no ghosting cross-fades):
   -  0..7   (8f): Idle (subtle breathing + glowing amber/green LEDs)
   -  8..31 (24f): Charge buildup (idle -> charge_half -> charge_full + plasma + heat + shake)
   - 32..43 (12f): Fire + Recoil (32..36 charge_full->recoil + neon-green muzzle flash,
@@ -668,21 +668,28 @@ def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_D
 
         elif 8 <= idx <= 31:
             # Charge buildup (24f): articulates idle -> charge_half (f18) -> charge_full (f28..31)
+            # Hard cuts between poses (no cross-fade: blending two different poses shows a ghosted double gun);
+            # a bright green pulse on the cut frames hides the pop.
             p = (idx - 8) / 23.0
-            if p <= 0.45:
-                u = p / 0.45
-                s = u * u * (3.0 - 2.0 * u)
-                pose_rgba = _blend_premul_rgba(poses["idle"], poses["charge_half"], s)
+            if idx < 15:
+                pose_rgba = poses["idle"]
+            elif idx < 24:
+                pose_rgba = poses["charge_half"]
             else:
-                u = min(1.0, (p - 0.45) / 0.42)
-                s = u * u * (3.0 - 2.0 * u)
-                pose_rgba = _blend_premul_rgba(poses["charge_half"], poses["charge_full"], s)
+                pose_rgba = poses["charge_full"]
+            cut_pulse = 1.0 if idx in (15, 24) else (0.45 if idx in (16, 25) else 0.0)
 
-            rng = np.random.default_rng(1000 + idx)
-            shake = 0.6 + 5.2 * (p ** 1.6)
-            dx = 8.0 * p + float(rng.uniform(-shake, shake))
-            dy = 4.5 * p + float(rng.uniform(-shake * 0.85, shake * 0.85))
-            ang = -1.1 * p + float(rng.uniform(-0.6, 0.6)) * p
+            # Smooth, small shake that builds up (random per-frame jumps read as stutter)
+            shake = 0.3 + 2.0 * (p ** 2)
+            dx = 6.0 * p + shake * math.sin(idx * 1.7)
+            dy = 3.5 * p + shake * 0.8 * math.cos(idx * 2.3)
+            ang = -0.8 * p + 0.25 * p * math.sin(idx * 1.3)
+            if cut_pulse > 0.0:
+                _draw_radial_glow(
+                    glow_rgb, glow_a,
+                    MUZZLE_XY[0] + dx + 40, MUZZLE_XY[1] + dy + 30,
+                    150, 110, (90, 255, 120), 0.85 * cut_pulse, power=1.6,
+                )
 
             g_mix = max(0.0, min(1.0, (p - 0.18) / 0.65))
             vent_col = (
@@ -716,10 +723,10 @@ def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_D
             if idx <= 36:
                 # 32..36: charge_full -> recoil snap + neon-green muzzle flash burst
                 fp = (idx - 32) / 4.0
-                pose_rgba = _blend_premul_rgba(poses["charge_full"], poses["recoil"], min(1.0, fp * 1.15))
-                dx = 14.0 + 14.0 * fp
-                dy = 8.0 + 9.0 * fp
-                ang = -1.8 - 1.8 * fp
+                pose_rgba = poses["charge_full"] if idx == 32 else poses["recoil"]
+                dx = 8.0 + 6.0 * fp
+                dy = 5.0 + 5.0 * fp
+                ang = -1.0 - 0.8 * fp
                 flash_str = [1.15, 1.25, 1.05, 0.85, 0.62][idx - 32]
                 flash_rad = [145.0, 175.0, 150.0, 120.0, 92.0][idx - 32]
                 _apply_vents_and_leds(
@@ -749,11 +756,11 @@ def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_D
                 # 37..43: recoil returning smoothly to idle + barrel & popped-breech smoke
                 rp = (idx - 37) / 6.0
                 smooth = rp * rp * (3.0 - 2.0 * rp)
-                pose_rgba = _blend_premul_rgba(poses["recoil"], poses["idle"], smooth)
+                pose_rgba = poses["recoil"] if idx < 40 else poses["idle"]
                 ease = 1.0 - smooth
-                dx = 26.0 * ease
-                dy = 16.0 * ease
-                ang = -3.6 * ease
+                dx = 14.0 * ease
+                dy = 10.0 * ease
+                ang = -1.8 * ease
                 cool = 1.0 - rp
                 _apply_vents_and_leds(
                     glow_rgb, glow_a, dx, dy,
@@ -791,7 +798,7 @@ def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_D
             # Cooldown / venting (6f): charge_half closing smoothly back into idle + steam plumes
             vp = (idx - 50) / 5.0
             smooth = vp * vp * (3.0 - 2.0 * vp)
-            pose_rgba = _blend_premul_rgba(poses["charge_half"], poses["idle"], smooth)
+            pose_rgba = poses["charge_half"] if idx < 52 else poses["idle"]
             cool = 1.0 - vp
             dx = 3.0 * cool * math.sin(idx * 2.2)
             dy = 3.5 * cool
@@ -827,7 +834,7 @@ def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_D
             cp = k / 11.0
             catch_weights = [0.45, 0.92, 1.00, 1.00, 1.00, 1.00, 0.95, 0.80, 0.58, 0.36, 0.16, 0.0]
             cw = catch_weights[k]
-            pose_rgba = _blend_premul_rgba(poses["idle"], poses["catch"], cw)
+            pose_rgba = poses["catch"] if cw >= 0.5 else poses["idle"]
 
             pump_dx = [-4.0, -9.0, -11.0, -8.0, -9.5, -10.5, -8.0, -5.5, -3.5, -2.0, -0.8, 0.0]
             pump_dy = [-2.5, -5.5, -6.5, -4.0, -5.5, -6.0, -4.0, -2.8, -1.8, -1.0, -0.4, 0.0]

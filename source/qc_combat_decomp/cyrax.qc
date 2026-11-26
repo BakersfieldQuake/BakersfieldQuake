@@ -463,12 +463,12 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 		if (u > 0.999) u = 0.999;
 		idx = floor (u * CY_VM_CHARGE_COUNT);
 		vm.skin = CY_VM_CHARGE_SKIN + idx;
-		sw1 = sin (time * 54.0);
-		sw2 = cos (time * 47.0);
-		vm.origin_x = -0.8 * u + sw1 * (0.08 + 0.38 * u * u);
-		vm.origin_y = sw2 * (0.08 + 0.34 * u * u);
-		vm.origin_z = -0.5 * u + sw1 * (0.06 + 0.28 * u * u);
-		vm.angles_z = sw2 * (0.4 + 1.8 * u * u);
+		// The frames carry the shake; this only adds a slow, small lean (fast wobble here strobed
+		// at the network rate and read as stutter).
+		sw1 = sin (time * 9.0);
+		vm.origin_x = -0.6 * u;
+		vm.origin_z = -0.4 * u + sw1 * 0.08 * u;
+		vm.angles_z = sw1 * 0.5 * u;
 		return;
 	}
 
@@ -625,7 +625,7 @@ void(entity wrap, entity targ) Cyrax_PositionWrap =
 	}
 	else
 	{
-		wrap.scale = 1.05;
+		wrap.scale = 1.35;
 		ofs = '0 0 0';
 	}
 	setorigin (wrap, targ.origin + ofs);
@@ -928,6 +928,12 @@ void() Cyrax_NetThink =
 		return;
 	}
 
+	// Unfurl from small to full size over the first 0.18s
+	f = (time - self.fg_born) / 0.18;
+	if (f > 1)
+		f = 1;
+	self.scale = self.cy_scale_full * (0.3 + 0.7 * f);
+
 	f = floor ((time - self.fg_born) * 18);
 	self.frame = f - 8 * floor (f / 8);
 	self.angles = vectoangles (self.cy_vel);
@@ -1008,15 +1014,17 @@ void(entity p, float weak) Cyrax_FireNet =
 	setorigin (net, muz);
 	if (weak)
 	{
-		net.scale = 0.7;
+		net.cy_scale_full = CY_NET_SCALE * 0.7;
 		net.cy_radius = CY_WEAK_RADIUS;
 		net.cy_vel = dir * CY_WEAK_SPEED;
 	}
 	else
 	{
+		net.cy_scale_full = CY_NET_SCALE;
 		net.cy_radius = CY_CATCH_RADIUS;
 		net.cy_vel = dir * CY_NET_SPEED;
 	}
+	net.scale = net.cy_scale_full * 0.3;
 	net.velocity = net.cy_vel;
 	net.angles = vectoangles (dir);
 	net.angles_z = 0;
@@ -1715,10 +1723,8 @@ void() Cyrax_Frame =
 			}
 			else
 			{
-				// Still charging: subtle escalating punchangle shake + muzzle glow particles + HUD %
+				// Still charging: muzzle glow particles + HUD % (no random view shake: it read as stutter)
 				self.attack_finished = time + 0.12;
-				self.punchangle_x = self.punchangle_x + crandom () * (0.18 + 0.42 * prog);
-				self.punchangle_z = self.punchangle_z + crandom () * (0.18 + 0.42 * prog);
 				if (time >= self.cy_charge_fx_t)
 				{
 					self.cy_charge_fx_t = time + 0.08;

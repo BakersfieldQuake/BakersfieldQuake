@@ -27,8 +27,9 @@ float	CY_CHARGE_TIME		= 0.8;		// hold time for a full net (fires by itself)
 float	CY_MIN_CHARGE		= 0.25;		// releasing after this fires a weak net; before it, nothing
 float	CY_NET_SPEED		= 1100;		// full net velocity u/s
 float	CY_WEAK_SPEED		= 750;		// weak (early release) net velocity u/s
-float	CY_CATCH_RADIUS		= 60;		// full net proximity catch radius
-float	CY_WEAK_RADIUS		= 44;		// weak net proximity catch radius
+float	CY_NET_SCALE		= 1.7;		// flying net model size (a weak net is 0.7 of this)
+float	CY_CATCH_RADIUS		= 96;		// full net proximity catch radius
+float	CY_WEAK_RADIUS		= 68;		// weak net proximity catch radius
 float	CY_NET_LIFE			= 4.0;		// max projectile flight time
 float	CY_SPLAT_TIME		= 0.5;		// a missed net stays stuck to the wall this long
 float	CY_HOLD_MAX			= 8.0;		// default capture/pull/hold duration (cvar cyrax_hold_time)
@@ -113,6 +114,7 @@ float	cy_fx_bonk_launch;
 .entity	cy_net;				// shooter: the net in flight (crumbs are dropped while it flies)
 .float	cy_radius;			// net projectile: proximity catch radius
 .float	cy_splat_t;			// splatted net: time it hit the wall
+.float	cy_scale_full;		// net projectile: size it unfurls to (starts small so it doesn't cover your view)
 
 // Bonk-Launch strike state on shooter
 .float	cy_bonk_phase;		// 0=off, 1=windup (0.30s), 2=swing follow-through
