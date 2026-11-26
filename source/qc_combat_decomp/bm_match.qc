@@ -82,6 +82,13 @@ void() BM_Precache =
 	JohnBird_Precache ();
 	RocketRider_Precache ();
 	precache_sound ("items/r_item1.wav");	// skeet reward sound (proj_collide.qc); maps without health items never precached it
+	// spawn karts (client.qc Spawn_CheckKart) can only use precached kart kinds: a map that places karts loads its own,
+	// every other map gets the two lightest ones (~12 MB instead of ~42 MB for all six)
+	if (autocvar_bm_kartspawn > 0)
+	{
+		Veh_PrecacheKind (VEH_GOKART_1);
+		Veh_PrecacheKind (VEH_GOKART_2);
+	}
 };
 
 // T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push

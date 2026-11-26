@@ -120,6 +120,8 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_explode_sec, veh_fx_wrec
 .float	veh_spin_roll;		// deg/s airborne barrel roll
 // Go-kart Mario Kart mechanics (gokart.qc)
 .float	gk_nitro;			// 0..100 rechargeable Shift nitro meter
+.float	gk_spawned;			// a player spawned in this kart (client.qc Spawn_SeatInKart): it goes away once left alone
+.float	gk_idle_t;			// ...at this time (0 = being driven, or not yet left)
 .float	gk_boosting;		// TRUE while Shift (+button4) nitro boost is active
 .float	gk_boost_t;			// timed burst end time (Mini-Turbo / Landing Boost)
 .float	gk_boost_pwr;		// target top speed during timed burst

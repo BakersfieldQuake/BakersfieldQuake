@@ -1439,15 +1439,22 @@ void() CTF_team_spawn =
 	}
 };
 
-// ---------------------------------------------------------------- go-kart spawns (Bakersfield Downtown)
-// Ten street-level deathmatch spawns with room around them seat a human player straight into a go-kart.
+// ---------------------------------------------------------------- go-kart spawns (every map, 2026-11-26)
+// About bm_kartspawn (0.3) of human spawns seat the player straight into a go-kart. Only spawns with room to drive
+// hand out karts, so each of those does it more often: chance = bm_kartspawn * all spawns / kart spawns (at most 1).
+// Bakersfield Downtown keeps its ten hand-picked street spawns and headings; other spawns are checked automatically.
 
 .entity	gk_spawnkart;		// spawn point: the kart it last handed out
 .entity	gk_spawn_spot;		// kart-seating helper: the spawn point
 .float	gk_spawn_yaw;
+.float	gk_spawn_kyaw;		// spawn point: 1000 + kart heading once checked (999 = no room for a kart)
+float	gk_spawn_n;			// deathmatch spawns on this map
+float	gk_spawn_k;			// ...of which have room for a kart
+float	gk_spawn_scanned;
+float	GK_SPAWN_RUN		= 320;		// a kart spawn needs this much clear road ahead
 
-// the way the kart faces (clear road ahead), or -1 when this spawn is an ordinary one
-float(entity spot) Spawn_KartYaw =
+// the hand-picked Downtown street spawns: their heading, or -1
+float(entity spot) Spawn_KartYawDowntown =
 {
 	local vector o;
 
@@ -1468,10 +1475,108 @@ float(entity spot) Spawn_KartYaw =
 	return -1;
 };
 
+// clear road (0..GK_SPAWN_RUN) ahead of a kart seated at this spawn and facing yaw; 0 when it would not fit
+float(entity spot, float yaw) Spawn_KartRoom =
+{
+	local vector org, start;
+
+	if (pointcontents (spot.origin) != CONTENT_EMPTY)
+		return 0;
+	org = spot.origin - '0 0 16';			// where Spawn_SeatInKart puts the kart
+	if (GK_IsEmbedded (world, org, yaw))
+		return 0;
+	start = org + '0 0 24';					// above curbs and steps
+	tracebox (start, '-24 -24 0', '24 24 24', start + Veh_Fwd (yaw) * GK_SPAWN_RUN, TRUE, world);
+	if (trace_startsolid)
+		return 0;
+	return trace_fraction * GK_SPAWN_RUN;
+};
+
+// the way the kart faces (clear road ahead), or -1 when this spawn is an ordinary one; worked out once per spawn
+float(entity spot) Spawn_KartYaw =
+{
+	local float yaw, best, room, i, y;
+
+	if (spot.gk_spawn_kyaw)
+		return spot.gk_spawn_kyaw - 1000;
+	yaw = Spawn_KartYawDowntown (spot);
+	if (yaw < 0)
+	{
+		// the spawn's own heading if the road is clear that way, else the clearest of eight
+		best = Spawn_KartRoom (spot, spot.angles_y);
+		yaw = spot.angles_y;
+		i = 0;
+		while (i < 8 && best < GK_SPAWN_RUN)
+		{
+			y = spot.angles_y + 45 * (i + 1);
+			room = Spawn_KartRoom (spot, y);
+			if (room > best)
+			{
+				best = room;
+				yaw = y;
+			}
+			i = i + 1;
+		}
+		if (best < GK_SPAWN_RUN)
+			yaw = -1;
+		else
+			yaw = Veh_NormYaw (yaw);
+	}
+	spot.gk_spawn_kyaw = 1000 + yaw;
+	return yaw;
+};
+
+void() Spawn_KartScan =
+{
+	local entity e;
+
+	gk_spawn_scanned = TRUE;
+	gk_spawn_n = 0;
+	gk_spawn_k = 0;
+	e = find (world, classname, "info_player_deathmatch");
+	while (e != world)
+	{
+		gk_spawn_n = gk_spawn_n + 1;
+		if (Spawn_KartYaw (e) >= 0)
+			gk_spawn_k = gk_spawn_k + 1;
+		e = find (e, classname, "info_player_deathmatch");
+	}
+	dprint ("kart spawns: ", ftos (gk_spawn_k), " of ", ftos (gk_spawn_n), " spawns have room for a go-kart\n");
+};
+
+// the next precached go-kart kind (BM_Precache loads two, maps that place karts load theirs)
+float() Spawn_KartKind =
+{
+	local float i, b;
+
+	i = 0;
+	while (i < 6)
+	{
+		gokart_spawn_cycle = gokart_spawn_cycle + 1;
+		if (gokart_spawn_cycle > 6)
+			gokart_spawn_cycle = 1;
+		b = pow (2, gokart_spawn_cycle - 1);
+		if (gk_loaded_mask & b)
+			return VEH_GOKART_1 + gokart_spawn_cycle - 1;
+		i = i + 1;
+	}
+	return -1;
+};
+
+// the kart this spawn handed out last is still there, empty and whole
+float(entity spot) Spawn_KartParked =
+{
+	local entity v;
+
+	v = spot.gk_spawnkart;
+	return !(v == world || bm_wasfreed (v) || v.classname != "misc_gokart" || v.veh_driver != world || v.veh_state == VEH_STATE_WRECK || vlen (v.origin - spot.origin) > 160);
+};
+
 // self = helper, self.owner = the player who just spawned there
 void() Spawn_SeatInKart =
 {
 	local entity p, v, spot;
+	local float k;
 
 	p = self.owner;
 	spot = self.gk_spawn_spot;
@@ -1481,14 +1586,19 @@ void() Spawn_SeatInKart =
 		return;
 	}
 	v = spot.gk_spawnkart;
-	if (v == world || bm_wasfreed (v) || v.classname != "misc_gokart" || v.veh_driver != world || v.veh_state == VEH_STATE_WRECK || vlen (v.origin - spot.origin) > 160)
+	if (!Spawn_KartParked (spot))
 	{
-		gokart_spawn_cycle = gokart_spawn_cycle + 1;
-		if (gokart_spawn_cycle > 6)
-			gokart_spawn_cycle = 1;
-		v = Veh_SpawnDynamic (VEH_GOKART_1 + gokart_spawn_cycle - 1, spot.origin - '0 0 16', self.gk_spawn_yaw);
+		k = Spawn_KartKind ();
+		if (k < 0)
+		{
+			remove (self);
+			return;
+		}
+		v = Veh_SpawnDynamic (k, spot.origin - '0 0 16', self.gk_spawn_yaw);
+		v.gk_spawned = TRUE;
 		spot.gk_spawnkart = v;
 	}
+	dprint ("kart spawn: ", p.netname, " starts in a go-kart\n");
 	Veh_Enter (p, v);
 	remove (self);
 };
@@ -1496,13 +1606,30 @@ void() Spawn_SeatInKart =
 void(entity p, entity spot) Spawn_CheckKart =
 {
 	local entity e;
-	local float yaw;
+	local float yaw, want;
 
-	if (p.ishuman != 1 || spot == world || CTF_ENABLED)
+	if (spot == world)
 		return;
-	yaw = Spawn_KartYaw (spot);
-	if (yaw < 0)
+	yaw = -1;
+	want = (p.ishuman == 1 && !CTF_ENABLED && autocvar_bm_kartspawn > 0 && !intermission_running);	// bots can't drive
+	if (want)
+	{
+		if (!gk_spawn_scanned)
+			Spawn_KartScan ();
+		yaw = Spawn_KartYaw (spot);
+		if (yaw < 0 || gk_spawn_k <= 0 || random () >= autocvar_bm_kartspawn * gk_spawn_n / gk_spawn_k)
+			want = FALSE;
+	}
+	if (!want)
+	{
+		// no kart this time: an empty one still parked on this spawn goes, or you would stand inside it
+		if (Spawn_KartParked (spot))
+		{
+			Veh_RemoveSpawnKart (spot.gk_spawnkart);
+			spot.gk_spawnkart = world;
+		}
 		return;
+	}
 	e = spawn ();
 	e.classname = "gk_spawn_helper";
 	e.owner = p;

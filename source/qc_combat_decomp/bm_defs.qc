@@ -40,6 +40,7 @@ var float	autocvar_bm_botfill_empty	= 0;		// 1 = fill even with nobody connected
 var float	autocvar_bm_vote			= 1;		// 1 = players can vote on the map ("vote map fox" in chat, then vote yes / vote no)
 var float	autocvar_bm_npcs			= 0;		// 1 = maps get their NPCs (street crowd, bar crowd, bosses, the Fox repair crew); 0 = none (2026-11-26)
 var float	autocvar_bm_traffic			= 0;		// 1 = AI cars and the spruce school bus drive around; 0 = clear streets (2026-11-26)
+var float	autocvar_bm_kartspawn		= 0.3;		// share of human spawns that start in a go-kart, on spawns with room to drive (0 = off)
 
 // Map-placed NPCs and traffic: off unless bm_npcs / bm_traffic. Map entities spawn before the first server frame
 // (framecount 0); the cheat summon impulses call the same spawn functions later, so those still work.

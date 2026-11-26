@@ -1948,6 +1948,7 @@ void(entity p, entity v) Veh_Enter =
 	v.veh_driver = p;
 	v.veh_drive_mode = TRUE;
 	v.veh_coast_until = 0;
+	v.gk_idle_t = 0;		// a spawn kart's idle clock starts again when it is left (Veh_SpawnKartExpired)
 	p.veh_van = v;
 	p.veh_oldmove = p.movetype;
 	p.veh_oldsolid = p.solid;

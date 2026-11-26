@@ -1666,6 +1666,46 @@ void() Veh_TryRespawn =
 	sound (self, CHAN_VOICE, "items/itembk2.wav", 0.8, ATTN_NORM);
 };
 
+// an empty spawn kart (or its wreck) goes away with its walk-in boxes, camera and seated driver model
+void(entity v) Veh_RemoveSpawnKart =
+{
+	Veh_FreeClips (v);
+	if (v.veh_cament != world)
+		remove (v.veh_cament);
+	if (v.veh_driverent != world)
+		remove (v.veh_driverent);
+	remove (v);
+};
+
+// A spawn kart nobody drives is removed 25 s after it was left (later while someone stands near it), so a long match
+// does not fill the streets with empty karts. TRUE when v was removed.
+float(entity v) Veh_SpawnKartExpired =
+{
+	local entity hp;
+
+	if (!v.gk_spawned || v.veh_driver != world)
+		return FALSE;
+	if (!v.gk_idle_t)
+	{
+		v.gk_idle_t = time + 25;
+		return FALSE;
+	}
+	if (time < v.gk_idle_t)
+		return FALSE;
+	hp = bm_player_head;
+	while (hp)
+	{
+		if (hp.health > 0 && vlen (hp.origin - v.origin) < 350)
+		{
+			v.gk_idle_t = time + 10;
+			return FALSE;
+		}
+		hp = hp.bm_player_next;
+	}
+	Veh_RemoveSpawnKart (v);
+	return TRUE;
+};
+
 void() Veh_Think =
 {
 	local vector hofs, fpos;
@@ -1726,6 +1766,12 @@ void() Veh_Think =
 			{
 				self.think = Veh_TryRespawn;
 				self.nextthink = time + min (autocvar_veh_respawn, 15);
+				return;
+			}
+			if (self.gk_spawned)
+			{
+				if (!Veh_SpawnKartExpired (self))
+					self.nextthink = time + 2;
 				return;
 			}
 			self.nextthink = -1;
@@ -1848,6 +1894,8 @@ void() Veh_Think =
 	{
 		if (Veh_IsKart (self.veh_kind))
 		{
+			if (Veh_SpawnKartExpired (self))
+				return;
 			self.frame = 0;
 			self.nextthink = time + 0.5;
 			return;
@@ -1950,25 +1998,32 @@ float() Veh_Customize =
 	return TRUE;
 };
 
+float	gk_loaded_mask;		// bit (kind - VEH_GOKART_1): that go-kart kind is precached on this map (spawn karts pick from these)
+
+// only the kinds this map actually spawns: the body, its wreck and the parts it throws when it blows up
+// (kinds without parts of their own, the golf cart and the karts, use the coupe's). Load time only.
+void(float kind) Veh_PrecacheKind =
+{
+	Vehicles_Precache ();
+	if (Veh_IsKart (kind))
+		GK_Precache ();
+	if (kind >= VEH_GOKART_1 && kind <= VEH_GOKART_6)
+		gk_loaded_mask = gk_loaded_mask | pow (2, kind - VEH_GOKART_1);
+	precache_model (Veh_IntactModel (kind));
+	precache_model (Veh_WreckModel (kind));
+	precache_model (Veh_WheelModel (kind));
+	precache_model (Veh_HoodModel (kind));
+	precache_model (Veh_DoorModel (kind));
+	precache_model (Veh_ExtraModel (kind));
+	precache_model (Veh_BumperModel (kind));
+};
+
 void(entity v, float kind) Veh_InitEntity =
 {
 	local vector org_top;
 
 	if (!v.veh_temp || time <= 1.1)
-	{
-		Vehicles_Precache ();
-		if (Veh_IsKart (kind))
-			GK_Precache ();
-		// only the kinds this map actually spawns: the body, its wreck and the parts it throws when it blows up
-		// (kinds without parts of their own, the golf cart and the karts, use the coupe's)
-		precache_model (Veh_IntactModel (kind));
-		precache_model (Veh_WreckModel (kind));
-		precache_model (Veh_WheelModel (kind));
-		precache_model (Veh_HoodModel (kind));
-		precache_model (Veh_DoorModel (kind));
-		precache_model (Veh_ExtraModel (kind));
-		precache_model (Veh_BumperModel (kind));
-	}
+		Veh_PrecacheKind (kind);
 	veh_has_vans = TRUE;
 	v.veh_kind = kind;
 	v.veh_state = VEH_STATE_IDLE;
