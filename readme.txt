@@ -85,9 +85,7 @@ BakersfieldQuake\source\qc_combat_decomp\csqc\bm_hud.qc). A chill LAN deathmatch
           LAST STAND: 7 deaths in a row (bm_ud_streak; 8 in a 1v1, 6 at 6+ players, 5 at 10+) spawns you with Quad and
           a pentagram for 10 s, every spawn until you get a kill. Bots stop at 60% (bm_ud_botcap) with no Last Stand.
   Announcer (bm_fun.qc): FIRST BLOOD, KILLING SPREE 3 / RAMPAGE 5 / GODLIKE 8, "ended X's spree", DOUBLE / TRIPLE /
-          MULTI KILL (within 3 s), REVENGE, each with a clip from sound/funny played to the whole room; a cheer when
-          last place scores, a clip on gibs, HIGH bonks and 300+ sniper shots, "durr" on suicides. One clip every
-          bm_fun_gap seconds; bm_fun 0 turns it off. The clip table is at the top of bm_fun.qc. Most clips can be a Larry McCart prank-call line instead (sound/larry, bm_fun_larry chance, default 0.7).
+          MULTI KILL (within 3 s), REVENGE. On-screen text only, no voice clips; bm_fun 0 turns it off.
           Kill lines: the CCC gun (the old laser cannon), JohnWave grenade and every self-kill with a mod weapon have their own now.
   Match: bm_maplist playlist (server.cfg: e2m1 dm6 aerowalk dm3 dm4), timelimit 8, the scoreboard moves on
           by itself after 10 s. bm_botfill N keeps FrikBots in until there are N players.

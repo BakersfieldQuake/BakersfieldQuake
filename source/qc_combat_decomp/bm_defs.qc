@@ -53,7 +53,6 @@ var float	autocvar_bm_warmup			= 0;		// set by warmup.cfg: shows the "press F1" 
 
 var float	autocvar_bm_handicap		= 1;		// 0 = no leader glow / underdog boosts
 var float	autocvar_bm_bounty			= 1;		// killing someone 4+ frags ahead of the pack is worth +1
-var float	autocvar_bm_newbie			= 0.3;		// chance that killing the player in last place plays funny/newbie.wav (0 = never)
 var float	autocvar_bm_giantslayer		= 0;		// max extra damage an underdog deals to players ranked above them
 var float	autocvar_bm_ud_resist		= 0;		// max cut in the damage an underdog takes from players ranked above them (0 = reliable TTK)
 var float	autocvar_bm_ud_span			= 8;		// frags behind the leader for the full gap signal in a 1v1 (tighter with more players)
@@ -63,12 +62,9 @@ var float	autocvar_bm_spawnarmor		= 100;		// green armor every deathmatch spawn 
 var float	autocvar_bm_ud_yellow		= 0.3;		// boost for spawning with yellow armor (150)
 var float	autocvar_bm_ud_red			= 0.75;		// boost for spawning with red armor (capped at 150 yellow stack by default)
 
-var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer (bm_fun.qc): no first blood, sprees, revenge, clips
-var float	autocvar_bm_fun_gap			= 10;		// seconds between two global announcer voice clips
+var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer text (bm_fun.qc): no first blood, sprees, revenge
 var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4/Garand); 0 = skip FG1..FG6
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
-var float	autocvar_bm_fun_cheer		= 1;		// chance the room cheers when the player in last place gets a kill
-var float	autocvar_bm_fun_larry		= 0.7;		// chance an announcer clip is the Larry McCart one instead of the stock clip (0 = never)
 var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4 / Garand, 2 = RL, 3 = M4, 5 = Garand, 0 = MegaMan
 var float	autocvar_bm_bot_easy		= 1;		// 1 = easy, fun, aggressive bots with human aim spread (0 = full FrikBot aim)
 var float	autocvar_bm_bot_dmg			= 0.65;		// damage multiplier dealt by bots to players (keeps 5-10 aggressive bots fun & forgiving)
@@ -200,7 +196,6 @@ entity	ud_leader;			// player with the most heat (world = nobody far enough ahea
 .float	bm_shirt_t;			// player: PlayerPreThink armor-shirt throttle (separate from self.delay)
 .float	bm_ctf_dead_t;		// bot: CTF death respawn timer (separate from self.delay)
 float	bm_fun_first;		// first blood has been drawn this map
-float	bm_fun_say_t;		// when the next announcer clip may play
 
 // ---------------------------------------------------------------- prototypes
 void() BM_Frame;
@@ -227,8 +222,6 @@ float() BM_IntermissionThink;
 void() BM_Stats;
 void() BM_StartFrame;
 void() BM_TestImpulses;
-void() BM_Fun_Precache;
-void(entity e, string clip) BM_Fun_Say;
 void(entity targ, entity attacker) BM_Fun_Killed;
 float(entity p) Underdog_IsLast;
 
@@ -289,7 +282,6 @@ float	bm_cvar_dn_mode;
 float	bm_cvar_dn_stay;
 float	bm_cvar_pk_ofs;
 float	bm_cvar_dev;
-float	bm_fun_precached;
 float	david_precached;
 float	daniel_precached;
 float	greensuit_precached;

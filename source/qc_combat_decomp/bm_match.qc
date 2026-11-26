@@ -64,11 +64,9 @@ void() BM_Precache =
 		cvar_set ("sv_maxvelocity", cvar_string ("bm_maxvel_saved"));
 		cvar_set ("bm_maxvel_saved", "0");
 	}
-	// Unconditionally precache jetpack, newbie, and announcer clips in worldspawn so bots on maps without
+	// Unconditionally precache the jetpack in worldspawn so bots on maps without
 	// item_jetpack/item_armor2 (e.g. terminal21, ooika_lawrenceville) and mid-map cvar toggles never precache post-spawn
 	Jetpack_Precache ();
-	precache_sound ("funny/newbie.wav");
-	BM_Fun_Precache ();
 	// Lazy sprite loading: David, Daniel, GreenSuit, RobeGuy and the crowd are about 1 GB of 32-bit sprites. Each of them
 	// precaches itself where it is used (summon impulses, map entities, npc_crowd), so a map that never shows them no longer
 	// loads them. Only the fox crowd is spawned by code after load, so fox still loads its crowd here.

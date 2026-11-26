@@ -237,8 +237,6 @@ void(entity targ, entity attacker) Underdog_Killed =
 		attacker.super_damage_finished = time + 2;
 	}
 	ud_next_t = 0;
-	if (Underdog_IsLast (targ) && random () < autocvar_bm_newbie)
-		BM_Fun_Say (attacker, "funny/newbie.wav");
 	if (!Underdog_On ())
 		return;
 	if (autocvar_bm_bounty && targ.ud_heat >= 4)
