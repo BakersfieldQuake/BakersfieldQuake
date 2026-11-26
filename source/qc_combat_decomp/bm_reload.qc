@@ -99,8 +99,6 @@ float(float s) BM_ReloadTime =
 // ammo units one shot uses (for the HUD round count and the "can I fire" test)
 float(float s) BM_PerShot =
 {
-	if (s == BM_LG)
-		return 0.6;
 	return 1;
 };
 

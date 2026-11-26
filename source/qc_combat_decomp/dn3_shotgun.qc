@@ -5,7 +5,7 @@
 ================
 DN3DOOM PUMP SHOTGUN (replaces IT_SUPER_SHOTGUN slot 3)
 Faithful 35 Hz DSGG animation, sounds, zoom/pitch kick, tracers, smoke,
-shell-by-shell tilt reload, and 120 u/s directional recoil pushback.
+shell-by-shell tilt reload, and 45 u/s directional recoil pushback.
 ================
 */
 
@@ -195,7 +195,7 @@ void() DN3SG_Fire =
 		self.punchangle_x = -2.2;
 	}
 
-	// Directional pushback opposite where you shoot (120 u/s, enables recoil hops)
+	// Directional pushback opposite where you shoot (45 u/s)
 	if (autocvar_pushback != 0)
 	{
 		direc = aim (self, 100);

@@ -54,7 +54,7 @@ var float	autocvar_bm_warmup			= 0;		// set by warmup.cfg: shows the "press F1" 
 var float	autocvar_bm_handicap		= 1;		// 0 = no leader glow / underdog boosts
 var float	autocvar_bm_bounty			= 1;		// killing someone 4+ frags ahead of the pack is worth +1
 var float	autocvar_bm_newbie			= 0.3;		// chance that killing the player in last place plays funny/newbie.wav (0 = never)
-var float	autocvar_bm_giantslayer		= 1;		// max extra damage an underdog deals to players ranked above them
+var float	autocvar_bm_giantslayer		= 0;		// max extra damage an underdog deals to players ranked above them
 var float	autocvar_bm_ud_resist		= 0;		// max cut in the damage an underdog takes from players ranked above them (0 = reliable TTK)
 var float	autocvar_bm_ud_span			= 8;		// frags behind the leader for the full gap signal in a 1v1 (tighter with more players)
 var float	autocvar_bm_ud_streak		= 6;		// deaths in a row for Last Stand with 3-5 players (+1 in a 1v1, -1 at 6+, -2 at 10+)

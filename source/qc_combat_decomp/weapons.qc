@@ -600,7 +600,7 @@ void() W_FireAxe =
 		{
 			extraforce = extraforce + 15;
 		}
-		self.velocity = (self.velocity - (pushback1 * 35));
+		self.velocity = (self.velocity - (pushback1 * 10));
 		if ((trace_ent.flags & FL_MONSTER))
 		{
 			setorigin(trace_ent, (trace_ent.origin + '0 0 5'));
@@ -2764,13 +2764,6 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 			}
 		}
 		T_Damage(trace_ent, from, from, damage);
-		if ((self.classname == "player"))
-		{
-			if ((trace_ent.classname == "player"))
-			{
-				trace_ent.velocity_z = (trace_ent.velocity_z + 400);
-			}
-		}
 		dir = aim(self, 10000);
 		align = dir + (v_up * 0.33);
 		traceline(p1, (p2 + (align * 200)), FALSE, self);
@@ -2928,7 +2921,7 @@ void() W_FireLightning =
 	local vector face_spawn_pos;
 	local vector face_spawn_vel;
 
-	if ((self.ammo_cells < 0.6))
+	if ((self.ammo_cells < 1))
 	{
 		BM_OutOfAmmo();
 		return;
@@ -2957,7 +2950,7 @@ void() W_FireLightning =
 		pushback1 = trace_endpos - self.origin;
 		self.velocity = (self.velocity - pushback1);
 	}
-	self.ammo_cells = (self.ammo_cells - 0.6);
+	self.ammo_cells = (self.ammo_cells - 1);
 	self.currentammo = self.ammo_cells;
 	if ((((autocvar_weapon_position_right == 1) && !autocvar_weapon_position_fully_adjustable) && !cvar("chase_active")))
 	{
@@ -2974,14 +2967,7 @@ void() W_FireLightning =
 			org = self.origin + '0 0 16';
 		}
 	}
-	if (!deathmatch)
-	{
-		traceline(org, (org + (v_forward * 1800)), TRUE, self);
-	}
-	else
-	{
-		traceline(org, (org + (v_forward * 600)), TRUE, self);
-	}
+	traceline(org, (org + (v_forward * 600)), TRUE, self);
 	if ((autocvar_evil_faces && world_has_q1_surfs))
 	{
 		surfnum = getsurfacenearpoint(world, trace_endpos);
@@ -3027,14 +3013,7 @@ void() W_FireLightning =
 		WriteCoord(MSG_BROADCAST, trace_endpos_y);
 		WriteCoord(MSG_BROADCAST, trace_endpos_z);
 	}
-	if ((vlen((trace_endpos - self.origin)) > 1200))
-	{
-		LightningDamage((self.origin + '0 0 12'), (trace_endpos + (v_forward * 4)), self, (autocvar_player_lightninggun * 0.8));
-	}
-	else
-	{
-		LightningDamage((self.origin + '0 0 12'), (trace_endpos + (v_forward * 4)), self, autocvar_player_lightninggun);
-	}
+	LightningDamage((self.origin + '0 0 12'), (trace_endpos + (v_forward * 4)), self, autocvar_player_lightninggun);
 };
 
 void() GrenadeExplode =

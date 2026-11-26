@@ -17,7 +17,7 @@ float DN3SG_DRAW_TIME	= 0.22;			// raise slide time
 float DN3SG_MAG_SIZE	= 8;			// 8-shell tube magazine
 float DN3SG_PELLETS		= 7;			// 7 pellets per shot
 float DN3SG_PELLET_DMG	= 12;			// 7 * 12 = 84 dmg (matches DN3DooM avg)
-float DN3SG_PUSHBACK	= 120;			// 120 u/s pushback opposite aim
+float DN3SG_PUSHBACK	= 45;			// 45 u/s pushback opposite aim
 
 float DN3SG_SND_NONE	= 0;
 

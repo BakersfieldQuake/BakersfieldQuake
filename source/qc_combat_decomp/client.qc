@@ -3153,10 +3153,6 @@ void() PlayerPreThink =
 	}
 	if (self.button2)
 	{
-		if ((self.flags & FL_ONGROUND))
-		{
-			self.flags = (self.flags | FL_JUMPRELEASED);	// hold jump = keep jumping
-		}
 		PlayerJump();
 	}
 	else

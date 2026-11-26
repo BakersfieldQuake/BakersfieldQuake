@@ -267,6 +267,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	{
 		damage = damage * 4;
 	}
+	bm_kb = damage;
 	damage = Underdog_Damage(targ, attacker, damage);
 	damage = BM_Damage(targ, inflictor, attacker, damage);	// spawn protection, less self-damage
 	damage = Milky_Damage(targ, inflictor, attacker, damage);	// the Pink Lady keeps her own hit points (milky.qc)
@@ -286,17 +287,9 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 	}
 	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)) && !(targ.veh_kind == VEH_FORELOCO && targ.invincible_finished >= time))
 	{
-		if (((fg_inflicting == FG_GARAND) && (bm_kb > 20)))
-		{
-			bm_kb = 20;
-		}
-		if (((attacker.classname == "player") && (attacker.weapon == IT_SHOTGUN) && (targ != attacker) && !(targ.flags & FL_ONGROUND)))
-		{
-			bm_kb = (bm_kb * 1.65);		// anti-air skeet-shooter knockback on airborne / jetpacking players
-		}
 		dir = targ.origin - ((inflictor.absmin + inflictor.absmax) * 0.5);
 		dir = normalize(dir);
-		targ.velocity = (targ.velocity + ((dir * bm_kb) * 8));	// full push, even when the damage was scaled down
+		targ.velocity = (targ.velocity + ((dir * bm_kb) * 8));	// full push on self-hits, even when self-damage is scaled down
 	}
 	if (bm_blocked)
 	{
@@ -482,7 +475,6 @@ void(entity inflictor, entity attacker, float damage) T_EELZap =
 void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDamage =
 {
 	local float points;
-	local float radboost;
 	local entity head;
 	local vector org;
 	local entity explo;
@@ -503,19 +495,7 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 		Gyro_Force_AddProperty_Instant(explo);
 		Gyro_Force_AddProperty_WaterOnly(explo);
 	}
-	if ((damage < 50))
-	{
-		radboost = damage * 0.65;
-		if ((attacker.classname == "monster_reiver"))
-		{
-			radboost = radboost + 10;
-		}
-		if ((autocvar_quadreplacer > 0))
-		{
-			radboost = radboost + 20;
-		}
-	}
-	head = findradius(inflictor.origin, ((damage + 40) + radboost));
+	head = findradius(inflictor.origin, (damage + 40));
 	while (head)
 	{
 		if ((head != ignore))
@@ -527,14 +507,7 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 					head.sticky = 1;
 				}
 				org = head.origin + ((head.mins + head.maxs) * 0.5);
-				if ((damage < 50))
-				{
-					points = 0.25 * vlen((inflictor.origin - org));
-				}
-				else
-				{
-					points = 0.5 * vlen((inflictor.origin - org));
-				}
+				points = 0.5 * vlen((inflictor.origin - org));
 				if ((points < 0))
 				{
 					points = 0;
@@ -565,7 +538,7 @@ void(entity inflictor, entity attacker, float damage, entity ignore) T_RadiusDam
 		}
 		head = head.chain;
 	}
-	BakoDestruct_RadiusSplash(inflictor.origin, ((damage + 40) + radboost), damage, inflictor, attacker, FALSE);
+	BakoDestruct_RadiusSplash(inflictor.origin, (damage + 40), damage, inflictor, attacker, FALSE);
 };
 
 void(entity attacker, float damage) T_BeamDamage =

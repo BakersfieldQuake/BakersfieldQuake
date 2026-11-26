@@ -519,7 +519,6 @@ void(entity p) FunGun_Give =
 		// Loose effectinfo.txt already carries all tone1 effects (and newer FPS/jetpack fixes) and is authoritative;
 		// do not exec zz_tone_fx.cfg here or it reloads stale effectinfo_tone1.txt over loose effectinfo.txt.
 		p.bm_fx_sent = TRUE;
-		stuffcmd (p, "cl_movement_track_canjump 0\n");		// hold-to-jump rebounds on the server: predict it, or every landing snaps online
 	}
 	p.scale = 1;
 	p.wc_charging = 0;

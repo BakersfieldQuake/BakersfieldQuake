@@ -91,10 +91,9 @@ void() BM_Precache =
 	}
 };
 
-// T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps the full push
+// T_Damage, after Underdog_Damage: returns the damage to apply; bm_kb keeps self-push full
 float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 {
-	bm_kb = damage;
 	bm_blocked = FALSE;
 	if (targ.classname != "player")
 	{
@@ -121,6 +120,8 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 		}
 		return damage;
 	}
+	if (attacker != targ && attacker.classname == "player" && attacker.ishuman != 1 && autocvar_bm_bot_dmg > 0)
+		bm_kb = bm_kb * autocvar_bm_bot_dmg;
 	if (targ.bm_prot_t > time && damage < 1000)		// telefrags still go through
 	{
 		bm_blocked = TRUE;
