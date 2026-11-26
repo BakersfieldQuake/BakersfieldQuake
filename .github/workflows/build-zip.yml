@@ -1126,10 +1126,19 @@ jobs:
           tag="$TAG"
           if [ "$MAC_BUILD" = true ]; then
             dmgnote="The DMG is added a few minutes after the other files, once notarization finishes. <!-- dmg: expected -->"
-          else
-            dmgnote="No new DMG in this release (the app bundle inputs did not change): use the DMG from an earlier release, the app updates its game data on launch."
           fi
           assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json)
+          # No new DMG: copy the newest one forward, so every release (and releases/latest/download/) has a DMG.
+          # The copied release's mac-inputs note matches that DMG, so the next run's DMG check still works.
+          if [ "$MAC_BUILD" != true ]; then
+            if [ -n "${PREV_DMG_TAG:-}" ] && gh release download "$PREV_DMG_TAG" -R "$GITHUB_REPOSITORY" -p BAKOQUAKE-macos-arm64.dmg --clobber; then
+              assets+=(BAKOQUAKE-macos-arm64.dmg)
+              dmgnote="Same DMG as ${PREV_DMG_TAG} (the app bundle did not change); the app updates its game data on launch."
+            else
+              echo "::warning::could not copy the DMG from ${PREV_DMG_TAG:-<no release with a DMG>}"
+              dmgnote="No DMG in this release: use the DMG from an earlier release, the app updates its game data on launch."
+            fi
+          fi
           flags=(--latest)
           [ "$DRAFT" = true ] && flags=(--draft)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
