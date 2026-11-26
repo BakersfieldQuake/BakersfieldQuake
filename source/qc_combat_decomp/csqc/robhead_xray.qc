@@ -443,8 +443,13 @@ string(string s, float maxw, vector sv) RH_Fit =
 	if (wd <= maxw)
 		return s;
 	n = floor (strlen (s) * maxw / wd);
-	while (n > 1 && stringwidth (strcat (substring (s, 0, n), ".."), FALSE, sv) > maxw)
+	while (n > 1)
+	{
+		wd = stringwidth (strcat (substring (s, 0, n), ".."), FALSE, sv);	// into a float: Windows fteqcc emits double ops on the __variant result
+		if (wd <= maxw)
+			break;
 		n = n - 1;
+	}
 	return strcat (substring (s, 0, max (1, n)), "..");
 };
 

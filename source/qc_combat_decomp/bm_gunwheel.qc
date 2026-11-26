@@ -100,7 +100,10 @@ float() BM_WheelAllowed =
 void() BM_WheelFrame =
 {
 	if (self.ishuman != 1)
+	{
+		self.bm_gw_held = 0;	// observers (ishuman 3) and bots: stat 151 at 0 keeps the wheel shut for them
 		return;
+	}
 	if (!BM_WheelAllowed ())
 	{
 		self.bm_gw_held = 0;

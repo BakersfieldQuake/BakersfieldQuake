@@ -9,7 +9,7 @@ FunGun_ViewFrame calls NS_Throw NS_THROW_DELAY after the fire (the release frame
 NS_DiskViewFrame drives the held model (THE DISK, a skin-animated card like the Milky Gun's).
 The disk is a flying entity (NS_DiskThink, NS_DiskTouch). Where it lands on a floor it turns into the PC in place
 (NS_Stick): the PC's think (NS_Think) plays the frames of progs/netsend_pc.md3 and sends the NET SEND messages (NS_Send).
-A PC never times out, but it can be shot to bits (NS_Die, NS_HEALTH); the only limit is NS_MAX_PCS live PCs per player
+A PC pops quietly after NS_LIFE seconds and can be shot to bits before that (NS_Die, NS_HEALTH); at most NS_MAX_PCS live PCs per player
 (NS_Count). Its damage is dealt in its owner's name with fg_inflicting set, so frags and the
 obituary just work.
 ================
@@ -369,7 +369,7 @@ void(vector org, vector dir) NS_FloppyShot =
 	l.frame = 0;
 	l.touch = NS_LaserTouch;
 	l.think = SUB_Remove;
-	l.nextthink = time + 3;
+	l.nextthink = time + 0.85;		// 900u of reach at 1200 u/s; 3 s kept ~30 networked disks alive per sentry
 	pointparticles (particleeffectnum ("netsend_muzzle"), org, VEC_ORIGIN, 1);
 };
 
@@ -429,7 +429,8 @@ void() NS_Sentry =
 			dir = normalize (e.origin + '0 0 16' - muzzle_org);
 			dir = normalize (dir + (random () - 0.5) * '0.055 0 0' + (random () - 0.5) * '0 0.055 0' + (random () - 0.5) * '0 0 0.025');
 			NS_FloppyShot (muzzle_org, dir);
-			FG_Snd (self, CHAN_WEAPON, "netsend/sentry_fire.wav", 0.85, ATTN_NORM);
+			if (!self.ns_muzzle)		// every other shot (both barrels fire in turn): ~5 sounds a second instead of 10
+				FG_Snd (self, CHAN_WEAPON, "netsend/sentry_fire.wav", 0.85, ATTN_NORM);
 			self.ns_shot_t = time;
 			self.ns_laser_t = time + NS_LASER_GAP;
 		}
@@ -467,7 +468,10 @@ void() NS_Think =
 	}
 	if (self.fg_born > 0 && time - self.fg_born > NS_LIFE)
 	{
-		NS_Die ();
+		// the battery ran out: a quiet pop, not the shot-down blast (that hurt its owner standing on it, 2026-11-26b)
+		pointparticles (particleeffectnum ("netsend_pop"), self.origin + '0 0 30', VEC_ORIGIN, 1);
+		FG_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.7, 1);
+		NS_RemovePC (self);
 		return;
 	}
 	self.nextthink = time + 0.05;
@@ -582,6 +586,7 @@ void(vector spot) NS_Stick =
 	self.solid = SOLID_BBOX;
 	self.takedamage = DAMAGE_AIM;
 	self.health = NS_HEALTH;
+	self.team = self.owner.team;		// teammates' stray shots no longer destroy it (T_Damage's team check)
 	self.th_die = NS_Die;
 	self.view_ofs = '0 0 50';		// where it looks from, for visible ()
 	self.frame = 0;

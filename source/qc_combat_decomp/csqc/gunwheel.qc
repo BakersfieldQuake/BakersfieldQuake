@@ -84,9 +84,15 @@ void() GW_Precache =
 
 float() GW_Allowed =
 {
-	if (inMenu || intermission || finale || getstati (69) != 0 || isdemo () == TRUE || cvar ("bm_char_open") > 0)
+	local float intro, demo, hp, owned;	// builtins are __variant: compare floats (Windows fteqcc emits double ops)
+
+	intro = getstati (69);
+	demo = isdemo ();
+	if (inMenu || intermission || finale || intro != 0 || demo == TRUE || cvar ("bm_char_open") > 0)
 		return FALSE;
-	return getstati (STAT_HEALTH) > 0 && getstati (GW_STAT + GW_SLOTS) > 0;
+	hp = getstati (STAT_HEALTH);
+	owned = getstati (GW_STAT + GW_SLOTS);
+	return hp > 0 && owned > 0;
 };
 
 void() GW_Close =
@@ -106,6 +112,7 @@ void() GW_Open =
 	gw_y = 0;
 	gw_sel = -1;
 	setsensitivityscale (0);
+	localcmd ("-attack\n");		// fire held while opening kept shooting under the frozen view
 };
 
 // the key came up (or a click): equip the highlighted gun
@@ -121,7 +128,8 @@ void() GW_Pick =
 	v = getstati (GW_STAT + gw_sel);
 	if (v < 2)
 		return;				// not owned, not installed or out of ammo
-	if (getstati (GW_STAT + GW_SLOTS) == gw_sel + 1)
+	v = getstati (GW_STAT + GW_SLOTS);
+	if (v == gw_sel + 1)
 		return;				// already in hand (asking again would inspect the Mega Man)
 	localcmd (strcat ("impulse ", ftos (GW_Impulse (gw_sel)), "\n"));
 };
@@ -184,6 +192,8 @@ float(float evtype, float key, float chr) GW_InputEvent =
 		GW_Pick ();
 		return TRUE;
 	}
+	if (key == K_MWHEELUP || key == K_MWHEELDOWN)
+		return TRUE;		// no weapon cycling under the open wheel
 	return FALSE;
 };
 
@@ -280,7 +290,8 @@ void(float cw, float ch, float pw, float ph) GW_Draw =
 	px = 1;						// soft edge, 2D units
 	if (ph > 0)
 		px = 1.2 * ch / ph;
-	held = getstati (GW_STAT + GW_SLOTS) - 1;
+	held = getstati (GW_STAT + GW_SLOTS);
+	held = held - 1;
 
 	for (i = 0; i < GW_SLOTS; i = i + 1)
 	{

@@ -343,6 +343,8 @@ void(entity p) Cyrax_StopCharge =
 
 void(entity p) Cyrax_ResetPlayer =
 {
+	local entity e, nx;
+
 	if (p == world || bm_wasfreed (p))
 		return;
 	Cyrax_StopCharge (p);
@@ -363,6 +365,15 @@ void(entity p) Cyrax_ResetPlayer =
 	p.cy_click_ready = FALSE;
 	p.cy_need_release = FALSE;
 	p.cy_net = world;
+	// nets still flying from this life: they used to vanish beside people while you were dead, or catch for your next life
+	e = find (world, classname, "cyrax_net_proj");
+	while (e)
+	{
+		nx = find (e, classname, "cyrax_net_proj");
+		if (e.owner == p && e != self)
+			remove (e);
+		e = nx;
+	}
 	Cyrax_ClearCrumbs (p);
 	p.cy_launch_until = 0;
 	p.cy_st_mode = 0;
@@ -631,7 +642,7 @@ void(entity wrap, entity targ) Cyrax_PositionWrap =
 	setorigin (wrap, targ.origin + ofs);
 	f = floor (time * 14);
 	wrap.frame = f - 8 * floor (f / 8);
-	wrap.angles_y = wrap.angles_y + 180 * frametime;
+	wrap.angles_y = time * 180 - 360 * floor (time * 0.5);	// from the clock: two callers per tick spun it double and unevenly
 };
 
 void() Cyrax_WrapThink =
@@ -706,7 +717,12 @@ void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
 		targ = targ.jb_vehicle;
 
 	if (shooter.cy_hold_targ != world)
-		Cyrax_ReleaseHold (shooter);
+		return;		// a net still in flight never swaps out the catch you already hold (2026-11-26b)
+	// a charge started before this catch would fire a second net and break the pull route: stop it, and make the
+	// trigger come up before the Bonk click counts
+	if (shooter.cy_charging > 0)
+		Cyrax_StopCharge (shooter);
+	shooter.cy_need_release = shooter.button0;
 
 	if (targ.classname == "misc_vehicle_johnbird")
 		kind = 1;
@@ -1148,6 +1164,12 @@ void(entity targ, vector move) Cyrax_SlideMove =
 	}
 };
 
+float(entity targ, vector pos, vector goal) Cyrax_HopSees =
+{
+	traceline (pos, goal, TRUE, targ);
+	return (trace_fraction == 1 && !trace_startsolid);
+};
+
 // No progress: hop forward toward goal to the first spot (up to 96u ahead) where the hull fits.
 // If nothing fits, snap onto the goal when it fits there. Returns TRUE when it moved.
 float(entity targ, vector goal) Cyrax_Hop =
@@ -1167,13 +1189,14 @@ float(entity targ, vector goal) Cyrax_Hop =
 			pos = goal;
 		else
 			pos = org + dir * s;
-		if (s > 12 && Cyrax_HullFits (targ, pos))
+		// a spot must also see the goal (a crumb or the hold point, both reachable): no hopping through walls or doors
+		if (s > 12 && Cyrax_HullFits (targ, pos) && Cyrax_HopSees (targ, pos, goal))
 		{
 			setorigin (targ, pos);
 			Cyrax_Fx (cy_fx_net_capture, pos, '0 0 0', 1);
 			return TRUE;
 		}
-		if (s > 12 && Cyrax_HullFits (targ, pos + '0 0 18'))
+		if (s > 12 && Cyrax_HullFits (targ, pos + '0 0 18') && Cyrax_HopSees (targ, pos + '0 0 18', goal))
 		{
 			setorigin (targ, pos + '0 0 18');
 			Cyrax_Fx (cy_fx_net_capture, pos, '0 0 0', 1);
@@ -1681,7 +1704,7 @@ void() Cyrax_Frame =
 		busy = (self.health <= 0 || self.deadflag || intermission_running
 			|| self.weapon != IT_FUNGUN || self.fg_sel != FG_CYRAX
 			|| self.bm_rl_slot != 0 || self.meleeing == 1 || self.throwing == 1
-			|| self.cy_trapped_by != world
+			|| self.cy_trapped_by != world || self.cy_hold_targ != world
 			|| FD_Flying (self) || Veh_Driving (self) || JohnBird_Flying (self) || RocketRider_Flying (self)
 			|| EricCannon_Active (self) || MMTank_Driving (self) || Binoc_On (self));
 
@@ -1774,6 +1797,7 @@ void() Cyrax_VictimPreThink =
 	self.movement = '0 0 0';
 	self.button0 = 0;
 	self.button2 = 0;
+	self.button3 = 0;		// no binoculars while netted
 	self.impulse = 0;
 	self.flags = self.flags - (self.flags & FL_ONGROUND);
 };
