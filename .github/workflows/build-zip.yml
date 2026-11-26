@@ -149,15 +149,17 @@ jobs:
           done
           rm -f out/BAKOQUAKE/BakersfieldQuake/zz_hart.pk3
           # Fetch loose bakersfieldish map files if not yet present in the base release zip.
+          # The .bsp is the 2026-11-26 "clear streets" build: the 75 parked cars and their clip boxes are gone
+          # (collision hulls grafted by source/mm_tools/graft_bsp_hulls.py; looks and lighting unchanged, same .lit).
           bako_bsp=out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.bsp
           bako_lit=out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.lit
-          if [ ! -f "$bako_bsp" ] || [ "$(sha256sum "$bako_bsp" | awk '{print $1}')" != "1c0b75291880edd36b7665304f7331a9d7ccce80bb6c8e4916eda82baad162f3" ]; then
-            curl -fsSL -o "$bako_bsp" https://bakersfield.larrywew.fun/maps/bakersfieldish.bsp
+          if [ ! -f "$bako_bsp" ] || [ "$(sha256sum "$bako_bsp" | awk '{print $1}')" != "8a933cbd4e096f733ecbdb7d03fc3dfb20b167e66fea86a3d328c7cc281c39b9" ]; then
+            curl -fsSL -o "$bako_bsp" https://bakersfield.larrywew.fun/maps/bakersfieldish_clearstreets.bsp
           fi
           if [ ! -f "$bako_lit" ] || [ "$(sha256sum "$bako_lit" | awk '{print $1}')" != "7b69bb7445d01d255996b7ced2054cf86f575a539a24458a1d7bc8a5d1ddad0a" ]; then
             curl -fsSL -o "$bako_lit" https://bakersfield.larrywew.fun/maps/bakersfieldish.lit
           fi
-          echo "1c0b75291880edd36b7665304f7331a9d7ccce80bb6c8e4916eda82baad162f3  $bako_bsp" | sha256sum -c -
+          echo "8a933cbd4e096f733ecbdb7d03fc3dfb20b167e66fea86a3d328c7cc281c39b9  $bako_bsp" | sha256sum -c -
           echo "7b69bb7445d01d255996b7ced2054cf86f575a539a24458a1d7bc8a5d1ddad0a  $bako_lit" | sha256sum -c -
           base_bakersfield=$(sha256sum out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | awk '{print $1}')
           base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
