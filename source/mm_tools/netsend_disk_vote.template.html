@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE DISK Vote</title>
+<style>
+  :root {
+    --bg:#0b0e16; --surface:#121827; --surface2:#1a2235; --border:#26304a; --border-hi:#3a4870;
+    --text:#d3dcec; --dim:#8a96b2; --white:#fff; --accent:#4a7dff; --accent-hi:#6f97ff;
+    --a:#ffb347; --b:#5ee0a0; --c:#ff6fae; --ok:#43d17a; --warn:#ffcc4d; --bad:#ff6161;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:15px/1.55 Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+    background-image:radial-gradient(ellipse 80% 40% at 50% -5%, rgba(74,125,255,.16), transparent 70%); }
+  .wrap { max-width:1280px; margin:0 auto; padding:28px 16px 120px; }
+  .eyebrow { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-hi); font-weight:650; }
+  h1 { margin:.2em 0 .25em; font-size:clamp(26px,4vw,38px); color:var(--white); letter-spacing:-.02em; line-height:1.15; }
+  h1 .disk { display:inline-block; background:#1f4fd6; color:#f3ead7; padding:0 .35em; border-radius:4px;
+    font-family:"Courier New",ui-monospace,monospace; font-weight:800; letter-spacing:.02em; }
+  .lede { color:var(--dim); max-width:80ch; margin:0; }
+  h2 { font-size:21px; color:var(--white); margin:46px 0 6px; letter-spacing:-.01em; }
+  h2 .num { color:var(--accent-hi); margin-right:10px; font-variant-numeric:tabular-nums; }
+  h3 { font-size:15px; color:var(--white); margin:18px 0 6px; }
+  .sub { color:var(--dim); font-size:14px; margin:0 0 16px; max-width:90ch; }
+  code, .mono { font-family:"Cascadia Mono",ui-monospace,Menlo,monospace; font-size:.88em; }
+  code { background:var(--surface2); padding:1px 5px; border-radius:4px; }
+  nav.toc { position:sticky; top:0; z-index:20; margin:20px -16px 0; padding:10px 16px;
+    background:rgba(11,14,22,.86); backdrop-filter:blur(8px); border-bottom:1px solid var(--border);
+    display:flex; gap:6px; flex-wrap:wrap; }
+  nav.toc a { color:var(--text); text-decoration:none; padding:5px 11px; border-radius:999px; font-size:13px;
+    border:1px solid var(--border); background:var(--surface); }
+  nav.toc a:hover { border-color:var(--border-hi); color:var(--white); }
+  nav.toc a.vote { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .grow { flex:1; }
+  button, select { font:inherit; font-size:13px; color:var(--text); background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:7px 12px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--border-hi); color:var(--white); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650; }
+  button.primary:hover { background:var(--accent-hi); }
+  button.on { border-color:var(--accent-hi); color:var(--white); box-shadow:inset 0 0 0 1px var(--accent-hi); }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+  .seg button { border:0; border-radius:0; background:var(--surface2); }
+  .seg button + button { border-left:1px solid var(--border); }
+  .seg button.on { background:#24305a; box-shadow:none; }
+  label.chk { display:inline-flex; gap:6px; align-items:center; font-size:13px; color:var(--dim); cursor:pointer; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; padding:2px 7px; border-radius:5px; color:#10131c; }
+  .tA { background:var(--a); } .tB { background:var(--b); } .tC { background:var(--c); }
+
+  /* stages */
+  .stages { display:grid; gap:12px; grid-template-columns:repeat(3, minmax(0,1fr)); margin-top:12px; }
+  .stages.single { grid-template-columns:minmax(0,1fr); }
+  @media (max-width:900px) { .stages { grid-template-columns:minmax(0,1fr); } }
+  .stagebox { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .stagebox.selA { border-color:color-mix(in srgb, var(--a) 60%, var(--border)); }
+  .stagebox.selB { border-color:color-mix(in srgb, var(--b) 60%, var(--border)); }
+  .stagebox.selC { border-color:color-mix(in srgb, var(--c) 60%, var(--border)); }
+  .stage { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; background:#000; cursor:crosshair; user-select:none; }
+  .stage canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .stage .lbl { position:absolute; left:10px; top:8px; font-size:12px; font-weight:700; color:#fff;
+    text-shadow:0 1px 2px #000, 0 0 6px #000; letter-spacing:.02em; pointer-events:none; }
+  .stage .st { position:absolute; right:10px; top:8px; font-size:11px; color:#e6ecf8; font-family:ui-monospace,monospace;
+    text-shadow:0 1px 2px #000, 0 0 6px #000; pointer-events:none; }
+  .stage .ammo { position:absolute; right:12px; bottom:10px; font:700 13px ui-monospace,monospace; color:#ffd27a;
+    text-shadow:0 1px 2px #000, 0 0 6px #000; pointer-events:none; }
+  .stage .loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff;
+    background:rgba(0,0,0,.55); font-size:13px; }
+  .stagectl { padding:10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; border-top:1px solid var(--border); }
+  .stagectl .ttl { font-weight:700; color:var(--white); margin-right:4px; }
+  .stagectl button { padding:5px 9px; font-size:12px; }
+  .blurb { padding:0 10px 12px; color:var(--dim); font-size:13px; }
+
+  /* inspector */
+  .insp { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; }
+  @media (max-width:900px) { .insp { grid-template-columns:1fr; } }
+  .checker { background-color:#d9d9d9;
+    background-image:linear-gradient(45deg,#bbb 25%,transparent 25%),linear-gradient(-45deg,#bbb 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#bbb 75%),linear-gradient(-45deg,transparent 75%,#bbb 75%);
+    background-size:20px 20px; background-position:0 0,0 10px,10px -10px,-10px 0; }
+  .inspview { position:relative; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+  .inspview canvas { display:block; width:100%; height:auto; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--dim); font-weight:600; }
+  td.n { font-variant-numeric:tabular-nums; text-align:right; }
+
+  /* projectile */
+  .proj { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; }
+  @media (max-width:900px) { .proj { grid-template-columns:1fr; } }
+  .proj canvas { width:100%; aspect-ratio:1/1; display:block; border-radius:10px; background:radial-gradient(circle at 50% 40%, #27314d, #0c0f18 70%); }
+  .proj img { width:100%; border-radius:10px; display:block; image-rendering:auto; }
+
+  /* sources */
+  .src { display:grid; gap:12px; }
+  .srcrow { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; }
+  .srcrow .strip { position:relative; margin-top:8px; }
+  .srcrow .strip img { width:100%; display:block; border-radius:6px; }
+  .srcrow .bars { position:relative; height:52px; margin-top:4px; }
+  .srcrow .bar { position:absolute; height:8px; border-radius:3px; font-size:10px; line-height:8px; }
+  .srcrow .bar span { position:absolute; top:9px; left:0; white-space:nowrap; color:var(--dim); font-size:10.5px; line-height:1.2; }
+  .barA { background:var(--a); top:0; } .barB { background:var(--b); top:0; } .barC { background:var(--c); top:0; }
+  .barX { background:#55607a; top:0; } .barR { background:#c9d3ea; top:0; }
+
+  /* vote */
+  .pick { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  @media (max-width:760px) { .pick { grid-template-columns:1fr; } }
+  .pick label { display:block; cursor:pointer; background:var(--surface2); border:2px solid var(--border); border-radius:12px; padding:12px; }
+  .pick input { display:none; }
+  .pick input:checked + .pc { outline:none; }
+  .pick label:has(input:checked) { border-color:var(--accent-hi); background:#1c2747; }
+  .pc .t { font-weight:750; color:var(--white); font-size:16px; }
+  .stars { display:inline-flex; gap:2px; margin-top:6px; }
+  .stars button { background:none; border:0; padding:0 2px; font-size:20px; color:#47506a; cursor:pointer; }
+  .stars button.lit { color:#ffcc4d; }
+  textarea, input[type=text] { width:100%; font:inherit; font-size:14px; color:var(--text); background:#0e1320;
+    border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  textarea { min-height:64px; resize:vertical; }
+  .fbgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  @media (max-width:760px) { .fbgrid { grid-template-columns:1fr; } }
+  .favs { display:flex; flex-wrap:wrap; gap:6px; }
+  .favs label { font-size:12.5px; border:1px solid var(--border); background:var(--surface2); border-radius:999px; padding:4px 10px; cursor:pointer; }
+  .favs label:has(input:checked) { border-color:var(--accent-hi); color:var(--white); background:#1c2747; }
+  .favs input { margin:0 5px 0 0; vertical-align:-1px; }
+  .msg { font-size:13px; margin-top:8px; }
+  .msg.ok { color:var(--ok); } .msg.err { color:var(--bad); }
+  .tally { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:10px; }
+  .tally .tc { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px; }
+  .tally .big { font-size:28px; font-weight:800; color:var(--white); font-variant-numeric:tabular-nums; }
+  .meter { height:6px; background:#0e1320; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .meter i { display:block; height:100%; }
+  .notes li { margin:4px 0; }
+  .kbd { font:600 11px ui-monospace,monospace; border:1px solid var(--border-hi); border-bottom-width:2px; padding:0 5px; border-radius:4px; color:var(--white); }
+  footer { margin-top:50px; color:var(--dim); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">BakersfieldQuake · NetSend gun · held model</div>
+  <h1>Pick the hand for <span class="disk">THE DISK</span></h1>
+  <p class="lede">The NetSend gun's old 3D hand is replaced by a sprite built from your seven Grok videos, the same way the Milky Gun's hand is made: every frame keyed off the white backdrop and put on one card. There are three animation sets to compare. Each has a rest hold, trick idles that play by themselves, and a throw. Watch them below, step through any clip frame by frame, then vote.</p>
+
+  <nav class="toc">
+    <a href="#compare">Compare</a><a href="#inspect">Frame inspector</a><a href="#projectile">Projectile</a>
+    <a href="#sources">Source videos</a><a href="#notes">Notes</a><a href="#vote" class="vote">Vote</a>
+  </nav>
+
+  <h2 id="compare"><span class="num">01</span>Compare the three sets</h2>
+  <p class="sub">Each screen runs the same logic the game will run: the hand rests and breathes, every few seconds it does one of its tricks, and fire throws. The thrown disk is the real projectile model, flying from the same spot with the same speed and gravity as in the game. Click a screen or press <span class="kbd">Space</span> to throw. <span class="kbd">1</span>–<span class="kbd">3</span> plays a trick.</p>
+  <div class="card">
+    <div class="row">
+      <div class="seg" id="layout"><button data-v="all" class="on">Side by side</button><button data-v="A">A</button><button data-v="B">B</button><button data-v="C">C</button></div>
+      <button class="primary" id="throwAll">Throw (all)</button>
+      <div class="seg" id="speed"><button data-v="1" class="on">1×</button><button data-v="0.5">½×</button><button data-v="0.25">¼×</button><button data-v="0.1">⅒×</button></div>
+      <select id="bgsel" aria-label="Backdrop"></select>
+      <label class="chk"><input type="checkbox" id="auto" checked> Auto tricks</label>
+      <label class="chk"><input type="checkbox" id="bounds"> Card outline</label>
+      <label class="chk"><input type="checkbox" id="xhair" checked> Crosshair</label>
+    </div>
+  </div>
+  <div class="stages" id="stages"></div>
+
+  <h2 id="inspect"><span class="num">02</span>Frame inspector</h2>
+  <p class="sub">Every clip of every set, frame by frame, on a checkerboard so you can judge the keying: no white halos, no holes, no jumps. The throw clips are at 60 fps; the release frame is marked.</p>
+  <div class="insp">
+    <div>
+      <div class="inspview checker" id="inspview"><canvas id="inspcv"></canvas></div>
+      <div class="row" style="margin-top:8px">
+        <button id="iplay" class="primary">Pause</button>
+        <button id="iprev">◀ Frame</button><button id="inext">Frame ▶</button>
+        <div class="seg" id="ibg"><button data-v="checker" class="on">Checker</button><button data-v="dark">Dark</button><button data-v="light">Light</button></div>
+        <label class="chk"><input type="checkbox" id="ionion"> Onion skin</label>
+        <span class="grow"></span>
+        <span class="mono" id="iinfo"></span>
+      </div>
+      <input type="range" id="iscrub" min="0" max="1" value="0" style="margin-top:8px">
+    </div>
+    <div class="card">
+      <div class="row"><div class="seg" id="iset"><button data-v="A" class="on">Set A</button><button data-v="B">Set B</button><button data-v="C">Set C</button></div></div>
+      <table style="margin-top:10px" id="iclips"><thead><tr><th>Clip</th><th>Frames</th><th>fps</th><th>Plays</th></tr></thead><tbody></tbody></table>
+      <p class="sub" id="inote" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <h2 id="projectile"><span class="num">03</span>The thrown disk</h2>
+  <p class="sub">The projectile (<code>progs/netsend_disk.md3</code>) is rebuilt to match the disk in the hand: a blue 3.5" floppy textured from your own video frames. The front comes from v1 f240 and the back from v2 f90, each rectified with the glove painted out. It has rounded corners, the angled corner notch and a raised metal shutter. Drag to turn it.</p>
+  <div class="proj">
+    <div><canvas id="turn"></canvas>
+      <div class="row" style="margin-top:8px"><div class="seg" id="pframe"><button data-v="0" class="on">Flying (frame 0)</button><button data-v="1">Stuck in the floor (frame 1)</button></div><label class="chk"><input type="checkbox" id="pspin" checked> Spin</label></div></div>
+    <div><img id="patlas" alt="Projectile texture atlas: front, back, shutter, rim">
+      <p class="sub" style="margin-top:8px" id="pfacts"></p></div>
+  </div>
+
+  <h2 id="sources"><span class="num">04</span>Source videos: what went where</h2>
+  <p class="sub">All seven clips (24 fps, 241 frames each) were split into frames and keyed. The coloured bars show which frames each set uses. Grey marks material that was looked at and left out, with the reason.</p>
+  <div class="src" id="srcs"></div>
+
+  <h2 id="notes"><span class="num">05</span>Notes: what changed</h2>
+  <div class="card notes" id="notesbox"></div>
+
+  <h2 id="vote"><span class="num">06</span>Vote</h2>
+  <p class="sub">Pick your favourite set, rate all three if you like, and say what to change. You can also tick single clips you want kept whichever set wins, since clips can be mixed. Votes are saved on the server and posted to the BAKOQUAKE Telegram group.</p>
+  <form id="vform" class="card" autocomplete="off">
+    <h3>Favourite set</h3>
+    <div class="pick" id="pick"></div>
+    <h3>Clips worth keeping (any set)</h3>
+    <div class="favs" id="favs"></div>
+    <h3>Feedback</h3>
+    <div class="fbgrid">
+      <div><label class="mono" for="fbA">Set A · Frisbee Pro</label><textarea id="fbA"></textarea></div>
+      <div><label class="mono" for="fbB">Set B · Trickster</label><textarea id="fbB"></textarea></div>
+      <div><label class="mono" for="fbC">Set C · Showboat</label><textarea id="fbC"></textarea></div>
+      <div><label class="mono" for="fbthrow">The throws</label><textarea id="fbthrow"></textarea></div>
+      <div><label class="mono" for="fbidle">The idles / tricks</label><textarea id="fbidle"></textarea></div>
+      <div><label class="mono" for="fbproj">The thrown disk</label><textarea id="fbproj"></textarea></div>
+    </div>
+    <div style="margin-top:10px"><label class="mono" for="fbo">Anything else</label><textarea id="fbo"></textarea></div>
+    <div class="row" style="margin-top:12px">
+      <input type="text" id="voter" placeholder="Your name" style="max-width:260px">
+      <button class="primary" type="submit" id="vsend">Send vote</button>
+      <button type="button" id="vcopy">Copy as text</button>
+      <span class="grow"></span>
+    </div>
+    <div class="msg" id="vmsg"></div>
+    <h3 style="margin-top:22px">Results so far</h3>
+    <div class="tally" id="tally"></div>
+    <div id="recent" style="margin-top:10px"></div>
+  </form>
+
+  <footer>Built by <code>source/mm_tools/build_netsend_disk_view.py</code>, <code>build_netsend_disk_proj.py</code> and <code>build_netsend_disk_vote_html.py</code>. Self-contained: no external files or scripts. Voting needs a connection to bakersfield.larrywew.fun.</footer>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const API = "https://bakersfield.larrywew.fun/api/netsend-disk-vote";
+const SETS = ["A","B","C"];
+const COL = {A:"#ffb347", B:"#5ee0a0", C:"#ff6fae"};
+let SPEED = 1, AUTO = true, BOUNDS = false, XHAIR = true, BG = null;
+
+// ------------------------------------------------------------------ frames (decoded lazily, once per set)
+const IMG = {};
+function setImages(id) {
+  if (!IMG[id]) {
+    const arr = D.sets[id].frames.map(src => { const im = new Image(); im.decoding = "async"; im.src = src; return im; });
+    IMG[id] = { arr, ready: Promise.all(arr.map(im => im.decode().catch(() => {}))) };
+  }
+  return IMG[id];
+}
+const clip = (id, kind, idx) => { const cs = D.sets[id].clips.filter(c => c.kind === kind); return idx == null ? cs[0] : cs[idx]; };
+const tricks = id => D.sets[id].clips.filter(c => c.kind === "trick");
+
+// backdrops
+const BGIMG = {};
+for (const [k, v] of Object.entries(D.bgs)) { const im = new Image(); im.src = v.src; BGIMG[k] = im; }
+
+// ------------------------------------------------------------------ easing
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const smooth = u => u * u * (3 - 2 * u);
+const easeOutBack = u => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+
+// ------------------------------------------------------------------ the rig: same state machine as NS_DiskViewFrame in QuakeC
+// draw -> rest <-> trick ; fire -> throw (disk leaves at the release frame) -> drop -> empty -> draw
+const RAISE = 0.42, DROP = 0.24, EMPTY = 0.40;
+class Rig {
+  constructor(id) { this.id = id; this.ammo = 3; this.nextTrick = 0; this.reset(); }
+  reset() { this.state = "draw"; this.t = 0; this.restT = 0; this.wait = 2.2 + Math.random() * 1.5; this.flights = []; }
+  go(state, extra) { this.state = state; this.t = 0; Object.assign(this, extra || {}); }
+  fire() {
+    if (this.state === "throw" || this.state === "drop" || this.state === "empty") return false;
+    if (this.ammo <= 0) return false;
+    this.go("throw", { launched: false });
+    return true;
+  }
+  trick(k) { if (this.state === "rest" || this.state === "trick") this.go("trick", { tk: k }); }
+  update(dt, now) {
+    this.t += dt;
+    const S = this.state, R = clip(this.id, "rest");
+    let frame = R.first, dy = 0, dx = 0, rot = 0, show = true, label = S;
+    if (S === "draw") {
+      const u = clamp(this.t / RAISE, 0, 1);
+      dy = (1 - easeOutBack(u)) * 0.62; rot = (1 - u) * -6;
+      if (u >= 1) this.go("rest", { restT: 0 });
+    } else if (S === "rest") {
+      this.restT += dt;
+      const span = R.count - 1, per = span / R.fps;                // one way
+      const cyc = (this.t % (2 * per)) / per;                       // 0..2
+      const k = cyc < 1 ? cyc : 2 - cyc;
+      frame = R.first + Math.round(k * span);
+      if (AUTO && this.restT > this.wait && this.t > 2 * per - dt * 1.5 - (this.t % (2 * per)) + 0) {
+        // start a trick only on the loop's neutral frame
+        if ((this.t % (2 * per)) < dt * 1.5) { const ts = tricks(this.id); this.go("trick", { tk: this.nextTrick % ts.length }); this.nextTrick++; }
+      }
+      label = "rest";
+    } else if (S === "trick") {
+      const c = tricks(this.id)[this.tk];
+      label = c.name;
+      if (c.play === "pingpong") {
+        const fwd = (c.count - 1) / c.fps, back = (c.count - 1) / (c.fps * c.back);
+        if (this.t < fwd) frame = c.first + Math.floor(this.t * c.fps);
+        else if (this.t < fwd + back) frame = c.first + (c.count - 1) - Math.floor((this.t - fwd) * c.fps * c.back);
+        else { this.go("rest", { restT: 0, wait: 3 + Math.random() * 3 }); frame = R.first; }
+      } else {
+        const i = Math.floor(this.t * c.fps);
+        if (i < c.count) frame = c.first + i;
+        else { this.go("rest", { restT: 0, wait: 3 + Math.random() * 3 }); frame = R.first; }
+      }
+    } else if (S === "throw") {
+      const c = clip(this.id, "throw");
+      const i = Math.floor(this.t * c.fps);
+      label = c.name;
+      if (!this.launched && i >= c.release) { this.launched = true; this.ammo--; this.flights.push({ t: 0 }); }
+      if (i < c.count) frame = c.first + i;
+      else { frame = c.first + c.count - 1; this.go("drop"); }
+    } else if (S === "drop") {
+      const c = clip(this.id, "throw");
+      frame = c.first + c.count - 1;
+      const u = clamp(this.t / DROP, 0, 1);
+      dy = u * u * 0.7; dx = u * 0.05; rot = u * 9;
+      if (u >= 1) this.go("empty");
+    } else if (S === "empty") {
+      show = false;
+      if (this.t > EMPTY) { if (this.ammo <= 0) this.ammo = 3; this.go("draw"); }
+    }
+    // gentle hand sway, as the game adds to the card
+    if (S === "rest" || S === "trick" || S === "draw") { dx += Math.sin(now * 1.1) * 0.004; dy += Math.sin(now * 2.2) * 0.0035; }
+    for (const f of this.flights) f.t += dt;
+    this.flights = this.flights.filter(f => f.t < 2.2);
+    this.view = { frame, dx, dy, rot, show, label };
+  }
+}
+
+// ------------------------------------------------------------------ WebGL disk renderer (projectile flights + turntable)
+// no WebGL (blocked or unsupported): the same mesh drawn with a 2D canvas, affine-textured triangles sorted back to front
+function makeDisk2D(canvas) {
+  const ctx = canvas.getContext("2d"), P = D.proj, tim = new Image();
+  tim.src = P.tex;
+  const quakeToGL = (v) => [-v[1], v[2], -v[0]];
+  const frames = [0, 1].map(fi => ({ v: P.frames[fi].v.map(quakeToGL), n: P.frames[fi].n.map(quakeToGL) }));
+  const xf = (m, p) => [m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12], m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13], m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14], m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15]];
+  const L = [-0.35, 0.8, -0.45], Ln = Math.hypot(...L);
+  return {
+    resize() { const r = canvas.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      const w = Math.max(2, Math.round(r.width * d)), h = Math.max(2, Math.round(r.height * d));
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; } },
+    clear() { ctx.clearRect(0, 0, canvas.width, canvas.height); },
+    draw(fi, model, proj, fade) {
+      if (!tim.complete || !tim.naturalWidth) return;
+      const W = canvas.width, H = canvas.height, tw = tim.naturalWidth, th = tim.naturalHeight, F = frames[fi];
+      const mvp = mul(proj, model), sp = [], sh = [];
+      for (let i = 0; i < F.v.length; i++) {
+        const c = xf(mvp, F.v[i]); if (c[3] <= 0.01) return;
+        sp.push([(c[0] / c[3] * 0.5 + 0.5) * W, (0.5 - c[1] / c[3] * 0.5) * H, c[2] / c[3]]);
+        const n = xf(model, [...F.n[i]].concat([])).slice(0, 3), nn = [n[0] - model[12], n[1] - model[13], n[2] - model[14]];
+        const nl = Math.hypot(...nn) || 1; sh.push(Math.abs((nn[0]*L[0] + nn[1]*L[1] + nn[2]*L[2]) / nl / Ln));
+      }
+      const tris = P.tris.map(t => [t, (sp[t[0]][2] + sp[t[1]][2] + sp[t[2]][2]) / 3]).sort((a, b) => b[1] - a[1]);
+      ctx.save(); ctx.globalAlpha = fade == null ? 1 : fade;
+      for (const [[a, b, c]] of tris) {
+        const p0 = sp[a], p1 = sp[b], p2 = sp[c];
+        const u0 = P.st[a][0] * tw, v0 = P.st[a][1] * th, u1 = P.st[b][0] * tw, v1 = P.st[b][1] * th, u2 = P.st[c][0] * tw, v2 = P.st[c][1] * th;
+        const den = (u1 - u0) * (v2 - v0) - (u2 - u0) * (v1 - v0); if (Math.abs(den) < 1e-6) continue;
+        // affine map texture -> screen, triangle grown half a pixel so seams don't show
+        const ma = ((p1[0] - p0[0]) * (v2 - v0) - (p2[0] - p0[0]) * (v1 - v0)) / den, mb = ((p1[1] - p0[1]) * (v2 - v0) - (p2[1] - p0[1]) * (v1 - v0)) / den;
+        const mc = ((p2[0] - p0[0]) * (u1 - u0) - (p1[0] - p0[0]) * (u2 - u0)) / den, md = ((p2[1] - p0[1]) * (u1 - u0) - (p1[1] - p0[1]) * (u2 - u0)) / den;
+        const cx = (p0[0] + p1[0] + p2[0]) / 3, cy = (p0[1] + p1[1] + p2[1]) / 3, g = q => [q[0] + Math.sign(q[0] - cx) * 0.6, q[1] + Math.sign(q[1] - cy) * 0.6];
+        const q0 = g(p0), q1 = g(p1), q2 = g(p2);
+        ctx.save(); ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]); ctx.closePath(); ctx.clip();
+        ctx.setTransform(ma, mb, mc, md, p0[0] - ma * u0 - mc * v0, p0[1] - mb * u0 - md * v0);
+        ctx.drawImage(tim, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const s = (sh[a] + sh[b] + sh[c]) / 3; ctx.fillStyle = `rgba(0,0,0,${(1 - Math.min(1, 0.42 + 0.78 * s)).toFixed(3)})`; ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+  };
+}
+function makeDiskGL(canvas) {
+  let gl = null;
+  try { gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: true }); } catch (e) {}
+  if (!gl) return makeDisk2D(canvas);
+  const vs = `attribute vec3 p; attribute vec3 n; attribute vec2 uv; uniform mat4 mvp; uniform mat3 nm;
+    varying vec2 v_uv; varying vec3 v_n; void main(){ v_uv=uv; v_n=normalize(nm*n); gl_Position=mvp*vec4(p,1.0); }`;
+  const fs = `precision mediump float; uniform sampler2D tex; uniform float fade; varying vec2 v_uv; varying vec3 v_n;
+    void main(){ vec3 c=texture2D(tex,v_uv).rgb; vec3 L=normalize(vec3(-0.35,0.8,-0.45));
+      float d=abs(dot(normalize(v_n),L)); vec3 col=c*(0.42+0.78*d); gl_FragColor=vec4(col*fade,fade); }`;
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; };
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+  const P = D.proj, bufs = {};
+  // Quake model space (x fwd, y left, z up) -> GL (x right, y up, z toward viewer): (-y, z, -x)
+  for (const fi of [0, 1]) {
+    const pos = [], nor = [], uv = [];
+    for (const [a, b, c] of P.tris) for (const k of [a, b, c]) {
+      const v = P.frames[fi].v[k], n = P.frames[fi].n[k];
+      pos.push(-v[1], v[2], -v[0]); nor.push(-n[1], n[2], -n[0]); uv.push(P.st[k][0], P.st[k][1]);
+    }
+    const mk = arr => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); return b; };
+    bufs[fi] = { p: mk(pos), n: mk(nor), uv: mk(uv), count: pos.length / 3 };
+  }
+  const tex = gl.createTexture();
+  const tim = new Image();
+  tim.onload = () => { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, tim);
+    gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); };
+  tim.src = P.tex;
+  const loc = n => gl.getAttribLocation(pr, n), un = n => gl.getUniformLocation(pr, n);
+  return {
+    gl, resize() { const r = canvas.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      const w = Math.max(2, Math.round(r.width * d)), h = Math.max(2, Math.round(r.height * d));
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; } gl.viewport(0, 0, canvas.width, canvas.height); },
+    clear() { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); },
+    draw(fi, model, proj, fade) {
+      const b = bufs[fi]; gl.useProgram(pr); gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      for (const [nm, buf, sz] of [["p", b.p, 3], ["n", b.n, 3], ["uv", b.uv, 2]]) {
+        const l = loc(nm); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, sz, gl.FLOAT, false, 0, 0); }
+      gl.uniformMatrix4fv(un("mvp"), false, mul(proj, model));
+      gl.uniformMatrix3fv(un("nm"), false, normalMat(model));
+      gl.uniform1f(un("fade"), fade == null ? 1 : fade);
+      gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(un("tex"), 0);
+      gl.drawArrays(gl.TRIANGLES, 0, b.count);
+    }
+  };
+}
+// column-major 4x4 helpers
+function mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+function persp(fovy, asp, n, f) { const t = 1 / Math.tan(fovy / 2); return new Float32Array([t / asp,0,0,0, 0,t,0,0, 0,0,(f + n) / (n - f),-1, 0,0,2 * f * n / (n - f),0]); }
+function trans(x, y, z) { return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]); }
+function rotY(a) { const c = Math.cos(a), s = Math.sin(a); return new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]); }
+function rotX(a) { const c = Math.cos(a), s = Math.sin(a); return new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]); }
+function rotZ(a) { const c = Math.cos(a), s = Math.sin(a); return new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]); }
+function normalMat(m) { return new Float32Array([m[0],m[1],m[2], m[4],m[5],m[6], m[8],m[9],m[10]]); }
+
+// ------------------------------------------------------------------ a stage (one screen per set)
+const FOVY = 2 * Math.atan(Math.tan(Math.PI / 4) * 0.75);   // Quake fov 90 on 4:3 -> 73.7 deg vertical
+const G = 800, THROW_V = 620, THROW_UP = 60, EYE_TO_FLOOR = 46;
+class Stage {
+  constructor(id, host) {
+    this.id = id; this.rig = new Rig(id);
+    const box = document.createElement("div"); box.className = "stagebox sel" + id;
+    const tset = D.sets[id];
+    box.innerHTML = `<div class="stage"><canvas class="bg"></canvas><canvas class="gl"></canvas><canvas class="fg"></canvas>
+      <div class="lbl"><span class="tag t${id}">SET ${id}</span> ${tset.title}</div><div class="st"></div><div class="ammo"></div>
+      <div class="loading">decoding ${tset.frames.length} frames…</div></div>
+      <div class="stagectl"><span class="ttl">${tset.title}</span><button class="primary" data-a="fire">Throw</button></div>
+      <div class="blurb">${tset.blurb}</div>`;
+    host.appendChild(box);
+    this.box = box; this.el = box.querySelector(".stage");
+    this.bg = box.querySelector("canvas.bg"); this.fg = box.querySelector("canvas.fg");
+    this.dgl = makeDiskGL(box.querySelector("canvas.gl"));
+    this.stEl = box.querySelector(".st"); this.ammoEl = box.querySelector(".ammo");
+    const ctl = box.querySelector(".stagectl");
+    tricks(id).forEach((c, k) => { const b = document.createElement("button"); b.textContent = (k + 1) + " · " + c.name; b.onclick = () => this.rig.trick(k); ctl.appendChild(b); });
+    ctl.querySelector('[data-a="fire"]').onclick = () => this.rig.fire();
+    this.el.addEventListener("pointerdown", () => this.rig.fire());
+    this.ready = false;
+    setImages(id).ready.then(() => { this.ready = true; box.querySelector(".loading").remove(); });
+  }
+  size(cv) { const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+    const w = Math.max(2, Math.round(r.width * d)), h = Math.max(2, Math.round(r.height * d));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } return [w, h]; }
+  render(dt, now) {
+    if (!this.ready) return;
+    this.rig.update(dt, now);
+    const v = this.rig.view;
+    // backdrop
+    const [w, h] = this.size(this.bg), bx = this.bg.getContext("2d");
+    const bim = BGIMG[BG];
+    if (bim && bim.complete && bim.naturalWidth) {
+      const s = Math.max(w / bim.naturalWidth, h / bim.naturalHeight), iw = bim.naturalWidth * s, ih = bim.naturalHeight * s;
+      bx.drawImage(bim, (w - iw) / 2, (h - ih) / 2, iw, ih);
+    } else { bx.fillStyle = "#30343c"; bx.fillRect(0, 0, w, h); }
+    // flights
+    if (this.dgl) {
+      this.dgl.resize(); this.dgl.clear();
+      const proj = persp(FOVY, w / h, 1, 4000);
+      for (const f of this.rig.flights) {
+        // eye space (GL): x right, y up, -z forward. Muzzle: 22 forward, 10 down, 6 right (the hand's side)
+        let t = f.t, x = 6, y = -10 + THROW_UP * t - 0.5 * G * t * t, z = -(22 + THROW_V * t), spin = t * 900 * Math.PI / 180, fi = 0, fade = 1;
+        const tl = (THROW_UP + Math.sqrt(THROW_UP * THROW_UP + 2 * G * (EYE_TO_FLOOR - 10))) / G;   // when it reaches the floor
+        if (t > tl) { y = -EYE_TO_FLOOR; z = -(22 + THROW_V * tl); spin = tl * 900 * Math.PI / 180; fi = 1; fade = clamp(1 - (t - tl - 1.2) / 0.5, 0, 1); }
+        else y = Math.max(y, -EYE_TO_FLOOR + 1);
+        const model = mul(trans(x, y, z), rotY(spin));
+        this.dgl.draw(fi, model, proj, fade);
+      }
+    }
+    // hand
+    const [fw, fh] = this.size(this.fg), cx = this.fg.getContext("2d");
+    cx.clearRect(0, 0, fw, fh);
+    const sc = D.screen, im = IMG[this.id].arr[v.frame];
+    if (v.show && im) {
+      const x0 = sc.x0 / sc.w * fw, x1 = sc.x1 / sc.w * fw, y0 = sc.y0 * fh, y1 = sc.y1 * fh;
+      cx.save();
+      cx.translate(v.dx * fh, v.dy * fh);
+      if (v.rot) { cx.translate(x1, y1); cx.rotate(v.rot * Math.PI / 180); cx.translate(-x1, -y1); }
+      cx.imageSmoothingQuality = "high";
+      cx.drawImage(im, x0, y0, x1 - x0, y1 - y0);
+      if (BOUNDS) { cx.strokeStyle = COL[this.id]; cx.lineWidth = 2; cx.setLineDash([6, 5]); cx.strokeRect(x0, y0, x1 - x0, y1 - y0); }
+      cx.restore();
+    }
+    if (XHAIR) { const c = fw / 2, m = fh / 2, s = Math.max(4, fh * 0.012); cx.strokeStyle = "rgba(255,255,255,.9)"; cx.lineWidth = Math.max(1, fh / 400);
+      cx.beginPath(); cx.moveTo(c - s, m); cx.lineTo(c + s, m); cx.moveTo(c, m - s); cx.lineTo(c, m + s); cx.stroke(); }
+    this.stEl.textContent = v.label + " · f" + (v.frame - (this.clipOf(v.frame)?.first || 0));
+    this.ammoEl.textContent = "DISKS " + this.rig.ammo;
+  }
+  clipOf(f) { return D.sets[this.id].clips.find(c => f >= c.first && f < c.first + c.count); }
+}
+
+// ------------------------------------------------------------------ layout & loop
+const stagesEl = document.getElementById("stages");
+let stages = [];
+function layout(which) {
+  stagesEl.innerHTML = ""; stages = [];
+  const ids = which === "all" ? SETS : [which];
+  stagesEl.classList.toggle("single", ids.length === 1);
+  for (const id of ids) stages.push(new Stage(id, stagesEl));
+}
+segment("layout", v => layout(v));
+segment("speed", v => SPEED = +v);
+document.getElementById("throwAll").onclick = () => stages.forEach(s => s.rig.fire());
+document.getElementById("auto").onchange = e => AUTO = e.target.checked;
+document.getElementById("bounds").onchange = e => BOUNDS = e.target.checked;
+document.getElementById("xhair").onchange = e => XHAIR = e.target.checked;
+const bgsel = document.getElementById("bgsel");
+for (const [k, v] of Object.entries(D.bgs)) { const o = document.createElement("option"); o.value = k; o.textContent = "Backdrop: " + v.name; bgsel.appendChild(o); }
+BG = Object.keys(D.bgs)[0]; bgsel.onchange = () => BG = bgsel.value;
+addEventListener("keydown", e => {
+  if (e.target.closest("input,textarea,select")) return;
+  if (e.code === "Space") { e.preventDefault(); stages.forEach(s => s.rig.fire()); }
+  const n = parseInt(e.key, 10); if (n >= 1 && n <= 3) stages.forEach(s => { if (tricks(s.id)[n - 1]) s.rig.trick(n - 1); });
+});
+function segment(id, fn) {
+  const el = document.getElementById(id);
+  el.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return;
+    el.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); fn(b.dataset.v); });
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000) * SPEED; last = now;
+  for (const s of stages) s.render(dt, now / 1000);
+  inspTick(dt);
+  turnTick(dt);
+  requestAnimationFrame(loop);
+}
+layout("all");
+
+// ------------------------------------------------------------------ inspector
+const icv = document.getElementById("inspcv"), ictx = icv.getContext("2d");
+let iSet = "A", iClip = 0, iFrame = 0, iPlay = true, iAcc = 0, iBack = false;
+icv.width = D.tex[0]; icv.height = D.tex[1];
+function iClips() { return D.sets[iSet].clips; }
+function iRender() {
+  const c = iClips()[iClip], arr = setImages(iSet).arr;
+  ictx.clearRect(0, 0, icv.width, icv.height);
+  if (document.getElementById("ionion").checked && iFrame > 0) { ictx.globalAlpha = 0.3; const p = arr[c.first + iFrame - 1]; if (p.complete) ictx.drawImage(p, 0, 0); ictx.globalAlpha = 1; }
+  const im = arr[c.first + iFrame]; if (im.complete) ictx.drawImage(im, 0, 0);
+  const rel = c.kind === "throw" ? (iFrame >= c.release ? "  · disk released" : "  · in hand") : "";
+  document.getElementById("iinfo").textContent = `${c.name}  ${iFrame + 1}/${c.count}${rel}`;
+  document.getElementById("iscrub").max = c.count - 1; document.getElementById("iscrub").value = iFrame;
+}
+function iSelect(k) {
+  iClip = k; iFrame = 0; iBack = false;
+  const c = iClips()[k];
+  document.getElementById("inote").innerHTML = `<b>${c.name}</b>: ${c.note}` + (c.kind === "throw" ? `<br>Release at frame ${c.release + 1} of ${c.count} (${(c.release / c.fps).toFixed(3)} s after fire).` : "");
+  document.querySelectorAll("#iclips tbody tr").forEach((tr, i) => tr.style.background = i === k ? "#1c2747" : "");
+  iRender();
+}
+function iFill() {
+  const tb = document.querySelector("#iclips tbody"); tb.innerHTML = "";
+  iClips().forEach((c, k) => { const tr = document.createElement("tr"); tr.style.cursor = "pointer";
+    tr.innerHTML = `<td>${c.name}</td><td class="n">${c.count}</td><td class="n">${c.fps}</td><td>${c.kind === "throw" ? "on fire" : c.kind === "rest" ? "loop (there & back)" : c.play === "pingpong" ? "there & back" : "once"}</td>`;
+    tr.onclick = () => iSelect(k); tb.appendChild(tr); });
+  setImages(iSet).ready.then(() => iSelect(0));
+}
+segment("iset", v => { iSet = v; iFill(); });
+segment("ibg", v => { const el = document.getElementById("inspview"); el.className = "inspview" + (v === "checker" ? " checker" : ""); el.style.background = v === "dark" ? "#14171f" : v === "light" ? "#f4f4f4" : ""; });
+document.getElementById("iplay").onclick = e => { iPlay = !iPlay; e.target.textContent = iPlay ? "Pause" : "Play"; };
+document.getElementById("iprev").onclick = () => { iPlay = false; document.getElementById("iplay").textContent = "Play"; iFrame = Math.max(0, iFrame - 1); iRender(); };
+document.getElementById("inext").onclick = () => { iPlay = false; document.getElementById("iplay").textContent = "Play"; iFrame = Math.min(iClips()[iClip].count - 1, iFrame + 1); iRender(); };
+document.getElementById("iscrub").oninput = e => { iPlay = false; document.getElementById("iplay").textContent = "Play"; iFrame = +e.target.value; iRender(); };
+document.getElementById("ionion").onchange = iRender;
+function inspTick(dt) {
+  if (!iPlay || !IMG[iSet]) return;
+  const c = iClips()[iClip]; iAcc += dt * c.fps;
+  while (iAcc >= 1) { iAcc -= 1; iFrame++; if (iFrame >= c.count) iFrame = 0; }
+  iRender();
+}
+iFill();
+
+// ------------------------------------------------------------------ projectile turntable
+const tcv = document.getElementById("turn"), tgl = makeDiskGL(tcv);
+let tAng = 0.6, tPitch = -0.45, tFrame = 0, tSpin = true, drag = null;
+segment("pframe", v => tFrame = +v);
+document.getElementById("pspin").onchange = e => tSpin = e.target.checked;
+tcv.addEventListener("pointerdown", e => { drag = [e.clientX, e.clientY, tAng, tPitch]; tcv.setPointerCapture(e.pointerId); });
+tcv.addEventListener("pointermove", e => { if (!drag) return; tAng = drag[2] + (e.clientX - drag[0]) * 0.01; tPitch = clamp(drag[3] + (e.clientY - drag[1]) * 0.01, -1.5, 1.5); });
+tcv.addEventListener("pointerup", () => drag = null);
+function turnTick(dt) {
+  if (!tgl) return;
+  if (tSpin && !drag) tAng += dt * 0.7;
+  tgl.resize(); tgl.clear();
+  const proj = persp(0.6, 1, 1, 200);
+  const lift = tFrame === 1 ? -3.6 : 0;
+  const model = mul(trans(0, 0, -24), mul(rotX(-tPitch), mul(rotY(tAng), trans(0, lift, 0))));
+  tgl.draw(tFrame, model, proj, 1);
+}
+document.getElementById("patlas").src = D.proj.atlas;
+document.getElementById("pfacts").innerHTML = D.proj.facts;
+
+// ------------------------------------------------------------------ source videos
+const srcs = document.getElementById("srcs");
+for (const s of D.sources) {
+  const row = document.createElement("div"); row.className = "srcrow";
+  let bars = "";
+  for (const u of s.uses) {
+    const left = u.a / 240 * 100, width = Math.max(0.6, (u.b - u.a) / 240 * 100);
+    const lab = u.set === "X" || u.set === "R" ? u.label : "<b>" + u.set + "</b> " + u.label;
+    const right = left > 62;
+    bars += `<div class="bar bar${u.set}" style="left:${left}%;width:${width}%;top:${u.lane * 24}px" title="f${u.a}-${u.b}: ${u.label}"><span style="${right ? "left:auto;right:0" : ""}">${lab} <span style="opacity:.7">f${u.a}–${u.b}</span></span></div>`;
+  }
+  row.innerHTML = `<div class="row"><b style="color:#fff">${s.id}</b><span class="mono" style="color:var(--dim)">${s.file}</span></div>
+    <div style="margin-top:4px">${s.desc}</div><div class="strip"><img src="${s.strip}" alt="${s.id} contact strip"></div>
+    <div class="bars">${bars}</div>`;
+  srcs.appendChild(row);
+}
+document.getElementById("notesbox").innerHTML = D.notes;
+
+// ------------------------------------------------------------------ vote
+const pick = document.getElementById("pick"), ratings = { A: null, B: null, C: null };
+for (const id of SETS) {
+  const t = D.sets[id];
+  const lab = document.createElement("label");
+  lab.innerHTML = `<input type="radio" name="win" value="${id}"><div class="pc"><span class="tag t${id}">SET ${id}</span>
+    <div class="t">${t.title}</div><div style="color:var(--dim);font-size:13px">${tricks(id).map(c => c.name).join(" · ")} · throw: ${clip(id, "throw").name}</div>
+    <div class="stars" data-set="${id}">${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}" aria-label="${n} stars">★</button>`).join("")}</div></div>`;
+  pick.appendChild(lab);
+}
+pick.addEventListener("click", e => { const b = e.target.closest(".stars button"); if (!b) return; e.preventDefault();
+  const st = b.parentElement, id = st.dataset.set, n = +b.dataset.n; ratings[id] = ratings[id] === n ? null : n;
+  st.querySelectorAll("button").forEach(x => x.classList.toggle("lit", ratings[id] && +x.dataset.n <= ratings[id])); });
+const favs = document.getElementById("favs");
+for (const id of SETS) for (const c of D.sets[id].clips) if (c.kind !== "rest") {
+  const l = document.createElement("label"); const val = `${id}: ${c.name}`;
+  l.innerHTML = `<input type="checkbox" value="${val}">${val}`; favs.appendChild(l); }
+function collect() {
+  const w = document.querySelector('input[name="win"]:checked');
+  return { winner: w ? w.value : null, voter: document.getElementById("voter").value.trim(), ratings: { ...ratings },
+    favoriteClips: [...favs.querySelectorAll("input:checked")].map(i => i.value),
+    feedback: { A: fbv("fbA"), B: fbv("fbB"), C: fbv("fbC"), throw: fbv("fbthrow"), idle: fbv("fbidle"), projectile: fbv("fbproj"), overall: fbv("fbo") } };
+}
+const fbv = id => document.getElementById(id).value.trim();
+function asText(v) {
+  const L = [`THE DISK vote: Set ${v.winner || "?"}${v.winner ? " (" + D.sets[v.winner].title + ")" : ""}${v.voter ? " from " + v.voter : ""}`];
+  const r = SETS.filter(k => v.ratings[k]).map(k => `${k} ${v.ratings[k]}/5`).join(", "); if (r) L.push("Ratings: " + r);
+  if (v.favoriteClips.length) L.push("Keep: " + v.favoriteClips.join(", "));
+  for (const [k, t] of Object.entries(v.feedback)) if (t) L.push(`${k}: ${t}`);
+  return L.join("\n");
+}
+const vmsg = document.getElementById("vmsg");
+document.getElementById("vcopy").onclick = async () => { try { await navigator.clipboard.writeText(asText(collect())); vmsg.className = "msg ok"; vmsg.textContent = "Copied. Paste it into the Telegram group."; } catch { vmsg.className = "msg err"; vmsg.textContent = "Could not copy here. Select and copy by hand:\n" + asText(collect()); } };
+document.getElementById("vform").addEventListener("submit", async e => {
+  e.preventDefault(); const v = collect();
+  if (!v.winner) { vmsg.className = "msg err"; vmsg.textContent = "Pick a favourite set first."; return; }
+  const btn = document.getElementById("vsend"); btn.disabled = true; vmsg.className = "msg"; vmsg.textContent = "Sending…";
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v) });
+    const j = await r.json(); if (!r.ok || !j.ok) throw new Error(j.error || r.status);
+    vmsg.className = "msg ok"; vmsg.textContent = "Vote saved and posted to the group. Thanks!"; showTally(j);
+  } catch (err) { vmsg.className = "msg err"; vmsg.textContent = "Could not reach the vote server (" + err.message + "). Use “Copy as text” and paste it into Telegram."; }
+  btn.disabled = false;
+});
+function showTally(j) {
+  const t = document.getElementById("tally"), s = j.summary, tot = Math.max(1, j.count);
+  t.innerHTML = SETS.map(k => `<div class="tc"><span class="tag t${k}">SET ${k}</span> <span style="color:var(--dim)">${D.sets[k].title}</span>
+    <div class="big">${s.winners[k]}</div><div style="font-size:12px;color:var(--dim)">votes · avg rating ${s.avgRatings[k] ?? "–"}</div>
+    <div class="meter"><i style="width:${s.winners[k] / tot * 100}%;background:${COL[k]}"></i></div></div>`).join("");
+  const rec = (j.votes || []).slice(0, 8).map(v => `<div style="font-size:13px;border-top:1px solid var(--border);padding:6px 0"><b>${esc(v.voter)}</b> → Set ${v.winner}${Object.values(v.feedback || {}).length ? ": <span style='color:var(--dim)'>" + esc(Object.values(v.feedback).join(" · ")).slice(0, 220) + "</span>" : ""}</div>`).join("");
+  document.getElementById("recent").innerHTML = rec;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+fetch(API).then(r => r.json()).then(showTally).catch(() => { document.getElementById("tally").innerHTML = "<span style='color:var(--dim);font-size:13px'>Results load when the page can reach bakersfield.larrywew.fun.</span>"; });
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
