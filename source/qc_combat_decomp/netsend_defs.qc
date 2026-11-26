@@ -34,9 +34,9 @@ float	NS_TURN			= 240;		// degrees a second the PC turns to face its target (the
 float	NS_AIM			= 12;		// it fires once it faces its target within this many degrees
 float	NS_SCAN_ARC		= 60;		// with nobody in sight it sweeps this many degrees each side of where it faced when it landed
 float	NS_SCAN_RATE	= 1.2;		// radians a second of that sweep
-float	NS_LASER_GAP	= 0.42;		// seconds between two green lasers (~12 DPS per PC without laser spam)
-float	NS_LASER_DMG	= 5;		// per laser (harassment prop, not a laser killbox)
-float	NS_LASER_SPEED	= 1100;
+float	NS_LASER_GAP	= 0.28;		// seconds between two 3.5" floppy disk shots (~32 DPS)
+float	NS_LASER_DMG	= 9;		// per razor floppy hit
+float	NS_LASER_SPEED	= 1150;
 
 .float	ns_state;		// PC: 2 materializing, 3 booting, 4 sending, for good (the disk in the air has none)
 .float	ns_t;			// PC: when the current state began
@@ -46,11 +46,13 @@ float	NS_LASER_SPEED	= 1100;
 .float	ns_fire_t;		// player: when the throw began (the fire; the disk leaves NS_THROW_DELAY later)
 .float	ns_empty;		// player: the hand was empty last frame
 .float	ns_rl_t;		// player: when the new disk came back into the hand
-.float	ns_laser_t;		// PC: when the next green laser may go
-.entity	ns_scr;			// PC: its screen, a model of its own (netsend_scr.md3)
+.float	ns_laser_t;		// PC: when the next floppy shot may go
+.entity	ns_scr;			// PC: the Classic Retro rotating turret head (netsend_sentry_turret.md3)
 .float	ns_scan_t;		// PC: when NS_Sentry next looks for a target (it keeps ns_target in between)
 .entity	ns_target;	// PC: the player it is facing / shooting at
 .float	ns_yaw0;		// PC: where it faced when it landed (the middle of its sweep)
+.float	ns_spott;		// PC: cooldown before next target-lock klaxon
+.float	ns_muzzle;		// PC: alternates left/right speaker-cannon barrel (0/1)
 
 // the held disk (v_netsend.md3 is THE DISK: one card, its skin picks the frame; build_netsend_disk_view.py, frame map in
 // netsend_diskvm.qc). It rests, does a trick now and then, throws, drops away and a new disk comes up

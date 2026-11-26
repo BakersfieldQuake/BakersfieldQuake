@@ -4,7 +4,7 @@
 # The repo is text/source only, so this does not rebuild the big base pk3s/maps. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
-# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3 and zz_m4.pk3
+# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3 and zz_netsend_sentry.pk3
 # from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), adds the pinned zz_netsend_disk.pk3 from the VPS, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. engine/zircon_beta_gcc.exe from the public engine release.
@@ -398,8 +398,15 @@ jobs:
           path: pk3cache/zz_hitsound.pk3
           key: zz_hitsound-${{ hashFiles('repo/source/mm_tools/make_hitsound.py') }}
 
+      - name: Cache zz_netsend_sentry.pk3
+        id: cache_netsend_sentry
+        uses: actions/cache@v6
+        with:
+          path: pk3cache/zz_netsend_sentry.pk3
+          key: zz_netsend_sentry-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/disc_sentry/*.py', 'repo/source/mm_tools/md3lib.py') }}
+
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_bakersfieldish.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_bakersfieldish.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -530,6 +537,13 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/make_hitsound.py --pk3 pk3cache/zz_hitsound.pk3 --verify-repro
 
+      - name: Build zz_netsend_sentry.pk3
+        # Classic Retro Style disc sentry gun (base tripod, swiveling PC/CRT/speaker-cannon turret, 3D floppy projectiles & SFX)
+        if: steps.cache_netsend_sentry.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/disc_sentry/build_netsend_sentry_pk3.py --out pk3cache/zz_netsend_sentry.pk3 --verify-repro
+
       - name: Hash levelshot inputs
         # zz_levelshots.pk3 is made from the base package's levelshots/*.jpg plus the one in zz_bakersfieldish.pk3
         run: |
@@ -564,7 +578,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -863,6 +877,35 @@ jobs:
                       if req not in dnames:
                           errors.append(f"zz_dn3fx.pk3 lacks {req}")
 
+          netsend_sentry = os.path.join(root, "BakersfieldQuake", "zz_netsend_sentry.pk3")
+          if not os.path.isfile(netsend_sentry):
+              errors.append("missing BakersfieldQuake/zz_netsend_sentry.pk3")
+          else:
+              with zipfile.ZipFile(netsend_sentry) as z:
+                  nsnames = set(z.namelist())
+                  for req in (
+                      "progs/netsend_sentry_base.md3",
+                      "progs/netsend_sentry_turret.md3",
+                      "progs/netsend_sentry_turret.md3_0.skin",
+                      "progs/netsend_sentry_turret.md3_3.skin",
+                      "progs/netsend_sentry_floppy.md3",
+                      "progs/netsend_sentry_gib0.md3",
+                      "progs/netsend_sentry_gib1.md3",
+                      "progs/netsend_sentry_gib2.md3",
+                      "progs/ds_classic_body.png",
+                      "progs/ds_classic_floppy.png",
+                      "progs/ds_classic_scr_active.png",
+                      "progs/ds_classic_scr_fire.png",
+                      "scripts/netsend_sentry.shader",
+                      "sound/netsend/sentry_deploy.wav",
+                      "sound/netsend/sentry_spot.wav",
+                      "sound/netsend/sentry_fire.wav",
+                      "sound/netsend/sentry_explode.wav",
+                      "sound/netsend/floppy_bounce.wav",
+                  ):
+                      if req not in nsnames:
+                          errors.append(f"zz_netsend_sentry.pk3 lacks {req}")
+
           loading = os.path.join(root, "BakersfieldQuake", "zz_loading.pk3")
           if not os.path.isfile(loading):
               errors.append("missing BakersfieldQuake/zz_loading.pk3")
@@ -1092,7 +1135,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, zz_netsend_sentry.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 

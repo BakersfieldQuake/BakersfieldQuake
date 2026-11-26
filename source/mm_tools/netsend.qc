@@ -18,16 +18,21 @@ obituary just work.
 void() NS_Precache =
 {
 	precache_model ("progs/v_netsend.md3");
-	precache_model ("progs/netsend_disk.md3");
-	precache_model ("progs/netsend_pc.md3");
+	precache_model ("progs/netsend_sentry_base.md3");
+	precache_model ("progs/netsend_sentry_turret.md3");
+	precache_model ("progs/netsend_sentry_floppy.md3");
+	precache_model ("progs/netsend_sentry_gib0.md3");
+	precache_model ("progs/netsend_sentry_gib1.md3");
+	precache_model ("progs/netsend_sentry_gib2.md3");
 	precache_model ("progs/netsend_arc.md3");
-	precache_model ("progs/netsend_scr.md3");
 	precache_sound ("netsend/ns_beep.wav");
-	precache_sound ("weapons/turrset.wav");
-	precache_sound ("weapons/goopop.wav");
 	precache_sound ("netsend/wheres_disk.wav");
-	precache_sound ("enforcer/enfire.wav");
-	precache_model ("progs/netsend_laser.md3");
+	precache_sound ("netsend/sentry_deploy.wav");
+	precache_sound ("netsend/sentry_spot.wav");
+	precache_sound ("netsend/sentry_fire.wav");
+	precache_sound ("netsend/sentry_explode.wav");
+	precache_sound ("netsend/floppy_bounce.wav");
+	precache_sound ("weapons/goopop.wav");
 };
 
 // the disk is lost in the sky, or never stuck: the magazine gets it back
@@ -160,11 +165,75 @@ void(entity p) NS_ClientGone =
 	}
 };
 
-// shot to bits (th_die, self = the PC): a pop, then it is gone. The removal waits a frame: T_Damage/Killed still hold the entity
+// Bouncing 3.5" floppy debris touch: plays crisp plastic clatter without flooding audio channels
+void() NS_FloppyDebrisTouch =
+{
+	if (other != world)
+		return;
+	if (time >= self.pain_finished && vlen (self.velocity) > 35)
+	{
+		FG_Snd (self, CHAN_AUTO, "netsend/floppy_bounce.wav", 0.35, 1.8);
+		self.pain_finished = time + 0.18;
+	}
+};
+
+// Massive explosion scatter: launches 20 spinning, bouncing 3D floppy disks in every direction
+void(vector spot) NS_ExplodeFloppies =
+{
+	local float i;
+	local entity f;
+
+	i = 0;
+	while (i < 20)
+	{
+		f = spawn ();
+		f.classname = "netsend_floppy_debris";
+		f.movetype = MOVETYPE_BOUNCE;
+		f.solid = SOLID_TRIGGER;
+		f.bouncefactor = 0.72;
+		f.bouncestop = 0.05;
+		setmodel (f, "progs/netsend_sentry_floppy.md3");
+		setsize (f, '-3 -3 -1', '3 3 1');
+		setorigin (f, spot + '0 0 28' + (random () - 0.5) * '12 12 12');
+		f.angles_x = random () * 360;
+		f.angles_y = random () * 360;
+		f.angles_z = random () * 360;
+		f.velocity_x = (random () - 0.5) * 520;
+		f.velocity_y = (random () - 0.5) * 520;
+		f.velocity_z = 220 + random () * 340;
+		f.avelocity_x = (random () - 0.5) * 720;
+		f.avelocity_y = (random () - 0.5) * 900;
+		f.avelocity_z = (random () - 0.5) * 720;
+		f.pain_finished = time + 0.08 + random () * 0.15;
+		f.touch = NS_FloppyDebrisTouch;
+		f.think = SUB_Remove;
+		f.nextthink = time + 4.0 + random () * 2.0;
+		i = i + 1;
+	}
+};
+
+// shot to bits (th_die, self = the PC): huge explosion + retro PC gibs + 20 bouncing floppies
 void() NS_Burst =
 {
-	pointparticles (particleeffectnum ("netsend_pop"), self.origin + '0 0 30', VEC_ORIGIN, 1);
-	FG_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.8, 1);
+	local vector org;
+
+	org = self.origin + '0 0 28';
+	FG_Snd (self, CHAN_AUTO, "netsend/sentry_explode.wav", 1, 0.7);
+	fg_inflicting = FG_NETSEND;
+	T_RadiusDamage (self, self.owner, 75, self);
+	fg_inflicting = 0;
+
+	WriteByte (MSG_BROADCAST, SVC_TEMPENTITY);
+	WriteByte (MSG_BROADCAST, TE_EXPLOSION);
+	WriteCoord (MSG_BROADCAST, org_x);
+	WriteCoord (MSG_BROADCAST, org_y);
+	WriteCoord (MSG_BROADCAST, org_z);
+	pointparticles (particleeffectnum ("netsend_pop"), org, VEC_ORIGIN, 1);
+
+	ThrowGib ("progs/netsend_sentry_gib0.md3", -90);
+	ThrowGib ("progs/netsend_sentry_gib1.md3", -90);
+	ThrowGib ("progs/netsend_sentry_gib2.md3", -90);
+	NS_ExplodeFloppies (self.origin);
 	NS_RemovePC (self);
 };
 
@@ -243,11 +312,11 @@ void() NS_Send =
 	fg_inflicting = 0;
 };
 
-// a green laser hit something: a player or monster takes NS_LASER_DMG in the PC owner's name
+// a spinning floppy projectile hit something: deals NS_LASER_DMG to targets, or bounces off walls/floors with plastic clatter
 void() NS_LaserTouch =
 {
-	if (other == self.owner || other == self.enemy)
-		return;		// its own PC, or its owner
+	if (other == self.owner || other == self.enemy || (self.owner && other == self.owner.ns_scr))
+		return;		// its own sentry, turret head, or owner
 	if (pointcontents (self.origin) == CONTENT_SKY)
 	{
 		remove (self);
@@ -258,30 +327,43 @@ void() NS_LaserTouch =
 		fg_inflicting = FG_NETSEND;
 		T_Damage (other, self, self.enemy, NS_LASER_DMG);
 		fg_inflicting = 0;
+		pointparticles (particleeffectnum ("netsend_laserhit"), self.origin - normalize (self.velocity) * 4, VEC_ORIGIN, 1);
+		remove (self);
+		return;
 	}
 	pointparticles (particleeffectnum ("netsend_laserhit"), self.origin - normalize (self.velocity) * 4, VEC_ORIGIN, 1);
-	remove (self);
+	FG_Snd (self, CHAN_AUTO, "netsend/floppy_bounce.wav", 0.45, 1.5);
+	self.movetype = MOVETYPE_BOUNCE;
+	self.solid = SOLID_TRIGGER;
+	self.bouncefactor = 0.65;
+	self.bouncestop = 0.05;
+	self.velocity = self.velocity * 0.45 + '0 0 120';
+	self.avelocity = '240 960 180';
+	self.pain_finished = time + 0.18;
+	self.touch = NS_FloppyDebrisTouch;
+	self.think = SUB_Remove;
+	self.nextthink = time + 1.1;
 };
 
-// one green laser from the screen of the PC (self) along 'dir'
-void(vector dir) NS_Laser =
+// launches a spinning 3D 3.5" floppy disk projectile from the active speaker-cannon muzzle along 'dir'
+void(vector org, vector dir) NS_FloppyShot =
 {
 	local entity l;
-	local vector org;
 
-	org = self.origin + '0 0 34';
 	l = spawn ();
 	l.classname = "netsend_laser";
-	l.owner = self;			// it never hits its own PC
+	l.owner = self;			// it never hits its own sentry
 	l.enemy = self.owner;	// frags go to whoever threw the disk
-	l.movetype = MOVETYPE_FLY;
+	l.movetype = MOVETYPE_FLYMISSILE;
 	l.solid = SOLID_BBOX;
-	setmodel (l, "progs/netsend_laser.md3");		// an additive green bolt (laser.mdl's orange is fullbright: colormod never greened it)
+	setmodel (l, "progs/netsend_sentry_floppy.md3");
 	setsize (l, VEC_ORIGIN, VEC_ORIGIN);
-	setorigin (l, org + dir * 18);
+	setorigin (l, org);
 	l.traileffectnum = particleeffectnum ("netsend_laser");
 	l.velocity = dir * NS_LASER_SPEED;
 	l.angles = vectoangles (l.velocity);
+	l.avelocity_y = 1080;
+	l.frame = 0;
 	l.touch = NS_LaserTouch;
 	l.think = SUB_Remove;
 	l.nextthink = time + 3;
@@ -301,45 +383,58 @@ float(float cur, float want, float step) NS_Turn =
 	return cur + d;
 };
 
-// NS_Sentry (self = the PC, sending), every think: like the TF sentry it turns to face the nearest player it can see and
-// shoots green lasers at them while it faces them; with nobody in sight it sweeps the room and holds fire. It never spins.
+// NS_Sentry (self = the grounded tripod base, self.ns_scr = the rotating Classic Retro workstation turret)
 void() NS_Sentry =
 {
-	local entity e;
-	local float want, off, sw;
-	local vector dir;
+	local entity e, tur;
+	local float want, off, sw, sy;
+	local vector dir, muzzle_org;
+
+	tur = self.ns_scr;
+	if (!tur)
+		return;
 
 	// looking for a target (a trace per player in range) 5 times a second is plenty; in between keep the last one while it lives
 	e = self.ns_target;
 	if (time >= self.ns_scan_t || (e && (e.health <= 0 || !e.takedamage || e.classname != "player")))
 	{
 		e = NS_Target ();
+		if (e && e != self.ns_target && time >= self.ns_spott)
+		{
+			FG_Snd (self, CHAN_VOICE, "netsend/sentry_spot.wav", 1, ATTN_NORM);
+			self.ns_spott = time + 1.5;
+		}
 		self.ns_target = e;
 		self.ns_scan_t = time + 0.2;
 	}
 	if (e)
 	{
-		dir = e.origin + '0 0 16' - (self.origin + '0 0 34');
+		dir = e.origin + '0 0 16' - (self.origin + '0 0 32');
 		want = vectoyaw (dir);
-		self.angles_y = NS_Turn (self.angles_y, want, NS_TURN * 0.05);
-		off = want - self.angles_y;
+		tur.angles_y = NS_Turn (tur.angles_y, want, NS_TURN * 0.05);
+		off = want - tur.angles_y;
 		off = off - 360 * floor ((off + 180) / 360);
 		if (off < NS_AIM && off > 0 - NS_AIM && time >= self.ns_laser_t)
 		{
-			dir = normalize (dir);
+			makevectors (tur.angles);
+			sy = 12.6;
+			if (self.ns_muzzle)
+				sy = -12.6;
+			self.ns_muzzle = 1 - self.ns_muzzle;
+			muzzle_org = self.origin + v_forward * 21 + v_right * sy + '0 0 31';
+			dir = normalize (e.origin + '0 0 16' - muzzle_org);
 			dir = normalize (dir + (random () - 0.5) * '0.05 0 0' + (random () - 0.5) * '0 0.05 0');
-			NS_Laser (dir);
-			FG_Snd (self, CHAN_AUTO, "enforcer/enfire.wav", 0.5, 1.4);
+			NS_FloppyShot (muzzle_org, dir);
+			FG_Snd (self, CHAN_WEAPON, "netsend/sentry_fire.wav", 0.9, ATTN_NORM);
 			self.ns_laser_t = time + NS_LASER_GAP;
 		}
 		return;
 	}
 	sw = sin (time * NS_SCAN_RATE);
-	self.angles_y = NS_Turn (self.angles_y, self.ns_yaw0 + sw * NS_SCAN_ARC, NS_TURN * 0.025);
+	tur.angles_y = NS_Turn (tur.angles_y, self.ns_yaw0 + sw * NS_SCAN_ARC, NS_TURN * 0.025);
 };
 
-// the CRT screen is a model of its own (progs/netsend_scr.md3, see build_netsend_screen.py: the screen surface inside
-// netsend_pc.md3 is drawn with wrong texture coordinates by DarkPlaces): it has the PC's frame, skin, origin and angles
+// Keep the rotating turret anchored at the base origin (base stays planted while turret swivels)
 void() NS_ScreenSync =
 {
 	local entity s;
@@ -348,16 +443,17 @@ void() NS_ScreenSync =
 	if (!s)
 		return;
 	if (s.origin != self.origin)
-		setorigin (s, self.origin);		// the PC never moves: this only happens once, when it lands
-	s.angles = self.angles;
-	s.frame = self.frame;
-	s.skin = self.skin;
+		setorigin (s, self.origin);
 };
 
-// the PC's think: frames 0-9 materialize, 10-19 boot, 20-39 sending (a loop, for good)
+// Base & Turret think:
+// - Base (`progs/netsend_sentry_base.md3`): frames 0-15 unfold tripod, then 15 steady
+// - Turret (`progs/netsend_sentry_turret.md3`): frames 0-7 deploy, 8-15 idle sweep, 16-23 alternating cannon recoil
+// - Turret skins: 0=active, 1=off, 2=static, 3=fire, 4=fatal
 void() NS_Think =
 {
-	local float age, f;
+	local float age, f, tf, tskin;
+	local entity tur;
 
 	if (self.owner.classname != "player")
 	{
@@ -371,48 +467,69 @@ void() NS_Think =
 	}
 	self.nextthink = time + 0.05;
 	age = time - self.ns_t;
-	f = self.frame;		// any other state keeps its frame (f was uninitialised there)
+	f = 15;
+	tf = 8;
+	tskin = 0;
+
 	if (self.ns_state == 2)
 	{
-		f = min (9, floor (age * 10));
-		if (age >= 1)
-		{
-			self.ns_state = 3;
-			self.ns_t = time;
-			FG_Snd (self, CHAN_VOICE, "weapons/turrset.wav", 1, 1);		// the whirr of it powering up
-		}
-	}
-	else if (self.ns_state == 3)
-	{
-		f = 10 + min (9, floor (age * 10));
-		if (age >= 1)
+		f = min (15, floor (age * 16));
+		tf = min (7, floor (age * 8));
+		if (age < 0.35)
+			tskin = 1;		// CRT off during fold-out
+		else
+			tskin = 2;		// static warm-up
+		if (age >= 1.0)
 		{
 			self.ns_state = 4;
 			self.ns_t = time;
 			self.ns_next = time + 0.5;
-			NS_ArcOn ();
 		}
 	}
 	else if (self.ns_state == 4)
 	{
-		f = floor (age * 10);
-		f = 20 + f - 20 * floor (f / 20);		// the loop: 20 frames, 2 seconds
-		NS_Sentry ();		// it turns to its target and shoots, like the TF sentry (it does not spin)
+		f = 15;
+		NS_Sentry ();
 		if (time >= self.ns_next)
 			NS_Send ();
+
+		if (time - self.ns_laser_t < 0.25)
+		{
+			tf = floor ((time - self.ns_laser_t) * 32);
+			tf = 16 + tf - 8 * floor (tf / 8);		// 16..23 barrel recoil + muzzle flash
+			tskin = 3;		// CRT fire flash
+		}
+		else
+		{
+			tf = floor (age * 8);
+			tf = 8 + tf - 8 * floor (tf / 8);		// 8..15 subtle idle breathing
+			if (self.health <= 15)
+				tskin = 4;	// fatal warning CRT
+			else
+				tskin = 0;	// active green/amber BIOS sweep
+		}
 	}
+
 	self.frame = f;
-	self.skin = NS_Skin (f);
-	NS_ScreenSync ();
+	tur = self.ns_scr;
+	if (tur)
+	{
+		NS_ScreenSync ();
+		tur.frame = tf;
+		tur.skin = tskin;
+	}
 	if (self.ns_arc)
 	{
-		self.ns_arc.angles = self.angles;		// its origin was set once, in NS_ArcOn
+		if (tur)
+			self.ns_arc.angles = tur.angles;
+		else
+			self.ns_arc.angles = self.angles;
 		f = floor (time * 15);
 		self.ns_arc.frame = f - 8 * floor (f / 8);		// the 8 arcs, cycled
 	}
 };
 
-// the disk lies on the floor at 'spot': it turns into the PC right there (the PC's frame 0 is the disk stuck in the floor)
+// the disk lies on the floor at 'spot': unfolds into the Classic Retro Style disc sentry gun
 void(vector spot) NS_Stick =
 {
 	if (self.owner.classname != "player")
@@ -433,27 +550,32 @@ void(vector spot) NS_Stick =
 	self.nextthink = time + 0.05;
 	self.ns_state = 2;
 	self.ns_t = time;
-	setmodel (self, "progs/netsend_pc.md3");
-	setsize (self, '-14 -14 0', '14 14 38');		// low enough to JUMP onto (a jump is 45): the PC is solid like the TF sentry, review 2026-11-01
+	setmodel (self, "progs/netsend_sentry_base.md3");
+	setsize (self, '-14 -14 0', '14 14 38');		// low enough to JUMP onto (a jump is 45): solid like the TF sentry, review 2026-11-01
 	setorigin (self, spot);
 	self.angles = '0 0 0';
 	self.angles_y = self.owner.v_angle_y + 180;		// its front (+X) looks back at whoever threw it
 	self.ns_yaw0 = self.angles_y;					// the middle of its sweep
 	self.solid = SOLID_BBOX;
-	self.takedamage = DAMAGE_AIM;		// never times out, but it can be shot to bits (NS_Die)
+	self.takedamage = DAMAGE_AIM;
 	self.health = NS_HEALTH;
 	self.th_die = NS_Die;
 	self.view_ofs = '0 0 50';		// where it looks from, for visible ()
 	self.frame = 0;
-	self.skin = 1;
+	self.skin = 0;
+
 	self.ns_scr = spawn ();
 	self.ns_scr.classname = "netsend_screen";
 	self.ns_scr.movetype = MOVETYPE_NONE;
 	self.ns_scr.solid = SOLID_NOT;
-	setmodel (self.ns_scr, "progs/netsend_scr.md3");
+	self.ns_scr.angles = self.angles;
+	self.ns_scr.frame = 0;
+	self.ns_scr.skin = 1;
+	setmodel (self.ns_scr, "progs/netsend_sentry_turret.md3");
 	NS_ScreenSync ();
+
 	pointparticles (particleeffectnum ("netsend_pop"), spot + '0 0 8', VEC_ORIGIN, 1);
-	FG_Snd (self, CHAN_AUTO, "weapons/goopop.wav", 0.6, 1);
+	FG_Snd (self, CHAN_VOICE, "netsend/sentry_deploy.wav", 1, ATTN_NORM);
 };
 
 // the disk in the air: lost if it has not stuck after NS_LIFE_DISK seconds (the magazine gets it back)
@@ -539,7 +661,7 @@ void() NS_Throw =
 	d.touch = NS_DiskTouch;
 	d.think = NS_DiskThink;
 	d.nextthink = time + 0.1;
-	setmodel (d, "progs/netsend_disk.md3");		// frame 0: the disk, flying flat
+	setmodel (d, "progs/netsend_sentry_floppy.md3");		// frame 0: the custom 3D 3.5" floppy, flying flat
 	setsize (d, '-5 -5 -1', '5 5 1');
 	// it leaves from the hand's side of the screen, not the middle (never into a wall: traced over)
 	m = FG_Muzzle (24);
