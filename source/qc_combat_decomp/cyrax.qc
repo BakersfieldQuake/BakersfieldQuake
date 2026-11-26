@@ -60,6 +60,97 @@ float(entity p) Cyrax_TestOn =
 	return (autocvar_cyrax_test != 0 || cvar ("cyrax_test") != 0);
 };
 
+float() Cyrax_HoldTime =
+{
+	if (autocvar_cyrax_hold_time > 0)
+		return autocvar_cyrax_hold_time;
+	return CY_HOLD_MAX;
+};
+
+// ---------------------------------------------------------------- shooter breadcrumbs (pull route)
+
+void(entity p) Cyrax_ClearCrumbs =
+{
+	local entity c, nx;
+
+	c = p.cy_crumbs;
+	while (c != world)
+	{
+		nx = c.cy_next;
+		if (!bm_wasfreed (c) && c.classname == "cyrax_crumb")
+			remove (c);
+		c = nx;
+	}
+	p.cy_crumbs = world;
+	p.cy_crumb_n = 0;
+	p.cy_route_i = 0;
+};
+
+// Every crumb is a spot the shooter's player hull stood in, so it is known to be clear.
+void(entity p) Cyrax_DropCrumb =
+{
+	local entity c, last, old;
+	local vector ref;
+
+	last = world;
+	c = p.cy_crumbs;
+	while (c != world)
+	{
+		last = c;
+		c = c.cy_next;
+	}
+	if (last != world)
+		ref = last.origin;
+	else
+		ref = p.cy_fire_org;
+	if (vlen (p.origin - ref) < CY_CRUMB_STEP)
+		return;
+
+	c = spawn ();
+	c.classname = "cyrax_crumb";
+	c.owner = p;
+	c.movetype = MOVETYPE_NONE;
+	c.solid = SOLID_NOT;
+	setorigin (c, p.origin);
+	if (last != world)
+		last.cy_next = c;
+	else
+		p.cy_crumbs = c;
+	p.cy_crumb_n = p.cy_crumb_n + 1;
+
+	if (p.cy_crumb_n > CY_CRUMB_MAX)
+	{
+		// Drop the oldest; it becomes the route's first point so the route stays connected.
+		old = p.cy_crumbs;
+		p.cy_fire_org = old.origin;
+		p.cy_crumbs = old.cy_next;
+		remove (old);
+		p.cy_crumb_n = p.cy_crumb_n - 1;
+		if (p.cy_route_i > 0)
+			p.cy_route_i = p.cy_route_i - 1;
+	}
+};
+
+// Route point i: 0 = where the net was fired from, 1..n = crumbs (oldest first).
+vector(entity p, float i) Cyrax_RoutePoint =
+{
+	local entity c;
+	local float k;
+
+	if (i <= 0)
+		return p.cy_fire_org;
+	c = p.cy_crumbs;
+	k = 1;
+	while (c != world && k < i)
+	{
+		c = c.cy_next;
+		k = k + 1;
+	}
+	if (c == world)
+		return p.cy_fire_org;
+	return c.origin;
+};
+
 // ---------------------------------------------------------------- target validation & cleanup
 
 float(entity shooter, entity e) Cyrax_IsValidTarget =
@@ -203,6 +294,7 @@ void(entity p) Cyrax_ReleaseHold =
 	p.cy_hold_end = 0;
 	p.cy_hold_phase = 0;
 	p.cy_pull_snd_t = 0;
+	Cyrax_ClearCrumbs (p);
 
 	if (wrap != world && !bm_wasfreed (wrap) && wrap.classname == "cyrax_wrap")
 		remove (wrap);
@@ -269,6 +361,9 @@ void(entity p) Cyrax_ResetPlayer =
 	p.cy_bonk_end = 0;
 	p.cy_bonk_snd = FALSE;
 	p.cy_click_ready = FALSE;
+	p.cy_need_release = FALSE;
+	p.cy_net = world;
+	Cyrax_ClearCrumbs (p);
 	p.cy_launch_until = 0;
 	p.cy_st_mode = 0;
 	p.cy_st_prog = 0;
@@ -300,6 +395,14 @@ void(entity p) Cyrax_ClientGone =
 	while (e)
 	{
 		nx = find (e, classname, "cyrax_wrap");
+		if (e.owner == p)
+			remove (e);
+		e = nx;
+	}
+	e = find (world, classname, "cyrax_crumb");
+	while (e)
+	{
+		nx = find (e, classname, "cyrax_crumb");
 		if (e.owner == p)
 			remove (e);
 		e = nx;
@@ -620,8 +723,12 @@ void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
 		sound7 (shooter, CHAN_AUTO, "cyrax/capture.wav", 0.75, ATTN_NORM, SNDSPD);
 
 	targ.cy_trapped_by = shooter;
-	targ.cy_trapped_end = time + CY_HOLD_MAX;
+	// The holder ends the hold (Cyrax_BreakNet); the victim's own timer is only a safety net.
+	targ.cy_trapped_end = time + Cyrax_HoldTime () + 0.5;
 	targ.cy_old_movetype = targ.movetype;
+	targ.cy_prog_t = time;
+	targ.cy_last_prog_org = targ.origin;
+	targ.cy_hops = 0;
 	targ.movetype = MOVETYPE_NONE;
 	targ.velocity = '0 0 0';
 	targ.flags = targ.flags - (targ.flags & FL_ONGROUND);
@@ -663,8 +770,11 @@ void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
 	shooter.cy_hold_targ = targ;
 	shooter.cy_hold_wrap = wrap;
 	shooter.cy_hold_kind = kind;
-	shooter.cy_hold_end = time + CY_HOLD_MAX;
+	shooter.cy_hold_end = time + Cyrax_HoldTime ();
 	shooter.cy_hold_phase = 1;
+	shooter.cy_route_i = 0;
+	shooter.cy_route_t = 0;
+	shooter.cy_net = world;
 	shooter.cy_pull_snd_t = time + 0.05;
 	shooter.cy_catch_t = time;
 	shooter.cy_tether_t = 0;
@@ -676,19 +786,50 @@ void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
 
 // ---------------------------------------------------------------- flying net projectile
 
-void() Cyrax_NetPop =
+// A missed net sticks to whatever it hit for a moment and fades, so you always see where it went.
+void() Cyrax_SplatThink =
 {
-	local vector org;
+	local float u;
 
-	org = self.origin;
-	Cyrax_Fx (cy_fx_muzzle_dust, org, '0 0 24', 1);
+	u = (time - self.cy_splat_t) / CY_SPLAT_TIME;
+	if (u >= 1)
+	{
+		remove (self);
+		return;
+	}
+	self.alpha = 1 - u * 0.9;
+	self.nextthink = time + 0.03;
+};
+
+void() Cyrax_NetSplat =
+{
+	local vector back;
+
+	if (vlen (self.cy_vel) > 1)
+		back = normalize (self.cy_vel) * 4;
+	else
+		back = '0 0 0';
+	setorigin (self, self.origin - back);
+	Cyrax_Fx (cy_fx_muzzle_dust, self.origin, '0 0 24', 1);
 	sound7 (self, CHAN_AUTO, "cyrax/vent.wav", 0.55, ATTN_NORM, SNDSPD);
-	remove (self);
+	if (self.owner != world && !bm_wasfreed (self.owner) && self.owner.cy_net == self)
+		self.owner.cy_net = world;
+	self.classname = "cyrax_net_splat";
+	self.movetype = MOVETYPE_NONE;
+	self.solid = SOLID_NOT;
+	self.velocity = '0 0 0';
+	self.touch = SUB_Null;
+	self.traileffectnum = 0;
+	self.cy_splat_t = time;
+	self.alpha = 1;
+	self.think = Cyrax_SplatThink;
+	self.nextthink = time + 0.03;
 };
 
 void() Cyrax_NetTouch =
 {
 	local entity shooter, targ;
+	local vector fwd_step;
 
 	if (other == self.owner)
 		return;
@@ -712,7 +853,7 @@ void() Cyrax_NetTouch =
 		return;
 	}
 
-	// Ignore standard rockets, grenades, and other fun-gun projectiles in mid-flight
+	// Fly through rockets, grenades, and other fun-gun projectiles
 	if (other != world && other.solid != SOLID_BSP)
 	{
 		if (other.movetype == MOVETYPE_FLYMISSILE || other.movetype == MOVETYPE_BOUNCE
@@ -721,12 +862,12 @@ void() Cyrax_NetTouch =
 			self.velocity = self.cy_vel;
 			if (vlen (self.cy_vel) > 1)
 			{
-				local vector fwd_step;
 				fwd_step = normalize (self.cy_vel) * 14;
-				traceline (self.origin, self.origin + fwd_step, TRUE, self);
+				tracebox (self.origin, self.mins, self.maxs, self.origin + fwd_step, TRUE, self);
 				if (trace_fraction < 1)
 				{
-					Cyrax_NetPop ();
+					setorigin (self, trace_endpos);
+					Cyrax_NetSplat ();
 					return;
 				}
 				setorigin (self, self.origin + fwd_step);
@@ -735,43 +876,57 @@ void() Cyrax_NetTouch =
 		}
 	}
 
-	Cyrax_NetPop ();
+	Cyrax_NetSplat ();
 };
 
-void() Cyrax_NetThink =
+// Catch anything valid within the net's radius that it can see.
+float(entity net) Cyrax_NetProximity =
 {
-	local float f;
 	local entity head, targ;
 	local vector cpos;
+	local float r;
 
-	if (time >= self.fg_born + CY_NET_LIFE || pointcontents (self.origin) == CONTENT_SKY)
-	{
-		remove (self);
-		return;
-	}
-
-	// Forgiving proximity capture for the huge non-spinning net (within 58u with clear LOS)
-	head = findradius (self.origin, 58);
+	r = net.cy_radius;
+	head = findradius (net.origin, r + 24);
 	while (head != world)
 	{
 		targ = head;
 		if (targ.classname == "player" && targ.jb_vehicle != world)
 			targ = targ.jb_vehicle;
-		if (!(targ == self.owner && time < self.fg_born + 0.15) && Cyrax_IsValidTarget (self.owner, targ))
+		if (!(targ == net.owner && time < net.fg_born + 0.15) && Cyrax_IsValidTarget (net.owner, targ))
 		{
 			cpos = Cyrax_TargetCenter (targ);
-			if (vlen (targ.origin - self.origin) <= 58 || vlen (cpos - self.origin) <= 58)
+			if (vlen (targ.origin - net.origin) <= r || vlen (cpos - net.origin) <= r)
 			{
-				traceline (self.origin, cpos, TRUE, self);
+				traceline (net.origin, cpos, TRUE, net);
 				if (trace_fraction == 1)
 				{
-					Cyrax_Capture (self.owner, targ, self.origin);
-					remove (self);
-					return;
+					Cyrax_Capture (net.owner, targ, net.origin);
+					return TRUE;
 				}
 			}
 		}
 		head = head.chain;
+	}
+	return FALSE;
+};
+
+void() Cyrax_NetThink =
+{
+	local float f;
+
+	if (time >= self.fg_born + CY_NET_LIFE || pointcontents (self.origin) == CONTENT_SKY)
+	{
+		if (self.owner != world && !bm_wasfreed (self.owner) && self.owner.cy_net == self)
+			self.owner.cy_net = world;
+		remove (self);
+		return;
+	}
+
+	if (Cyrax_NetProximity (self))
+	{
+		remove (self);
+		return;
 	}
 
 	f = floor ((time - self.fg_born) * 18);
@@ -781,9 +936,9 @@ void() Cyrax_NetThink =
 	self.nextthink = time + 0.02;
 };
 
-void(entity p) Cyrax_FireNet =
+void(entity p, float weak) Cyrax_FireNet =
 {
-	local entity net;
+	local entity net, pb;
 	local vector muz, eye, aim_pt, dir;
 
 	FunGun_SetAmmo (p, FG_CYRAX, 1);
@@ -795,27 +950,51 @@ void(entity p) Cyrax_FireNet =
 	p.bm_lastshot = time + 0.35;
 	p.cy_click_ready = FALSE;
 
+	// Fresh route: the victim is pulled back along the net's flight line, then the shooter's breadcrumbs.
+	Cyrax_ClearCrumbs (p);
+	p.cy_fire_org = p.origin;
+
 	makevectors (p.v_angle);
-	muz = Cyrax_MuzzlePos (p);
 	eye = p.origin + p.view_ofs;
+
+	// Spawn point traced with the net's own hull, so it never starts inside a wall.
+	tracebox (eye, '-6 -6 -6', '6 6 6', eye + v_forward * 26 + v_right * 6 - v_up * 5, TRUE, p);
+	muz = trace_endpos;
+
 	traceline (eye, eye + v_forward * 2048, FALSE, p);
-	if (trace_fraction < 0.03)
-		aim_pt = eye + v_forward * 256;
-	else
-		aim_pt = trace_endpos;
-	dir = normalize (aim_pt - muz);
-	if (dir == VEC_ORIGIN)
+	if (trace_fraction * 2048 < 96)
 		dir = v_forward;
+	else
+	{
+		aim_pt = trace_endpos;
+		dir = normalize (aim_pt - muz);
+		if (dir == VEC_ORIGIN)
+			dir = v_forward;
+	}
 
 	// Slight player pushback recoil & muzzle FX
-	p.velocity = p.velocity - v_forward * CY_RECOIL_PUSH;
+	p.velocity = p.velocity - v_forward * (weak ? CY_RECOIL_PUSH * 0.5 : CY_RECOIL_PUSH);
 	p.effects = p.effects | EF_MUZZLEFLASH;
-	p.punchangle_x = -4.0;
+	p.punchangle_x = weak ? -2.5 : -4.0;
 	player_mm1 ();
 
 	Cyrax_Fx (cy_fx_muzzle_flash, muz, dir * 200, 1);
 	Cyrax_Fx (cy_fx_muzzle_dust, muz, dir * 120, 1);
-	sound7 (p, CHAN_WEAPON, "cyrax/fire.wav", 1.0, ATTN_NORM, SNDSPD);
+	sound7 (p, CHAN_WEAPON, "cyrax/fire.wav", weak ? 0.8 : 1.0, ATTN_NORM, weak ? SNDSPD * 1.15 : SNDSPD);
+
+	p.attack_finished = time + 0.25;
+
+	// Point-blank: someone right in front of the muzzle is caught at once.
+	tracebox (eye, '-24 -24 -24', '24 24 24', eye + v_forward * 80, FALSE, p);
+	pb = trace_ent;
+	if (pb != world && pb.classname == "player" && pb.jb_vehicle != world)
+		pb = pb.jb_vehicle;
+	if (pb != world && pb != p && Cyrax_IsValidTarget (p, pb))
+	{
+		Cyrax_Capture (p, pb, trace_endpos);
+		if (p.cy_hold_targ == pb)
+			return;
+	}
 
 	net = spawn ();
 	net.classname = "cyrax_net_proj";
@@ -825,9 +1004,20 @@ void(entity p) Cyrax_FireNet =
 	net.solid = SOLID_BBOX;
 	net.effects = EF_FULLBRIGHT;
 	setmodel (net, "progs/cyrax_net.md3");
-	setsize (net, '-32 -32 -40', '32 32 40');
+	// Small world hull: the big net model is only the visual; people are caught by proximity.
+	setsize (net, '-6 -6 -6', '6 6 6');
 	setorigin (net, muz);
-	net.cy_vel = dir * CY_NET_SPEED;
+	if (weak)
+	{
+		net.scale = 0.7;
+		net.cy_radius = CY_WEAK_RADIUS;
+		net.cy_vel = dir * CY_WEAK_SPEED;
+	}
+	else
+	{
+		net.cy_radius = CY_CATCH_RADIUS;
+		net.cy_vel = dir * CY_NET_SPEED;
+	}
 	net.velocity = net.cy_vel;
 	net.angles = vectoangles (dir);
 	net.angles_z = 0;
@@ -836,8 +1026,14 @@ void(entity p) Cyrax_FireNet =
 	net.touch = Cyrax_NetTouch;
 	net.think = Cyrax_NetThink;
 	net.nextthink = time + 0.02;
+	p.cy_net = net;
 
-	p.attack_finished = time + 0.25;
+	// Catch anyone already inside the radius at the muzzle.
+	if (Cyrax_NetProximity (net))
+	{
+		p.cy_net = world;
+		remove (net);
+	}
 };
 
 // ---------------------------------------------------------------- pull, hold & geometry-safe movement
@@ -878,57 +1074,193 @@ vector(entity p, entity targ) Cyrax_CalcHoldPoint =
 	return want;
 };
 
-void(entity targ, vector want_pos, float max_step) Cyrax_MoveToward =
+vector(entity targ) Cyrax_HullMins =
 {
-	local vector delta, step, bmin, bmax, next_pos;
-	local float d;
+	if (targ.mins == VEC_ORIGIN && targ.maxs == VEC_ORIGIN)
+		return '-16 -16 -24';
+	return targ.mins;
+};
 
-	delta = want_pos - targ.origin;
-	d = vlen (delta);
-	if (d < 0.5)
-		return;
-	if (d > max_step)
-		step = normalize (delta) * max_step;
-	else
-		step = delta;
+vector(entity targ) Cyrax_HullMaxs =
+{
+	if (targ.mins == VEC_ORIGIN && targ.maxs == VEC_ORIGIN)
+		return '16 16 32';
+	return targ.maxs;
+};
 
-	bmin = targ.mins;
-	bmax = targ.maxs;
-	if (bmin == VEC_ORIGIN && bmax == VEC_ORIGIN)
+// TRUE when the target's hull fits at pos.
+float(entity targ, vector pos) Cyrax_HullFits =
+{
+	tracebox (pos, Cyrax_HullMins (targ), Cyrax_HullMaxs (targ), pos, TRUE, targ);
+	return (!trace_startsolid && !trace_allsolid);
+};
+
+// TRUE when the target's hull can travel straight from a to b.
+float(entity targ, vector a, vector b) Cyrax_HullClear =
+{
+	tracebox (a, Cyrax_HullMins (targ), Cyrax_HullMaxs (targ), b, TRUE, targ);
+	return (!trace_startsolid && !trace_allsolid && trace_fraction >= 1);
+};
+
+// Quake-style slide move: on hitting a wall, try an 18u step up, else slide the rest along it (3 tries).
+void(entity targ, vector move) Cyrax_SlideMove =
+{
+	local vector bmin, bmax, rest, n;
+	local float i;
+
+	bmin = Cyrax_HullMins (targ);
+	bmax = Cyrax_HullMaxs (targ);
+	i = 0;
+	while (i < 3 && vlen (move) > 0.1)
 	{
-		bmin = '-16 -16 -24';
-		bmax = '16 16 32';
-	}
-
-	// First check line-of-sight world geometry so target is never pulled inside solid walls
-	traceline (targ.origin, targ.origin + step, TRUE, targ);
-	if (trace_fraction < 1)
-	{
-		step = step * trace_fraction;
-		if (trace_plane_normal_z > -0.4 && trace_plane_normal_z < 0.4)
+		tracebox (targ.origin, bmin, bmax, targ.origin + move, TRUE, targ);
+		if (trace_startsolid || trace_allsolid)
 		{
-			// Gentle step-up assist over low ledges/curbs
-			tracebox (targ.origin + '0 0 18', bmin, bmax, targ.origin + '0 0 18' + normalize (delta) * min (d, max_step), TRUE, targ);
-			if (!trace_startsolid && trace_fraction > 0.25)
+			// Wedged: lift gently to free the hull
+			tracebox (targ.origin + '0 0 6', bmin, bmax, targ.origin + '0 0 6' + move, TRUE, targ);
+			if (!trace_startsolid && !trace_allsolid)
+				setorigin (targ, trace_endpos);
+			return;
+		}
+		setorigin (targ, trace_endpos);
+		if (trace_fraction >= 1)
+			return;
+		rest = move * (1 - trace_fraction);
+		n = trace_plane_normal;
+		if (i == 0 && n_z > -0.7 && n_z < 0.7)
+		{
+			tracebox (targ.origin + '0 0 18', bmin, bmax, targ.origin + '0 0 18' + rest, TRUE, targ);
+			if (!trace_startsolid && !trace_allsolid && trace_fraction > 0.5)
 			{
 				setorigin (targ, trace_endpos);
 				return;
 			}
 		}
+		move = rest - n * (rest * n);
+		i = i + 1;
 	}
+};
 
-	next_pos = targ.origin + step;
-	tracebox (targ.origin, bmin, bmax, next_pos, TRUE, targ);
-	if (!trace_startsolid && !trace_allsolid)
+// No progress: hop forward toward goal to the first spot (up to 96u ahead) where the hull fits.
+// If nothing fits, snap onto the goal when it fits there. Returns TRUE when it moved.
+float(entity targ, vector goal) Cyrax_Hop =
+{
+	local vector dir, pos, org;
+	local float s, d;
+
+	org = targ.origin;
+	d = vlen (goal - org);
+	if (d < 1)
+		return FALSE;
+	dir = normalize (goal - org);
+	s = 8;
+	while (s <= 96)
 	{
-		setorigin (targ, trace_endpos);
-		return;
+		if (s > d)
+			pos = goal;
+		else
+			pos = org + dir * s;
+		if (s > 12 && Cyrax_HullFits (targ, pos))
+		{
+			setorigin (targ, pos);
+			Cyrax_Fx (cy_fx_net_capture, pos, '0 0 0', 1);
+			return TRUE;
+		}
+		if (s > 12 && Cyrax_HullFits (targ, pos + '0 0 18'))
+		{
+			setorigin (targ, pos + '0 0 18');
+			Cyrax_Fx (cy_fx_net_capture, pos, '0 0 0', 1);
+			return TRUE;
+		}
+		if (s > d)
+			break;
+		s = s + 8;
+	}
+	if (Cyrax_HullFits (targ, goal))
+	{
+		setorigin (targ, goal);
+		Cyrax_Fx (cy_fx_net_capture, goal, '0 0 0', 1);
+		return TRUE;
+	}
+	return FALSE;
+};
+
+// Where the victim should head now: a route point, or the hold point once the way is clear.
+// Route points 0..n (fire origin, then crumbs); index n+1 means "the hold point".
+vector(entity p, entity targ, vector hold_pt) Cyrax_RouteGoal =
+{
+	local float n, i, best;
+	local entity c;
+	local vector wp;
+
+	n = p.cy_crumb_n;
+	if (p.cy_route_i > n + 1)
+		p.cy_route_i = n + 1;
+
+	// Shortcuts, 10 times a second: head for the furthest point along the route the hull can reach straight.
+	if (time >= p.cy_route_t)
+	{
+		p.cy_route_t = time + 0.1;
+		if (Cyrax_HullClear (targ, targ.origin, hold_pt))
+			p.cy_route_i = n + 1;
+		else if (p.cy_route_i <= n)
+		{
+			best = -1;
+			if (p.cy_route_i <= 0 && Cyrax_HullClear (targ, targ.origin, p.cy_fire_org))
+				best = 0;
+			i = 1;
+			c = p.cy_crumbs;
+			while (c != world)
+			{
+				if (i >= p.cy_route_i && Cyrax_HullClear (targ, targ.origin, c.origin))
+					best = i;
+				c = c.cy_next;
+				i = i + 1;
+			}
+			if (best >= 0)
+				p.cy_route_i = best;
+		}
 	}
 
-	// If wedged near floor/wall, lift gently by 6u to free hull
-	tracebox (targ.origin + '0 0 6', bmin, bmax, next_pos + '0 0 6', TRUE, targ);
-	if (!trace_startsolid && !trace_allsolid)
-		setorigin (targ, trace_endpos);
+	// Skip route points the victim has reached, or that sit on top of the shooter.
+	while (p.cy_route_i <= n)
+	{
+		wp = Cyrax_RoutePoint (p, p.cy_route_i);
+		if (vlen (wp - targ.origin) > 24 && vlen (wp - p.origin) > 64)
+			return wp;
+		p.cy_route_i = p.cy_route_i + 1;
+	}
+	return hold_pt;
+};
+
+// Move the victim one tick toward goal, never stuck: slide along walls, hop when no progress.
+void(entity p, entity targ, vector goal, float max_step) Cyrax_PullStep =
+{
+	local vector delta;
+	local float d;
+
+	delta = goal - targ.origin;
+	d = vlen (delta);
+	if (d > 0.5)
+	{
+		if (d > max_step)
+			delta = normalize (delta) * max_step;
+		Cyrax_SlideMove (targ, delta);
+	}
+
+	if (time >= targ.cy_prog_t + CY_STUCK_TIME)
+	{
+		// Progress means getting closer to the goal: sliding sideways along a wall doesn't count.
+		if (vlen (goal - targ.origin) > 24 && vlen (goal - targ.cy_last_prog_org) - vlen (goal - targ.origin) < CY_STUCK_DIST)
+		{
+			if (Cyrax_Hop (targ, goal))
+				targ.cy_hops = targ.cy_hops + 1;
+			else if (p.cy_route_i <= p.cy_crumb_n)
+				p.cy_route_i = p.cy_route_i + 1;	// unreachable point: go for the next one
+		}
+		targ.cy_prog_t = time;
+		targ.cy_last_prog_org = targ.origin;
+	}
 };
 
 // ---------------------------------------------------------------- Bonk-Launch strike (auto-equips IT_AXE)
@@ -1114,15 +1446,46 @@ void() Cyrax_BonkFrame =
 
 // ---------------------------------------------------------------- per-frame player & victim ticks
 
+// The hold ran out: the net breaks and the victim drops free in front of the shooter.
+void(entity p) Cyrax_BreakNet =
+{
+	local entity targ;
+	local vector cpos;
+	local float kind;
+
+	targ = p.cy_hold_targ;
+	kind = p.cy_hold_kind;
+	if (targ != world && !bm_wasfreed (targ))
+	{
+		cpos = Cyrax_TargetCenter (targ);
+		Cyrax_Fx (cy_fx_net_capture, cpos, '0 0 0', 1);
+		sound7 (targ, CHAN_AUTO, "cyrax/capture.wav", 0.9, ATTN_NORM, SNDSPD * 0.75);
+		if (p != targ)
+			sound7 (p, CHAN_AUTO, "cyrax/vent.wav", 0.7, ATTN_NORM, SNDSPD);
+	}
+	Cyrax_ReleaseHold (p);
+	if (targ != world && !bm_wasfreed (targ) && kind == 0 && targ.health > 0 && !targ.deadflag)
+	{
+		targ.flags = targ.flags - (targ.flags & FL_ONGROUND);
+		targ.velocity = '0 0 200';
+	}
+};
+
 void(entity p) Cyrax_HoldTick =
 {
 	local entity targ;
-	local vector hold_pt;
-	local float d, rem_tenths, dt;
+	local vector hold_pt, goal, hsep;
+	local float d, rem_tenths, dt, spd, u;
 
 	targ = p.cy_hold_targ;
 	if (targ == world)
 		return;
+
+	if (time >= p.cy_hold_end && !bm_wasfreed (targ) && p.health > 0 && !p.deadflag)
+	{
+		Cyrax_BreakNet (p);
+		return;
+	}
 
 	if (bm_wasfreed (targ) || p.health <= 0 || p.deadflag || intermission_running
 		|| time >= p.cy_hold_end || p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.rr_vehicle != world || FD_Flying (p) || EricCannon_Active (p))
@@ -1162,10 +1525,12 @@ void(entity p) Cyrax_HoldTick =
 	if (dt < 0.001) dt = 0.001;
 	if (dt > 0.05) dt = 0.05;
 
+	// The shooter keeps leaving breadcrumbs, so walking the victim around corners works too.
+	Cyrax_DropCrumb (p);
+
 	hold_pt = Cyrax_CalcHoldPoint (p, targ);
 	if (p.cy_hold_kind == 0 && targ != p)
 	{
-		local vector hsep;
 		hsep = hold_pt - p.origin;
 		hsep_z = 0;
 		if (vlen (hsep) < 38 && fabs (hold_pt_z - p.origin_z) < 56)
@@ -1177,11 +1542,17 @@ void(entity p) Cyrax_HoldTick =
 				hold_pt = targ.origin;
 		}
 	}
+
+	goal = Cyrax_RouteGoal (p, targ, hold_pt);
 	d = vlen (hold_pt - targ.origin);
 
 	if (p.cy_hold_phase == 1)
 	{
-		Cyrax_MoveToward (targ, hold_pt, CY_PULL_SPEED * dt);
+		// Quick from far away, easing to a gentle drift as they arrive
+		u = vlen (targ.origin - p.origin) / 400;
+		if (u > 1) u = 1;
+		spd = CY_PULL_SPEED_NEAR + (CY_PULL_SPEED_FAR - CY_PULL_SPEED_NEAR) * u;
+		Cyrax_PullStep (p, targ, goal, spd * dt);
 		d = vlen (hold_pt - targ.origin);
 		if (d <= CY_HOLD_ENTER_DIST)
 		{
@@ -1196,7 +1567,17 @@ void(entity p) Cyrax_HoldTick =
 	}
 	else
 	{
-		Cyrax_MoveToward (targ, hold_pt, min (d, max (360 * dt, d * 12 * dt)));
+		// Held: follow the aim point closely, around corners via the same route
+		d = vlen (goal - targ.origin);
+		Cyrax_PullStep (p, targ, goal, min (d, max (360 * dt, d * 12 * dt)));
+	}
+
+	if (autocvar_cyrax_debug && time >= p.cy_dbg_t)
+	{
+		p.cy_dbg_t = time + 0.25;
+		dprint (strcat ("cyrax: phase ", ftos (p.cy_hold_phase), " dist ", ftos (floor (vlen (targ.origin - p.origin))),
+			" route ", ftos (p.cy_route_i), "/", ftos (p.cy_crumb_n)));
+		dprint (strcat (" hops ", ftos (targ.cy_hops), " left ", ftos (floor ((p.cy_hold_end - time) * 10) / 10), "\n"));
 	}
 
 	if (p.cy_hold_wrap != world && !bm_wasfreed (p.cy_hold_wrap))
@@ -1205,7 +1586,7 @@ void(entity p) Cyrax_HoldTick =
 	if (!p.button0)
 		p.cy_click_ready = TRUE;
 
-	rem_tenths = bound (0, ceil ((p.cy_hold_end - time) * 10), 300);
+	rem_tenths = bound (0, ceil ((p.cy_hold_end - time) * 10), ceil (Cyrax_HoldTime () * 10));
 	p.cy_st_mode = (p.cy_hold_phase == 1) ? 2 : 3;
 	p.cy_st_prog = rem_tenths;
 	p.cy_st_kind = p.cy_hold_kind;
@@ -1234,6 +1615,8 @@ void() Cyrax_Press =
 		return;
 	if (self.cy_charging > 0)
 		return;
+	if (self.cy_need_release)
+		return;		// a full-charge shot just fired: let go before the next charge
 	if (self.cy_fire_t > 0 && time < self.cy_fire_t + 0.25)
 		return;
 
@@ -1254,6 +1637,22 @@ void() Cyrax_Frame =
 {
 	local float busy, held, prog;
 	local vector muz;
+
+	if (!self.button0)
+		self.cy_need_release = FALSE;
+
+	// Breadcrumbs while the net flies (the hold tick drops them during a hold)
+	if (self.cy_hold_targ == world)
+	{
+		if (self.cy_net != world && !bm_wasfreed (self.cy_net) && self.cy_net.classname == "cyrax_net_proj" && self.cy_net.owner == self)
+			Cyrax_DropCrumb (self);
+		else
+		{
+			self.cy_net = world;
+			if (self.cy_crumbs != world)
+				Cyrax_ClearCrumbs (self);
+		}
+	}
 
 	if (self.cy_hold_targ != world)
 	{
@@ -1293,18 +1692,27 @@ void() Cyrax_Frame =
 
 			if (!self.button0)
 			{
-				// Early release (< 1.1s): abort charge, vent steam/dust, spend NO ammo
-				self.cy_charging = 0;
-				self.cy_vent_t = time;
-				sound7 (self, CHAN_WEAPON, "cyrax/vent.wav", 0.85, ATTN_NORM, SNDSPD);
-				makevectors (self.v_angle);
-				muz = Cyrax_MuzzlePos (self);
-				Cyrax_Fx (cy_fx_muzzle_dust, muz, v_forward * 95, 1);
-				self.attack_finished = time + 0.25;
+				if (held >= CY_MIN_CHARGE)
+				{
+					// Early release: still fire, a smaller and slower net
+					Cyrax_FireNet (self, TRUE);
+				}
+				else
+				{
+					// A quick tap: nothing fires, just a soft vent
+					self.cy_charging = 0;
+					self.cy_vent_t = time;
+					sound7 (self, CHAN_WEAPON, "cyrax/vent.wav", 0.5, ATTN_NORM, SNDSPD);
+					makevectors (self.v_angle);
+					muz = Cyrax_MuzzlePos (self);
+					Cyrax_Fx (cy_fx_muzzle_dust, muz, v_forward * 95, 1);
+					self.attack_finished = time + 0.1;
+				}
 			}
 			else if (held >= CY_CHARGE_TIME)
 			{
-				Cyrax_FireNet (self);
+				Cyrax_FireNet (self, FALSE);
+				self.cy_need_release = TRUE;
 			}
 			else
 			{

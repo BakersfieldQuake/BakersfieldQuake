@@ -368,7 +368,7 @@ void() FunGun_Attack =
 	if (g == FG_CYRAX)
 	{
 		self.fg_dry_held = FALSE;
-		Cyrax_Press ();		// no reload / never runs dry: hold fire 1.1s to launch net (cyrax.qc)
+		Cyrax_Press ();		// no reload / never runs dry: hold fire to charge, it launches the net (cyrax.qc)
 		return;
 	}
 	if (time < self.fg_lock_t && g != self.fg_lock_gun)

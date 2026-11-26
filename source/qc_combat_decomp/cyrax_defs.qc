@@ -6,10 +6,16 @@
 CYRAX NET LAUNCHER - definitions (Fun Gun Slot 10, FG_CYRAX = 10, BM_FG10 = 19, impulse 70, key L)
 
 Mortal Kombat 3 Cyrax green energy net weapon:
-  - Hold Mouse1 for 1.8s (CY_CHARGE_TIME) to charge; auto-fires immediately at 1.8s.
-  - Releasing Mouse1 early (< 1.8s) aborts charge, plays cyrax/vent.wav, vents green dust, spends NO ammo.
+  - Hold Mouse1 to charge (CY_CHARGE_TIME 0.8s); it fires a full net by itself when charged.
+    Letting go after CY_MIN_CHARGE fires a smaller, slower net; a tap shorter than that does nothing.
+    After a shot the trigger must be released before the next charge (cy_need_release).
+  - The net has a small world hull, so it always leaves the muzzle; it catches by proximity
+    (CY_CATCH_RADIUS) and splats on walls, staying visible for a moment.
   - Captures ONLY: Players/Bots (and Winged John pilot+bird), Winged John Birds, and Milky Grenades.
-  - Pulls target (~240 u/s) to ~80u in front of shooter's aim, then suspends up to 30.0s.
+  - Pulls the target to CY_HOLD_DIST in front of the shooter's aim along a route that never gets stuck:
+    the net's flight line back to the shooter, then the shooter's breadcrumbs (cyrax_crumb), with
+    line-of-sight shortcuts, wall sliding, and a short hop forward when no progress is made.
+  - The hold lasts cyrax_hold_time seconds (default 8, pull + hold); then the net breaks and they drop free.
   - Trapped players/bots are stunned (no move/jump/fire/weapon-switch) and visually locked to IT_AXE.
   - Clicking Mouse1 while holding/pulling a target equips IT_AXE, plays a snappy 0.30s Bonk Hammer
     wind-up & Tier-3 swing, plays cyrax/bonk_launch.wav + frying_pan.wav, deals 40 dmg (players/birds),
@@ -17,13 +23,23 @@ Mortal Kombat 3 Cyrax green energy net weapon:
 ================
 */
 
-float	CY_CHARGE_TIME		= 1.1;		// snappy hold time required to fire
-float	CY_NET_SPEED		= 950;		// projectile velocity u/s
+float	CY_CHARGE_TIME		= 0.8;		// hold time for a full net (fires by itself)
+float	CY_MIN_CHARGE		= 0.25;		// releasing after this fires a weak net; before it, nothing
+float	CY_NET_SPEED		= 1100;		// full net velocity u/s
+float	CY_WEAK_SPEED		= 750;		// weak (early release) net velocity u/s
+float	CY_CATCH_RADIUS		= 60;		// full net proximity catch radius
+float	CY_WEAK_RADIUS		= 44;		// weak net proximity catch radius
 float	CY_NET_LIFE			= 4.0;		// max projectile flight time
-float	CY_HOLD_MAX			= 30.0;		// max capture/pull/hold duration
-float	CY_PULL_SPEED		= 240;		// pull speed u/s toward hold point
-float	CY_HOLD_DIST		= 80;		// suspended distance in front of shooter's aim
+float	CY_SPLAT_TIME		= 0.5;		// a missed net stays stuck to the wall this long
+float	CY_HOLD_MAX			= 8.0;		// default capture/pull/hold duration (cvar cyrax_hold_time)
+float	CY_PULL_SPEED_FAR	= 320;		// pull speed u/s when far away
+float	CY_PULL_SPEED_NEAR	= 150;		// pull speed u/s when arriving
+float	CY_HOLD_DIST		= 72;		// suspended distance in front of shooter's aim
 float	CY_HOLD_ENTER_DIST	= 88;		// distance from hold point to switch pull -> hold
+float	CY_CRUMB_STEP		= 40;		// shooter breadcrumb spacing
+float	CY_CRUMB_MAX		= 24;		// max breadcrumbs kept per shooter
+float	CY_STUCK_TIME		= 0.3;		// no progress for this long -> hop forward along the route
+float	CY_STUCK_DIST		= 8;		// "progress" means moving at least this far
 float	CY_BONK_WIND_TIME	= 0.30;		// snappy Bonk Hammer wind-up before launch strike
 float	CY_BONK_FOLLOW_TIME	= 0.40;		// Tier-3 swing + follow-through duration
 float	CY_BONK_DMG			= 40;		// impact damage for players / Winged John Birds
@@ -51,6 +67,8 @@ float	CY_VENT_ANIM_TIME	= 0.42;
 float	CY_CATCH_ANIM_TIME	= 0.72;
 
 var float	autocvar_cyrax_test	= 0;	// 1 = allow capturing yourself in solo testing
+var float	autocvar_cyrax_hold_time	= 8;	// seconds a net holds its target (pull + hold)
+var float	autocvar_cyrax_debug	= 0;	// 1 = print pull distance / hops to the console
 
 // Cached particle effect indices
 float	cy_fx_charge_glow;
@@ -77,10 +95,24 @@ float	cy_fx_bonk_launch;
 .entity	cy_hold_targ;		// currently netted target (player, bird, or milky)
 .entity	cy_hold_wrap;		// progs/cyrax_wrap.md3 entity following target
 .float	cy_hold_kind;		// 0=player/bot, 1=Winged John Bird, 2=Milky Grenade
-.float	cy_hold_end;		// 30s timeout timestamp
+.float	cy_hold_end;		// hold timeout timestamp (cyrax_hold_time)
 .float	cy_hold_phase;		// 0=none, 1=pulling, 2=holding ready to bonk
 .float	cy_pull_snd_t;		// next periodic pull.wav timestamp
 .float	cy_click_ready;		// TRUE once Mouse1 has been released after capture/fire
+.float	cy_need_release;	// TRUE after a full-charge shot until Mouse1 is released
+.entity	cy_crumbs;			// shooter: oldest breadcrumb (cyrax_crumb chain via .cy_next)
+.float	cy_crumb_n;			// shooter: number of breadcrumbs in the chain
+.vector	cy_fire_org;		// shooter: where the shooter stood when the net was fired
+.float	cy_route_i;			// shooter: route index the victim is heading for (0 = fire origin, 1.. = crumbs)
+.entity	cy_next;			// breadcrumb: next (newer) crumb
+.vector	cy_last_prog_org;	// victim: position at the last progress check
+.float	cy_prog_t;			// victim: time of the last progress check
+.float	cy_hops;			// victim: unstick hops used (debug)
+.float	cy_route_t;			// shooter: next route shortcut check
+.float	cy_dbg_t;			// shooter: next cyrax_debug print
+.entity	cy_net;				// shooter: the net in flight (crumbs are dropped while it flies)
+.float	cy_radius;			// net projectile: proximity catch radius
+.float	cy_splat_t;			// splatted net: time it hit the wall
 
 // Bonk-Launch strike state on shooter
 .float	cy_bonk_phase;		// 0=off, 1=windup (0.30s), 2=swing follow-through
