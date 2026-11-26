@@ -24,9 +24,11 @@ void(string addr) BM_ConnectTo =
 	BM_PlaySound("sound/misc/menu2.wav");
 	if (!g_load_active && !g_load_pending)
 		BM_Loading_Begin("", clean, "JOINING SERVER");
+	cvar_set("bm_char_open", "0");
+	cvar_set("bm_char_bg_owned", "0");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
-	localcmd(strcat("set bm_menu_bg 0; connect ", clean, "\n"));
+	localcmd(strcat("set bm_char_open 0; set bm_char_bg_owned 0; set bm_menu_bg 0; connect ", clean, "\n"));
 };
 
 float(string cname) BM_IsLanAddr =

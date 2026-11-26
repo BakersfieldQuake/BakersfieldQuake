@@ -687,6 +687,7 @@ void() worldspawn =
 			}
 		}
 	}
+	BM_Hats_Precache ();
 	if (autocvar_3rd_person_visible_weapons)
 	{
 		precache_model("progs/player_shot.mdl");

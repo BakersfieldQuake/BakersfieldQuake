@@ -904,6 +904,11 @@ void(string s) SV_ParseClientCommand =
 
 	chat = FALSE;
 	n = tokenize (s);
+	if (n >= 2 && argv (0) == "bm_hat")
+	{
+		BM_Hat_Command (argv (1));
+		return;
+	}
 	if (autocvar_bm_vote && n >= 1)
 	{
 		if (argv (0) == "say" || argv (0) == "say_team")

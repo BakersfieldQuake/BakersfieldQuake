@@ -252,12 +252,14 @@ void() CSQC_Init =
 	DN3SG_PrecachePics();
 	FL_PrecachePics();
 	DN3FX_Precache();
+	BM_Char_Init();
 	precache_pic("progs/mmt_aim_beam");
 };
 
 void() CSQC_Shutdown =
 {
 	local float j;
+	BM_Char_Shutdown();
 
 	if (bm_veh_active)
 	{
@@ -389,9 +391,18 @@ void(float w, float h) MMT_DrawAimReticle2D =
 
 void(float w, float h) CSQC_UpdateView =
 {
-	local float bm_intro, hud_style, cw, ch, fd_mode, jb_active;
+	local float bm_intro, hud_style, cw, ch, fd_mode, jb_active, char_open;
 
 	initConvars();
+	char_open = cvar("bm_char_open");
+	if (char_open <= 0 || cvar("bm_char_bg_owned") <= 0)
+		BM_Hat_SendChoice();
+	if (char_open > 0 && cvar("bm_char_bg_owned") > 0)
+	{
+		BM_Char_Render(w, h);
+		return;
+	}
+
 	clearscene();
 	bm_intro = getstati(69);
 	fd_mode = getstati(BMST_FD_MODE);
@@ -434,6 +445,11 @@ void(float w, float h) CSQC_UpdateView =
 	if (!inMenu && !bm_intro)
 		MMT_DrawAimLine3D();
 	renderscene();
+	if (char_open > 0)
+	{
+		BM_Char_Render(w, h);
+		return;
+	}
 	bm_ui_skip_scale = FALSE;
 	drawfont = BM_GetUIFont();
 	if (bm_intro)

@@ -4284,6 +4284,8 @@ void() PlayerPostThink =
 {
 	local float rg_dt, rg_n;
 
+	BM_Hat_Update ();	// before the early returns: it hides the hat for observers and the dead
+
 	if (self.bm_obs)
 		return;
 
@@ -4438,6 +4440,8 @@ void() ClientDisconnect =
 	BM_ClientGone(self);		// NetSend PCs, armed pickles, Mega Men: they must not shoot on in an empty (or reused) slot's name
 	BM_Radar_ClientGone(self);
 	HeldVwep_Clear(self);
+	BM_Hat_Clear (self);
+	self.bm_hat = 0;
 	if (self.bm_aura)
 	{
 		if (!bm_wasfreed(self.bm_aura) && self.bm_aura.classname == "bm_aura" && self.bm_aura.owner == self)

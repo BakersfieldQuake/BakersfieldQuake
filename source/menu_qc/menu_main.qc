@@ -5,15 +5,17 @@ float g_main_sel;
 float MAIN_ACT_RESUME     = 1;
 float MAIN_ACT_JOIN       = 2;
 float MAIN_ACT_HOST       = 3;
-float MAIN_ACT_REPLAYS    = 4;
-float MAIN_ACT_OPTIONS    = 5;
-float MAIN_ACT_DISCONNECT = 6;
-float MAIN_ACT_QUIT       = 7;
+float MAIN_ACT_CHARACTER  = 4;
+float MAIN_ACT_REPLAYS    = 5;
+float MAIN_ACT_OPTIONS    = 6;
+float MAIN_ACT_DISCONNECT = 7;
+float MAIN_ACT_QUIT       = 8;
 
 void() BM_Browser_Open;
 void() BM_Host_Open;
 void() BM_Replays_Open;
 void() BM_Options_Open;
+void() BM_Character_Open;
 
 void(string newname) BM_CommitPlayerName =
 {
@@ -41,6 +43,8 @@ float(float idx, float in_match) BM_Main_RowAction =
 	row = row + 1;
 	if (idx == row) return MAIN_ACT_HOST;
 	row = row + 1;
+	if (idx == row) return MAIN_ACT_CHARACTER;
+	row = row + 1;
 	if (idx == row) return MAIN_ACT_REPLAYS;
 	row = row + 1;
 	if (idx == row) return MAIN_ACT_OPTIONS;
@@ -56,7 +60,7 @@ float(float idx, float in_match) BM_Main_RowAction =
 
 float(float in_match) BM_Main_RowCount =
 {
-	return in_match ? 7 : 5;
+	return in_match ? 8 : 6;
 };
 
 void(float act) BM_Main_Execute =
@@ -68,6 +72,8 @@ void(float act) BM_Main_Execute =
 		BM_Browser_Open();
 	else if (act == MAIN_ACT_HOST)
 		BM_Host_Open();
+	else if (act == MAIN_ACT_CHARACTER)
+		BM_Character_Open();
 	else if (act == MAIN_ACT_REPLAYS)
 		BM_Replays_Open();
 	else if (act == MAIN_ACT_OPTIONS)
@@ -246,6 +252,7 @@ void(float clicked) BM_Main_Draw =
 		if (act == MAIN_ACT_RESUME) label = "RESUME GAME";
 		else if (act == MAIN_ACT_JOIN) label = "JOIN GAME";
 		else if (act == MAIN_ACT_HOST) label = "HOST GAME";
+		else if (act == MAIN_ACT_CHARACTER) label = "CHARACTER";
 		else if (act == MAIN_ACT_REPLAYS) label = "REPLAYS";
 		else if (act == MAIN_ACT_OPTIONS) label = "OPTIONS";
 		else if (act == MAIN_ACT_DISCONNECT) label = "DISCONNECT";

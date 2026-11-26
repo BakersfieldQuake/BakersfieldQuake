@@ -580,7 +580,7 @@ void(float scrim_a) BM_DrawBackdrop =
 
 float() BM_IsInLiveMatch =
 {
-	return (clientstate() >= CS_CONNECTED);
+	return (clientstate() >= CS_CONNECTED && cvar("bm_char_bg_owned") == 0 && cvar("bm_menu_bg") == 0);
 };
 
 void() BM_DrawMouseCursor =

@@ -24,4 +24,7 @@ hud_style_3.qc
 hud_style_4.qc
 dn3_shotgun_hud.qc
 dn3fx_csqc.qc
+../bm_hats_common.qc
+../bm_hat_tags.qc
+bm_character_preview.qc
 csqc.main.qc

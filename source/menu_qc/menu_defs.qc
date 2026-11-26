@@ -208,6 +208,7 @@ float PAGE_BROWSER = 1;
 float PAGE_HOST = 2;
 float PAGE_OPTIONS = 3;
 float PAGE_REPLAYS = 4;
+float PAGE_CHARACTER = 5;
 
 // Active text input IDs
 float INPUT_NONE = 0;
@@ -282,3 +283,12 @@ void(string mapname, string title, string mode) BM_Loading_Begin;
 void() BM_Loading_Reset;
 void() BM_Loading_Shutdown;
 void(float lw, float lh) BM_Loading_Draw;
+
+// Character studio module
+void() BM_Character_Init;
+void() BM_Character_Shutdown;
+void() BM_Character_OnMenuHide;
+void() BM_Character_Open;
+void() BM_Character_Close;
+void(float clicked) BM_Character_Draw;
+void(float key, float ascii) BM_Character_KeyDown;

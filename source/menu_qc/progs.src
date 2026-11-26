@@ -10,5 +10,6 @@ menu_browser.qc
 menu_host.qc
 menu_replays.qc
 menu_options.qc
+menu_character.qc
 menu_loading.qc
 menu_entry.qc

@@ -758,9 +758,18 @@ jobs:
           curl -fsSL --retry 3 -o pk3cache/zz_netsend_disk.pk3 https://bakersfield.larrywew.fun/pk3/zz_netsend_disk-e557aa2b.pk3
           echo "e557aa2b2488481fb753296f8ca13124d873d0a0ceb65ccf2b1d7f77b745712d  pk3cache/zz_netsend_disk.pk3" | sha256sum -c -
 
+      - name: Fetch zz_hats.pk3
+        # Player hats and the head table behind source/qc_combat_decomp/bm_hat_tags.qc. Their builder is not in the
+        # repo yet, so the built pk3 is pinned by sha256. The name carries the hash: a new build is a new file on
+        # the VPS and a new pin here, with bm_hat_tags.qc regenerated (source/mm_tools/gen_bm_hat_tags.py).
+        run: |
+          mkdir -p pk3cache
+          curl -fsSL --retry 3 -o pk3cache/zz_hats.pk3 https://bakersfield.larrywew.fun/pk3/zz_hats-5522f13f.pk3
+          echo "5522f13ffc5203c1a08807357b1932d4fa06ca03154b347f9e60c2a541955bb5  pk3cache/zz_hats.pk3" | sha256sum -c -
+
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1171,6 +1180,9 @@ jobs:
               ("zz_levelshots.pk3", ("levelshots/_unknown.png",)),
               ("zz_m4.pk3", ("progs/v_m4.md3", "progs/p_m4.md3", "sound/cs16/m4a1_unsil-1.wav", "sound/cs16/m4a1_unsil-2.wav",
                              "models/cs16/m4_silencer.png", "scripts/m4_silencer.shader")),
+              ("zz_hats.pk3", ("progs/hat_fedora.md3", "progs/hat_maga.md3", "progs/hat_wizard.md3", "progs/hat_afro.md3",
+                               "progs/hat_dildo.md3", "progs/hat_megaman.md3", "progs/hat_ghost.md3", "progs/hat_tophat.md3",
+                               "progs/player_head_tags.json", "scripts/hats.shader")),
               ("zz_netsend_disk.pk3", ("progs/v_netsend.md3", "scripts/netsend_diskvm.shader", "progs/ndvm_000.png",
                                        "progs/ndvm_238.png", "progs/v_netsend.md3_238.skin", "progs/netsend_disk.md3",
                                        "progs/netsend_disk.png")),
@@ -1341,7 +1353,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_hats.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 

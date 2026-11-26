@@ -121,10 +121,12 @@ void() BM_Host_StartMatch =
 
 	BM_PlaySound("sound/misc/menu2.wav");
 	BM_Loading_Begin(bsp, BM_Host_MapTitle(g_host_map_idx), g_host_public ? "HOSTING PUBLIC" : "HOSTING LAN");
+	cvar_set("bm_char_open", "0");
+	cvar_set("bm_char_bg_owned", "0");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
 
-	cmd = strcat("set bm_menu_bg 0; deathmatch 1; coop 0; ctf 0; sv_public ", ftos(g_host_public));
+	cmd = strcat("set bm_char_open 0; set bm_char_bg_owned 0; set bm_menu_bg 0; deathmatch 1; coop 0; ctf 0; sv_public ", ftos(g_host_public));
 	// No longer turns sv_autodemo_perclient on (it is saved and was never turned off;
 	// it filled demos/ with per-client files named with player addresses). Only the
 	// name format is kept so demos recorded when it is enabled elsewhere still parse.

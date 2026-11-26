@@ -57,6 +57,7 @@ void() m_init =
 
 	BM_InitServerListKeys();
 	BM_InitLevelshots();
+	BM_Character_Init();
 
 	g_page = PAGE_MAIN;
 	g_focus_input = INPUT_NONE;
@@ -83,11 +84,18 @@ void() m_shutdown =
 	g_opt_status = BM_ZoneSet(g_opt_status, "");
 	BM_Loading_Shutdown();
 	BM_Replays_Shutdown();
+	BM_Character_Shutdown();
 };
 
 void() m_newmap =
 {
 	BM_Loading_Reset();
+	if (cvar("bm_char_open") > 0)
+	{
+		g_page = PAGE_CHARACTER;
+		m_toggle(1);
+		return;
+	}
 	if (g_menu_open)
 		m_toggle(0);
 };
@@ -120,6 +128,7 @@ void(float mode) m_toggle =
 	}
 	else
 	{
+		BM_Character_OnMenuHide();
 		setkeydest(KEY_GAME);
 		setmousetarget(MT_FREE);
 	}
@@ -131,6 +140,7 @@ void() m_draw =
 	local float scrim_a;
 
 	BM_Loading_GameFrame();
+	BM_Character_Frame();
 	if (!g_menu_open)
 		return;
 
@@ -155,15 +165,18 @@ void() m_draw =
 		return;
 	}
 
-	if (g_page == PAGE_OPTIONS && g_opt_tab == 0)
+	if (g_page == PAGE_CHARACTER)
 		scrim_a = 0.0;
-	else if (g_page == PAGE_MAIN && clientstate() < CS_CONNECTED)
+	else if (g_page == PAGE_OPTIONS && g_opt_tab == 0)
 		scrim_a = 0.0;
-	else if (clientstate() >= CS_CONNECTED)
+	else if (g_page == PAGE_MAIN && !BM_IsInLiveMatch())
+		scrim_a = 0.0;
+	else if (BM_IsInLiveMatch())
 		scrim_a = 0.40;
 	else
 		scrim_a = 0.25;
-	BM_DrawBackdrop(scrim_a);
+	if (g_page != PAGE_CHARACTER)
+		BM_DrawBackdrop(scrim_a);
 
 	if (g_page == PAGE_MAIN)
 		BM_Main_Draw(FALSE);
@@ -175,6 +188,8 @@ void() m_draw =
 		BM_Replays_Draw(FALSE);
 	else if (g_page == PAGE_OPTIONS)
 		BM_Options_Draw(FALSE);
+	else if (g_page == PAGE_CHARACTER)
+		BM_Character_Draw(FALSE);
 
 	BM_DrawMouseCursor();
 };
@@ -217,6 +232,8 @@ void(float key, float ascii) m_keydown =
 			BM_Replays_Draw(TRUE);
 		else if (g_page == PAGE_OPTIONS)
 			BM_Options_Draw(TRUE);
+		else if (g_page == PAGE_CHARACTER)
+			BM_Character_Draw(TRUE);
 		return;
 	}
 
@@ -239,6 +256,8 @@ void(float key, float ascii) m_keydown =
 		BM_Replays_KeyDown(key, ascii);
 	else if (g_page == PAGE_OPTIONS)
 		BM_Options_KeyDown(key, ascii);
+	else if (g_page == PAGE_CHARACTER)
+		BM_Character_KeyDown(key, ascii);
 };
 
 void(float key, float ascii) m_keyup =
@@ -271,6 +290,12 @@ float(vector screensize, float opaque) m_drawloading =
 	}
 	if (lw <= 0) lw = 640;
 	if (lh <= 0) lh = 360;
+	if (cvar("bm_char_open") > 0 && cvar("bm_char_bg_owned") > 0)
+	{
+		BM_Fill(0, 0, lw, lh, '0.025 0.02 0.02', 1.0);
+		BM_DrawTextCentered(lw * 0.5, lh * 0.5 - 6, "LOADING 3D CHARACTER STUDIO...", 10, COL_ACCENT, 0.96);
+		return 1;
+	}
 	BM_Loading_Draw(lw, lh);
 	return 1;
 };

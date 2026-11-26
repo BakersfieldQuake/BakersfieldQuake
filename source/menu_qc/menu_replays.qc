@@ -146,9 +146,11 @@ void(string relpath) BM_Replays_PlayFile =
 		return;
 	BM_PlaySound("sound/misc/menu2.wav");
 	BM_Loading_Begin("", clean, "LOADING REPLAY");
+	cvar_set("bm_char_open", "0");
+	cvar_set("bm_char_bg_owned", "0");
 	cvar_set("bm_menu_bg", "0");
 	m_toggle(0);
-	localcmd(strcat("set bm_menu_bg 0; playdemo \"", clean, "\"\n"));
+	localcmd(strcat("set bm_char_open 0; set bm_char_bg_owned 0; set bm_menu_bg 0; playdemo \"", clean, "\"\n"));
 };
 
 void() BM_Replays_ScanLocal =
