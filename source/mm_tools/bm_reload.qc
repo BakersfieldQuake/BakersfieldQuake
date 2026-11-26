@@ -1,6 +1,3 @@
-#ifndef COMBATPLUS
-#define COMBATPLUS
-#endif
 /*
 ================
 MAGAZINES AND RELOADING (Bakersfield LAN rules, Combat+ only)
@@ -38,8 +35,10 @@ float(float s) BM_MagSize =
 	{
 		if (s == BM_SG)			n = 8;
 		else if (s == BM_SSG)	n = 8;		// DN3DooM Pump Shotgun: 8-shell tube magazine (1 shell a shot)
-		else if (s == BM_NG)	n = 5;		// the Laptop Gun (took the nailgun slot): 5-packet mag for DDoS flood salvos
+		else if (s == BM_NG)	n = 5;
 		else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
+		else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
+		else if (s == BM_RL)	n = 5;
 		else if (s == BM_LG)	n = 36;
 		else if (s == BM_LASER)	n = 24;
 		else if (s == BM_MM)	return MM_MAX_AMMO;
@@ -71,7 +70,7 @@ float(float s) BM_ReloadTime =
 
 	if (s == BM_SG)			t = 1.2;
 	else if (s == BM_SSG)	t = 1.26;	// DN3DooM Pump Shotgun full tube reload
-	else if (s == BM_NG)	t = 2.5;	// Laptop Gun
+	else if (s == BM_NG)	t = 2.5;
 	else if (s == BM_SNG)	t = 5;		// Milky Gun
 	else if (s == BM_GL)	t = 2.2;
 	else if (s == BM_RL)	t = 2.4;
@@ -97,8 +96,6 @@ float(float s) BM_ReloadTime =
 // ammo units one shot uses (for the HUD round count and the "can I fire" test)
 float(float s) BM_PerShot =
 {
-	if (s == BM_LG)
-		return 0.6;
 	return 1;
 };
 
@@ -109,6 +106,8 @@ float(float s) BM_AmmoType =
 		return 1;
 	if (s == BM_NG || s == BM_SNG)
 		return 2;
+	if (s == BM_GL || s == BM_RL)
+		return 3;
 	if (s == BM_LG || s == BM_LASER)
 		return 4;
 	return 0;
@@ -123,6 +122,8 @@ float(entity p) BM_SlotOf =
 	if (w == IT_SUPER_SHOTGUN)		return BM_SSG;
 	if (w == IT_NAILGUN)			return BM_NG;
 	if (w == IT_SUPER_NAILGUN)		return BM_SNG;
+	if (w == IT_GRENADE_LAUNCHER)	return BM_GL;
+	if (w == IT_ROCKET_LAUNCHER)	return BM_RL;
 	if (w == IT_LIGHTNING)			return BM_LG;
 	if (w == IT_LASER_CANNON)		return BM_LASER;
 	if (w == IT_MEGAMAN)			return BM_MM;
@@ -144,6 +145,8 @@ float(entity p) BM_SlotOf =
 			return BM_FG8;
 		if (p.fg_sel == FG_GARAND)
 			return BM_FG9;
+		if (p.fg_sel == FG_CYRAX)
+			return 0;		// Cyrax Net has no magazine / reload bar (cyrax.qc)
 		return BM_FG3;
 	}
 	return 0;
@@ -232,7 +235,8 @@ float(entity p, float s) BM_GetAcc =
 	if (s == 15)	return p.bm_a15;
 	if (s == 16)	return p.bm_a16;
 	if (s == 17)	return p.bm_a17;
-	return p.bm_a18;
+	if (s == 18)	return p.bm_a18;
+	return p.bm_a19;
 };
 
 void(entity p, float s, float v) BM_SetAcc =
@@ -258,7 +262,8 @@ void(entity p, float s, float v) BM_SetAcc =
 	else if (s == 15)	p.bm_a15 = v;
 	else if (s == 16)	p.bm_a16 = v;
 	else if (s == 17)	p.bm_a17 = v;
-	else				p.bm_a18 = v;
+	else if (s == 18)	p.bm_a18 = v;
+	else				p.bm_a19 = v;
 };
 
 float(float t) BM_GetField =
@@ -342,8 +347,9 @@ void() BM_WriteFields =
 	if (t == 2) v = m; else v = self.bm_m4;
 	self.ammo_nails = v;
 	self.bm_shown_n = v;
-	// RL and GL use real Quake ammo_rockets without magazine reloads
-	self.bm_shown_r = self.ammo_rockets;
+	if (t == 3) v = m; else v = self.bm_m6;
+	self.ammo_rockets = v;
+	self.bm_shown_r = v;
 	if (t == 4) v = m; else v = self.bm_m7;
 	self.ammo_cells = v;
 	self.bm_shown_c = v;
@@ -415,6 +421,7 @@ void() BM_SwapIn =
 	self.bm_rl_quiet = FALSE;
 	self.bm_slot = s;
 	self.bm_lastshot = time;		// no instant idle top-up on the draw
+	self.bm_radar_prev_shot = self.bm_lastshot;	// nor is a weapon switch
 	BM_WriteFields ();
 };
 
@@ -496,6 +503,7 @@ void() BM_Spawn =
 	self.bm_shown_c = 0;
 	self.bm_lastframe = time;
 	self.bm_lastshot = time;
+	self.bm_radar_prev_shot = self.bm_lastshot;	// a spawn is not a gunshot on enemies' radar
 	self.bm_vm_hidden = 0;
 	if (self.grenade_ammo > 2)
 		self.grenade_ammo = 2;		// prox grenades used to pile up one per spawn, forever
@@ -538,7 +546,7 @@ void() BM_Frame =
 	{
 		self.bm_st_reload = 0;
 		self.bm_st_magmax = 0;
-		self.bm_st_slot = BM_SlotOf (self);
+		self.bm_st_slot = (self.weapon == IT_FUNGUN && self.fg_sel == FG_CYRAX) ? BM_FG10 : BM_SlotOf (self);
 		return;
 	}
 	dt = time - self.bm_lastframe;
@@ -611,10 +619,6 @@ void() BM_Frame =
 		else if (s == BM_SSG && self.dn3_sg_fire_t > 0 && time < self.dn3_sg_fire_t + DN3SG_REFIRE)
 		{
 			// let the DN3DooM Pump Shotgun finish its fire + pump cycle before auto-reloading
-		}
-		else if (s == BM_NG && self.ltg_phase > 0)
-		{
-			// let the Laptop Gun finish queuing/unleashing its DDoS salvo before starting reload
 		}
 		else if (s == BM_FG2 && (self.gj_shaking > 0 || self.gj_throw_at > 0 || (self.gj_threw_t > 0 && time < self.gj_threw_t + GJ_FOLLOW_TIME)))
 		{
@@ -702,7 +706,7 @@ void() BM_Frame =
 	// HUD
 	if (self.ishuman == 1)
 	{
-		self.bm_st_slot = s;
+		self.bm_st_slot = (self.weapon == IT_FUNGUN && self.fg_sel == FG_CYRAX) ? BM_FG10 : s;
 		if (s)
 		{
 			rate = BM_PerShot (s);

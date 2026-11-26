@@ -38,6 +38,7 @@ float	GJ_ORBITS_BEFORE_ATK	= 600;		// ~1.67 comical orbit laps around victim BEF
 .float	gj_charge_bonus;	// player: 0..1 bonus speed/pop from shaking the jar
 .float	gjvm_on;			// viewmodel entity: TRUE while displaying progs/v_greenjar.md3
 
+.float	gj_scan_t;			// next search for a target while it has none (a big findradius; 2.5 a second is plenty)
 .float	gj_state;			// 1=wheel_drive, 2=wall_drive, 3=drive_3_laps (no attack!), 4=shot_spin, 5=balloon_pop, 6=attack_frenzy!
 .float	gj_role;			// 0=cruiser, 1=sprinter, 2=wall-driver
 .float	gj_anim_t0;			// animation phase start

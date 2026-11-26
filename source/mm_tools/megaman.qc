@@ -1456,7 +1456,10 @@ void() MegaMan_Launch =
 	}
 	if (live >= MM_MAX_LIVE)
 	{
-		old.think = MegaMan_Shot;
+		// not MegaMan_Shot: that credits damage_attacker (whoever last hurt anything) with a SKEET SHOT reward
+		old.takedamage = DAMAGE_NO;
+		old.touch = SUB_Null;
+		old.think = MegaMan_ShotPop;
 		old.nextthink = time;
 	}
 
@@ -1531,7 +1534,11 @@ void() MegaMan_Attack =
 		return;
 	}
 	self.mm_dry_held = FALSE;
+#ifdef COMBATPLUS
+	player_throw1 ();
+#else
 	player_mm1 ();
+#endif
 	self.mm_fire_t = time;
 	self.mm_launch_t = time + 0.15;
 	self.mm_pending = TRUE;
@@ -1616,6 +1623,15 @@ void() MegaMan_VwepThink =
 
 void() MegaMan_UpdateVwep =
 {
+#ifdef COMBATPLUS
+	// Combat+ handles IT_MEGAMAN uniformly via HeldVwep_Update (client.qc)
+	if (self.mm_vwep)
+	{
+		remove (self.mm_vwep);
+		self.mm_vwep = world;
+	}
+	return;
+#else
 	local entity e;
 	local float show;
 
@@ -1654,6 +1670,7 @@ void() MegaMan_UpdateVwep =
 		setmodel (e, "progs/megaman.md3");
 	else if (!show && e.modelindex != 0)
 		setmodel (e, "");
+#endif
 };
 
 // called every frame from W_WeaponFrame: recharge, throw timing, the held Mega Man's animation

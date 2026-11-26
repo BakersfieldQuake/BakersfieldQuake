@@ -50,7 +50,7 @@ var float	autocvar_bm_warmup			= 0;		// set by warmup.cfg: shows the "press F1" 
 
 var float	autocvar_bm_handicap		= 1;		// 0 = no leader glow / underdog boosts
 var float	autocvar_bm_bounty			= 1;		// killing someone 4+ frags ahead of the pack is worth +1
-var float	autocvar_bm_giantslayer		= 1;		// max extra damage an underdog deals to players ranked above them
+var float	autocvar_bm_giantslayer		= 0;		// max extra damage an underdog deals to players ranked above them
 var float	autocvar_bm_ud_resist		= 0;		// max cut in the damage an underdog takes from players ranked above them (0 = reliable TTK)
 var float	autocvar_bm_ud_span			= 8;		// frags behind the leader for the full gap signal in a 1v1 (tighter with more players)
 var float	autocvar_bm_ud_streak		= 6;		// deaths in a row for Last Stand with 3-5 players (+1 in a 1v1, -1 at 6+, -2 at 10+)
@@ -91,15 +91,15 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	// M4 / (unused) / Garand
-float	BM_SLOTS	= 18;
+float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	float	BM_FG10		= 19;	// M4 / Kyle / Garand / Cyrax
+float	BM_SLOTS	= 19;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)
 
 float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 
 .float	bm_m1, bm_m2, bm_m3, bm_m4, bm_m5, bm_m6, bm_m7, bm_m8;		// stock gun magazines (ammo units)
-.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16, bm_a17, bm_a18;	// holstered refill, fractional
+.float	bm_a1, bm_a2, bm_a3, bm_a4, bm_a5, bm_a6, bm_a7, bm_a8, bm_a9, bm_a10, bm_a11, bm_a12, bm_a13, bm_a14, bm_a15, bm_a16, bm_a17, bm_a18, bm_a19;	// holstered refill, fractional
 .float	bm_ns_n, bm_ns_t;	// bots: NetSend PC count and when it was last counted (BM_BotNSCount)
 .float	bm_init;			// magazines have been filled since connecting
 .float	bm_slot;			// slot whose magazine is in the ammo_* field right now
@@ -147,6 +147,11 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	gk_st_tx;			// Go-Kart rocket HUD: locked target world X (stat 121)
 .float	gk_st_ty;			// ...Y (stat 122)
 .float	gk_st_tz;			// ...Z (stat 123)
+.float	cy_st_mode;			// Cyrax Net HUD: 0=off, 1=charging, 2=pulling, 3=holding, 4=trapped (stat 128)
+.float	cy_st_prog;			// Cyrax Net HUD: 0..100 charge % or 0..300 remaining tenths (stat 129)
+.float	cy_st_flash;		// Cyrax Net HUD: incremented on each capture for green edge flash (stat 130)
+.float	cy_st_kind;			// Cyrax Net HUD: 0=player/bot, 1=Winged John Bird, 2=Milky Grenade (stat 131)
+.float	cy_st_dist;			// Cyrax Net HUD: distance in units to captured target (stat 132)
 
 // ---------------------------------------------------------------- survivability / match
 .float	bm_prot_t;			// spawn protection until
@@ -249,7 +254,6 @@ float	bm_botmask_cache;
 float	bm_playermask_cache;
 var float	autocvar_sv_gravity		= 800;
 var float	autocvar_sv_maxvelocity	= 2000;
-var float	autocvar_ltg_video		= 0;
 var float	autocvar_br_mode		= 0;
 var float	autocvar_dv_mode		= 0;
 var float	autocvar_dv_stay		= 0;
@@ -268,7 +272,6 @@ var float	autocvar_sv_accelerate	= 10;
 var float	autocvar_sv_stopspeed	= 100;
 float	bm_cvar_grav;
 float	bm_cvar_maxvel;
-float	bm_cvar_ltg_video;
 float	bm_cvar_br_mode;
 float	bm_cvar_dv_mode;
 float	bm_cvar_dv_stay;
@@ -304,7 +307,6 @@ float	vehicles_precached;
 float	veh_has_vans;
 float	jetpack_precached;
 float	bktv_precached;
-float	ltg_vid_precached;
 .float	ud_fx_t;
 .float	bm_dm_gun_alt;		// per-player DM starting weapon toggle (1 = RL, 2 = M4)
 float	bm_dm_gun_seed;

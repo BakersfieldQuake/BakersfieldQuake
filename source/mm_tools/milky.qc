@@ -484,6 +484,8 @@ void() Milky_Vanish =
 
 void() Milky_Touch =
 {
+	if (self.cy_trapped_by != world)
+		return;
 	if (other != world && other.pc_kind > PC_KIND_NONE)
 	{
 		PC_HandlePair (self, other);
@@ -658,6 +660,12 @@ void() Milky_Think =
 	local float spd, turn, sw, a, dt, ease;
 
 	self.nextthink = time + 0.05;
+	if (self.cy_trapped_by != world)
+	{
+		self.milky_born = self.milky_born + 0.05;		// pause attack/timer/burst while netted (cyrax.qc)
+		self.velocity = '0 0 0';
+		return;
+	}
 	if (time > self.milky_born + MILKY_LIFE)
 	{
 		Milky_Burst ();
@@ -735,7 +743,7 @@ void() Milky_Think =
 		e = e.bm_player_next;
 	}
 
-	if (time < self.skypad_steer_t)
+	if (time < self.skypad_steer_t || time < self.cy_launch_until)
 	{
 		if (vlen (self.velocity) > 10)
 			self.milky_dir = normalize (self.velocity);
@@ -844,6 +852,8 @@ float(entity targ, entity inflictor, entity attacker, float damage) Milky_Damage
 
 	if (targ.classname != "milky")
 		return damage;
+	if (targ.cy_trapped_by != world)
+		return 0;		// pause damage explosion while netted (cyrax.qc)
 	if (targ.milky_hp <= 0)
 		return 0;
 	dir = normalize (inflictor.origin - targ.origin);
@@ -968,7 +978,7 @@ void() Milky_Launch =
 		return;
 	}
 	self.milky_threw = time;
-	player_mm1 ();
+	player_throw1 ();
 	makevectors (self.v_angle);
 	eye = self.origin + self.view_ofs;
 	flat = v_forward;

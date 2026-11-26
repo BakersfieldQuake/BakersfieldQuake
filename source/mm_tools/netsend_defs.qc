@@ -7,8 +7,8 @@ Fire: the hand throws the disk at the floor. It bounces off walls and sticks to 
 early-90s PC grows out of it. For good it works like the TF sentry: it does not spin, it turns to face the
 nearest player it can see (never its owner), shoots green lasers at them while it faces them, and sweeps the room when
 nobody is in sight. Every NS_SHOT_GAP it also sends NET SEND to that player: a popup on their screen, a beep, a bolt of
-packets, NS_DAMAGE. A PC never times out (review 2026-11-05) but can be shot to bits (NS_HEALTH; bug report 2026-11-07: it
-could not be killed in deathmatch); the only limit is NS_MAX_PCS standing
+packets, NS_DAMAGE. A PC pops quietly after NS_LIFE seconds and can be shot to bits before that (NS_HEALTH; bug report
+2026-11-07: it could not be killed in deathmatch); there are at most NS_MAX_PCS standing
 PCs per player, so you can drop them all over the map. The next disk comes back with the magazine (FG_NETSEND_REGEN).
 
 Models, shaders, effects and the frame map: source/mm_tools/build_netsend_assets.py (frames in netsend_frames.txt).

@@ -327,9 +327,10 @@ void() Hammer_PlayerFrame =
 		return;
 	}
 	if (self.health <= 0 || self.deadflag || intermission_running
-		|| self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self) || Binoc_On (self))
+		|| self.jb_vehicle != world || self.rr_vehicle != world || self.veh_van != world || self.mmt_tank != world || FD_Flying (self) || EricCannon_Active (self) || Binoc_On (self)
+		|| self.cy_bonk_phase > 0 || self.cy_hold_targ != world || self.cy_trapped_by != world)
 	{
-		self.hm_state = 0;		// flying Winged John / Rob Dob, Eric Cannon, binoculars, or driving: fire belongs to the vehicle, no charge or swing
+		self.hm_state = 0;		// flying Winged John / Rob Dob, Eric Cannon, binoculars, Cyrax hold/bonk, or driving: no charge or swing
 		return;
 	}
 

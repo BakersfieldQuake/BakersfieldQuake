@@ -1,6 +1,3 @@
-#ifndef COMBATPLUS
-#define COMBATPLUS
-#endif
 /*
 ================
 THE POCKET KYLE (Fun Gun Slot 8, FG_KYLE = 8, BM_FG8 = 17, impulse 68, key Z / -)
@@ -1750,7 +1747,7 @@ void() KY_Frame =
 	self.punchangle_x = 1.8;				// cock-back anticipation before explosive launch whip!
 	self.punchangle_z = -1.4;
 	KY_Snd (self, CHAN_WEAPON, "kyle/snip_fast.wav", 0.60, 1.12, KY_ATTN_SNIP);
-	player_mm1 ();
+	player_throw1 ();
 	self.attack_finished = time + KY_THROW_DELAY + KY_FOLLOW_TIME;
 };
 

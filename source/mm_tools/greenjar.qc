@@ -1,6 +1,3 @@
-#ifndef COMBATPLUS
-#define COMBATPLUS
-#endif
 // ---------------------------------------------------------------- 2. JAR O' GREEN GUYS (fun gun 2, impulse 62)
 // Hold a clear specimen mason jar filled with swirling neon-green mist and a tiny photo-digitized Green-Suit Guy
 // spazzing out across 4 manic antics (hamster-wheeling the glass, squishing his grinning/screaming face on the glass,
@@ -573,7 +570,13 @@ void() GJ_MiniAI =
 	// Refresh target if none or dead
 	if (!GJ_IsValidTarget (self, self.enemy))
 	{
-		self.enemy = GJ_FindTarget (self);
+		if (time >= self.gj_scan_t)
+		{
+			self.gj_scan_t = time + 0.4;
+			self.enemy = GJ_FindTarget (self);
+		}
+		else
+			self.enemy = world;
 		if (self.gj_state == 3 || self.gj_state == 6)
 			self.gj_state = 1;
 	}
@@ -1083,7 +1086,7 @@ void() GJ_BeginThrow =
 	self.gj_throw_at = time + GJ_THROW_DELAY;
 	self.punchangle_x = -2.4;
 	self.punchangle_z = 1.8;
-	player_mm1 ();
+	player_throw1 ();
 	FG_Snd (self, CHAN_WEAPON, "greenjar/jar_throw.wav", 1.0, 1.0);
 	self.attack_finished = time + GJ_THROW_DELAY + GJ_FOLLOW_TIME + GJ_RAISE_TIME;
 };
