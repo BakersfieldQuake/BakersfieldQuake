@@ -12,7 +12,8 @@ could not be killed in deathmatch); the only limit is NS_MAX_PCS standing
 PCs per player, so you can drop them all over the map. The next disk comes back with the magazine (FG_NETSEND_REGEN).
 
 Models, shaders, effects and the frame map: source/mm_tools/build_netsend_assets.py (frames in netsend_frames.txt).
-Hooks: funguns.qc (the tables, FunGun_Attack, FunGun_ViewFrame), bm_reload.qc (BM_FG4 magazine). The obituary is the
+Hooks: funguns.qc (the tables, FunGun_Attack, FunGun_ViewFrame), bm_reload.qc (BM_FG4 magazine), pickle.qc
+(Pickle_ViewFrame calls NS_DiskViewFrame for the held model). The obituary is the
 generic fun gun one (client.qc, through fg_inflicting).
 ================
 */
@@ -24,7 +25,7 @@ float	NS_MAX_PCS		= 2;		// PCs one player can have standing at once (oldest pops
 float	NS_LIFE			= 30;		// battery lifetime (seconds) before a deployed PC powers down & pops
 float	NS_HEALTH		= 40;		// shoot it to bits and it is gone (its owner can have another standing in its place)
 float	NS_THROW		= 620;		// the disk's speed when thrown
-float	NS_THROW_DELAY	= 0.29;		// the hand lets go at frame 44 of v_netsend.md3, 0.29 s into the throw
+// NS_THROW_DELAY (when the hand lets go, after the fire) comes with the held model's frame map: netsend_diskvm.qc
 float	NS_LIFE_DISK	= 8;		// a disk that has not stuck by then is lost (and the magazine gets it back)
 float	NS_TURN			= 240;		// degrees a second the PC turns to face its target (the TF sentry's head; no spinning)
 float	NS_AIM			= 12;		// it fires once it faces its target within this many degrees
@@ -48,7 +49,21 @@ float	NS_LASER_SPEED	= 1100;
 .entity	ns_target;	// PC: the player it is facing / shooting at
 .float	ns_yaw0;		// PC: where it faced when it landed (the middle of its sweep)
 
+// the held disk (v_netsend.md3 is THE DISK: one card, its skin picks the frame; build_netsend_disk_view.py, frame map in
+// netsend_diskvm.qc). It rests, does a trick now and then, throws, drops away and a new disk comes up
+float	NDVM_RAISE		= 0.42;		// seconds for a new disk to come up from below
+float	NDVM_DROP		= 0.24;		// seconds for the empty hand to drop away after the throw
+float	NDVM_GAP		= 0.40;		// seconds with nothing in the hand before the next disk comes up
+var float	autocvar_ns_vm_tricks	= 1;	// 0: the hand just rests (no disk tricks)
+.float	ndvm_on;		// viewmodel entity: showing THE DISK
+.float	ndvm_rest_t;	// player: when the current rest began
+.float	ndvm_wait;		// player: how long to rest before the next trick
+.float	ndvm_trick;		// player: the trick playing, 1-based (0 = resting)
+.float	ndvm_trick_t;	// player: when it began
+.float	ndvm_count;		// player: tricks played so far (they take turns)
+
 void() NS_Precache;
+void(entity vm, float is_quad) NS_DiskViewFrame;
 void() NS_Throw;
 void() NS_DiskThink;
 void() NS_DiskTouch;

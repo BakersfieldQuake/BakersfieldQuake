@@ -21,6 +21,7 @@ sniper_defs.qc
 ltgun_defs.qc
 hammer_defs.qc
 sentry_defs.qc
+netsend_diskvm.qc
 netsend_defs.qc
 wcannon_defs.qc
 m4_defs.qc

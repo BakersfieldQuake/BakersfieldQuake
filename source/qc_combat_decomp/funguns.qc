@@ -412,7 +412,7 @@ void() FunGun_Attack =
 		FunGun_Lock (g);
 		self.fg_fire_t = time;
 		self.ns_fire_t = time;
-		self.ns_throw_at = time + NS_THROW_DELAY;		// the hand lets go at frame 44 (FunGun_ViewFrame)
+		self.ns_throw_at = time + NS_THROW_DELAY;		// the hand lets go at the release frame (netsend_diskvm.qc)
 		FG_Snd (self, CHAN_VOICE, "netsend/wheres_disk.wav", 1, 1);		// "David! Where's the disk?"
 		player_mm1 ();
 		self.attack_finished = time + 1;
@@ -812,24 +812,7 @@ void() FunGun_ViewFrame =
 	}
 	else if (g == FG_NETSEND)
 	{
-		// v_netsend.md3: 0-39 the idle loop; 40-47 the throw (the disk leaves at 44); 48-53 follow-through, then the
-		// empty hand while the disk is written again; 54-59 the new disk slides in
-		if (FunGun_Ammo (self, g) < 1)
-			self.ns_empty = TRUE;
-		else if (self.ns_empty)
-		{
-			self.ns_empty = FALSE;
-			self.ns_rl_t = time;
-		}
-		f = floor (time * 10);
-		f = f - 40 * floor (f / 40);
-		nt = time - self.ns_fire_t;
-		if (nt < 1)
-			f = min (53, 40 + floor (nt * 14));
-		else if (FunGun_Ammo (self, g) < 1)
-			f = 53;
-		else if (time - self.ns_rl_t < 0.6)
-			f = 54 + floor ((time - self.ns_rl_t) * 10);
+		f = 0;		// v_netsend.md3 is THE DISK: one card, its skin is the frame (NS_DiskViewFrame, netsend.qc)
 	}
 	else if (g == FG_M4)
 	{

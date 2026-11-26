@@ -575,6 +575,7 @@ void(entity vm, float is_quad) Pickle_ViewFrame =
 	GreenJar_ViewFrame (vm, is_quad);
 	Dookie_ViewFrame (vm, is_quad);
 	RobHead_ViewFrame (vm, is_quad);
+	NS_DiskViewFrame (vm, is_quad);		// the NetSend gun's THE DISK (netsend.qc)
 	Kyle_ViewFrame (vm, is_quad);
 
 	p = vm.owner;

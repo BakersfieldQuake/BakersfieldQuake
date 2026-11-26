@@ -651,6 +651,10 @@ void() BM_Frame =
 		{
 			// let The Pocket Kyle lock-on, throw & open-palm follow-through finish before starting reload
 		}
+		else if (s == BM_FG4 && (self.ns_throw_at > 0 || (self.ns_fire_t > 0 && time < self.ns_fire_t + NDVM_THROW_COUNT / NDVM_THROW_FPS + NDVM_DROP)))
+		{
+			// let the NetSend throw, the release & the empty hand dropping away finish before starting reload (netsend.qc)
+		}
 		else if (mag < BM_PerShot (s))
 		{
 			self.bm_rl_quiet = FALSE;

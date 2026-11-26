@@ -5,7 +5,8 @@
 ================
 THE NETSEND GUN (see netsend_defs.qc for the rules and numbers)
 
-FunGun_ViewFrame calls NS_Throw NS_THROW_DELAY after the fire (the hand lets go at frame 44 of v_netsend.md3).
+FunGun_ViewFrame calls NS_Throw NS_THROW_DELAY after the fire (the release frame of the held model, netsend_diskvm.qc).
+NS_DiskViewFrame drives the held model (THE DISK, a skin-animated card like the Milky Gun's).
 The disk is a flying entity (NS_DiskThink, NS_DiskTouch). Where it lands on a floor it turns into the PC in place
 (NS_Stick): the PC's think (NS_Think) plays the frames of progs/netsend_pc.md3 and sends the NET SEND messages (NS_Send).
 A PC never times out, but it can be shot to bits (NS_Die, NS_HEALTH); the only limit is NS_MAX_PCS live PCs per player
@@ -522,6 +523,7 @@ void() NS_Test =
 void() NS_Throw =
 {
 	local entity d;
+	local vector m;
 
 	makevectors (self.v_angle);
 	d = spawn ();
@@ -539,7 +541,202 @@ void() NS_Throw =
 	d.nextthink = time + 0.1;
 	setmodel (d, "progs/netsend_disk.md3");		// frame 0: the disk, flying flat
 	setsize (d, '-5 -5 -1', '5 5 1');
-	setorigin (d, FG_Muzzle (24));
+	// it leaves from the hand's side of the screen, not the middle (never into a wall: traced over)
+	m = FG_Muzzle (24);
+	tracebox (m, '-5 -5 -1', '5 5 1', m + v_right * 6, TRUE, self);
+	setorigin (d, trace_endpos);
 	PC_Register (d, PC_KIND_LIGHT, 20);
 	self.punchangle_x = -4;
+};
+
+// ---------------------------------------------------------------- the held disk (v_netsend.md3, THE DISK)
+
+float	ndvm_c_skin, ndvm_c_count, ndvm_c_fps, ndvm_c_pp, ndvm_c_back;
+
+// trick k's frames (netsend_diskvm.qc) into the ndvm_c_ globals
+void(float k) NS_DiskTrick =
+{
+	if (k == 1)
+	{
+		ndvm_c_skin = NDVM_T1_SKIN; ndvm_c_count = NDVM_T1_COUNT; ndvm_c_fps = NDVM_T1_FPS; ndvm_c_pp = NDVM_T1_PINGPONG; ndvm_c_back = NDVM_T1_BACK;
+	}
+	else if (k == 2)
+	{
+		ndvm_c_skin = NDVM_T2_SKIN; ndvm_c_count = NDVM_T2_COUNT; ndvm_c_fps = NDVM_T2_FPS; ndvm_c_pp = NDVM_T2_PINGPONG; ndvm_c_back = NDVM_T2_BACK;
+	}
+	else if (k == 3)
+	{
+		ndvm_c_skin = NDVM_T3_SKIN; ndvm_c_count = NDVM_T3_COUNT; ndvm_c_fps = NDVM_T3_FPS; ndvm_c_pp = NDVM_T3_PINGPONG; ndvm_c_back = NDVM_T3_BACK;
+	}
+	else
+	{
+		ndvm_c_skin = NDVM_T0_SKIN; ndvm_c_count = NDVM_T0_COUNT; ndvm_c_fps = NDVM_T0_FPS; ndvm_c_pp = NDVM_T0_PINGPONG; ndvm_c_back = NDVM_T0_BACK;
+	}
+};
+
+// Pickle_ViewFrame, every frame, for the viewmodel entity and its quad overlay (is_quad: only reads the player's state).
+// The NetSend gun's held model: one card, its skin picks the frame. In order: the throw (the hand lets go at the
+// release frame, when FunGun_ViewFrame calls NS_Throw), the empty hand dropping away, nothing in the hand until the
+// magazine gives a disk back, a disk coming up from below, a trick, or the rest hold (there and back; a trick starts
+// on its neutral frame after a few seconds). Same logic as the vote page's preview (docs/netsend_disk_vote).
+void(entity vm, float is_quad) NS_DiskViewFrame =
+{
+	local entity p;
+	local float ammo, len, nt, u, k, idx, per, step, t, fwd, tl, ease, sw1, sw2, sw3, spd;
+	local vector vxy;
+
+	p = vm.owner;
+	if (p.weapon != IT_FUNGUN || p.fg_sel != FG_NETSEND)
+	{
+		if (vm.ndvm_on)
+		{
+			if (is_quad)
+				vm.skin = 1;
+			else
+				vm.skin = 0;
+			vm.origin = '0 0 0';
+			vm.angles = '0 0 0';
+			vm.ndvm_on = FALSE;
+		}
+		return;
+	}
+	if (is_quad && vm.alpha < 0)
+		vm.alpha = 0.5;
+	vm.frame = 0;
+	vm.origin = '0 0 0';
+	vm.angles = '0 0 0';
+	ammo = FunGun_Ammo (p, FG_NETSEND);
+	len = NDVM_THROW_COUNT / NDVM_THROW_FPS;
+	nt = time - p.ns_fire_t;
+	if (!vm.ndvm_on)		// just taken out: a disk comes up, unless a throw is still playing
+	{
+		vm.ndvm_on = TRUE;
+		if (!is_quad && !(p.ns_fire_t > 0 && nt < len + NDVM_DROP))
+			p.ns_rl_t = time;
+	}
+
+	// 1. the throw
+	if (p.ns_fire_t > 0 && nt >= 0 && nt < len)
+	{
+		idx = floor (nt * NDVM_THROW_FPS);
+		if (idx > NDVM_THROW_COUNT - 1)
+			idx = NDVM_THROW_COUNT - 1;
+		vm.skin = NDVM_THROW_SKIN + idx;
+		vm.origin_x = 1.2 * sin ((nt / len) * 3.14159);		// a little shove forward into the release
+		return;
+	}
+	// 2. the empty hand drops away
+	if (p.ns_fire_t > 0 && nt >= len && nt < len + NDVM_DROP)
+	{
+		u = (nt - len) / NDVM_DROP;
+		vm.skin = NDVM_THROW_SKIN + NDVM_THROW_COUNT - 1;
+		vm.origin_z = -16 * u * u;
+		vm.origin_y = -2.5 * u;
+		vm.angles_x = 9 * u * u;
+		if (!is_quad)
+			p.ns_rl_t = p.ns_fire_t + len + NDVM_DROP + NDVM_GAP;
+		return;
+	}
+	// 3. no disk in the hand until the magazine gives one back
+	if (ammo < 1)
+	{
+		if (!is_quad)
+			p.ns_empty = TRUE;
+		vm.alpha = -1;
+		return;
+	}
+	if (p.ns_empty && !is_quad)
+	{
+		p.ns_empty = FALSE;
+		p.ns_rl_t = time;
+	}
+	if (time < p.ns_rl_t)
+	{
+		vm.alpha = -1;
+		return;
+	}
+	// 4. a new disk comes up from below (with a little overshoot)
+	if (time < p.ns_rl_t + NDVM_RAISE)
+	{
+		u = (time - p.ns_rl_t) / NDVM_RAISE;
+		k = u - 1;
+		ease = 1 + 2.5 * k * k * k + 1.5 * k * k;
+		vm.skin = NDVM_REST_SKIN;
+		vm.origin_z = -18 * (1 - ease);
+		vm.angles_z = -5 * (1 - u);
+		if (!is_quad)
+		{
+			p.ndvm_trick = 0;
+			p.ndvm_rest_t = p.ns_rl_t + NDVM_RAISE;
+			p.ndvm_wait = 2 + random () * 2;
+		}
+		return;
+	}
+
+	// the hand sways a little and bobs with the walk (rest and tricks)
+	vxy = p.velocity;
+	vxy_z = 0;
+	spd = vlen (vxy) / 320;
+	if (spd > 1)
+		spd = 1;
+	sw1 = sin (time * 2.4);
+	sw2 = sin (time * 4.8);
+	sw3 = sin (time * 8.2);
+	vm.origin_y = 0.18 * sw1 + 0.45 * spd * sw3;
+	vm.origin_z = 0.14 * sw2 - 0.35 * spd * fabs (sw3);
+	vm.angles_z = 0.35 * sw1 + 0.8 * spd * sw3;
+
+	// 5. a trick
+	if (p.ndvm_trick > 0)
+	{
+		NS_DiskTrick (p.ndvm_trick - 1);
+		t = time - p.ndvm_trick_t;
+		if (ndvm_c_pp)
+		{
+			fwd = (ndvm_c_count - 1) / ndvm_c_fps;
+			tl = fwd + (ndvm_c_count - 1) / (ndvm_c_fps * ndvm_c_back);
+			if (t < fwd)
+				idx = floor (t * ndvm_c_fps);
+			else
+				idx = ndvm_c_count - 1 - floor ((t - fwd) * ndvm_c_fps * ndvm_c_back);
+		}
+		else
+		{
+			tl = ndvm_c_count / ndvm_c_fps;
+			idx = floor (t * ndvm_c_fps);
+		}
+		if (t < tl)
+		{
+			if (idx < 0)
+				idx = 0;
+			if (idx > ndvm_c_count - 1)
+				idx = ndvm_c_count - 1;
+			vm.skin = ndvm_c_skin + idx;
+			return;
+		}
+		if (!is_quad)
+		{
+			p.ndvm_trick = 0;
+			p.ndvm_rest_t = time;
+			p.ndvm_wait = 3 + random () * 3;
+		}
+	}
+
+	// 6. the rest hold, there and back; on its neutral frame, after a while, the next trick
+	per = 2 * (NDVM_REST_COUNT - 1);
+	step = floor ((time - p.ndvm_rest_t) * NDVM_REST_FPS);
+	if (step < 0)
+		step = 0;
+	k = step - per * floor (step / per);
+	if (k < NDVM_REST_COUNT)
+		idx = k;
+	else
+		idx = per - k;
+	vm.skin = NDVM_REST_SKIN + idx;
+	if (!is_quad && k == 0 && time - p.ndvm_rest_t > p.ndvm_wait && autocvar_ns_vm_tricks && NDVM_TRICKS > 0)
+	{
+		p.ndvm_trick = 1 + (p.ndvm_count - NDVM_TRICKS * floor (p.ndvm_count / NDVM_TRICKS));
+		p.ndvm_count = p.ndvm_count + 1;
+		p.ndvm_trick_t = time;
+	}
 };
