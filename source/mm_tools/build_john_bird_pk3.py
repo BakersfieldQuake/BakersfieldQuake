@@ -12,6 +12,7 @@ Usage:
 import argparse
 import hashlib
 import os
+import struct
 import sys
 import tempfile
 import zipfile
@@ -44,6 +45,58 @@ def _validate_md3(md3_bytes: bytes) -> None:
     assert s_names == ["head", "hair_breezy", "wings_bird"], f"Unexpected surfaces: {s_names}"
 
 
+def _md3_same_within_noise(old: bytes, new: bytes) -> bool:
+    """True when two MD3s have the same layout and differ only by last-digit float noise.
+
+    The head is rebuilt with numpy, and GitHub runners with different CPUs round a few
+    values differently (seen: 9 bytes out of 10.5 MB, one vertex step or one float ulp).
+    Every structural byte must match; frame floats and texture coordinates may differ by
+    1e-3, packed vertex positions and normal angles by one step.
+    """
+    import numpy as np
+
+    if len(old) != len(new) or old[:108] != new[:108]:
+        return False
+    if old == new:
+        return True
+    hdr = struct.unpack("<4si64s9i", old[:108])
+    nf, ns, ofs_f, ofs_s = hdr[4], hdr[6], hdr[8], hdr[10]
+    a = np.frombuffer(old, dtype=np.uint8)
+    b = np.frombuffer(new, dtype=np.uint8)
+    checked = np.zeros(len(old), dtype=bool)
+
+    def floats_close(start: int, count: int) -> bool:
+        fa = a[start:start + 4 * count].view("<f4")
+        fb = b[start:start + 4 * count].view("<f4")
+        checked[start:start + 4 * count] = True
+        return bool(np.all(np.abs(fa.astype(np.float64) - fb.astype(np.float64)) <= 1e-3))
+
+    for i in range(nf):                      # frame: 10 floats (mins, maxs, origin, radius) + name
+        if not floats_close(ofs_f + 56 * i, 10):
+            return False
+    o = ofs_s
+    for _ in range(ns):
+        sh = struct.unpack("<4s64s10i", old[o:o + 108])
+        if old[o:o + 108] != new[o:o + 108]:
+            return False
+        snf, nv, o_st, o_xyz, o_end = sh[3], sh[5], sh[9], sh[10], sh[11]
+        if not floats_close(o + o_st, 2 * nv):
+            return False
+        start, count = o + o_xyz, snf * nv
+        xa = a[start:start + 8 * count].view("<i2").reshape(count, 4)
+        xb = b[start:start + 8 * count].view("<i2").reshape(count, 4)
+        if np.any(np.abs(xa[:, :3].astype(np.int32) - xb[:, :3].astype(np.int32)) > 1):
+            return False
+        na = a[start:start + 8 * count].reshape(count, 8)[:, 6:8].astype(np.int32)
+        nb = b[start:start + 8 * count].reshape(count, 8)[:, 6:8].astype(np.int32)
+        dn = np.abs(na - nb)
+        if np.any(np.minimum(dn, 256 - dn) > 1):      # normal angles wrap at 256
+            return False
+        checked[start:start + 8 * count] = True
+        o += o_end
+    return bool(np.all((a == b) | checked))  # everything not checked above must be identical
+
+
 def _write_reproducible_pk3(out_pk3: Path, entries: dict[str, bytes]) -> None:
     out_pk3.parent.mkdir(parents=True, exist_ok=True)
     tmp_pk3 = out_pk3.with_suffix(".pk3.tmp")
@@ -73,11 +126,13 @@ def build_zz_johnbird(base_pk3: Path, out_pk3: Path, md3_path: Path | None = Non
 
     # Load all existing non-head entries into memory before atomically replacing out_pk3
     entries: dict[str, bytes] = {}
+    base_head = None
     with zipfile.ZipFile(base_pk3, "r") as zf:
         for info in zf.infolist():
             if info.is_dir():
                 continue
             if info.filename == "progs/john_bird_head.md3":
+                base_head = zf.read(info.filename)
                 continue
             entries[info.filename] = zf.read(info.filename)
 
@@ -91,6 +146,11 @@ def build_zz_johnbird(base_pk3: Path, out_pk3: Path, md3_path: Path | None = Non
             head_md3_bytes = built_md3.read_bytes()
 
     _validate_md3(head_md3_bytes)
+    # Keep the shipped head when the rebuild only differs by CPU rounding noise, so players
+    # do not re-download 11 MB for a model that did not change.
+    if base_head is not None and base_head != head_md3_bytes and _md3_same_within_noise(base_head, head_md3_bytes):
+        print("john_bird_head.md3: rebuild differs from the base only by rounding noise; keeping the base bytes")
+        head_md3_bytes = base_head
     entries["progs/john_bird_head.md3"] = head_md3_bytes
 
     _write_reproducible_pk3(out_pk3, entries)
