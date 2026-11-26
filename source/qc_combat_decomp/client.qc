@@ -22,8 +22,6 @@ void() UpdateGunFrames =
 		else
 			self.vwep = "progs/p_ssg.md3";
 	}
-	else if (self.owner.weapon == IT_NAILGUN)
-		self.vwep = "progs/ltg_p.md3";	// the sniper rifle rides p_shot's frames (build_srifle.py)
 	else if (self.owner.weapon == IT_SUPER_NAILGUN)
 		self.vwep = "progs/p_nail2.md3";
 	else if (self.owner.weapon == IT_GRENADE_LAUNCHER)
@@ -870,7 +868,7 @@ void() SetChangeParms =
 
 void() SetNewParms =
 {
-	parm1 = 69759;		// all stock + Combat+ weapons except IT_CHAINSAW (was 8458367)
+	parm1 = 69754;		// all stock + Combat+ weapons except IT_CHAINSAW, IT_SHOTGUN and IT_NAILGUN
 	parm2 = 100;
 	parm3 = 0;
 	parm4 = 60;
@@ -900,6 +898,9 @@ void() DecodeLevelParms =
 	self.ammo_rockets = parm6;
 	self.ammo_cells = parm7;
 	self.weapon = parm8;
+	self.items = (self.items - (self.items & (IT_SHOTGUN | IT_NAILGUN)));
+	if (self.weapon == IT_SHOTGUN || self.weapon == IT_NAILGUN)
+		self.weapon = IT_SUPER_SHOTGUN;
 	self.armortype = (parm9 * 0.01);
 	self.grenade_ammo = parm10;
 };
@@ -2096,7 +2097,6 @@ void() PutClientInServer =
 	RocketRider_Reset(self);	// restore camera/body if respawning after Rocket Rider death
 	Practice_OnPlayerSpawn(self);
 	Hammer_Spawn();	// no charge left over (hammer.qc)
-	LtGun_Spawn();	// not shocked, not typing (ltgun.qc)
 	W_SetCurrentAmmo();
 	self.attack_finished = time;
 	self.th_pain = player_pain;
@@ -4284,6 +4284,7 @@ void() PlayerPostThink =
 {
 	local float rg_dt, rg_n;
 
+	BM_WheelFrame ();		// before the observer return: it also closes an open wheel
 	BM_Hat_Update ();	// before the early returns: it hides the hat for observers and the dead
 
 	if (self.bm_obs)
@@ -4683,10 +4684,6 @@ void(entity targ, entity attacker) ClientObituary =
 						deathstring = " was peeled by ";
 						deathstring2 = "'s banana\n";
 					}
-					if (ltg_inflicting)
-					{
-						rnum = IT_NAILGUN;
-					}
 					if (milky_inflicting)
 					{
 						rnum = IT_SUPER_NAILGUN;
@@ -4810,11 +4807,6 @@ void(entity targ, entity attacker) ClientObituary =
 					{
 						deathstring = " ate 2 loads of ";
 						deathstring2 = "'s buckshot\n";
-					}
-					if ((rnum == IT_NAILGUN))
-					{
-						deathstring = LtGun_Death();	// laptop gun
-						deathstring2 = "\n";
 					}
 					if ((rnum == IT_SUPER_NAILGUN))
 					{

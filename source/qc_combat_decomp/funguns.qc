@@ -530,7 +530,6 @@ void(entity p) FunGun_Give =
 	p.fg_lock_t = 0;
 	p.milk_freeze = 0;
 	p.milk_slip = FALSE;
-	p.ltg_shock = 0;
 	p.disableclientprediction = 0;
 	p.ns_throw_at = 0;		// a throw wound up in the last life must not fire in this one
 	p.milky_wind = 0;

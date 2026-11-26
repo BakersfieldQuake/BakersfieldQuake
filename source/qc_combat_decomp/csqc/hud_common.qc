@@ -428,12 +428,8 @@ string(float slot, float active_weap) HUD_GetWeaponName =
 		return "CHAINSAW";
 	if (active_weap == IT_AXE)
 		return "BONK HAMMER";
-	if (active_weap == IT_SHOTGUN)
-		return "SHOTGUN";
 	if (active_weap == IT_SUPER_SHOTGUN)
 		return "PUMP SHOTGUN";
-	if (active_weap == IT_NAILGUN)
-		return "LAPTOP GUN";
 	if (active_weap == IT_SUPER_NAILGUN)
 		return "MILKY GUN";
 	if (active_weap == IT_GRENADE_LAUNCHER)
@@ -457,12 +453,8 @@ string(float slot, float active_weap) HUD_GetWeaponPic =
 		return "gfx/hud_garand.tga";
 	if (active_weap == IT_CHAINSAW)
 		return "textures/HUD/HUD_saw_select";
-	if (active_weap == IT_SHOTGUN)
-		return "gfx/inv2_shotgun";
 	if (active_weap == IT_SUPER_SHOTGUN)
 		return "gfx/dn3sg/hud_icon.png";
-	if (active_weap == IT_NAILGUN)
-		return "gfx/inv2_nailgun";
 	if (active_weap == IT_SUPER_NAILGUN)
 		return "gfx/inv2_snailgun";
 	if (active_weap == IT_GRENADE_LAUNCHER)

@@ -2883,7 +2883,6 @@ float autocvar_soldier_size_influenced_attack;
 void(entity e, string spritepath, float spscale, vector pos_mod, vector startvelocity, vector velocityrandom, float startalpha, float emittertype) Sprite_Emitter;
 void() updateSNG;
 void() SNGHeater;
-void() W_FireShotgun;
 float autocvar_muzzleflash    = 1;
 float autocvar_pushback    = 1;
 float autocvar_pushbackshot1    = 20;

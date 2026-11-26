@@ -451,7 +451,6 @@ void(entity p, entity rr) RR_Enter =
 		p.viewzoom = 0;
 		centerprint (p, "");
 	}
-	p.ltg_phase = 0;
 	p.milky_wind = 0;
 	p.pk_throw_at = 0;
 	p.ns_throw_at = 0;

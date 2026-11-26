@@ -106,6 +106,13 @@ or run BAKOQUAKE again and pick your Quake id1 folder."
     }
 done
 
+# 1a. Quake's own lightning gun back, from your pak0.pak. A loose file in the userdir's BakersfieldQuake (the last folder
+#     the engine adds) beats every pk3, in the bundle too. Never stops the game.
+if [ -f "$GAME/tools/find-quake-paks.sh" ]; then
+    # shellcheck source=../../tools/find-quake-paks.sh
+    . "$GAME/tools/find-quake-paks.sh" && bq_restore_stock_lg "$USERDIR"
+fi
+
 # 1b. Display & Graphics Picker: run the frozen GUI picker (without --no-gui so the native picker window opens).
 BQ_PICK_CANCEL=0
 BQ_PICK_PRESET=""

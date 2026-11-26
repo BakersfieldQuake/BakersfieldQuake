@@ -150,6 +150,7 @@ void() worldspawn =
 	clientstat(50, 2, red_captures);
 	clientstat(51, 2, gametype);
 	BM_Stats();
+	cvar_set("mage_weapon", "0");	// its staff model and animation are gone: the lightning gun is the stock model
 	if ((autocvar_ctf == 1))
 	{
 		enable_ctf();

@@ -3,3 +3,5 @@ BAKOQUAKE
 *.log
 __pycache__/
 /build/
+# id Software's model, extracted by the launchers from the player's own pak0.pak
+/progs/v_light.mdl

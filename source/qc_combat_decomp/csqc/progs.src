@@ -27,4 +27,5 @@ dn3fx_csqc.qc
 ../bm_hats_common.qc
 ../bm_hat_tags.qc
 bm_character_preview.qc
+gunwheel.qc
 csqc.main.qc

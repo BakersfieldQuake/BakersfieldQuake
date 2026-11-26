@@ -552,6 +552,7 @@ float() BM_IntermissionThink =
 // worldspawn, after the stock clientstat list
 void() BM_Stats =
 {
+	BM_WheelStatsInit ();
 	clientstat (52, 2, bm_st_mag);
 	clientstat (53, 2, bm_st_magmax);
 	clientstat (54, 2, bm_st_reload);
@@ -1000,7 +1001,6 @@ void() BM_StartFrame =
 	// Refresh hot cvars once per server tick from engine-synced autocvars
 	bm_cvar_grav = autocvar_sv_gravity;
 	bm_cvar_maxvel = autocvar_sv_maxvelocity;
-	bm_cvar_ltg_video = autocvar_ltg_video;
 	bm_cvar_br_mode = autocvar_br_mode;
 	bm_cvar_dv_mode = autocvar_dv_mode;
 	bm_cvar_dv_stay = autocvar_dv_stay;
@@ -1250,7 +1250,7 @@ void() BM_TestImpulses =
 // and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || self.ltg_shock > 0 || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t || self.cy_trapped_by != world || time < self.cy_launch_until))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t || self.cy_trapped_by != world || time < self.cy_launch_until))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;
@@ -1354,17 +1354,6 @@ void(entity p) BM_ClientGone =
 			remove (e);
 		}
 		e = nx;
-	}
-	// a laptop shock from the leaver stops (the zap damage would otherwise go to whoever reuses the slot)
-	e = find (world, classname, "player");
-	while (e)
-	{
-		if (e.ltg_by == p)
-		{
-			e.ltg_shock = 0;
-			e.ltg_by = world;
-		}
-		e = find (e, classname, "player");
 	}
 	self = me;
 };

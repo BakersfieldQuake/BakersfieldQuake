@@ -4,6 +4,9 @@
 # Looks in Steam (registry + library folders), GOG (registry), the usual install folders on every drive, then
 # %USERPROFILE%\Downloads. Wants an id1 folder holding BOTH pak0 and pak1: the 2021 rerelease ships only a
 # different pak0.pak, so rerelease / "Quake Enhanced" folders are skipped. Exit code 0 = paks are in place.
+#
+# With the paks in place it also puts Quake's original first-person lightning gun back (Restore-StockLightningGun), so
+# Play.cmd and Start Server.cmd call it again whenever that file is missing.
 param([Parameter(Mandatory = $true)][string]$Root)
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -11,7 +14,63 @@ $Pak0Md5 = '5906E5998FC3D896DDAF5E6A62E03ABB'   # Quake 1.06 pak0.pak
 $Pak1Md5 = 'D76B3E5678F0B64AC74CE5E340E6A685'   # Quake pak1.pak (registered)
 $Root = (Resolve-Path $Root).Path.TrimEnd('\')
 
-if ((Test-Path "$Root\id1\pak0.pak") -and (Test-Path "$Root\id1\pak1.pak")) { exit 0 }
+# A whole-looking Quake model: "IDPO", version 6, at least 20000 bytes (id's lightning gun is 56204). Not pinned to one
+# hash, so any genuine pak edition is accepted, and a larger model the player put there on purpose is left alone.
+function Test-Mdl ([string]$path) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+    $s = [IO.File]::OpenRead($path)
+    try {
+        $h = New-Object byte[] 8
+        return $s.Length -ge 20000 -and $s.Read($h, 0, 8) -eq 8 -and
+            [BitConverter]::ToString($h) -eq '49-44-50-4F-06-00-00-00'
+    } finally { $s.Close() }
+}
+
+# The mod's base pk3s replace progs/v_light.mdl. A loose file beats every pk3 in a game folder, so copy id's original out
+# of the player's own id1\pak0.pak to BakersfieldQuake\progs\ (id Software data: never committed or packaged). Never
+# throws: the game just keeps the mod's model.
+function Restore-StockLightningGun {
+    $out = "$Root\BakersfieldQuake\progs\v_light.mdl"
+    $tmp = "$Root\BakersfieldQuake\progs\v_light.$PID.tmp"
+    try {
+        if (Test-Mdl $out) { return }
+        $data = $null
+        # Pak header: "PACK", dir offset, dir length. Each 64-byte entry: name[56], offset, length.
+        $pak = [IO.File]::OpenRead("$Root\id1\pak0.pak")
+        try {
+            $r = New-Object IO.BinaryReader $pak
+            if ([Text.Encoding]::ASCII.GetString($r.ReadBytes(4)) -ne 'PACK') { throw 'pak0.pak is not a pak file' }
+            $dirOfs = [long]$r.ReadUInt32()
+            $dirLen = [long]$r.ReadUInt32()
+            if ($dirLen % 64 -or $dirLen -gt 4MB -or $dirOfs + $dirLen -gt $pak.Length) { throw 'pak0.pak is damaged' }
+            $pak.Position = $dirOfs
+            $dir = $r.ReadBytes([int]$dirLen)
+            for ($i = 0; $i -lt $dir.Length; $i += 64) {
+                if ([Text.Encoding]::ASCII.GetString($dir, $i, 56).Split([char]0)[0] -ne 'progs/v_light.mdl') { continue }
+                $ofs = [long][BitConverter]::ToUInt32($dir, $i + 56)
+                $len = [long][BitConverter]::ToUInt32($dir, $i + 60)
+                if ($len -gt 1MB -or $ofs + $len -gt $pak.Length) { throw 'pak0.pak is damaged' }
+                $pak.Position = $ofs
+                $data = $r.ReadBytes([int]$len)
+                break
+            }
+        } finally { $pak.Close() }
+        if (-not $data) { throw 'pak0.pak has no progs/v_light.mdl' }
+        [void][IO.Directory]::CreateDirectory("$Root\BakersfieldQuake\progs")
+        [IO.File]::WriteAllBytes($tmp, $data)
+        if (-not (Test-Mdl $tmp)) { throw 'progs/v_light.mdl in pak0.pak is not a Quake model' }
+        Move-Item -LiteralPath $tmp -Destination $out -Force -ErrorAction Stop
+        Write-Host "Restored Quake's original lightning gun model from your pak0.pak."
+    } catch {
+        Write-Host "  warning: could not restore the original lightning gun model: $_"
+        Remove-Item -LiteralPath $tmp -Force
+    }
+}
+
+if ((Test-Path "$Root\id1\pak0.pak") -and (Test-Path "$Root\id1\pak1.pak")) {
+    Restore-StockLightningGun
+    exit 0
+}
 
 function Get-CandidateDirs {
     # Steam: install path from the registry, plus every library folder in libraryfolders.vdf.
@@ -96,4 +155,5 @@ New-Item -ItemType Directory -Force -Path "$Root\id1" | Out-Null
 Copy-Item -LiteralPath "$found\pak0.pak" "$Root\id1\pak0.pak" -ErrorAction Stop
 Copy-Item -LiteralPath "$found\pak1.pak" "$Root\id1\pak1.pak" -ErrorAction Stop
 Write-Host "  copied pak0.pak + pak1.pak into $Root\id1\"
+Restore-StockLightningGun
 exit 0

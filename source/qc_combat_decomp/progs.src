@@ -19,7 +19,6 @@ dn3_shotgun_defs.qc
 dn3_fx_defs.qc
 practice_defs.qc
 sniper_defs.qc
-ltgun_defs.qc
 hammer_defs.qc
 sentry_defs.qc
 netsend_diskvm.qc
@@ -118,7 +117,6 @@ dookie.qc
 kyle.qc
 robhead.qc
 sniper.qc
-ltgun.qc
 hammer.qc
 netsend.qc
 wcannon.qc
@@ -148,6 +146,7 @@ bicycles.qc
 eric_cannon.qc
 mm_tank.qc
 bm_reload.qc
+bm_gunwheel.qc
 bm_match.qc
 bm_minimap.qc
 bm_fun.qc

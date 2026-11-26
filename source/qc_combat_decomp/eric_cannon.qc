@@ -309,7 +309,6 @@ void(entity p, entity base) EC_Mount =
 		p.wc_charging = 0;
 		sound (p, CHAN_WEAPON, "misc/null.wav", 1, ATTN_NORM);
 	}
-	p.ltg_phase = 0;
 	p.milky_wind = 0;
 	p.pk_throw_at = 0;
 	p.ns_throw_at = 0;

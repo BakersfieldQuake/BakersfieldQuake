@@ -54,6 +54,12 @@ if [ -f "$ROOT/tools/bq_update.py" ] && command -v python3 >/dev/null 2>&1 \
     [ "$_bq_rc" -ne 0 ] && exit "$_bq_rc"
 fi
 
+# Quake's own lightning gun back, from your id1/pak0.pak (tools/find-quake-paks.sh). Never stops the game.
+if [ -f "$ROOT/tools/find-quake-paks.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$ROOT/tools/find-quake-paks.sh" && bq_restore_stock_lg "$ROOT"
+fi
+
 # Menu and desktop shortcuts (tools/install-shortcuts.sh). Only rewritten when this folder moved; never stops the game.
 if [ "$(uname)" = Linux ] && [ -f "$ROOT/tools/install-shortcuts.sh" ]; then
     # shellcheck source=/dev/null

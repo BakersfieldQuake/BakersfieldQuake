@@ -207,7 +207,7 @@ float(entity e) SkyPad_IsProjectile =
 		return TRUE;
 
 	// Fun Guns & custom-steered projectiles / drones
-	if (c == "megaman" || c == "wc_shot" || c == "netsend_disk" || c == "ltg_head")
+	if (c == "megaman" || c == "wc_shot" || c == "netsend_disk")
 		return TRUE;
 	if (c == "kyle_proj")
 		return (!e.ky_done && e.ky_mode != KY_MODE_DYING && e.ky_mode != KY_MODE_LATCHED);
@@ -313,11 +313,6 @@ void(entity pad, entity e) SkyPad_LaunchProjectile =
 		e.angles_x = bound (-45, ang_x, 45);
 		e.angles_y = ang_y;
 		e.angles_z = 0;
-	}
-	else if (c == "ltg_head")
-	{
-		e.angles = vectoangles (v);
-		e.ltg_head = vectoyaw (v);
 	}
 	else if (e.avelocity == '0 0 0')
 	{

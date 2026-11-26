@@ -36,6 +36,15 @@ rem All on one line: cmd reads a running script from disk, so exit 3 restarts th
 rem any other non-zero exit code (or negative crash code) blocks launch so a half-updated install is never started.
 if exist "%ROOT%\Update.exe" ( "%ROOT%\Update.exe" --launch --root "%ROOT%" & (if errorlevel 5 (popd & exit /b 1) else if errorlevel 4 (popd & exit /b 0) else if errorlevel 3 (popd & "%~f0" %*) else if errorlevel 1 (popd & exit /b 1) else if not errorlevel 0 (popd & exit /b 1)) ) else if exist "%ROOT%\tools\bq-update.exe" ( "%ROOT%\tools\bq-update.exe" --launch --root "%ROOT%" & (if errorlevel 5 (popd & exit /b 1) else if errorlevel 4 (popd & exit /b 0) else if errorlevel 3 (popd & "%~f0" %*) else if errorlevel 1 (popd & exit /b 1) else if not errorlevel 0 (popd & exit /b 1)) )
 
+rem Quake's own lightning gun back, from your id1\pak0.pak: the mod's pk3s replace it, a loose copy beats them.
+rem PowerShell only runs while that copy is missing or broken. A failure never stops the launch.
+set "LGMDL=%ROOT%\BakersfieldQuake\progs\v_light.mdl"
+set "LGOK="
+if exist "%LGMDL%" for %%F in ("%LGMDL%") do if %%~zF GEQ 20000 set "LGOK=1"
+if defined LGOK findstr /b /m /c:"IDPO" "%LGMDL%" >nul 2>&1
+if defined LGOK if errorlevel 1 set "LGOK="
+if not defined LGOK if exist "%ROOT%\tools\find-quake-paks.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\find-quake-paks.ps1" -Root "%ROOT%"
+
 rem Start Menu and Desktop shortcuts (tools\install-shortcuts.ps1). The folder they point at is kept in shortcut-root.txt,
 rem so PowerShell only runs on first launch or after the package moved (or after v2 shortcut migration). A failure never stops the launch.
 set "BQMARK=%LOCALAPPDATA%\BAKOQUAKE\shortcut-root.txt"

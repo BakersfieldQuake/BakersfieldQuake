@@ -163,6 +163,13 @@ void() CSQC_Init =
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
 	registercommand("bako_cmd");
+	registercommand("+gunwheel");
+	registercommand("-gunwheel");
+	registercommand("gunwheel_move");
+	registercvar("bm_gunwheel_sens", "1");
+	gw_open = FALSE;
+	setsensitivityscale(1);		// a map change with the wheel open must not leave the view frozen
+	GW_Precache();
 	registercvar("bm_veh_config", "0");
 	registercvar("bm_veh_init", "0");
 	registercvar("bm_veh_rev", "0");
@@ -189,16 +196,12 @@ void() CSQC_Init =
 	precache_pic("gfx/sb_invuln");
 	precache_pic("gfx/sb_invis");
 	precache_pic("gfx/sb_suit");
-	precache_pic("gfx/inv_shotgun");
 	precache_pic("gfx/inv_sshotgun");
-	precache_pic("gfx/inv_nailgun");
 	precache_pic("gfx/inv_snailgun");
 	precache_pic("gfx/inv_rlaunch");
 	precache_pic("gfx/inv_srlaunch");
 	precache_pic("gfx/inv_lightng");
-	precache_pic("gfx/inv2_shotgun");
 	precache_pic("gfx/inv2_sshotgun");
-	precache_pic("gfx/inv2_nailgun");
 	precache_pic("gfx/inv2_snailgun");
 	precache_pic("gfx/inv2_rlaunch");
 	precache_pic("gfx/inv2_srlaunch");
@@ -258,6 +261,7 @@ void() CSQC_Init =
 
 void() CSQC_Shutdown =
 {
+	GW_Close();
 	local float j;
 	BM_Char_Shutdown();
 
@@ -439,6 +443,9 @@ void(float w, float h) CSQC_UpdateView =
 		setproperty(VF_DRAWCROSSHAIR, FALSE);
 		setproperty(VF_DRAWENGINESBAR, FALSE);
 	}
+	GW_Frame();
+	if (gw_open)
+		setproperty(VF_DRAWCROSSHAIR, FALSE);
 	addentities(MASK_ENGINE);
 	if (fd_mode == 1 || fd_mode == 2)
 		RH_AddXRayEntities();
@@ -537,6 +544,7 @@ void(float w, float h) CSQC_UpdateView =
 		DrawScoreboard();
 		BM_DrawScoreKeys();
 	}
+	GW_Draw(stof(cvar_string("vid_conwidth")), stof(cvar_string("vid_conheight")), w, h);
 	ShowMenu();
 	ShowMapList();
 	TogglePause();
@@ -636,6 +644,21 @@ float(string strCommand) CSQC_ConsoleCommand =
 		localcmd(strcat("cmd ", strCommand, "\n"));
 		return (1);
 	}
+	if (n >= 1 && argv(0) == "+gunwheel")
+	{
+		GW_Open();
+		return (1);
+	}
+	if (n >= 1 && argv(0) == "-gunwheel")
+	{
+		GW_Pick();
+		return (1);
+	}
+	if (n >= 3 && argv(0) == "gunwheel_move")		// move the pointer from a config (scripted tests)
+	{
+		GW_Move(stof(argv(1)), stof(argv(2)));
+		return (1);
+	}
 	return (0);
 };
 
@@ -643,6 +666,10 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 {
 	local float holder;
 
+	if (GW_InputEvent(flEventType, flKey, flCharacter))
+		return TRUE;
+	if (flEventType != INPUT_KEYDOWN && flEventType != INPUT_KEYUP)
+		return FALSE;		// mouse motion is not a key: below, its dx would be read as a key number
 	if ((inMenu == 1))
 	{
 		if ((flKey == K_DEL))

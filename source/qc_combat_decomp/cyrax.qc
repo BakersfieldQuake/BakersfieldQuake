@@ -662,7 +662,6 @@ void(entity victim) Cyrax_ForceVictimAxe =
 	KY_ResetPlayer (victim);
 	RH_ResetPlayer (victim);
 	victim.wc_charging = 0;
-	victim.ltg_phase = 0;
 	victim.milky_wind = 0;
 	victim.pk_throw_at = 0;
 	victim.ns_throw_at = 0;

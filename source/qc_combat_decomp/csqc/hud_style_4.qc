@@ -138,12 +138,8 @@ string(float slot, float active_weap) S4_GetWeaponTag =
 		return "SAW";
 	if (active_weap == IT_AXE)
 		return "BONK";
-	if (active_weap == IT_SHOTGUN)
-		return "SG";
 	if (active_weap == IT_SUPER_SHOTGUN)
 		return "PUMP";
-	if (active_weap == IT_NAILGUN)
-		return "LAPTOP";
 	if (active_weap == IT_SUPER_NAILGUN)
 		return "MILKY";
 	if (active_weap == IT_GRENADE_LAUNCHER)

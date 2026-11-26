@@ -23,7 +23,6 @@ void() W_Precache =
 	FunGun_Precache();
 	Milky_Precache();	// the Milky Gun replaces the super nailgun (milky.qc)
 	Hammer_Precache();	// the Bonk Hammer replaces the axe (hammer.qc)
-	LtGun_Precache();	// the laptop gun replaces the sniper rifle (ltgun.qc)
 	// (the LAN props precache themselves in Lan_InitProp: only maps that place them load their 28 models)
 	Veh_PrecacheEffects();
 	if (cvar("sv_cheats"))
@@ -2055,62 +2054,6 @@ void() SNGHeater =
 	setorigin(sngb, '4 -6 5');
 	sngb.think = updateSNG;
 	sngb.nextthink = (time + 0.01);
-};
-
-void() W_FireShotgun =
-{
-	local vector dir;
-	local vector pushback1;
-	local vector direc;
-
-	sound7(self, CHAN_WEAPON, "weapons/shotgn2.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
-	if (((autocvar_muzzleflash == 1) && !autocvar_centered_weapons))
-	{
-		if (cvar("chase_active"))
-		{
-			sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -10.5)) + (v_right * 4)) + (v_forward * 15)), (self.velocity * 50), 1, 0);
-		}
-		else
-		{
-			if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
-			{
-				sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * 7)), (self.velocity * 50), 1, 0);
-			}
-			else
-			{
-				if ((!autocvar_weapon_position_right && autocvar_weapon_position_fully_adjustable))
-				{
-					sendParticle("shotgun_muzzleflash", ((((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)) + (v_right * autocvar_weapon_position_adjustable_muzzleflash_shot1_offset)), (self.velocity * 50), 1, 0);
-				}
-				else
-				{
-					sendParticle("shotgun_muzzleflash", (((self.origin + self.view_ofs) + (v_up * -8)) + (v_forward * 30)), (self.velocity * 50), 1, 0);
-				}
-			}
-		}
-	}
-	if ((autocvar_effects_explosion_shake != 0))
-	{
-		self.punchangle_x = -3.3;
-	}
-	SpawnMuzzleFlash();
-	SpawnSpark_Flash(1, '15 -13 25', '1 0.7 0.4', 1);
-	if ((self.waterlevel >= 3))
-	{
-		Sprite_Emitter(self, "progs/s_bubble.spr", 2, '20 -13 -20', '320 30 -10', '25 18 10', 0.7, TYPE_SMOKE);
-		Sprite_Emitter(self, "progs/s_bubble.spr", 2, '20 -13 -20', '150 -10 -30', '25 18 10', 0.7, TYPE_SMOKE);
-	}
-	if ((autocvar_pushback != 0))
-	{
-		direc = aim(self, 100);
-		traceline(self.origin, (self.origin + (direc * autocvar_pushbackshot1)), FALSE, self);
-		pushback1 = trace_endpos - self.origin;
-		self.velocity = (self.velocity - pushback1);
-	}
-	self.ammo_shells = (self.ammo_shells - 1);
-	self.currentammo = self.ammo_shells;
-	dir = aim(self, 100000);
-	FireBullets(10, dir, '0.020 0.020 0');
 };
 
 void() W_FireSuperShotgun =
@@ -4945,30 +4888,6 @@ void() W_SetCurrentAmmo =
 	}
 	else
 	{
-			if ((self.weapon == IT_SHOTGUN))
-			{
-				self.currentammo = self.ammo_shells;
-				if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
-				{
-					self.weaponmodel = "progs/v_shot_right.mdl";
-				}
-				else
-				{
-					if (autocvar_centered_weapons)
-					{
-						self.weaponmodel = "progs/centered/v_shot.mdl";
-					}
-					else
-					{
-						self.weaponmodel = "progs/v_shot.mdl";
-					}
-				}
-				self.weaponframe = 0;
-				self.items = (self.items | IT_SHELLS);
-				self.axeequipped = 0;
-			}
-			else
-			{
 				if ((self.weapon == IT_SUPER_SHOTGUN))
 				{
 					self.currentammo = self.ammo_shells;
@@ -4979,23 +4898,6 @@ void() W_SetCurrentAmmo =
 				}
 				else
 				{
-					if ((self.weapon == IT_NAILGUN))
-					{
-						self.currentammo = self.ammo_nails;
-						if ((autocvar_weapon_position_right && !autocvar_weapon_position_fully_adjustable))
-						{
-							self.weaponmodel = "progs/ltg_view.md3";	// laptop gun
-						}
-						else
-						{
-							self.weaponmodel = "progs/ltg_view.md3";
-						}
-						self.weaponframe = 0;
-						self.items = (self.items | IT_NAILS);
-						self.axeequipped = 0;
-					}
-					else
-					{
 						if ((self.weapon == IT_SUPER_NAILGUN))
 						{
 							self.currentammo = self.ammo_nails;
@@ -5050,29 +4952,8 @@ void() W_SetCurrentAmmo =
 									if ((self.weapon == IT_LIGHTNING))
 									{
 										self.currentammo = self.ammo_cells;
-										if (((autocvar_weapon_position_right == 1) && !autocvar_weapon_position_fully_adjustable))
-										{
-											BM_BeamHack("0");
-											self.weaponmodel = "progs/v_light_right.mdl";
-										}
-										else
-										{
-											if (((autocvar_weapon_position_right == 2) && !autocvar_weapon_position_fully_adjustable))
-											{
-												BM_BeamHack("1");
-												self.weaponmodel = "progs/v_light.mdl";
-											}
-											else
-											{
-												BM_BeamHack("1");
-												self.weaponmodel = "progs/v_light.mdl";
-											}
-										}
-										if (autocvar_mage_weapon)
-										{
-											BM_BeamHack("1");
-											self.weaponmodel = "progs/v_mage1.mdl";
-										}
+										BM_BeamHack("1");
+										self.weaponmodel = "progs/v_light.mdl";	// the original Quake model (launchers copy it out of pak0.pak)
 										self.weaponframe = 0;
 										self.items = (self.items | IT_CELLS);
 										self.axeequipped = 0;
@@ -5119,9 +5000,7 @@ void() W_SetCurrentAmmo =
 								}
 							}
 						}
-					}
 				}
-			}
 		}
 };
 
@@ -5141,14 +5020,6 @@ float() W_BestWeapon =
 	if (((self.ammo_shells >= 1) && (it & IT_SUPER_SHOTGUN)))
 	{
 		return (IT_SUPER_SHOTGUN);
-	}
-	if (((self.ammo_nails >= 1) && (it & IT_NAILGUN)))
-	{
-		return (IT_NAILGUN);
-	}
-	if (((self.ammo_shells >= 1) && (it & IT_SHOTGUN)))
-	{
-		return (IT_SHOTGUN);
 	}
 	return (IT_AXE);
 };
@@ -5570,33 +5441,6 @@ void() W_Attack =
 	}
 	else
 	{
-		if ((self.weapon == IT_SHOTGUN))
-		{
-			if ((self.waterlevel >= 2))
-			{
-				player_shotswim1();
-			}
-			else
-			{
-				player_shot1();
-			}
-			W_FireShotgun();
-			self.attack_timer = 1;
-			if ((self.rapid_timer > 0))
-			{
-				self.attack_finished = (time + 0.24);
-			}
-			else
-			{
-				self.attack_finished = (time + 0.42);
-			}
-			if ((autocvar_effects_explosion_shake != 0))
-			{
-				self.viewzoom = 1.017;
-			}
-		}
-		else
-		{
 			if ((self.weapon == IT_SUPER_SHOTGUN))
 			{
 				if (!DN3SG_CanFire())
@@ -5617,20 +5461,6 @@ void() W_Attack =
 			}
 			else
 			{
-				if ((self.weapon == IT_NAILGUN))
-				{
-					if ((self.waterlevel >= 2))
-					{
-						player_swimnail1();
-					}
-					else
-					{
-						player_nail1();
-					}
-					self.attack_timer = 1;
-				}
-				else
-				{
 					if ((self.weapon == IT_SUPER_NAILGUN))
 					{
 						if (Milky_CanFire())
@@ -5710,9 +5540,7 @@ void() W_Attack =
 							}
 						}
 					}
-				}
 			}
-		}
 	}
 	if ((self.weapon != IT_AXE))
 	{
@@ -5733,11 +5561,25 @@ void() W_ChangeWeapon =
 	{
 		return;
 	}
+	// a key saved from before the single shotgun and the laptop gun were removed
+	if (self.impulse == 4)
+	{
+		self.impulse = 0;
+		return;
+	}
+	if (self.impulse == 2)
+		self.impulse = 3;
 	it = self.items;
 	am = 0;
 	self.idletimer = 1;
 	self.switchtimer = -5;
-	if ((self.impulse == 1))
+	if (self.impulse == 16 || self.impulse == 18)	// the Gun Wheel: CCC / lightning directly, no key 8 toggle
+	{
+		fl = (self.impulse == 16) ? IT_LASER_CANNON : IT_LIGHTNING;
+		if (self.ammo_cells < 1)
+			am = 1;
+	}
+	else if ((self.impulse == 1))
 	{
 		fl = IT_AXE;
 	}
@@ -5880,24 +5722,12 @@ void() W_ChangeWeapon =
 		}
 		else
 		{
-			if ((fl == IT_SHOTGUN))
-			{
-				sound7(self, CHAN_VOICE, "weapons/weapon2.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-			}
-			else
-			{
 				if ((fl == IT_SUPER_SHOTGUN))
 				{
 					// DN3SG_Frame plays dn3sg/pump.wav on draw
 				}
 				else
 				{
-					if ((fl == IT_NAILGUN))
-					{
-						sound7(self, CHAN_VOICE, "weapons/weapon4.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-					}
-					else
-					{
 						if ((fl == IT_SUPER_NAILGUN))
 						{
 							sound7(self, CHAN_VOICE, "weapons/weapon5.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
@@ -5933,9 +5763,7 @@ void() W_ChangeWeapon =
 								}
 							}
 						}
-					}
 				}
-			}
 		}
 	}
 };
@@ -5949,7 +5777,7 @@ void() CheatCommand =
 	self.ammo_rockets = autocvar_rockets_max_capacity;
 	self.ammo_nails = autocvar_nails_max_capacity;
 	self.ammo_shells = autocvar_shells_max_capacity;
-	self.items = ((((((((((self.items | IT_AXE) | IT_SHOTGUN) | IT_SUPER_SHOTGUN) | IT_NAILGUN) | IT_SUPER_NAILGUN) | IT_GRENADE_LAUNCHER) | IT_ROCKET_LAUNCHER) | IT_LASER_CANNON) | IT_KEY1) | IT_KEY2);
+	self.items = ((((((((self.items | IT_AXE) | IT_SUPER_SHOTGUN) | IT_SUPER_NAILGUN) | IT_GRENADE_LAUNCHER) | IT_ROCKET_LAUNCHER) | IT_LASER_CANNON) | IT_KEY1) | IT_KEY2);
 	self.ammo_cells = autocvar_cells_max_capacity;
 	self.items = (self.items | IT_LIGHTNING);
 	self.grenade_ammo = 6;
@@ -6012,7 +5840,7 @@ void() CycleWeaponCommand =
 		{
 			if ((self.weapon == IT_AXE))
 			{
-				self.weapon = IT_SHOTGUN;
+				self.weapon = IT_SUPER_SHOTGUN;
 				if ((self.ammo_shells < 1))
 				{
 					am = 1;
@@ -6020,36 +5848,16 @@ void() CycleWeaponCommand =
 			}
 			else
 			{
-				if ((self.weapon == IT_SHOTGUN))
-					{
-						self.weapon = IT_SUPER_SHOTGUN;
-						if ((self.ammo_shells < 1))
-						{
-							am = 1;
-						}
-					}
-					else
-					{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
-							self.weapon = IT_NAILGUN;
-							if ((self.ammo_nails < 1))
+							self.weapon = IT_SUPER_NAILGUN;
+							if ((self.ammo_nails < 2))
 							{
 								am = 1;
 							}
 						}
 						else
 						{
-							if ((self.weapon == IT_NAILGUN))
-							{
-								self.weapon = IT_SUPER_NAILGUN;
-								if ((self.ammo_nails < 2))
-								{
-									am = 1;
-								}
-							}
-							else
-							{
 								if ((self.weapon == IT_SUPER_NAILGUN))
 								{
 									self.weapon = IT_GRENADE_LAUNCHER;
@@ -6095,9 +5903,7 @@ void() CycleWeaponCommand =
 										}
 									}
 								}
-							}
 						}
-					}
 				}
 			}
 		if (autocvar_bm_reload)
@@ -6115,24 +5921,12 @@ void() CycleWeaponCommand =
 				}
 				else
 				{
-					if ((self.weapon == IT_SHOTGUN))
-					{
-						sound7(self, CHAN_VOICE, "weapons/weapon2.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-					}
-					else
-					{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
 							// DN3SG_Frame plays dn3sg/pump.wav on draw
 						}
 						else
 						{
-							if ((self.weapon == IT_NAILGUN))
-							{
-								sound7(self, CHAN_VOICE, "weapons/weapon4.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-							}
-							else
-							{
 								if ((self.weapon == IT_SUPER_NAILGUN))
 								{
 									sound7(self, CHAN_VOICE, "weapons/weapon5.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
@@ -6168,9 +5962,7 @@ void() CycleWeaponCommand =
 										}
 									}
 								}
-							}
 						}
-					}
 				}
 			}
 			return;
@@ -6259,40 +6051,20 @@ void() CycleWeaponReverseCommand =
 					{
 						if ((self.weapon == IT_SUPER_NAILGUN))
 						{
-							self.weapon = IT_NAILGUN;
-							if ((self.ammo_nails < 1))
+							self.weapon = IT_SUPER_SHOTGUN;
+							if ((self.ammo_shells < 1))
 							{
 								am = 1;
 							}
 						}
 						else
 						{
-							if ((self.weapon == IT_NAILGUN))
-							{
-								self.weapon = IT_SUPER_SHOTGUN;
-								if ((self.ammo_shells < 1))
-								{
-									am = 1;
-								}
-							}
-							else
-							{
 								if ((self.weapon == IT_SUPER_SHOTGUN))
 								{
-									self.weapon = IT_SHOTGUN;
-									if ((self.ammo_shells < 1))
-									{
-										am = 1;
-									}
+									self.weapon = IT_AXE;
 								}
 								else
 								{
-									if ((self.weapon == IT_SHOTGUN))
-									{
-										self.weapon = IT_AXE;
-									}
-									else
-									{
 										if ((self.weapon == IT_AXE))
 										{
 											self.fg_sel = FunGun_Last ();
@@ -6309,9 +6081,7 @@ void() CycleWeaponReverseCommand =
 										{
 											self.weapon = IT_AXE;
 										}
-									}
 								}
-							}
 						}
 					}
 				}
@@ -6332,24 +6102,12 @@ void() CycleWeaponReverseCommand =
 				}
 				else
 				{
-					if ((self.weapon == IT_SHOTGUN))
-					{
-						sound7(self, CHAN_VOICE, "weapons/weapon2.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-					}
-					else
-					{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
 							// DN3SG_Frame plays dn3sg/pump.wav on draw
 						}
 						else
 						{
-							if ((self.weapon == IT_NAILGUN))
-							{
-								sound7(self, CHAN_VOICE, "weapons/weapon4.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
-							}
-							else
-							{
 								if ((self.weapon == IT_SUPER_NAILGUN))
 								{
 									sound7(self, CHAN_VOICE, "weapons/weapon5.wav", autocvar_changeweaponsounds, ATTN_NORM, self.PLR_SNDSPD);
@@ -6385,9 +6143,7 @@ void() CycleWeaponReverseCommand =
 										}
 									}
 								}
-							}
 						}
-					}
 				}
 			}
 			return;
@@ -6522,7 +6278,7 @@ void() ImpulseCommands =
 	{
 		FunGun_Select(((self.impulse - FG_IMPULSE) + 1));
 	}
-	if (((self.impulse >= 1) && (self.impulse <= 8)))
+	if (((self.impulse >= 1) && (self.impulse <= 8)) || self.impulse == 16 || self.impulse == 18)
 	{
 		W_ChangeWeapon();
 	}
@@ -6699,13 +6455,12 @@ void() W_WeaponFrame =
 	BM_PredictFrame();	// no client prediction while the server drives your speed (bm_match.qc)
 	if (Cyrax_VictimWeaponFrame())
 		return;				// netted victim: stunned & visually locked to Bonk Axe (cyrax.qc)
-	LtGun_PlayerFrame();	// the laptop's held model and the shock (ltgun.qc)
 	DN3SG_Frame();			// DN3DooM Pump Shotgun 2D sprite frame, pump timing, reload & pitch kick (dn3_shotgun.qc)
 	HeldVwep_Update();		// third-person handheld item / miniature Pink Lady attachment
 	if (self.deadflag || (self.health <= 0))
 	{
 		PC_PlayerFrame();
-		return;	// BM: a hook above killed us (the laptop zap, goo, milk): a shot from here replaced the death animation's think, PlayerDead never ran and the player stayed dead for good
+		return;	// BM: a hook above killed us (goo, milk): a shot from here replaced the death animation's think, PlayerDead never ran and the player stayed dead for good
 	}
 	PC_PlayerFrame();
 	if (FD_Frame())
@@ -6892,10 +6647,6 @@ void() W_WeaponFrame =
 	if (self.weapon == IT_AXE)
 	{
 		return;	// the Bonk Hammer charges and swings by itself (hammer.qc)
-	}
-	if (LtGun_Frame())
-	{
-		return;	// the sniper rifle charges while fire is held and shoots on release (sniper.qc)
 	}
 	if (self.button0 && !self.cy_bonk_phase && self.cy_hold_targ == world)
 	{

@@ -10,7 +10,7 @@ float OPT_VID_COUNT    = 16;
 float OPT_GFX_COUNT    = 27;
 float OPT_CTRL_COUNT   = 21;
 float OPT_VEH_COUNT    = 9;
-float OPT_WEP_COUNT    = 20;
+float OPT_WEP_COUNT    = 21;
 
 float OPT_RES_MAX      = 64;
 
@@ -479,16 +479,16 @@ string(float tab, float idx) BM_Opt_BindLabel =
 		return "Quick Join LAN (F3)";
 	}
 
-	if (idx == 0)  return "Next Weapon";
-	if (idx == 1)  return "Previous Weapon";
-	if (idx == 2)  return "Slot 1: Bonk Hammer";
-	if (idx == 3)  return "Slot 2: Shotgun";
+	if (idx == 0)  return "Gun Wheel (hold)";
+	if (idx == 1)  return "Next Weapon";
+	if (idx == 2)  return "Previous Weapon";
+	if (idx == 3)  return "Slot 1: Bonk Hammer";
 	if (idx == 4)  return "Slot 3: Pump Shotgun";
-	if (idx == 5)  return "Slot 4: Laptop Gun";
-	if (idx == 6)  return "Slot 5: Milky Gun";
-	if (idx == 7)  return "Slot 6: Grenade Launcher";
-	if (idx == 8)  return "Slot 7: Rocket Launcher";
-	if (idx == 9)  return "Slot 8: Lightning / CCC";
+	if (idx == 5)  return "Slot 5: Milky Gun";
+	if (idx == 6)  return "Slot 6: Grenade Launcher";
+	if (idx == 7)  return "Slot 7: Rocket Launcher";
+	if (idx == 8)  return "Slot 8: Lightning / CCC";
+	if (idx == 9)  return "CCC Laser Cannon";
 	if (idx == 10) return "Slot 9: Mega Man Gun";
 	if (idx == 11) return "Slot 0: M4A1 Rifle";
 	if (idx == 12) return "M1 Garand Rifle";
@@ -498,7 +498,8 @@ string(float tab, float idx) BM_Opt_BindLabel =
 	if (idx == 16) return "Fun: NetSend PC";
 	if (idx == 17) return "Fun: Dookie Bazooka";
 	if (idx == 18) return "Fun: Wheelman Cannon";
-	return "Fun: Pocket Kyle";
+	if (idx == 19) return "Fun: Pocket Kyle";
+	return "Fun: Cyrax Net";
 };
 
 string(float tab, float idx) BM_Opt_BindCmd =
@@ -528,16 +529,16 @@ string(float tab, float idx) BM_Opt_BindCmd =
 		return "exec lan_server.cfg";
 	}
 
-	if (idx == 0)  return "impulse 10";
-	if (idx == 1)  return "impulse 12";
-	if (idx == 2)  return "impulse 1";
-	if (idx == 3)  return "impulse 2";
+	if (idx == 0)  return "+gunwheel";
+	if (idx == 1)  return "impulse 10";
+	if (idx == 2)  return "impulse 12";
+	if (idx == 3)  return "impulse 1";
 	if (idx == 4)  return "impulse 3";
-	if (idx == 5)  return "impulse 4";
-	if (idx == 6)  return "impulse 5";
-	if (idx == 7)  return "impulse 6";
-	if (idx == 8)  return "impulse 7";
-	if (idx == 9)  return "impulse 8";
+	if (idx == 5)  return "impulse 5";
+	if (idx == 6)  return "impulse 6";
+	if (idx == 7)  return "impulse 7";
+	if (idx == 8)  return "impulse 8";
+	if (idx == 9)  return "impulse 16";
 	if (idx == 10) return "impulse 14";
 	if (idx == 11) return "impulse 67";
 	if (idx == 12) return "impulse 69";
@@ -547,7 +548,8 @@ string(float tab, float idx) BM_Opt_BindCmd =
 	if (idx == 16) return "impulse 64";
 	if (idx == 17) return "impulse 65";
 	if (idx == 18) return "impulse 66";
-	return "impulse 68";
+	if (idx == 19) return "impulse 68";
+	return "impulse 70";
 };
 
 string g_opt_bk_cmd[20];

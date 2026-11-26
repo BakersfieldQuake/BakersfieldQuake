@@ -1332,18 +1332,6 @@ void() weapon_touch =
 	{
 		leave = 0;
 	}
-	if ((self.classname == "weapon_nailgun"))
-	{
-		if ((leave && (other.items & IT_NAILGUN)))
-		{
-			return;
-		}
-		hadammo = other.ammo_nails;
-		new = IT_NAILGUN;
-		other.ammo_nails = (other.ammo_nails + 50);
-	}
-	else
-	{
 		if ((self.classname == "weapon_supernailgun"))
 		{
 			if ((leave && (other.items & IT_SUPER_NAILGUN)))
@@ -1440,7 +1428,6 @@ void() weapon_touch =
 				}
 			}
 		}
-	}
 	sprint(other, "You got the ");
 	sprint(other, self.netname);
 	sprint(other, "\n");
@@ -2268,15 +2255,14 @@ void() powerup_touch =
 	{
 		other.attack_finished = (time + 0.2);
 		other.button0 = 0;
-		other.rapid_timer = 20;
 		sound(other, CHAN_ITEM, "weapons/pkup.wav", 1, ATTN_NORM);
 		other.ammo_shells = (other.ammo_shells + 12);
 		selftemp = self;
 		self = other;
-		self.weapon = IT_SHOTGUN;
+		self.weapon = IT_SUPER_SHOTGUN;
 		W_SetCurrentAmmo();
 		self = selftemp;
-		centerprint(other, "You got the Rapid Shotgun Powerup!");
+		centerprint(other, "You got a Shotgun Shell Pack!");
 		self.effects = 0;
 	}
 	if ((self.classname == "item_artifact_invisibility"))
@@ -2329,7 +2315,7 @@ void() item_sfshotgun =
 	self.avelocity_y = 500;
 	self.traileffectnum = particleeffectnum(/*21958i*/"g_weaponeffect");
 	self.classname = "item_sfshotgun";
-	self.netname = "Rapid Shotgun";
+	self.netname = "Shotgun Shell Pack";
 	setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
 	StartItem();
 };

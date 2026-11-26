@@ -92,7 +92,7 @@ void(entity p) Practice_GiveAll =
 {
 	local entity oself;
 
-	p.items = p.items | IT_AXE | IT_SHOTGUN | IT_SUPER_SHOTGUN | IT_NAILGUN | IT_SUPER_NAILGUN | IT_GRENADE_LAUNCHER | IT_ROCKET_LAUNCHER | IT_LASER_CANNON | IT_LIGHTNING;
+	p.items = p.items | IT_AXE | IT_SUPER_SHOTGUN | IT_SUPER_NAILGUN | IT_GRENADE_LAUNCHER | IT_ROCKET_LAUNCHER | IT_LASER_CANNON | IT_LIGHTNING;
 	p.ammo_shells = autocvar_shells_max_capacity;
 	p.ammo_nails = autocvar_nails_max_capacity;
 	p.ammo_rockets = autocvar_rockets_max_capacity;

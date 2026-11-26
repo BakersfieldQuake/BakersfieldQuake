@@ -9,6 +9,9 @@
 The game files come from a normal install / the BAKOQUAKE package (--game-dir with id1, quake15 and
 BakersfieldQuake in it). progs.dat and csprogs.dat must be the same ones the server runs.
 
+Quake's own first-person lightning gun replaces the one in the mod's pk3s: BakersfieldQuake/progs/v_light.mdl goes in
+the pack, taken from the install (the launchers put it there) or else from its id1/pak0.pak.
+
 Maps: only the ones named in the server's config (map, bm_maplist, bm_votemaps), plus any --maps.
 Usage:
   python3 make_web_pack.py --game-dir ../../dist/BAKOQUAKE --engine wasm-out/darkplaces-wasm.js --out site-out
@@ -19,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +30,46 @@ GAMEDIRS = ("id1", "quake15", "BakersfieldQuake")
 # never sent to browsers: server-only or Windows-only files
 SKIP_NAMES = {"server.cfg", "warmup.cfg", "server_vps.cfg", "personal.cfg", "personal_post.cfg"}
 SKIP_EXT = {".exe", ".dll", ".log", ".bak", ".tmp", ".sav"}
+LG_NAME = "progs/v_light.mdl"                       # first-person lightning gun
+LG_REL = "BakersfieldQuake/" + LG_NAME
+
+
+def is_mdl(data):
+    """A whole-looking Quake model (the same test as tools/find-quake-paks.sh): "IDPO", version 6, 20000+ bytes."""
+    return len(data) >= 20000 and data[:8] == b"IDPO\x06\x00\x00\x00"
+
+
+def pak_entry(pak_path, name):
+    """The bytes of file `name` in a Quake .pak, or None (not a pak, damaged, or no such file)."""
+    try:
+        with open(pak_path, "rb") as f:
+            magic, off, size = struct.unpack("<4sII", f.read(12))
+            if magic != b"PACK" or size % 64 or size > 4 << 20:
+                return None
+            f.seek(off)
+            table = f.read(size)
+            for i in range(0, len(table) - 63, 64):
+                entry, pos, length = struct.unpack_from("<56sII", table, i)
+                if entry.split(b"\0")[0].lower() == name.encode():
+                    if length > 1 << 20:
+                        return None
+                    f.seek(pos)
+                    data = f.read(length)
+                    return data if len(data) == length else None
+    except (OSError, struct.error):
+        pass
+    return None
+
+
+def stock_lightning_gun(game):
+    """(model bytes, pak mtime) from the install's id1/pak0.pak (any case), or (None, 0)."""
+    id1 = os.path.join(game, "id1")
+    for fn in sorted(os.listdir(id1)):
+        if fn.lower() == "pak0.pak":
+            data = pak_entry(os.path.join(id1, fn), LG_NAME)
+            if data and is_mdl(data):
+                return data, int(os.stat(os.path.join(id1, fn)).st_mtime)
+    return None, 0
 
 
 def maps_from_cfg(path):
@@ -83,6 +127,20 @@ def main():
                         continue
                 entries.append(rel)
 
+    # An install no launcher has run yet has no loose lightning gun (or a broken one): take it from the pak. It is only
+    # written into the pack, never into the install, which may still be zipped and passed on.
+    lg_data, lg_mtime = None, 0
+    have_lg = False
+    if LG_REL in entries:
+        with open(os.path.join(game, LG_REL), "rb") as f:
+            have_lg = is_mdl(f.read())
+    if not have_lg:
+        lg_data, lg_mtime = stock_lightning_gun(game)
+        if lg_data:
+            entries = [e for e in entries if e != LG_REL]
+        else:
+            print("WARNING: no %s in id1/pak0.pak: browser players get the mod's lightning gun" % LG_NAME)
+
     shipped_maps = {os.path.splitext(e.split("/")[-1])[0] for e in entries if e.lower().endswith(".bsp")}
     missing = sorted(m for m in wanted_maps if m not in shipped_maps)
 
@@ -94,6 +152,16 @@ def main():
         st = os.stat(src)
         files.append({"path": rel, "url": "files/" + rel, "size": st.st_size, "mtime": int(st.st_mtime)})
         total += st.st_size
+
+    if lg_data:
+        dst = os.path.join(out, "files", LG_REL)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(dst + ".tmp", "wb") as f:
+            f.write(lg_data)
+        os.utime(dst + ".tmp", (lg_mtime, lg_mtime))      # stable between builds, so browsers keep their copy
+        os.replace(dst + ".tmp", dst)
+        files.append({"path": LG_REL, "url": "files/" + LG_REL, "size": len(lg_data), "mtime": lg_mtime})
+        total += len(lg_data)
 
     # the browser settings file goes in with the game files
     webcfg = os.path.join(HERE, "site", "web.cfg")

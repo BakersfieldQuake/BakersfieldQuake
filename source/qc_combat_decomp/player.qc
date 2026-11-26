@@ -1952,8 +1952,6 @@ void(string gibname, float dm) ThrowWeapon =
 			else
 				gibname = "progs/p_ssg.md3";
 		}
-		else if (self.weapon == IT_NAILGUN)
-			gibname = "progs/ltg_p.md3";	// sniper rifle
 		else if (self.weapon == IT_SUPER_NAILGUN)
 			gibname = "progs/p_nail2.md3";
 		else if (self.weapon == IT_GRENADE_LAUNCHER)

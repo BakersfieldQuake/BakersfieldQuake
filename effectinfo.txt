@@ -18813,7 +18813,7 @@ lightshadow 0
 lightcolor 2 1.7 0.1
 // ---- Laptop gun begin
 
-// Laptop gun (ltgun.qc): the head's trail, the shock sparks on a victim, the blast where the head lands
+// Laptop head trail (only source/mm_tools/intro_director.qc still uses it)
 
 // a trail of blue-white sparks and green "data" dots behind the head
 effect ltg_trail
@@ -18838,87 +18838,6 @@ alpha 220 256 500
 originjitter 10 10 10
 velocityjitter 25 25 25
 gravity -0.1
-
-// crackles round a shocked player
-effect ltg_zap
-count 14
-type spark
-tex 0 8
-color 0x60b0ff 0xffffff
-size 1.5 2.5
-alpha 256 256 700
-originjitter 14 14 22
-velocityjitter 160 160 160
-airfriction 1.2
-
-effect ltg_zap
-lightradius 160
-lightradiusfade 600
-lightcolor 0.3 0.6 1
-lightshadow 0
-
-// where the head lands: a blue-white flash, a ring of sparks and a puff of green dots
-effect ltg_boom
-count 4
-type alphastatic
-tex 0 8
-color 0x80c0ff 0xffffff
-size 30 60
-sizeincrease 120
-alpha 220 256 700
-originjitter 8 8 8
-airfriction 3
-
-effect ltg_boom
-count 60
-type spark
-tex 0 8
-color 0x50a0ff 0xffffff
-size 1.5 3
-alpha 256 256 500
-originjitter 6 6 6
-velocityjitter 420 420 420
-gravity 0.4
-bounce 1.2
-airfriction 0.5
-
-effect ltg_boom
-count 24
-type alphastatic
-tex 0 8
-color 0x20ff60 0x90ffb0
-size 4 7
-sizeincrease -4
-alpha 230 256 300
-originjitter 12 12 12
-velocityjitter 200 200 200
-airfriction 1.4
-
-effect ltg_boom
-lightradius 420
-lightradiusfade 900
-lightcolor 0.4 0.7 1
-lightshadow 0
-
-// the laser from the laptop to where you aim: a dense line of bright red dots, redrawn every 0.03 s so each lives about 0.1 s
-effect ltg_laser
-trailspacing 12
-type alphastatic
-tex 0 8
-color 0xff0000 0xff5050
-size 1.8 2.2
-sizeincrease 0
-alpha 256 256 3000
-
-// a glow where the laser lands
-effect ltg_dot
-countabsolute 1
-type alphastatic
-tex 0 8
-color 0xff2020 0xff8080
-size 9 9
-sizeincrease 0
-alpha 256 256 3500
 // ---- Laptop gun end
 // ---- NetSend begin
 // "WHERE'S THE DISK?" (netsend) effects: antenna/floor crackle, NET SEND packet trail, materialize/shutdown pop

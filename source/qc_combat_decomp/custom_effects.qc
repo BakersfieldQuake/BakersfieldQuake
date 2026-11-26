@@ -326,18 +326,6 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 		}
 		else
 		{
-			if ((self.owner.weapon == IT_NAILGUN))
-			{
-				setmodel(self, LtGun_VModel(self.owner));
-				self.origin_x = autocvar_weapon_position_fully_adjustable_nail1_x_offset;
-				self.origin_y = autocvar_weapon_position_fully_adjustable_nail1_y_offset;
-				self.origin_z = autocvar_weapon_position_fully_adjustable_nail1_z_offset;
-				self.angles_x = autocvar_weapon_position_fully_adjustable_nail1_x_angle;
-				self.angles_y = autocvar_weapon_position_fully_adjustable_nail1_y_angle;
-				self.angles_z = autocvar_weapon_position_fully_adjustable_nail1_z_angle;
-			}
-			else
-			{
 				if ((self.owner.weapon == IT_SUPER_NAILGUN))
 				{
 					setmodel(self, "progs/v_milky.md3");	// the Milky Gun (milky.qc)
@@ -382,10 +370,7 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 						{
 							if ((self.owner.weapon == IT_LIGHTNING))
 							{
-								if (autocvar_centered_weapons)
-									setmodel(self, "progs/centered/v_light.mdl");
-								else
-									setmodel(self, "progs/v_light.mdl");
+								setmodel(self, "progs/v_light.mdl");
 								if ((autocvar_weapon_position_fully_adjustable == 1))
 								{
 									self.origin_x = autocvar_weapon_position_fully_adjustable_light_x_offset;
@@ -440,7 +425,6 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 						}
 					}
 				}
-			}
 		}
 	}
 	if ((self.owner.weapon == IT_MEGAMAN))
@@ -1208,154 +1192,6 @@ void() v_weapon_position_think =
 		}
 		else
 		{
-			if ((self.owner.weapon == IT_NAILGUN))
-			{
-				self.initial_weapon_position_axe = 0;
-				self.initial_weapon_position_shot1 = 0;
-				self.initial_weapon_position_shot2 = 0;
-				self.initial_weapon_position_nail2 = 0;
-				self.initial_weapon_position_gren = 0;
-				self.initial_weapon_position_rock = 0;
-				self.initial_weapon_position_light = 0;
-				if (autocvar_centered_weapons)
-				{
-					setmodel(self, LtGun_VModel(self.owner));
-				}
-				else
-				{
-					setmodel(self, LtGun_VModel(self.owner));
-				}
-				if (((self.owner.button0 || ((self.owner.velocity != VEC_ORIGIN) && (self.owner.earthquake_finished < time))) || self.owner.super_damage_finished))
-				{
-					if ((self.owner.idletimer == 0))
-					{
-						self.origin_x = autocvar_weapon_position_fully_adjustable_nail1_x_offset;
-						self.origin_y = autocvar_weapon_position_fully_adjustable_nail1_y_offset;
-						self.origin_z = autocvar_weapon_position_fully_adjustable_nail1_z_offset;
-						self.angles_x = autocvar_weapon_position_fully_adjustable_nail1_x_angle;
-						self.angles_y = autocvar_weapon_position_fully_adjustable_nail1_y_angle;
-						self.angles_z = autocvar_weapon_position_fully_adjustable_nail1_z_angle;
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_x_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_x_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_y_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_y_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_z_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_z_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_x_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_x_angles_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_y_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_y_angles_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_z_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_z_angles_downwards = 1;
-						}
-					}
-				}
-				else
-				{
-					if ((self.initial_weapon_position_nail1 == 0))
-					{
-						self.initial_weapon_position_nail1 = 1;
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_x_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_x_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_y_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_y_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_z_offset_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_z_offset_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_x_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_x_angles_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_y_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_y_angles_downwards = 1;
-						}
-						if ((random() < 0.5))
-						{
-							self.weapon_anim_z_angles_downwards = 0;
-						}
-						else
-						{
-							self.weapon_anim_z_angles_downwards = 1;
-						}
-						self.origin_x = autocvar_weapon_position_fully_adjustable_nail1_x_offset;
-						self.origin_y = autocvar_weapon_position_fully_adjustable_nail1_y_offset;
-						self.origin_z = autocvar_weapon_position_fully_adjustable_nail1_z_offset;
-						self.angles_x = autocvar_weapon_position_fully_adjustable_nail1_x_angle;
-						self.angles_y = autocvar_weapon_position_fully_adjustable_nail1_y_angle;
-						self.angles_z = autocvar_weapon_position_fully_adjustable_nail1_z_angle;
-					}
-					else
-					{
-						if ((self.v_weapon_animation < time))
-						{
-							idle_weapon_animation(autocvar_weapon_position_fully_adjustable_nail1_x_offset, autocvar_weapon_position_fully_adjustable_nail1_y_offset, autocvar_weapon_position_fully_adjustable_nail1_z_offset, autocvar_weapon_position_fully_adjustable_nail1_x_angle, autocvar_weapon_position_fully_adjustable_nail1_y_angle, autocvar_weapon_position_fully_adjustable_nail1_z_angle);
-						}
-					}
-				}
-			}
-			else
-			{
 				if ((self.owner.weapon == IT_SUPER_NAILGUN))
 				{
 					self.initial_weapon_position_axe = 0;
@@ -1809,21 +1645,7 @@ void() v_weapon_position_think =
 								self.initial_weapon_position_nail2 = 0;
 								self.initial_weapon_position_gren = 0;
 								self.initial_weapon_position_rock = 0;
-								if (autocvar_mage_weapon)
-								{
-									setmodel(self, "progs/v_mage1.mdl");
-								}
-								else
-								{
-									if (autocvar_centered_weapons)
-									{
-										setmodel(self, "progs/centered/v_light.mdl");
-									}
-									else
-									{
-										setmodel(self, "progs/v_light.mdl");
-									}
-								}
+								setmodel(self, "progs/v_light.mdl");
 								if (((self.owner.button0 || ((self.owner.velocity != VEC_ORIGIN) && (self.owner.earthquake_finished < time))) || self.owner.super_damage_finished))
 								{
 									if ((self.owner.idletimer == 0))
@@ -2442,7 +2264,6 @@ void() v_weapon_position_think =
 						}
 					}
 				}
-			}
 		}
 	}
 	if ((self.owner.weapon == IT_MEGAMAN))
