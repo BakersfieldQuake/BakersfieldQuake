@@ -641,6 +641,11 @@ void(float isnew) CSQC_Ent_Update =
 
 void() CSQC_Ent_Remove =
 {
+	local float gone;
+
+	gone = wasfreed(self);
+	if (gone)
+		return;		// already removed on this side
 	if ((self.enttype == ENT_RD_TARGET))
 	{
 		RH_XRay_EntRemove();

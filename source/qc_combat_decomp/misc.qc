@@ -386,15 +386,16 @@ void() flamespawntorch =
 	newmis.nextthink = (time + 0.1);
 };
 
+// spawntime 0: a plain pointparticles event, not a networked emitter entity per puff (20-33 a second per torch, 2026-11-26b)
 void() flamespawnparticle =
 {
 	if ((world.model == "maps/start.bsp"))
 	{
-		sendParticle("particleflamebig_startmap", (self.origin + self.dest), VEC_ORIGIN, 1, 0.02);
+		sendParticle("particleflamebig_startmap", (self.origin + self.dest), VEC_ORIGIN, 1, 0);
 	}
 	else
 	{
-		sendParticle("particleflamebig", (self.origin + self.dest), VEC_ORIGIN, 1, 0.02);
+		sendParticle("particleflamebig", (self.origin + self.dest), VEC_ORIGIN, 1, 0);
 	}
 	self.think = flamespawnparticle;
 	self.nextthink = (time + 0.03);
@@ -402,7 +403,7 @@ void() flamespawnparticle =
 
 void() flamespawntorchparticle =
 {
-	sendParticle("particleflamesmall", ((self.origin + self.dest) + '0 0 -1.5'), VEC_ORIGIN, 1, 0.02);
+	sendParticle("particleflamesmall", ((self.origin + self.dest) + '0 0 -1.5'), VEC_ORIGIN, 1, 0);
 	self.think = flamespawntorchparticle;
 	self.nextthink = (time + 0.05);
 };

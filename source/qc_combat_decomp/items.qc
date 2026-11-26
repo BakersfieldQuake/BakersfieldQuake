@@ -1,5 +1,7 @@
 //Decompiled code. Please respect the original copyright.
 
+.float bm_dropped;	// a Shotgun Shell Pack dropped by a dying player: goes after 180 s or once taken, never respawns
+
 void() SUB_regen =
 {
 	self.model = self.mdl;
@@ -2215,6 +2217,11 @@ void() powerup_touch =
 		}
 		self.think = SUB_regen;
 	}
+	if (self.bm_dropped)
+	{
+		self.think = SUB_Remove;	// it piled up for good on long-running servers (respawned every 90 s)
+		self.nextthink = time + 0.1;
+	}
 	sound(other, CHAN_VOICE, self.noise, 1, ATTN_NORM);
 	stuffcmd(other, "bf\n");
 	self.solid = 0;
@@ -3002,6 +3009,23 @@ void() followowner =
 	self.nextthink = (time + 0.2);
 };
 
+void() BM_DroppedShellPackPlace =
+{
+	PlaceItem();
+	if (!bm_wasfreed(self))
+	{
+		self.think = SUB_Remove;	// like a backpack
+		self.nextthink = time + 180;
+	}
+};
+
+void() BM_DroppedShellPack =
+{
+	self.bm_dropped = TRUE;
+	item_sfshotgun();
+	self.think = BM_DroppedShellPackPlace;
+};
+
 void() DropBackpack =
 {
 	local entity item;
@@ -3018,7 +3042,7 @@ void() DropBackpack =
 		item.flags = FL_ITEM;
 		item.solid = SOLID_TRIGGER;
 		item.movetype = MOVETYPE_TOSS;
-		item.think = item_sfshotgun;
+		item.think = BM_DroppedShellPack;
 		item.nextthink = (time + 0.0001);
 		item.target = self.target;
 		return;

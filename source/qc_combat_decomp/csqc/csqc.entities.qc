@@ -404,13 +404,9 @@ void() casing =
 void() Particle_Emitter_Think =
 {
 	pointparticles(self.fx, self.origin, self.velocity, self.count);
-	if ((self.wait > 0))
-	{
-		self.think = SUB_Remove;
-		self.nextthink = (time + self.wait);
-		return;
-	}
-	remove(self);
+	// a networked entity: the server removes it (CSQC_Ent_Remove). Removing it here freed a slot the engine still
+	// mapped to the server's entity, so its later remove could hit whatever reused the slot (2026-11-26b).
+	self.nextthink = 0;
 };
 
 void(float isnew) Sprite_Spawner =
@@ -461,7 +457,7 @@ void(float isnew) Particle_Emitter =
 	{
 		print(/*11145i*/"no effectinfo for ", temp_fxname, /*48i*/"\n");
 		strunzone(temp_fxname);
-		remove(self);
+		self.nextthink = 0;		// left for CSQC_Ent_Remove (see Particle_Emitter_Think)
 		return;
 	}
 	strunzone(temp_fxname);

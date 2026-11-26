@@ -1802,6 +1802,8 @@ vector(float dm) VelocityForDamage =
 	local vector v;
 
 	v_x = 100 * crandom();
+	v_y = 100 * crandom();		// lost in decompiling: gibs only flew along the world X axis, with no upward pop
+	v_z = 200 + 100 * random();
 	if ((dm > -50))
 	{
 		v = v * 0.7;
@@ -1840,7 +1842,7 @@ void() gibsfade_blood =
 {
 	local vector v;
 
-	v_x = self.origin_x;
+	v = self.origin;		// was origin_x alone: the blood burst landed near the map's X axis, not at the gib
 	if ((self.alpha && (self.scale <= 0.5)))
 	{
 		sound7(self, CHAN_VOICE, "player/gibexplode.wav", 1, ATTN_NORM, SNDSPD);

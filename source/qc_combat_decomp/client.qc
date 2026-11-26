@@ -663,7 +663,7 @@ void() UpdateLegFrames =
 	}
 	if (((self.owner.model != "progs/player_torso.mdl") && (self.owner.health > 0)))
 	{
-		setmodel(self, string_null);
+		remove(self);		// was setmodel "" with no next think: one orphaned edict per switch away from the torso model
 		return;
 	}
 	if ((self.owner.angles_y >= 0))

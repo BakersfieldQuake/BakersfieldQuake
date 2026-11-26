@@ -290,6 +290,8 @@ void() tdeath_touch =
 	{
 		return;
 	}
+	if (other.gk_spawned && other.veh_driver == world)
+		return;		// an empty spawn kart: Spawn_CheckKart may seat this very player in it (it used to blow up under them)
 	if ((other.classname == "player"))
 	{
 		if ((other.invincible_finished > time))

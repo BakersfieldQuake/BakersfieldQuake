@@ -1176,7 +1176,9 @@ void(entity attacker, float take) RR_Pain =
 	{
 		self.rr_flail_until = time + 0.65;
 		self.angles_z = bound (-42, self.angles_z + ((random () < 0.5) ? 14 : -14), 42);
-		RR_UpdateHUD (self.rr_pilot, self, TRUE);
+		// no forced HUD redraw here: a reliable centerprint per hit flooded the pilot under fire. The 0.45 s refresh
+		// in the flight frame sees the new health in its key and redraws then.
+
 	}
 
 	if (time < self.rr_pain_t)

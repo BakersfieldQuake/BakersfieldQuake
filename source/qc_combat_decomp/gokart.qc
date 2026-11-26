@@ -883,8 +883,9 @@ void(entity p, entity v) GK_UpdateLock =
 		dir = v_forward;
 		if (GK_Lockable (p, v.gk_lock_ent) && GK_LockScore (v, v.gk_lock_ent, from, dir) > GK_LOCK_KEEP)
 			best = v.gk_lock_ent;
-		else
+		else if (time >= v.gk_lock_scan_t)
 		{
+			v.gk_lock_scan_t = time + 0.1;
 			bc = GK_LOCK_CONE;
 			e = bm_player_head;
 			while (e)

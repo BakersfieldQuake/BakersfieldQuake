@@ -424,6 +424,7 @@ void() BM_SwapIn =
 	self.bm_rl_quiet = FALSE;
 	self.bm_slot = s;
 	self.bm_lastshot = time;		// no instant idle top-up on the draw
+	self.bm_radar_prev_shot = self.bm_lastshot;	// nor is a weapon switch
 	BM_WriteFields ();
 };
 
@@ -505,6 +506,7 @@ void() BM_Spawn =
 	self.bm_shown_c = 0;
 	self.bm_lastframe = time;
 	self.bm_lastshot = time;
+	self.bm_radar_prev_shot = self.bm_lastshot;	// a spawn is not a gunshot on enemies' radar
 	self.bm_vm_hidden = 0;
 	if (self.grenade_ammo > 2)
 		self.grenade_ammo = 2;		// prox grenades used to pile up one per spawn, forever

@@ -821,7 +821,7 @@ void(entity e, string m) BM_VoteStart =
 	i = 0;
 	while (i < n)
 	{
-		if (argv (i) == m)
+		if (argv (i) == m && BM_MapExists (m))		// a listed map that is not installed failed the changelevel and ate the cooldown
 			pick = argv (i);
 		i = i + 1;
 	}

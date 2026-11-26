@@ -1459,7 +1459,10 @@ void() MegaMan_Launch =
 	}
 	if (live >= MM_MAX_LIVE)
 	{
-		old.think = MegaMan_Shot;
+		// not MegaMan_Shot: that credits damage_attacker (whoever last hurt anything) with a SKEET SHOT reward
+		old.takedamage = DAMAGE_NO;
+		old.touch = SUB_Null;
+		old.think = MegaMan_ShotPop;
 		old.nextthink = time;
 	}
 

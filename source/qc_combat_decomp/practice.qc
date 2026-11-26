@@ -634,7 +634,7 @@ void() Practice_LivePenThink =
 
 void(float kind, vector org) Practice_SpawnPenFighter =
 {
-	local entity e;
+	local entity e, oself;
 
 	e = spawn ();
 	e.classname = "practice_live_pen";
@@ -653,7 +653,10 @@ void(float kind, vector org) Practice_SpawnPenFighter =
 	setmodel (e, e.mdl);
 	setsize (e, e.bbmins, e.bbmaxs);
 	setorigin (e, org);
-	droptofloor ();
+	oself = self;
+	self = e;
+	droptofloor ();		// on the fighter (it dropped whoever called this)
+	self = oself;
 	e.think = Practice_LivePenThink;
 	e.nextthink = time + 0.1;
 };

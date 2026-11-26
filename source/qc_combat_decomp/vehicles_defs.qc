@@ -146,6 +146,7 @@ float	veh_fx_fire, veh_fx_smoke, veh_fx_explode, veh_fx_explode_sec, veh_fx_wrec
 .entity	gk_kart;			// on fired kart rocket: firing kart entity
 .entity	gk_shooter;			// on fired kart rocket: driver entity (attacker credit)
 .float	gk_safe_t;			// on fired kart rocket: brief spawn hull-clear grace time
+.float	gk_lock_scan_t;		// kart: next search for a new lock target (a trace per player in range; 10 a second is plenty)
 .entity	gk_lock_ent;		// kart: the player the rocket crosshair is locked on (heat seeker, gokart.qc)
 .entity	gk_seek;			// on fired kart rocket: the player it follows
 float	gokart_spawn_cycle;	// cycles 1..6 for misc_gokart / impulse 136/138

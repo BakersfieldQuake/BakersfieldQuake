@@ -573,7 +573,13 @@ void() GJ_MiniAI =
 	// Refresh target if none or dead
 	if (!GJ_IsValidTarget (self, self.enemy))
 	{
-		self.enemy = GJ_FindTarget (self);
+		if (time >= self.gj_scan_t)
+		{
+			self.gj_scan_t = time + 0.4;
+			self.enemy = GJ_FindTarget (self);
+		}
+		else
+			self.enemy = world;
 		if (self.gj_state == 3 || self.gj_state == 6)
 			self.gj_state = 1;
 	}
