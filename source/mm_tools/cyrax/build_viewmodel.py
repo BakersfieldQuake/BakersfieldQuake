@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Build the Cyrax Net Launcher 1st-person viewmodel (v_cyrax.md3 + 56 skin frames).
+"""Build the Cyrax Net Launcher 1st-person 4K viewmodel (v_cyrax.md3 + 68 skin frames).
 
-Reads the base yellow/black robotic blaster image, keys the white studio
-background cleanly with anti-aliased alpha edges and RGB edge bleeding (zero
-white halo), and deterministically synthesizes 56 RGBA skin frames into
-source/mm_tools/cyrax/assets/tex/cyrax_vm_00.png .. cyrax_vm_55.png:
-  -  0..7   (8f): Idle (robotic breathing + pulsing amber/green LEDs)
-  -  8..31 (24f): Charge buildup (energy core glow, hot orange->green vents,
-                  escalating mechanical shake, swirling green barrel plasma)
-  - 32..43 (12f): Fire blast + recoil (32..36 pixelated neon-green muzzle flash,
-                  37..43 heavy kickback recoil + barrel smoke return-to-battery)
-  - 44..49  (6f): Draw / raise pop-up
-  - 50..55  (6f): Cooldown / venting state
+Reads 5 aligned (1376, 768) 4K articulated cybernetic keyframes from
+source/mm_tools/cyrax/assets/src_keyframes/:
+  - idle.jpg         : closed 4K brushed gold/black cybernetic blaster
+  - charge_half.jpg  : top shroud lifted on hydraulic struts, rails forward glowing green
+  - charge_full.jpg  : side & top cowlings hinged wide open exposing blazing green core
+  - recoil.jpg       : barrel slammed back on recoil pistons, top breech popped open
+  - catch.jpg        : side robotic stabilizer wings/clamps flared wide open
+
+Keys white studio backdrop + enclosed piston gaps cleanly with anti-aliased alpha
+and RGB edge bleeding (zero white halo), scales to ~0.76x tucked bottom-right at
+crisp 896x546 resolution, and smoothly cross-blends & animates 68 skins (0..67):
+  -  0..7   (8f): Idle (subtle breathing + glowing amber/green LEDs)
+  -  8..31 (24f): Charge buildup (idle -> charge_half -> charge_full + plasma + heat + shake)
+  - 32..43 (12f): Fire + Recoil (32..36 charge_full->recoil + neon-green muzzle flash,
+                  37..43 recoil->idle return-to-battery + barrel/breech smoke)
+  - 44..49  (6f): Draw / raise pop-up + power-on LED sweep
+  - 50..55  (6f): Cooldown / venting (charge_half -> idle closing + steam plumes)
+  - 56..67 (12f): Dopamine Capture celebration (idle -> flared-wing catch + cyan/green/gold
+                  energy arcs -> settle back toward idle)
 
 Uses only Python stdlib + numpy + Pillow + md3lib (reproducible, zero OpenCV).
 """
@@ -20,9 +28,10 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import tempfile
 from collections import deque
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -30,41 +39,58 @@ from PIL import Image, ImageDraw, ImageFilter
 HERE = Path(__file__).resolve().parent
 MM_TOOLS = HERE.parent
 TEX_DIR = HERE / "assets" / "tex"
+KEYFRAME_DIR = HERE / "assets" / "src_keyframes"
 
 if str(MM_TOOLS) not in sys.path:
     sys.path.insert(0, str(MM_TOOLS))
 import md3lib  # noqa: E402
 
-DEFAULT_SRC_GUN = Path(
-    "/home/computer/.gemini/antigravity/brain/c7c79a0e-f4b1-42bb-8730-fe3878e1c7bd/"
-    ".user_uploaded/media_1795677499739_0bb792dc.jpg"
-)
-
-# 16:9 screen crop (x0, y0, x1, y1) in 1024x576 source coordinates.
-# Leaves generous headroom on the left & top for swirling plasma + muzzle flash,
-# and anchors directly to the bottom-right corner of the 16:9 viewplane.
-CROP_BOX = (260, 110, 1024, 576)  # 764 x 466
-OUT_SIZE = (640, 390)             # crisp game texture resolution (~same aspect)
-SRC_W, SRC_H = 1024, 576
+# Native 1376x768 16:9 keyframe space, cropped to bottom-right 896x546 card
+SRC_W, SRC_H = 1376, 768
+CROP_BOX = (480, 222, 1376, 768)  # 896 x 546 (1:1 sharp 4K crop!)
+OUT_SIZE = (896, 546)
 
 # DarkPlaces 16:9 viewplane mapping at VIEW_X = 14.0 (matches build_netsend_disk_view.py)
 VIEW_X = 14.0
 HALF_W = 27.8
 HALF_H = 15.6
 
-# Landmarks in 1024x576 source coordinates
-MUZZLE_XY = (566.0, 322.0)
-BARREL_DIR = (-0.905, -0.425)     # unit vector pointing out of the barrel
-SIDE_LED_XY = (668.0, 405.0)
-TOP_LED_XY = (784.0, 394.0)
-VENT_SLOTS = (
-    (603.0, 358.0, 11.0, 22.0, -24.0),   # front side barrel slot
-    (626.0, 372.0, 11.0, 22.0, -24.0),   # rear side barrel slot
-    (676.0, 326.0, 24.0, 10.0, 24.0),    # top rib vent 1
-    (706.0, 342.0, 24.0, 10.0, 24.0),    # top rib vent 2
+# Scale gun to ~0.76x of original size and tuck cleanly into bottom-right
+GUN_SCALE = 0.76
+GUN_ANCHOR_SRC = (920.0, 768.0)
+GUN_ANCHOR_DST = (1050.0, 784.0)  # +16px below y=768 so tilts/pumps never expose a cut bottom
+
+# Landmarks in 1376x768 source coordinates -> transformed into tucked canvas coordinates
+_RAW_MUZZLE_XY = (760.0, 426.0)
+_RAW_SIDE_LED_XY = (915.0, 558.0)
+_RAW_TOP_LED_XY = (1082.0, 535.0)
+_RAW_BREECH_XY = (1040.0, 455.0)
+_RAW_VENT_SLOTS = (
+    (810.0, 475.0, 15.0, 28.0),
+    (842.0, 494.0, 15.0, 28.0),
+    (906.0, 434.0, 30.0, 14.0),
+    (946.0, 456.0, 30.0, 14.0),
 )
 
-GUN_DIM = 0.78  # baked dimming for DarkPlaces rgbGen lightingDiffuse + HDR
+
+def _tuck_pt(x: float, y: float) -> Tuple[float, float]:
+    return (
+        GUN_ANCHOR_DST[0] + (x - GUN_ANCHOR_SRC[0]) * GUN_SCALE,
+        GUN_ANCHOR_DST[1] + (y - GUN_ANCHOR_SRC[1]) * GUN_SCALE,
+    )
+
+
+MUZZLE_XY = _tuck_pt(*_RAW_MUZZLE_XY)
+BARREL_DIR = (-0.905, -0.425)
+SIDE_LED_XY = _tuck_pt(*_RAW_SIDE_LED_XY)
+TOP_LED_XY = _tuck_pt(*_RAW_TOP_LED_XY)
+BREECH_XY = _tuck_pt(*_RAW_BREECH_XY)
+VENT_SLOTS = tuple(
+    (*_tuck_pt(vx, vy), rx * GUN_SCALE, ry * GUN_SCALE)
+    for vx, vy, rx, ry in _RAW_VENT_SLOTS
+)
+
+GUN_DIM = 0.80  # balanced for DarkPlaces rgbGen lightingDiffuse + HDR
 
 
 def _box_sum_3x3_edge(arr: np.ndarray) -> np.ndarray:
@@ -98,8 +124,47 @@ def bleed_rgb_edges(rgba: np.ndarray, passes: int = 4) -> np.ndarray:
     return out
 
 
-def _flood_border_bg(cand: np.ndarray) -> np.ndarray:
-    """4-connected flood-fill from image borders on boolean mask `cand` (pure NumPy/Python)."""
+def _flood_components_4(cand: np.ndarray) -> Tuple[np.ndarray, int]:
+    """Pure-Python/NumPy 4-connected component labeling for trapped-white hole keying."""
+    h, w = cand.shape
+    lbl = np.zeros((h, w), dtype=np.int32)
+    cid = 0
+    ys, xs = np.nonzero(cand)
+    for idx in range(len(ys)):
+        sy, sx = int(ys[idx]), int(xs[idx])
+        if lbl[sy, sx] != 0:
+            continue
+        cid += 1
+        lbl[sy, sx] = cid
+        q = deque([(sy, sx)])
+        while q:
+            y, x = q.popleft()
+            if y > 0 and cand[y - 1, x] and lbl[y - 1, x] == 0:
+                lbl[y - 1, x] = cid
+                q.append((y - 1, x))
+            if y + 1 < h and cand[y + 1, x] and lbl[y + 1, x] == 0:
+                lbl[y + 1, x] = cid
+                q.append((y + 1, x))
+            if x > 0 and cand[y, x - 1] and lbl[y, x - 1] == 0:
+                lbl[y, x - 1] = cid
+                q.append((y, x - 1))
+            if x + 1 < w and cand[y, x + 1] and lbl[y, x + 1] == 0:
+                lbl[y, x + 1] = cid
+                q.append((y, x + 1))
+    return lbl, cid
+
+
+def key_white_gun(rgb: np.ndarray) -> np.ndarray:
+    """Clean white-backdrop keying (border + enclosed piston/strut gaps) with AA & un-premultiplication."""
+    arr = rgb.astype(np.float32)
+    hi = arr.max(axis=2)
+    lo = arr.min(axis=2)
+    sat = (hi - lo) / np.maximum(hi, 1.0)
+    lum = 0.299 * arr[..., 0] + 0.587 * arr[..., 1] + 0.114 * arr[..., 2]
+
+    # Border-connected white studio backdrop
+    cand = (lo > 224.0) & (sat < 0.085)
+    # Seed border BFS
     h, w = cand.shape
     bg = np.zeros((h, w), dtype=bool)
     q = deque()
@@ -131,30 +196,22 @@ def _flood_border_bg(cand: np.ndarray) -> np.ndarray:
         if x + 1 < w and cand[y, x + 1] and not bg[y, x + 1]:
             bg[y, x + 1] = True
             q.append((y, x + 1))
-    return bg
 
+    # Trapped white gaps inside flared hydraulic piston struts & open cowlings
+    trapped_cand = (lo > 234.0) & (sat < 0.065) & (~bg)
+    if np.any(trapped_cand):
+        tlbl, n_comp = _flood_components_4(trapped_cand)
+        if n_comp > 0:
+            areas = np.bincount(tlbl.ravel())
+            keep_bg = np.zeros(len(areas), dtype=bool)
+            keep_bg[1:] = areas[1:] >= 25
+            bg = bg | keep_bg[tlbl]
 
-def key_white_gun(rgb: np.ndarray) -> np.ndarray:
-    """Clean white-backdrop keying with anti-aliased edge feathering and white un-premultiplication."""
-    arr = rgb.astype(np.float32)
-    hi = arr.max(axis=2)
-    lo = arr.min(axis=2)
-    sat = (hi - lo) / np.maximum(hi, 1.0)
-    lum = 0.299 * arr[..., 0] + 0.587 * arr[..., 1] + 0.114 * arr[..., 2]
-
-    # Candidate white studio pixels connected to the image border
-    cand = (lo > 224.0) & (sat < 0.085)
-    bg = _flood_border_bg(cand)
     fg = (~bg).astype(np.uint8)
-
-    # Anti-aliased alpha along the silhouette rim via Pillow Gaussian blur of the binary fg mask
     fg_img = Image.fromarray(fg * 255, mode="L")
     soft = np.asarray(fg_img.filter(ImageFilter.GaussianBlur(radius=0.85)), dtype=np.float32) / 255.0
 
-    # Pure interior stays 1.0, pure exterior stays 0.0, 1.5px rim gets crisp AA
-    # Also suppress pale near-white JPEG compression fringe on the outer rim
     alpha = np.where(bg, np.clip((soft - 0.12) / 0.88, 0.0, 1.0), np.clip(soft * 1.28, 0.0, 1.0))
-    # Guarantee solid interior away from bg
     bg_dil = np.asarray(Image.fromarray(bg.astype(np.uint8) * 255, mode="L").filter(ImageFilter.MaxFilter(5))) > 0
     alpha = np.where(~bg_dil, 1.0, alpha)
 
@@ -162,7 +219,6 @@ def key_white_gun(rgb: np.ndarray) -> np.ndarray:
     alpha[rim] *= np.clip((248.0 - lum[rim]) / 56.0, 0.0, 1.0)
     alpha[alpha < 0.04] = 0.0
 
-    # Un-premultiply white studio spill on semi-transparent rim pixels
     semi = (alpha > 0.04) & (alpha < 0.98)
     rgb_clean = arr.copy()
     inv = 1.0 - alpha[semi]
@@ -170,37 +226,54 @@ def key_white_gun(rgb: np.ndarray) -> np.ndarray:
     rgb_clean[semi] = np.clip((arr[semi] - inv[:, None] * 255.0) / denom[:, None], 0.0, 255.0)
     rgb_clean[alpha <= 0.04] = 0.0
 
-    # Bake GUN_DIM on the gun body for DarkPlaces HDR / lightingDiffuse
     rgb_clean *= GUN_DIM
     rgb_clean[alpha <= 0.04] = 0.0
 
-    out = np.zeros((*rgb.shape[:2], 4), dtype=np.uint8)
+    out = np.zeros((h, w, 4), dtype=np.uint8)
     out[..., :3] = np.clip(np.round(rgb_clean), 0, 255).astype(np.uint8)
     out[..., 3] = np.clip(np.round(alpha * 255.0), 0, 255).astype(np.uint8)
     return out
 
 
-def _shift_gun_rgba(
+def _blend_premul_rgba(a_rgba: np.ndarray, b_rgba: np.ndarray, t: float) -> np.ndarray:
+    """Smooth premultiplied cross-dissolve between two aligned RGBA keyframes."""
+    if t <= 0.001:
+        return a_rgba
+    if t >= 0.999:
+        return b_rgba
+    aa = a_rgba[..., 3:4].astype(np.float32) / 255.0
+    ab = b_rgba[..., 3:4].astype(np.float32) / 255.0
+    pm = (a_rgba[..., :3].astype(np.float32) * aa) * (1.0 - t) + (b_rgba[..., :3].astype(np.float32) * ab) * t
+    a = aa * (1.0 - t) + ab * t
+    nz = a[..., 0] > 1e-3
+    out = np.zeros_like(a_rgba)
+    rgb = np.zeros_like(pm)
+    rgb[nz] = pm[nz] / a[nz]
+    out[..., :3] = np.clip(np.round(rgb), 0, 255).astype(np.uint8)
+    out[..., 3] = np.clip(np.round(a[..., 0] * 255.0), 0, 255).astype(np.uint8)
+    return out
+
+
+def _warp_premul_rgba(
     rgba: np.ndarray,
-    dx: float,
-    dy: float,
-    angle_deg: float = 0.0,
-    scale: float = 1.025,
-    pivot: Tuple[float, float] = (860.0, 576.0),
+    src_pivot: Tuple[float, float],
+    dst_pivot: Tuple[float, float],
+    scale: float,
+    angle_deg: float,
+    dx: float = 0.0,
+    dy: float = 0.0,
 ) -> np.ndarray:
-    """Premultiplied affine transform anchored near bottom-right so breathing never exposes a cut bottom edge."""
+    """Premultiplied affine warp mapping src_pivot -> dst_pivot + (dx, dy) with scale & rotation."""
     h, w = rgba.shape[:2]
     a = rgba[..., 3].astype(np.float32) / 255.0
     pm = rgba[..., :3].astype(np.float32) * a[..., None]
 
-    # Inverse affine matrix (dst -> src) for PIL Image.transform(AFFINE)
     rad = math.radians(-angle_deg)
     ca, sa = math.cos(rad) / scale, math.sin(rad) / scale
-    px, py = pivot
-    # x_dst = px + scale * (cos*(x_src-px) - sin*(y_src-py)) + dx
-    # Invert:
-    tx = px - ca * (px + dx) + sa * (py + dy)
-    ty = py - sa * (px + dx) - ca * (py + dy)
+    sx, sy = src_pivot
+    ox, oy = dst_pivot[0] + dx, dst_pivot[1] + dy
+    tx = sx - ca * ox + sa * oy
+    ty = sy - sa * ox - ca * oy
     mat = (ca, -sa, tx, sa, ca, ty)
 
     a_im = Image.fromarray(a, mode="F").transform((w, h), Image.Transform.AFFINE, mat, resample=Image.Resampling.BILINEAR)
@@ -219,12 +292,9 @@ def _shift_gun_rgba(
 
 
 def _add_glow_layer(base_rgba: np.ndarray, glow_rgb: np.ndarray, glow_alpha: np.ndarray) -> np.ndarray:
-    """Screen/additive composite of glowing plasma/LEDs onto an RGBA canvas, updating alpha where needed."""
     out = base_rgba.astype(np.float32)
     ga = np.clip(glow_alpha, 0.0, 1.0)
-    # Add light onto RGB
     out[..., :3] = np.clip(out[..., :3] + glow_rgb * ga[..., None], 0.0, 255.0)
-    # Increase alpha smoothly so glowing plasma/flash outside the gun silhouette is visible!
     ba = out[..., 3] / 255.0
     na = np.clip(ba + ga * (1.0 - ba), 0.0, 1.0)
     out[..., 3] = na * 255.0
@@ -262,7 +332,6 @@ def _draw_radial_glow(
 
 
 def _pixelate_block(arr: np.ndarray, block: int = 3) -> np.ndarray:
-    """Quantize a floating or uint8 overlay onto crisp chunky pixel blocks for MK3 arcade vibe."""
     if block <= 1:
         return arr
     h, w = arr.shape[:2]
@@ -279,8 +348,8 @@ def _paint_pixel_burst(
     cy: float,
     radius: float,
     seed: int,
-    n_rays: int = 16,
-    n_sparks: int = 40,
+    n_rays: int = 18,
+    n_sparks: int = 56,
     block: int = 3,
     intensity: float = 1.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -293,10 +362,8 @@ def _paint_pixel_burst(
     bx, by = BARREL_DIR
     base_ang = math.atan2(by, bx)
 
-    # 1. Outer shockwave ring / jagged plasma corona
     for k in range(n_rays):
         ang = base_ang + (k / float(n_rays)) * 2.0 * math.pi + rng.uniform(-0.14, 0.14)
-        # Bias forward along barrel direction
         fwd_dot = max(0.0, math.cos(ang - base_ang))
         r_len = radius * (0.45 + 0.85 * (fwd_dot ** 1.4)) * rng.uniform(0.70, 1.25)
         w_ang = rng.uniform(0.06, 0.16)
@@ -304,10 +371,9 @@ def _paint_pixel_burst(
         p1 = (cx + math.cos(ang - w_ang) * r_len * 0.48, cy + math.sin(ang - w_ang) * r_len * 0.48)
         p2 = (cx + math.cos(ang) * r_len, cy + math.sin(ang) * r_len)
         p3 = (cx + math.cos(ang + w_ang) * r_len * 0.48, cy + math.sin(ang + w_ang) * r_len * 0.48)
-        col = (40, 255, 75, int(min(255, 220 * intensity)))
+        col = (40, 255, 75, int(min(255, 225 * intensity)))
         drw.polygon([p0, p1, p2, p3], fill=col)
 
-    # 2. Inner electric-lime star core
     for k in range(max(8, n_rays // 2)):
         ang = base_ang + (k / float(max(8, n_rays // 2))) * 2.0 * math.pi + 0.2
         r_len = radius * 0.56 * rng.uniform(0.75, 1.15)
@@ -316,18 +382,16 @@ def _paint_pixel_burst(
         p3 = (cx + math.cos(ang + 0.14) * r_len * 0.35, cy + math.sin(ang + 0.14) * r_len * 0.35)
         drw.polygon([(cx, cy), p1, p2, p3], fill=(175, 255, 165, int(min(255, 245 * intensity))))
 
-    # 3. White-hot center orb
-    cr = max(5.0, radius * 0.22)
+    cr = max(6.0, radius * 0.22)
     drw.ellipse((cx - cr, cy - cr, cx + cr, cy + cr), fill=(235, 255, 235, 255))
 
-    # 4. Chunky pixelated plasma droplets / sparks flying outward
     for _ in range(n_sparks):
         ang = base_ang + rng.normal(0.0, 0.72)
         dist = radius * rng.uniform(0.35, 1.45)
         sx = cx + math.cos(ang) * dist
         sy = cy + math.sin(ang) * dist
-        sz = rng.integers(2, 6)
-        tone = rng.choice([0, 1, 2])
+        sz = int(rng.integers(2, 5))
+        tone = int(rng.choice([0, 1, 2]))
         scol = [(60, 255, 90, 240), (160, 255, 140, 255), (20, 220, 60, 210)][tone]
         drw.rectangle((sx - sz, sy - sz, sx + sz, sy + sz), fill=scol)
 
@@ -351,11 +415,10 @@ def _paint_swirl_plasma(
     im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     drw = ImageDraw.Draw(im)
 
-    max_r = 16.0 + 48.0 * charge
+    max_r = (18.0 + 58.0 * charge) * 0.85
     n_arms = 4
     for arm in range(n_arms):
         base_a = phase * 2.0 * math.pi + arm * (2.0 * math.pi / n_arms)
-        pts = []
         steps = 12
         for s in range(steps):
             u = s / float(steps - 1)
@@ -363,30 +426,27 @@ def _paint_swirl_plasma(
             a = base_a + u * 2.8
             px = cx + math.cos(a) * r
             py = cy + math.sin(a) * r * 0.88
-            pts.append((px, py))
-            sz = max(1.5, (1.0 - u * 0.5) * (2.2 + 2.8 * charge))
+            sz = max(2.0, (1.0 - u * 0.5) * (2.5 + 3.0 * charge))
             g = int(200 + 55 * u)
             rc = int(35 + 165 * (u ** 2))
-            al = int(min(255, (70 + 185 * charge) * (0.35 + 0.65 * u)))
+            al = int(min(255, (75 + 180 * charge) * (0.35 + 0.65 * u)))
             drw.rectangle((px - sz, py - sz, px + sz, py + sz), fill=(rc, g, rc, al))
 
-    # Converging energy sparks pulled inward toward muzzle
-    n_embers = int(6 + 18 * charge)
+    n_embers = int(8 + 20 * charge)
     for k in range(n_embers):
         a = rng.uniform(0, 2 * math.pi) + phase * 1.4
-        r = rng.uniform(0.35, 1.35) * (22.0 + 58.0 * charge)
+        r = rng.uniform(0.35, 1.35) * (22.0 + 62.0 * charge)
         ex = cx + math.cos(a) * r
         ey = cy + math.sin(a) * r
-        sz = 2 if k % 3 else 3
-        drw.rectangle((ex - sz, ey - sz, ex + sz, ey + sz), fill=(110, 255, 130, int(140 + 115 * charge)))
+        sz = 2.0 if k % 3 else 3.0
+        drw.rectangle((ex - sz, ey - sz, ex + sz, ey + sz), fill=(110, 255, 130, int(145 + 110 * charge)))
 
-    # Bright core at barrel mouth
-    cr = 4.0 + 13.0 * charge
+    cr = 4.5 + 13.0 * charge
     drw.ellipse((cx - cr, cy - cr, cx + cr, cy + cr), fill=(140, 255, 150, int(130 + 125 * charge)))
     cr2 = max(2.0, cr * 0.52)
     drw.ellipse((cx - cr2, cy - cr2, cx + cr2, cy + cr2), fill=(235, 255, 235, int(160 + 95 * charge)))
 
-    arr = _pixelate_block(np.asarray(im, dtype=np.uint8), block=2)
+    arr = _pixelate_block(np.asarray(im, dtype=np.uint8), block=3)
     return arr[..., :3].astype(np.float32), arr[..., 3].astype(np.float32) / 255.0
 
 
@@ -398,7 +458,7 @@ def _paint_smoke_plume(
     seed: int,
     tint_green: float = 0.65,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Pixelated neon-mint/white cooling steam & smoke billowing from muzzle/vents."""
+    """Pixelated neon-mint/white cooling steam & smoke billowing from muzzle/breech/vents."""
     h, w = canvas_shape
     rng = np.random.default_rng(seed)
     im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -407,14 +467,85 @@ def _paint_smoke_plume(
     fade = max(0.0, 1.0 - 0.82 * progress)
     for k in range(20):
         drift_t = (progress * 1.15 + k * 0.04) % 1.0
-        px = cx + BARREL_DIR[0] * (10.0 + 76.0 * progress) + rng.normal(0.0, 12.0 + 18.0 * progress)
-        py = cy - (12.0 + 74.0 * progress) + rng.normal(0.0, 9.0 + 11.0 * progress)
-        rad = 5.0 + 13.0 * drift_t + rng.uniform(0.0, 5.0)
+        px = cx + BARREL_DIR[0] * (10.0 + 78.0 * progress) + rng.normal(0.0, 12.0 + 20.0 * progress)
+        py = cy - (12.0 + 76.0 * progress) + rng.normal(0.0, 9.5 + 13.0 * progress)
+        rad = 5.0 + 14.0 * drift_t + rng.uniform(0.0, 5.0)
         g = int(225 + 30 * tint_green)
         r = int(165 - 45 * tint_green)
         b = int(170 - 40 * tint_green)
         al = int(max(0, min(220, (175 * fade) * rng.uniform(0.60, 1.0))))
         drw.ellipse((px - rad, py - rad, px + rad, py + rad), fill=(r, g, b, al))
+
+    arr = _pixelate_block(np.asarray(im, dtype=np.uint8), block=3)
+    return arr[..., :3].astype(np.float32), arr[..., 3].astype(np.float32) / 255.0
+
+
+def _paint_catch_arcs(
+    canvas_shape: Tuple[int, int],
+    cx: float,
+    cy: float,
+    dx: float,
+    dy: float,
+    progress: float,
+    seed: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Crackling green-gold-cyan electric energy arcs & celebratory spark burst around blaster (frames 56..67)."""
+    h, w = canvas_shape
+    rng = np.random.default_rng(seed)
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    drw = ImageDraw.Draw(im)
+
+    fade = math.sin(min(1.0, progress) * math.pi) * 0.85 + 0.35 * (1.0 - progress)
+    fade = max(0.2, min(1.0, fade))
+
+    pts_anchor = [
+        (MUZZLE_XY[0] + dx, MUZZLE_XY[1] + dy),
+        (SIDE_LED_XY[0] + dx, SIDE_LED_XY[1] + dy),
+        (TOP_LED_XY[0] + dx, TOP_LED_XY[1] + dy),
+    ]
+    palette = [
+        (75, 255, 115, int(245 * fade)),
+        (255, 225, 65, int(245 * fade)),
+        (70, 240, 255, int(245 * fade)),
+    ]
+
+    for b_idx in range(7):
+        col = palette[b_idx % len(palette)]
+        if b_idx < 3:
+            p0 = pts_anchor[b_idx % 2]
+            p1 = pts_anchor[(b_idx + 1) % 3]
+        elif b_idx == 3:
+            # Left flared wing -> right flared wing arc across the barrel!
+            p0 = (MUZZLE_XY[0] + dx - 110.0, MUZZLE_XY[1] + dy + 65.0)
+            p1 = (TOP_LED_XY[0] + dx + 135.0, TOP_LED_XY[1] + dy + 25.0)
+        else:
+            ang = rng.uniform(0, 2 * math.pi)
+            rad = rng.uniform(55.0, 130.0) * (0.7 + 0.4 * (1.0 - progress))
+            p0 = (cx, cy)
+            p1 = (cx + math.cos(ang) * rad, cy + math.sin(ang) * rad)
+
+        segs = 6
+        poly = [p0]
+        for s in range(1, segs):
+            u = s / float(segs)
+            jx = float(rng.normal(0.0, 12.0))
+            jy = float(rng.normal(0.0, 12.0))
+            poly.append((p0[0] + (p1[0] - p0[0]) * u + jx, p0[1] + (p1[1] - p0[1]) * u + jy))
+        poly.append(p1)
+        drw.line(poly, fill=col, width=4)
+        drw.line(poly, fill=(240, 255, 240, int(255 * fade)), width=1)
+
+    ring_r = 16.0 + 82.0 * progress
+    ring_col = (110, 255, 140, int(215 * (1.0 - progress * 0.8)))
+    drw.ellipse((cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r), outline=ring_col, width=4)
+
+    for k in range(32):
+        ang = rng.uniform(0, 2 * math.pi)
+        dist = rng.uniform(18.0, 136.0) * (0.4 + 0.7 * progress)
+        sx = cx + math.cos(ang) * dist
+        sy = cy + math.sin(ang) * dist
+        sz = 3 if k % 3 else 4
+        drw.rectangle((sx - sz, sy - sz, sx + sz, sy + sz), fill=palette[k % len(palette)])
 
     arr = _pixelate_block(np.asarray(im, dtype=np.uint8), block=3)
     return arr[..., :3].astype(np.float32), arr[..., 3].astype(np.float32) / 255.0
@@ -430,34 +561,32 @@ def _apply_vents_and_leds(
     vent_col: Tuple[float, float, float],
     vent_strength: float,
     core_green: float,
+    spill_col: Tuple[float, float, float] = (40, 255, 95),
 ) -> None:
-    """Paint glowing LEDs, heated barrel vents, and green housing spill at shifted gun landmarks."""
-    # Side core LED & Top rear LED
-    _draw_radial_glow(glow_rgb, glow_a, SIDE_LED_XY[0] + dx, SIDE_LED_XY[1] + dy, 22, 22, led_col, led_strength, power=1.8)
-    _draw_radial_glow(glow_rgb, glow_a, SIDE_LED_XY[0] + dx, SIDE_LED_XY[1] + dy, 10, 10, (255, 255, 220), led_strength * 0.65, power=2.2)
+    _draw_radial_glow(glow_rgb, glow_a, SIDE_LED_XY[0] + dx, SIDE_LED_XY[1] + dy, 26 * GUN_SCALE, 26 * GUN_SCALE, led_col, led_strength, power=1.8)
+    _draw_radial_glow(glow_rgb, glow_a, SIDE_LED_XY[0] + dx, SIDE_LED_XY[1] + dy, 12 * GUN_SCALE, 12 * GUN_SCALE, (255, 255, 220), led_strength * 0.65, power=2.2)
 
-    _draw_radial_glow(glow_rgb, glow_a, TOP_LED_XY[0] + dx, TOP_LED_XY[1] + dy, 24, 16, led_col, led_strength * 0.95, power=1.8)
-    _draw_radial_glow(glow_rgb, glow_a, TOP_LED_XY[0] + dx, TOP_LED_XY[1] + dy, 11, 8, (255, 255, 220), led_strength * 0.60, power=2.2)
+    _draw_radial_glow(glow_rgb, glow_a, TOP_LED_XY[0] + dx, TOP_LED_XY[1] + dy, 28 * GUN_SCALE, 20 * GUN_SCALE, led_col, led_strength * 0.95, power=1.8)
+    _draw_radial_glow(glow_rgb, glow_a, TOP_LED_XY[0] + dx, TOP_LED_XY[1] + dy, 13 * GUN_SCALE, 10 * GUN_SCALE, (255, 255, 220), led_strength * 0.60, power=2.2)
 
-    # Heated vents along the barrel
     if vent_strength > 0.01:
-        for vx, vy, rx, ry, _ in VENT_SLOTS:
-            _draw_radial_glow(glow_rgb, glow_a, vx + dx, vy + dy, rx * 1.45, ry * 1.45, vent_col, vent_strength, power=1.7)
-            _draw_radial_glow(glow_rgb, glow_a, vx + dx, vy + dy, rx * 0.7, ry * 0.7, (235, 255, 220), vent_strength * 0.55, power=2.2)
+        for vx, vy, rx, ry in VENT_SLOTS:
+            _draw_radial_glow(glow_rgb, glow_a, vx + dx, vy + dy, rx * 1.5, ry * 1.5, vent_col, vent_strength, power=1.7)
+            _draw_radial_glow(glow_rgb, glow_a, vx + dx, vy + dy, rx * 0.75, ry * 0.75, (235, 255, 220), vent_strength * 0.55, power=2.2)
 
-    # Ambient neon-green plasma bounce on the front yellow barrel & upper housing
     if core_green > 0.01:
         _draw_radial_glow(
             glow_rgb, glow_a,
-            MUZZLE_XY[0] + dx + 38, MUZZLE_XY[1] + dy + 22,
-            68, 48, (40, 255, 95), core_green * 0.55, power=1.6,
+            MUZZLE_XY[0] + dx + 30, MUZZLE_XY[1] + dy + 18,
+            82 * GUN_SCALE, 56 * GUN_SCALE, spill_col, core_green * 0.50, power=1.6,
         )
 
 
 def _crop_and_resize(rgba: np.ndarray) -> np.ndarray:
     x0, y0, x1, y1 = CROP_BOX
     cropped = rgba[y0:y1, x0:x1]
-    # Premultiplied resize via Pillow for crisp downscale without dark borders
+    if (cropped.shape[1], cropped.shape[0]) == OUT_SIZE:
+        return bleed_rgb_edges(cropped, passes=4)
     a = cropped[..., 3].astype(np.float32) / 255.0
     a_rsz = np.asarray(Image.fromarray(a, mode="F").resize(OUT_SIZE, Image.Resampling.BOX), dtype=np.float32)
     a_rsz = np.clip(a_rsz, 0.0, 1.0)
@@ -474,7 +603,7 @@ def _crop_and_resize(rgba: np.ndarray) -> np.ndarray:
 
 
 def build_v_cyrax_md3_bytes() -> bytes:
-    """Build the 1-frame flat sprite-card MD3 matching the 16:9 viewplane crop."""
+    """Build the 1-frame flat sprite-card MD3 matching the bottom-right 16:9 viewplane crop."""
     x0, y0, x1, y1 = CROP_BOX
     yl = HALF_W * (1.0 - 2.0 * x0 / float(SRC_W))
     yr = HALF_W * (1.0 - 2.0 * x1 / float(SRC_W))
@@ -490,55 +619,71 @@ def build_v_cyrax_md3_bytes() -> bytes:
         st=st,
         frames=[(card, [(-1.0, 0.0, 0.0)] * 4)],
     )
-    import tempfile
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "v_cyrax.md3"
         md3lib.write(str(p), dict(name="v_cyrax", surfaces=[surf], nframes=1))
         return p.read_bytes()
 
 
-def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = TEX_DIR) -> list[Path]:
+def _load_keyed_poses(kf_dir: Path) -> Dict[str, np.ndarray]:
+    poses: Dict[str, np.ndarray] = {}
+    for name in ("idle", "charge_half", "charge_full", "recoil", "catch"):
+        p = kf_dir / f"{name}.jpg"
+        if not p.is_file():
+            raise FileNotFoundError(f"Missing 4K keyframe: {p}")
+        rgb = np.asarray(Image.open(p).convert("RGB"))
+        poses[name] = key_white_gun(rgb)
+    return poses
+
+
+def generate_viewmodel_frames(kf_dir: Path = KEYFRAME_DIR, out_dir: Path = TEX_DIR) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    raw_rgb = np.asarray(Image.open(src_gun).convert("RGB"))
-    keyed = key_white_gun(raw_rgb)
-    h, w = keyed.shape[:2]
+    poses = _load_keyed_poses(kf_dir)
+    h, w = poses["idle"].shape[:2]
 
     written: list[Path] = []
-    for idx in range(56):
+    for idx in range(68):
         dx = 0.0
         dy = 0.0
         ang = 0.0
-        scale = 1.028
 
         glow_rgb = np.zeros((h, w, 3), dtype=np.float32)
         glow_a = np.zeros((h, w), dtype=np.float32)
         extra_overlays: list[Tuple[np.ndarray, np.ndarray]] = []
 
         if 0 <= idx <= 7:
-            # Idle: subtle robotic breathing + pulsing amber/green LEDs
+            # Idle: closed cybernetic blaster with subtle breathing + pulsing amber/green LEDs
+            pose_rgba = poses["idle"]
             t = idx / 8.0
-            dx = 1.2 * math.cos(2.0 * math.pi * t)
-            dy = 2.4 * math.sin(2.0 * math.pi * t)
-            ang = 0.25 * math.sin(2.0 * math.pi * t)
+            dx = 1.4 * math.cos(2.0 * math.pi * t)
+            dy = 2.6 * math.sin(2.0 * math.pi * t)
+            ang = 0.22 * math.sin(2.0 * math.pi * t)
             pulse = 0.5 + 0.5 * math.sin(2.0 * math.pi * t)
-            # Blend warm amber -> cyber green
             led_col = (
                 255.0 * (1.0 - 0.72 * pulse),
                 150.0 + 105.0 * pulse,
                 20.0 + 85.0 * pulse,
             )
-            _apply_vents_and_leds(glow_rgb, glow_a, dx, dy, led_col, 0.45 + 0.35 * pulse, (0, 0, 0), 0.0, 0.08 * pulse)
+            _apply_vents_and_leds(glow_rgb, glow_a, dx, dy, led_col, 0.42 + 0.35 * pulse, (0, 0, 0), 0.0, 0.08 * pulse)
 
         elif 8 <= idx <= 31:
-            # Charge buildup (24f): hot orange -> neon green vents, core glow, shake, swirling plasma
+            # Charge buildup (24f): articulates idle -> charge_half (f18) -> charge_full (f28..31)
             p = (idx - 8) / 23.0
-            rng = np.random.default_rng(1000 + idx)
-            shake = 0.5 + 4.8 * (p ** 1.6)
-            dx = 7.0 * p + float(rng.uniform(-shake, shake))
-            dy = 4.0 * p + float(rng.uniform(-shake * 0.85, shake * 0.85))
-            ang = -1.2 * p + float(rng.uniform(-0.7, 0.7)) * p
+            if p <= 0.45:
+                u = p / 0.45
+                s = u * u * (3.0 - 2.0 * u)
+                pose_rgba = _blend_premul_rgba(poses["idle"], poses["charge_half"], s)
+            else:
+                u = min(1.0, (p - 0.45) / 0.42)
+                s = u * u * (3.0 - 2.0 * u)
+                pose_rgba = _blend_premul_rgba(poses["charge_half"], poses["charge_full"], s)
 
-            # Heated vents: hot orange (p=0..0.45) -> blazing neon green (p=0.45..1.0)
+            rng = np.random.default_rng(1000 + idx)
+            shake = 0.6 + 5.2 * (p ** 1.6)
+            dx = 8.0 * p + float(rng.uniform(-shake, shake))
+            dy = 4.5 * p + float(rng.uniform(-shake * 0.85, shake * 0.85))
+            ang = -1.1 * p + float(rng.uniform(-0.6, 0.6)) * p
+
             g_mix = max(0.0, min(1.0, (p - 0.18) / 0.65))
             vent_col = (
                 255.0 * (1.0 - 0.78 * g_mix),
@@ -553,8 +698,8 @@ def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = T
             _apply_vents_and_leds(
                 glow_rgb, glow_a, dx, dy,
                 led_col, 0.55 + 0.65 * p,
-                vent_col, 0.52 + 0.90 * p,
-                0.22 + 0.88 * p,
+                vent_col, 0.50 + 0.85 * p,
+                0.22 + 0.85 * p,
             )
             sw_rgb, sw_a = _paint_swirl_plasma(
                 (h, w),
@@ -567,84 +712,90 @@ def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = T
             extra_overlays.append((sw_rgb, sw_a))
 
         elif 32 <= idx <= 43:
-            # Fire blast + recoil (12f)
+            # Fire blast + Recoil (12f)
             if idx <= 36:
-                # 32..36: crazy pixelated neon-green muzzle flash + kickback ramp
+                # 32..36: charge_full -> recoil snap + neon-green muzzle flash burst
                 fp = (idx - 32) / 4.0
-                dx = 16.0 + 16.0 * fp
-                dy = 9.0 + 10.0 * fp
-                ang = -2.2 - 2.3 * fp
+                pose_rgba = _blend_premul_rgba(poses["charge_full"], poses["recoil"], min(1.0, fp * 1.15))
+                dx = 14.0 + 14.0 * fp
+                dy = 8.0 + 9.0 * fp
+                ang = -1.8 - 1.8 * fp
                 flash_str = [1.15, 1.25, 1.05, 0.85, 0.62][idx - 32]
-                flash_rad = [148.0, 175.0, 152.0, 124.0, 96.0][idx - 32]
+                flash_rad = [145.0, 175.0, 150.0, 120.0, 92.0][idx - 32]
                 _apply_vents_and_leds(
                     glow_rgb, glow_a, dx, dy,
-                    (90, 255, 120), 1.15 * flash_str,
-                    (85, 255, 105), 1.05 * flash_str,
-                    1.15 * flash_str,
+                    (90, 255, 120), 1.10 * flash_str,
+                    (85, 255, 105), 1.00 * flash_str,
+                    1.05 * flash_str,
                 )
-                # Broad green muzzle light wash over front of gun
                 _draw_radial_glow(
                     glow_rgb, glow_a,
-                    MUZZLE_XY[0] + dx - 20, MUZZLE_XY[1] + dy - 10,
-                    130, 95, (75, 255, 105), 0.72 * flash_str, power=1.5,
+                    MUZZLE_XY[0] + dx - 16, MUZZLE_XY[1] + dy - 8,
+                    120, 88, (75, 255, 105), 0.70 * flash_str, power=1.5,
                 )
                 fb_rgb, fb_a = _paint_pixel_burst(
                     (h, w),
-                    MUZZLE_XY[0] + dx - 18.0,
-                    MUZZLE_XY[1] + dy - 8.0,
+                    MUZZLE_XY[0] + dx - 14.0,
+                    MUZZLE_XY[1] + dy - 6.0,
                     radius=flash_rad,
                     seed=3200 + idx,
                     n_rays=18,
-                    n_sparks=52,
+                    n_sparks=56,
                     block=3,
                     intensity=flash_str,
                 )
                 extra_overlays.append((fb_rgb, fb_a))
             else:
-                # 37..43: heavy kickback recoil -> smooth mechanical return-to-battery + barrel smoke
+                # 37..43: recoil returning smoothly to idle + barrel & popped-breech smoke
                 rp = (idx - 37) / 6.0
-                ease = 1.0 - (3.0 * rp * rp - 2.0 * rp * rp * rp)
-                dx = 30.0 * ease
-                dy = 18.0 * ease
-                ang = -4.5 * ease
+                smooth = rp * rp * (3.0 - 2.0 * rp)
+                pose_rgba = _blend_premul_rgba(poses["recoil"], poses["idle"], smooth)
+                ease = 1.0 - smooth
+                dx = 26.0 * ease
+                dy = 16.0 * ease
+                ang = -3.6 * ease
                 cool = 1.0 - rp
                 _apply_vents_and_leds(
                     glow_rgb, glow_a, dx, dy,
                     (255.0 * rp + 60.0 * cool, 160.0 * rp + 255.0 * cool, 30.0 + 70.0 * cool),
                     0.50 + 0.45 * cool,
                     (255.0 * rp + 75.0 * cool, 130.0 * rp + 255.0 * cool, 25.0 + 80.0 * cool),
-                    0.75 * cool,
+                    0.70 * cool,
                     0.35 * cool,
                 )
-                sm_rgb, sm_a = _paint_smoke_plume(
-                    (h, w),
-                    MUZZLE_XY[0] + dx - 12.0,
-                    MUZZLE_XY[1] + dy - 12.0,
-                    progress=0.12 + 0.85 * rp,
-                    seed=3700 + idx,
-                    tint_green=0.70 * cool + 0.25,
-                )
-                extra_overlays.append((sm_rgb, sm_a))
+                for sx, sy in (MUZZLE_XY, BREECH_XY):
+                    sm_rgb, sm_a = _paint_smoke_plume(
+                        (h, w),
+                        sx + dx - 10.0,
+                        sy + dy - 10.0,
+                        progress=0.12 + 0.85 * rp,
+                        seed=3700 + idx + int(sx),
+                        tint_green=0.70 * cool + 0.25,
+                    )
+                    extra_overlays.append((sm_rgb, sm_a))
 
         elif 44 <= idx <= 49:
-            # Draw / raise pop-up (6f)
+            # Draw / raise pop-up (6f) + power-on LED sweep
+            pose_rgba = poses["idle"]
             dp = (idx - 44) / 5.0
-            rise_offsets = [155.0, 92.0, 44.0, 14.0, -5.0, 0.0]
-            rot_offsets = [-9.0, -5.5, -2.5, -0.8, 0.4, 0.0]
+            rise_offsets = [150.0, 88.0, 40.0, 13.0, -4.0, 0.0]
+            rot_offsets = [-6.0, -3.8, -1.8, -0.5, 0.3, 0.0]
             dy = rise_offsets[idx - 44]
-            dx = dy * 0.28
+            dx = dy * 0.25
             ang = rot_offsets[idx - 44]
             boot_flicker = 1.0 if idx in (46, 48, 49) else 0.35
             led_col = (55, 255, 95) if idx >= 47 else (255, 165, 25)
             _apply_vents_and_leds(glow_rgb, glow_a, dx, dy, led_col, 0.65 * boot_flicker, (0, 0, 0), 0.0, 0.12 * dp)
 
-        else:
-            # 50..55 (6f): Cooldown / venting state
+        elif 50 <= idx <= 55:
+            # Cooldown / venting (6f): charge_half closing smoothly back into idle + steam plumes
             vp = (idx - 50) / 5.0
+            smooth = vp * vp * (3.0 - 2.0 * vp)
+            pose_rgba = _blend_premul_rgba(poses["charge_half"], poses["idle"], smooth)
             cool = 1.0 - vp
             dx = 3.0 * cool * math.sin(idx * 2.2)
-            dy = 4.0 * cool
-            ang = -0.8 * cool
+            dy = 3.5 * cool
+            ang = -0.6 * cool
             vent_col = (
                 255.0 * vp + 70.0 * cool,
                 110.0 * vp + 255.0 * cool,
@@ -658,8 +809,7 @@ def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = T
                 0.70 * cool,
                 0.25 * cool,
             )
-            # Venting steam from both side vents and muzzle
-            for vx, vy in ((612.0, 360.0), (690.0, 332.0), (566.0, 322.0)):
+            for vx, vy in (VENT_SLOTS[0][:2], VENT_SLOTS[2][:2], MUZZLE_XY):
                 sm_rgb, sm_a = _paint_smoke_plume(
                     (h, w),
                     vx + dx,
@@ -670,10 +820,55 @@ def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = T
                 )
                 extra_overlays.append((sm_rgb, sm_a))
 
-        frame_rgba = _shift_gun_rgba(keyed, dx=dx, dy=dy, angle_deg=ang, scale=scale)
-        # Mask vent/LED glow slightly on pure exterior so gun silhouette stays crisp, while allowing plasma/smoke outside
+        else:
+            # 56..67 (12f): Dopamine Capture celebration!
+            # Snaps idle -> flared-wing catch pose (57..62) then smoothly settles back toward idle (63..67)
+            k = idx - 56
+            cp = k / 11.0
+            catch_weights = [0.45, 0.92, 1.00, 1.00, 1.00, 1.00, 0.95, 0.80, 0.58, 0.36, 0.16, 0.0]
+            cw = catch_weights[k]
+            pose_rgba = _blend_premul_rgba(poses["idle"], poses["catch"], cw)
+
+            pump_dx = [-4.0, -9.0, -11.0, -8.0, -9.5, -10.5, -8.0, -5.5, -3.5, -2.0, -0.8, 0.0]
+            pump_dy = [-2.5, -5.5, -6.5, -4.0, -5.5, -6.0, -4.0, -2.8, -1.8, -1.0, -0.4, 0.0]
+            pump_ang = [1.0, 2.2, 2.6, 1.6, 2.0, 2.3, 1.5, 1.0, 0.6, 0.3, 0.1, 0.0]
+            dx = pump_dx[k]
+            dy = pump_dy[k]
+            ang = pump_ang[k]
+
+            strobe = (
+                (55.0, 245.0, 255.0),
+                (70.0, 255.0, 100.0),
+                (255.0, 220.0, 50.0),
+            )[k % 3]
+            fade = 1.0 - 0.55 * (cp ** 1.5)
+            _apply_vents_and_leds(
+                glow_rgb, glow_a, dx, dy,
+                strobe, 1.15 * fade,
+                strobe, 0.95 * fade,
+                0.85 * fade,
+                spill_col=strobe,
+            )
+            arc_rgb, arc_a = _paint_catch_arcs(
+                (h, w),
+                MUZZLE_XY[0] + dx - 8.0,
+                MUZZLE_XY[1] + dy - 5.0,
+                dx, dy,
+                progress=cp,
+                seed=5600 + idx,
+            )
+            extra_overlays.append((arc_rgb, arc_a))
+
+        frame_rgba = _warp_premul_rgba(
+            pose_rgba,
+            src_pivot=GUN_ANCHOR_SRC,
+            dst_pivot=GUN_ANCHOR_DST,
+            scale=GUN_SCALE,
+            angle_deg=ang,
+            dx=dx,
+            dy=dy,
+        )
         gun_mask = np.clip(frame_rgba[..., 3].astype(np.float32) / 255.0 + 0.15, 0.0, 1.0)
-        # Apply glow inside gun + near muzzle
         frame_rgba = _add_glow_layer(frame_rgba, glow_rgb, glow_a * gun_mask)
         for ov_rgb, ov_a in extra_overlays:
             frame_rgba = _add_glow_layer(frame_rgba, ov_rgb, ov_a)
@@ -688,11 +883,11 @@ def generate_viewmodel_frames(src_gun: Path = DEFAULT_SRC_GUN, out_dir: Path = T
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--src", type=Path, default=DEFAULT_SRC_GUN, help="Source gun JPG/PNG")
-    ap.add_argument("--out-dir", type=Path, default=TEX_DIR, help="Output directory for 56 PNG frames")
+    ap.add_argument("--kf-dir", type=Path, default=KEYFRAME_DIR, help="Directory with 5 4K keyframes")
+    ap.add_argument("--out-dir", type=Path, default=TEX_DIR, help="Output directory for 68 PNG frames")
     args = ap.parse_args()
-    paths = generate_viewmodel_frames(args.src, args.out_dir)
-    print(f"Generated {len(paths)} viewmodel frames in {args.out_dir}")
+    paths = generate_viewmodel_frames(args.kf_dir, args.out_dir)
+    print(f"Generated {len(paths)} 4K viewmodel frames in {args.out_dir}")
     return 0
 
 

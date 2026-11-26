@@ -1389,6 +1389,7 @@ void(entity e) BM_ObsActivate =
 		PC_ResetPlayer (e);
 		FD_Reset (e);
 		DN3SG_Reset ();
+		HeldVwep_Clear (e);
 		BM_ClientGone (e);
 		BM_Radar_ClientGone (e);
 	}
@@ -1621,6 +1622,10 @@ void() BM_ObsFrame =
 	self.dn3_st_speed = 0;
 	self.bako_st_padre_pct = 101;
 	self.bako_st_event = 0;
+	self.cy_st_mode = 0;
+	self.cy_st_prog = 0;
+	self.cy_st_kind = 0;
+	self.cy_st_dist = 0;
 	self.gk_st_nitro = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;

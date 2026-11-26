@@ -63,7 +63,6 @@ float(float s) BM_MagSize =
 	if (s == BM_FG7)	return FunGun_Max (FG_M4);
 	if (s == BM_FG8)	return FunGun_Max (FG_KYLE);
 	if (s == BM_FG9)	return FunGun_Max (FG_GARAND);
-	if (s == BM_FG10)	return FunGun_Max (FG_CYRAX);
 	return 0;
 };
 
@@ -89,7 +88,6 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
 	else if (s == BM_FG8)	t = FG_KYLE_REGEN;		// The Pocket Kyle: 5 s recharge
 	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation
-	else if (s == BM_FG10)	t = FG_CYRAX_REGEN;		// Cyrax Net: 10 s recharge
 	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: 12 s for the next Wheelman
 	else
 		t = 2;
@@ -151,7 +149,7 @@ float(entity p) BM_SlotOf =
 		if (p.fg_sel == FG_GARAND)
 			return BM_FG9;
 		if (p.fg_sel == FG_CYRAX)
-			return BM_FG10;
+			return 0;		// Cyrax Net has no magazine / reload bar (cyrax.qc)
 		return BM_FG3;
 	}
 	return 0;
@@ -189,7 +187,6 @@ float(entity p, float s) BM_GetMag =
 	if (s == BM_FG7)	return p.fg_ammo7;
 	if (s == BM_FG8)	return p.fg_ammo8;
 	if (s == BM_FG9)	return p.fg_ammo9;
-	if (s == BM_FG10)	return p.fg_ammo10;
 	return 0;
 };
 
@@ -217,7 +214,6 @@ void(entity p, float s, float v) BM_SetMag =
 	else if (s == BM_FG7)	p.fg_ammo7 = v;
 	else if (s == BM_FG8)	p.fg_ammo8 = v;
 	else if (s == BM_FG9)	p.fg_ammo9 = v;
-	else if (s == BM_FG10)	p.fg_ammo10 = v;
 };
 
 float(entity p, float s) BM_GetAcc =
@@ -551,7 +547,7 @@ void() BM_Frame =
 	{
 		self.bm_st_reload = 0;
 		self.bm_st_magmax = 0;
-		self.bm_st_slot = BM_SlotOf (self);
+		self.bm_st_slot = (self.weapon == IT_FUNGUN && self.fg_sel == FG_CYRAX) ? BM_FG10 : BM_SlotOf (self);
 		return;
 	}
 	dt = time - self.bm_lastframe;
@@ -614,8 +610,6 @@ void() BM_Frame =
 					self.rh_reload_t = time;		// fresh Rob Head drone remote raises up
 				if (s == BM_FG8)
 					self.ky_draw_t = time;			// fresh Pocket Kyle pops up into the hand
-				if (s == BM_FG10)
-					self.cy_draw_t = time;			// fresh Cyrax Net Launcher raises up
 			}
 			else if (self.button0 && mag >= BM_PerShot (s) && (self.bm_rl_quiet || time > self.bm_rl_start + 0.15) && !BM_IsFirearmSlot (s))
 			{
@@ -663,10 +657,6 @@ void() BM_Frame =
 		{
 			// let the NetSend throw, the release & the empty hand dropping away finish before starting reload (netsend.qc)
 		}
-		else if (s == BM_FG10 && (self.cy_charging > 0 || (self.cy_fire_t > 0 && time < self.cy_fire_t + CY_FIRE_ANIM_TIME) || (self.cy_vent_t > 0 && time < self.cy_vent_t + CY_VENT_ANIM_TIME)))
-		{
-			// let Cyrax Net charge, fire recoil & vent finish before starting reload (cyrax.qc)
-		}
 		else if (mag < BM_PerShot (s))
 		{
 			self.bm_rl_quiet = FALSE;
@@ -699,8 +689,8 @@ void() BM_Frame =
 			if (mag < size)
 			{
 				rate = size / BM_ReloadTime (i) * autocvar_bm_holster;
-				if (i == BM_MM || (i >= BM_FG1 && i <= BM_FG6) || i == BM_FG8 || i == BM_FG10)
-					rate = size / BM_ReloadTime (i);		// Mega Man & recharging fun-gun cooldowns (incl. Pocket Kyle & Cyrax) tick at 1.0x speed in pocket
+				if (i == BM_MM || (i >= BM_FG1 && i <= BM_FG6) || i == BM_FG8)
+					rate = size / BM_ReloadTime (i);		// Mega Man & recharging fun-gun cooldowns (incl. Pocket Kyle) tick at 1.0x speed in pocket
 				acc = BM_GetAcc (self, i) + rate * dt;
 				if (acc >= 1)
 				{
@@ -721,7 +711,7 @@ void() BM_Frame =
 	// HUD
 	if (self.ishuman == 1)
 	{
-		self.bm_st_slot = s;
+		self.bm_st_slot = (self.weapon == IT_FUNGUN && self.fg_sel == FG_CYRAX) ? BM_FG10 : s;
 		if (s)
 		{
 			rate = BM_PerShot (s);

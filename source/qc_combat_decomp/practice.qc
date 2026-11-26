@@ -153,6 +153,7 @@ void() Practice_PlayerFrame =
 	if (self.fg_ammo5 < FG_DOOKIE_MAX && self.fg_regen5 > time + 1.0) self.fg_regen5 = time + 1.0;
 	if (self.fg_ammo6 < FG_WCANNON_MAX && self.fg_regen6 > time + 2.0) self.fg_regen6 = time + 2.0;
 	if (self.fg_ammo8 < FG_KYLE_MAX && self.fg_regen8 > time + 1.5) self.fg_regen8 = time + 1.5;
+	if (self.fg_ammo10 < FG_CYRAX_MAX && self.fg_regen10 > time + 2.0) self.fg_regen10 = time + 2.0;
 };
 
 // ---------------------------------------------------------------- Passive Respawning Range Targets

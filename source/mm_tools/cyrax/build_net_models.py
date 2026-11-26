@@ -214,61 +214,88 @@ def _build_grid_patch_tris(nx: int, nz: int) -> list[tuple[int, int, int]]:
 def build_cyrax_net_md3_bytes() -> bytes:
     """Build 8-frame flying projectile MD3 (progs/cyrax_net.md3).
 
-    Two intersecting, softly billowing 3D curved net sheets oriented along +X
-    (forward flight direction) using progs/cyrax_net.png, spinning & pulsing across 8 frames.
+    ONE single huge, upright, non-spinning 3D parabolic elliptical MK3 green net
+    dome oriented perpendicular to +X (in the Y-Z plane!):
+      - Width across Y: ~72u (-36..+36)
+      - Height across Z: ~92u (-46..+46)
+      - Depth along X: ~30u (billowing forward along +X away from the shooter)
+    Uses seamless MK3 grid UVs (progs/cyrax_wrap) and gently billows/pulses
+    across 8 frames with ZERO spin.
     """
-    nx, nz = 6, 8
-    tris = _build_grid_patch_tris(nx, nz)
-    st = []
-    for iz in range(nz + 1):
-        v = 1.0 - iz / float(nz)
-        for ix in range(nx + 1):
-            u = ix / float(nx)
-            st.append((u, v))
+    n_rings = 8
+    n_seg = 24
+    half_w = 36.0   # 72u wide across Y
+    half_h = 46.0   # 92u tall across Z
+    depth = 30.0    # 30u deep along X
 
-    def make_patch_frames(roll_offset: float) -> list[tuple[list[tuple[float, float, float]], list[tuple[float, float, float]]]]:
-        frames = []
-        for fi in range(8):
-            t = fi / 8.0
-            pulse = 1.0 + 0.14 * math.sin(2.0 * math.pi * t)
-            spin_deg = roll_offset + fi * (360.0 / 8.0) * 0.5
-            verts = []
-            norms = []
-            for iz in range(nz + 1):
-                vz = (iz / float(nz) - 0.5) * 34.0 * pulse
-                for ix in range(nx + 1):
-                    ux = (ix / float(nx) - 0.5) * 20.0 * pulse
-                    # Parabolic scoop: leading edge forward (+X), trailing skirt behind (-X)
-                    # Note the MK3 net image curves toward +u (right edge of PNG)
-                    scoop = (1.0 - (vz / (18.5 * pulse)) ** 2) * 8.0 + (ux + 10.0) * 0.75
-                    p = (scoop * 0.65, ux * 0.65, vz)
-                    p = _rot_x(p, spin_deg)
-                    # Ripple wave
-                    ripple = 1.4 * math.sin(2.0 * math.pi * (t + iz / float(nz)))
-                    p = (p[0] + ripple, p[1], p[2])
-                    verts.append(p)
-                    norms.append(_vnorm(_rot_x((1.0, 0.1, 0.0), spin_deg)))
-            frames.append((verts, norms))
-        return frames
+    # Vertex layout: 1 center apex + n_rings * (n_seg + 1) ring verts (seamless UV seam)
+    verts_uv: list[tuple[float, float]] = [(0.75, 0.90)]
+    for ir in range(1, n_rings + 1):
+        rf = ir / float(n_rings)
+        for iseg in range(n_seg + 1):
+            ang = (iseg / float(n_seg)) * 2.0 * math.pi
+            # Elliptical planar UVs mapped onto seamless 256x256 MK3 grid (1.5x1.8 tiles)
+            u = 0.75 + 0.75 * rf * math.cos(ang)
+            v = 0.90 + 0.90 * rf * math.sin(ang)
+            verts_uv.append((u, v))
 
-    surf_a = dict(
-        name="net_sheet_a",
-        shader="progs/cyrax_net",
+    tris: list[tuple[int, int, int]] = []
+    stride = n_seg + 1
+    # Inner fan around center apex (index 0)
+    for iseg in range(n_seg):
+        i1 = 1 + iseg
+        i2 = 1 + iseg + 1
+        tris.append((0, i2, i1))
+    # Concentric quad rings
+    for ir in range(1, n_rings):
+        r0 = 1 + (ir - 1) * stride
+        r1 = 1 + ir * stride
+        for iseg in range(n_seg):
+            a0 = r0 + iseg
+            a1 = a0 + 1
+            b0 = r1 + iseg
+            b1 = b0 + 1
+            tris.append((a0, a1, b1))
+            tris.append((a0, b1, b0))
+
+    frames = []
+    for fi in range(8):
+        t = fi / 8.0
+        pulse = 1.0 + 0.05 * math.sin(2.0 * math.pi * t)
+        verts: list[tuple[float, float, float]] = []
+        norms: list[tuple[float, float, float]] = []
+
+        # Center apex: billows forward (+X) away from the shooter
+        apex_x = 18.0 + 2.5 * math.sin(2.0 * math.pi * t)
+        verts.append((apex_x, 0.0, 0.0))
+        norms.append((1.0, 0.0, 0.0))
+
+        for ir in range(1, n_rings + 1):
+            rf = ir / float(n_rings)
+            for iseg in range(n_seg + 1):
+                ang = (iseg / float(n_seg)) * 2.0 * math.pi
+                ca, sa = math.cos(ang), math.sin(ang)
+                y = rf * half_w * pulse * ca
+                z = rf * half_h * pulse * sa
+                # Parabolic dome: forward (+X) at center, sweeping back 30u to trailing rim (-X)
+                shimmer = 2.0 * math.sin(2.0 * math.pi * (t + 0.65 * rf) + 2.0 * ang) * rf
+                x = apex_x - depth * (rf ** 1.75) + shimmer
+                verts.append((x, y, z))
+                norms.append(_vnorm((1.0, 0.55 * rf * ca, 0.45 * rf * sa)))
+
+        frames.append((verts, norms))
+
+    surf = dict(
+        name="net_sheet",
+        shader="progs/cyrax_wrap",
         tris=tris,
-        st=st,
-        frames=make_patch_frames(0.0),
-    )
-    surf_b = dict(
-        name="net_sheet_b",
-        shader="progs/cyrax_net",
-        tris=tris,
-        st=st,
-        frames=make_patch_frames(90.0),
+        st=verts_uv,
+        frames=frames,
     )
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "cyrax_net.md3"
-        md3lib.write(str(p), dict(name="cyrax_net", surfaces=[surf_a, surf_b], nframes=8))
+        md3lib.write(str(p), dict(name="cyrax_net", surfaces=[surf], nframes=8))
         return p.read_bytes()
 
 

@@ -299,13 +299,13 @@ float(entity p, float kind) HeldVwep_ShouldShow =
 		return FALSE;
 	if (p.throwing == 1 || Binoc_On(p) || p.fl_phase == 1 || p.fl_phase == 2)
 		return FALSE;
-	if (p.bm_rl_slot && p.health > 0 && !(M4_ShowsReload(p) || Garand_ShowsReload(p)))
+	if (p.bm_rl_slot && !p.bm_rl_quiet && p.health > 0 && !(M4_ShowsReload(p) || Garand_ShowsReload(p)))
 		return FALSE;
 	if (FD_Flying(p) || Veh_Driving(p) || p.veh_ride != world || JohnBird_Flying(p) || RocketRider_Flying(p) || MMTank_Driving(p) || EricCannon_Active(p))
 		return FALSE;
 
 	if (kind == HELD_MILKY)
-		return (p.ammo_nails >= 1 && !Milky_Out(p) && time >= p.milky_hide && !(p.milky_threw > 0 && time < p.milky_threw + MILKY_FLYOUT));
+		return (p.milky_wind > 0 || (p.ammo_nails >= 1 && !Milky_Out(p) && time >= p.milky_hide && !(p.milky_threw > 0 && time < p.milky_threw + MILKY_FLYOUT)));
 	if (kind == HELD_PICKLE)
 		return (FunGun_Ammo(p, FG_PICKLE) >= 1 || p.pk_throw_at > 0);
 	if (kind == HELD_GREENJAR)
@@ -392,9 +392,9 @@ void() HeldVwep_Think =
 	local float kind, s, f;
 
 	p = self.owner;
-	if (!p || p.held_vwep != self || p.classname != "player" || p.health <= 0 || p.deadflag)
+	if (!p || bm_wasfreed(p) || p.held_vwep != self || p.classname != "player" || p.health <= 0 || p.deadflag || p.bm_obs || HeldVwep_Kind(p) != self.held_vwep_kind)
 	{
-		if (p && p.held_vwep == self)
+		if (p && !bm_wasfreed(p) && p.held_vwep == self)
 			p.held_vwep = world;
 		remove(self);
 		return;
@@ -442,7 +442,7 @@ void(entity p) HeldVwep_Clear =
 {
 	if (p.held_vwep)
 	{
-		if (p.held_vwep.classname == "held_vwep" && p.held_vwep.owner == p)
+		if (!bm_wasfreed(p.held_vwep) && p.held_vwep.classname == "held_vwep" && p.held_vwep.owner == p)
 			remove(p.held_vwep);
 		p.held_vwep = world;
 	}
@@ -461,7 +461,7 @@ void() HeldVwep_Update =
 	}
 
 	e = self.held_vwep;
-	if (!e)
+	if (!e || bm_wasfreed(e) || e.classname != "held_vwep" || e.owner != self)
 	{
 		e = spawn();
 		e.classname = "held_vwep";

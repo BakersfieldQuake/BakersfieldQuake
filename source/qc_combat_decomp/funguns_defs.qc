@@ -140,4 +140,4 @@ float	FG_KYLE_MAX	= 2;	float	FG_KYLE_REGEN	= 6;	// 2 Pocket Kyles; 6 s recharge 
 float	FG_TOMMY_MAX	= 3;	float	FG_TOMMY_REGEN	= 5;
 float	FG_GARAND_MAX	= 8;	float	FG_GARAND_REGEN	= 0.35;	// M1 Garand 8-round en-bloc clip (garand_defs.qc)
 float	FG_NETSEND_MAX		= 1;	float	FG_NETSEND_REGEN		= 5;	// one disk; 5 s to write the next LOL.BAT (netsend_defs.qc)
-float	FG_CYRAX_MAX	= 1;	float	FG_CYRAX_REGEN	= 10;	// Cyrax Net: 1 net, 10 s recharge (cyrax.qc)
+float	FG_CYRAX_MAX	= 1;	float	FG_CYRAX_REGEN	= 0;	// Cyrax Net: 1 net, instant refire (no reload, cyrax.qc)

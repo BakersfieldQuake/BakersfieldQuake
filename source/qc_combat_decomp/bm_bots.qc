@@ -423,8 +423,8 @@ float(float brange) BM_BotWeaponSwitch =
 	if (!deathmatch && !coop)
 		return FALSE;
 
-	// Never interrupt active charge/windup/flight states
-	if (self.fd_head != world || self.wc_charging > 0 || self.dk_charging > 0 || self.gj_shaking > 0 || self.rh_charging > 0 || self.ky_locking > 0 || self.ltg_phase == 1)
+	// Never interrupt active charge/windup/flight states or Cyrax net stun
+	if (self.cy_trapped_by != world || self.fd_head != world || self.wc_charging > 0 || self.dk_charging > 0 || self.gj_shaking > 0 || self.rh_charging > 0 || self.ky_locking > 0 || self.ltg_phase == 1)
 		return TRUE;
 	if (self.weapon == IT_AXE && self.hm_state == 1)
 		return TRUE;
@@ -603,7 +603,7 @@ void() BM_BotShoot =
 {
 	local float g, dist;
 
-	if (!self.enemy || self.enemy.health <= 0)
+	if (!self.enemy || self.enemy.health <= 0 || self.cy_trapped_by != world)
 		return;
 
 	// If current gun ran dry (e.g. single-shot Rob Dob / Wheelman / NetSend / Pickle / Jar / Rob Head), swap smoothly
@@ -1624,7 +1624,7 @@ void() BM_BotPostAI =
 	local vector d, open_dir;
 	local float dz, xydist, s, fl;
 
-	if (self.health <= 0)
+	if (self.health <= 0 || self.cy_trapped_by != world)
 		return;
 
 	// Safety: release charged Bonk Hammer or Wheelman Cannon if target died or charge finished

@@ -75,13 +75,13 @@ float(entity shooter, entity e) Cyrax_IsValidTarget =
 	{
 		if (e.health <= 0 || e.deadflag || e.bm_obs || e.solid == SOLID_NOT || !e.takedamage)
 			return FALSE;
-		if (e.veh_van != world || e.mmt_tank != world || e.rr_vehicle != world)
+		if (e.veh_van != world || e.veh_ride != world || e.mmt_tank != world || e.rr_vehicle != world || FD_Flying (e) || EricCannon_Active (e))
 			return FALSE;
 		if (e.cy_trapped_by != world && e.cy_trapped_by != shooter)
 			return FALSE;
 		if (e == shooter)
 			return Cyrax_TestOn (shooter);
-		if (teamplay && shooter != world && e.team > 0 && e.team == shooter.team)
+		if ((teamplay == 1 || CTF_ENABLED) && shooter != world && e.team > 0 && e.team == shooter.team)
 			return FALSE;
 		return TRUE;
 	}
@@ -96,7 +96,7 @@ float(entity shooter, entity e) Cyrax_IsValidTarget =
 		{
 			if (e.jb_pilot == shooter)
 				return Cyrax_TestOn (shooter);
-			if (teamplay && shooter != world && e.jb_pilot.team > 0 && e.jb_pilot.team == shooter.team)
+			if ((teamplay == 1 || CTF_ENABLED) && shooter != world && e.jb_pilot.team > 0 && e.jb_pilot.team == shooter.team)
 				return FALSE;
 		}
 		return TRUE;
@@ -110,7 +110,7 @@ float(entity shooter, entity e) Cyrax_IsValidTarget =
 			return FALSE;
 		if (e.cy_trapped_by != world && e.cy_trapped_by != shooter)
 			return FALSE;
-		if (teamplay && shooter != world && e.milky_owner != world && e.milky_owner != shooter && e.milky_owner.team > 0 && e.milky_owner.team == shooter.team)
+		if ((teamplay == 1 || CTF_ENABLED) && shooter != world && e.milky_owner != world && e.milky_owner != shooter && e.milky_owner.team > 0 && e.milky_owner.team == shooter.team)
 			return FALSE;
 		return TRUE;
 	}
@@ -177,7 +177,12 @@ void(entity targ) Cyrax_RestoreVictimState =
 	if (targ.classname == "milky")
 	{
 		if (targ.milky_hp > 0 && targ.takedamage)
-			targ.movetype = MOVETYPE_FLY;
+		{
+			if (targ.cy_old_movetype && targ.cy_old_movetype != MOVETYPE_NONE)
+				targ.movetype = targ.cy_old_movetype;
+			else
+				targ.movetype = MOVETYPE_FLY;
+		}
 		targ.cy_old_movetype = 0;
 	}
 };
@@ -255,6 +260,8 @@ void(entity p) Cyrax_ResetPlayer =
 	p.cy_fire_t = 0;
 	p.cy_vent_t = 0;
 	p.cy_draw_t = 0;
+	p.cy_catch_t = 0;
+	p.cy_tether_t = 0;
 	p.cy_empty = FALSE;
 	p.cy_bonk_phase = 0;
 	p.cy_bonk_t0 = 0;
@@ -299,14 +306,13 @@ void(entity p) Cyrax_ClientGone =
 	}
 };
 
-// ---------------------------------------------------------------- viewmodel (progs/v_cyrax.md3, skins 0..55)
+// ---------------------------------------------------------------- viewmodel (progs/v_cyrax.md3, skins 0..67)
 
 void(entity vm, entity p) Cyrax_UpdateVMVisual =
 {
-	local float ammo, hide, u, idx, ease, sw1, sw2, spd, dt_f;
+	local float hide, u, idx, ease, sw1, sw2, spd, dt_f;
 	local vector vxy;
 
-	ammo = FunGun_Ammo (p, FG_CYRAX);
 	hide = (p.classname != "player" || p.weapon != IT_FUNGUN || p.fg_sel != FG_CYRAX
 		|| p.health <= 0 || p.deadflag || intermission_running || p.clientcamera != p
 		|| p.meleeing == 1 || p.throwing == 1 || p.cy_trapped_by != world || p.cy_bonk_phase > 0
@@ -330,10 +336,8 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 	if (!p.cy_vm_was_on)
 	{
 		p.cy_vm_was_on = TRUE;
-		if (ammo >= 1 && p.cy_charging <= 0 && (!p.cy_fire_t || time >= p.cy_fire_t + CY_FIRE_ANIM_TIME))
+		if (p.cy_charging <= 0 && (!p.cy_fire_t || time >= p.cy_fire_t + CY_FIRE_ANIM_TIME))
 			p.cy_draw_t = time;
-		else if (ammo < 1)
-			p.cy_empty = TRUE;
 	}
 
 	if (invisweapon && p.invisible_finished > time)
@@ -351,7 +355,6 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 	// 1. Charge buildup (skins 8..31)
 	if (p.cy_charging > 0)
 	{
-		p.cy_empty = FALSE;
 		u = (time - p.cy_charging) / CY_CHARGE_TIME;
 		if (u < 0) u = 0;
 		if (u > 0.999) u = 0.999;
@@ -366,13 +369,33 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 		return;
 	}
 
-	// 2. Fire blast & recoil (skins 32..43: 32..36 muzzle flash, 37..43 recoil return)
+	// 2. Dopamine capture celebration (skins 56..67)
+	if (p.cy_catch_t > 0 && time < p.cy_catch_t + CY_CATCH_ANIM_TIME)
+	{
+		u = (time - p.cy_catch_t) / CY_CATCH_ANIM_TIME;
+		if (u < 0) u = 0;
+		if (u > 0.999) u = 0.999;
+		idx = floor (u * CY_VM_CATCH_COUNT);
+		if (idx >= CY_VM_CATCH_COUNT)
+			idx = CY_VM_CATCH_COUNT - 1;
+		vm.skin = CY_VM_CATCH_SKIN + idx;
+		sw1 = sin (u * 3.14159);
+		sw2 = sin (u * 6.28318 * 2.0);
+		vm.origin_x = 1.6 * sw1;
+		vm.origin_y = 0.7 * sw1;
+		vm.origin_z = 1.8 * sw1 + 0.35 * sw2 * (1 - u);
+		vm.angles_x = -3.8 * sw1;
+		vm.angles_z = 2.6 * sw2 * (1 - u);
+		return;
+	}
+
+	// 3. Fire blast & recoil (skins 32..43: 32..36 muzzle flash, 37..43 recoil return)
 	if (p.cy_fire_t > 0 && time < p.cy_fire_t + CY_FIRE_ANIM_TIME)
 	{
 		dt_f = time - p.cy_fire_t;
-		if (dt_f < 0.18)
+		if (dt_f < 0.14)
 		{
-			u = dt_f / 0.18;
+			u = dt_f / 0.14;
 			if (u > 0.999) u = 0.999;
 			idx = floor (u * 5);
 			vm.skin = CY_VM_FIRE_SKIN + idx;
@@ -382,7 +405,7 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 		}
 		else
 		{
-			u = (dt_f - 0.18) / (CY_FIRE_ANIM_TIME - 0.18);
+			u = (dt_f - 0.14) / (CY_FIRE_ANIM_TIME - 0.14);
 			if (u > 0.999) u = 0.999;
 			idx = 5 + floor (u * 7);
 			if (idx >= CY_VM_FIRE_COUNT)
@@ -395,7 +418,7 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 		return;
 	}
 
-	// 3. Early-abort vent / cooldown (skins 50..55)
+	// 4. Early-abort vent / cooldown (skins 50..55)
 	if (p.cy_vent_t > 0 && time < p.cy_vent_t + CY_VENT_ANIM_TIME)
 	{
 		u = (time - p.cy_vent_t) / CY_VENT_ANIM_TIME;
@@ -407,19 +430,6 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 		vm.origin_z = -0.8 * sin (u * 3.14159);
 		vm.angles_x = 2.0 * sin (u * 3.14159);
 		return;
-	}
-
-	// 4. Empty after fire/vent
-	if (ammo < 1 && !Cyrax_TestOn (p))
-	{
-		p.cy_empty = TRUE;
-		vm.alpha = -1;
-		return;
-	}
-	if (p.cy_empty)
-	{
-		p.cy_empty = FALSE;
-		p.cy_draw_t = time;
 	}
 
 	// 5. Draw / raise pop-up (skins 44..49)
@@ -475,6 +485,8 @@ void(entity p) Cyrax_EnsureVM =
 	vm = p.cy_vm;
 	if (vm == world || bm_wasfreed (vm) || vm.owner != p)
 	{
+		if (p.weapon != IT_FUNGUN || p.fg_sel != FG_CYRAX)
+			return;
 		vm = spawn ();
 		vm.classname = "cyrax_vm";
 		vm.owner = p;
@@ -574,6 +586,7 @@ void(entity victim) Cyrax_ForceVictimAxe =
 		W_SetCurrentAmmo ();
 		self = oself;
 	}
+	HeldVwep_Clear (victim);
 };
 
 void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
@@ -653,6 +666,8 @@ void(entity shooter, entity targ, vector hit_org) Cyrax_Capture =
 	shooter.cy_hold_end = time + CY_HOLD_MAX;
 	shooter.cy_hold_phase = 1;
 	shooter.cy_pull_snd_t = time + 0.05;
+	shooter.cy_catch_t = time;
+	shooter.cy_tether_t = 0;
 	shooter.cy_click_ready = !shooter.button0;
 	shooter.cy_st_flash = shooter.cy_st_flash + 1;
 	shooter.cy_st_kind = kind;
@@ -705,7 +720,17 @@ void() Cyrax_NetTouch =
 		{
 			self.velocity = self.cy_vel;
 			if (vlen (self.cy_vel) > 1)
-				setorigin (self, self.origin + normalize (self.cy_vel) * 14);
+			{
+				local vector fwd_step;
+				fwd_step = normalize (self.cy_vel) * 14;
+				traceline (self.origin, self.origin + fwd_step, TRUE, self);
+				if (trace_fraction < 1)
+				{
+					Cyrax_NetPop ();
+					return;
+				}
+				setorigin (self, self.origin + fwd_step);
+			}
 			return;
 		}
 	}
@@ -716,34 +741,58 @@ void() Cyrax_NetTouch =
 void() Cyrax_NetThink =
 {
 	local float f;
+	local entity head, targ;
+	local vector cpos;
 
 	if (time >= self.fg_born + CY_NET_LIFE || pointcontents (self.origin) == CONTENT_SKY)
 	{
 		remove (self);
 		return;
 	}
+
+	// Forgiving proximity capture for the huge non-spinning net (within 58u with clear LOS)
+	head = findradius (self.origin, 58);
+	while (head != world)
+	{
+		targ = head;
+		if (targ.classname == "player" && targ.jb_vehicle != world)
+			targ = targ.jb_vehicle;
+		if (!(targ == self.owner && time < self.fg_born + 0.15) && Cyrax_IsValidTarget (self.owner, targ))
+		{
+			cpos = Cyrax_TargetCenter (targ);
+			if (vlen (targ.origin - self.origin) <= 58 || vlen (cpos - self.origin) <= 58)
+			{
+				traceline (self.origin, cpos, TRUE, self);
+				if (trace_fraction == 1)
+				{
+					Cyrax_Capture (self.owner, targ, self.origin);
+					remove (self);
+					return;
+				}
+			}
+		}
+		head = head.chain;
+	}
+
 	f = floor ((time - self.fg_born) * 18);
 	self.frame = f - 8 * floor (f / 8);
 	self.angles = vectoangles (self.cy_vel);
-	self.angles_z = (time - self.fg_born) * 360;
-	self.nextthink = time + 0.03;
+	self.angles_z = 0;
+	self.nextthink = time + 0.02;
 };
 
 void(entity p) Cyrax_FireNet =
 {
 	local entity net;
 	local vector muz, eye, aim_pt, dir;
-	local float ammo;
 
-	ammo = FunGun_Ammo (p, FG_CYRAX);
-	if (ammo >= 1)
-		FunGun_SetAmmo (p, FG_CYRAX, ammo - 1);
+	FunGun_SetAmmo (p, FG_CYRAX, 1);
 	FunGun_Lock (FG_CYRAX);
 
 	p.cy_charging = 0;
 	p.cy_fire_t = time;
 	p.fg_fire_t = time;
-	p.bm_lastshot = time + 0.8;
+	p.bm_lastshot = time + 0.35;
 	p.cy_click_ready = FALSE;
 
 	makevectors (p.v_angle);
@@ -776,18 +825,19 @@ void(entity p) Cyrax_FireNet =
 	net.solid = SOLID_BBOX;
 	net.effects = EF_FULLBRIGHT;
 	setmodel (net, "progs/cyrax_net.md3");
-	setsize (net, '-12 -12 -12', '12 12 12');
+	setsize (net, '-32 -32 -40', '32 32 40');
 	setorigin (net, muz);
 	net.cy_vel = dir * CY_NET_SPEED;
 	net.velocity = net.cy_vel;
 	net.angles = vectoangles (dir);
+	net.angles_z = 0;
 	if (cy_fx_net_trail >= 0)
 		net.traileffectnum = cy_fx_net_trail;
 	net.touch = Cyrax_NetTouch;
 	net.think = Cyrax_NetThink;
-	net.nextthink = time + 0.03;
+	net.nextthink = time + 0.02;
 
-	p.attack_finished = time + 0.55;
+	p.attack_finished = time + 0.25;
 };
 
 // ---------------------------------------------------------------- pull, hold & geometry-safe movement
@@ -954,6 +1004,12 @@ void(entity p) Cyrax_ExecuteBonkLaunch =
 			p.milky_active = targ;
 			targ.owner = world;
 			targ.milky_target = world;
+			if (!targ.milky_emerged)
+			{
+				targ.scale = MILKY_SCALE;
+				setsize (targ, MILKY_MIN, MILKY_MAX);
+				targ.traileffectnum = particleeffectnum ("milky_trail");
+			}
 			targ.milky_emerged = TRUE;
 			targ.milky_born = time;
 			targ.milky_seen = time;
@@ -1069,7 +1125,7 @@ void(entity p) Cyrax_HoldTick =
 		return;
 
 	if (bm_wasfreed (targ) || p.health <= 0 || p.deadflag || intermission_running
-		|| time >= p.cy_hold_end || p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.rr_vehicle != world || FD_Flying (p))
+		|| time >= p.cy_hold_end || p.jb_vehicle != world || p.veh_van != world || p.mmt_tank != world || p.rr_vehicle != world || FD_Flying (p) || EricCannon_Active (p))
 	{
 		Cyrax_ReleaseHold (p);
 		return;
@@ -1107,6 +1163,20 @@ void(entity p) Cyrax_HoldTick =
 	if (dt > 0.05) dt = 0.05;
 
 	hold_pt = Cyrax_CalcHoldPoint (p, targ);
+	if (p.cy_hold_kind == 0 && targ != p)
+	{
+		local vector hsep;
+		hsep = hold_pt - p.origin;
+		hsep_z = 0;
+		if (vlen (hsep) < 38 && fabs (hold_pt_z - p.origin_z) < 56)
+		{
+			tracebox (targ.origin, VEC_HULL_MIN, VEC_HULL_MAX, p.origin + '0 0 58', TRUE, targ);
+			if (!trace_startsolid && !trace_allsolid && trace_fraction > 0.5)
+				hold_pt = trace_endpos;
+			else
+				hold_pt = targ.origin;
+		}
+	}
 	d = vlen (hold_pt - targ.origin);
 
 	if (p.cy_hold_phase == 1)
@@ -1164,13 +1234,13 @@ void() Cyrax_Press =
 		return;
 	if (self.cy_charging > 0)
 		return;
-	if (self.cy_fire_t > 0 && time < self.cy_fire_t + 0.55)
+	if (self.cy_fire_t > 0 && time < self.cy_fire_t + 0.25)
 		return;
 
 	self.cy_charging = time;
 	self.cy_vent_t = 0;
 	self.cy_charge_fx_t = time + 0.04;
-	self.bm_lastshot = time + 2.2;
+	self.bm_lastshot = time + 1.5;
 	self.attack_finished = time + 0.12;
 	if (time >= self.cy_charge_snd_t)
 	{
@@ -1182,7 +1252,7 @@ void() Cyrax_Press =
 // Called every frame from FunGun_ViewFrame (before Hammer_PlayerFrame & W_Attack)
 void() Cyrax_Frame =
 {
-	local float busy, held, prog, ammo;
+	local float busy, held, prog;
 	local vector muz;
 
 	if (self.cy_hold_targ != world)
@@ -1191,6 +1261,7 @@ void() Cyrax_Frame =
 		if (self.cy_hold_targ != world && self.cy_bonk_phase == 0 && self.cy_click_ready && self.button0)
 		{
 			if (self.health > 0 && !self.deadflag && !intermission_running
+				&& !self.meleeing && !self.throwing && self.cy_trapped_by == world
 				&& !FD_Flying (self) && !Veh_Driving (self) && !JohnBird_Flying (self)
 				&& !RocketRider_Flying (self) && !EricCannon_Active (self) && !MMTank_Driving (self) && !Binoc_On (self))
 			{
@@ -1222,22 +1293,18 @@ void() Cyrax_Frame =
 
 			if (!self.button0)
 			{
-				// Early release (< 1.8s): abort charge, vent steam/dust, spend NO ammo
+				// Early release (< 1.1s): abort charge, vent steam/dust, spend NO ammo
 				self.cy_charging = 0;
 				self.cy_vent_t = time;
 				sound7 (self, CHAN_WEAPON, "cyrax/vent.wav", 0.85, ATTN_NORM, SNDSPD);
 				makevectors (self.v_angle);
 				muz = Cyrax_MuzzlePos (self);
 				Cyrax_Fx (cy_fx_muzzle_dust, muz, v_forward * 95, 1);
-				self.attack_finished = time + 0.35;
+				self.attack_finished = time + 0.25;
 			}
 			else if (held >= CY_CHARGE_TIME)
 			{
-				ammo = FunGun_Ammo (self, FG_CYRAX);
-				if (ammo >= 1 || Cyrax_TestOn (self))
-					Cyrax_FireNet (self);
-				else
-					Cyrax_StopCharge (self);
+				Cyrax_FireNet (self);
 			}
 			else
 			{
@@ -1288,6 +1355,8 @@ void() Cyrax_VictimPreThink =
 		Cyrax_ReleaseTargetEntity ((self.jb_vehicle != world) ? self.jb_vehicle : self);
 		return;
 	}
+	if (holder == self)
+		return;
 	self.velocity = '0 0 0';
 	self.movement = '0 0 0';
 	self.button0 = 0;

@@ -22698,45 +22698,29 @@ gravity -0.08
 airfriction 2.8
 rotate -60 60 -40 40
 
-// Green pixelated energy/dust trail behind the flying Cyrax net
+// Subtle green pixelated spark trail behind the flying Cyrax net
 effect cyrax_net_trail
 notunderwater
 count 1
 type spark
 tex 63 63
-color 0x30ff55 0xa8ffaa
-size 1.3 2.5
-stretchfactor 1.0
-alpha 210 256 640
-time 0.22 0.40
-trailspacing 12
-originjitter 9 9 9
-velocitymultiplier 0.15
-velocityjitter 38 38 38
-airfriction 2.6
+color 0x28e04a 0x80ff88
+size 0.9 1.6
+stretchfactor 0.8
+alpha 140 190 780
+time 0.14 0.24
+trailspacing 26
+originjitter 8 8 8
+velocitymultiplier 0.1
+velocityjitter 22 22 22
+airfriction 3.2
 gravity 0.05
 
 effect cyrax_net_trail
-notunderwater
-count 1
-type alphastatic
-blend add
-tex 63 63
-color 0x28e84c 0x8cff98
-size 4.0 7.0
-sizeincrease -6
-alpha 110 165 420
-time 0.20 0.36
-trailspacing 16
-originjitter 7 7 7
-velocityjitter 24 24 24
-airfriction 3.0
-
-effect cyrax_net_trail
-lightradius 95
+lightradius 80
 lightradiusfade 420
 lightshadow 0
-lightcolor 0.2 1.3 0.3
+lightcolor 0.16 1.0 0.24
 
 // Green capture snap burst on net impact
 effect cyrax_net_capture

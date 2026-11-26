@@ -410,7 +410,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: pk3cache/zz_cyrax.pk3
-          key: zz_cyrax-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/cyrax/build_cyrax_pk3.py', 'repo/source/mm_tools/cyrax/build_viewmodel.py', 'repo/source/mm_tools/cyrax/build_net_models.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/cyrax/assets/tex/**', 'repo/source/mm_tools/cyrax/assets/sfx/**') }}
+          key: zz_cyrax-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/cyrax/build_cyrax_pk3.py', 'repo/source/mm_tools/cyrax/build_viewmodel.py', 'repo/source/mm_tools/cyrax/build_net_models.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/cyrax/assets/src_keyframes/**', 'repo/source/mm_tools/cyrax/assets/tex/**', 'repo/source/mm_tools/cyrax/assets/sfx/**') }}
 
       - name: Install pk3 build dependencies
         if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_bakersfieldish.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
@@ -999,8 +999,8 @@ jobs:
               ("zz_netsend_disk.pk3", ("progs/v_netsend.md3", "scripts/netsend_diskvm.shader", "progs/ndvm_000.png",
                                        "progs/ndvm_238.png", "progs/v_netsend.md3_238.skin", "progs/netsend_disk.md3",
                                        "progs/netsend_disk.png")),
-              ("zz_cyrax.pk3", ("progs/v_cyrax.md3", "progs/v_cyrax.md3_0.skin", "progs/v_cyrax.md3_55.skin",
-                                "progs/cyrax_vm_00.png", "progs/cyrax_vm_55.png",
+              ("zz_cyrax.pk3", ("progs/v_cyrax.md3", "progs/v_cyrax.md3_0.skin", "progs/v_cyrax.md3_67.skin",
+                                "progs/cyrax_vm_00.png", "progs/cyrax_vm_67.png",
                                 "progs/cyrax_net.md3", "progs/cyrax_net.md3_0.skin", "progs/cyrax_net.png",
                                 "progs/cyrax_wrap.md3", "progs/cyrax_wrap.md3_0.skin", "progs/cyrax_wrap.png",
                                 "scripts/cyrax.shader",

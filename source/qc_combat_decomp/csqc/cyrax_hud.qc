@@ -11,7 +11,7 @@ Reads clientstats 128..132 sent from progs.dat (bm_match.qc BM_Stats):
 
 Strictly obeys CLAUDE.md HUD & Screen Overlay Rule:
 - No opaque/dark drawfill panels or boxes in the middle of the viewport or behind overlays.
-- Corner text overlays only (top-right stack via bm_topright_y) + perimeter-only edge pulse/vignette.
+- Corner text overlays only (top-right stack via bm_topright_y) + perimeter-only edge pulse/vignette + thin open-center reticle chevrons.
 Called from CSQC_UpdateView in csqc.main.qc across all bm_hud_style modes (0..4).
 ================
 */
@@ -21,6 +21,8 @@ float	CYST_PROG	= 129;
 float	CYST_FLASH	= 130;
 float	CYST_KIND	= 131;
 float	CYST_DIST	= 132;
+
+float	CY_FLASH_DUR	= 0.90;
 
 float	cy_flash_init;
 float	cy_flash_prev;
@@ -57,64 +59,119 @@ string(float tenths) CY_FormatTenths =
 	return strcat (ftos (sec), ".", ftos (dec), "s");
 };
 
-// 0.65s neon-green perimeter edge pulse flash + corner brackets (keeps center 100% clear)
+// Draws a crisp thin diagonal line segment using stepped 2px pixels (no center fill)
+void(float x0, float y0, float dx, float dy, float steps, float th, vector rgb, float a) CY_DiagSeg =
+{
+	local float i;
+
+	i = 0;
+	while (i < steps)
+	{
+		drawfill (CY_Vec2 (x0 + dx * i, y0 + dy * i), CY_Vec2 (th, th), rgb, a, 0);
+		i = i + 1;
+	}
+};
+
+// 0.90s dopamine lock-on surge: strobing green/white/gold perimeter flash, snapping corner brackets,
+// and an open-center diamond/chevron lock-on reticle pulse (22..44px from crosshair, center 100% clear)
 void(float w, float h, float rem) CY_DrawEdgeFlash =
 {
-	local float frac, sn, pulse, env, a, edge, glow, ins, arm, th, hi_a;
-	local vector col, hi_col;
+	local float frac, age, sn, st, pulse, strobe, env, a, edge, glow, ins, arm, th, hi_a;
+	local float cx, cy, snap, r, chev, d, tick;
+	local vector col, gold_col, white_col, edge_col, chev_col;
 
-	frac = bound (0, rem / 0.65, 1);
+	frac = bound (0, rem / CY_FLASH_DUR, 1);
 	if (frac <= 0.01)
 		return;
+	age = 1 - frac;
 
 	sn = sin (time * 28);
+	st = sin (time * 42);
 	pulse = 0.72 + 0.28 * sn;
-	env = bound (0, frac * 1.25, 1);
+	strobe = floor (time * 20);
+	strobe = strobe - 3 * floor (strobe / 3);
+	env = bound (0, frac * 1.35, 1);
 	a = env * frac * pulse;
 
 	col = '0.20 1.0 0.42';
-	hi_col = '0.72 1.0 0.80';
-	edge = 2.5;
-	glow = 7.0;
+	gold_col = '1.0 0.86 0.20';
+	white_col = '0.88 1.0 0.90';
 
-	// Thin glowing perimeter strips along all 4 outer screen edges
-	drawfill ('0 0 0', CY_Vec2 (w, edge), col, 0.85 * a, 0);
-	drawfill (CY_Vec2 (0, h - edge), CY_Vec2 (w, edge), col, 0.85 * a, 0);
-	drawfill (CY_Vec2 (0, edge), CY_Vec2 (edge, h - edge * 2), col, 0.85 * a, 0);
-	drawfill (CY_Vec2 (w - edge, edge), CY_Vec2 (edge, h - edge * 2), col, 0.85 * a, 0);
+	if (strobe == 1 && age < 0.55)
+		edge_col = gold_col;
+	else if (strobe == 2 && age < 0.40)
+		edge_col = white_col;
+	else
+		edge_col = col;
+
+	edge = 3.0;
+	glow = 8.0;
+
+	// Strobing thin perimeter strips along all 4 outer screen edges
+	drawfill ('0 0 0', CY_Vec2 (w, edge), edge_col, 0.90 * a, 0);
+	drawfill (CY_Vec2 (0, h - edge), CY_Vec2 (w, edge), edge_col, 0.90 * a, 0);
+	drawfill (CY_Vec2 (0, edge), CY_Vec2 (edge, h - edge * 2), edge_col, 0.90 * a, 0);
+	drawfill (CY_Vec2 (w - edge, edge), CY_Vec2 (edge, h - edge * 2), edge_col, 0.90 * a, 0);
 
 	// Soft neon-green inner perimeter halo (no center occlusion)
-	drawfill (CY_Vec2 (0, edge), CY_Vec2 (w, glow), col, 0.16 * a, 0);
-	drawfill (CY_Vec2 (0, h - edge - glow), CY_Vec2 (w, glow), col, 0.16 * a, 0);
-	drawfill (CY_Vec2 (edge, edge + glow), CY_Vec2 (glow, h - (edge + glow) * 2), col, 0.16 * a, 0);
-	drawfill (CY_Vec2 (w - edge - glow, edge + glow), CY_Vec2 (glow, h - (edge + glow) * 2), col, 0.16 * a, 0);
+	drawfill (CY_Vec2 (0, edge), CY_Vec2 (w, glow), col, 0.18 * a, 0);
+	drawfill (CY_Vec2 (0, h - edge - glow), CY_Vec2 (w, glow), col, 0.18 * a, 0);
+	drawfill (CY_Vec2 (edge, edge + glow), CY_Vec2 (glow, h - (edge + glow) * 2), col, 0.18 * a, 0);
+	drawfill (CY_Vec2 (w - edge - glow, edge + glow), CY_Vec2 (glow, h - (edge + glow) * 2), col, 0.18 * a, 0);
 
-	// Glowing corner brackets that snap inward on capture
-	ins = 6;
-	arm = 20 + (1 - frac) * 10;
+	// Expanding & snapping neon-green corner brackets with gold accent ticks
+	snap = bound (0, age * 2.5, 1);
+	snap = snap * (2 - snap);
+	ins = 5 + 5 * (1 - snap);
+	arm = 18 + 16 * snap;
 	th = 2.5;
 
 	// Top-left bracket
-	drawfill (CY_Vec2 (ins, ins), CY_Vec2 (arm, th), col, 0.95 * a, 0);
-	drawfill (CY_Vec2 (ins, ins), CY_Vec2 (th, arm), col, 0.95 * a, 0);
+	drawfill (CY_Vec2 (ins, ins), CY_Vec2 (arm, th), col, 0.96 * a, 0);
+	drawfill (CY_Vec2 (ins, ins), CY_Vec2 (th, arm), col, 0.96 * a, 0);
 	// Top-right bracket
-	drawfill (CY_Vec2 (w - ins - arm, ins), CY_Vec2 (arm, th), col, 0.95 * a, 0);
-	drawfill (CY_Vec2 (w - ins - th, ins), CY_Vec2 (th, arm), col, 0.95 * a, 0);
+	drawfill (CY_Vec2 (w - ins - arm, ins), CY_Vec2 (arm, th), col, 0.96 * a, 0);
+	drawfill (CY_Vec2 (w - ins - th, ins), CY_Vec2 (th, arm), col, 0.96 * a, 0);
 	// Bottom-left bracket
-	drawfill (CY_Vec2 (ins, h - ins - th), CY_Vec2 (arm, th), col, 0.95 * a, 0);
-	drawfill (CY_Vec2 (ins, h - ins - arm), CY_Vec2 (th, arm), col, 0.95 * a, 0);
+	drawfill (CY_Vec2 (ins, h - ins - th), CY_Vec2 (arm, th), col, 0.96 * a, 0);
+	drawfill (CY_Vec2 (ins, h - ins - arm), CY_Vec2 (th, arm), col, 0.96 * a, 0);
 	// Bottom-right bracket
-	drawfill (CY_Vec2 (w - ins - arm, h - ins - th), CY_Vec2 (arm, th), col, 0.95 * a, 0);
-	drawfill (CY_Vec2 (w - ins - th, h - ins - arm), CY_Vec2 (th, arm), col, 0.95 * a, 0);
+	drawfill (CY_Vec2 (w - ins - arm, h - ins - th), CY_Vec2 (arm, th), col, 0.96 * a, 0);
+	drawfill (CY_Vec2 (w - ins - th, h - ins - arm), CY_Vec2 (th, arm), col, 0.96 * a, 0);
 
-	hi_a = bound (0, (frac - 0.45) / 0.55, 1) * 0.80;
+	hi_a = bound (0, (frac - 0.25) / 0.75, 1) * (0.70 + 0.25 * st);
 	if (hi_a > 0.02)
 	{
-		drawfill (CY_Vec2 (ins + th, ins + th), CY_Vec2 (arm * 0.65, 1), hi_col, hi_a, 0);
-		drawfill (CY_Vec2 (w - ins - th - arm * 0.65, ins + th), CY_Vec2 (arm * 0.65, 1), hi_col, hi_a, 0);
-		drawfill (CY_Vec2 (ins + th, h - ins - th - 1), CY_Vec2 (arm * 0.65, 1), hi_col, hi_a, 0);
-		drawfill (CY_Vec2 (w - ins - th - arm * 0.65, h - ins - th - 1), CY_Vec2 (arm * 0.65, 1), hi_col, hi_a, 0);
+		drawfill (CY_Vec2 (ins + th + 1, ins + th + 1), CY_Vec2 (arm * 0.55, 1.5), gold_col, hi_a, 0);
+		drawfill (CY_Vec2 (w - ins - th - 1 - arm * 0.55, ins + th + 1), CY_Vec2 (arm * 0.55, 1.5), gold_col, hi_a, 0);
+		drawfill (CY_Vec2 (ins + th + 1, h - ins - th - 2.5), CY_Vec2 (arm * 0.55, 1.5), gold_col, hi_a, 0);
+		drawfill (CY_Vec2 (w - ins - th - 1 - arm * 0.55, h - ins - th - 2.5), CY_Vec2 (arm * 0.55, 1.5), gold_col, hi_a, 0);
 	}
+
+	// Open-center diamond/chevron lock-on reticle pulse (22..44px from crosshair, center completely clear)
+	cx = w * 0.5;
+	cy = h * 0.5;
+	r = 44 - 22 * snap + 1.5 * st * frac;
+	chev = 8;
+	chev_col = (strobe == 1) ? gold_col : col;
+
+	// 4 diamond apex chevrons at top, bottom, left, right of the lock ring
+	CY_DiagSeg (cx, cy - r, -1, 1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx, cy - r, 1, 1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx, cy + r, -1, -1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx, cy + r, 1, -1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx - r, cy, 1, -1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx - r, cy, 1, 1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx + r, cy, -1, -1, chev, 2.0, chev_col, 0.95 * a);
+	CY_DiagSeg (cx + r, cy, -1, 1, chev, 2.0, chev_col, 0.95 * a);
+
+	// 4 diagonal gold lock-on chevrons contracting inward outside the diamond
+	d = (r + 5) * 0.7071;
+	tick = 5;
+	CY_DiagSeg (cx - d, cy - d, -1, -1, tick, 2.0, gold_col, 0.88 * a);
+	CY_DiagSeg (cx + d, cy - d, 1, -1, tick, 2.0, gold_col, 0.88 * a);
+	CY_DiagSeg (cx - d, cy + d, -1, 1, tick, 2.0, gold_col, 0.88 * a);
+	CY_DiagSeg (cx + d, cy + d, 1, 1, tick, 2.0, gold_col, 0.88 * a);
 };
 
 // Subtle perimeter-only green vignette while victim is trapped in Cyrax net (mode 4)
@@ -145,8 +202,8 @@ void(float w, float h) CY_DrawTrappedVignette =
 void(float raw_w, float raw_h) CY_DrawHUD =
 {
 	local float w, h, hp, mode, prog, flash, kind, dist;
-	local float rx, ry, row_step, pw, frac, sn, pulse, a;
-	local string targ, ts, lbl, col_code;
+	local float rx, ry, row_step, pw, frac, sn, pulse, a, cyc, flash_rem, flash_a;
+	local string targ, ts, lbl, col_code, banner;
 	local vector bar_col;
 
 	w = vid_conwidth;
@@ -158,7 +215,7 @@ void(float raw_w, float raw_h) CY_DrawHUD =
 	if (w <= 0 || h <= 0)
 		return;
 
-	if (time < cy_flash_until - 1.0)
+	if (time < cy_flash_until - 1.5)
 		cy_flash_until = 0;
 
 	flash = getstati (CYST_FLASH);
@@ -170,7 +227,7 @@ void(float raw_w, float raw_h) CY_DrawHUD =
 	else if (flash > cy_flash_prev)
 	{
 		cy_flash_prev = flash;
-		cy_flash_until = time + 0.65;
+		cy_flash_until = time + CY_FLASH_DUR;
 	}
 	else if (flash < cy_flash_prev)
 	{
@@ -184,20 +241,40 @@ void(float raw_w, float raw_h) CY_DrawHUD =
 		return;
 	}
 
-	if (time < cy_flash_until)
-		CY_DrawEdgeFlash (w, h, cy_flash_until - time);
+	flash_rem = cy_flash_until - time;
+	if (flash_rem > 0)
+		CY_DrawEdgeFlash (w, h, flash_rem);
 
 	mode = getstati (CYST_MODE);
-	if (mode <= 0)
-		return;
-
-	prog = getstati (CYST_PROG);
 	kind = getstati (CYST_KIND);
-	dist = max (0, floor (getstati (CYST_DIST) + 0.5));
+	targ = CY_TargetLabel (kind);
 
 	rx = w - 8;
 	ry = (bm_topright_y > 8) ? bm_topright_y : 8;
 	row_step = (BM_GetUIFont () > 0) ? 10.5 : 9;
+
+	// Animated top-right capture callout during the 0.90s dopamine burst
+	if (flash_rem > 0 && mode != 4)
+	{
+		cyc = floor (time * 16);
+		cyc = cyc - 3 * floor (cyc / 3);
+		if (cyc == 0)
+			banner = strcat ("^2*** ^7CAUGHT ", targ, "! ^2***");
+		else if (cyc == 1)
+			banner = strcat ("^3*** ^x3f6CAUGHT ", targ, "! ^3***");
+		else
+			banner = strcat ("^7*** ^3CAUGHT ", targ, "! ^7***");
+		flash_a = bound (0, flash_rem / 0.22, 1);
+		BM_ShadowColorRight (rx, ry, banner, 5.4, flash_a);
+		ry = ry + row_step + 1;
+		bm_topright_y = ry;
+	}
+
+	if (mode <= 0)
+		return;
+
+	prog = getstati (CYST_PROG);
+	dist = max (0, floor (getstati (CYST_DIST) + 0.5));
 
 	if (mode == 1)
 	{
@@ -230,7 +307,6 @@ void(float raw_w, float raw_h) CY_DrawHUD =
 		return;
 	}
 
-	targ = CY_TargetLabel (kind);
 	ts = CY_FormatTenths (bound (0, prog, 300));
 
 	if (mode == 2)

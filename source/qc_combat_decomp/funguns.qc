@@ -112,7 +112,7 @@ string(float g) FunGun_Name =
 	if (g == FG_GARAND)
 		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_CYRAX)
-		return "Cyrax Net - hold fire 1.8s to fire net, click to Bonk Launch!";
+		return "Cyrax Net - hold fire 1.1s to fire net, click to Bonk Launch!";
 	if (g == FG_WCANNON)
 		return "Wheelman Cannon - hold fire to charge";
 	if (g == FG_DOOKIE)
@@ -365,6 +365,12 @@ void() FunGun_Attack =
 		Garand_Press ();	// stand-alone M1 Garand rifle: exempt from bm_fg_lock (garand.qc)
 		return;
 	}
+	if (g == FG_CYRAX)
+	{
+		self.fg_dry_held = FALSE;
+		Cyrax_Press ();		// no reload / never runs dry: hold fire 1.1s to launch net (cyrax.qc)
+		return;
+	}
 	if (time < self.fg_lock_t && g != self.fg_lock_gun)
 	{
 		if (!self.fg_dry_held && time >= self.fg_lock_msg)
@@ -381,8 +387,6 @@ void() FunGun_Attack =
 	a = FunGun_Ammo (self, g);
 	if (g == FG_PONG && a < 1 && cvar ("gj_test"))
 		a = 1;		// gj_test: Jar o' Green Guys never runs dry during testing
-	if (g == FG_CYRAX && a < 1 && (autocvar_cyrax_test != 0 || cvar ("cyrax_test") != 0))
-		a = 1;
 	if (a < 1)
 	{
 		if (!self.fg_dry_held)
@@ -400,19 +404,12 @@ void() FunGun_Attack =
 				centerprint (self, "The cannon is still reloading\n");
 			if (g == FG_DOB)
 				centerprint (self, "The Rob Drone is still recharging\n");
-			if (g == FG_CYRAX)
-				centerprint (self, "The Cyrax Net is still recharging\n");
 			sound7 (self, CHAN_WEAPON, "weapons/pkup.wav", 0.4, ATTN_NORM, SNDSPD);
 		}
 		self.attack_finished = time + 0.3;
 		return;
 	}
 	self.fg_dry_held = FALSE;
-	if (g == FG_CYRAX)
-	{
-		Cyrax_Press ();		// holds fire 1.8s to launch net (cyrax.qc)
-		return;
-	}
 	if (g == FG_PONG)
 	{
 		GJ_Press ();		// holds fire to cocktail-shake; GJ_Frame hurls it on release (greenjar.qc)

@@ -17,7 +17,7 @@ Mortal Kombat 3 Cyrax green energy net weapon:
 ================
 */
 
-float	CY_CHARGE_TIME		= 1.8;		// full hold time required to fire
+float	CY_CHARGE_TIME		= 1.1;		// snappy hold time required to fire
 float	CY_NET_SPEED		= 950;		// projectile velocity u/s
 float	CY_NET_LIFE			= 4.0;		// max projectile flight time
 float	CY_HOLD_MAX			= 30.0;		// max capture/pull/hold duration
@@ -31,7 +31,7 @@ float	CY_BONK_SPEED		= 1800;		// launch speed along shooter's aim vector
 float	CY_BONK_UP			= 140;		// slight upward lift on launch
 float	CY_RECOIL_PUSH		= 140;		// shooter pushback on net fire
 
-// progs/v_cyrax.md3 skin ranges (56 skins total: 0..55)
+// progs/v_cyrax.md3 skin ranges (68 skins total: 0..67)
 float	CY_VM_IDLE_SKIN		= 0;		// 0..7   (8f)
 float	CY_VM_IDLE_COUNT	= 8;
 float	CY_VM_CHARGE_SKIN	= 8;		// 8..31  (24f)
@@ -42,10 +42,13 @@ float	CY_VM_DRAW_SKIN		= 44;		// 44..49 (6f)
 float	CY_VM_DRAW_COUNT	= 6;
 float	CY_VM_VENT_SKIN		= 50;		// 50..55 (6f)
 float	CY_VM_VENT_COUNT	= 6;
+float	CY_VM_CATCH_SKIN	= 56;		// 56..67 (12f: dopamine capture celebration)
+float	CY_VM_CATCH_COUNT	= 12;
 
-float	CY_FIRE_ANIM_TIME	= 0.52;
+float	CY_FIRE_ANIM_TIME	= 0.36;
 float	CY_DRAW_ANIM_TIME	= 0.25;
 float	CY_VENT_ANIM_TIME	= 0.42;
+float	CY_CATCH_ANIM_TIME	= 0.72;
 
 var float	autocvar_cyrax_test	= 0;	// 1 = allow capturing yourself in solo testing
 
@@ -64,7 +67,9 @@ float	cy_fx_bonk_launch;
 .float	cy_fire_t;			// timestamp when net fired
 .float	cy_vent_t;			// timestamp when early abort vented
 .float	cy_draw_t;			// timestamp when viewmodel raised
-.float	cy_empty;			// TRUE while out of ammo after fire/vent anim
+.float	cy_catch_t;			// timestamp when dopamine capture animation started
+.float	cy_tether_t;		// next green tether particle stream timestamp
+.float	cy_empty;			// unused (Cyrax has no reload/empty state)
 .entity	cy_vm;				// dedicated viewmodel entity for progs/v_cyrax.md3 skins 0..55
 .float	cy_vm_was_on;		// viewmodel tracking flag
 
