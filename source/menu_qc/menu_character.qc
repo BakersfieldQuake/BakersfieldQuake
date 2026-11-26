@@ -33,6 +33,9 @@ float g_char_flash_t;
 float g_char_loading;		// our backdrop map is loading: the engine closes the menu on its own then
 float g_char_ready_t;
 float g_char_load_t;
+float g_char_saved_dm;		// the player's deathmatch / coop / maxplayers before the backdrop map changed them
+float g_char_saved_coop;
+float g_char_saved_maxp;
 string g_char_status;
 
 // ---------------------------------------------------------------- Color & Preset Tables
@@ -206,6 +209,14 @@ void() BM_Character_Shutdown =
 	g_char_status = BM_ZoneSet(g_char_status, "");
 };
 
+// the backdrop map (map practice, single player) is ours: leave it and put back the match settings it changed
+void() BM_Char_LeaveBackdrop =
+{
+	cvar_set("bm_char_bg_owned", "0");
+	localcmd(strcat("set bm_menu_bg 0; disconnect; deathmatch ", ftos(g_char_saved_dm), "; coop ", ftos(g_char_saved_coop),
+		"; maxplayers ", ftos(max(1, g_char_saved_maxp)), "\n"));
+};
+
 void() BM_Character_OnMenuHide =
 {
 	g_char_dragging = FALSE;
@@ -213,10 +224,7 @@ void() BM_Character_OnMenuHide =
 		return;		// not the player leaving: `map` closes the menu, and BM_Character_Frame reopens it
 	cvar_set("bm_char_open", "0");
 	if (cvar("bm_char_bg_owned") > 0)
-	{
-		cvar_set("bm_char_bg_owned", "0");
-		localcmd("set bm_menu_bg 0; disconnect\n");
-	}
+		BM_Char_LeaveBackdrop();
 };
 
 void() BM_Character_Open =
@@ -236,6 +244,9 @@ void() BM_Character_Open =
 	if (clientstate() < CS_CONNECTED)
 	{
 		cvar_set("bm_char_bg_owned", "1");
+		g_char_saved_dm = cvar("deathmatch");
+		g_char_saved_coop = cvar("coop");
+		g_char_saved_maxp = cvar("maxplayers");
 		g_char_loading = TRUE;
 		g_char_ready_t = 0;
 		g_char_load_t = gettime();
@@ -279,10 +290,7 @@ void() BM_Character_Close =
 	BM_PlaySound("sound/misc/menu3.wav");
 	cvar_set("bm_char_open", "0");
 	if (cvar("bm_char_bg_owned") > 0)
-	{
-		cvar_set("bm_char_bg_owned", "0");
-		localcmd("set bm_menu_bg 0; disconnect\n");
-	}
+		BM_Char_LeaveBackdrop();
 	g_page = PAGE_MAIN;
 };
 
@@ -354,7 +362,7 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 	cvar_set("bm_char_vp_x", ftos(vp_x));
 	cvar_set("bm_char_vp_y", ftos(vp_y));
 	cvar_set("bm_char_vp_w", ftos(vp_w));
-	cvar_set("bm_char_vp_h", ftos(vp_h - 44));	// frame the model above the control bar
+	cvar_set("bm_char_vp_h", ftos(vp_h));	// the whole preview rectangle: the studio pass fills it (the control bar is drawn over it)
 	BM_Char_SyncCameraCvars();
 };
 

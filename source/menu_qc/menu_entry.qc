@@ -134,6 +134,39 @@ void(float mode) m_toggle =
 	}
 };
 
+// "menu_cmd studio [hats|colors|hat N|close]": open the Character Studio from the console or a bind
+void(string cmd) GameCommand =
+{
+	tokenize(cmd);
+	if (argv(0) != "studio")
+	{
+		print("menu_cmd studio [hats|colors|hat <0-8>|close]\n");
+		return;
+	}
+	if (argv(1) == "close")
+	{
+		if (g_page == PAGE_CHARACTER)
+			BM_Character_Close();
+		if (g_menu_open)
+			m_toggle(0);
+		return;
+	}
+	if (!g_menu_open || g_page != PAGE_CHARACTER)
+	{
+		m_toggle(1);
+		BM_Character_Open();
+	}
+	if (argv(1) == "hats")
+		g_char_tab = CHAR_TAB_HATS;
+	else if (argv(1) == "colors")
+		g_char_tab = CHAR_TAB_COLORS;
+	else if (argv(1) == "hat")
+	{
+		g_char_tab = CHAR_TAB_HATS;
+		BM_Char_PickHat(bound(0, floor(stof(argv(2))), CHAR_HAT_COUNT));
+	}
+};
+
 void() m_draw =
 {
 	local vector mp;

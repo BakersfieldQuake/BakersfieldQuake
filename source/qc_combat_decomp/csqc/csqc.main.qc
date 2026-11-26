@@ -393,14 +393,43 @@ void(float w, float h) MMT_DrawAimReticle2D =
 	drawfill((sp_x - 0.5) * '1 0 0' + (sp_y + r - 3) * '0 1 0', '1 3 0', col, 0.9, 0);
 };
 
+// "bm_ftlog 1": every 5 s print the real frame-to-frame time (frames, average fps, slowest frame, frames under 60 fps)
+float bm_ft_last, bm_ft_n, bm_ft_sum, bm_ft_max, bm_ft_slow, bm_ft_next;
+void() BM_FrameTimeLog =
+{
+	local float now, dt;
+
+	now = gettime (0);		// GETTIME_FRAMESTART: real time, not game time
+	dt = now - bm_ft_last;
+	bm_ft_last = now;
+	if (dt <= 0 || dt > 1)
+		return;
+	bm_ft_n = bm_ft_n + 1;
+	bm_ft_sum = bm_ft_sum + dt;
+	if (dt > bm_ft_max)
+		bm_ft_max = dt;
+	if (dt > 1 / 60)
+		bm_ft_slow = bm_ft_slow + 1;
+	if (now < bm_ft_next)
+		return;
+	if (bm_ft_next > 0)
+		print ("BQ_FT frames ", ftos (bm_ft_n), " avg_fps ", ftos (rint (bm_ft_n / bm_ft_sum)), " max_ms ",
+			strcat (ftos (rint (bm_ft_max * 1000)), " under60 ", ftos (bm_ft_slow), "\n"));
+	bm_ft_next = now + 5;
+	bm_ft_n = 0;
+	bm_ft_sum = 0;
+	bm_ft_max = 0;
+	bm_ft_slow = 0;
+};
+
 void(float w, float h) CSQC_UpdateView =
 {
 	local float bm_intro, hud_style, cw, ch, fd_mode, jb_active, char_open;
 
 	initConvars();
+	if (cvar("bm_ftlog") > 0)
+		BM_FrameTimeLog();
 	char_open = cvar("bm_char_open");
-	if (char_open <= 0)
-		bm_char_anchored = FALSE;
 	if (char_open <= 0 || cvar("bm_char_bg_owned") <= 0)
 		BM_Hat_SendChoice();
 
@@ -448,11 +477,14 @@ void(float w, float h) CSQC_UpdateView =
 		RH_AddXRayEntities();
 	if (!inMenu && !bm_intro)
 		MMT_DrawAimLine3D();
-	if (char_open > 0)
-		BM_Char_AddToView();
 	renderscene();
 	if (char_open > 0)
+	{
+		// the studio's own scene goes in a second pass over the editor's preview rectangle, after the normal one
+		// (like split-screen). As the frame's only render it crashed the engine, so the world is always drawn first.
+		BM_Char_Render(w, h);
 		return;		// the editor draws its own interface; no HUD behind it
+	}
 	bm_ui_skip_scale = FALSE;
 	drawfont = BM_GetUIFont();
 	if (bm_intro)
