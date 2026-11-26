@@ -21,7 +21,8 @@ EOF
 }
 
 # Visible terminal: double-clicking the app reopens this launcher in an iTerm window (Terminal.app if iTerm isn't
-# installed), so the update progress and the engine's console output show. BQ_NO_TERMINAL=1 keeps it hidden.
+# installed), so the engine's console output shows. Updates use the same GUI window as Windows/Linux.
+# BQ_NO_TERMINAL=1 keeps it hidden.
 # iTerm is driven by AppleScript (macOS asks once to allow BAKOQUAKE to control iTerm); Terminal runs .command files.
 if [ -z "${BQ_IN_TERMINAL:-}" ] && [ "${BQ_NO_TERMINAL:-0}" != 1 ]; then
     RUN="${TMPDIR:-/tmp}/bakoquake-run.command"   # TMPDIR has no spaces, which iTerm's command string needs
@@ -61,7 +62,6 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
             # The frozen Python carries no CA list of its own; every macOS has this one.
             export SSL_CERT_FILE=/etc/ssl/cert.pem
             UPD=("$APP/MacOS/bq-update" --launch --root "$DATA" --platform macos-app)
-            [ -n "${BQ_IN_TERMINAL:-}" ] && UPD+=(--no-gui)   # text progress and prompts in the terminal window
             [ -f "$APP/Resources/mac-inputs" ] && UPD+=(--bundle-mac-inputs "$APP/Resources/mac-inputs")
             [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")
             [ -n "${BQ_FALLBACK_URL+x}" ] && UPD+=(--fallback-url "$BQ_FALLBACK_URL")

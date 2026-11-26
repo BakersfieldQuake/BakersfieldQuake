@@ -1539,8 +1539,33 @@ def build_player_id1_with_deaths(mdl_info, selected_anims, anorms):
     skin_len = mdl_info["nskins"] * (4 + mdl_info["sw"] * mdl_info["sh"])
     vt_len = 212 * 12 + 408 * 16
     prefix_end = 84 + skin_len + vt_len
-    new_mdl = new_hdr + mdl_info["raw"][84:prefix_end] + b"".join(mdl_info["raw_frames"]) + b"".join(extra_frames)
+    base_frames = list(mdl_info["raw_frames"])
+    base_frames[243:255] = build_jump_frames(mdl_info, anorms)
+    new_mdl = new_hdr + mdl_info["raw"][84:prefix_end] + b"".join(base_frames) + b"".join(extra_frames)
     return new_mdl, manifest
+
+
+# Jump frames 243-254 (axjump1-4, jump1-8 in quake15's player.mdl, which player.qc plays in the air) are "pad"
+# copies of stand1 in player_id1.mdl, so the classic Ranger froze mid-jump (GitHub issue #3). Fill them with the
+# model's own run strides: (name, run frame A, run frame B, blend). Frames 2/3 = axrun3/4, 8/9 = rockrun3/4.
+# ponytail: reused run poses, not purpose-made jump poses; replace with keyframed airborne poses if they look off.
+JUMP_FRAMES = [
+    ("axjump1", 2, 2, 0.0), ("axjump2", 2, 3, 0.5), ("axjump3", 3, 3, 0.0), ("axjump4", 3, 3, 0.0),
+    ("jump1", 8, 8, 0.0), ("jump2", 8, 9, 0.5),
+    ("jump3", 9, 9, 0.0), ("jump4", 9, 9, 0.0), ("jump5", 9, 9, 0.0),
+    ("jump6", 9, 9, 0.0), ("jump7", 9, 9, 0.0), ("jump8", 9, 9, 0.0),
+]
+
+
+def build_jump_frames(mdl_info, anorms):
+    """Packed frames 243-254 for player_id1.mdl, blended from its run frames (see JUMP_FRAMES)."""
+    out = []
+    for name, a, b, t in JUMP_FRAMES:
+        _, va = mdl_info["get_frame"](a)
+        _, vb = mdl_info["get_frame"](b)
+        verts = [_vlerp(p, q, t) for p, q in zip(va, vb)]
+        out.append(_pack_mdl_frame(name, verts, mdl_info["tris"], mdl_info["scale"], mdl_info["trans"], anorms))
+    return out
 
 
 # ---------------------------------------------------------------------------

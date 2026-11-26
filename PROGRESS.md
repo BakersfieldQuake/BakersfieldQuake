@@ -306,3 +306,18 @@
   tests) are now also used by Bakersfield-ish.
 - Merged onto v1.80: heat-seeker HUD stats moved from 120-123 to 124-127 (Bakersfield-ish uses 120/121). Muted Linux
   smoke runs on the merged build (Downtown, kart spawns and lock-on, bed, drone, Host menu) showed no new warnings.
+
+## 2026-11-26 — macOS updater GUI, Ranger jump frames, DMG on every release
+
+- Outcome:
+  - `source/mac/launcher.sh`: dropped `--no-gui` on the launch-time update, so the Mac app uses the same Tk updater
+    window as Windows/Linux. The terminal window stays for the engine console.
+  - GitHub issue #3: `build_player_deaths.py` fills `player_id1.mdl` frames 243-254 (axjump1-4, jump1-8) from the
+    model's run strides (frames 2/3 and 8/9, halfway blends at 244/248). They were stand1 copies, so the classic
+    Ranger froze mid-jump.
+  - `build-zip.yml`: releases that build no DMG copy the newest one forward, so every release (and
+    `releases/latest/download/`) has `BAKOQUAKE-macos-arm64.dmg`. Before this, the only DMG was on v1.66.
+- Verification: `bash -n` on the launcher; built `zz_player_deaths.pk3` locally with `--verify-repro` and checked that
+  frames 243/247 differ from stand1 and the death frames still start at 288; workflow YAML parses. Not checked: the jump
+  in game, the Tk window on a Mac, and the DMG copy step (first runs on the release after next).
+- Follow-up: in-game check of the jump (chasecam on `start`), then close #3.
