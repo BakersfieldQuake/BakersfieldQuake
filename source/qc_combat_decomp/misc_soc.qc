@@ -501,7 +501,9 @@ void() misc_model_on =
 	else
 	{
 		self.frame = self.pos1_z;
-		if (!self.solid && self.targetname == "" && !self.partname && !(self.spawnflags & 65) &&
+		// props with a distance cull (misc_model_indoor_customize) stay networked: a static entity ignores it, and the
+		// client then occlusion-traces every indoor chair and stool in view of the street each frame (2026-11-26)
+		if (!self.solid && self.targetname == "" && !self.partname && !(self.spawnflags & 65) && !self.customizeentityforclient &&
 		    (!self.scale || self.scale == 1) && (!self.alpha || self.alpha == 1) && !self.effects &&
 		    self.mdl != "progs/bklan/soda_can.md3" && self.mdl != "progs/bklan/soda_bottle.md3" && self.mdl != "progs/bklan/cup.md3")
 		{
@@ -620,6 +622,9 @@ void() misc_model =
 		self.use = entity_state_use;
 	}
 	if (substring(self.mdl, 0, 14) == "progs/fox/pad_" || substring(self.mdl, 0, 20) == "progs/fox/fox_chande")
+		self.customizeentityforclient = misc_model_indoor_customize;
+	// the warehouse LAN gear and the G FUEL shop shelf on the two Bakersfield maps are indoors too
+	else if ((mapname == "bakersfieldish" || mapname == "bakersfielddowntown") && (substring(self.mdl, 0, 12) == "progs/bklan/" || substring(self.mdl, 0, 12) == "progs/gfuel/"))
 		self.customizeentityforclient = misc_model_indoor_customize;
 	self.estate_on = misc_model_on;
 	self.estate_off = misc_model_off;
