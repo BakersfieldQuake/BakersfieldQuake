@@ -1,5 +1,5 @@
-// BakersfieldQuake CSQC - 3D Character Customizer Studio Renderer
-// Modular viewport renderer driven by MenuQC cvars (bm_char_* + _cl_color).
+// BakersfieldQuake CSQC - Character Studio preview
+// Adds the preview player to the normal view, driven by MenuQC cvars (bm_char_*, bm_hat, _cl_color).
 
 float BM_VF_MIN            = 1;
 float BM_VF_SIZE           = 4;
@@ -16,6 +16,7 @@ float BM_EF_FULLBRIGHT     = 512;
 entity bm_char_ent;
 entity bm_char_hat;
 float bm_char_hat_shown;
+float bm_char_anchored;		// the preview spot is picked once each time the editor opens
 float bm_hat_sent;		// the choice last sent to the server
 float bm_hat_send_t;
 entity bm_char_legs;
@@ -65,7 +66,7 @@ void() BM_Char_Init =
 	registercvar("bm_char_vp_y", "0");
 	registercvar("bm_char_vp_w", "320");
 	registercvar("bm_char_vp_h", "240");
-	registercvar("bm_char_yaw", "152");
+	registercvar("bm_char_yaw", "25");
 	registercvar("bm_char_pitch", "8");
 	registercvar("bm_char_zoom", "1.0");
 	registercvar("bm_char_spin", "1");
@@ -77,6 +78,7 @@ void() BM_Char_Init =
 	precache_model("progs/player_torso.mdl");
 	precache_model("progs/player_low.mdl");
 
+	bm_char_anchored = FALSE;
 	bm_char_ent = world;
 	bm_char_hat = world;
 	bm_char_hat_shown = 0;
@@ -113,87 +115,6 @@ void() BM_Char_Shutdown =
 	{
 		strunzone(bm_char_cur_legs);
 		bm_char_cur_legs = "";
-	}
-};
-
-// Emit a double-sided quad so studio geometry never vanishes under default backface culling
-void(vector p0, vector p1, vector p2, vector p3, vector c0, vector c1, vector c2, vector c3, float a) BM_Char_Quad =
-{
-	R_BeginPolygon("", 0, FALSE);
-	R_PolygonVertex(p0, '0 0 0', c0, a);
-	R_PolygonVertex(p1, '1 0 0', c1, a);
-	R_PolygonVertex(p2, '1 1 0', c2, a);
-	R_PolygonVertex(p3, '0 1 0', c3, a);
-	R_EndPolygon();
-
-	R_BeginPolygon("", 0, FALSE);
-	R_PolygonVertex(p3, '0 1 0', c3, a);
-	R_PolygonVertex(p2, '1 1 0', c2, a);
-	R_PolygonVertex(p1, '1 0 0', c1, a);
-	R_PolygonVertex(p0, '0 0 0', c0, a);
-	R_EndPolygon();
-};
-
-void(vector p0, vector p1, vector p2, vector c0, vector c1, vector c2, float a) BM_Char_Tri =
-{
-	R_BeginPolygon("", 0, FALSE);
-	R_PolygonVertex(p0, '0 0 0', c0, a);
-	R_PolygonVertex(p1, '1 0 0', c1, a);
-	R_PolygonVertex(p2, '0.5 1 0', c2, a);
-	R_EndPolygon();
-
-	R_BeginPolygon("", 0, FALSE);
-	R_PolygonVertex(p2, '0.5 1 0', c2, a);
-	R_PolygonVertex(p1, '1 0 0', c1, a);
-	R_PolygonVertex(p0, '0 0 0', c0, a);
-	R_EndPolygon();
-};
-
-void(vector cam_org, vector cam_fwd, vector cam_right, vector cam_up, float top_c) BM_Char_DrawStage =
-{
-	local vector bg_c, tl, tr, br, bl, c_top, c_bot;
-	local float segs, i, a0, a1, r_in, r_out, r_rim, z_top, z_bot;
-	local vector p0, p1, q0, q1, d0, d1, center_pt, col_in, col_out, col_rim;
-
-	// 1. Far studio backdrop gradient plane facing the camera
-	bg_c = cam_org + cam_fwd * 420;
-	tl = bg_c - cam_right * 460 + cam_up * 320;
-	tr = bg_c + cam_right * 460 + cam_up * 320;
-	br = bg_c + cam_right * 460 - cam_up * 320;
-	bl = bg_c - cam_right * 460 - cam_up * 320;
-	c_top = '0.03 0.035 0.055';
-	c_bot = '0.09 0.055 0.04';
-	BM_Char_Quad(tl, tr, br, bl, c_top, c_top, c_bot, c_bot, 1.0);
-
-	// 2. Sculpted 16-sided studio pedestal under character feet (z = -24.5)
-	segs = 16;
-	r_in = 17;
-	r_out = 26;
-	r_rim = 28;
-	z_top = -24.5;
-	z_bot = -31.0;
-	center_pt = '0 0 -24.5';
-	col_in = '0.20 0.14 0.10';
-	col_out = '0.09 0.07 0.06';
-	col_rim = '0.92 0.62 0.18';
-
-	for (i = 0; i < segs; i = i + 1)
-	{
-		a0 = (i / segs) * 360;
-		a1 = ((i + 1) / segs) * 360;
-
-		p0 = BM_Char_CosDeg(a0) * r_in * '1 0 0' + BM_Char_SinDeg(a0) * r_in * '0 1 0' + z_top * '0 0 1';
-		p1 = BM_Char_CosDeg(a1) * r_in * '1 0 0' + BM_Char_SinDeg(a1) * r_in * '0 1 0' + z_top * '0 0 1';
-		q0 = BM_Char_CosDeg(a0) * r_out * '1 0 0' + BM_Char_SinDeg(a0) * r_out * '0 1 0' + z_top * '0 0 1';
-		q1 = BM_Char_CosDeg(a1) * r_out * '1 0 0' + BM_Char_SinDeg(a1) * r_out * '0 1 0' + z_top * '0 0 1';
-		d0 = BM_Char_CosDeg(a0) * r_rim * '1 0 0' + BM_Char_SinDeg(a0) * r_rim * '0 1 0' + z_bot * '0 0 1';
-		d1 = BM_Char_CosDeg(a1) * r_rim * '1 0 0' + BM_Char_SinDeg(a1) * r_rim * '0 1 0' + z_bot * '0 0 1';
-
-		// Inner disc & bevel ring
-		BM_Char_Tri(center_pt, p0, p1, col_in, col_out, col_out, 1.0);
-		BM_Char_Quad(p0, p1, q1, q0, col_out, col_out, col_rim * 0.55, col_rim * 0.55, 1.0);
-		// Glowing gold side skirt
-		BM_Char_Quad(q0, q1, d1, d0, col_rim * 0.72, col_rim * 0.72, '0.04 0.03 0.025', '0.04 0.03 0.025', 1.0);
 	}
 };
 
@@ -235,37 +156,54 @@ void(entity ent, float pose) BM_Char_UpdatePose =
 	ent.frame2 = f0 + nidx;
 };
 
-void(float w, float h) BM_Char_Render =
+float BM_CHAR_VF_FOV = 8;
+
+vector bm_char_base;		// the preview player's origin
+vector bm_char_fwd;			// flat direction from the camera to the preview
+float bm_char_reach;		// how far ahead of the player the preview stands
+
+// Pick a spot on the floor a little way ahead of the local player.
+void() BM_Char_Anchor =
+{
+	local vector eye, ahead, pos;
+
+	eye = getentityvec (player_localentnum, E_ORIGIN);
+	makevectors (view_angles_y * '0 1 0');
+	bm_char_fwd = v_forward;
+	ahead = eye + '0 0 20';
+	traceline (ahead, ahead + bm_char_fwd * 280, TRUE, world);
+	bm_char_reach = bound (80, vlen (trace_endpos - ahead) - 24, 240);
+	pos = eye + bm_char_fwd * bm_char_reach;
+	traceline (pos + '0 0 40', pos - '0 0 400', TRUE, world);
+	if (trace_fraction < 1)
+		pos_z = trace_endpos_z + 24;
+	bm_char_base = pos;
+	bm_char_anchored = TRUE;
+};
+
+// Add the preview player (and hat) to the view that is about to be rendered, and point the camera at it.
+// This deliberately uses the game's normal scene: a separate render of its own crashed the engine.
+void() BM_Char_AddToView =
 {
 	local float vp_x, vp_y, vp_w, vp_h, yaw, pitch, zoom, dist, pose;
-	local float packed, top_c, bot_c, cmap, half_h, half_w, fovx, fovy;
-	local float cw, ch;
-	local vector target, cam_org, cam_ang, fov_ang, fwd, rgt, upv;
+	local float packed, top_c, bot_c, cmap, cw, ch, hat, extra, f1, f2, lf;
+	local float tan_x, tan_y, ndc_x, ndc_y, turn;
+	local vector fov, target, cam_org, cam_ang, right, ofs, hmax, shift;
 	local string body_mdl, legs_mdl;
-	local float hat, extra, f1, f2, lf;
-	local vector hmin, hmax;
 
 	cw = cvar("vid_conwidth");
 	ch = cvar("vid_conheight");
-	if (cw <= 0) cw = w;
-	if (ch <= 0) ch = h;
-	if (cw <= 0 || ch <= 0)
-		return;
-
 	vp_x = cvar("bm_char_vp_x");
 	vp_y = cvar("bm_char_vp_y");
 	vp_w = cvar("bm_char_vp_w");
 	vp_h = cvar("bm_char_vp_h");
-	if (vp_w < 64 || vp_h < 64)
-	{
-		vp_x = 20;
-		vp_y = 52;
-		vp_w = floor(cw * 0.52);
-		vp_h = ch - 72;
-	}
+	if (cw <= 0 || ch <= 0 || vp_w < 64 || vp_h < 64)
+		return;
+	if (!bm_char_anchored)
+		BM_Char_Anchor();
 
 	yaw = cvar("bm_char_yaw");
-	pitch = bound(-26, cvar("bm_char_pitch"), 42);
+	pitch = bound(-4, cvar("bm_char_pitch"), 42);
 	zoom = bound(0.62, cvar("bm_char_zoom"), 1.55);
 	pose = floor(cvar("bm_char_pose"));
 
@@ -286,15 +224,13 @@ void(float w, float h) BM_Char_Render =
 		bm_char_cur_mdl = strzone(body_mdl);
 	}
 
-	setorigin(bm_char_ent, '0 0 0');
-	bm_char_ent.angles = '0 0 0';
-	bm_char_ent.scale = 1.0;
-	bm_char_ent.skin = 0;
+	// the model turns on the spot; the camera only tilts and zooms
+	turn = vectoyaw(bm_char_fwd * -1) + yaw;
+	setorigin(bm_char_ent, bm_char_base);
+	bm_char_ent.angles = turn * '0 1 0';
 	bm_char_ent.colormap = cmap;
-	bm_char_ent.effects = BM_EF_NOSHADOW;
 	BM_Char_UpdatePose(bm_char_ent, pose);
 
-	// Optional Combat+ split legs when 3rd_person_visible_weapons is active
 	if (body_mdl == "progs/player_torso.mdl")
 	{
 		legs_mdl = "progs/player_low.mdl";
@@ -308,12 +244,9 @@ void(float w, float h) BM_Char_Render =
 			setmodel(bm_char_legs, legs_mdl);
 			bm_char_cur_legs = strzone(legs_mdl);
 		}
-		setorigin(bm_char_legs, '0 0 0');
-		bm_char_legs.angles = '0 0 0';
-		bm_char_legs.scale = 1.0;
-		bm_char_legs.skin = 0;
+		setorigin(bm_char_legs, bm_char_base);
+		bm_char_legs.angles = turn * '0 1 0';
 		bm_char_legs.colormap = cmap;
-		bm_char_legs.effects = BM_EF_NOSHADOW;
 		BM_Char_UpdatePose(bm_char_legs, pose);
 	}
 
@@ -335,60 +268,49 @@ void(float w, float h) BM_Char_Render =
 		f1 = bm_char_ent.frame;
 		f2 = bm_char_ent.frame2;
 		lf = bm_char_ent.lerpfrac;
-		setorigin (bm_char_hat, BM_HatTagPos (f1) * (1 - lf) + BM_HatTagPos (f2) * lf);
-		bm_char_hat.angles = BM_HatTagAng (f1);
+		ofs = BM_HatTagPos (f1) * (1 - lf) + BM_HatTagPos (f2) * lf;
+		makevectors (bm_char_ent.angles);
+		setorigin (bm_char_hat, bm_char_base + v_forward * ofs_x - v_right * ofs_y + '0 0 1' * ofs_z);
+		bm_char_hat.angles = BM_HatTagAng (f1) + turn * '0 1 0';
 		bm_char_hat.frame = BM_HatAnimFrame (hat, time);
-		bm_char_hat.effects = BM_EF_NOSHADOW;
-		hmin = bm_char_hat.mins;
 		hmax = bm_char_hat.maxs;
-		extra = max (0, hmax_z - 8);		// head top is about 26 up; make room for tall hats
+		extra = max (0, hmax_z - 8);		// make room for tall hats
 	}
 
-	// Orbit camera around character center ('0 0 3')
-	target = '0 0 3';
-	if (zoom < 0.85)
-		target_z = 3 + (0.85 - zoom) * 28;	// smoothly tilt up toward helmet/chest on close-up zoom
-	dist = (82 + extra * 1.5) * zoom;
-	target_z = target_z + extra * 0.55;
+	// Frame the model (feet to hat) inside the editor's preview rectangle, which sits left of the screen centre
+	fov = getpropertyvec(BM_CHAR_VF_FOV);
+	tan_x = sin(fov_x * 0.00872665) / cos(fov_x * 0.00872665);
+	tan_y = sin(fov_y * 0.00872665) / cos(fov_y * 0.00872665);
+	dist = (64 + extra) / (2 * tan_y * 0.78 * (vp_h / ch));
+	dist = min(dist * zoom, bm_char_reach - 20);
 
-	cam_org_x = target_x + dist * BM_Char_CosDeg(pitch) * BM_Char_CosDeg(yaw);
-	cam_org_y = target_y + dist * BM_Char_CosDeg(pitch) * BM_Char_SinDeg(yaw);
-	cam_org_z = target_z + dist * BM_Char_SinDeg(pitch);
+	target = bm_char_base + '0 0 1' * (4 + extra * 0.5);
+	if (zoom < 0.85)
+		target_z = target_z + (0.85 - zoom) * 40;
+	cam_org = target - bm_char_fwd * (dist * cos(pitch * 0.01745329)) + '0 0 1' * (dist * sin(pitch * 0.01745329));
+
+	makevectors(vectoyaw(bm_char_fwd) * '0 1 0');
+	right = v_right;
+	ndc_x = ((vp_x + vp_w * 0.5) / cw) * 2 - 1;
+	ndc_y = 1 - ((vp_y + vp_h * 0.5) / ch) * 2;
+	shift = right * (0 - ndc_x * dist * tan_x) + '0 0 1' * (0 - ndc_y * dist * tan_y);
+	cam_org = cam_org + shift;
+	target = target + shift;
 
 	cam_ang = vectoangles(target - cam_org);
-	makevectors(cam_ang);
-	fwd = v_forward;
-	rgt = v_right;
-	upv = v_up;
+	cam_ang_x = 0 - cam_ang_x;		// view angles pitch the other way round
+	if (cam_ang_x < -180)
+		cam_ang_x = cam_ang_x + 360;
 
-	fovy = 44;
-	half_h = 0.404026;
-	half_w = half_h * (vp_w / vp_h);
-	fov_ang = vectoangles('1 0 0' + '0 1 0' * half_w);
-	if (fov_ang_y > 180)
-		fov_ang_y = fov_ang_y - 360;
-	fovx = fabs(fov_ang_y) * 2;
+	setproperty(VF_ORIGIN, cam_org);
+	setproperty(VF_ANGLES, cam_ang);
+	setproperty(VF_DRAWCROSSHAIR, FALSE);
+	setproperty(VF_DRAWENGINESBAR, FALSE);
+	adddynamiclight(cam_org + right * 30 + '0 0 30', dist + 120, '0.9 0.8 0.65');
 
-	clearscene();
-	setproperty(BM_VF_MIN, vp_x * '1 0 0' + vp_y * '0 1 0');
-	setproperty(BM_VF_SIZE, vp_w * '1 0 0' + vp_h * '0 1 0');
-	setproperty(BM_VF_FOV, fovx * '1 0 0' + fovy * '0 1 0');
-	setproperty(BM_VF_ORIGIN, cam_org);
-	setproperty(BM_VF_ANGLES, cam_ang);
-	setproperty(BM_VF_DRAWWORLD, FALSE);
-	setproperty(BM_VF_DRAWENGINESBAR, FALSE);
-	setproperty(BM_VF_DRAWCROSSHAIR, FALSE);
-
-	// 3-point studio lighting: warm front key, cool rear rim, soft bounce fill
-	adddynamiclight(cam_org + rgt * 54 + upv * 38, 290, '1.35 1.18 0.96');
-	adddynamiclight(target - fwd * 68 - rgt * 52 + upv * 44, 260, '0.45 0.76 1.28');
-	adddynamiclight('0 0 -16', 110, '0.75 0.52 0.20');
-
-	BM_Char_DrawStage(cam_org, fwd, rgt, upv, top_c);
 	addentity(bm_char_ent);
-	if (hat)
-		addentity(bm_char_hat);
 	if (body_mdl == "progs/player_torso.mdl" && bm_char_legs)
 		addentity(bm_char_legs);
-	renderscene();
+	if (hat)
+		addentity(bm_char_hat);
 };

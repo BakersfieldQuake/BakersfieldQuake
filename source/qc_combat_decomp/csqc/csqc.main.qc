@@ -399,13 +399,10 @@ void(float w, float h) CSQC_UpdateView =
 
 	initConvars();
 	char_open = cvar("bm_char_open");
+	if (char_open <= 0)
+		bm_char_anchored = FALSE;
 	if (char_open <= 0 || cvar("bm_char_bg_owned") <= 0)
 		BM_Hat_SendChoice();
-	if (char_open > 0 && cvar("bm_char_bg_owned") > 0)
-	{
-		BM_Char_Render(w, h);
-		return;
-	}
 
 	clearscene();
 	bm_intro = getstati(69);
@@ -451,12 +448,11 @@ void(float w, float h) CSQC_UpdateView =
 		RH_AddXRayEntities();
 	if (!inMenu && !bm_intro)
 		MMT_DrawAimLine3D();
+	if (char_open > 0)
+		BM_Char_AddToView();
 	renderscene();
 	if (char_open > 0)
-	{
-		BM_Char_Render(w, h);
-		return;
-	}
+		return;		// the editor draws its own interface; no HUD behind it
 	bm_ui_skip_scale = FALSE;
 	drawfont = BM_GetUIFont();
 	if (bm_intro)

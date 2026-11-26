@@ -132,7 +132,7 @@ void() BM_Char_ReadSavedColors =
 	local float packed;
 
 	packed = floor(cvar("_cl_color"));
-	g_char_top = bound(0, floor(packed / 16), CHAR_COLOR_COUNT - 1);
+	g_char_top = bound(0, floor(packed / 16.0), CHAR_COLOR_COUNT - 1);
 	g_char_bot = bound(0, modulo(packed, 16), CHAR_COLOR_COUNT - 1);
 };
 
@@ -151,7 +151,7 @@ void(float top_c, float bot_c, string msg) BM_Char_ApplyColors =
 
 	g_char_top = bound(0, floor(top_c), CHAR_COLOR_COUNT - 1);
 	g_char_bot = bound(0, floor(bot_c), CHAR_COLOR_COUNT - 1);
-	packed = g_char_top * 16 + g_char_bot;
+	packed = g_char_top * 16.0 + g_char_bot;
 	cvar_set("_cl_color", ftos(packed));
 	localcmd(strcat("color ", ftos(g_char_top), " ", ftos(g_char_bot), "\n"));
 	g_char_flash_t = gettime();
@@ -161,7 +161,7 @@ void(float top_c, float bot_c, string msg) BM_Char_ApplyColors =
 
 void() BM_Char_ResetView =
 {
-	g_char_yaw = 152;
+	g_char_yaw = 25;
 	g_char_pitch = 8;
 	g_char_target_zoom = 1.0;
 	g_char_zoom = 1.0;
@@ -179,7 +179,7 @@ void() BM_Character_Init =
 	registercvar("bm_char_vp_y", "0", 0);
 	registercvar("bm_char_vp_w", "320", 0);
 	registercvar("bm_char_vp_h", "240", 0);
-	registercvar("bm_char_yaw", "152", 0);
+	registercvar("bm_char_yaw", "25", 0);
 	registercvar("bm_char_pitch", "8", 0);
 	registercvar("bm_char_zoom", "1.0", 0);
 	registercvar("bm_char_spin", "1", 0);
@@ -318,10 +318,10 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 		g_char_prev_my = g_my;
 
 		g_char_yaw = g_char_yaw + dx * 0.68;
-		g_char_pitch = bound(-26, g_char_pitch + dy * 0.42, 42);
+		g_char_pitch = bound(-4, g_char_pitch + dy * 0.42, 42);
 
 		// Exponential velocity smoothing for silky release inertia
-		alpha = min(1, dt * 18);
+		alpha = min(1, dt * 18.0);
 		g_char_vel_yaw = g_char_vel_yaw * (1 - alpha) + (dx * 0.68 / dt) * alpha;
 		g_char_vel_pitch = g_char_vel_pitch * (1 - alpha) + (dy * 0.42 / dt) * alpha;
 	}
@@ -329,7 +329,7 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 	{
 		damp = pow(0.004, dt);
 		g_char_yaw = g_char_yaw + g_char_vel_yaw * dt;
-		g_char_pitch = bound(-26, g_char_pitch + g_char_vel_pitch * dt, 42);
+		g_char_pitch = bound(-4, g_char_pitch + g_char_vel_pitch * dt, 42);
 		g_char_vel_yaw = g_char_vel_yaw * damp;
 		g_char_vel_pitch = g_char_vel_pitch * damp;
 		if (fabs(g_char_vel_yaw) < 1.0)
@@ -337,7 +337,7 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 		if (fabs(g_char_vel_pitch) < 0.5)
 			g_char_vel_pitch = 0;
 		if (g_char_spin && g_char_vel_yaw == 0)
-			g_char_yaw = g_char_yaw + dt * 22;
+			g_char_yaw = g_char_yaw + dt * 22.0;
 	}
 
 	// Keep yaw bounded for clean angle display & float stability
@@ -345,7 +345,7 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 	while (g_char_yaw < 0)    g_char_yaw = g_char_yaw + 360;
 
 	// Smooth camera zoom interpolation
-	g_char_zoom = g_char_zoom + (g_char_target_zoom - g_char_zoom) * min(1, dt * 12);
+	g_char_zoom = g_char_zoom + (g_char_target_zoom - g_char_zoom) * min(1, dt * 12.0);
 
 	g_char_vp_x = vp_x;
 	g_char_vp_y = vp_y;
@@ -354,7 +354,7 @@ void(float vp_x, float vp_y, float vp_w, float vp_h, float in_controls, float cl
 	cvar_set("bm_char_vp_x", ftos(vp_x));
 	cvar_set("bm_char_vp_y", ftos(vp_y));
 	cvar_set("bm_char_vp_w", ftos(vp_w));
-	cvar_set("bm_char_vp_h", ftos(vp_h));
+	cvar_set("bm_char_vp_h", ftos(vp_h - 44));	// frame the model above the control bar
 	BM_Char_SyncCameraCvars();
 };
 
@@ -529,7 +529,7 @@ void(float px, float py, float pw, float ph, float clicked) BM_Char_DrawColorsTa
 		BM_Fill(sx + 2, sy + 2, 6, floor((ch - 4) * 0.5), c_top, 1.0);
 		BM_Fill(sx + 2, sy + 2 + floor((ch - 4) * 0.5), 6, floor((ch - 4) * 0.5), c_bot, 1.0);
 
-		BM_DrawText(sx + 10, sy + floor((ch - 6) * 0.5), BM_Char_PresetName(p), BM_Char_FitSize(BM_Char_PresetName(p), 6.5, cw - 12), (active_p || hov) ? '1 1 1' : COL_TEXT, 0.95);
+		BM_DrawText(sx + 10, sy + floor((ch - 6) * 0.5), BM_Char_PresetName(p), BM_Char_FitSize(BM_Char_PresetName(p), 6.5, cw - 15), (active_p || hov) ? '1 1 1' : COL_TEXT, 0.95);
 		BM_Outline(sx, sy, cw, ch, active_p ? COL_ACCENT : (hov ? COL_HIGHLIGHT : COL_BORDER), active_p ? 0.95 : 0.65, active_p ? 1.5 : 1);
 
 		if (clicked && hov)
@@ -540,14 +540,14 @@ void(float px, float py, float pw, float ph, float clicked) BM_Char_DrawColorsTa
 		}
 	}
 
-	cy = cy + 2 * (ch + gap) + 3;
+	cy = cy + 2.0 * (ch + gap) + 3;
 
 	// ---- Primary / Armor (Shirt) Color Grid
 	pick_top = BM_Char_DrawColorGrid(gx, cy, gw, sh, "ARMOR", g_char_top, clicked);
 	if (pick_top >= 0)
 		BM_Char_ApplyColors(pick_top, g_char_bot, strcat("ARMOR: ", BM_Char_ColorName(pick_top)));
 
-	cy = cy + 11 + 2 * (sh + 3) + 4;
+	cy = cy + 11 + 2.0 * (sh + 3) + 4;
 
 	// ---- Secondary / Trim (Pants) Color Grid
 	pick_bot = BM_Char_DrawColorGrid(gx, cy, gw, sh, "LEGS", g_char_bot, clicked);
@@ -615,11 +615,11 @@ void(float px, float py, float pw, float ph, float clicked) BM_Char_DrawHatsTab 
 	BM_DrawText(gx, py, "PICK A HAT", 7, COL_MUTED, 0.95);
 	cy = py + 11;
 	bw = floor((gw - 4) * 0.5);
-	bh = bound(12, floor((fy - 8 - cy) / 5) - 3, 24);	// five rows of two
+	bh = bound(12, floor((fy - 8 - cy) / 5.0) - 3, 24);	// five rows of two
 	for (h = 0; h <= CHAR_HAT_COUNT; h = h + 1)
 	{
 		sx = gx + modulo(h, 2) * (bw + 4);
-		sy = cy + floor(h / 2) * (bh + 3);
+		sy = cy + floor(h / 2.0) * (bh + 3);
 		hov = BM_Char_Button(sx, sy, bw, bh, BM_Char_HatName(h), (cur == h), FALSE);
 		if (clicked && hov)
 		{
@@ -715,9 +715,9 @@ void(float clicked) BM_Character_Draw =
 	BM_Fill(vp_x + 8, bar_y - 3, vp_w - 16, 24, '0.04 0.03 0.03', 0.78);
 	BM_Outline(vp_x + 8, bar_y - 3, vp_w - 16, 24, COL_BORDER, 0.65, 1);
 
-	k = min(1, (vp_w - 24) / 285);
+	k = min(1, (vp_w - 24) / 285.0);
 	bx = vp_x + 12;
-	bw = floor(46 * k);
+	bw = floor(46.0 * k);
 	for (i = 0; i < CHAR_POSE_COUNT; i = i + 1)
 	{
 		hov = BM_Char_Button(bx, bar_y, bw, 18, BM_Char_PoseLabel(i), (g_char_pose == i), FALSE);
@@ -734,8 +734,8 @@ void(float clicked) BM_Character_Draw =
 	// Right side of viewport toolbar: Spin, Zoom -, Zoom +, Reset
 	bx = vp_x + vp_w - 12;
 
-	bx = bx - floor(48 * k);
-	hov = BM_Char_Button(bx, bar_y, floor(48 * k), 18, "RESET", FALSE, FALSE);
+	bx = bx - floor(48.0 * k);
+	hov = BM_Char_Button(bx, bar_y, floor(48.0 * k), 18, "RESET", FALSE, FALSE);
 	if (hov) in_ctrl = TRUE;
 	if (clicked && hov)
 	{
@@ -744,8 +744,8 @@ void(float clicked) BM_Character_Draw =
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
 
-	bx = bx - floor(22 * k);
-	hov = BM_Char_Button(bx, bar_y, floor(19 * k), 18, "+", FALSE, FALSE);
+	bx = bx - floor(22.0 * k);
+	hov = BM_Char_Button(bx, bar_y, floor(19.0 * k), 18, "+", FALSE, FALSE);
 	if (hov) in_ctrl = TRUE;
 	if (clicked && hov)
 	{
@@ -754,8 +754,8 @@ void(float clicked) BM_Character_Draw =
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
 
-	bx = bx - floor(22 * k);
-	hov = BM_Char_Button(bx, bar_y, floor(19 * k), 18, "-", FALSE, FALSE);
+	bx = bx - floor(22.0 * k);
+	hov = BM_Char_Button(bx, bar_y, floor(19.0 * k), 18, "-", FALSE, FALSE);
 	if (hov) in_ctrl = TRUE;
 	if (clicked && hov)
 	{
@@ -764,8 +764,8 @@ void(float clicked) BM_Character_Draw =
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
 
-	bx = bx - floor(46 * k);
-	hov = BM_Char_Button(bx, bar_y, floor(43 * k), 18, g_char_spin ? "SPIN" : "HOLD", g_char_spin, FALSE);
+	bx = bx - floor(46.0 * k);
+	hov = BM_Char_Button(bx, bar_y, floor(43.0 * k), 18, g_char_spin ? "SPIN" : "HOLD", g_char_spin, FALSE);
 	if (hov) in_ctrl = TRUE;
 	if (clicked && hov)
 	{
@@ -774,7 +774,7 @@ void(float clicked) BM_Character_Draw =
 		BM_PlaySound("sound/misc/menu1.wav");
 	}
 
-	zoom_pct = rint((1.0 / max(0.5, g_char_zoom)) * 100);
+	zoom_pct = rint((1.0 / max(0.5, g_char_zoom)) * 100.0);
 	BM_DrawTextRight(vp_x + vp_w - 12, vp_y + 12, strcat("ZOOM ", ftos(zoom_pct), "%"), 6, COL_MUTED, 0.90);
 
 	// Update orbit / inertia / zoom & push exact viewport coordinates to CSQC
@@ -833,12 +833,12 @@ void(float key, float ascii) BM_Character_KeyDown =
 	}
 	if (key == K_UPARROW)
 	{
-		g_char_pitch = bound(-26, g_char_pitch - 6, 42);
+		g_char_pitch = bound(-4, g_char_pitch - 6, 42);
 		return;
 	}
 	if (key == K_DOWNARROW)
 	{
-		g_char_pitch = bound(-26, g_char_pitch + 6, 42);
+		g_char_pitch = bound(-4, g_char_pitch + 6, 42);
 		return;
 	}
 	if (key == K_SPACE)
