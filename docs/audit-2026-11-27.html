@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BakersfieldQuake audit, 27 November 2026</title>
+<style>
+:root{--bg:#fbfaf8;--fg:#1d1b18;--mute:#6b655c;--line:#ddd8cf;--card:#fff;--ok:#1f7a45;--warn:#9a5b00}
+@media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#ebe7dd;--mute:#a49d90;--line:#37342b;--card:#1e1c16;--ok:#63c78c;--warn:#e3a94a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:19px;margin:36px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+p{margin:8px 0}
+.mute{color:var(--mute)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border:1px solid var(--line)}
+th{font-weight:600}
+code{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+.ok{color:var(--ok);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+li{margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>BakersfieldQuake audit</h1>
+<p class="mute">27 November 2026. Three passes: bugs, broken mechanics, and optimization without changing how the mod plays.</p>
+
+<h2>Summary</h2>
+<ul>
+<li><b>7 bugs and 5 broken mechanics</b> found and fixed, plus <b>5 optimizations</b>.</li>
+<li>Commits <code>f79c69f4</code> (fixes) and <code>4f6e7dda</code> (optimizations). First released in <b>v1.102</b>; also in v1.113.</li>
+<li>Only <b>2 of the 12 fixes</b> had a targeted in-game check. The rest rest on reading the code, compiling, and general play runs.</li>
+<li>A large part of the weapon, map, NPC and menu code was <b>not read line by line</b>.</li>
+</ul>
+
+<h2>Bugs fixed</h2>
+<div class="wrap"><table>
+<tr><th>What a player or host would see</th><th>Cause</th><th>Fix</th><th>Checked</th></tr>
+<tr><td>"Unknown effect number 65535 received from server" every frame</td><td>A map entity (<code>misc_smoke</code> "tele_final" on <code>start</code>) named an effect missing from <code>effectinfo.txt</code>; the engine returned -1</td><td>Unknown names now mean no trail (<code>BM_TrailEffect</code>, <code>subs.qc</code>)</td><td class="ok">In game: 191 error lines before, 0 after</td></tr>
+<tr><td>After dying with the flashlight on, the next press could delete a rocket or item. A leaver's light followed the next player in the slot</td><td>The light removed itself but the on/off flag stayed on, so the toggle acted on a freed entity</td><td>Flag clears with the light; the toggle only removes its own (<code>flashlight.qc</code>, <code>flashlight_cubemap.qc</code>)</td><td class="warn">Code only</td></tr>
+<tr><td>After the ForeLoco bed wore off, the player showed, and partly had, Pentagram, Biosuit and Quad</td><td>A powerup bit was subtracted that had never been set, so the item flags went negative</td><td>Bits are cleared with a mask (<code>client.qc</code>)</td><td class="warn">Code only</td></tr>
+<tr><td>After a one-shot jump pad was used, karts and vans lost later pads; whatever reused its slot could act as a pad</td><td>The pad was removed while still linked in the vehicle pad list</td><td>Unlinked before removal (<code>BM_PushRemove</code>)</td><td class="warn">Code only</td></tr>
+<tr><td>A bot's leader glow and beacon stayed in the map for good</td><td>A human joining into the bot's slot wiped it without a disconnect</td><td>Orphaned effects are swept on connect (<code>underdog.qc</code>)</td><td class="warn">Code only</td></tr>
+<tr><td>Slime poison continued into the next life</td><td><code>poisoned</code> was not reset on spawn</td><td>Reset in <code>PutClientInServer</code></td><td class="warn">Code only</td></tr>
+<tr><td>Any client in a match could change server-wide rune flags</td><td><code>impulse 11</code>, a single-player cheat, was not blocked</td><td>Ignored in deathmatch and co-op (<code>weapons.qc</code>)</td><td class="warn">Code only</td></tr>
+</table></div>
+
+<h2>Broken mechanics fixed</h2>
+<div class="wrap"><table>
+<tr><th>What was wrong</th><th>Fix</th><th>Checked</th></tr>
+<tr><td>The HUD frag limit came from the client's own setting, so players who joined a server saw 0 or their last hosted limit</td><td>Reads the server's value</td><td class="warn">Code only (needs a remote client)</td></tr>
+<tr><td>Closing Character Studio from the main menu left the game on one player slot with deathmatch off</td><td>Restores 16 slots, setting <code>maxplayers</code> before <code>deathmatch</code></td><td class="warn">Code only</td></tr>
+<tr><td>Binocular zoom ran backwards (wheel up zoomed out)</td><td>Swapped, following the intent in the code comments</td><td class="warn">Code only</td></tr>
+<tr><td>A player alive at a map change started the next match on 50 to 100 health</td><td>Starts on 100 in deathmatch</td><td class="ok">In game: set to 30, was 100 after the change</td></tr>
+<tr><td>Observers did not see jetpack pickups, worn jetpacks or the sky-pad beam and glow</td><td>Observers are now sent them</td><td class="warn">Code only</td></tr>
+</table></div>
+
+<h2>Optimizations</h2>
+<p>None changes what players see. The gain from each was not measured.</p>
+<div class="wrap"><table>
+<tr><th>Before</th><th>After</th></tr>
+<tr><td>A full-health player touching a health box sent a silent sound to every client each time</td><td>Sent only when there is a burning sound to stop</td></tr>
+<tr><td>Winged John's sky-pad check scanned every entity 20 times a second</td><td>Walks the pad list</td></tr>
+<tr><td>The van and bus seat check scanned every entity once per seat</td><td>Walks the player list</td></tr>
+<tr><td>The bot frame compared the map name against 8 strings before its cheap flags</td><td>Flags are tested first</td></tr>
+<tr><td>The classic HUD read its stats twice a frame; the gun wheel built two strings a frame</td><td>Once; no strings</td></tr>
+</table></div>
+
+<h2>Performance findings</h2>
+<ul>
+<li>Server game code was not what limited frame rate: about 2,300 script statements per player per frame.</li>
+<li>With 3 bots, <code>start</code> and <code>bakersfielddowntown</code> held the 250 fps cap. The only frames under 60 fps were first-use shader compiles. Worst frames in the final runs were 24 ms and 34 ms.</li>
+<li>In the client profile, the minimap was about 70% of client script statements (<code>BM_DrawMinimap</code>). I did not change it. The minimap has been reworked since, so this needs measuring again.</li>
+</ul>
+
+<h2>What was run</h2>
+<ul>
+<li>All server, client and menu code compiled with the CI-pinned compiler.</li>
+<li>17 weapons selected, fired and reloaded.</li>
+<li>Kart spawn, drive, exit, death in the kart and respawn.</li>
+<li>Time limit to intermission to next map, three times.</li>
+<li>Bot matches on <code>start</code> and <code>bakersfielddowntown</code>, with no script errors.</li>
+</ul>
+<p class="mute">Harness and logs: <code>G:\Quake\Combat\audit_reports\2026-11-27</code> (on this PC, not in the repo). All runs predate the commits other sessions added afterwards.</p>
+
+<h2>Open leads, not confirmed and not changed</h2>
+<ul>
+<li>A driver may be left below the map after a vehicle explodes out of the world.</li>
+<li>A driver netted by Cyrax may freeze their vehicle.</li>
+<li>A spawn may telefrag someone on a driven kart.</li>
+<li>The scoreboard may stick if TAB is released while the console is open.</li>
+<li>Bot fill and idle cleanup may fight on a public server when <code>bm_botfill_empty 1</code> is set (a test setting).</li>
+</ul>
+
+<h2>Not reviewed</h2>
+<p>These ran in the tests at most, and were not read line by line: most fun guns (Mega Man, Pickle, green jar, Dookie, Kyle, Rob head, NetSend, Wheelman, M4, Garand, Milky, Cyrax, Eric cannon, tank), destructibles, NPCs, hats, minimap, bot internals, the four HUD styles and most menus. The parallel reviewers meant to cover them ran into the usage limit.</p>
+
+<h2>Suggested next step</h2>
+<p>Test the ten fixes marked "Code only" in game, starting with the flashlight and the one-shot jump pads, since those could affect unrelated entities.</p>
+</main>
+</body>
+</html>
