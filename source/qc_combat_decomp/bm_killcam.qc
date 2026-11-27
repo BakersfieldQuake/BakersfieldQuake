@@ -861,8 +861,12 @@ float(entity to, float sendflags) KC_RelaySend =
 {
 	local float sid, nframes, chunk, bit, f0, f1, f;
 
-	if (to != self.owner || to.bm_obs)
+	if (to != self.owner || to.bm_obs || to.kc_state == KC_NONE)
 		return FALSE;
+
+	// DarkPlaces passes 0xFFFFFF when an entity first enters PVS; never dump all 9 chunks in one packet
+	if (sendflags > 511)
+		sendflags = 1;
 
 	sid = to.kc_snap_id;
 	nframes = kc_s_nframes[sid];

@@ -235,6 +235,10 @@ void(float isnew) BM_Killcam_EntUpdate =
 		kc_rx_kill_tick = ReadByte ();
 		kn = ReadString ();
 		wn = ReadString ();
+		if (kc_rx_kname != "")
+			strunzone (kc_rx_kname);
+		if (kc_rx_wname != "")
+			strunzone (kc_rx_wname);
 		kc_rx_kname = strzone (kn);
 		kc_rx_wname = strzone (wn);
 	}

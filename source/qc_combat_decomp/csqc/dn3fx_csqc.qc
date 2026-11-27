@@ -435,7 +435,7 @@ void() DN3FX_GoreThink =
 			setorigin(self, nextpos);
 		}
 		if (self.dn3fx_rate >= 0 && vlen(self.origin - prevpos) > 1.0)
-			trailparticles(self.dn3fx_rate, self, prevpos, self.origin);
+			trailparticles(self, self.dn3fx_rate, prevpos, self.origin);
 		self.angles = self.angles + self.avelocity * dt;
 	}
 
