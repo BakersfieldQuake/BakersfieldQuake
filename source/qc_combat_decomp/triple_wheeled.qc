@@ -1242,18 +1242,98 @@ void() TW_MapSpawn =
 
 	if (mapname == "bakersfielddowntown" || world.model == "maps/bakersfielddowntown.bsp")
 	{
-		TW_SpawnAt ('-8420 2180 56');
-		TW_SpawnAt ('-7940 -5960 56');
-		TW_SpawnAt ('-12320 5220 56');
-		TW_SpawnAt ('-3559 218 -32');
+		// Sandrini's Public House (ground + basement rooms)
+		TW_SpawnAt ('-3990 428 48');
+		TW_SpawnAt ('-3640 460 48');
+		TW_SpawnAt ('-3640 180 48');
+		TW_SpawnAt ('-3880 180 -80');
+		TW_SpawnAt ('-3851 545 -80');
+		TW_SpawnAt ('-3525 308 -80');
+		TW_SpawnAt ('-3240 270 -80');
+		TW_SpawnAt ('-3240 500 -80');
+
+		// Dagny's Coffee + Upstairs LAN Loft + Room 13
+		TW_SpawnAt ('-5900 2576 48');
+		TW_SpawnAt ('-5500 2660 210');
+		TW_SpawnAt ('-6050 2760 210');
+
+		// Historic Fox Theater (auditorium, stage, mezzanine)
+		TW_SpawnAt ('-9980 3390 88');
+		TW_SpawnAt ('-10092 3996 88');
+		TW_SpawnAt ('-10152 2724 290');
+
+		// Padre Hotel (lobby, mid suite, rooftop)
+		TW_SpawnAt ('-9528 -5424 48');
+		TW_SpawnAt ('-9800 -5504 550');
+		TW_SpawnAt ('-9492 -5160 1270');
+
+		// Nile Theater, Jerry's Pizza, Guthrie's Alley Cat, Parking Garage
+		TW_SpawnAt ('-11078 -2572 48');
+		TW_SpawnAt ('-10994 -3024 200');
+		TW_SpawnAt ('-1080 -4032 48');
+		TW_SpawnAt ('-3224 -4756 48');
+		TW_SpawnAt ('-7172 -5551 430');
+
+		// Far edges & outer corners of the map
+		TW_SpawnAt ('-12740 5936 48');
+		TW_SpawnAt ('-12982 -6634 48');
+		TW_SpawnAt ('84 5910 48');
+		TW_SpawnAt ('672 -6348 48');
+		TW_SpawnAt ('-13220 -1500 48');
+		TW_SpawnAt ('600 1960 48');
+		TW_SpawnAt ('-8300 6200 48');
+		TW_SpawnAt ('-5424 -6700 48');
 		return;
 	}
 	if (mapname == "bakersfieldish" || world.model == "maps/bakersfieldish.bsp")
 	{
-		TW_SpawnAt ('-8676 -5964 56');
-		TW_SpawnAt ('-4524 -5844 56');
-		TW_SpawnAt ('-2004 3180 60');
-		TW_SpawnAt ('-12756 5892 56');
+		// Sandrini's Public House (ground + basement rooms)
+		TW_SpawnAt ('-3990 428 48');
+		TW_SpawnAt ('-3640 460 48');
+		TW_SpawnAt ('-3640 180 48');
+		TW_SpawnAt ('-3880 180 -80');
+		TW_SpawnAt ('-3851 545 -80');
+		TW_SpawnAt ('-3525 308 -80');
+		TW_SpawnAt ('-3240 270 -80');
+		TW_SpawnAt ('-3240 500 -80');
+
+		// Golden West Casino (poker pit, blackjack rotunda, buddha alcove)
+		TW_SpawnAt ('-2920 4236 48');
+		TW_SpawnAt ('-2100 4176 48');
+		TW_SpawnAt ('-2540 3550 48');
+
+		// The Great Castle (dining hall, kitchen/BOH, watchtower)
+		TW_SpawnAt ('-5840 460 48');
+		TW_SpawnAt ('-6228 480 48');
+		TW_SpawnAt ('-5868 396 200');
+
+		// Larry's Warehouse & Unit 130A B-LAN (warehouse hall, bedroom, B-LAN hall)
+		TW_SpawnAt ('-7380 4400 48');
+		TW_SpawnAt ('-7600 3600 48');
+		TW_SpawnAt ('-5820 5100 48');
+
+		// Dagny's Coffee + Upstairs LAN Loft + Room 13
+		TW_SpawnAt ('-5900 2576 48');
+		TW_SpawnAt ('-5500 2660 210');
+		TW_SpawnAt ('-6050 2760 210');
+
+		// Fox, Padre, Nile, Jerry's, Guthrie's, Parking Garage
+		TW_SpawnAt ('-9920 3450 64');
+		TW_SpawnAt ('-9528 -5424 48');
+		TW_SpawnAt ('-10994 -3024 200');
+		TW_SpawnAt ('-1080 -4032 48');
+		TW_SpawnAt ('-3224 -4756 48');
+		TW_SpawnAt ('-6998 -5561 690');
+
+		// Far edges & outer corners of the map
+		TW_SpawnAt ('-12836 5812 48');
+		TW_SpawnAt ('-12980 -6420 48');
+		TW_SpawnAt ('-200 5880 48');
+		TW_SpawnAt ('-220 -6360 48');
+		TW_SpawnAt ('-13220 -1500 48');
+		TW_SpawnAt ('-396 1884 48');
+		TW_SpawnAt ('-8732 5800 48');
+		TW_SpawnAt ('-6600 -6420 48');
 		return;
 	}
 	if (mapname == "spruce" || world.model == "maps/spruce.bsp")
