@@ -165,6 +165,7 @@ void() CSQC_Init =
 	registercvar("bm_minimap_rotate", "1");
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
+	registercvar("bm_minimap_powerups", "1");
 	BM_Killcam_Init();
 	registercommand("bako_cmd");
 	registercommand("+gunwheel");

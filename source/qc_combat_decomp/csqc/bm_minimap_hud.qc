@@ -21,7 +21,16 @@ float	BM_RPK_MONSTER		= 4;
 float	BM_MM_R				= 42;
 float	BM_MM_PING_MAX		= 16;
 float	BM_MM_PING_LIFE		= 2.2;
+float	BM_MM_PU_MAX		= 36;
 float	BM_MM_DEG2RAD		= 0.01745329;
+
+float	BM_RPU_TRIPLE		= 1;
+float	BM_RPU_FORELOCO		= 2;
+float	BM_RPU_QUAD			= 3;
+float	BM_RPU_PENT			= 4;
+float	BM_RPU_TIME			= 5;
+float	BM_RPU_SUIT			= 6;
+float	BM_RPU_RING			= 7;
 
 string	mm_cur_raw_map;
 string	mm_cur_shader;
@@ -43,6 +52,10 @@ float	mm_a_cnt;
 float	mm_ally_t;
 vector	mm_a_pos[4];
 float	mm_a_yaw[4];
+
+float	mm_pu_cnt;
+vector	mm_pu_pos[36];
+float	mm_pu_kind[36];
 
 float	mm_cx;
 float	mm_cy;
@@ -283,7 +296,7 @@ void(float seq, float kind, vector org) MM_RecordPing =
 
 void(float isnew) BM_Radar_EntUpdate =
 {
-	local float flags, i, seq, kind, ecnt, acnt, pyaw;
+	local float flags, i, seq, kind, ecnt, acnt, pucnt, pyaw;
 	local vector org;
 
 	self.drawmask = 0;
@@ -349,6 +362,24 @@ void(float isnew) BM_Radar_EntUpdate =
 		mm_a_cnt = acnt;
 		mm_ally_t = time;
 	}
+
+	if (flags & 8)
+	{
+		pucnt = ReadByte ();
+		if (pucnt > BM_MM_PU_MAX)
+			pucnt = BM_MM_PU_MAX;
+		i = 0;
+		while (i < pucnt)
+		{
+			mm_pu_kind[i] = ReadByte ();
+			org_x = ReadCoord ();
+			org_y = ReadCoord ();
+			org_z = ReadCoord ();
+			mm_pu_pos[i] = org;
+			i = i + 1;
+		}
+		mm_pu_cnt = pucnt;
+	}
 };
 
 void() BM_Radar_EntRemove =
@@ -357,6 +388,7 @@ void() BM_Radar_EntRemove =
 
 	mm_e_cnt = 0;
 	mm_a_cnt = 0;
+	mm_pu_cnt = 0;
 	i = 0;
 	while (i < 4)
 	{
@@ -584,6 +616,112 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 	MM_Ring (cx, cy, rad - 0.5, 24, 1.1, '0.85 0.92 1.0', 0.52 * alpha_mul);
 	MM_Line (0.7, MM_Vec2 (cx - rad * 0.85, cy), MM_Vec2 (cx + rad * 0.85, cy), '0.75 0.85 0.95', 0.14 * alpha_mul);
 	MM_Line (0.7, MM_Vec2 (cx, cy - rad * 0.85), MM_Vec2 (cx, cy + rad * 0.85), '0.75 0.85 0.95', 0.14 * alpha_mul);
+};
+
+vector(float kind) MM_PowerupColor =
+{
+	if (kind == BM_RPU_TRIPLE)		return '0.22 1.0 0.58';		// electric mint green
+	if (kind == BM_RPU_FORELOCO)	return '1.0 0.34 0.82';		// watermelon magenta
+	if (kind == BM_RPU_QUAD)		return '0.34 0.68 1.0';		// electric quad blue
+	if (kind == BM_RPU_PENT)		return '1.0 0.90 0.45';		// gold pentagram
+	if (kind == BM_RPU_TIME)		return '0.76 0.44 1.0';		// violet time rune
+	if (kind == BM_RPU_SUIT)		return '0.60 0.96 0.28';		// lime biosuit
+	return '0.86 0.90 0.96';
+};
+
+void(float cx, float cy, float r, vector col, float a) MM_Diamond =
+{
+	local float ro;
+	local vector p0, p1, p2, p3;
+
+	if (r <= 0.4 || a <= 0.01)
+		return;
+	ro = r + 0.9;
+	p0 = MM_Vec2 (cx, cy - ro);
+	p1 = MM_Vec2 (cx + ro, cy);
+	p2 = MM_Vec2 (cx, cy + ro);
+	p3 = MM_Vec2 (cx - ro, cy);
+	R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
+	R_PolygonVertex (p0, '0.5 0.5 0', '0 0 0', 0.85 * a);
+	R_PolygonVertex (p1, '0.5 0.5 0', '0 0 0', 0.85 * a);
+	R_PolygonVertex (p2, '0.5 0.5 0', '0 0 0', 0.85 * a);
+	R_PolygonVertex (p3, '0.5 0.5 0', '0 0 0', 0.85 * a);
+	R_EndPolygon ();
+
+	p0 = MM_Vec2 (cx, cy - r);
+	p1 = MM_Vec2 (cx + r, cy);
+	p2 = MM_Vec2 (cx, cy + r);
+	p3 = MM_Vec2 (cx - r, cy);
+	R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
+	R_PolygonVertex (p0, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p1, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p2, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p3, '0.5 0.5 0', col, a);
+	R_EndPolygon ();
+};
+
+// Draw all active power-up markers + small directional rim arrows toward each power-up
+void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawPowerups =
+{
+	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist, wdist;
+	local float best_i, best_d, pulse, is_best, arrow_sz, rim_a;
+	local vector pu_org, col;
+
+	if (cvar ("bm_minimap_powerups") <= 0 || mm_pu_cnt <= 0)
+		return;
+
+	yrad = yaw_deg * BM_MM_DEG2RAD;
+	fwd_x = MM_Cos (yrad);
+	fwd_y = MM_Sin (yrad);
+	right_x = fwd_y;
+	right_y = 0 - fwd_x;
+	px_per_u = rad / range;
+
+	best_i = -1;
+	best_d = 9999999;
+	i = 0;
+	while (i < mm_pu_cnt)
+	{
+		pu_org = mm_pu_pos[i];
+		ox = pu_org_x - porg_x;
+		oy = pu_org_y - porg_y;
+		wdist = sqrt (ox * ox + oy * oy);
+		if (wdist < best_d)
+		{
+			best_d = wdist;
+			best_i = i;
+		}
+		i = i + 1;
+	}
+
+	pulse = 0.78 + 0.22 * MM_Sin (time * 5.2);
+	i = 0;
+	while (i < mm_pu_cnt)
+	{
+		pu_org = mm_pu_pos[i];
+		ox = pu_org_x - porg_x;
+		oy = pu_org_y - porg_y;
+		sx = (ox * right_x + oy * right_y) * px_per_u;
+		sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
+		dist = sqrt (sx * sx + sy * sy);
+		col = MM_PowerupColor (mm_pu_kind[i]);
+		is_best = (i == best_i);
+
+		if (dist <= rad - 4.0)
+		{
+			MM_Diamond (cx + sx, cy + sy, is_best ? 2.6 : 2.1, col, (is_best ? 0.98 * pulse : 0.92) * mm_alpha_cur);
+			MM_HeightArrow (cx + sx, cy + sy, pu_org_z - porg_z, col, 0.88 * mm_alpha_cur);
+		}
+		if (dist > 4.0)
+		{
+			arrow_sz = is_best ? 2.5 : 1.85;
+			rim_a = (dist <= rad - 4.0) ? 0.78 : 0.92;
+			if (is_best)
+				rim_a = 0.98 * pulse;
+			MM_RimBlip (cx, cy, rad, sx, sy, arrow_sz, col, rim_a * mm_alpha_cur);
+		}
+		i = i + 1;
+	}
 };
 
 // Draw all live enemies accurately + persistent directional guide toward nearest enemy
@@ -959,6 +1097,7 @@ void(float w, float h) BM_DrawMinimap =
 
 	MM_DrawTransparentRadar (cx, cy, rad, range, porg, map_yaw, alpha_mul, bg_alpha, map_alpha);
 	MM_DrawPings (cx, cy, rad, range, porg, map_yaw);
+	MM_DrawPowerups (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawAllies (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawLeader (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawEnemies (cx, cy, rad, range, porg, map_yaw);

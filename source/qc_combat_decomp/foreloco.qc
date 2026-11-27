@@ -601,6 +601,7 @@ void() item_powerup_foreloco =
 	self.effects = self.effects | EF_DIMLIGHT | EF_FULLBRIGHT;
 	self.netname = "Watermelon ForeLoco";
 	setsize (self, '-16 -16 -24', '16 16 32');
+	BM_Radar_RegisterPowerup (self, BM_RPU_FORELOCO);
 	self.think = FL_CanDrop;
 	self.nextthink = time + 0.15;
 };

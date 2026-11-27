@@ -1207,6 +1207,7 @@ void() item_powerup_triple_wheeled =
 	self.effects = self.effects | EF_DIMLIGHT | EF_FULLBRIGHT;
 	self.netname = "B. Triple Wheeled";
 	setsize (self, '-18 -18 -24', '18 18 32');
+	BM_Radar_RegisterPowerup (self, BM_RPU_TRIPLE);
 	self.think = TW_ItemDrop;
 	self.nextthink = time + 0.15;
 };

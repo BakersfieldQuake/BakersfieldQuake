@@ -2315,6 +2315,7 @@ void() item_artifact_invulnerability =
 	self.netname = "Pentagram of Protection";
 	self.items = IT_INVULNERABILITY;
 	setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
+	BM_Radar_RegisterPowerup(self, BM_RPU_PENT);
 	StartItem();
 };
 
@@ -2355,6 +2356,7 @@ void() item_artifact_invulnerability2 =
 	{
 		setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
 	}
+	BM_Radar_RegisterPowerup(self, BM_RPU_PENT);
 	StartItem();
 };
 
@@ -2381,6 +2383,7 @@ void() item_artifact_envirosuit =
 			self.netname = "Wetsuit";
 			self.items = IT_SUIT;
 			setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
+			BM_Radar_RegisterPowerup(self, BM_RPU_SUIT);
 			StartItem();
 		}
 		else
@@ -2396,6 +2399,7 @@ void() item_artifact_envirosuit =
 			self.netname = "Biosuit";
 			self.items = IT_SUIT;
 			setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
+			BM_Radar_RegisterPowerup(self, BM_RPU_SUIT);
 			StartItem();
 		}
 	}
@@ -2508,6 +2512,7 @@ void() item_artifact_timerune =
 	{
 		setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
 	}
+	BM_Radar_RegisterPowerup(self, BM_RPU_TIME);
 	StartItem();
 };
 
@@ -2558,6 +2563,7 @@ void() item_artifact_super_damage =
 	self.netname = "Quad Damage";
 	self.items = IT_QUAD;
 	setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
+	BM_Radar_RegisterPowerup(self, BM_RPU_QUAD);
 	StartItem();
 };
 

@@ -7,13 +7,29 @@ float	BM_RPK_BLAST		= 2;		// heavy explosion / projectile blast
 float	BM_RPK_KILL			= 3;		// frag / death burst
 float	BM_RPK_MONSTER		= 4;		// monster attack ping (SP / Coop)
 
+float	BM_RPU_TRIPLE		= 1;		// B. Triple Wheeled
+float	BM_RPU_FORELOCO		= 2;		// Watermelon ForeLoco
+float	BM_RPU_QUAD			= 3;		// Quad Damage
+float	BM_RPU_PENT			= 4;		// Pentagram / Berserk Pentagram
+float	BM_RPU_TIME			= 5;		// Time Dilation Rune
+float	BM_RPU_SUIT			= 6;		// Biosuit / Wetsuit
+float	BM_RPU_RING			= 7;		// Ring of Shadows
+
+float	BM_MM_PU_MAX		= 36;		// max active power-ups streamed to radar
+
 float	bm_radar_enemy_t;
 float	bm_radar_ally_t;
+float	bm_radar_pu_t;
+float	bm_pu_ver;
+entity	bm_pu_head;
 
 .entity	bm_radar_ent;
 .float	bm_radar_cd;
 .float	bm_radar_prev_shot;
 .float	bm_radar_prev_fg;
+.entity	bm_pu_next;
+.float	bm_pu_kind;
+.float	bm_rpu_ver_sent;
 
 // Fields on the per-client bm_radar_feed entity
 .float	bm_rp_idx;
@@ -64,3 +80,4 @@ float	bm_radar_ally_t;
 void(entity actor, vector org, float kind) BM_Radar_Ping;
 void() BM_Radar_Tick;
 void(entity p) BM_Radar_ClientGone;
+void(entity e, float kind) BM_Radar_RegisterPowerup;

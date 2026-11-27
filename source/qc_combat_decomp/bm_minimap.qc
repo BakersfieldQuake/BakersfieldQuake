@@ -10,6 +10,10 @@ Streams:
 ================
 */
 
+float	mm_sv_pu_cnt;
+vector	mm_sv_pu_pos[36];
+float	mm_sv_pu_kind[36];
+
 float(entity a, entity b) BM_Radar_IsAlly =
 {
 	if (!a || !b || a == world || b == world)
@@ -227,6 +231,21 @@ float(entity to, float sendflags) BM_RadarSend =
 		}
 	}
 
+	if (sendflags & 8)
+	{
+		WriteByte (MSG_ENTITY, mm_sv_pu_cnt);
+		i = 0;
+		while (i < mm_sv_pu_cnt)
+		{
+			pos = mm_sv_pu_pos[i];
+			WriteByte (MSG_ENTITY, mm_sv_pu_kind[i]);
+			WriteCoord (MSG_ENTITY, pos_x);
+			WriteCoord (MSG_ENTITY, pos_y);
+			WriteCoord (MSG_ENTITY, pos_z);
+			i = i + 1;
+		}
+	}
+
 	return TRUE;
 };
 
@@ -258,6 +277,7 @@ entity(entity p) BM_Radar_EnsureFeed =
 		setsize (f, '0 0 0', '0 0 0');
 		f.alpha = 0.0001;
 		f.SendEntity = BM_RadarSend;
+		f.bm_rpu_ver_sent = -1;
 		p.bm_radar_ent = f;
 	}
 	if (vlen (f.origin - p.origin) > 64 || f.SendFlags != 0)
@@ -544,9 +564,88 @@ void(entity c) BM_Radar_UpdateClientAllies =
 		feed.SendFlags = feed.SendFlags | 4;
 };
 
+void(entity e, float kind) BM_Radar_RegisterPowerup =
+{
+	if (!e || e == world || kind <= 0)
+		return;
+	if (e.bm_pu_kind > 0)
+	{
+		e.bm_pu_kind = kind;
+		return;
+	}
+	e.bm_pu_kind = kind;
+	e.bm_pu_next = bm_pu_head;
+	bm_pu_head = e;
+};
+
+void() BM_Radar_RefreshPowerups =
+{
+	local entity e, prev, nxt;
+	local float cnt, chg;
+	local vector pos, oldp;
+
+	cnt = 0;
+	chg = FALSE;
+	if (bm_pu_ver <= 0)
+		bm_pu_ver = 1;
+
+	prev = world;
+	e = bm_pu_head;
+	while (e)
+	{
+		nxt = e.bm_pu_next;
+		if (bm_wasfreed (e) || e.bm_pu_kind <= 0)
+		{
+			if (prev == world)
+				bm_pu_head = nxt;
+			else
+				prev.bm_pu_next = nxt;
+			e = nxt;
+			continue;
+		}
+
+		if (e.solid == SOLID_TRIGGER && e.model != "" && e.modelindex > 0 && cnt < BM_MM_PU_MAX)
+		{
+			if (e.classname == "item_powerup_triple_wheeled" && e.tw_spawn_org != '0 0 0')
+				pos = e.tw_spawn_org;
+			else if (e.classname == "item_powerup_foreloco" && e.veh_spawn_org != '0 0 0')
+				pos = e.veh_spawn_org;
+			else
+				pos = e.origin;
+
+			if (cnt >= mm_sv_pu_cnt)
+				chg = TRUE;
+			else
+			{
+				oldp = mm_sv_pu_pos[cnt];
+				if (mm_sv_pu_kind[cnt] != e.bm_pu_kind
+					|| fabs (pos_x - oldp_x) > 16
+					|| fabs (pos_y - oldp_y) > 16
+					|| fabs (pos_z - oldp_z) > 16)
+					chg = TRUE;
+			}
+			mm_sv_pu_pos[cnt] = pos;
+			mm_sv_pu_kind[cnt] = e.bm_pu_kind;
+			cnt = cnt + 1;
+		}
+		prev = e;
+		e = nxt;
+	}
+
+	if (cnt != mm_sv_pu_cnt)
+		chg = TRUE;
+	mm_sv_pu_cnt = cnt;
+	if (chg)
+	{
+		bm_pu_ver = bm_pu_ver + 1;
+		if (bm_pu_ver > 1000000)
+			bm_pu_ver = 1;
+	}
+};
+
 void() BM_Radar_Tick =
 {
-	local entity p;
+	local entity p, feed;
 	local float do_enemies, do_allies;
 
 	if (bm_menubg_active || intermission_running)
@@ -559,6 +658,12 @@ void() BM_Radar_Tick =
 	do_allies = ((teamplay || coop || CTF_ENABLED) && time >= bm_radar_ally_t);
 	if (do_allies)
 		bm_radar_ally_t = time + 0.15;
+
+	if (time >= bm_radar_pu_t)
+	{
+		bm_radar_pu_t = time + 0.35;
+		BM_Radar_RefreshPowerups ();
+	}
 
 	p = bm_player_head;
 	while (p)
@@ -575,11 +680,16 @@ void() BM_Radar_Tick =
 
 		if (p.ishuman == 1 && !p.bm_obs)
 		{
-			BM_Radar_EnsureFeed (p);
+			feed = BM_Radar_EnsureFeed (p);
 			if (do_enemies)
 				BM_Radar_UpdateClientEnemies (p);
 			if (do_allies)
 				BM_Radar_UpdateClientAllies (p);
+			if (feed && feed.bm_rpu_ver_sent != bm_pu_ver)
+			{
+				feed.bm_rpu_ver_sent = bm_pu_ver;
+				feed.SendFlags = feed.SendFlags | 8;
+			}
 		}
 		p = p.bm_player_next;
 	}
