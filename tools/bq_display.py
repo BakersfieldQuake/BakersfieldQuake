@@ -2028,8 +2028,14 @@ def show_picker_gui(
     win_w = max(540, root.winfo_reqwidth())
     win_h = root.winfo_reqheight()
     primary_mon = next((m for m in monitors if m.is_primary), monitors[0])
-    pos_x = primary_mon.x + max(0, (primary_mon.width - win_w) // 2)
-    pos_y = primary_mon.y + max(0, (primary_mon.height - win_h) // 2)
+    scr_w, scr_h = primary_mon.width, primary_mon.height
+    if sys.platform == "darwin":
+        # macOS monitors are measured in pixels (5120x2880 on a 5K Retina) but Tk places windows in points
+        # (2560x1440); centering in pixels put the window bottom-right, half off screen. Tk's screen size is the
+        # main display in points, and the main display sits at 0,0.
+        scr_w, scr_h = root.winfo_screenwidth(), root.winfo_screenheight()
+    pos_x = primary_mon.x + max(0, (scr_w - win_w) // 2)
+    pos_y = primary_mon.y + max(0, (scr_h - win_h) // 2)
     root.geometry(f"{win_w}x{win_h}+{pos_x}+{pos_y}")
     root.lift()
     if sys.platform == "darwin" or os.name == "nt":
