@@ -1,14 +1,13 @@
 /*
 ================
-bm_minimap_hud.qc — CoD-style circular anti-wallhack minimap (bottom-left corner)
+bm_minimap_hud.qc — Fully transparent live tactical minimap (bottom-left corner)
 
-Renders a compact circular rotating minimap anchored in the bottom-left corner:
-  - Uses 2D R_BeginPolygon triangle fans for true circular clipping and smooth
-    player-facing rotation (UP = player view direction).
-  - Uses dark charcoal / slate / ivory BSP floorplans from zz_minimap.pk3
-    (gfx/minimap/<map> shader) with a dark radar-disc fallback.
-  - Anti-wallhack: gunfire/blasts/kills drop static fading blips (2.6s), while
-    every 5s coarse ~320u fuzzy heat clouds hint where quiet enemies cluster.
+Features:
+  - Fully transparent background (no dark opaque disc obscuring gameplay).
+  - Live, accurate enemy coordinates and facing chevrons streamed from server.
+  - Persistent directional guide arrow + nearest-enemy distance & direction indicator
+    so you always know which way to move to find enemies.
+  - Crisp height arrows (^ / v) and rim indicators for off-radar enemies.
 ================
 */
 
@@ -19,10 +18,9 @@ float	BM_RPK_BLAST		= 2;
 float	BM_RPK_KILL			= 3;
 float	BM_RPK_MONSTER		= 4;
 
-float	BM_MM_R				= 39;
+float	BM_MM_R				= 42;
 float	BM_MM_PING_MAX		= 16;
-float	BM_MM_PING_LIFE		= 2.6;
-float	BM_MM_HEAT_LIFE		= 5.5;
+float	BM_MM_PING_LIFE		= 2.2;
 float	BM_MM_DEG2RAD		= 0.01745329;
 
 string	mm_cur_raw_map;
@@ -35,11 +33,11 @@ vector	mm_p_pos[16];
 float	mm_p_kind[16];
 float	mm_p_t[16];
 
-float	mm_last_hseq;
-float	mm_h_cnt;
-float	mm_heat_t;
-vector	mm_h_pos[4];
-float	mm_h_int[4];
+float	mm_e_cnt;
+float	mm_enemy_t;
+vector	mm_e_pos[16];
+float	mm_e_yaw[16];
+float	mm_e_flg[16];
 
 float	mm_a_cnt;
 float	mm_ally_t;
@@ -190,7 +188,7 @@ void(float cx, float cy, float rad, float segs, float wline, vector col, float a
 	}
 };
 
-// Draw a filled CoD-style arrow chevron. screen_deg = 0 points straight UP.
+// Draw a filled arrow chevron with crisp dark outline. screen_deg = 0 points straight UP.
 void(float cx, float cy, float screen_deg, float sz, vector col, float a) MM_Chevron =
 {
 	local float rad, fx, fy, rx, ry;
@@ -206,12 +204,12 @@ void(float cx, float cy, float screen_deg, float sz, vector col, float a) MM_Che
 	ry = fx;
 
 	// Dark outline slightly larger behind arrow
-	c_p  = MM_Vec2 (cx + fx * (sz + 1.0), cy + fy * (sz + 1.0));
-	c_wl = MM_Vec2 (cx - fx * (sz * 0.85 + 0.7) - rx * (sz * 0.85 + 0.9), cy - fy * (sz * 0.85 + 0.7) - ry * (sz * 0.85 + 0.9));
-	c_wr = MM_Vec2 (cx - fx * (sz * 0.85 + 0.7) + rx * (sz * 0.85 + 0.9), cy - fy * (sz * 0.85 + 0.7) + ry * (sz * 0.85 + 0.9));
+	c_p  = MM_Vec2 (cx + fx * (sz + 1.1), cy + fy * (sz + 1.1));
+	c_wl = MM_Vec2 (cx - fx * (sz * 0.85 + 0.8) - rx * (sz * 0.85 + 1.0), cy - fy * (sz * 0.85 + 0.8) - ry * (sz * 0.85 + 1.0));
+	c_wr = MM_Vec2 (cx - fx * (sz * 0.85 + 0.8) + rx * (sz * 0.85 + 1.0), cy - fy * (sz * 0.85 + 0.8) + ry * (sz * 0.85 + 1.0));
 	c_n  = MM_Vec2 (cx - fx * (sz * 0.20), cy - fy * (sz * 0.20));
-	MM_Tri2D ("gfx/minimap/white", c_p, c_wl, c_n, '0 0 0', 0.88 * a);
-	MM_Tri2D ("gfx/minimap/white", c_p, c_n, c_wr, '0 0 0', 0.88 * a);
+	MM_Tri2D ("gfx/minimap/white", c_p, c_wl, c_n, '0 0 0', 0.92 * a);
+	MM_Tri2D ("gfx/minimap/white", c_p, c_n, c_wr, '0 0 0', 0.92 * a);
 
 	tip   = MM_Vec2 (cx + fx * sz, cy + fy * sz);
 	wl    = MM_Vec2 (cx - fx * (sz * 0.75) - rx * (sz * 0.76), cy - fy * (sz * 0.75) - ry * (sz * 0.76));
@@ -227,20 +225,24 @@ void(float cx, float cy, float dz, vector col, float a) MM_HeightArrow =
 		return;
 	if (dz > 96)
 	{
-		MM_Line (1.1, MM_Vec2 (cx - 2.0, cy - 3.4), MM_Vec2 (cx, cy - 5.4), col, a);
-		MM_Line (1.1, MM_Vec2 (cx + 2.0, cy - 3.4), MM_Vec2 (cx, cy - 5.4), col, a);
+		MM_Line (1.2, MM_Vec2 (cx - 2.2, cy - 3.6), MM_Vec2 (cx, cy - 5.8), '0 0 0', 0.85 * a);
+		MM_Line (1.2, MM_Vec2 (cx + 2.2, cy - 3.6), MM_Vec2 (cx, cy - 5.8), '0 0 0', 0.85 * a);
+		MM_Line (1.0, MM_Vec2 (cx - 2.0, cy - 3.6), MM_Vec2 (cx, cy - 5.6), col, a);
+		MM_Line (1.0, MM_Vec2 (cx + 2.0, cy - 3.6), MM_Vec2 (cx, cy - 5.6), col, a);
 	}
 	else if (dz < -96)
 	{
-		MM_Line (1.1, MM_Vec2 (cx - 2.0, cy + 3.4), MM_Vec2 (cx, cy + 5.4), col, a);
-		MM_Line (1.1, MM_Vec2 (cx + 2.0, cy + 3.4), MM_Vec2 (cx, cy + 5.4), col, a);
+		MM_Line (1.2, MM_Vec2 (cx - 2.2, cy + 3.6), MM_Vec2 (cx, cy + 5.8), '0 0 0', 0.85 * a);
+		MM_Line (1.2, MM_Vec2 (cx + 2.2, cy + 3.6), MM_Vec2 (cx, cy + 5.8), '0 0 0', 0.85 * a);
+		MM_Line (1.0, MM_Vec2 (cx - 2.0, cy + 3.6), MM_Vec2 (cx, cy + 5.6), col, a);
+		MM_Line (1.0, MM_Vec2 (cx + 2.0, cy + 3.6), MM_Vec2 (cx, cy + 5.6), col, a);
 	}
 };
 
-void(float cx, float cy, float rad, float sx, float sy, vector col, float a) MM_RimBlip =
+void(float cx, float cy, float rad, float sx, float sy, float sz, vector col, float a) MM_RimBlip =
 {
 	local float d, ux, uy, rx, ry, bx, by;
-	local vector tip, b1, b2;
+	local vector tip, b1, b2, o_tip, o_b1, o_b2;
 
 	if (a <= 0.02)
 		return;
@@ -252,11 +254,16 @@ void(float cx, float cy, float rad, float sx, float sy, vector col, float a) MM_
 	rx = 0 - uy;
 	ry = ux;
 
-	bx = cx + ux * (rad - 1.5);
-	by = cy + uy * (rad - 1.5);
-	tip = MM_Vec2 (bx + ux * 2.0, by + uy * 2.0);
-	b1  = MM_Vec2 (bx - ux * 1.8 - rx * 2.4, by - uy * 1.8 - ry * 2.4);
-	b2  = MM_Vec2 (bx - ux * 1.8 + rx * 2.4, by - uy * 1.8 + ry * 2.4);
+	bx = cx + ux * (rad - 1.0);
+	by = cy + uy * (rad - 1.0);
+	o_tip = MM_Vec2 (bx + ux * (sz + 1.0), by + uy * (sz + 1.0));
+	o_b1  = MM_Vec2 (bx - ux * (sz * 0.85 + 0.6) - rx * (sz * 1.05 + 0.8), by - uy * (sz * 0.85 + 0.6) - ry * (sz * 1.05 + 0.8));
+	o_b2  = MM_Vec2 (bx - ux * (sz * 0.85 + 0.6) + rx * (sz * 1.05 + 0.8), by - uy * (sz * 0.85 + 0.6) + ry * (sz * 1.05 + 0.8));
+	MM_Tri2D ("gfx/minimap/white", o_tip, o_b1, o_b2, '0 0 0', 0.90 * a);
+
+	tip = MM_Vec2 (bx + ux * sz, by + uy * sz);
+	b1  = MM_Vec2 (bx - ux * (sz * 0.85) - rx * (sz * 1.0), by - uy * (sz * 0.85) - ry * (sz * 1.0));
+	b2  = MM_Vec2 (bx - ux * (sz * 0.85) + rx * (sz * 1.0), by - uy * (sz * 0.85) + ry * (sz * 1.0));
 	MM_Tri2D ("gfx/minimap/white", tip, b1, b2, col, a);
 };
 
@@ -276,7 +283,7 @@ void(float seq, float kind, vector org) MM_RecordPing =
 
 void(float isnew) BM_Radar_EntUpdate =
 {
-	local float flags, i, seq, kind, hseq, hcnt, acnt, pyaw;
+	local float flags, i, seq, kind, ecnt, acnt, pyaw;
 	local vector org;
 
 	self.drawmask = 0;
@@ -304,26 +311,23 @@ void(float isnew) BM_Radar_EntUpdate =
 
 	if (flags & 2)
 	{
-		hseq = ReadByte ();
-		hcnt = ReadByte ();
-		if (hcnt > 4)
-			hcnt = 4;
+		ecnt = ReadByte ();
+		if (ecnt > 16)
+			ecnt = 16;
 		i = 0;
-		while (i < hcnt)
+		while (i < ecnt)
 		{
 			org_x = ReadCoord ();
 			org_y = ReadCoord ();
 			org_z = ReadCoord ();
-			mm_h_pos[i] = org;
-			mm_h_int[i] = ReadByte ();
+			pyaw = ReadByte ();
+			mm_e_pos[i] = org;
+			mm_e_yaw[i] = pyaw * (360 / 255);
+			mm_e_flg[i] = ReadByte ();
 			i = i + 1;
 		}
-		if (hseq > 0 && hseq != mm_last_hseq)
-		{
-			mm_last_hseq = hseq;
-			mm_h_cnt = hcnt;
-			mm_heat_t = time;
-		}
+		mm_e_cnt = ecnt;
+		mm_enemy_t = time;
 	}
 
 	if (flags & 4)
@@ -351,7 +355,7 @@ void() BM_Radar_EntRemove =
 {
 	local float i;
 
-	mm_h_cnt = 0;
+	mm_e_cnt = 0;
 	mm_a_cnt = 0;
 	i = 0;
 	while (i < 4)
@@ -359,7 +363,6 @@ void() BM_Radar_EntRemove =
 		mm_last_seq[i] = 0;
 		i = i + 1;
 	}
-	mm_last_hseq = 0;
 	remove (self);
 };
 
@@ -520,125 +523,186 @@ float(float w, float h) BM_MinimapTopY =
 	if (!BM_MinimapIsVisible ())
 		return 0;
 	MM_ComputeLayout (w, h);
-	return mm_cy - mm_rad - 14;
+	return mm_cy - mm_rad - 22;
 };
 
-// Rotated & circularly-clipped CoD floorplan blueprint via precomputed 24-slice 2D polygon fan
-void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, float alpha_mul, float bg_alpha) MM_DrawRotatedBlueprint =
+// Transparent tactical backdrop: no dark opaque disc unless user raises bm_minimap_bg_alpha / bm_minimap_map_alpha
+void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, float alpha_mul, float bg_alpha, float map_alpha) MM_DrawTransparentRadar =
 {
 	local float span, yrad, fwd_x, fwd_y, right_x, right_y, inv_span, r_in, k_uv;
-	local float uc, vc, i, ux, uy, sx, sy, wx, wy, map_a, base_x, base_y;
+	local float uc, vc, i, ux, uy, sx, sy, wx, wy, base_x, base_y;
 	local vector p, uv;
 
-	// Dark smoky circular disc backing
 	if (bg_alpha > 0.01)
-		MM_FillCircle (cx, cy, rad - 0.5, 24, '0.05 0.06 0.07', bg_alpha);
+		MM_FillCircle (cx, cy, rad - 0.5, 24, '0.03 0.04 0.05', bg_alpha * alpha_mul);
 
-	if (!mm_has_pic || mm_map_half <= 0)
+	if (map_alpha > 0.01 && mm_has_pic && mm_map_half > 0)
 	{
-		MM_Ring (cx, cy, rad * 0.52, 24, 1, '0.45 0.48 0.52', 0.22 * alpha_mul);
-		return;
+		MM_InitUnitCircle ();
+		span = 2 * mm_map_half;
+		inv_span = 1.0 / span;
+		yrad = yaw_deg * BM_MM_DEG2RAD;
+		fwd_x = cos (yrad);
+		fwd_y = sin (yrad);
+		right_x = fwd_y;
+		right_y = 0 - fwd_x;
+
+		base_x = mm_map_cx - mm_map_half;
+		base_y = mm_map_cy + mm_map_half;
+		uc = (porg_x - base_x) * inv_span;
+		vc = (base_y - porg_y) * inv_span;
+		r_in = rad - 1.0;
+		k_uv = (r_in / rad) * range;
+
+		p_z = 0;
+		uv_z = 0;
+		R_BeginPolygon (mm_cur_shader, 0, TRUE);
+		p_x = cx; p_y = cy;
+		uv_x = uc; uv_y = vc;
+		R_PolygonVertex (p, uv, '1 1 1', map_alpha * alpha_mul);
+		i = 0;
+		while (i <= 24)
+		{
+			ux = mm_uc_x[i];
+			uy = mm_uc_y[i];
+			sx = ux * r_in;
+			sy = uy * r_in;
+			wx = porg_x + (ux * right_x - uy * fwd_x) * k_uv;
+			wy = porg_y + (ux * right_y - uy * fwd_y) * k_uv;
+			p_x = cx + sx;
+			p_y = cy + sy;
+			uv_x = (wx - base_x) * inv_span;
+			uv_y = (base_y - wy) * inv_span;
+			R_PolygonVertex (p, uv, '1 1 1', map_alpha * alpha_mul);
+			i = i + 1;
+		}
+		R_EndPolygon ();
 	}
 
-	MM_InitUnitCircle ();
-	map_a = 0.92 * alpha_mul;
-	span = 2 * mm_map_half;
-	inv_span = 1.0 / span;
-	yrad = yaw_deg * BM_MM_DEG2RAD;
-	fwd_x = cos (yrad);
-	fwd_y = sin (yrad);
-	right_x = fwd_y;
-	right_y = 0 - fwd_x;
-
-	base_x = mm_map_cx - mm_map_half;
-	base_y = mm_map_cy + mm_map_half;
-	uc = (porg_x - base_x) * inv_span;
-	vc = (base_y - porg_y) * inv_span;
-	r_in = rad - 1.0;
-	k_uv = (r_in / rad) * range;
-
-	p_z = 0;
-	uv_z = 0;
-	R_BeginPolygon (mm_cur_shader, 0, TRUE);
-	p_x = cx; p_y = cy;
-	uv_x = uc; uv_y = vc;
-	R_PolygonVertex (p, uv, '1 1 1', map_a);
-	i = 0;
-	while (i <= 24)
-	{
-		ux = mm_uc_x[i];
-		uy = mm_uc_y[i];
-		sx = ux * r_in;
-		sy = uy * r_in;
-		wx = porg_x + (ux * right_x - uy * fwd_x) * k_uv;
-		wy = porg_y + (ux * right_y - uy * fwd_y) * k_uv;
-		p_x = cx + sx;
-		p_y = cy + sy;
-		uv_x = (wx - base_x) * inv_span;
-		uv_y = (base_y - wy) * inv_span;
-		R_PolygonVertex (p, uv, '1 1 1', map_a);
-		i = i + 1;
-	}
-	R_EndPolygon ();
+	// Crisp transparent-friendly radar reference rings & crosshairs
+	MM_Ring (cx, cy, rad * 0.50, 24, 0.8, '0.75 0.85 0.95', 0.20 * alpha_mul);
+	MM_Ring (cx, cy, rad - 0.5, 24, 1.1, '0.85 0.92 1.0', 0.52 * alpha_mul);
+	MM_Line (0.7, MM_Vec2 (cx - rad * 0.85, cy), MM_Vec2 (cx + rad * 0.85, cy), '0.75 0.85 0.95', 0.14 * alpha_mul);
+	MM_Line (0.7, MM_Vec2 (cx, cy - rad * 0.85), MM_Vec2 (cx, cy + rad * 0.85), '0.75 0.85 0.95', 0.14 * alpha_mul);
 };
 
-void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawHeatZones =
+// Draw all live enemies accurately + persistent directional guide toward nearest enemy
+void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawEnemies =
 {
-	local float age, fade, yrad, fwd_x, fwd_y, right_x, right_y;
-	local float px_per_u, rad_px, i, ox, oy, sx, sy, dist, mx, my, inten, pulse, max_d;
-	local vector horg, col;
+	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist, wdist;
+	local float best_idx, best_d, best_sx, best_sy, best_dz, best_ang, pulse, gr, gx, gy;
+	local vector eorg, col, gcol, lsc;
+	local string lbl;
 
-	if (mm_h_cnt <= 0)
+	if (mm_e_cnt <= 0)
+	{
+		local float sw_no;
+		lsc = BM_UIScaleVec ('5.0 5.0 0');
+		lbl = "NO ENEMIES";
+		sw_no = stringwidth (lbl, FALSE, lsc);
+		drawstring (MM_Vec2 (cx - sw_no * 0.5 + 0.6, cy - rad - 18.4), lbl, lsc, '0 0 0', 0.72 * mm_alpha_cur, 0);
+		drawstring (MM_Vec2 (cx - sw_no * 0.5, cy - rad - 19.0), lbl, lsc, '0.72 0.78 0.85', 0.80 * mm_alpha_cur, 0);
 		return;
-	age = time - mm_heat_t;
-	if (age < 0 || age >= BM_MM_HEAT_LIFE)
-		return;
-
-	fade = 1 - (age / BM_MM_HEAT_LIFE);
-	if (fade > 0.85)
-		fade = 0.85 + 0.15 * ((1 - fade) / 0.15);
+	}
 
 	yrad = yaw_deg * BM_MM_DEG2RAD;
 	fwd_x = MM_Cos (yrad);
 	fwd_y = MM_Sin (yrad);
 	right_x = fwd_y;
 	right_y = 0 - fwd_x;
-
 	px_per_u = rad / range;
-	rad_px = bound (8, 320 * px_per_u, rad * 0.56);
-	pulse = 0.80 + 0.20 * MM_Sin (time * 4.5);
 
+	best_idx = -1;
+	best_d = 9999999;
+	best_sx = 0;
+	best_sy = 0;
+	best_dz = 0;
+
+	// First pass: find nearest enemy and draw guide vector beneath markers
 	i = 0;
-	while (i < mm_h_cnt)
+	while (i < mm_e_cnt)
 	{
-		horg = mm_h_pos[i];
-		inten = bound (0.7, mm_h_int[i] / 64, 1.3);
-		ox = horg_x - porg_x;
-		oy = horg_y - porg_y;
+		eorg = mm_e_pos[i];
+		ox = eorg_x - porg_x;
+		oy = eorg_y - porg_y;
+		wdist = sqrt (ox * ox + oy * oy);
+		if (wdist < best_d)
+		{
+			best_d = wdist;
+			best_idx = i;
+			best_sx = (ox * right_x + oy * right_y) * px_per_u;
+			best_sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
+			best_dz = eorg_z - porg_z;
+		}
+		i = i + 1;
+	}
+
+	// Draw directional guide line + pulsing beacon toward nearest enemy
+	if (best_idx >= 0)
+	{
+		dist = sqrt (best_sx * best_sx + best_sy * best_sy);
+		pulse = 0.75 + 0.25 * MM_Sin (time * 6.5);
+		gcol = '1.0 0.72 0.16';
+		if (dist > 2.0)
+		{
+			gr = min (dist, rad - 2.0);
+			gx = cx + (best_sx / dist) * gr;
+			gy = cy + (best_sy / dist) * gr;
+			MM_Line (1.6, MM_Vec2 (cx, cy), MM_Vec2 (gx, gy), '0 0 0', 0.45 * mm_alpha_cur);
+			MM_Line (1.0, MM_Vec2 (cx, cy), MM_Vec2 (gx, gy), gcol, 0.72 * pulse * mm_alpha_cur);
+
+			// Prominent rim pointer arrow showing exact direction to move toward nearest enemy
+			best_ang = atan2 (best_sx, 0 - best_sy) / BM_MM_DEG2RAD;
+			MM_Chevron (cx + (best_sx / dist) * (rad + 1.5), cy + (best_sy / dist) * (rad + 1.5), best_ang, 4.2, gcol, 0.98 * pulse * mm_alpha_cur);
+		}
+	}
+
+	// Second pass: draw all live enemy positions accurately
+	i = 0;
+	while (i < mm_e_cnt)
+	{
+		eorg = mm_e_pos[i];
+		ox = eorg_x - porg_x;
+		oy = eorg_y - porg_y;
 		sx = (ox * right_x + oy * right_y) * px_per_u;
 		sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
 		dist = sqrt (sx * sx + sy * sy);
 
-		max_d = rad - rad_px * 0.45;
-		if (dist > max_d && dist > 0.001)
+		col = (i == best_idx) ? '1.0 0.20 0.14' : '1.0 0.34 0.26';
+		if (mm_e_flg[i] & 4)
+			col = '1.0 0.55 0.12';	// recently firing enemy highlighted bright orange-red
+
+		if (dist <= rad - 3.5)
 		{
-			sx = (sx / dist) * max_d;
-			sy = (sy / dist) * max_d;
+			MM_Chevron (cx + sx, cy + sy, mm_e_yaw[i] - yaw_deg, (i == best_idx) ? 3.8 : 3.2, col, 0.98 * mm_alpha_cur);
+			MM_HeightArrow (cx + sx, cy + sy, eorg_z - porg_z, col, 0.92 * mm_alpha_cur);
 		}
-		mx = cx + sx;
-		my = cy + sy;
-
-		col = '0.96 0.22 0.16';
-		if (mm_h_int[i] >= 96)
-			col = '1.0 0.14 0.14';
-
-		R_BeginPolygon ("gfx/minimap/heat", 0, TRUE);
-		R_PolygonVertex (MM_Vec2 (mx - rad_px, my - rad_px), '0 0 0', col, 0.44 * fade * pulse * inten * mm_alpha_cur);
-		R_PolygonVertex (MM_Vec2 (mx + rad_px, my - rad_px), '1 0 0', col, 0.44 * fade * pulse * inten * mm_alpha_cur);
-		R_PolygonVertex (MM_Vec2 (mx + rad_px, my + rad_px), '1 1 0', col, 0.44 * fade * pulse * inten * mm_alpha_cur);
-		R_PolygonVertex (MM_Vec2 (mx - rad_px, my + rad_px), '0 1 0', col, 0.44 * fade * pulse * inten * mm_alpha_cur);
-		R_EndPolygon ();
+		else
+		{
+			MM_RimBlip (cx, cy, rad, sx, sy, (i == best_idx) ? 3.0 : 2.3, col, 0.92 * mm_alpha_cur);
+		}
 		i = i + 1;
+	}
+
+	// Clean nearest-enemy bearing & distance label above the radar
+	if (best_idx >= 0)
+	{
+		local string htag, dstr, dplain;
+		local float meters, sw_en;
+
+		meters = floor (best_d / 32 + 0.5);
+		if (best_dz > 96)
+			htag = " UP";
+		else if (best_dz < -96)
+			htag = " DN";
+		else
+			htag = "";
+		dplain = strcat ("ENEMY ", ftos (meters), "m", htag);
+		dstr = strcat ("^1ENEMY ^3", ftos (meters), "m^5", htag);
+		lsc = BM_UIScaleVec ('5.0 5.0 0');
+		sw_en = stringwidth (dplain, FALSE, lsc);
+		drawstring (MM_Vec2 (cx - sw_en * 0.5 + 0.7, cy - rad - 18.3), dplain, lsc, '0 0 0', 0.90 * mm_alpha_cur, 0);
+		drawcolorcodedstring (MM_Vec2 (cx - sw_en * 0.5, cy - rad - 19.0), dstr, lsc, 0.98 * mm_alpha_cur, 0);
 	}
 };
 
@@ -656,7 +720,7 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 	right_x = fwd_y;
 	right_y = 0 - fwd_x;
 	px_per_u = rad / range;
-	col = '0.24 0.80 1.0';
+	col = '0.24 0.82 1.0';
 
 	i = 0;
 	while (i < mm_a_cnt)
@@ -669,12 +733,12 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 		dist = sqrt (sx * sx + sy * sy);
 		if (dist <= rad - 4)
 		{
-			MM_Chevron (cx + sx, cy + sy, mm_a_yaw[i] - yaw_deg, 3.4, col, 0.96 * mm_alpha_cur);
-			MM_HeightArrow (cx + sx, cy + sy, aorg_z - porg_z, col, 0.82 * mm_alpha_cur);
+			MM_Chevron (cx + sx, cy + sy, mm_a_yaw[i] - yaw_deg, 3.4, col, 0.98 * mm_alpha_cur);
+			MM_HeightArrow (cx + sx, cy + sy, aorg_z - porg_z, col, 0.88 * mm_alpha_cur);
 		}
 		else
 		{
-			MM_RimBlip (cx, cy, rad, sx, sy, col, 0.88 * mm_alpha_cur);
+			MM_RimBlip (cx, cy, rad, sx, sy, 2.4, col, 0.90 * mm_alpha_cur);
 		}
 		i = i + 1;
 	}
@@ -711,12 +775,7 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 
 	if (dist <= rad - 4)
 	{
-		MM_Ring (cx + sx, cy + sy, 3.2, 8, 1.2, col, 0.92 * pulse);
-		MM_FillCircle (cx + sx, cy + sy, 1.3, 8, col, 0.95 * pulse);
-	}
-	else
-	{
-		MM_RimBlip (cx, cy, rad, sx, sy, col, 0.90 * pulse);
+		MM_Ring (cx + sx, cy + sy, 4.4, 8, 1.1, col, 0.90 * pulse * mm_alpha_cur);
 	}
 };
 
@@ -750,13 +809,13 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 				sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
 				dist = sqrt (sx * sx + sy * sy);
 
-				col = '0.98 0.22 0.18';
+				col = '1.0 0.35 0.20';
 				if (kind == BM_RPK_BLAST)
-					col = '1.0 0.56 0.14';
+					col = '1.0 0.62 0.16';
 				else if (kind == BM_RPK_KILL)
-					col = '1.0 0.16 0.28';
+					col = '1.0 0.18 0.32';
 				else if (kind == BM_RPK_MONSTER)
-					col = '0.98 0.28 0.44';
+					col = '1.0 0.32 0.48';
 
 				if (dist <= rad - 3.2)
 				{
@@ -767,27 +826,11 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 						r = 2.0 + (age / 0.45) * 5.2;
 						MM_Ring (mx, my, r, 10, 1.0, col, 0.72 * (1 - age / 0.45));
 					}
-
 					if (kind == BM_RPK_KILL)
 					{
 						MM_Line (1.3, MM_Vec2 (mx - 2.0, my - 2.0), MM_Vec2 (mx + 2.0, my + 2.0), col, 0.95 * frac);
 						MM_Line (1.3, MM_Vec2 (mx + 2.0, my - 2.0), MM_Vec2 (mx - 2.0, my + 2.0), col, 0.95 * frac);
 					}
-					else if (kind == BM_RPK_BLAST)
-					{
-						MM_FillCircle (mx, my, 2.5, 10, '0 0 0', 0.82 * frac);
-						MM_FillCircle (mx, my, 1.8, 10, col, 0.98 * frac);
-					}
-					else
-					{
-						MM_FillCircle (mx, my, 2.2, 10, '0 0 0', 0.82 * frac);
-						MM_FillCircle (mx, my, 1.5, 10, col, 0.98 * frac);
-					}
-					MM_HeightArrow (mx, my, org_z - porg_z, col, 0.88 * frac);
-				}
-				else
-				{
-					MM_RimBlip (cx, cy, rad, sx, sy, col, 0.84 * frac);
 				}
 			}
 		}
@@ -801,7 +844,7 @@ void(float cx, float cy, float rad, float yaw_deg) MM_DrawCompass =
 	local string lbl;
 	local vector col;
 
-	// Tick marks + N/E/S/W labels rotating around the upper outer arc like CoD
+	// Tick marks + N/E/S/W labels rotating around the upper outer arc
 	step_deg = 0;
 	while (step_deg < 360)
 	{
@@ -815,10 +858,10 @@ void(float cx, float cy, float rad, float yaw_deg) MM_DrawCompass =
 			r_in = rad + 0.8;
 			r_out = rad + ((step_deg == 0 || step_deg == 90 || step_deg == 180 || step_deg == 270) ? 3.2 : 2.1);
 			MM_Line (1.0, MM_Vec2 (cx + ux * r_in, cy + uy * r_in),
-				MM_Vec2 (cx + ux * r_out, cy + uy * r_out), '0.88 0.90 0.92', 0.55 * mm_alpha_cur);
+				MM_Vec2 (cx + ux * r_out, cy + uy * r_out), '0.88 0.92 0.96', 0.60 * mm_alpha_cur);
 
 			lbl = "";
-			col = '0.90 0.92 0.94';
+			col = '0.92 0.94 0.98';
 			if (step_deg == 90) { lbl = "N"; col = '1.0 0.86 0.28'; }
 			else if (step_deg == 0) lbl = "E";
 			else if (step_deg == 270) lbl = "S";
@@ -826,9 +869,11 @@ void(float cx, float cy, float rad, float yaw_deg) MM_DrawCompass =
 			if (lbl != "")
 			{
 				local vector lsc;
+				local float sw_c;
 				lsc = BM_UIScaleVec ('4.5 4.5 0');
-				tx = cx + ux * (rad + 5.6) - stringwidth (lbl, FALSE, lsc) * 0.5;
-				ty = cy + uy * (rad + 5.6) - lsc_y * 0.5;
+				sw_c = stringwidth (lbl, FALSE, lsc);
+				tx = cx + ux * (rad + 5.4) - sw_c * 0.5;
+				ty = cy + uy * (rad + 5.4) - lsc_y * 0.5;
 				drawstring (MM_Vec2 (tx + 0.6, ty + 0.6), lbl, lsc, '0 0 0', 0.88 * mm_alpha_cur, 0);
 				drawstring (MM_Vec2 (tx, ty), lbl, lsc, col, 0.96 * mm_alpha_cur, 0);
 			}
@@ -857,13 +902,13 @@ void(float cx, float cy, float yaw_screen_deg, float fov_alpha, float alpha_mul)
 			'0.92 0.95 0.98', fov_alpha * alpha_mul);
 	}
 
-	// Crisp CoD warm-gold player arrow
-	MM_Chevron (cx, cy, yaw_screen_deg, 4.3, '1.0 0.84 0.18', 0.98 * alpha_mul);
+	// Crisp bright player arrow
+	MM_Chevron (cx, cy, yaw_screen_deg, 4.3, '1.0 0.86 0.20', 0.98 * alpha_mul);
 };
 
 void(float w, float h) BM_DrawMinimap =
 {
-	local float cx, cy, rad, range, ent_ok, alpha_mul, bg_alpha, map_yaw, plr_sdeg, fov_a;
+	local float cx, cy, rad, range, ent_ok, alpha_mul, bg_alpha, map_alpha, map_yaw, plr_sdeg, fov_a;
 	local vector porg, pang;
 
 	w = vid_conwidth;
@@ -883,12 +928,13 @@ void(float w, float h) BM_DrawMinimap =
 
 	range = cvar ("bm_minimap_range");
 	if (range <= 0)
-		range = 1400;
+		range = 1600;
 	range = bound (600, range, 4000);
 
 	alpha_mul = bound (0.10, cvar ("bm_minimap_alpha"), 1.0);
 	mm_alpha_cur = alpha_mul;
 	bg_alpha = bound (0.0, cvar ("bm_minimap_bg_alpha"), 1.0);
+	map_alpha = bound (0.0, cvar ("bm_minimap_map_alpha"), 1.0);
 	fov_a = bound (0.0, cvar ("bm_minimap_fov"), 0.5);
 
 	ent_ok = FALSE;
@@ -911,20 +957,12 @@ void(float w, float h) BM_DrawMinimap =
 		plr_sdeg = pang_y - 90;
 	}
 
-	MM_DrawRotatedBlueprint (cx, cy, rad, range, porg, map_yaw, alpha_mul, bg_alpha);
-	MM_DrawHeatZones (cx, cy, rad, range, porg, map_yaw);
+	MM_DrawTransparentRadar (cx, cy, rad, range, porg, map_yaw, alpha_mul, bg_alpha, map_alpha);
+	MM_DrawPings (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawAllies (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawLeader (cx, cy, rad, range, porg, map_yaw);
-	MM_DrawPings (cx, cy, rad, range, porg, map_yaw);
+	MM_DrawEnemies (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawPlayer (cx, cy, plr_sdeg, fov_a, alpha_mul);
-
-	// Anti-aliased CoD outer circular bezel
-	R_BeginPolygon ("gfx/minimap/rim", 0, TRUE);
-	R_PolygonVertex (MM_Vec2 (cx - rad, cy - rad), '0 0 0', '1 1 1', 0.96 * alpha_mul);
-	R_PolygonVertex (MM_Vec2 (cx + rad, cy - rad), '1 0 0', '1 1 1', 0.96 * alpha_mul);
-	R_PolygonVertex (MM_Vec2 (cx + rad, cy + rad), '1 1 0', '1 1 1', 0.96 * alpha_mul);
-	R_PolygonVertex (MM_Vec2 (cx - rad, cy + rad), '0 1 0', '1 1 1', 0.96 * alpha_mul);
-	R_EndPolygon ();
 
 	if (cvar ("bm_minimap_compass") != 0)
 		MM_DrawCompass (cx, cy, rad, map_yaw);

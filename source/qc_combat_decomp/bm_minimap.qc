@@ -1,12 +1,12 @@
 /*
 ================
-bm_minimap.qc — Server-side anti-wallhack radar feed (ENT_BM_RADAR)
+bm_minimap.qc — Server-side live tactical radar feed (ENT_BM_RADAR)
 
-Never streams live enemy coordinates to clients:
-  1. Gunfire / explosions / kills / monster attacks push a static, frozen ping at the event origin.
-  2. Every 5.0 seconds, a coarse 256u-quantized + jittered heat snapshot clusters active combatants
-     into ~320u fuzzy neighborhood zones (never exact positions).
-  3. Only teammates (teamplay / CTF) and coop allies stream live positions (~5 Hz when moving).
+Streams:
+  1. Gunfire / explosions / kills / monster attacks as transient event pings.
+  2. Live, accurate enemy coordinates + facing yaw at ~10 Hz (up to 16 closest
+     enemies across the map, including vehicle positions).
+  3. Live teammates (teamplay / CTF / coop) at ~6.7 Hz.
 ================
 */
 
@@ -34,8 +34,117 @@ float(float y) BM_Radar_PackYaw =
 	return bound (0, floor (a * 255 / 360 + 0.5), 255);
 };
 
+vector(entity e) BM_Radar_EntityPos =
+{
+	if (e.veh_van != world && !bm_wasfreed (e.veh_van))
+		return e.veh_van.origin;
+	if (e.mmt_tank != world && !bm_wasfreed (e.mmt_tank))
+		return e.mmt_tank.origin;
+	if (e.jb_vehicle != world && !bm_wasfreed (e.jb_vehicle))
+		return e.jb_vehicle.origin;
+	if (e.rr_vehicle != world && !bm_wasfreed (e.rr_vehicle))
+		return e.rr_vehicle.origin;
+	return e.origin;
+};
+
+float(entity e) BM_Radar_EntityYaw =
+{
+	if (e.veh_van != world && !bm_wasfreed (e.veh_van))
+		return e.veh_van.angles_y;
+	if (e.mmt_tank != world && !bm_wasfreed (e.mmt_tank))
+		return e.mmt_tank.angles_y;
+	if (e.jb_vehicle != world && !bm_wasfreed (e.jb_vehicle))
+		return e.jb_vehicle.angles_y;
+	if (e.rr_vehicle != world && !bm_wasfreed (e.rr_vehicle))
+		return e.rr_vehicle.angles_y;
+	return e.angles_y;
+};
+
+void(entity feed, float idx, vector pos, float yaw, float flg) BM_Radar_WriteEnemySlot =
+{
+	if (idx == 0)       { feed.bm_re0_pos = pos;  feed.bm_re0_yaw = yaw;  feed.bm_re0_flg = flg; }
+	else if (idx == 1)  { feed.bm_re1_pos = pos;  feed.bm_re1_yaw = yaw;  feed.bm_re1_flg = flg; }
+	else if (idx == 2)  { feed.bm_re2_pos = pos;  feed.bm_re2_yaw = yaw;  feed.bm_re2_flg = flg; }
+	else if (idx == 3)  { feed.bm_re3_pos = pos;  feed.bm_re3_yaw = yaw;  feed.bm_re3_flg = flg; }
+	else if (idx == 4)  { feed.bm_re4_pos = pos;  feed.bm_re4_yaw = yaw;  feed.bm_re4_flg = flg; }
+	else if (idx == 5)  { feed.bm_re5_pos = pos;  feed.bm_re5_yaw = yaw;  feed.bm_re5_flg = flg; }
+	else if (idx == 6)  { feed.bm_re6_pos = pos;  feed.bm_re6_yaw = yaw;  feed.bm_re6_flg = flg; }
+	else if (idx == 7)  { feed.bm_re7_pos = pos;  feed.bm_re7_yaw = yaw;  feed.bm_re7_flg = flg; }
+	else if (idx == 8)  { feed.bm_re8_pos = pos;  feed.bm_re8_yaw = yaw;  feed.bm_re8_flg = flg; }
+	else if (idx == 9)  { feed.bm_re9_pos = pos;  feed.bm_re9_yaw = yaw;  feed.bm_re9_flg = flg; }
+	else if (idx == 10) { feed.bm_re10_pos = pos; feed.bm_re10_yaw = yaw; feed.bm_re10_flg = flg; }
+	else if (idx == 11) { feed.bm_re11_pos = pos; feed.bm_re11_yaw = yaw; feed.bm_re11_flg = flg; }
+	else if (idx == 12) { feed.bm_re12_pos = pos; feed.bm_re12_yaw = yaw; feed.bm_re12_flg = flg; }
+	else if (idx == 13) { feed.bm_re13_pos = pos; feed.bm_re13_yaw = yaw; feed.bm_re13_flg = flg; }
+	else if (idx == 14) { feed.bm_re14_pos = pos; feed.bm_re14_yaw = yaw; feed.bm_re14_flg = flg; }
+	else if (idx == 15) { feed.bm_re15_pos = pos; feed.bm_re15_yaw = yaw; feed.bm_re15_flg = flg; }
+};
+
+vector(entity feed, float idx) BM_Radar_ReadEnemyPos =
+{
+	if (idx == 0) return feed.bm_re0_pos;
+	if (idx == 1) return feed.bm_re1_pos;
+	if (idx == 2) return feed.bm_re2_pos;
+	if (idx == 3) return feed.bm_re3_pos;
+	if (idx == 4) return feed.bm_re4_pos;
+	if (idx == 5) return feed.bm_re5_pos;
+	if (idx == 6) return feed.bm_re6_pos;
+	if (idx == 7) return feed.bm_re7_pos;
+	if (idx == 8) return feed.bm_re8_pos;
+	if (idx == 9) return feed.bm_re9_pos;
+	if (idx == 10) return feed.bm_re10_pos;
+	if (idx == 11) return feed.bm_re11_pos;
+	if (idx == 12) return feed.bm_re12_pos;
+	if (idx == 13) return feed.bm_re13_pos;
+	if (idx == 14) return feed.bm_re14_pos;
+	return feed.bm_re15_pos;
+};
+
+float(entity feed, float idx) BM_Radar_ReadEnemyYaw =
+{
+	if (idx == 0) return feed.bm_re0_yaw;
+	if (idx == 1) return feed.bm_re1_yaw;
+	if (idx == 2) return feed.bm_re2_yaw;
+	if (idx == 3) return feed.bm_re3_yaw;
+	if (idx == 4) return feed.bm_re4_yaw;
+	if (idx == 5) return feed.bm_re5_yaw;
+	if (idx == 6) return feed.bm_re6_yaw;
+	if (idx == 7) return feed.bm_re7_yaw;
+	if (idx == 8) return feed.bm_re8_yaw;
+	if (idx == 9) return feed.bm_re9_yaw;
+	if (idx == 10) return feed.bm_re10_yaw;
+	if (idx == 11) return feed.bm_re11_yaw;
+	if (idx == 12) return feed.bm_re12_yaw;
+	if (idx == 13) return feed.bm_re13_yaw;
+	if (idx == 14) return feed.bm_re14_yaw;
+	return feed.bm_re15_yaw;
+};
+
+float(entity feed, float idx) BM_Radar_ReadEnemyFlg =
+{
+	if (idx == 0) return feed.bm_re0_flg;
+	if (idx == 1) return feed.bm_re1_flg;
+	if (idx == 2) return feed.bm_re2_flg;
+	if (idx == 3) return feed.bm_re3_flg;
+	if (idx == 4) return feed.bm_re4_flg;
+	if (idx == 5) return feed.bm_re5_flg;
+	if (idx == 6) return feed.bm_re6_flg;
+	if (idx == 7) return feed.bm_re7_flg;
+	if (idx == 8) return feed.bm_re8_flg;
+	if (idx == 9) return feed.bm_re9_flg;
+	if (idx == 10) return feed.bm_re10_flg;
+	if (idx == 11) return feed.bm_re11_flg;
+	if (idx == 12) return feed.bm_re12_flg;
+	if (idx == 13) return feed.bm_re13_flg;
+	if (idx == 14) return feed.bm_re14_flg;
+	return feed.bm_re15_flg;
+};
+
 float(entity to, float sendflags) BM_RadarSend =
 {
+	local float i;
+	local vector pos;
+
 	if (to != self.owner || to.bm_obs)
 		return FALSE;
 
@@ -71,35 +180,17 @@ float(entity to, float sendflags) BM_RadarSend =
 
 	if (sendflags & 2)
 	{
-		WriteByte (MSG_ENTITY, self.bm_rh_seq);
-		WriteByte (MSG_ENTITY, self.bm_rh_cnt);
-		if (self.bm_rh_cnt >= 1)
+		WriteByte (MSG_ENTITY, self.bm_re_cnt);
+		i = 0;
+		while (i < self.bm_re_cnt)
 		{
-			WriteCoord (MSG_ENTITY, self.bm_rh0_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_rh0_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_rh0_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_rh0_int);
-		}
-		if (self.bm_rh_cnt >= 2)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_rh1_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_rh1_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_rh1_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_rh1_int);
-		}
-		if (self.bm_rh_cnt >= 3)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_rh2_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_rh2_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_rh2_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_rh2_int);
-		}
-		if (self.bm_rh_cnt >= 4)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_rh3_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_rh3_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_rh3_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_rh3_int);
+			pos = BM_Radar_ReadEnemyPos (self, i);
+			WriteCoord (MSG_ENTITY, pos_x);
+			WriteCoord (MSG_ENTITY, pos_y);
+			WriteCoord (MSG_ENTITY, pos_z);
+			WriteByte (MSG_ENTITY, BM_Radar_ReadEnemyYaw (self, i));
+			WriteByte (MSG_ENTITY, BM_Radar_ReadEnemyFlg (self, i));
+			i = i + 1;
 		}
 	}
 
@@ -218,7 +309,7 @@ void(entity feed, float kind, vector org) BM_Radar_PushPing =
 	feed.SendFlags = feed.SendFlags | 1;
 };
 
-// Public hook: emit a frozen static radar ping at `org` for all non-allied human players.
+// Public hook: emit a transient radar ping at `org` for all non-allied human players.
 void(entity actor, vector org, float kind) BM_Radar_Ping =
 {
 	local entity p, feed;
@@ -253,53 +344,23 @@ void(entity actor, vector org, float kind) BM_Radar_Ping =
 	}
 };
 
-void(entity feed, float idx, vector pos, float intensity) BM_Radar_SetHeatSlot =
-{
-	if (idx == 0)
-	{
-		feed.bm_rh0_pos = pos;
-		feed.bm_rh0_int = intensity;
-	}
-	else if (idx == 1)
-	{
-		feed.bm_rh1_pos = pos;
-		feed.bm_rh1_int = intensity;
-	}
-	else if (idx == 2)
-	{
-		feed.bm_rh2_pos = pos;
-		feed.bm_rh2_int = intensity;
-	}
-	else if (idx == 3)
-	{
-		feed.bm_rh3_pos = pos;
-		feed.bm_rh3_int = intensity;
-	}
-};
+vector mm_sv_pos[16];
+float  mm_sv_yaw[16];
+float  mm_sv_flg[16];
+float  mm_sv_dist[16];
 
-float(vector a, vector b) BM_Radar_Dist2D =
-{
-	local vector d;
-
-	d_x = a_x - b_x;
-	d_y = a_y - b_y;
-	d_z = 0;
-	return vlen (d);
-};
-
-void(entity c) BM_Radar_BuildClientHeat =
+// Stream exact live coordinates of up to 16 closest living enemies to client `c`.
+void(entity c) BM_Radar_UpdateClientEnemies =
 {
 	local entity feed, e;
-	local vector q, z0, z1, z2, z3;
-	local float n0, n1, n2, n3, cnt, rseq;
-	local float d0, d1, d2, d3, dq, pass;
+	local vector eorg, porg, oldp;
+	local float cnt, pass, d, eyaw, eflg, ins, k, worst_i, worst_d, chg;
 
 	feed = BM_Radar_EnsureFeed (c);
 	if (!feed)
 		return;
 
-	n0 = 0; n1 = 0; n2 = 0; n3 = 0;
-	z0 = '0 0 0'; z1 = '0 0 0'; z2 = '0 0 0'; z3 = '0 0 0';
+	porg = BM_Radar_EntityPos (c);
 	cnt = 0;
 
 	// Pass 0: players & bots in DM / CTF. Pass 1: active monsters in SP / Coop.
@@ -318,68 +379,61 @@ void(entity c) BM_Radar_BuildClientHeat =
 			if (pass == 0)
 			{
 				if (e == c || e.bm_obs || e.health <= 0 || e.modelindex == 0
-					|| (e.flags & FL_NOTARGET) || (e.items & IT_INVISIBILITY)
-					|| BM_Radar_IsAlly (c, e))
+					|| (e.flags & FL_NOTARGET) || BM_Radar_IsAlly (c, e))
 				{
 					e = e.bm_player_next;
 					continue;
 				}
+				eflg = 1;	// player / bot
+				if (e.ishuman != 1)
+					eflg = eflg | 2;
+				if ((time - e.bm_lastshot) < 0.8 || (time - e.fg_fire_t) < 0.8)
+					eflg = eflg | 4;
 			}
 			else
 			{
-				if (!(e.flags & FL_MONSTER) || e.health <= 0 || !e.takedamage || (e.flags & FL_NOTARGET)
-					|| (e.enemy == world && vlen (e.origin - c.origin) > 1800))
+				if (!(e.flags & FL_MONSTER) || e.health <= 0 || !e.takedamage || (e.flags & FL_NOTARGET))
 				{
 					e = nextent (e);
 					continue;
 				}
+				eflg = 0;	// monster
+				if (e.enemy != world)
+					eflg = eflg | 4;
 			}
 
-			// Quantize to a coarse 256u cell + jitter so corners/positions stay non-wallhack
-			q_x = floor (e.origin_x / 256) * 256 + 128 + crandom () * 88;
-			q_y = floor (e.origin_y / 256) * 256 + 128 + crandom () * 88;
-			q_z = e.origin_z;
+			eorg = BM_Radar_EntityPos (e);
+			eyaw = BM_Radar_PackYaw (BM_Radar_EntityYaw (e));
+			d = vlen (eorg - porg);
 
-			if (n0 > 0 && BM_Radar_Dist2D (q, z0) < 440)
+			if (cnt < 16)
 			{
-				z0 = (z0 * n0 + q) / (n0 + 1);
-				n0 = n0 + 1;
-			}
-			else if (n1 > 0 && BM_Radar_Dist2D (q, z1) < 440)
-			{
-				z1 = (z1 * n1 + q) / (n1 + 1);
-				n1 = n1 + 1;
-			}
-			else if (n2 > 0 && BM_Radar_Dist2D (q, z2) < 440)
-			{
-				z2 = (z2 * n2 + q) / (n2 + 1);
-				n2 = n2 + 1;
-			}
-			else if (n3 > 0 && BM_Radar_Dist2D (q, z3) < 440)
-			{
-				z3 = (z3 * n3 + q) / (n3 + 1);
-				n3 = n3 + 1;
-			}
-			else if (cnt < 4)
-			{
-				if (cnt == 0) { z0 = q; n0 = 1; }
-				else if (cnt == 1) { z1 = q; n1 = 1; }
-				else if (cnt == 2) { z2 = q; n2 = 1; }
-				else { z3 = q; n3 = 1; }
+				ins = cnt;
 				cnt = cnt + 1;
 			}
 			else
 			{
-				// Replace whichever existing zone is farthest from the viewer
-				d0 = vlen (z0 - c.origin);
-				d1 = vlen (z1 - c.origin);
-				d2 = vlen (z2 - c.origin);
-				d3 = vlen (z3 - c.origin);
-				dq = vlen (q - c.origin);
-				if (dq < d0 && d0 >= d1 && d0 >= d2 && d0 >= d3) { z0 = q; n0 = 1; }
-				else if (dq < d1 && d1 >= d0 && d1 >= d2 && d1 >= d3) { z1 = q; n1 = 1; }
-				else if (dq < d2 && d2 >= d0 && d2 >= d1 && d2 >= d3) { z2 = q; n2 = 1; }
-				else if (dq < d3) { z3 = q; n3 = 1; }
+				worst_i = 0;
+				worst_d = mm_sv_dist[0];
+				k = 1;
+				while (k < 16)
+				{
+					if (mm_sv_dist[k] > worst_d)
+					{
+						worst_d = mm_sv_dist[k];
+						worst_i = k;
+					}
+					k = k + 1;
+				}
+				ins = (d < worst_d) ? worst_i : -1;
+			}
+
+			if (ins >= 0)
+			{
+				mm_sv_pos[ins] = eorg;
+				mm_sv_yaw[ins] = eyaw;
+				mm_sv_flg[ins] = eflg;
+				mm_sv_dist[ins] = d;
 			}
 
 			if (pass == 0)
@@ -390,22 +444,59 @@ void(entity c) BM_Radar_BuildClientHeat =
 		pass = pass + 1;
 	}
 
-	rseq = feed.bm_rh_seq + 1;
-	if (rseq > 255)
-		rseq = 1;
-	feed.bm_rh_seq = rseq;
-	feed.bm_rh_cnt = cnt;
-	if (cnt >= 1) BM_Radar_SetHeatSlot (feed, 0, z0, bound (1, n0 * 48, 255));
-	if (cnt >= 2) BM_Radar_SetHeatSlot (feed, 1, z1, bound (1, n1 * 48, 255));
-	if (cnt >= 3) BM_Radar_SetHeatSlot (feed, 2, z2, bound (1, n2 * 48, 255));
-	if (cnt >= 4) BM_Radar_SetHeatSlot (feed, 3, z3, bound (1, n3 * 48, 255));
-	feed.SendFlags = feed.SendFlags | 2;
+	// Keep slot 0 as the closest enemy so CSQC always gets nearest-first even on truncated packets
+	if (cnt > 1)
+	{
+		local float best_i, best_d;
+		local vector tmp_v;
+		local float tmp_f;
+
+		best_i = 0;
+		best_d = mm_sv_dist[0];
+		k = 1;
+		while (k < cnt)
+		{
+			if (mm_sv_dist[k] < best_d)
+			{
+				best_d = mm_sv_dist[k];
+				best_i = k;
+			}
+			k = k + 1;
+		}
+		if (best_i != 0)
+		{
+			tmp_v = mm_sv_pos[0]; mm_sv_pos[0] = mm_sv_pos[best_i]; mm_sv_pos[best_i] = tmp_v;
+			tmp_f = mm_sv_yaw[0]; mm_sv_yaw[0] = mm_sv_yaw[best_i]; mm_sv_yaw[best_i] = tmp_f;
+			tmp_f = mm_sv_flg[0]; mm_sv_flg[0] = mm_sv_flg[best_i]; mm_sv_flg[best_i] = tmp_f;
+			tmp_f = mm_sv_dist[0]; mm_sv_dist[0] = mm_sv_dist[best_i]; mm_sv_dist[best_i] = tmp_f;
+		}
+	}
+
+	chg = (cnt != feed.bm_re_cnt);
+	k = 0;
+	while (k < cnt)
+	{
+		if (!chg)
+		{
+			oldp = BM_Radar_ReadEnemyPos (feed, k);
+			if (vlen (mm_sv_pos[k] - oldp) > 8
+				|| fabs (mm_sv_yaw[k] - BM_Radar_ReadEnemyYaw (feed, k)) > 4
+				|| mm_sv_flg[k] != BM_Radar_ReadEnemyFlg (feed, k))
+				chg = TRUE;
+		}
+		BM_Radar_WriteEnemySlot (feed, k, mm_sv_pos[k], mm_sv_yaw[k], mm_sv_flg[k]);
+		k = k + 1;
+	}
+	feed.bm_re_cnt = cnt;
+	if (chg)
+		feed.SendFlags = feed.SendFlags | 2;
 };
 
 void(entity c) BM_Radar_UpdateClientAllies =
 {
 	local entity feed, p;
 	local float cnt, chg, y;
+	local vector apos;
 
 	feed = BM_Radar_EnsureFeed (c);
 	if (!feed)
@@ -418,26 +509,27 @@ void(entity c) BM_Radar_UpdateClientAllies =
 	{
 		if (p != c && !p.bm_obs && p.health > 0 && BM_Radar_IsAlly (c, p))
 		{
-			y = BM_Radar_PackYaw (p.angles_y);
+			apos = BM_Radar_EntityPos (p);
+			y = BM_Radar_PackYaw (BM_Radar_EntityYaw (p));
 			if (cnt == 0)
 			{
-				if (vlen (p.origin - feed.bm_ra0_pos) > 14 || fabs (y - feed.bm_ra0_yaw) > 4) chg = TRUE;
-				feed.bm_ra0_pos = p.origin; feed.bm_ra0_yaw = y;
+				if (vlen (apos - feed.bm_ra0_pos) > 12 || fabs (y - feed.bm_ra0_yaw) > 4) chg = TRUE;
+				feed.bm_ra0_pos = apos; feed.bm_ra0_yaw = y;
 			}
 			else if (cnt == 1)
 			{
-				if (vlen (p.origin - feed.bm_ra1_pos) > 14 || fabs (y - feed.bm_ra1_yaw) > 4) chg = TRUE;
-				feed.bm_ra1_pos = p.origin; feed.bm_ra1_yaw = y;
+				if (vlen (apos - feed.bm_ra1_pos) > 12 || fabs (y - feed.bm_ra1_yaw) > 4) chg = TRUE;
+				feed.bm_ra1_pos = apos; feed.bm_ra1_yaw = y;
 			}
 			else if (cnt == 2)
 			{
-				if (vlen (p.origin - feed.bm_ra2_pos) > 14 || fabs (y - feed.bm_ra2_yaw) > 4) chg = TRUE;
-				feed.bm_ra2_pos = p.origin; feed.bm_ra2_yaw = y;
+				if (vlen (apos - feed.bm_ra2_pos) > 12 || fabs (y - feed.bm_ra2_yaw) > 4) chg = TRUE;
+				feed.bm_ra2_pos = apos; feed.bm_ra2_yaw = y;
 			}
 			else
 			{
-				if (vlen (p.origin - feed.bm_ra3_pos) > 14 || fabs (y - feed.bm_ra3_yaw) > 4) chg = TRUE;
-				feed.bm_ra3_pos = p.origin; feed.bm_ra3_yaw = y;
+				if (vlen (apos - feed.bm_ra3_pos) > 12 || fabs (y - feed.bm_ra3_yaw) > 4) chg = TRUE;
+				feed.bm_ra3_pos = apos; feed.bm_ra3_yaw = y;
 			}
 			cnt = cnt + 1;
 		}
@@ -455,38 +547,37 @@ void(entity c) BM_Radar_UpdateClientAllies =
 void() BM_Radar_Tick =
 {
 	local entity p;
-	local float do_heat, do_allies;
+	local float do_enemies, do_allies;
 
 	if (bm_menubg_active || intermission_running)
 		return;
 
-	do_heat = (time >= bm_radar_heat_t);
-	if (do_heat)
-		bm_radar_heat_t = time + 5.0;
+	do_enemies = (time >= bm_radar_enemy_t);
+	if (do_enemies)
+		bm_radar_enemy_t = time + 0.1;
 
 	do_allies = ((teamplay || coop || CTF_ENABLED) && time >= bm_radar_ally_t);
 	if (do_allies)
-		bm_radar_ally_t = time + 0.2;
+		bm_radar_ally_t = time + 0.15;
 
 	p = bm_player_head;
 	while (p)
 	{
-		// Detect custom firearm / fun-gun shots via bm_lastshot or fg_fire_t bumps
 		if (p.health > 0 && !p.bm_obs)
 		{
 			if (p.bm_lastshot > p.bm_radar_prev_shot || p.fg_fire_t > p.bm_radar_prev_fg)
 			{
 				p.bm_radar_prev_shot = p.bm_lastshot;
 				p.bm_radar_prev_fg = p.fg_fire_t;
-				BM_Radar_Ping (p, p.origin, BM_RPK_GUN);
+				BM_Radar_Ping (p, BM_Radar_EntityPos (p), BM_RPK_GUN);
 			}
 		}
 
 		if (p.ishuman == 1 && !p.bm_obs)
 		{
 			BM_Radar_EnsureFeed (p);
-			if (do_heat)
-				BM_Radar_BuildClientHeat (p);
+			if (do_enemies)
+				BM_Radar_UpdateClientEnemies (p);
 			if (do_allies)
 				BM_Radar_UpdateClientAllies (p);
 		}
