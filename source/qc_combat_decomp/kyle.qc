@@ -1381,6 +1381,13 @@ void(entity p, float is_homing, entity targ, float power) KY_Launch =
 	local float spd, is_sky, do_home;
 
 	KY_EnforceCap (p);
+	{
+		local entity oself;
+		oself = self;
+		self = p;
+		TW_TriggerSequence ();
+		self = oself;
+	}
 	makevectors (p.v_angle);
 	eye = p.origin + p.view_ofs;
 	do_home = (is_homing && KY_IsValidTarget (p, targ));

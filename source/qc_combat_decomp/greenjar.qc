@@ -1031,6 +1031,7 @@ void() GJ_Launch =
 	local float spd;
 
 	makevectors (self.v_angle);
+	TW_TriggerSequence ();
 	self.punchangle_x = 2.6;
 	self.punchangle_z = -1.8;
 

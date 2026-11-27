@@ -809,6 +809,7 @@ void() worldspawn =
 	DN3SG_Precache();
 	DN3FX_Precache();
 	FL_Precache();
+	TW_Precache();
 	precache_model("progs/v_nail2.mdl");
 	precache_model("progs/v_rock2.mdl");
 	precache_model("progs/v_laserg.mdl");

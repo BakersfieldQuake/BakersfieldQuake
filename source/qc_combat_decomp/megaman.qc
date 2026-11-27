@@ -1722,7 +1722,10 @@ void() MegaMan_ViewFrame =
 #else
 		if (time - self.mm_launch_t < 0.3 && self.health > 0)
 #endif
+		{
 			MegaMan_Launch ();
+			TW_TriggerSequence ();
+		}
 	}
 
 	MegaMan_UpdateVwep ();

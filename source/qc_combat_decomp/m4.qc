@@ -262,6 +262,7 @@ void() M4_Press =
 
 	FunGun_SetAmmo (self, FG_M4, a - 1);
 	self.fg_fire_t = time;
+	TW_TriggerSequence ();
 	self.bm_lastshot = time;
 	self.m4_bloom_t = time;
 	self.attack_finished = time + M4_REFIRE;

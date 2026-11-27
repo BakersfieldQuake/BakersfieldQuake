@@ -1091,6 +1091,7 @@ void() execute_changelevel =
 		self = e;
 		Veh_ClientGone();
 		FL_Reset(e);
+		TW_Reset(e);
 		JohnBird_ClientGone();
 		RocketRider_ClientGone();
 		EricCannon_ClientGone();
@@ -1502,6 +1503,7 @@ void() ClientKill =
 	}
 	self.veh_van = world;
 	FL_Reset(self);
+	TW_Reset(self);
 	if (Veh_Riding(self))
 	{
 		Veh_LeavePassenger(self, FALSE);
@@ -2094,6 +2096,7 @@ void() PutClientInServer =
 	Jetpack_Spawn();	// no fuel left over (jetpack.qc)
 	Veh_SpawnReset();	// not driving or riding (vehicle_drive.qc)
 	FL_Reset(self);		// clear ForeLoco state & CSQC blackout (foreloco.qc)
+	TW_Reset(self);		// clear B. Triple Wheeled state (triple_wheeled.qc)
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
 	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
@@ -4341,6 +4344,7 @@ void() PlayerPostThink =
 		return;
 	}
 	W_WeaponFrame();
+	PD_ActionPostThink();
 	if ((((self.jump_flag < -300) && (self.flags & FL_ONGROUND)) && (self.health > 0)))
 	{
 		if ((self.watertype == CONTENT_WATER))
@@ -4434,6 +4438,7 @@ void() ClientDisconnect =
 	ClientDisconnected();
 	Veh_ClientGone();	// a driver who drops leaves the van parked (vehicle_drive.qc)
 	FL_Reset(self);		// clear ForeLoco state & CSQC blackout (foreloco.qc)
+	TW_Reset(self);		// clear B. Triple Wheeled state (triple_wheeled.qc)
 	JohnBird_ClientGone();	// a flying Winged John pilot who drops leaves him perched (john_bird.qc)
 	RocketRider_ClientGone();	// a flying Rocket Rider pilot who drops leaves it parked (rocket_rider.qc)
 	EricCannon_ClientGone();	// a rider who drops leaves Eric Deason Cannon reset (eric_cannon.qc)

@@ -5466,6 +5466,7 @@ void() W_Attack =
 					player_shot1();
 				}
 				DN3SG_Fire();
+				TW_TriggerSequence();
 				self.attack_timer = 1;
 				self.attack_finished = (time + DN3SG_REFIRE);
 			}
@@ -5491,6 +5492,7 @@ void() W_Attack =
 								player_rocket1();
 							}
 							W_FireGrenade();
+							TW_TriggerSequence();
 							self.attack_timer = 1;
 							if ((autocvar_cheat_crazyexplosives == 1))
 							{
@@ -5514,6 +5516,7 @@ void() W_Attack =
 									player_rocket1();
 								}
 								W_FireRocket();
+								TW_TriggerSequence();
 								self.attack_timer = 1;
 								if ((autocvar_cheat_crazyexplosives == 1))
 								{
@@ -5539,12 +5542,14 @@ void() W_Attack =
 										self.attack_finished = (time + 0.1);
 										sound7(self, CHAN_AUTO, "weapons/lstart.wav", 1, ATTN_NORM, self.PLR_SNDSPD);
 									}
+									TW_TriggerSequence();
 								}
 								else
 								{
 									if ((self.weapon == IT_LASER_CANNON))
 									{
 										player_laser1();
+										TW_TriggerSequence();
 									}
 								}
 							}
@@ -6280,6 +6285,9 @@ void() ImpulseCommands =
 	FL_Impulse();
 	if (!self.impulse)
 		return;
+	TW_Impulse();
+	if (!self.impulse)
+		return;
 	LanProps_Impulse();
 	Bicycles_Impulse();
 	if ((self.impulse == MM_IMPULSE))
@@ -6427,6 +6435,18 @@ void() ImpulseCommands =
 	{
 		Dad4AM_Summon();		// Angry 4 AM Dad (daniel.qc)
 	}
+	if ((self.impulse == 171))
+	{
+		PD_TryCustomAction(1);	// Backflip & land on feet
+	}
+	if ((self.impulse == 172))
+	{
+		PD_TryCustomAction(2);	// Flying like Superman
+	}
+	if ((self.impulse == 173))
+	{
+		PD_TryCustomAction(3);	// 3x Balloon inflate & deflate
+	}
 	self.impulse = 0;
 };
 
@@ -6516,6 +6536,7 @@ void() W_WeaponFrame =
 	{
 		return;	// driving the Mega Man Tank (mm_tank.qc)
 	}
+	TW_Frame();
 	// Quake 1.5's z_coopconfig toggle (exec q15_config[_coop].cfg + "restart" to the first player who thinks) is gone:
 	// a non-deathmatch map flipped it to 0, so the next DM map restarted under a LAN host. Our configs pin z_coopconfig 1.
 	mapstart = 1;

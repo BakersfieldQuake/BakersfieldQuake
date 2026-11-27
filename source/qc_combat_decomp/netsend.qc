@@ -677,6 +677,7 @@ void() NS_Throw =
 	local vector m;
 
 	makevectors (self.v_angle);
+	TW_TriggerSequence ();
 	d = spawn ();
 	d.owner = self;
 	d.classname = "netsend_disk";

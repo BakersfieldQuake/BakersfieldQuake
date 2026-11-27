@@ -478,6 +478,7 @@ void() Pk_Launch =
 	local vector eye, aim_pt, hand_want, start_org, dir;
 
 	makevectors (self.v_angle);
+	TW_TriggerSequence ();
 	Pk_MakeRoom (self);
 
 	eye = self.origin + self.view_ofs;

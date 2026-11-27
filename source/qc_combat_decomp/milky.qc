@@ -954,6 +954,7 @@ void() Milky_Fire =
 	self.ammo_nails = self.ammo_nails - 1;
 	self.currentammo = self.ammo_nails;
 	self.milky_fire_t = time;
+	TW_TriggerSequence ();
 	self.milky_wind = time + MILKY_WIND;
 	self.attack_timer = 1;
 	self.attack_finished = time + MILKY_WIND + MILKY_REFIRE;		// the windup, then the cool-down

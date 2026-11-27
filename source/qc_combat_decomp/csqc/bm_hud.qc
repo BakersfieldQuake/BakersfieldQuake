@@ -1254,6 +1254,106 @@ void(float w, float h) FL_DrawHUD =
 	}
 };
 
+string(float code) TW_HudWepName =
+{
+	if (code == 1) return "ROCKET LAUNCHER";
+	if (code == 2) return "GRENADE LNCHR";
+	if (code == 3) return "DN3D SHOTGUN";
+	if (code == 4) return "LASER CANNON";
+	if (code == 5) return "THUNDERBOLT";
+	if (code == 6) return "MEGA MAN";
+	if (code == 7) return "MILKY GUN";
+	if (code == 8) return "M4A1 CARBINE";
+	if (code == 9) return "M1 GARAND";
+	if (code == 10) return "WHEELMAN";
+	if (code == 11) return "DOOKIE BAZOOKA";
+	if (code == 12) return "PICKLE SURPRISE";
+	if (code == 13) return "GREEN JAR";
+	if (code == 14) return "NETSEND";
+	if (code == 15) return "POCKET KYLE";
+	if (code == 16) return "CYRAX NET";
+	if (code == 17) return "BONK AXE";
+	if (code == 18) return "ROB HEAD";
+	if (code == 19) return "BANANA";
+	return "CHAOS GUN";
+};
+
+void(float x, float y, float cw, float ch, string tag, float wcode, float fired, float queued) TW_DrawSlotCell =
+{
+	local string s;
+	local vector bg;
+
+	if (fired)
+	{
+		bg = '1.0 0.45 0.05';
+		drawfill (x * '1 0 0' + y * '0 1 0', cw * '1 0 0' + ch * '0 1 0', bg, 0.55, 0);
+		s = strcat ("^3", tag, " ^7", TW_HudWepName (wcode));
+	}
+	else if (queued)
+	{
+		drawfill (x * '1 0 0' + y * '0 1 0', cw * '1 0 0' + ch * '0 1 0', '0.18 0.32 0.12', 0.48, 0);
+		s = strcat ("^2", tag, " ^7", TW_HudWepName (wcode));
+	}
+	else
+	{
+		drawfill (x * '1 0 0' + y * '0 1 0', cw * '1 0 0' + ch * '0 1 0', '0.06 0.06 0.09', 0.45, 0);
+		s = strcat ("^5", tag, " ^7", TW_HudWepName (wcode));
+	}
+	BM_DrawColorShadow (x + 3, y + 2.5, s, 4.4, 0.96);
+};
+
+void(float w, float h) TW_DrawHUD =
+{
+	local float rem, w0, w1, w2, w3, st, next_s, sec, dec;
+	local float pw, ph, x0, y0, colw, rowh, warn_red;
+	local string hdr, ts;
+	local vector bcol;
+
+	rem = getstati (152);
+	if (rem <= 0)
+		return;
+
+	w0 = getstati (153);
+	w1 = getstati (154);
+	w2 = getstati (155);
+	w3 = getstati (156);
+	st = getstati (157);
+	next_s = floor (st / 16);
+
+	sec = floor (rem / 10);
+	dec = rem - sec * 10;
+	ts = strcat (ftos (sec), ".", ftos (dec), "s");
+
+	pw = 252;
+	ph = 44;
+	x0 = w * 0.5 - pw * 0.5;
+	y0 = 8;
+	colw = 118;
+	rowh = 11;
+
+	warn_red = (rem < 30 && (floor (time * 8) & 1) == 0);
+	bcol = warn_red ? '1.0 0.2 0.1' : '1.0 0.68 0.1';
+
+	// Backing panel + glowing border
+	drawfill (x0 * '1 0 0' + y0 * '0 1 0', pw * '1 0 0' + ph * '0 1 0', '0.04 0.04 0.06', 0.68, 0);
+	drawfill (x0 * '1 0 0' + y0 * '0 1 0', pw * '1 0 0' + '0 1 0', bcol, 0.85, 0);
+	drawfill (x0 * '1 0 0' + (y0 + ph - 1) * '0 1 0', pw * '1 0 0' + '0 1 0', bcol, 0.85, 0);
+
+	if (warn_red)
+		hdr = strcat ("^1B. TRIPLE WHEELED  ^3[", ts, "] ^1(4 GUNS!)");
+	else
+		hdr = strcat ("^3B. TRIPLE WHEELED  ^7[", ts, "] ^2(4 GUNS!)");
+	BM_Centered (w * 0.5, y0 + 3, hdr, 5.4, '1 1 1', 0.98);
+
+	// Top row (upside-down ceiling guns): Slot 3 Top-Left, Slot 2 Top-Right
+	TW_DrawSlotCell (x0 + 6, y0 + 15, colw, rowh, "[TL INV]", w3, (st & 8), (next_s == 3));
+	TW_DrawSlotCell (x0 + 6 + colw + 4, y0 + 15, colw, rowh, "[TR INV]", w2, (st & 4), (next_s == 2));
+
+	// Bottom row (upright guns): Slot 1 Bottom-Left, Slot 0 Main Bottom-Right
+	TW_DrawSlotCell (x0 + 6, y0 + 28, colw, rowh, "[BL]", w1, (st & 2), (next_s == 1));
+	TW_DrawSlotCell (x0 + 6 + colw + 4, y0 + 28, colw, rowh, "[MAIN]", w0, (st & 1), 0);
+};
+
 void(float w, float h) BM_DrawHUD =
 {
 	local float cx, cy, mag, magmax, rlp, prot, heat, boost, regen, warm, lheat, hp, i, px, pw, a, f, sl, low, botcnt, intro_on, ty, row_step, rlp_step;

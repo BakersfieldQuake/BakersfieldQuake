@@ -578,6 +578,7 @@ void(float w, float h) CSQC_UpdateView =
 					JB_DrawHUD(w, h);
 					CY_DrawHUD(cw, ch);
 					FL_DrawHUD(cw, ch);
+					TW_DrawHUD(cw, ch);
 					BM_DrawMinimap(w, h);
 				}
 			}

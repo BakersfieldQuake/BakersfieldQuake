@@ -906,6 +906,7 @@ void(float c) WC_Fire =
 	FunGun_SetAmmo (self, FG_WCANNON, a - 1);
 	FunGun_Lock (FG_WCANNON);
 	self.fg_fire_t = time;
+	TW_TriggerSequence ();
 	tier = floor (c * 4);
 	if (tier > 3)
 		tier = 3;

@@ -242,6 +242,7 @@ void() Garand_Press =
 	a = a - 1;
 	FunGun_SetAmmo (self, FG_GARAND, a);
 	self.fg_fire_t = time;
+	TW_TriggerSequence ();
 	self.bm_lastshot = time;
 	self.attack_finished = time + GAR_REFIRE;
 	self.gar_shoot_t = time;

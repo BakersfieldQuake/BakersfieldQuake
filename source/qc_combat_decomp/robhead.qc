@@ -51,6 +51,7 @@ void() RH_BeginDroneLaunch =
 	FunGun_SetAmmo (self, FG_DOB, a - 1);
 	FunGun_Lock (FG_DOB);
 	self.fg_fire_t = time;
+	TW_TriggerSequence ();
 	self.bm_lastshot = time + 0.9;
 	self.rh_fire_t = time;
 	self.rh_throw_gun = FG_DOB;

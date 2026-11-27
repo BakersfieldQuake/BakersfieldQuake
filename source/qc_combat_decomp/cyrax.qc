@@ -968,6 +968,13 @@ void(entity p, float weak) Cyrax_FireNet =
 	p.cy_charging = 0;
 	p.cy_fire_t = time;
 	p.fg_fire_t = time;
+	{
+		local entity oself;
+		oself = self;
+		self = p;
+		TW_TriggerSequence ();
+		self = oself;
+	}
 	p.bm_lastshot = time + 0.35;
 	p.cy_click_ready = FALSE;
 

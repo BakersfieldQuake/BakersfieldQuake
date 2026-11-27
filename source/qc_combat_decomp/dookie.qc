@@ -559,6 +559,7 @@ void(float c) DK_Launch =
 	self.dk_cool = time + DK_COOLDOWN;
 	self.attack_finished = time + DK_COOLDOWN;
 	self.fg_fire_t = time;
+	TW_TriggerSequence ();
 	self.dk_fire_t = time;
 	self.bm_lastshot = time + 0.6;
 	FunGun_SetAmmo (self, FG_DOOKIE, a - 1);

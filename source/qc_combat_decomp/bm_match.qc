@@ -628,6 +628,12 @@ void() BM_Stats =
 	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
 	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
+	clientstat (152, 2, tw_st_rem);			// B. Triple Wheeled remaining time * 10
+	clientstat (153, 2, tw_st_wep0);		// B. Triple Wheeled Slot 0 (main gun) code
+	clientstat (154, 2, tw_st_wep1);		// B. Triple Wheeled Slot 1 (bottom-left) code
+	clientstat (155, 2, tw_st_wep2);		// B. Triple Wheeled Slot 2 (top-right, upside-down) code
+	clientstat (156, 2, tw_st_wep3);		// B. Triple Wheeled Slot 3 (top-left, upside-down) code
+	clientstat (157, 2, tw_st_step);		// B. Triple Wheeled flash bitmask + active cascade step
 	KC_Stats ();
 };
 
@@ -1069,6 +1075,7 @@ void() BM_StartFrame =
 	Soi6_Tick ();
 	RocketRider_MapTick ();
 	MMTank_StartFrame ();
+	TW_MapSpawn ();
 	BM_VoteTick ();
 	BM_BotStartFrame ();
 	BM_ObsCheckDiscard ();
@@ -1382,6 +1389,7 @@ void(entity e) BM_ObsActivate =
 		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
 		Veh_ClientGone ();
 		FL_Reset (e);
+		TW_Reset (e);
 		JohnBird_ClientGone ();
 		RocketRider_ClientGone ();
 		EricCannon_ClientGone ();
@@ -1629,6 +1637,8 @@ void() BM_ObsFrame =
 	self.cy_st_kind = 0;
 	self.cy_st_dist = 0;
 	self.gk_st_nitro = 0;
+	self.tw_st_rem = 0;
+	self.tw_st_step = 0;
 	self.bm_st_menubg = 0;
 	self.bm_st_botmask = bm_botmask_cache;
 	self.bm_st_playermask = bm_playermask_cache;
