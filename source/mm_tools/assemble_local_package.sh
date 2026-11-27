@@ -104,6 +104,7 @@ pk3 loading -I "$M/loading_screen/build_loading_pk3.py" "$B"
 pk3 cyrax -I "$M/cyrax/build_cyrax_pk3.py" "$B"
 pk3 gunwheel -I "$M/gunwheel/build_gunwheel_pk3.py"
 pk3 selected_sounds -I "$M/selected_sounds/build_selected_sounds_pk3.py"
+pk3 console -I "$M/console/build_console_pk3.py"
 # The rest of build-zip.yml's overlays: the base package predates them. Keep this list in step with the workflow.
 pk3 wewcannon -I "$M/wew_cannon/build_wewcannon_pk3.py" "$B"
 pk3 bakersfieldish -I "$M/build_bakersfieldish_pk3.py"
