@@ -92,6 +92,8 @@ def main(argv=None):
     ap.add_argument("--notes", default="", help="short human-readable summary of changes")
     ap.add_argument("--vps-base", default="", help="base HTTPS URL for VPS fallback (e.g. https://.../updates)")
     ap.add_argument("--mac-inputs", default="", help="macOS bundle inputs hash")
+    ap.add_argument("--app-inputs", default="",
+                    help="macOS bundle inputs hash of this release's commit (the DMG's may be older)")
     ap.add_argument("--dmg-url", default="", help="GitHub download URL for macOS DMG")
     ap.add_argument("--dmg-vps-url", default="", help="VPS fallback URL for macOS DMG")
     ap.add_argument("--dmg-size", type=int, default=None, help="byte size of macOS DMG")
@@ -118,6 +120,8 @@ def main(argv=None):
             dmg_size=a.dmg_size,
             dmg_sha256=a.dmg_sha256,
         )
+    if a.app_inputs:
+        manifest["app_inputs"] = a.app_inputs
 
     out_text = json.dumps(manifest, indent=1) + "\n"
     if a.output is not None:

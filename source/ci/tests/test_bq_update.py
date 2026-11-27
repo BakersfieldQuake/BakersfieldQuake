@@ -421,6 +421,20 @@ class UpdaterTest(unittest.TestCase):
             self.assertEqual(opened[0].read_bytes(), dmg_bytes)
             self.assertTrue(ui.progress_events)
 
+    def test_macos_app_matching_release_commit_skips_older_dmg(self):
+        # The release is out but its DMG is still building: mac_inputs names the older DMG, app_inputs this commit.
+        self.run_updater()
+        mac_inputs_file = self.root / "mac-inputs"
+        mac_inputs_file.write_text("current-inputs-hash\n", "utf-8")
+        m = self.publish(V1, 2, mac_inputs="older-dmg-inputs", dmg_url=f"{self.base}/old.dmg", dmg_size=1,
+                         dmg_sha256="0" * 64, tamper=lambda m: m.update(app_inputs="current-inputs-hash"))
+        up = bq.Updater(self.root, "macos-app", f"{self.base}/manifest.json", lambda _m: None,
+                        bundle_mac_inputs=mac_inputs_file, open_dmg=lambda p: self.fail("opened a DMG"))
+        self.assertNotEqual(up.plan_update().kind, "dmg")
+        m["app_inputs"] = "newer-inputs-hash"
+        RangeHandler.files["/manifest.json"] = json.dumps(m).encode()
+        self.assertEqual(up.plan_update().kind, "dmg")
+
     def test_cache_avoids_rehash(self):
         self.run_updater()
         cached = self.state()["cache"]["BakersfieldQuake/progs.dat"]

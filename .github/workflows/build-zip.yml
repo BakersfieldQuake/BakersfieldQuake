@@ -1373,7 +1373,7 @@ jobs:
           z=BAKOQUAKE-macos-arm64.zip
           python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
             --only BakersfieldQuake/ --only quake15/ --only tools/ \
-            --notes "$notes" --vps-base "$vps" "${dmg_args[@]}" > manifest-macos-app.json
+            --notes "$notes" --vps-base "$vps" --app-inputs "$MAC_INPUTS" "${dmg_args[@]}" > manifest-macos-app.json
           python -c "import json,sys; m=json.load(open(sys.argv[1])); print(sys.argv[1], len(m['files']), 'files')" manifest-macos-app.json
 
       - name: Publish release

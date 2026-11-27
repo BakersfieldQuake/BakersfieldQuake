@@ -779,7 +779,11 @@ class Updater:
         if self.bundle_mac_inputs and self.bundle_mac_inputs.is_file():
             local_inputs = self.bundle_mac_inputs.read_text("utf-8").strip()
             remote_inputs = (m.get("mac_inputs") or "").strip()
-            if local_inputs and remote_inputs and local_inputs != remote_inputs and (m.get("dmg_url") or m.get("dmg_vps_url")):
+            # app_inputs: this release's commit. A local build of it, or a DMG of it installed before CI patches the
+            # manifest, matches it even while mac_inputs still names an older DMG; never offer that older DMG.
+            current_inputs = (m.get("app_inputs") or "").strip()
+            if (local_inputs and remote_inputs and local_inputs != remote_inputs and local_inputs != current_inputs
+                    and (m.get("dmg_url") or m.get("dmg_vps_url"))):
                 return UpdatePlan(
                     kind="dmg",
                     manifest=m,

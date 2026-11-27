@@ -62,7 +62,8 @@ if [ -n "$TAG" ] && [ "$(stat -f %d "$BUNDLE_GAME")" = "$(stat -f %d "$USERDIR")
             # The frozen Python carries no CA list of its own; every macOS has this one.
             export SSL_CERT_FILE=/etc/ssl/cert.pem
             UPD=("$APP/MacOS/bq-update" --launch --root "$DATA" --platform macos-app)
-            [ -f "$APP/Resources/mac-inputs" ] && UPD+=(--bundle-mac-inputs "$APP/Resources/mac-inputs")
+            # A local build (make build, tag local-*) is newer than any DMG; never send it to download one.
+            [ -f "$APP/Resources/mac-inputs" ] && [ "${TAG#local-}" = "$TAG" ] && UPD+=(--bundle-mac-inputs "$APP/Resources/mac-inputs")
             [ -n "${BQ_MANIFEST_URL:-}" ] && UPD+=(--manifest-url "$BQ_MANIFEST_URL")
             [ -n "${BQ_FALLBACK_URL+x}" ] && UPD+=(--fallback-url "$BQ_FALLBACK_URL")
             "${UPD[@]}"

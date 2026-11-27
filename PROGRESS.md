@@ -358,3 +358,13 @@
   (chonk has no clang). It now uses `cp -R --reflink=auto` off macOS, `getconf _NPROCESSORS_ONLN` and `CC=cc`. The
   Makefile runs `build_app.sh` only on Darwin, so on Linux `make build` stops at the assembled `build/pkg`. Checked
   with `bash -n` and `make -n`; not run on chonk.
+- Also: the updater offered the older v1.107 DMG to an app built from current `main`. The release's
+  `manifest-macos-app.json` keeps the newest finished DMG's `mac_inputs` until the `macos` job patches it, and runs
+  110-112 never got there (110 failed, 111 and 112 were cancelled by the next push). The manifest now also carries
+  `app_inputs` (this release's commit), and `bq_update.py` skips the DMG when the installed app matches it. Changed
+  `tools/bq_update.py`, `source/ci/make_manifest.py`, `build-zip.yml`, plus a test in `source/ci/tests/test_bq_update.py`
+  (fails without the fix). 27/27 updater tests pass. Changing `bq_update.py` changes the app inputs, so the next
+  release builds a new DMG.
+  A local build ahead of every release (unpushed commits) still matched neither hash, so `launcher.sh` and
+  `update_launcher.sh` no longer pass `--bundle-mac-inputs` when the app's `release-tag` is `local-*`: local builds
+  skip the DMG check (game data still updates). Checked with `bash -n`; not run from a rebuilt app.
