@@ -56,12 +56,36 @@ if [ ! -x "$VENV/bin/python" ]; then
 fi
 M="$ROOT/source/mm_tools"
 B="$BASE/BakersfieldQuake/bakersfield.pk3"
-pk3() {   # pk3 <name> <python args...>: build zz_<name>.pk3 straight into the package
-    echo "  zz_$1.pk3"
+# Built pk3s are cached in $WORK/pk3cache and reused while their key matches. The key covers every repo file
+# outside the QC, docs, CI and the mac app (tracked, modified and untracked), the base package's pk3s and
+# levelshots, the numpy/pillow pins and the builder's arguments.
+# ponytail: one key for all builders, so any asset or tool change rebuilds them all; per-pk3 inputs like CI's
+# cache keys if that gets slow.
+CACHE="$WORK/pk3cache"
+mkdir -p "$CACHE"
+EXCL=(':!docs' ':!source/qc_combat_decomp' ':!source/menu_qc' ':!source/mac' ':!.github' ':!*.md')
+SRCKEY="$({
+    echo "numpy=$NUMPY pillow=$PILLOW"
+    git -C "$ROOT" ls-files -s -- . "${EXCL[@]}"
+    git -C "$ROOT" diff HEAD -- . "${EXCL[@]}"
+    (cd "$ROOT" && git ls-files -oz --exclude-standard -- . "${EXCL[@]}" ':!build' | xargs -0 sha256sum 2>/dev/null) || true
+    find "$BASE" -type f \( -name '*.pk3' -o -path '*/levelshots/*' \) | sort | while IFS= read -r f; do
+        echo "$f $(wc -c <"$f") $(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f")"
+    done
+} | sha256sum | cut -d' ' -f1)"
+pk3() {   # pk3 <name> <python args...>: build zz_<name>.pk3 (or reuse the cached one) into the package
     local n=$1; shift
-    "$VENV/bin/python" "$@" "$G/zz_$n.pk3" >"$WORK/zz_$n.log" 2>&1 || { tail -20 "$WORK/zz_$n.log"; die "zz_$n.pk3 failed"; }
+    local key; key="$(printf '%s\n' "$SRCKEY" "$@" | sha256sum | cut -d' ' -f1)"
+    if [ -f "$CACHE/zz_$n.pk3" ] && [ "$(cat "$CACHE/zz_$n.key" 2>/dev/null)" = "$key" ]; then
+        echo "  zz_$n.pk3 (cached)"
+    else
+        echo "  zz_$n.pk3"
+        rm -f "$CACHE/zz_$n.key"
+        "$VENV/bin/python" "$@" "$CACHE/zz_$n.pk3" >"$WORK/zz_$n.log" 2>&1 || { tail -20 "$WORK/zz_$n.log"; die "zz_$n.pk3 failed"; }
+        echo "$key" >"$CACHE/zz_$n.key"
+    fi
+    cp "$CACHE/zz_$n.pk3" "$G/zz_$n.pk3"
 }
-# ponytail: rebuilt every run; cache by input hash (like CI) if this gets slow
 pk3 bakovan "$M/van_bako/build_van_bako_pk3.py" "$B"
 pk3 karts -I "$M/build_gokart_pk3.py" "$B"
 pk3 gunnomip -I "$M/build_gunnomip_pk3.py" "$B"
@@ -78,8 +102,33 @@ pk3 loading -I "$M/loading_screen/build_loading_pk3.py" "$B"
 pk3 cyrax -I "$M/cyrax/build_cyrax_pk3.py" "$B"
 pk3 gunwheel -I "$M/gunwheel/build_gunwheel_pk3.py"
 pk3 selected_sounds -I "$M/selected_sounds/build_selected_sounds_pk3.py"
-echo "  zz_johnbird.pk3"
-"$VENV/bin/python" -I "$M/build_john_bird_pk3.py" --base-pk3 "$BASE/BakersfieldQuake/zz_johnbird.pk3" --out-pk3 "$G/zz_johnbird.pk3" >"$WORK/zz_johnbird.log" 2>&1 || { tail -20 "$WORK/zz_johnbird.log"; die "zz_johnbird.pk3 failed"; }
+# The rest of build-zip.yml's overlays: the base package predates them. Keep this list in step with the workflow.
+pk3 wewcannon -I "$M/wew_cannon/build_wewcannon_pk3.py" "$B"
+pk3 bakersfieldish -I "$M/build_bakersfieldish_pk3.py"
+pk3 player_deaths -I "$M/build_player_deaths.py" --bakersfield-pk3 "$B" --skip-html --no-qc --out-pk3
+pk3 robdrone -I "$M/build_robdrone_pk3.py"
+pk3 jumppads -I "$M/build_jumppads_pk3.py"
+pk3 m4 -I "$M/build_m4_pk3.py" "$B"
+pk3 hitsound -I "$M/make_hitsound.py" --pk3
+pk3 netsend_sentry -I "$M/disc_sentry/build_netsend_sentry_pk3.py" --out
+pk3 levelshots -I "$M/build_levelshots_pk3.py" "$G" --pk3 "$G/zz_bakersfieldish.pk3"
+# Pinned binaries with no builder in the repo, fetched like CI does.
+fetch_pk3() {   # fetch_pk3 <name> <url> <sha256>
+    local f="$CACHE/zz_$1.pk3"
+    if echo "$3  $f" | sha256sum -c --quiet - >/dev/null 2>&1; then
+        echo "  zz_$1.pk3 (pinned, cached)"
+    else
+        echo "  zz_$1.pk3 (pinned)"
+        timeout 300 curl -fsSL --retry 3 -o "$f" "$2" || die "zz_$1.pk3 download failed"
+        echo "$3  $f" | sha256sum -c --quiet - || die "zz_$1.pk3 sha256 mismatch"
+    fi
+    cp "$f" "$G/zz_$1.pk3"
+}
+fetch_pk3 netsend_disk https://bakersfield.larrywew.fun/pk3/zz_netsend_disk-e557aa2b.pk3 \
+    e557aa2b2488481fb753296f8ca13124d873d0a0ceb65ccf2b1d7f77b745712d
+fetch_pk3 hats https://bakersfield.larrywew.fun/pk3/zz_hats-5522f13f.pk3 \
+    5522f13ffc5203c1a08807357b1932d4fa06ca03154b347f9e60c2a541955bb5
+pk3 johnbird -I "$M/build_john_bird_pk3.py" --base-pk3 "$BASE/BakersfieldQuake/zz_johnbird.pk3" --out-pk3
 if [ -f "$G/maps/bakersfielddowntown.bsp" ]; then
     echo "  patch maps/bakersfielddowntown.bsp (Dagny's upstairs LAN party)"
     "${PYTHON:-python3}" -I "$M/patch_dagnys_lan_bsp.py" "$G/maps/bakersfielddowntown.bsp"

@@ -371,3 +371,12 @@
 - Also: `BQ_NO_UPDATE=1` (`make run`) never reached the updater. `launcher.sh` reopens itself in iTerm/Terminal
   through a `.command` file, which starts a fresh environment and carried only `BQ_IN_TERMINAL`. It now writes every
   `BQ_*` variable into that file. Checked the generated file under `env -i /bin/bash`; not run from a rebuilt app.
+- Also: a local build couldn't load GiggleHacks' server ("Download rejected ... is in an archive" for
+  `zz_netsend_sentry`, `zz_player_deaths`, `zz_hats` and `zz_bakersfieldish`). `build/base` dated from Nov 19, and
+  `assemble_local_package.sh` built only 16 of CI's overlays. It now builds the other 9 and fetches the pinned
+  `zz_netsend_disk`/`zz_hats` (the list is copied from `build-zip.yml` by hand). Built pk3s are cached in
+  `build/pk3cache` under one key: repo files outside QC/docs/CI/mac, base pk3s and levelshots, pins and arguments.
+  Two assemble runs: 194 s cold, 3.4 s cached, 28 overlays in the package each time. Not checked: that changing an
+  asset triggers a rebuild, and loading the server with the rebuilt app.
+- Karts build profile (cProfile, 103 s): PNG `optimize=True` 34 s, pure-Python `md3lib.write` 29 s plus 8.5 s
+  read-back, geometry ~30 s. Each kart is 64 frames × 10-16k vertices (5.8-8.4 MB MD3), so `zz_karts.pk3` is 43 MB.
