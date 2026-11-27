@@ -5,36 +5,16 @@
 ================
 PRACTICE RANGE - maps/practice.bsp
 
-Clean, bloat-free shooting range & custom asset showcase (active in-game
-custom assets only):
+Wide-open empty practice arena with a central jump-pad hole:
   - Auto-grants every gun & refills reserve ammo / fun-gun cooldowns quickly.
-  - Passive respawning range targets (`info_practice_target`) for active
-    in-game custom characters: never shoot back, respawn in 2.0 s.
-  - Circling passive aerial targets above the Central Jump Pad (Winged John
-    and Rob Dob head): respawn in 2.0 s.
-  - Optional Live-Fire Pen (`trigger_practice_livefire`) in the West Wing.
+  - 1 walking, non-shooting enemy player model (`progs/player_id1.mdl`) that
+    patrols around the central arena and respawns 2.5s after elimination.
+  - Map entities place 1 Mega Man Tank, 1 Go-Kart, and 1 of each powerup.
 ================
 */
 
-float PR_KIND_RANDGUY	= 11;
-float PR_KIND_AFROGUY	= 12;
-float PR_KIND_LADY		= 13;
-float PR_KIND_FATGUY	= 14;
-float PR_KIND_GREENSUIT	= 16;
-float PR_KIND_BEERGUY	= 17;
-float PR_KIND_ROBEGUY	= 18;
-float PR_KIND_ROGERV	= 19;
-float PR_KIND_BRYAN		= 20;
-float PR_KIND_DAVID		= 21;
-float PR_KIND_DANIEL	= 22;
-float PR_KIND_REESE		= 23;
-float PR_KIND_BEACH		= 24;
-float PR_KIND_ALEX		= 25;
-float PR_KIND_PINKLADY	= 26;
-
 void() Practice_CtrlThink;
-void() Practice_TargetThink;
-void() Practice_LivePenThink;
+void() Practice_EnemyThink;
 
 void() Practice_Precache =
 {
@@ -47,45 +27,21 @@ void() Practice_Precache =
 	practice_active = TRUE;
 	practice_live_fire = FALSE;
 	practice_ctrl = world;
-	practice_air_bird = world;
-	practice_air_float = world;
-	practice_air_bird_t = time + 0.6;
-	practice_air_float_t = time + 0.8;
+	practice_enemy = world;
+	practice_enemy_t = time + 0.5;
 	practice_live_t = 0;
 
-	JohnBird_Precache ();
-	EricCannon_Precache ();
 	MMTank_Precache ();
-	Bikes_Precache ();
+	Vehicles_Precache ();
 
-	// Active in-game custom character models & sprites
-	precache_model ("progs/npc_randguy.md3");
-	precache_model ("progs/npc_afroguy.md3");
-	precache_model ("progs/npc_randlady.md3");
-	precache_model ("progs/npc_fatguy.md3");
-	precache_model ("progs/beach_uncle_a.md3");
-	precache_model ("progs/alex_pattaya_a.md3");
-	precache_model ("progs/pinklady.md3");
-
-	precache_model ("progs/greensuit_wheelman.spr32");
-	precache_model ("progs/beerguy.spr32");
-	precache_model ("progs/robeguy.spr32");
-	precache_model ("progs/rogerver.spr32");
-	precache_model ("progs/bryan.spr32");
-	precache_model ("progs/david.spr32");
-	precache_model ("progs/daniel.spr32");
-	precache_model ("progs/reeseice.spr32");
-	precache_model ("progs/robhead_proj.spr32");
-
+	precache_model ("progs/player_id1.mdl");
 	precache_sound ("player/death1.wav");
 	precache_sound ("player/pain1.wav");
-	precache_sound ("weapons/shotgn2.wav");
-	precache_sound ("buttons/switch04.wav");
 
 	practice_ctrl = spawn ();
 	practice_ctrl.classname = "practice_ctrl";
 	practice_ctrl.think = Practice_CtrlThink;
-	practice_ctrl.nextthink = time + 0.4;
+	practice_ctrl.nextthink = time + 0.3;
 };
 
 void(entity p) Practice_GiveAll =
@@ -156,564 +112,149 @@ void() Practice_PlayerFrame =
 	if (self.fg_ammo10 < FG_CYRAX_MAX && self.fg_regen10 > time + 2.0) self.fg_regen10 = time + 2.0;
 };
 
-// ---------------------------------------------------------------- Passive Respawning Range Targets
+// ---------------------------------------------------------------- Walking Non-Shooting Enemy Player Model
 
-float() Practice_TargetCustomize =
+vector(float idx) Practice_EnemyWaypoint =
 {
-	local float rel, d, k;
-	local vector delta;
+	local float a;
 
-	if (self.pr_dir_mode == 0)
-		return TRUE;
-
-	delta = (other.origin + other.view_ofs) - (self.origin + '0 0 26');
-	rel = vectoyaw (delta) - self.angles_y;
-	rel = rel - 360 * floor (rel / 360);
-
-	if (self.pr_dir_mode == 3)
-	{
-		d = floor (rel / 22.5 + 0.5);
-		if (d >= 16) d = 0;
-		self.frame = 16 + d;
-		return TRUE;
-	}
-
-	d = floor (rel / 45 + 0.5);
-	if (d >= 8) d = 0;
-
-	k = floor (time * self.pr_fps + self.origin_x * 0.02);
-	k = k - self.pr_fcount * floor (k / self.pr_fcount);
-	self.frame = d * self.pr_dir_stride + self.pr_f0 + k;
-	return TRUE;
+	// 8-point loop at radius 300 around the center hole (stays clear of pit, vehicles, and powerups)
+	a = idx * 45 * 0.01745329;
+	return ('1 0 0' * (cos (a) * 300)) + ('0 1 0' * (sin (a) * 300)) + '0 0 28';
 };
 
-void() Practice_TargetDie =
-{
-	sound (self, CHAN_VOICE, "player/death1.wav", 0.85, ATTN_NORM);
-	pointparticles (particleeffectnum ("TE_BLOOD"), self.origin + '0 0 20', '0 0 80', 14);
-
-	if (self.enemy && self.enemy.classname == "player" && self.enemy.ishuman == 1)
-		sprint (self.enemy, strcat ("Target eliminated: ", self.netname, " (respawns in 2s)\n"));
-
-	self.flags = self.flags - (self.flags & FL_MONSTER);
-	self.solid = SOLID_NOT;
-	self.movetype = MOVETYPE_NONE;
-	self.takedamage = DAMAGE_NO;
-	self.deadflag = DEAD_DEAD;
-	self.enemy = world;
-	self.model = string_null;
-	self.velocity = '0 0 0';
-	self.pr_respawn_t = time + 2.0;
-	self.think = Practice_TargetThink;
-	self.nextthink = time + 0.1;
-};
-
-void(entity attacker, float damage) Practice_TargetPain =
-{
-	if (self.health <= 0)
-		return;
-	sound (self, CHAN_VOICE, "player/pain1.wav", 0.55, ATTN_NORM);
-	self.enemy = world;
-	self.think = Practice_TargetThink;
-	self.nextthink = time + 0.05;
-};
-
-void() Practice_TargetRestore =
-{
-	self.pr_respawn_t = 0;
-	self.deadflag = DEAD_NO;
-	self.enemy = world;
-	self.health = self.max_health;
-	self.flags = FL_MONSTER;
-	self.solid = SOLID_SLIDEBOX;
-	self.movetype = MOVETYPE_STEP;
-	self.takedamage = DAMAGE_AIM;
-	self.angles = '0 0 0';
-	self.angles_y = self.pr_home_yaw;
-	self.velocity = '0 0 0';
-	self.pr_patrol_sign = 1;
-	setmodel (self, self.mdl);
-	setsize (self, self.bbmins, self.bbmaxs);
-	setorigin (self, self.pr_home);
-	droptofloor ();
-	pointparticles (particleeffectnum ("TE_TELEPORT"), self.origin + '0 0 18', '0 0 0', 1);
-};
-
-void() Practice_TargetThink =
-{
-	local float f, step, move_yaw;
-	local vector d;
-
-	if (self.pr_respawn_t > 0)
-	{
-		if (time >= self.pr_respawn_t)
-			Practice_TargetRestore ();
-		self.nextthink = time + 0.1;
-		return;
-	}
-
-	if (self.health <= 0)
-		return;
-
-	if (self.pr_patrol_dist > 0 && self.speed > 0)
-	{
-		d = self.origin - self.pr_home;
-		d_z = 0;
-		if ((d * self.pr_patrol_dir) > self.pr_patrol_dist)
-			self.pr_patrol_sign = -1;
-		else if ((d * self.pr_patrol_dir) < -self.pr_patrol_dist)
-			self.pr_patrol_sign = 1;
-
-		move_yaw = vectoyaw (self.pr_patrol_dir * self.pr_patrol_sign);
-		self.angles_y = move_yaw;
-		step = self.speed * 0.05;
-		if (!walkmove (move_yaw, step))
-			self.pr_patrol_sign = -self.pr_patrol_sign;
-	}
-	else
-	{
-		self.angles_y = self.pr_home_yaw;
-	}
-
-	if (self.pr_dir_mode == 0 && self.pr_fcount > 1)
-	{
-		f = floor (time * self.pr_fps);
-		self.frame = self.pr_f0 + (f - self.pr_fcount * floor (f / self.pr_fcount));
-	}
-	self.nextthink = time + 0.05;
-};
-
-void(entity e, float kind) Practice_ConfigureKind =
-{
-	e.pr_dir_mode = 0;
-	e.pr_f0 = 0;
-	e.pr_fcount = 1;
-	e.pr_fps = 10;
-	e.scale = 1;
-	e.bbmins = VEC_HULL_MIN;
-	e.bbmaxs = VEC_HULL_MAX;
-
-	if (kind == PR_KIND_RANDGUY)
-	{
-		e.mdl = "progs/npc_randguy.md3";
-		e.netname = "LAN Citizen";
-		e.pr_f0 = 8; e.pr_fcount = 12;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_AFROGUY)
-	{
-		e.mdl = "progs/npc_afroguy.md3";
-		e.netname = "Afro Citizen";
-		e.pr_f0 = 8; e.pr_fcount = 12;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_LADY)
-	{
-		e.mdl = "progs/npc_randlady.md3";
-		e.netname = "LAN Lady";
-		e.pr_f0 = 8; e.pr_fcount = 12;
-		if (!e.max_health) e.max_health = 120;
-	}
-	else if (kind == PR_KIND_FATGUY)
-	{
-		e.mdl = "progs/npc_fatguy.md3";
-		e.netname = "Big LAN Guy";
-		e.pr_f0 = 8; e.pr_fcount = 12;
-		if (!e.max_health) e.max_health = 160;
-	}
-	else if (kind == PR_KIND_GREENSUIT)
-	{
-		e.mdl = "progs/greensuit_wheelman.spr32";
-		e.netname = "Greensuit Wheelman";
-		e.scale = 0.8036;
-		e.bbmins = '-18 -18 0'; e.bbmaxs = '18 18 54';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 32; e.pr_fcount = 4; e.pr_fps = 10;
-		if (!e.max_health) e.max_health = 165;
-	}
-	else if (kind == PR_KIND_BEERGUY)
-	{
-		e.mdl = "progs/beerguy.spr32";
-		e.netname = "Beer Guy";
-		e.scale = 0.483;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 32; e.pr_f0 = 0; e.pr_fcount = 12; e.pr_fps = 14;
-		if (!e.max_health) e.max_health = 140;
-	}
-	else if (kind == PR_KIND_ROBEGUY)
-	{
-		e.mdl = "progs/robeguy.spr32";
-		e.netname = "Robe Guy";
-		e.scale = 0.65;
-		e.bbmins = '-18 -18 0'; e.bbmaxs = '18 18 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 32; e.pr_fcount = 4; e.pr_fps = 10;
-		if (!e.max_health) e.max_health = 140;
-	}
-	else if (kind == PR_KIND_ROGERV)
-	{
-		e.mdl = "progs/rogerver.spr32";
-		e.netname = "Roger Ver";
-		e.scale = 0.48;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 32; e.pr_f0 = 0; e.pr_fcount = 12; e.pr_fps = 14;
-		if (!e.max_health) e.max_health = 140;
-	}
-	else if (kind == PR_KIND_BRYAN)
-	{
-		e.mdl = "progs/bryan.spr32";
-		e.netname = "Tinfoil Bryan";
-		e.scale = 0.65;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 6; e.pr_f0 = 8; e.pr_fcount = 6; e.pr_fps = 11;
-		if (!e.max_health) e.max_health = 160;
-	}
-	else if (kind == PR_KIND_DAVID)
-	{
-		e.mdl = "progs/david.spr32";
-		e.netname = "David Ojeda";
-		e.scale = 0.62;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 8; e.pr_fcount = 4; e.pr_fps = 11;
-		if (!e.max_health) e.max_health = 220;
-	}
-	else if (kind == PR_KIND_DANIEL)
-	{
-		e.mdl = "progs/daniel.spr32";
-		e.netname = "4AM Daniel";
-		e.scale = 0.66;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 4; e.pr_f0 = 8; e.pr_fcount = 4; e.pr_fps = 11;
-		if (!e.max_health) e.max_health = 320;
-	}
-	else if (kind == PR_KIND_REESE)
-	{
-		e.mdl = "progs/reeseice.spr32";
-		e.netname = "ReeseIce";
-		e.scale = 0.48;
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 56';
-		e.pr_dir_mode = 2; e.pr_dir_stride = 44; e.pr_f0 = 0; e.pr_fcount = 12; e.pr_fps = 12;
-		if (!e.max_health) e.max_health = 150;
-	}
-	else if (kind == PR_KIND_BEACH)
-	{
-		e.mdl = "progs/beach_uncle_a.md3";
-		e.netname = "Beach Uncle";
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 64';
-		if (!e.max_health) e.max_health = 150;
-	}
-	else if (kind == PR_KIND_ALEX)
-	{
-		e.mdl = "progs/alex_pattaya_a.md3";
-		e.netname = "Alex Pattaya";
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 64';
-		if (!e.max_health) e.max_health = 150;
-	}
-	else if (kind == PR_KIND_PINKLADY)
-	{
-		e.mdl = "progs/pinklady.md3";
-		e.netname = "Pink Lady";
-		e.bbmins = '-16 -16 0'; e.bbmaxs = '16 16 64';
-		if (!e.max_health) e.max_health = 140;
-	}
-};
-
-void() info_practice_target =
-{
-	local float k;
-
-	k = self.count;
-	if (!k) k = PR_KIND_GREENSUIT;
-	self.pr_kind = k;
-	if (self.health > 0)
-		self.max_health = self.health;
-	Practice_ConfigureKind (self, k);
-
-	self.classname = "info_practice_target";
-	self.pr_home = self.origin;
-	self.pr_home_yaw = self.angles_y;
-	if (vlen (self.pos1) > 1)
-	{
-		self.pr_patrol_dist = vlen (self.pos1);
-		self.pr_patrol_dir = normalize (self.pos1);
-	}
-	else
-	{
-		self.pr_patrol_dist = 0;
-		self.pr_patrol_dir = '1 0 0';
-	}
-
-	self.th_stand = Practice_TargetThink;
-	self.th_walk = Practice_TargetThink;
-	self.th_run = Practice_TargetThink;
-	self.th_melee = SUB_Null;
-	self.th_missile = SUB_Null;
-	self.th_pain = Practice_TargetPain;
-	self.th_die = Practice_TargetDie;
-	self.customizeentityforclient = Practice_TargetCustomize;
-
-	Practice_TargetRestore ();
-	self.think = Practice_TargetThink;
-	self.nextthink = time + 0.1 + random () * 0.2;
-};
-
-// ---------------------------------------------------------------- Circling Aerial Targets
-
-void() Practice_AirFloatDie =
-{
-	sound (self, CHAN_VOICE, "weapons/r_exp3.wav", 0.85, ATTN_NORM);
-	pointparticles (particleeffectnum ("TE_EXPLOSION"), self.origin, '0 0 0', 1);
-	practice_air_float = world;
-	practice_air_float_t = time + 2.0;
-	remove (self);
-};
-
-void(entity attacker, float damage) Practice_AirFloatPain =
-{
-	sound (self, CHAN_VOICE, "player/pain1.wav", 0.6, ATTN_NORM);
-	self.enemy = world;
-};
-
-void() Practice_AirOrbitThink =
-{
-	local float ang, rad, z0, spd, c, s, s2;
-	local vector nxt;
-
-	if (self.health <= 0)
-		return;
-	rad = 560; z0 = 540; spd = 0.65;
-	ang = time * spd + self.pr_home_yaw;
-	c = cos (ang);
-	s = sin (ang);
-	s2 = sin (ang * 2);
-	nxt_x = c * rad;
-	nxt_y = s * rad;
-	nxt_z = z0 + s2 * 56;
-	self.angles_y = (ang * 57.29578) + 90;
-	setorigin (self, nxt);
-	self.nextthink = time + 0.05;
-};
-
-void() Practice_SpawnAirBird =
-{
-	local entity jb;
-
-	jb = spawn ();
-	jb.angles = '0 0 0';
-	setorigin (jb, '0 440 620');
-	JB_InitEntity (jb, TRUE);
-	jb.movetype = MOVETYPE_NONE;
-	setsize (jb, '-28 -36 -4', '28 36 58');
-	jb.jb_spawn_org = '0 440 620';
-	jb.jb_ai = TRUE;
-	jb.jb_ai_strafe = 1;
-	jb.jb_ai_mode = 0;
-	jb.jb_ai_mode_t = time + 999;
-	jb.jb_ai_fire_t = time + 99999;
-	jb.jb_flap_t = time + 0.1;
-	jb.jb_voice_t = time + 9999;
-	jb.think = JB_AutopilotThink;
-	jb.nextthink = time + 0.05;
-	practice_air_bird = jb;
-};
-
-void() Practice_SpawnAirFloat =
-{
-	local entity e;
-
-	e = spawn ();
-	e.classname = "practice_air_float";
-	e.netname = "Aerial Rob Dob";
-	e.flags = FL_MONSTER;
-	e.solid = SOLID_SLIDEBOX;
-	e.movetype = MOVETYPE_NONE;
-	e.takedamage = DAMAGE_AIM;
-	e.health = 160;
-	e.max_health = 160;
-	e.pr_home_yaw = 1.2;
-	e.pr_dir_mode = 3;
-	e.scale = FD_PROJ_SCALE;
-	e.th_stand = Practice_AirOrbitThink;
-	e.th_walk = Practice_AirOrbitThink;
-	e.th_run = Practice_AirOrbitThink;
-	e.th_melee = SUB_Null;
-	e.th_missile = SUB_Null;
-	e.th_pain = Practice_AirFloatPain;
-	e.th_die = Practice_AirFloatDie;
-	e.customizeentityforclient = Practice_TargetCustomize;
-	setmodel (e, "progs/robhead_proj.spr32");
-	setsize (e, '-24 -24 -24', '24 24 24');
-	setorigin (e, '560 0 540');
-	e.think = Practice_AirOrbitThink;
-	e.nextthink = time + 0.05;
-	practice_air_float = e;
-};
-
-// ---------------------------------------------------------------- Live-Fire Pen
-
-void() Practice_LivePenDie =
+void() Practice_EnemyDie =
 {
 	sound (self, CHAN_VOICE, "player/death1.wav", 0.9, ATTN_NORM);
 	pointparticles (particleeffectnum ("TE_BLOOD"), self.origin + '0 0 20', '0 0 80', 18);
+
+	if (self.enemy && self.enemy.classname == "player" && self.enemy.ishuman == 1)
+		sprint (self.enemy, "Practice Enemy eliminated (respawns in 2.5s)\n");
+
+	practice_enemy = world;
+	practice_enemy_t = time + 2.5;
 	remove (self);
 };
 
-void(entity attacker, float dmg) Practice_LivePenPain =
+void(entity attacker, float damage) Practice_EnemyPain =
 {
 	if (self.health <= 0)
 		return;
-	sound (self, CHAN_VOICE, "player/pain1.wav", 0.7, ATTN_NORM);
-	if (attacker.classname == "player")
-		self.enemy = attacker;
-};
-
-void() Practice_LivePenThink =
-{
-	local entity p, best;
-	local float d, bd;
-	local vector dir;
-
-	if (!practice_live_fire || self.health <= 0)
-	{
-		remove (self);
-		return;
-	}
-
-	best = world;
-	bd = 1000;
-	p = find (world, classname, "player");
-	while (p)
-	{
-		if (p.health > 0 && p.deadflag == 0)
-		{
-			d = vlen (p.origin - self.origin);
-			if (d < bd)
-			{
-				bd = d;
-				best = p;
-			}
-		}
-		p = find (p, classname, "player");
-	}
-
-	if (best != world)
-	{
-		dir = best.origin - self.origin;
-		self.angles_y = vectoyaw (dir);
-		if (bd > 160)
-		{
-			if (self.origin_x < -2180 && dir_x < 0) self.angles_y = 0;
-			else if (self.origin_x > -1620 && dir_x > 0) self.angles_y = 180;
-			walkmove (self.angles_y, 7.5);
-		}
-		if (time >= self.attack_finished && visible (best))
-		{
-			local vector src, aim_ang, pellet_dir;
-			local float shots;
-
-			self.attack_finished = time + 1.35 + random () * 0.8;
-			sound (self, CHAN_WEAPON, "weapons/shotgn2.wav", 0.8, ATTN_NORM);
-			src = self.origin + '0 0 24';
-			dir = normalize ((best.origin + '0 0 18') - src);
-			aim_ang = vectoangles (dir);
-			aim_ang_x = 0 - aim_ang_x;
-			makevectors (aim_ang);
-			ClearMultiDamage ();
-			shots = 3;
-			while (shots > 0)
-			{
-				pellet_dir = normalize (dir + crandom () * 0.06 * v_right + crandom () * 0.06 * v_up);
-				traceline (src, src + pellet_dir * 2048, FALSE, self);
-				if (trace_fraction != 1)
-					TraceAttack (5, pellet_dir);
-				shots = shots - 1;
-			}
-			ApplyMultiDamage ();
-		}
-	}
+	sound (self, CHAN_VOICE, "player/pain1.wav", 0.65, ATTN_NORM);
+	self.enemy = world;
+	self.think = Practice_EnemyThink;
 	self.nextthink = time + 0.05;
 };
 
-void(float kind, vector org) Practice_SpawnPenFighter =
+void() Practice_EnemyThink =
+{
+	local vector wp, delta;
+	local float f, yaw, moved;
+
+	if (self.health <= 0)
+		return;
+
+	self.enemy = world;
+	wp = Practice_EnemyWaypoint (self.pr_patrol_sign);
+	delta = wp - self.origin;
+	delta_z = 0;
+
+	if (vlen (delta) < 48)
+	{
+		self.pr_patrol_sign = self.pr_patrol_sign + 1;
+		if (self.pr_patrol_sign >= 8)
+			self.pr_patrol_sign = 0;
+		self.pr_stuck_t = 0;
+		wp = Practice_EnemyWaypoint (self.pr_patrol_sign);
+		delta = wp - self.origin;
+		delta_z = 0;
+	}
+
+	yaw = vectoyaw (delta);
+	self.angles = '0 0 0';
+	self.angles_y = yaw;
+
+	moved = walkmove (yaw, 10.5);
+	if (!moved)
+		moved = walkmove (yaw + 45, 10.5);
+	if (!moved)
+		moved = walkmove (yaw - 45, 10.5);
+	if (!moved)
+	{
+		self.pr_stuck_t = self.pr_stuck_t + 0.05;
+		if (self.pr_stuck_t > 0.6)
+		{
+			self.pr_stuck_t = 0;
+			self.pr_patrol_sign = self.pr_patrol_sign + 1;
+			if (self.pr_patrol_sign >= 8)
+				self.pr_patrol_sign = 0;
+		}
+	}
+	else
+	{
+		self.pr_stuck_t = 0;
+	}
+
+	// Standard Quake player run frames 6..11 (10 fps)
+	f = floor (time * 10);
+	self.frame = 6 + (f - 6 * floor (f / 6));
+	self.nextthink = time + 0.05;
+};
+
+void() Practice_SpawnEnemy =
 {
 	local entity e, oself;
 
 	e = spawn ();
-	e.classname = "practice_live_pen";
-	e.pr_live_pen = TRUE;
-	e.pr_kind = kind;
-	Practice_ConfigureKind (e, kind);
-	e.health = e.max_health;
+	e.classname = "monster_practice_enemy";
+	e.netname = "Practice Enemy";
 	e.flags = FL_MONSTER;
 	e.solid = SOLID_SLIDEBOX;
 	e.movetype = MOVETYPE_STEP;
 	e.takedamage = DAMAGE_AIM;
-	e.attack_finished = time + 1.0 + random ();
-	e.th_pain = Practice_LivePenPain;
-	e.th_die = Practice_LivePenDie;
-	e.customizeentityforclient = Practice_TargetCustomize;
-	setmodel (e, e.mdl);
-	setsize (e, e.bbmins, e.bbmaxs);
-	setorigin (e, org);
+	e.health = 100;
+	e.max_health = 100;
+	e.pr_patrol_sign = 2;	// start at (0, 300) walking toward (-212, 212)
+	e.pr_stuck_t = 0;
+	e.th_stand = Practice_EnemyThink;
+	e.th_walk = Practice_EnemyThink;
+	e.th_run = Practice_EnemyThink;
+	e.th_melee = SUB_Null;
+	e.th_missile = SUB_Null;
+	e.th_pain = Practice_EnemyPain;
+	e.th_die = Practice_EnemyDie;
+	e.angles = '0 180 0';
+
+	setmodel (e, "progs/player_id1.mdl");
+	setsize (e, VEC_HULL_MIN, VEC_HULL_MAX);
+	setorigin (e, '0 300 28');
+
 	oself = self;
 	self = e;
-	droptofloor ();		// on the fighter (it dropped whoever called this)
+	droptofloor ();
 	self = oself;
-	e.think = Practice_LivePenThink;
-	e.nextthink = time + 0.1;
+
+	pointparticles (particleeffectnum ("TE_TELEPORT"), e.origin + '0 0 18', '0 0 0', 1);
+	e.think = Practice_EnemyThink;
+	e.nextthink = time + 0.05;
+	practice_enemy = e;
 };
 
-void() Practice_EnsurePenFighters =
+// ---------------------------------------------------------------- Legacy Entity Stubs
+
+void() info_practice_target =
 {
-	local entity e;
-	local float cnt;
-
-	cnt = 0;
-	e = find (world, classname, "practice_live_pen");
-	while (e)
-	{
-		if (e.health > 0)
-			cnt = cnt + 1;
-		e = find (e, classname, "practice_live_pen");
-	}
-	if (cnt < 3)
-	{
-		if (cnt == 0) Practice_SpawnPenFighter (PR_KIND_GREENSUIT, '-2040 -160 32');
-		else if (cnt == 1) Practice_SpawnPenFighter (PR_KIND_BRYAN, '-2040 160 32');
-		else Practice_SpawnPenFighter (PR_KIND_DAVID, '-1820 0 32');
-	}
-};
-
-void() Practice_ClearPenFighters =
-{
-	local entity e, nxt;
-
-	e = find (world, classname, "practice_live_pen");
-	while (e)
-	{
-		nxt = find (e, classname, "practice_live_pen");
-		remove (e);
-		e = nxt;
-	}
+	remove (self);
 };
 
 void() Practice_ToggleLiveFire =
 {
-	practice_live_fire = !practice_live_fire;
-	sound (self, CHAN_AUTO, "buttons/switch04.wav", 1.0, ATTN_NONE);
-	if (practice_live_fire)
-	{
-		bprint ("Practice Range: LIVE-FIRE PEN ON (arena fighters & bots now fight back!)\n");
-		Practice_EnsurePenFighters ();
-	}
-	else
-	{
-		bprint ("Practice Range: PEACEFUL MODE (all targets & bots passive)\n");
-		Practice_ClearPenFighters ();
-	}
+	practice_live_fire = FALSE;
 };
 
 void() trigger_practice_livefire =
 {
-	self.use = Practice_ToggleLiveFire;
+	remove (self);
 };
 
 // ---------------------------------------------------------------- Controller Tick
@@ -726,35 +267,16 @@ void() Practice_CtrlThink =
 		return;
 	}
 
-	if (practice_air_bird == world || bm_wasfreed (practice_air_bird) || practice_air_bird.health <= 0 || practice_air_bird.jb_dying)
+	if (practice_enemy == world || bm_wasfreed (practice_enemy) || practice_enemy.health <= 0)
 	{
-		if (!practice_air_bird_t) practice_air_bird_t = time + 2.0;
-		if (time >= practice_air_bird_t)
+		if (!practice_enemy_t)
+			practice_enemy_t = time + 2.5;
+		if (time >= practice_enemy_t)
 		{
-			practice_air_bird_t = 0;
-			Practice_SpawnAirBird ();
-		}
-	}
-	else
-	{
-		practice_air_bird.jb_ai_fire_t = time + 99999;
-	}
-
-	if (practice_air_float == world || bm_wasfreed (practice_air_float) || practice_air_float.health <= 0)
-	{
-		if (!practice_air_float_t) practice_air_float_t = time + 2.0;
-		if (time >= practice_air_float_t)
-		{
-			practice_air_float_t = 0;
-			Practice_SpawnAirFloat ();
+			practice_enemy_t = 0;
+			Practice_SpawnEnemy ();
 		}
 	}
 
-	if (practice_live_fire && time >= practice_live_t)
-	{
-		practice_live_t = time + 2.5;
-		Practice_EnsurePenFighters ();
-	}
-
-	self.nextthink = time + 0.4;
+	self.nextthink = time + 0.25;
 };

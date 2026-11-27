@@ -115,6 +115,7 @@ pk3 m4 -I "$M/build_m4_pk3.py" "$B"
 pk3 hitsound -I "$M/make_hitsound.py" --pk3
 pk3 netsend_sentry -I "$M/disc_sentry/build_netsend_sentry_pk3.py" --out
 pk3 levelshots -I "$M/build_levelshots_pk3.py" "$G" --pk3 "$G/zz_bakersfieldish.pk3"
+pk3 practice -I "$M/build_practice_pk3.py"
 # Pinned binaries with no builder in the repo, fetched like CI does.
 fetch_pk3() {   # fetch_pk3 <name> <url> <sha256>
     local f="$CACHE/zz_$1.pk3"
