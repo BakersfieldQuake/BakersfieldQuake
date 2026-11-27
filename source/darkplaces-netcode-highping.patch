@@ -1,0 +1,195 @@
+diff --git a/netconn.c b/netconn.c
+index 342d78b2..4eea48b7 100755
+--- a/netconn.c
++++ b/netconn.c
+@@ -77,6 +77,7 @@ char sv_readstring[MAX_INPUTLINE];
+ cvar_t net_test = {0, "net_test", "0", "internal development use only, leave it alone (usually does nothing anyway)"};
+ cvar_t net_usesizelimit = {0, "net_usesizelimit", "2", "use packet size limiting (0: never, 1: in non-CSQC mode, 2: always)"};
+ cvar_t net_burstreserve = {0, "net_burstreserve", "0.3", "how much of the burst time to reserve for packet size spikes"};
++cvar_t net_reliable_resend_timeout = {0, "net_reliable_resend_timeout", "0", "reliable fragment retransmit timeout in seconds (0 = automatic RTT-adaptive, >0 = fixed override)"};
+ cvar_t net_messagetimeout = {0, "net_messagetimeout","300", "drops players who have not sent any packets for this many seconds"};
+ cvar_t net_connecttimeout = {0, "net_connecttimeout","15", "after requesting a connection, the client must reply within this many seconds or be dropped (cuts down on connect floods). Must be above 10 seconds."};
+ cvar_t net_connectfloodblockingtimeout = {0, "net_connectfloodblockingtimeout", "5", "when a connection packet is received, it will block all future connect packets from that IP address for this many seconds (cuts down on connect floods). Note that this does not include retries from the same IP; these are handled earlier and let in."};
+@@ -813,8 +814,22 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 		const void *sendme;
+ 		size_t sendmelen;
+ 
++		// compute RTT-adaptive reliable retransmit timeout (RFC 6298 + Karn's algorithm)
++		double resend_timeout;
++		if (net_reliable_resend_timeout.value > 0)
++			resend_timeout = bound(0.1, net_reliable_resend_timeout.value, 5.0);
++		else if (conn->smoothed_rtt <= 0.0)
++			resend_timeout = 1.0;
++		else
++		{
++			resend_timeout = max(conn->smoothed_rtt + max(0.08, 4.0 * conn->rtt_var), conn->smoothed_rtt * 1.4 + 0.05);
++			resend_timeout = bound(0.25, resend_timeout, 1.2);
++			if (conn->reliable_resends > 0)
++				resend_timeout = min(1.5, resend_timeout * (1.0 + 0.5 * min(conn->reliable_resends, 2)));
++		}
++
+ 		// if a reliable message fragment has been lost, send it again
+-		if (conn->sendMessageLength && (realtime - conn->lastSendTime) > 1.0)
++		if (conn->sendMessageLength && (realtime - conn->lastSendTime) > resend_timeout)
+ 		{
+ 			if (conn->sendMessageLength <= MAX_PACKETFRAGMENT)
+ 			{
+@@ -839,6 +854,9 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 			if (sendme && NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress) == (int)sendmelen)
+ 			{
+ 				conn->lastSendTime = realtime;
++				conn->reliable_resent = true;
++				if (conn->reliable_resends < 4)
++					conn->reliable_resends++;
+ 				conn->packetsReSent++;
+ 			}
+ 
+@@ -891,6 +909,7 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 				NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress);
+ 
+ 			conn->lastSendTime = realtime;
++			conn->reliable_resent = false;
+ 			conn->packetsSent++;
+ 			conn->reliableMessagesSent++;
+ 
+@@ -1401,6 +1420,26 @@ static int NetConn_ReceivedMessage(netconn_t *conn, const unsigned char *data, s
+ 						conn->nq.ackSequence++;
+ 						if (conn->nq.ackSequence != conn->nq.sendSequence)
+ 							Con_DPrint("ack sequencing error\n");
++						if (!conn->reliable_resent)
++						{
++							double sample = realtime - conn->lastSendTime;
++							if (sample > 0.0 && sample < 2.0)
++							{
++								if (conn->smoothed_rtt <= 0.0)
++								{
++									conn->smoothed_rtt = sample;
++									conn->rtt_var = sample * 0.5;
++								}
++								else
++								{
++									double err = fabs(sample - conn->smoothed_rtt);
++									conn->rtt_var = 0.75 * conn->rtt_var + 0.25 * err;
++									conn->smoothed_rtt = 0.875 * conn->smoothed_rtt + 0.125 * sample;
++								}
++							}
++							conn->reliable_resends = 0;
++						}
++						conn->reliable_resent = false;
+ 						conn->lastMessageTime = realtime;
+ 						conn->timeout = realtime + newtimeout;
+ 						if (conn->sendMessageLength > MAX_PACKETFRAGMENT)
+@@ -1435,6 +1474,7 @@ static int NetConn_ReceivedMessage(netconn_t *conn, const unsigned char *data, s
+ 							if (sendme && NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress) == (int)sendmelen)
+ 							{
+ 								conn->lastSendTime = realtime;
++								conn->reliable_resent = false;
+ 								conn->packetsSent++;
+ 							}
+ 						}
+@@ -3881,6 +3921,7 @@ void NetConn_Init(void)
+ 	Cvar_RegisterVariable(&net_test);
+ 	Cvar_RegisterVariable(&net_usesizelimit);
+ 	Cvar_RegisterVariable(&net_burstreserve);
++	Cvar_RegisterVariable(&net_reliable_resend_timeout);
+ 	Cvar_RegisterVariable(&rcon_restricted_password);
+ 	Cvar_RegisterVariable(&rcon_restricted_commands);
+ 	Cvar_RegisterVariable(&rcon_secure_maxdiff);
+diff --git a/netconn.h b/netconn.h
+index 7341359e..54ff2f2a 100755
+--- a/netconn.h
++++ b/netconn.h
+@@ -148,6 +148,10 @@ typedef struct netconn_s
+ 	double timeout;
+ 	double lastMessageTime;
+ 	double lastSendTime;
++	double smoothed_rtt;
++	double rtt_var;
++	qboolean reliable_resent;
++	int reliable_resends;
+ 
+ 	/// writing buffer to send to peer as the next reliable message
+ 	/// can be added to at any time, copied into sendMessage buffer when it is
+diff --git a/protocol.c b/protocol.c
+index e9d9489f..ca658262 100644
+--- a/protocol.c
++++ b/protocol.c
+@@ -2757,8 +2757,8 @@ void EntityFrame5_CL_ReadFrame(void)
+ 
+ static int packetlog5cmp(const void *a_, const void *b_)
+ {
+-	const entityframe5_packetlog_t *a = (const entityframe5_packetlog_t *) a_;
+-	const entityframe5_packetlog_t *b = (const entityframe5_packetlog_t *) b_;
++	const entityframe5_packetlog_t *a = *(const entityframe5_packetlog_t *const *) a_;
++	const entityframe5_packetlog_t *b = *(const entityframe5_packetlog_t *const *) b_;
+ 	return a->packetnumber - b->packetnumber;
+ }
+ 
+@@ -2773,7 +2773,7 @@ void EntityFrame5_LostFrame(entityframe5_database_t *d, int framenum)
+ 
+ 	for (i = 0, p = d->packetlog;i < ENTITYFRAME5_MAXPACKETLOGS;i++, p++)
+ 		packetlogs[i] = p;
+-	qsort(packetlogs, sizeof(*packetlogs), ENTITYFRAME5_MAXPACKETLOGS, packetlog5cmp);
++	qsort(packetlogs, ENTITYFRAME5_MAXPACKETLOGS, sizeof(*packetlogs), packetlog5cmp);
+ 
+ 	memset(deltabits, 0, sizeof(deltabits));
+ 	memset(statsdeltabits, 0, sizeof(statsdeltabits));
+@@ -2854,7 +2854,8 @@ qboolean EntityFrame5_WriteFrame(sizebuf_t *msg, int maxsize, entityframe5_datab
+ 			break;
+ 	if (packetlognumber == ENTITYFRAME5_MAXPACKETLOGS)
+ 	{
+-		Con_DPrintf("EntityFrame5_WriteFrame: packetlog overflow for a client, resetting\n");
++		if (developer_networkentities.integer >= 1)
++			Con_DPrintf("EntityFrame5_WriteFrame: packetlog overflow for a client, resetting\n");
+ 		EntityFrame5_LostFrame(d, framenum);
+ 		packetlognumber = 0;
+ 	}
+diff --git a/protocol.h b/protocol.h
+index a3a26777..277b8327 100644
+--- a/protocol.h
++++ b/protocol.h
+@@ -763,7 +763,7 @@ void EntityFrame4_CL_ReadFrame(void);
+ // bits2 > 0
+ #define E5_EXTEND4 (1<<31)
+ 
+-#define ENTITYFRAME5_MAXPACKETLOGS 64
++#define ENTITYFRAME5_MAXPACKETLOGS 256
+ #define ENTITYFRAME5_MAXSTATES 1024
+ #define ENTITYFRAME5_PRIORITYLEVELS 32
+ 
+diff --git a/sv_phys.c b/sv_phys.c
+index 4ad211bc..f11e86bb 100644
+--- a/sv_phys.c
++++ b/sv_phys.c
+@@ -2997,7 +2997,8 @@ static void SV_Physics_ClientEntity_PreThink(prvm_edict_t *ent)
+ 	if (host_client->clmovement_inputtimeout <= 0)
+ 	{
+ 		SV_ClientThink();
+-		//host_client->cmd.time = max(host_client->cmd.time, sv.time);
++		if (host_client->movesequence)
++			host_client->cmd.time = min(sv.time, host_client->cmd.time + sv.frametime);
+ 	}
+ 
+ 	// make sure the velocity is still sane (not a NaN)
+diff --git a/sv_user.c b/sv_user.c
+index 991b2774..22871233 100644
+--- a/sv_user.c
++++ b/sv_user.c
+@@ -617,7 +617,7 @@ static void SV_ExecuteClientMoves(void)
+ 				// this is a new move
+ 				move->time = bound(sv.time - 1, move->time, sv.time); // prevent slowhack/speedhack combos
+ 				move->time = max(move->time, host_client->cmd.time); // prevent backstepping of time
+-				moveframetime = bound(0, move->time - host_client->cmd.time, min(0.1, sv_clmovement_inputtimeout.value));
++				moveframetime = bound(0, move->time - host_client->cmd.time, min(0.25, sv_clmovement_inputtimeout.value));
+ 
+ 				// discard (treat like lost) moves with too low distance from
+ 				// the previous one to prevent hacks using float inaccuracy
+@@ -663,7 +663,7 @@ static void SV_ExecuteClientMoves(void)
+ 				SV_Physics_ClientMove();
+ 				sv.frametime = oldframetime2;
+ 				PRVM_serverglobalfloat(frametime) = oldframetime;
+-				host_client->clmovement_inputtimeout = sv_clmovement_inputtimeout.value;
++				host_client->clmovement_inputtimeout = min(0.25, sv_clmovement_inputtimeout.value);
+ 			}
+ 		}
+ 	}

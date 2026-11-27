@@ -1,0 +1,343 @@
+diff --git a/cl_input_pmove.c.h b/cl_input_pmove.c.h
+index cbb48e3..5015542 100644
+--- a/cl_input_pmove.c.h
++++ b/cl_input_pmove.c.h
+@@ -827,6 +827,9 @@ int Zircon_Elevator_Check_Fix_Is_Ok (cl_clientmovement_state_t *plyr, int collid
+ 	return false; // Elevator did correct
+ } // Elevator
+ 
++extern cvar_t cl_smooth;
++extern cvar_t cl_smoothmaxdist;
++
+ void CL_ClientMovement_Replay (int collide_type)
+ {
+ 	if (cl.movement_predicted && !cl.movement_replay)
+@@ -967,6 +970,38 @@ dp7_go:
+ 	if (cl.movement_predicted) {
+ 		//Con_Printf ("%dms\n", cl.movecmd[0].msec);
+ 
++		// measure exact prediction error when a new server move ack arrives
++		if (cls.demoplayback || cl.movement_predicted == PRED_ZIRCON_MOVE_2 || cl.viewentity != cl.playerentity) {
++			VectorClear(cl.pred_error_offset);
++		} else if (cls.servermovesequence != cl.pred_last_serverseq) {
++			cl.pred_last_serverseq = cls.servermovesequence;
++			if (!cl_smooth.integer || cl_smoothmaxdist.value <= 0) {
++				VectorClear(cl.pred_error_offset);
++			} else {
++				int err_idx;
++				for (err_idx = 0; err_idx < CL_MAX_USERCMDS_128; err_idx++) {
++					if (cl.movecmd[err_idx].clx_sequence == cls.servermovesequence &&
++						cl.movecmd[err_idx].pred_end_seq == cls.servermovesequence) {
++						vec3_t err;
++						vec_t errlen;
++						VectorSubtract(cl.movecmd[err_idx].pred_end_origin,
++							cl.entities[cl.playerentity].state_current.origin, err);
++						errlen = VectorLength(err);
++						if (errlen > cl_smoothmaxdist.value) {
++							VectorClear(cl.pred_error_offset);
++						} else if (errlen > 0.25f) {
++							vec_t total_len;
++							VectorAdd(cl.pred_error_offset, err, cl.pred_error_offset);
++							total_len = VectorLength(cl.pred_error_offset);
++							if (total_len > cl_smoothmaxdist.value)
++								VectorScale(cl.pred_error_offset, cl_smoothmaxdist.value / total_len, cl.pred_error_offset);
++						}
++						break;
++					}
++				}
++			}
++		}
++
+ 		// replay the input queue to predict current location
+ 		// note: this relies on the fact there's always one queue item at the end
+ 
+@@ -1015,6 +1050,8 @@ dp7_go:
+ 			CL_ClientMovement_PlayerMove_Frame (&s, collide_type);
+ 
+ 			cl.movecmd[move_seq].clx_canjump = s.cmd.clx_canjump;
++			VectorCopy(s.origin, cl.movecmd[move_seq].pred_end_origin);
++			cl.movecmd[move_seq].pred_end_seq = cl.movecmd[move_seq].clx_sequence;
+ #if 4321
+ 			if (m->zmove_is_move_processed != m->clx_sequence) {
+ 				VectorCopy (s.origin, m->zmove_end_origin);
+@@ -1036,6 +1073,7 @@ dp7_go:
+ 	else { // !cl.movement_predicted ...
+ 		// get the first movement queue entry to know whether to crouch and such
+ 		s.cmd = cl.movecmd[0]; // Baker: Struct copy
++		VectorClear(cl.pred_error_offset);
+ 		if (Have_Flag (developer_movement.integer, /*CL*/ 1))
+ 			Con_PrintLinef ("CL: Replay -> This move is not predicted");
+ 	}
+diff --git a/client.h b/client.h
+index ecb169f..8ab38eb 100644
+--- a/client.h
++++ b/client.h
+@@ -884,6 +884,9 @@ typedef struct client_state_s
+ 	vec3_t movement_velocity;
+ 	// whether the replay should allow a jump at the first sequence
+ 	qbool movement_replay_canjump;
++	// client-side prediction error smoothing (cl_smooth)
++	vec3_t pred_error_offset;
++	unsigned int pred_last_serverseq;
+ 
+ 	// previous gun angles (for leaning effects)
+ 	vec3_t gunangles_prev;
+diff --git a/netconn.c b/netconn.c
+index 2173c0d..21f9fa6 100644
+--- a/netconn.c
++++ b/netconn.c
+@@ -142,6 +142,7 @@ char sv_readstring[MAX_INPUTLINE_16384];
+ cvar_t net_test = {CF_CLIENT | CF_SERVER, "net_test", "0", "internal development use only, leave it alone (usually does nothing anyway)"};
+ cvar_t net_usesizelimit = {CF_SERVER, "net_usesizelimit", "2", "use packet size limiting (0: never, 1: in non-CSQC mode, 2: always)"};
+ cvar_t net_burstreserve = {CF_SERVER, "net_burstreserve", "0.3", "how much of the burst time to reserve for packet size spikes"};
++cvar_t net_reliable_resend_timeout = {CF_CLIENT | CF_SERVER, "net_reliable_resend_timeout", "0", "reliable fragment retransmit timeout in seconds (0 = automatic RTT-adaptive, >0 = fixed override)"};
+ cvar_t net_messagetimeout = {CF_CLIENT | CF_SERVER, "net_messagetimeout","300", "drops players who have not sent any packets for this many seconds"};
+ cvar_t net_connecttimeout = {CF_CLIENT | CF_SERVER, "net_connecttimeout","15", "after requesting a connection, the client must reply within this many seconds or be dropped (cuts down on connect floods). Must be above 10 seconds."};
+ cvar_t net_connectfloodblockingtimeout = {CF_SERVER, "net_connectfloodblockingtimeout", "5", "when a connection packet is received, it will block all future connect packets from that IP address for this many seconds (cuts down on connect floods). Note that this does not include retries from the same IP; these are handled earlier and let in."};
+@@ -881,9 +882,23 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 		unsigned int eom;
+ 		const void *sendme;
+ 		size_t sendmelen;
++		double resend_timeout;
++
++		// compute RTT-adaptive reliable retransmit timeout (RFC 6298 + Karn's algorithm)
++		if (net_reliable_resend_timeout.value > 0)
++			resend_timeout = bound(0.1, net_reliable_resend_timeout.value, 5.0);
++		else if (conn->smoothed_rtt <= 0.0)
++			resend_timeout = 1.0;
++		else
++		{
++			resend_timeout = max(conn->smoothed_rtt + max(0.08, 4.0 * conn->rtt_var), conn->smoothed_rtt * 1.4 + 0.05);
++			resend_timeout = bound(0.25, resend_timeout, 1.2);
++			if (conn->reliable_resends > 0)
++				resend_timeout = min(1.5, resend_timeout * (1.0 + 0.5 * min(conn->reliable_resends, 2)));
++		}
+ 
+ 		// if a reliable message fragment has been lost, send it again
+-		if (conn->sendMessageLength && (host.realtime - conn->lastSendTime) > 1.0)
++		if (conn->sendMessageLength && (host.realtime - conn->lastSendTime) > resend_timeout)
+ 		{
+ 			if (conn->sendMessageLength <= MAX_PACKETFRAGMENT)
+ 			{
+@@ -908,6 +923,9 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 			if (sendme && NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress) == (int)sendmelen)
+ 			{
+ 				conn->lastSendTime = host.realtime;
++				conn->reliable_resent = true;
++				if (conn->reliable_resends < 4)
++					conn->reliable_resends++;
+ 				conn->packetsReSent++;
+ 			}
+ 
+@@ -960,6 +978,7 @@ int NetConn_SendUnreliableMessage(netconn_t *conn, sizebuf_t *data, protocolvers
+ 				NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress);
+ 
+ 			conn->lastSendTime = host.realtime;
++			conn->reliable_resent = false;
+ 			conn->packetsSent++;
+ 			conn->reliableMessagesSent++;
+ 
+@@ -1507,6 +1526,26 @@ static int NetConn_ReceivedMessage(netconn_t *conn, const unsigned char *data, s
+ 						conn->nq.ackSequence++;
+ 						if (conn->nq.ackSequence != conn->nq.sendSequence)
+ 							Con_DPrint("ack sequencing error\n");
++						if (!conn->reliable_resent)
++						{
++							double sample = host.realtime - conn->lastSendTime;
++							if (sample > 0.0 && sample < 2.0)
++							{
++								if (conn->smoothed_rtt <= 0.0)
++								{
++									conn->smoothed_rtt = sample;
++									conn->rtt_var = sample * 0.5;
++								}
++								else
++								{
++									double err = fabs(sample - conn->smoothed_rtt);
++									conn->rtt_var = 0.75 * conn->rtt_var + 0.25 * err;
++									conn->smoothed_rtt = 0.875 * conn->smoothed_rtt + 0.125 * sample;
++								}
++							}
++							conn->reliable_resends = 0;
++						}
++						conn->reliable_resent = false;
+ 						conn->lastMessageTime = host.realtime;
+ 						conn->timeout = host.realtime + newtimeout;
+ 						if (conn->sendMessageLength > MAX_PACKETFRAGMENT)
+@@ -1541,6 +1580,7 @@ static int NetConn_ReceivedMessage(netconn_t *conn, const unsigned char *data, s
+ 							if (sendme && NetConn_Write(conn->mysocket, sendme, (int)sendmelen, &conn->peeraddress) == (int)sendmelen)
+ 							{
+ 								conn->lastSendTime = host.realtime;
++								conn->reliable_resent = false;
+ 								conn->packetsSent++;
+ 							}
+ 						}
+@@ -4153,6 +4193,7 @@ void NetConn_InitOnce(void)
+ 	Cvar_RegisterVariable(&net_test);
+ 	Cvar_RegisterVariable(&net_usesizelimit);
+ 	Cvar_RegisterVariable(&net_burstreserve);
++	Cvar_RegisterVariable(&net_reliable_resend_timeout);
+ 	Cvar_RegisterVariable(&rcon_restricted_password);
+ 	Cvar_RegisterVariable(&rcon_restricted_commands);
+ 	Cvar_RegisterVariable(&rcon_secure_maxdiff);
+diff --git a/netconn.h b/netconn.h
+index 598d5e7..c51619b 100644
+--- a/netconn.h
++++ b/netconn.h
+@@ -153,6 +153,10 @@ typedef struct netconn_s
+ 	double timeout;
+ 	double lastMessageTime;
+ 	double lastSendTime;
++	double smoothed_rtt;
++	double rtt_var;
++	qbool reliable_resent;
++	int reliable_resends;
+ 
+ 	/// writing buffer to send to peer as the next reliable message
+ 	/// can be added to at any time, copied into sendMessage buffer when it is
+diff --git a/protocol.h b/protocol.h
+index d1d58d2..840f499 100644
+--- a/protocol.h
++++ b/protocol.h
+@@ -539,6 +539,9 @@ typedef struct usercmd_s
+ 	vec3_t			zmove_end_velocity;
+ 	int				zmove_end_onground;
+ #endif
++	// client-side prediction error smoothing (cl_smooth)
++	vec3_t			pred_end_origin;
++	unsigned int	pred_end_seq;
+ } usercmd_t;
+ 
+ #define MAX_FRAMEGROUPBLENDS_4 4
+@@ -982,7 +985,7 @@ void EntityFrame4_CL_ReadFrame(void);
+ // bits2 > 0
+ #define E5_EXTEND4 (1<<31)
+ 
+-#define ENTITYFRAME5_MAXPACKETLOGS 64
++#define ENTITYFRAME5_MAXPACKETLOGS 256
+ #define ENTITYFRAME5_MAXSTATES 1024
+ #define ENTITYFRAME5_PRIORITYLEVELS 32
+ 
+diff --git a/sv_ents5.c b/sv_ents5.c
+index 1f969f9..e79fd11 100644
+--- a/sv_ents5.c
++++ b/sv_ents5.c
+@@ -124,7 +124,7 @@ static int EntityState5_DeltaBits(const entity_state_t *o, const entity_state_t
+ 		if (false == VectorCompare(o->bbx_mins, n->bbx_mins) || false == VectorCompare(o->bbx_maxs, n->bbx_maxs))
+ 			bits |= E5_BBOX_S27;
+ 
+-		if (o->health_z != n->health_z || o->max_health_z != n->health_z)
++		if (o->health_z != n->health_z || o->max_health_z != n->max_health_z)
+ 			bits |= E5_ZIRCON_MONSTER_INFO_28;
+ #endif
+ 
+@@ -488,7 +488,8 @@ qbool EntityFrame5_WriteFrame(sizebuf_t *msg, int maxsize, entityframe5_database
+ 		if (d->packetlog[packetlognumber].packetnumber == 0)
+ 			break;
+ 	if (packetlognumber == ENTITYFRAME5_MAXPACKETLOGS) {
+-		Con_DPrintf ("EntityFrame5_WriteFrame: packetlog overflow for a client, resetting\n");
++		if (developer_networkentities.integer >= 1)
++			Con_DPrintf ("EntityFrame5_WriteFrame: packetlog overflow for a client, resetting\n");
+ 		EntityFrame5_LostFrame(d, framenum);
+ 		packetlognumber = 0;
+ 	}
+@@ -682,8 +683,8 @@ entityframe5_database_t *EntityFrame5_AllocDatabase(mempool_t *pool)
+ 
+ static int packetlog5cmp(const void *a_, const void *b_)
+ {
+-	const entityframe5_packetlog_t *a = (const entityframe5_packetlog_t *) a_;
+-	const entityframe5_packetlog_t *b = (const entityframe5_packetlog_t *) b_;
++	const entityframe5_packetlog_t *a = *(const entityframe5_packetlog_t *const *) a_;
++	const entityframe5_packetlog_t *b = *(const entityframe5_packetlog_t *const *) b_;
+ 	return a->packetnumber - b->packetnumber;
+ }
+ 
+@@ -698,7 +699,7 @@ void EntityFrame5_LostFrame(entityframe5_database_t *d, int framenum)
+ 
+ 	for (i = 0, p = d->packetlog;i < ENTITYFRAME5_MAXPACKETLOGS;i++, p++)
+ 		packetlogs[i] = p;
+-	qsort(packetlogs, sizeof(*packetlogs), ENTITYFRAME5_MAXPACKETLOGS, packetlog5cmp);
++	qsort(packetlogs, ENTITYFRAME5_MAXPACKETLOGS, sizeof(*packetlogs), packetlog5cmp);
+ 
+ 	memset(deltabits, 0, sizeof(deltabits));
+ 	memset(statsdeltabits, 0, sizeof(statsdeltabits));
+diff --git a/sv_phys.c b/sv_phys.c
+index 24eebb1..ab3540c 100644
+--- a/sv_phys.c
++++ b/sv_phys.c
+@@ -2013,7 +2013,8 @@ static void SV_Physics_ClientEntity_PreThink(prvm_edict_t *ent)
+ 	// don't run physics here if running asynchronously
+ 	if (host_client->clmovement_inputtimeout <= 0) {
+ 		SV_PlayerPhysics(); // PHYSICAL
+-		//host_client->cmd.time = max(host_client->cmd.time, sv.time);
++		if (host_client->movesequence)
++			host_client->cmd.clx_time = min(sv.time, host_client->cmd.clx_time + sv.frametime);
+ 	}
+ 
+ 	// make sure the velocity is still sane (not a NaN)
+diff --git a/sv_user.c b/sv_user.c
+index 702e966..947f743 100644
+--- a/sv_user.c
++++ b/sv_user.c
+@@ -973,7 +973,7 @@ static void SV_ReadClientMessage_ExecuteClientMoves (vec_t *zircon_move_final_po
+ 				move->clx_time = Largest(move->clx_time, host_client->cmd.clx_time); // prevent backstepping of time
+ 				// bones_was_here: limit moveframetime to a multiple of sv.frametime to match inputtimeout behaviour
+ 				moveframetime = Smallest(move->clx_time - host_client->cmd.clx_time, 
+-					min(0.1, sys_ticrate.value /*d: 1/72 or 0.013*/ > 0.0 && 
++					min(0.25, sys_ticrate.value /*d: 1/72 or 0.013*/ > 0.0 && 
+ 						sv.frametime > 0.0 ? 
+ 							sv.frametime * ceil(sv_clmovement_inputtimeout.value /*d: 0.1*/ / sv.frametime) : 
+ 							sv_clmovement_inputtimeout.value));
+@@ -1030,7 +1030,7 @@ static void SV_ReadClientMessage_ExecuteClientMoves (vec_t *zircon_move_final_po
+ 				SV_Physics_ClientMove(); // PREDICTED MOVE
+ 				sv.frametime = oldframetime2;
+ 				PRVM_serverglobalfloat(frametime) = oldframetime;
+-				host_client->clmovement_inputtimeout = min(0.1, sv_clmovement_inputtimeout.value /*d:0.1*/);
++				host_client->clmovement_inputtimeout = min(0.25, sv_clmovement_inputtimeout.value /*d:0.1*/);
+ 			}
+ 		}
+ 	}
+diff --git a/view.c b/view.c
+index 016ec65..cb91314 100644
+--- a/view.c
++++ b/view.c
+@@ -128,6 +128,10 @@ cvar_t cl_stairsmoothspeed = {CF_CLIENT | CF_ARCHIVE, "cl_stairsmoothspeed", "16
+ 
+ cvar_t cl_smoothviewheight = {CF_CLIENT | CF_ARCHIVE, "cl_smoothviewheight", "0", "time of the averaging to the viewheight value so that it creates a smooth transition. higher values = longer transition, 0 for instant transition."};
+ 
++cvar_t cl_smooth = {CF_CLIENT | CF_ARCHIVE, "cl_smooth", "1", "smooth small client movement prediction errors instead of hard-snapping the view"};
++cvar_t cl_smoothtime = {CF_CLIENT | CF_ARCHIVE, "cl_smoothtime", "0.1", "exponential decay time in seconds for cl_smooth prediction error smoothing"};
++cvar_t cl_smoothmaxdist = {CF_CLIENT | CF_ARCHIVE, "cl_smoothmaxdist", "64", "maximum prediction error distance in units to smooth (larger jumps like teleports snap immediately)"};
++
+ cvar_t chase_back = {CF_CLIENT | CF_ARCHIVE, "chase_back", "48", "chase cam distance from the player"};
+ cvar_t chase_up = {CF_CLIENT | CF_ARCHIVE, "chase_up", "24", "chase cam distance from the player"};
+ cvar_t chase_active = {CF_CLIENT | CF_ARCHIVE, "chase_active", "0", "enables chase cam"};
+@@ -562,6 +566,18 @@ void V_CalcRefdefUsing (const matrix4x4_t *entrendermatrix, const vec3_t clviewa
+ 	}
+ 	else
+ 	{
++		// smooth small client movement prediction errors instead of hard-snapping
++		if (!cl_smooth.integer || !cl.movement_predicted || cl.movement_predicted == PRED_ZIRCON_MOVE_2 || cl.viewentity != cl.playerentity || teleported || cldead || cl_smoothtime.value <= 0)
++			VectorClear(cl.pred_error_offset);
++		else if (VectorLength2(cl.pred_error_offset) > 0.0025f)
++		{
++			float decay = expf(-smoothtime / max(0.001f, cl_smoothtime.value));
++			VectorScale(cl.pred_error_offset, decay, cl.pred_error_offset);
++			VectorAdd(vieworg, cl.pred_error_offset, vieworg);
++		}
++		else
++			VectorClear(cl.pred_error_offset);
++
+ 		// smooth stair stepping, but only if clonground and enabled
+ 		if (!clonground || cl_stairsmoothspeed.value <= 0 || teleported)
+ 			cl.stairsmoothz = vieworg[2];
+@@ -1342,6 +1358,9 @@ void V_InitOnce (void)
+ 	Cvar_RegisterVariable (&cl_stairsmoothspeed);
+ 	
+ 	Cvar_RegisterVariable (&cl_smoothviewheight);
++	Cvar_RegisterVariable (&cl_smooth);
++	Cvar_RegisterVariable (&cl_smoothtime);
++	Cvar_RegisterVariable (&cl_smoothmaxdist);
+ 
+ 	Cvar_RegisterVariable (&chase_back);
+ 	Cvar_RegisterVariable (&chase_up);

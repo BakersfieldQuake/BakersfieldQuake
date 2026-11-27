@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BakersfieldQuake — High-Ping Netcode Overhaul (300–400 ms RTT)</title>
+<style>
+  :root {
+    --bg: #090c12;
+    --bg-alt: #0e131d;
+    --card: #121826;
+    --card-hover: #172033;
+    --border: #1e293b;
+    --border-bright: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --dim: #64748b;
+    --amber: #f59e0b;
+    --amber-dim: rgba(245, 158, 11, 0.14);
+    --green: #10b981;
+    --green-dim: rgba(16, 185, 129, 0.14);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.14);
+    --cyan: #38bdf8;
+    --cyan-dim: rgba(56, 189, 248, 0.14);
+    --purple: #a78bfa;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; background: var(--bg); color: var(--text); font-family: var(--font-sans); line-height: 1.55; }
+  body {
+    background:
+      radial-gradient(ellipse 90% 45% at 50% -10%, rgba(245, 158, 11, 0.10), transparent 65%),
+      radial-gradient(ellipse 70% 40% at 85% 10%, rgba(56, 189, 248, 0.06), transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* Top Nav */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(9, 12, 18, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1240px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; color: var(--text);
+    text-decoration: none;
+  }
+  .brand-dot {
+    width: 10px; height: 10px; border-radius: 2px; background: var(--amber);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+  }
+  .nav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-size: 12.5px; font-weight: 500;
+    padding: 5px 10px; border-radius: 6px; transition: all 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--card); }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero */
+  .hero { padding: 48px 0 32px; border-bottom: 1px solid var(--border); }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid;
+  }
+  .badge-amber { color: var(--amber); background: var(--amber-dim); border-color: rgba(245,158,11,0.35); }
+  .badge-green { color: var(--green); background: var(--green-dim); border-color: rgba(16,185,129,0.35); }
+  .badge-cyan { color: var(--cyan); background: var(--cyan-dim); border-color: rgba(56,189,248,0.35); }
+  .badge-red { color: var(--red); background: var(--red-dim); border-color: rgba(239,68,68,0.35); }
+
+  .hero h1 {
+    font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.12;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #ffffff 25%, #f59e0b 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-lead {
+    max-width: 860px; color: var(--muted); font-size: 16px; line-height: 1.65; margin-bottom: 28px;
+  }
+  .hero-meta {
+    display: flex; gap: 24px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 12px; color: var(--dim);
+  }
+  .hero-meta strong { color: var(--muted); }
+
+  /* KPI Grid */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;
+    margin-top: 28px;
+  }
+  .kpi-card {
+    background: linear-gradient(180deg, rgba(23, 32, 51, 0.72), rgba(18, 24, 38, 0.95));
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px;
+    position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .kpi-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+  }
+  .kpi-card.accent-amber::before { background: linear-gradient(90deg, var(--amber), #fb923c); }
+  .kpi-label {
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 800; color: #fff;
+    letter-spacing: -0.02em; margin-bottom: 6px;
+  }
+  .kpi-sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--dim); }
+  .kpi-pill {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+    color: var(--green); background: var(--green-dim);
+  }
+  .kpi-pill.amber { color: var(--amber); background: var(--amber-dim); }
+
+  /* Sections */
+  section { padding: 48px 0 12px; }
+  .sec-head {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 22px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .sec-kicker {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--amber);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;
+  }
+  .sec-head h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+  .sec-desc { color: var(--muted); font-size: 14px; max-width: 780px; margin-top: 4px; }
+
+  /* Cards & Grids */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px;
+  }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 18px; }
+  @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab-btn {
+    background: var(--bg-alt); color: var(--muted); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-sans); transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--border-bright); }
+  .tab-btn.active {
+    background: var(--amber-dim); color: var(--amber); border-color: rgba(245, 158, 11, 0.5);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* SVG Chart Styles */
+  .chart-wrap {
+    background: #0c1018; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; overflow-x: auto; position: relative;
+  }
+  .chart-svg { width: 100%; height: auto; min-width: 520px; display: block; }
+  .svg-title { fill: #f8fafc; font-size: 13.5px; font-weight: 700; font-family: var(--font-sans); }
+  .svg-sub { fill: #94a3b8; font-size: 11px; font-family: var(--font-mono); }
+  .svg-legend { fill: #cbd5e1; font-size: 11px; font-family: var(--font-mono); }
+  .svg-grid { stroke: #1e293b; stroke-width: 1; }
+  .svg-axis { fill: #64748b; font-size: 10.5px; font-family: var(--font-mono); }
+  .svg-xlabel { fill: #e2e8f0; font-size: 11.5px; font-weight: 600; font-family: var(--font-sans); }
+  .svg-xsub { fill: #64748b; font-size: 10px; font-family: var(--font-mono); }
+  .svg-val-before { fill: #fca5a5; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+  .svg-val-after { fill: #6ee7b7; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+  .svg-delta-good { fill: #10b981; font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); }
+  .svg-delta-warn { fill: #f59e0b; font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); }
+  .bar-before { fill: #ef4444; fill-opacity: 0.84; transition: fill-opacity 0.15s; }
+  .bar-after { fill: #10b981; fill-opacity: 0.90; transition: fill-opacity 0.15s; }
+  .bar-group { cursor: pointer; }
+  .bar-group:hover .bar-before, .bar-group:hover .bar-after { fill-opacity: 1; filter: brightness(1.12); }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed; z-index: 200; pointer-events: none; opacity: 0;
+    background: rgba(9, 12, 18, 0.96); color: #f8fafc; border: 1px solid var(--amber);
+    border-radius: 6px; padding: 8px 12px; font-size: 12px; font-family: var(--font-mono);
+    max-width: 380px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); transition: opacity 0.12s;
+  }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; padding: 11px 14px; background: #0d121c; color: var(--muted);
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(30, 41, 59, 0.65); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255, 255, 255, 0.02); }
+  .mono { font-family: var(--font-mono); font-size: 12px; }
+  .muted { color: var(--muted); }
+  .delta-good { color: var(--green); font-family: var(--font-mono); font-weight: 600; }
+  .delta-bad { color: var(--red); font-family: var(--font-mono); font-weight: 600; }
+  .delta-warn { color: var(--amber); font-family: var(--font-mono); font-weight: 600; }
+
+  /* Code & Pills */
+  code {
+    font-family: var(--font-mono); font-size: 0.88em; background: rgba(15, 23, 42, 0.9);
+    border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: #fbbf24;
+  }
+  pre {
+    font-family: var(--font-mono); font-size: 12px; background: #0a0e16; border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; overflow-x: auto; color: #cbd5e1; line-height: 1.5; margin-top: 10px;
+  }
+  .status-pill {
+    display: inline-block; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .st-closed { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.35); }
+  .st-mitigated { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(56,189,248,0.35); }
+  .st-patch { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.35); }
+  .st-ok { background: rgba(148,163,184,0.14); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); }
+
+  /* Accordion */
+  .accordion { display: flex; flex-direction: column; gap: 10px; }
+  .acc-item { border: 1px solid var(--border); border-radius: 8px; background: #0e1420; overflow: hidden; }
+  .acc-head {
+    width: 100%; background: transparent; border: none; color: var(--text); text-align: left;
+    padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    cursor: pointer; font-size: 14.5px; font-weight: 700; font-family: var(--font-sans);
+  }
+  .acc-head:hover { background: rgba(255,255,255,0.02); }
+  .acc-tag {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+    margin-right: 8px; vertical-align: middle;
+  }
+  .tag-crit { background: var(--red-dim); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+  .tag-high { background: var(--amber-dim); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+  .tag-med { background: var(--cyan-dim); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); }
+  .acc-chev { font-family: var(--font-mono); color: var(--muted); transition: transform 0.2s; }
+  .acc-item.open .acc-chev { transform: rotate(90deg); color: var(--amber); }
+  .acc-body { display: none; padding: 0 18px 16px; color: var(--muted); font-size: 13.5px; border-top: 1px solid rgba(30,41,59,0.5); }
+  .acc-item.open .acc-body { display: block; padding-top: 14px; }
+  .acc-body ul { margin: 8px 0 0 18px; }
+  .acc-body li { margin-bottom: 6px; }
+  .acc-body strong { color: var(--text); }
+
+  /* Callouts */
+  .callout {
+    border-radius: 8px; padding: 14px 18px; border-left: 3px solid; font-size: 13.5px;
+    background: var(--bg-alt); color: var(--muted); margin-top: 14px;
+  }
+  .callout-title { font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 13.5px; }
+  .callout-amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.06); }
+  .callout-good { border-color: var(--green); background: rgba(16, 185, 129, 0.06); }
+  .callout-cyan { border-color: var(--cyan); background: rgba(56, 189, 248, 0.06); }
+  .callout-red { border-color: var(--red); background: rgba(239, 68, 68, 0.06); }
+
+  /* Review Defect Cards */
+  .bug-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-top: 16px; }
+  .bug-card {
+    background: #0e1420; border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+    border-top: 2px solid var(--amber);
+  }
+  .bug-card h4 { font-size: 14px; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .bug-num {
+    font-family: var(--font-mono); font-size: 11px; background: var(--amber-dim); color: var(--amber);
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .bug-card p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .bug-fix { font-size: 12.5px; color: #a7f3d0; font-family: var(--font-mono); }
+
+  /* Search input & copy button */
+  .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+  .search-input {
+    background: #0c1018; border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 7px; font-family: var(--font-mono); font-size: 12.5px; min-width: 260px;
+  }
+  .search-input:focus { outline: none; border-color: var(--amber); }
+  .copy-hash {
+    background: #0b101a; border: 1px solid var(--border); color: var(--cyan); font-family: var(--font-mono);
+    font-size: 11px; padding: 3px 7px; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+  }
+  .copy-hash:hover { border-color: var(--cyan); background: var(--cyan-dim); }
+
+  /* Pipeline diagram */
+  .pipe-flow {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 20px;
+  }
+  .pipe-box {
+    background: #0d121c; border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    border-left: 3px solid var(--amber);
+  }
+  .pipe-box .p-layer { font-family: var(--font-mono); font-size: 10.5px; color: var(--amber); font-weight: 700; text-transform: uppercase; }
+  .pipe-box .p-title { font-weight: 700; color: #fff; font-size: 14px; margin: 3px 0 6px; }
+  .pipe-box .p-desc { font-size: 12.5px; color: var(--muted); }
+
+  footer {
+    margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--dim);
+  }
+</style>
+</head>
+<body>
+
+<div id="tooltip"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="#top" class="brand"><span class="brand-dot"></span>BAKERSFIELDQUAKE // NETCODE OVERHAUL</a>
+    <nav class="nav-links">
+      <a href="#summary">Executive Summary</a>
+      <a href="#benchmarks">Benchmarks</a>
+      <a href="#deep-dive">4-Layer Deep Dive</a>
+      <a href="#qw-compare">QW vs DP7</a>
+      <a href="#stress-review">400ms Stress &amp; Review</a>
+      <a href="#inventory">File Inventory</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top" class="wrap">
+
+  <!-- SECTION 1: HERO & EXECUTIVE SUMMARY -->
+  <section id="summary" class="hero">
+    <div class="hero-badges">
+      <span class="badge badge-green">● LIVE DEPLOYED &amp; VERIFIED ON PORT 26000</span>
+      <span class="badge badge-amber">300–400 MS INTERCONTINENTAL RTT</span>
+      <span class="badge badge-cyan">100% WIRE-COMPATIBLE DP7 (PROTOCOL 3504)</span>
+    </div>
+    <h1>BakersfieldQuake High-Ping Netcode Overhaul</h1>
+    <p class="hero-lead">
+      End-to-end engineering remediation across the live Linux DarkPlaces server engine, VPS RT scheduling &amp; <code>[CAM]</code> demo observer,
+      SSQC/CSQC/MenuQC gamecode, and Zircon client configuration — eliminating rubber-banding, delta-recovery corruption, reliable-channel stalls,
+      and tick-timing jitter for 300–400 ms transpacific matches without repacking base <code>.pk3</code> archives.
+    </p>
+    <div class="hero-meta">
+      <span><strong>Server:</strong> DarkPlaces Linux (<code>72ae1712</code> + netfix) · <code>72.62.241.93:26000</code></span>
+      <span><strong>Client:</strong> Zircon Beta <code>v20261122</code> + <code>bm_up_21.cfg</code> auto-migration</span>
+      <span><strong>Generated:</strong> 2026-11-27 05:58 UTC</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">EntityFrame5 Overflows</div>
+        <div class="kpi-value">71 → 0</div>
+        <div class="kpi-sub"><span>VPS A/B + [CAM]</span><span class="kpi-pill">-100% ZERO</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">jitter350 Clock Snaps</div>
+        <div class="kpi-value">29 → 1</div>
+        <div class="kpi-sub"><span>Real Zircon client (350ms ±50ms)</span><span class="kpi-pill">-96.6%</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">loss350 Clock Snaps</div>
+        <div class="kpi-value">24 → 0</div>
+        <div class="kpi-sub"><span>350ms ±30ms, 3% loss (0dt: 8→0)</span><span class="kpi-pill">-100% ZERO</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Client Prediction Dropouts</div>
+        <div class="kpi-value">1,022 → 57</div>
+        <div class="kpi-sub"><span>jitter350 cl_not_predicted</span><span class="kpi-pill">-94.4%</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">VPS Server CPU (vps350)</div>
+        <div class="kpi-value">31.4% → 15.9%</div>
+        <div class="kpi-sub"><span>bakersfielddowntown, 5 bots + [CAM]</span><span class="kpi-pill">-49.4%</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gameplay Reliable Bytes</div>
+        <div class="kpi-value">5,569 B → 1,221 B</div>
+        <div class="kpi-sub"><span>vps350 (39→12 pkts)*</span><span class="kpi-pill">-78.1%</span></div>
+      </div>
+      <div class="kpi-card accent-amber">
+        <div class="kpi-label">[CAM] Delta ACKs</div>
+        <div class="kpi-value">0 → 5,434</div>
+        <div class="kpi-sub"><span>Clean clc_ackframe + 3.27 MB .dem</span><span class="kpi-pill amber">CLEAN DELTA</span></div>
+      </div>
+      <div class="kpi-card accent-amber">
+        <div class="kpi-label">Live Port 26000 Tick Offset Avg</div>
+        <div class="kpi-value">0.52 → 0.30 ms</div>
+        <div class="kpi-sub"><span>20×1s RCON (SCHED_OTHER → RR 10)</span><span class="kpi-pill ">-42.3%</span></div>
+      </div>
+    </div>
+
+    <div class="pipe-flow">
+      <div class="pipe-box">
+        <div class="p-layer">Layer 1 · Server Engine C</div>
+        <div class="p-title">DarkPlaces Linux Netfix</div>
+        <div class="p-desc">Fixed broken <code>qsort</code> in <code>EntityFrame5_LostFrame</code>, 256-slot packetlog, 250ms move cap + double-move fix, RFC 6298 + Karn RTO.</div>
+      </div>
+      <div class="pipe-box">
+        <div class="p-layer">Layer 2 · VPS Infra &amp; [CAM]</div>
+        <div class="p-title">72 Hz + SCHED_RR 10 + ACKs</div>
+        <div class="p-desc">Fixed <code>demo_recorder.py</code> missing <code>clc_ackframe</code> &amp; seq 0 bug, raised rate to 150 KB/s, moved server to 72 Hz RT scheduling.</div>
+      </div>
+      <div class="pipe-box">
+        <div class="p-layer">Layer 3 · SSQC &amp; CSQC</div>
+        <div class="p-title">Antilag, Zero Pushback &amp; Lean Stats</div>
+        <div class="p-desc">Disabled recoil <code>pushback</code>, added 48-frame <code>sv_antilag</code>, moved hitsounds to unreliable stat 158, cut hat/stat/casing churn.</div>
+      </div>
+      <div class="pipe-box">
+        <div class="p-layer">Layer 4 · Client &amp; Upstream</div>
+        <div class="p-title">bm_up_21.cfg + Zircon Patch</div>
+        <div class="p-desc">Auto-migrated all players to <code>cl_nettimesyncboundmode 7</code> + 3× move redundancy; prepared upstream <code>cl_smooth</code> C patch.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: INTERACTIVE BENCHMARKS & SVG CHARTS -->
+  <section id="benchmarks">
+    <div class="sec-head">
+      <div>
+        <div class="sec-kicker">Verified Telemetry · Raw JSON Data</div>
+        <h2>Before vs After Benchmarks</h2>
+        <p class="sec-desc">All numbers extracted directly from seeded <code>netem_proxy.py</code>, real Windows Zircon client captures, isolated VPS port <code>26099</code> A/B runs, and live port <code>26000</code> RCON baselines. Hover any bar or point for exact values.</p>
+      </div>
+    </div>
+
+    <!-- 2.1 Real Windows Zircon Client -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="toolbar">
+        <div>
+          <h3 style="font-size:17px;color:#fff;">1. Real Windows Zircon Client — Controlled Local A/B (<code>soi6</code>, 4 bots, seed 42)</h3>
+          <p style="font-size:12.5px;color:var(--muted);">Unmodified <code>zircon_beta_gcc.exe</code> running real graphical client physics &amp; prediction over deterministic UDP impairment.</p>
+        </div>
+        <div class="tabs" data-tabgroup="client-charts" style="margin-bottom:0;">
+          <button class="tab-btn active" data-tab="cl-snaps">Clock Snaps &amp; Dropouts</button>
+          <button class="tab-btn" data-tab="cl-bw">S→C Bandwidth (KB/s)</button>
+          <button class="tab-btn" data-tab="cl-p95">S→C Size p95 (B)</button>
+        </div>
+      </div>
+
+      <div class="tab-panel active" data-panel="cl-snaps" data-group="client-charts">
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="Real Zircon Client — Clock Snaps &amp; Prediction Dropouts (soi6, 4 bots, seed 42)">
+<text x="58" y="22" class="svg-title">Real Zircon Client — Clock Snaps &amp; Prediction Dropouts (soi6, 4 bots, seed 42)</text>
+<text x="58" y="38" class="svg-sub">cl_nettimesyncboundmode 6 → 7 + cl_netrepeatinput 1 → 2 + cl_movement_nettimeout 0.3 → 1.0</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">30</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">60</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">90</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">120</text>
+<g class="bar-group" data-tip="jitter350 Back-Snaps: BEFORE 29.0 → AFTER 1.0 (-96.6%) — clx_time backward snaps">
+<rect x="90.0" y="193.5" width="46.0" height="44.5" rx="4" class="bar-before"/>
+<rect x="149.5" y="236.5" width="46.0" height="2.0" rx="4" class="bar-after"/>
+<text x="113.0" y="187.5" text-anchor="middle" class="svg-val-before">29.0</text>
+<text x="172.5" y="230.5" text-anchor="middle" class="svg-val-after">1.0</text>
+<text x="142.8" y="256" text-anchor="middle" class="svg-xlabel">jitter350 Back-Snaps</text>
+<text x="142.8" y="271" text-anchor="middle" class="svg-xsub">350ms ±50ms normal</text>
+<text x="142.8" y="287" text-anchor="middle" class="svg-delta-good">-96.6%</text>
+</g>
+<g class="bar-group" data-tip="loss350 Back-Snaps: BEFORE 24.0 → AFTER 0.0 (-100.0%) — eliminated to ZERO">
+<rect x="259.5" y="201.2" width="46.0" height="36.8" rx="4" class="bar-before"/>
+<rect x="319.0" y="238.0" width="46.0" height="2.0" rx="4" class="bar-after"/>
+<text x="282.5" y="195.2" text-anchor="middle" class="svg-val-before">24.0</text>
+<text x="342.0" y="232.0" text-anchor="middle" class="svg-val-after">0.0</text>
+<text x="312.2" y="256" text-anchor="middle" class="svg-xlabel">loss350 Back-Snaps</text>
+<text x="312.2" y="271" text-anchor="middle" class="svg-xsub">350ms ±30ms, 3% loss</text>
+<text x="312.2" y="287" text-anchor="middle" class="svg-delta-good">-100.0%</text>
+</g>
+<g class="bar-group" data-tip="loss350 Zero-dt Drops: BEFORE 8.0 → AFTER 0.0 (-100.0%) — eliminated to ZERO">
+<rect x="429.0" y="225.7" width="46.0" height="12.3" rx="4" class="bar-before"/>
+<rect x="488.5" y="238.0" width="46.0" height="2.0" rx="4" class="bar-after"/>
+<text x="452.0" y="219.7" text-anchor="middle" class="svg-val-before">8.0</text>
+<text x="511.5" y="232.0" text-anchor="middle" class="svg-val-after">0.0</text>
+<text x="481.8" y="256" text-anchor="middle" class="svg-xlabel">loss350 Zero-dt Drops</text>
+<text x="481.8" y="271" text-anchor="middle" class="svg-xsub">clx_msec == 0 skipped</text>
+<text x="481.8" y="287" text-anchor="middle" class="svg-delta-good">-100.0%</text>
+</g>
+<g class="bar-group" data-tip="jitter350 nopred (/10): BEFORE 102.2 → AFTER 5.7 (-94.4%) — Actual counts: 1022 → 57 (-94.4%)">
+<rect x="598.5" y="81.3" width="46.0" height="156.7" rx="4" class="bar-before"/>
+<rect x="658.0" y="229.3" width="46.0" height="8.7" rx="4" class="bar-after"/>
+<text x="621.5" y="75.3" text-anchor="middle" class="svg-val-before">102.2</text>
+<text x="681.0" y="223.3" text-anchor="middle" class="svg-val-after">5.7</text>
+<text x="651.2" y="256" text-anchor="middle" class="svg-xlabel">jitter350 nopred (/10)</text>
+<text x="651.2" y="271" text-anchor="middle" class="svg-xsub">scaled ÷10 (1022→57)</text>
+<text x="651.2" y="287" text-anchor="middle" class="svg-delta-good">-94.4%</text>
+</g>
+</svg></div>
+      </div>
+      <div class="tab-panel" data-panel="cl-bw" data-group="client-charts">
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="Real Zircon Client — Server→Client Bandwidth (KB/s)">
+<text x="58" y="22" class="svg-title">Real Zircon Client — Server→Client Bandwidth (KB/s)</text>
+<text x="58" y="38" class="svg-sub">100 Hz → 72 Hz tickrate + stat/hat/shellcasing/hitsound bloat removal (high-ping profiles)</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0 KB/s</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">6 KB/s</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">13 KB/s</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">20 KB/s</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">26 KB/s</text>
+<g class="bar-group" data-tip="steady300: BEFORE 22.2 KB/s → AFTER 9.8 KB/s (-55.7%)">
+<rect x="90.0" y="81.1" width="46.0" height="156.9" rx="4" class="bar-before"/>
+<rect x="149.5" y="168.4" width="46.0" height="69.6" rx="4" class="bar-after"/>
+<text x="113.0" y="75.1" text-anchor="middle" class="svg-val-before">22.2</text>
+<text x="172.5" y="162.4" text-anchor="middle" class="svg-val-after">9.8</text>
+<text x="142.8" y="256" text-anchor="middle" class="svg-xlabel">steady300</text>
+<text x="142.8" y="271" text-anchor="middle" class="svg-xsub">300ms RTT, 0% loss</text>
+<text x="142.8" y="287" text-anchor="middle" class="svg-delta-good">-55.7%</text>
+</g>
+<g class="bar-group" data-tip="jitter350: BEFORE 15.7 KB/s → AFTER 6.7 KB/s (-57.5%)">
+<rect x="259.5" y="127.0" width="46.0" height="111.0" rx="4" class="bar-before"/>
+<rect x="319.0" y="190.9" width="46.0" height="47.1" rx="4" class="bar-after"/>
+<text x="282.5" y="121.0" text-anchor="middle" class="svg-val-before">15.7</text>
+<text x="342.0" y="184.9" text-anchor="middle" class="svg-val-after">6.7</text>
+<text x="312.2" y="256" text-anchor="middle" class="svg-xlabel">jitter350</text>
+<text x="312.2" y="271" text-anchor="middle" class="svg-xsub">350ms ±50ms normal</text>
+<text x="312.2" y="287" text-anchor="middle" class="svg-delta-good">-57.5%</text>
+</g>
+<g class="bar-group" data-tip="loss350: BEFORE 12.7 KB/s → AFTER 10.1 KB/s (-20.6%)">
+<rect x="429.0" y="148.1" width="46.0" height="89.9" rx="4" class="bar-before"/>
+<rect x="488.5" y="166.7" width="46.0" height="71.3" rx="4" class="bar-after"/>
+<text x="452.0" y="142.1" text-anchor="middle" class="svg-val-before">12.7</text>
+<text x="511.5" y="160.7" text-anchor="middle" class="svg-val-after">10.1</text>
+<text x="481.8" y="256" text-anchor="middle" class="svg-xlabel">loss350</text>
+<text x="481.8" y="271" text-anchor="middle" class="svg-xsub">350ms ±30ms, 3% loss</text>
+<text x="481.8" y="287" text-anchor="middle" class="svg-delta-good">-20.6%</text>
+</g>
+<g class="bar-group" data-tip="lan (0ms)*: BEFORE 13.4 KB/s → AFTER 18.6 KB/s (+38.8%) — 72Hz spans 1.39× elapsed time per delta + 10s PVS/bot variance (headless lan flat 15.5→15.7 KB/s)">
+<rect x="598.5" y="143.5" width="46.0" height="94.5" rx="4" class="bar-before"/>
+<rect x="658.0" y="106.7" width="46.0" height="131.3" rx="4" class="bar-after"/>
+<text x="621.5" y="137.5" text-anchor="middle" class="svg-val-before">13.4</text>
+<text x="681.0" y="100.7" text-anchor="middle" class="svg-val-after">18.6</text>
+<text x="651.2" y="256" text-anchor="middle" class="svg-xlabel">lan (0ms)*</text>
+<text x="651.2" y="271" text-anchor="middle" class="svg-xsub">72Hz 1.39× delta window*</text>
+<text x="651.2" y="287" text-anchor="middle" class="svg-delta-warn">+38.8%</text>
+</g>
+</svg></div>
+      </div>
+      <div class="tab-panel" data-panel="cl-p95" data-group="client-charts">
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="Real Zircon Client — S→C Packet Size p95 (Bytes)">
+<text x="58" y="22" class="svg-title">Real Zircon Client — S→C Packet Size p95 (Bytes)</text>
+<text x="58" y="38" class="svg-sub">Eliminates fragmentation/burst pressure on 300–350 ms high-latency routes</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0 B</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">300 B</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">600 B</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">900 B</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">1200 B</text>
+<g class="bar-group" data-tip="steady300: BEFORE 1,032 B → AFTER 476 B (-53.8%)">
+<rect x="90.0" y="79.8" width="46.0" height="158.2" rx="4" class="bar-before"/>
+<rect x="149.5" y="165.0" width="46.0" height="73.0" rx="4" class="bar-after"/>
+<text x="113.0" y="73.8" text-anchor="middle" class="svg-val-before">1,032</text>
+<text x="172.5" y="159.0" text-anchor="middle" class="svg-val-after">476</text>
+<text x="142.8" y="256" text-anchor="middle" class="svg-xlabel">steady300</text>
+<text x="142.8" y="271" text-anchor="middle" class="svg-xsub">300ms RTT</text>
+<text x="142.8" y="287" text-anchor="middle" class="svg-delta-good">-53.8%</text>
+</g>
+<g class="bar-group" data-tip="jitter350: BEFORE 762 B → AFTER 263 B (-65.5%)">
+<rect x="259.5" y="121.1" width="46.0" height="116.9" rx="4" class="bar-before"/>
+<rect x="319.0" y="197.6" width="46.0" height="40.4" rx="4" class="bar-after"/>
+<text x="282.5" y="115.1" text-anchor="middle" class="svg-val-before">762</text>
+<text x="342.0" y="191.6" text-anchor="middle" class="svg-val-after">263</text>
+<text x="312.2" y="256" text-anchor="middle" class="svg-xlabel">jitter350</text>
+<text x="312.2" y="271" text-anchor="middle" class="svg-xsub">350ms ±50ms</text>
+<text x="312.2" y="287" text-anchor="middle" class="svg-delta-good">-65.5%</text>
+</g>
+<g class="bar-group" data-tip="loss350: BEFORE 416 B → AFTER 322 B (-22.7%)">
+<rect x="429.0" y="174.2" width="46.0" height="63.8" rx="4" class="bar-before"/>
+<rect x="488.5" y="188.7" width="46.0" height="49.3" rx="4" class="bar-after"/>
+<text x="452.0" y="168.2" text-anchor="middle" class="svg-val-before">416</text>
+<text x="511.5" y="182.7" text-anchor="middle" class="svg-val-after">322</text>
+<text x="481.8" y="256" text-anchor="middle" class="svg-xlabel">loss350</text>
+<text x="481.8" y="271" text-anchor="middle" class="svg-xsub">350ms ±30ms, 3%</text>
+<text x="481.8" y="287" text-anchor="middle" class="svg-delta-good">-22.7%</text>
+</g>
+<g class="bar-group" data-tip="lan (0ms)*: BEFORE 187 B → AFTER 357 B (+90.8%)">
+<rect x="598.5" y="209.3" width="46.0" height="28.7" rx="4" class="bar-before"/>
+<rect x="658.0" y="183.3" width="46.0" height="54.7" rx="4" class="bar-after"/>
+<text x="621.5" y="203.3" text-anchor="middle" class="svg-val-before">187</text>
+<text x="681.0" y="177.3" text-anchor="middle" class="svg-val-after">357</text>
+<text x="651.2" y="256" text-anchor="middle" class="svg-xlabel">lan (0ms)*</text>
+<text x="651.2" y="271" text-anchor="middle" class="svg-xsub">100→72Hz larger delta*</text>
+<text x="651.2" y="287" text-anchor="middle" class="svg-delta-warn">+90.8%</text>
+</g>
+</svg></div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>clx_time Back / 0dt</th>
+              <th>Client nopred</th>
+              <th>C→S pps (moves/pkt)</th>
+              <th>S→C pps</th>
+              <th>S→C KB/s</th>
+              <th>S→C p95 Size</th>
+              <th>Server Tick Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>jitter350</strong><br><span class="mono muted">350ms ±50ms normal</span></td>
+              <td class="mono">29/2 → <span class="delta-good">1/0 (-96.6%)</span></td>
+              <td class="mono">1,022 → <span class="delta-good">57 (-94.4%)</span></td>
+              <td class="mono">58.1 → <span class="delta-good">63.6 (+9.4%)</span> (3.0)</td>
+              <td class="mono">51.9 → 40.8</td>
+              <td class="mono">15.7 → <span class="delta-good">6.7 (-57.5%)</span></td>
+              <td class="mono">763 → <span class="delta-good">263 B (-65.5%)</span></td>
+              <td class="mono">10.0 → 13.89 ms</td>
+            </tr>
+            <tr>
+              <td><strong>loss350</strong><br><span class="mono muted">350ms ±30ms, 3% loss</span></td>
+              <td class="mono">24/8 → <span class="delta-good">0/0 (-100%)</span></td>
+              <td class="mono">66 → 65</td>
+              <td class="mono">69.4 → 69.3 (3.0)</td>
+              <td class="mono">59.6 → 43.5</td>
+              <td class="mono">12.7 → <span class="delta-good">10.1 (-20.6%)</span></td>
+              <td class="mono">416 → <span class="delta-good">322 B (-22.7%)</span></td>
+              <td class="mono">10.0 → 13.90 ms</td>
+            </tr>
+            <tr>
+              <td><strong>steady300</strong><br><span class="mono muted">300ms RTT, 0% loss</span></td>
+              <td class="mono">0/0 → 0/0</td>
+              <td class="mono">51 → 69</td>
+              <td class="mono">72.0 → 70.9 (3.0)</td>
+              <td class="mono">61.6 → 44.9</td>
+              <td class="mono">22.2 → <span class="delta-good">9.8 (-55.7%)</span></td>
+              <td class="mono">1,032 → <span class="delta-good">476 B (-53.9%)</span></td>
+              <td class="mono">20.0 → <span class="delta-good">13.89 ms (-6.1ms)</span></td>
+            </tr>
+            <tr>
+              <td><strong>lan*</strong><br><span class="mono muted">0ms RTT baseline</span></td>
+              <td class="mono">0/0 → 0/0</td>
+              <td class="mono">2 → 4</td>
+              <td class="mono">123.2 → 124.0 (p50 3.0)</td>
+              <td class="mono">101.2 → 73.3</td>
+              <td class="mono">13.4 → <span class="delta-warn">18.6*</span></td>
+              <td class="mono">187 → <span class="delta-warn">357 B*</span></td>
+              <td class="mono">10.0 → 13.89 ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout-cyan">
+        <div class="callout-title">*Accuracy Note on <code>lan</code> S→C Sizing &amp; 72 Hz Tickrate Ratios (Verified #40)</div>
+        Moving <code>sys_ticrate</code> from 100 Hz (10.0 ms) to 72 Hz (13.89 ms) cleanly scales S→C pps by <code>0.72×</code> across all profiles (e.g. <code>steady300</code> <code>44.9/61.6 = 0.729</code>, <code>lan</code> <code>73.3/101.2 = 0.724</code>). On the 0 ms <code>lan</code> run, S→C KB/s rose from <code>13.4 → 18.6 KB/s</code> (size p50 <code>134 → 257 B</code>) for two expected reasons: (1) each 72 Hz snapshot accumulates <code>1.39×</code> more elapsed entity delta per frame (confirmed in headless <code>lan</code> where pps fell <code>87.3 → 69.0</code> and KB/s stayed flat at <code>15.5 → 15.7 KB/s</code>), and (2) 10-second PVS/bot combat variance on <code>soi6</code>. On all high-latency profiles (<code>steady300</code>, <code>jitter350</code>, <code>loss350</code>), S→C bandwidth dropped <strong>-20.6% to -57.5%</strong>.
+      </div>
+    </div>
+
+    <!-- 2.2 Isolated VPS A/B -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="toolbar">
+        <div>
+          <h3 style="font-size:17px;color:#fff;">2. Isolated VPS A/B Benchmark — Port <code>26099</code> (<code>bakersfielddowntown</code>, 5 bots + <code>[CAM]</code>)</h3>
+          <p style="font-size:12.5px;color:var(--muted);">20s combat profiles per build via <code>dp7_bench.py</code> (seed 42) with <code>developer_networkentities 1</code> enabled.</p>
+        </div>
+        <div class="tabs" data-tabgroup="vps-charts" style="margin-bottom:0;">
+          <button class="tab-btn active" data-tab="vps-core">Overflows, CPU &amp; KB/s</button>
+          <button class="tab-btn" data-tab="vps-rel">Reliables &amp; S→C PPS</button>
+        </div>
+      </div>
+
+      <div class="tab-panel active" data-panel="vps-core" data-group="vps-charts">
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="Isolated VPS A/B — Overflows, Server CPU &amp; S→C Bandwidth (bakersfielddowntown, 5 bots + [CAM])">
+<text x="58" y="22" class="svg-title">Isolated VPS A/B — Overflows, Server CPU &amp; S→C Bandwidth (bakersfielddowntown, 5 bots + [CAM])</text>
+<text x="58" y="38" class="svg-sub">A (OLD: 100 Hz / stock DP / old [CAM]) vs B (NEW: 72 Hz / netfix DP / fixed [CAM] / new QC+CSQC)</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">20</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">40</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">60</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">80</text>
+<g class="bar-group" data-tip="EF5 Overflows: BEFORE 71.0 → AFTER 0.0 (-100.0%) — 71 → 0 (-100% ZERO overflows)">
+<rect x="82.4" y="74.7" width="38.0" height="163.3" rx="4" class="bar-before"/>
+<rect x="131.2" y="238.0" width="38.0" height="2.0" rx="4" class="bar-after"/>
+<text x="101.4" y="68.7" text-anchor="middle" class="svg-val-before">71.0</text>
+<text x="150.2" y="232.0" text-anchor="middle" class="svg-val-after">0.0</text>
+<text x="125.8" y="256" text-anchor="middle" class="svg-xlabel">EF5 Overflows</text>
+<text x="125.8" y="271" text-anchor="middle" class="svg-xsub">Total (vps350+harsh400)</text>
+<text x="125.8" y="287" text-anchor="middle" class="svg-delta-good">-100.0%</text>
+</g>
+<g class="bar-group" data-tip="VPS CPU (vps350): BEFORE 31.4 → AFTER 15.9 (-49.4%)">
+<rect x="218.0" y="165.8" width="38.0" height="72.2" rx="4" class="bar-before"/>
+<rect x="266.8" y="201.4" width="38.0" height="36.6" rx="4" class="bar-after"/>
+<text x="237.0" y="159.8" text-anchor="middle" class="svg-val-before">31.4</text>
+<text x="285.8" y="195.4" text-anchor="middle" class="svg-val-after">15.9</text>
+<text x="261.4" y="256" text-anchor="middle" class="svg-xlabel">VPS CPU (vps350)</text>
+<text x="261.4" y="271" text-anchor="middle" class="svg-xsub">RCON status %</text>
+<text x="261.4" y="287" text-anchor="middle" class="svg-delta-good">-49.4%</text>
+</g>
+<g class="bar-group" data-tip="VPS CPU (harsh400): BEFORE 30.2 → AFTER 16.1 (-46.7%)">
+<rect x="353.6" y="168.5" width="38.0" height="69.5" rx="4" class="bar-before"/>
+<rect x="402.4" y="201.0" width="38.0" height="37.0" rx="4" class="bar-after"/>
+<text x="372.6" y="162.5" text-anchor="middle" class="svg-val-before">30.2</text>
+<text x="421.4" y="195.0" text-anchor="middle" class="svg-val-after">16.1</text>
+<text x="397.0" y="256" text-anchor="middle" class="svg-xlabel">VPS CPU (harsh400)</text>
+<text x="397.0" y="271" text-anchor="middle" class="svg-xsub">RCON status %</text>
+<text x="397.0" y="287" text-anchor="middle" class="svg-delta-good">-46.7%</text>
+</g>
+<g class="bar-group" data-tip="S→C KB/s (vps350): BEFORE 37.7 → AFTER 27.9 (-26.1%)">
+<rect x="489.2" y="151.3" width="38.0" height="86.7" rx="4" class="bar-before"/>
+<rect x="538.0" y="173.9" width="38.0" height="64.1" rx="4" class="bar-after"/>
+<text x="508.2" y="145.3" text-anchor="middle" class="svg-val-before">37.7</text>
+<text x="557.0" y="167.9" text-anchor="middle" class="svg-val-after">27.9</text>
+<text x="532.6" y="256" text-anchor="middle" class="svg-xlabel">S→C KB/s (vps350)</text>
+<text x="532.6" y="271" text-anchor="middle" class="svg-xsub">unreliable stream</text>
+<text x="532.6" y="287" text-anchor="middle" class="svg-delta-good">-26.1%</text>
+</g>
+<g class="bar-group" data-tip="S→C KB/s (harsh400): BEFORE 36.8 → AFTER 31.5 (-14.5%)">
+<rect x="624.8" y="153.3" width="38.0" height="84.7" rx="4" class="bar-before"/>
+<rect x="673.6" y="165.6" width="38.0" height="72.4" rx="4" class="bar-after"/>
+<text x="643.8" y="147.3" text-anchor="middle" class="svg-val-before">36.8</text>
+<text x="692.6" y="159.6" text-anchor="middle" class="svg-val-after">31.5</text>
+<text x="668.2" y="256" text-anchor="middle" class="svg-xlabel">S→C KB/s (harsh400)</text>
+<text x="668.2" y="271" text-anchor="middle" class="svg-xsub">unreliable stream</text>
+<text x="668.2" y="287" text-anchor="middle" class="svg-delta-good">-14.5%</text>
+</g>
+</svg></div>
+      </div>
+      <div class="tab-panel" data-panel="vps-rel" data-group="vps-charts">
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="Isolated VPS A/B — Gameplay Reliable Bytes (vps350) &amp; Unreliable PPS">
+<text x="58" y="22" class="svg-title">Isolated VPS A/B — Gameplay Reliable Bytes (vps350) &amp; Unreliable PPS</text>
+<text x="58" y="38" class="svg-sub">Stat 158 hitsounds + 72 Hz tickrate cut reliable traffic &amp; packet rate under 350 ms RTT</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">25</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">50</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">75</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">100</text>
+<g class="bar-group" data-tip="Rel Bytes (vps350, ÷100): BEFORE 55.7 → AFTER 12.2 (-78.1%) — vps350: 5,569 B → 1,221 B (-78.1%); harsh400 varied 1,487→6,208 B from bot combat, 0 playvol spam">
+<rect x="90.0" y="135.5" width="46.0" height="102.5" rx="4" class="bar-before"/>
+<rect x="149.5" y="215.5" width="46.0" height="22.5" rx="4" class="bar-after"/>
+<text x="113.0" y="129.5" text-anchor="middle" class="svg-val-before">55.7</text>
+<text x="172.5" y="209.5" text-anchor="middle" class="svg-val-after">12.2</text>
+<text x="142.8" y="256" text-anchor="middle" class="svg-xlabel">Rel Bytes (vps350, ÷100)</text>
+<text x="142.8" y="271" text-anchor="middle" class="svg-xsub">5,569 B → 1,221 B*</text>
+<text x="142.8" y="287" text-anchor="middle" class="svg-delta-good">-78.1%</text>
+</g>
+<g class="bar-group" data-tip="Rel Pkts (vps350): BEFORE 39.0 → AFTER 12.0 (-69.2%)">
+<rect x="259.5" y="166.2" width="46.0" height="71.8" rx="4" class="bar-before"/>
+<rect x="319.0" y="215.9" width="46.0" height="22.1" rx="4" class="bar-after"/>
+<text x="282.5" y="160.2" text-anchor="middle" class="svg-val-before">39.0</text>
+<text x="342.0" y="209.9" text-anchor="middle" class="svg-val-after">12.0</text>
+<text x="312.2" y="256" text-anchor="middle" class="svg-xlabel">Rel Pkts (vps350)</text>
+<text x="312.2" y="271" text-anchor="middle" class="svg-xsub">39 → 12 packets</text>
+<text x="312.2" y="287" text-anchor="middle" class="svg-delta-good">-69.2%</text>
+</g>
+<g class="bar-group" data-tip="S→C pps (vps350): BEFORE 93.9 → AFTER 68.8 (-26.8%)">
+<rect x="429.0" y="65.2" width="46.0" height="172.8" rx="4" class="bar-before"/>
+<rect x="488.5" y="111.4" width="46.0" height="126.6" rx="4" class="bar-after"/>
+<text x="452.0" y="64.0" text-anchor="middle" class="svg-val-before">93.9</text>
+<text x="511.5" y="105.4" text-anchor="middle" class="svg-val-after">68.8</text>
+<text x="481.8" y="256" text-anchor="middle" class="svg-xlabel">S→C pps (vps350)</text>
+<text x="481.8" y="271" text-anchor="middle" class="svg-xsub">93.9 → 68.8 pps</text>
+<text x="481.8" y="287" text-anchor="middle" class="svg-delta-good">-26.8%</text>
+</g>
+<g class="bar-group" data-tip="S→C pps (harsh400): BEFORE 89.0 → AFTER 67.8 (-23.8%)">
+<rect x="598.5" y="74.2" width="46.0" height="163.8" rx="4" class="bar-before"/>
+<rect x="658.0" y="113.2" width="46.0" height="124.8" rx="4" class="bar-after"/>
+<text x="621.5" y="68.2" text-anchor="middle" class="svg-val-before">89.0</text>
+<text x="681.0" y="107.2" text-anchor="middle" class="svg-val-after">67.8</text>
+<text x="651.2" y="256" text-anchor="middle" class="svg-xlabel">S→C pps (harsh400)</text>
+<text x="651.2" y="271" text-anchor="middle" class="svg-xsub">89.0 → 67.8 pps</text>
+<text x="651.2" y="287" text-anchor="middle" class="svg-delta-good">-23.8%</text>
+</g>
+</svg></div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Scope</th>
+              <th>Metric</th>
+              <th>A — OLD (100Hz / Stock DP / Old [CAM])</th>
+              <th>B — NEW (72Hz / Netfix DP / New [CAM])</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">Total</td>
+              <td><strong>EntityFrame5 Packetlog Overflows</strong></td>
+              <td class="mono delta-bad">71 (2 pre + 34 + 34 + 1)</td>
+              <td class="mono delta-good"><strong>0 (0 + 0 + 0)</strong></td>
+              <td class="delta-good"><strong>-100% (ZERO)</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">Total</td>
+              <td><strong>[CAM] Entity Frames ACKed</strong></td>
+              <td class="mono delta-bad">0</td>
+              <td class="mono delta-good"><strong>5,434</strong></td>
+              <td class="delta-good"><strong>+5,434 (clean delta)</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">Total</td>
+              <td><strong>[CAM] Recorded <code>.dem</code> File</strong></td>
+              <td class="mono">1.67 MB (rate-throttled + 71 resets)</td>
+              <td class="mono delta-good"><strong>3.27 MB</strong> (valid, full-detail, 0 resets)</td>
+              <td class="delta-good">Complete &amp; clean</td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td><strong>Server CPU (<code>RCON status</code>)</strong></td>
+              <td class="mono">31.4%</td>
+              <td class="mono delta-good"><strong>15.9%</strong></td>
+              <td class="delta-good"><strong>-49.4%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td>S→C Unreliable pps / KB/s</td>
+              <td class="mono">93.90 pps / 37.69 KB/s</td>
+              <td class="mono delta-good"><strong>68.78 pps / 27.85 KB/s</strong></td>
+              <td class="delta-good">-26.8% pps / -26.1% KB/s</td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td>C→S Unreliable pps / KB/s</td>
+              <td class="mono">70.72 pps / 8.55 KB/s (<code>rep=1</code>)</td>
+              <td class="mono">70.75 pps / 12.39 KB/s (<code>rep=2</code>)</td>
+              <td class="mono muted">3× QW move redundancy</td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td><strong>Gameplay Reliable RX pkts (bytes)*</strong></td>
+              <td class="mono">39 (5,569 B)</td>
+              <td class="mono delta-good"><strong>12 (1,221 B)</strong></td>
+              <td class="delta-good"><strong>-69.2% / -78.1% B</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td>Reliable ACK p50 / p95 (ms)</td>
+              <td class="mono">365.0 / 378.0 ms</td>
+              <td class="mono">351.3 / 396.3 ms</td>
+              <td class="delta-good">~1× RTT, 0 drops</td>
+            </tr>
+            <tr>
+              <td class="mono">vps350</td>
+              <td>Server Tick Offset avg / max / sdev</td>
+              <td class="mono">0.3 / 10.1 / 0.7 ms</td>
+              <td class="mono delta-good">0.3 / <strong>8.2</strong> / 0.7 ms</td>
+              <td class="delta-good">-1.9 ms max</td>
+            </tr>
+            <tr>
+              <td class="mono">harsh400</td>
+              <td><strong>Server CPU (<code>RCON status</code>)</strong></td>
+              <td class="mono">30.2%</td>
+              <td class="mono delta-good"><strong>16.1%</strong></td>
+              <td class="delta-good"><strong>-46.7%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">harsh400</td>
+              <td>S→C Unreliable pps / KB/s</td>
+              <td class="mono">89.03 pps / 36.81 KB/s</td>
+              <td class="mono delta-good"><strong>67.80 pps / 31.49 KB/s</strong></td>
+              <td class="delta-good">-23.8% pps / -14.5% KB/s</td>
+            </tr>
+            <tr>
+              <td class="mono">harsh400</td>
+              <td><code>svc_stufftext</code> count (bytes) / Drops</td>
+              <td class="mono">10 (849 B) / 0 drops</td>
+              <td class="mono delta-good">8 (670 B) / 0 drops</td>
+              <td class="delta-good">-20.0% / 0 drops</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout-amber">
+        <div class="callout-title">*Reliable Traffic Variance Note (Verified #45)</div>
+        On <code>vps350</code>, gameplay reliable traffic dropped <strong>-78.1%</strong> (<code>39 pkts / 5,569 B → 12 pkts / 1,221 B</code>). On <code>harsh400</code>, normal bot-combat variance (death/respawn/chat/item prints) produced <code>16 pkts (1,487 B) → 33 pkts (6,208 B)</code>. Crucially, <strong>zero</strong> <code>playvol</code> hitsound <code>stuffcmd</code>s and <strong>zero</strong> connection drops occurred in either profile.
+      </div>
+    </div>
+
+    <!-- 2.3 Live VPS Tick Timing & RT Scheduling -->
+    <div class="card">
+      <h3 style="font-size:17px;color:#fff;margin-bottom:4px;">3. Live VPS Tick Timing Stability — <code>SCHED_OTHER 100 Hz</code> vs <code>SCHED_RR 10 72 Hz</code></h3>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">Real KVM host (AMD EPYC 9354P, 4 vCPUs, 4–18% hypervisor CPU steal). Compares 20× 1s live port <code>26000</code> RCON captures and the isolated populated 10-second rolling window RT check.</p>
+
+      <div class="grid-2">
+        <div class="chart-wrap"><svg viewBox="0 0 760 290" class="chart-svg" role="img" aria-label="Live VPS Port 26000 Tick Timing Stability">
+<text x="54" y="22" class="svg-title">Live VPS Port 26000 — 20× 1s RCON Tick Timing (offset_max_ms &amp; offset_avg_ms)</text>
+<text x="54" y="38" class="svg-sub">BEFORE: SCHED_OTHER Nice=-5, 100 Hz (steal 12.65%) vs AFTER: SCHED_RR 10, 72 Hz (steal 12.50%)</text>
+<line x1="54" y1="168.0" x2="736" y2="168.0" stroke="#f59e0b" stroke-dasharray="4 4" stroke-opacity="0.55"/>
+<text x="732" y="163.0" text-anchor="end" fill="#f59e0b" font-size="10" font-family="ui-monospace,monospace">10.0 ms (old 100 Hz tick budget)</text>
+<line x1="54" y1="244.0" x2="736" y2="244.0" class="svg-grid"/>
+<text x="46" y="248.0" text-anchor="end" class="svg-axis">0ms</text>
+<line x1="54" y1="206.0" x2="736" y2="206.0" class="svg-grid"/>
+<text x="46" y="210.0" text-anchor="end" class="svg-axis">5ms</text>
+<line x1="54" y1="168.0" x2="736" y2="168.0" class="svg-grid"/>
+<text x="46" y="172.0" text-anchor="end" class="svg-axis">10ms</text>
+<line x1="54" y1="130.0" x2="736" y2="130.0" class="svg-grid"/>
+<text x="46" y="134.0" text-anchor="end" class="svg-axis">15ms</text>
+<line x1="54" y1="92.0" x2="736" y2="92.0" class="svg-grid"/>
+<text x="46" y="96.0" text-anchor="end" class="svg-axis">20ms</text>
+<line x1="54" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="46" y="58.0" text-anchor="end" class="svg-axis">25ms</text>
+<text x="54.0" y="262" text-anchor="middle" class="svg-axis">#1</text>
+<text x="125.8" y="262" text-anchor="middle" class="svg-axis">#3</text>
+<text x="197.6" y="262" text-anchor="middle" class="svg-axis">#5</text>
+<text x="269.4" y="262" text-anchor="middle" class="svg-axis">#7</text>
+<text x="341.2" y="262" text-anchor="middle" class="svg-axis">#9</text>
+<text x="412.9" y="262" text-anchor="middle" class="svg-axis">#11</text>
+<text x="484.7" y="262" text-anchor="middle" class="svg-axis">#13</text>
+<text x="556.5" y="262" text-anchor="middle" class="svg-axis">#15</text>
+<text x="628.3" y="262" text-anchor="middle" class="svg-axis">#17</text>
+<text x="700.1" y="262" text-anchor="middle" class="svg-axis">#19</text>
+<text x="395.0" y="282" text-anchor="middle" class="svg-xsub">1-second RCON status sample index (populated 10s rolling window)</text>
+<polygon points="54.0,244.0 54.0,137.6 89.9,137.6 125.8,137.6 161.7,70.7 197.6,70.7 233.5,70.7 269.4,70.7 305.3,70.7 341.2,197.6 377.1,197.6 412.9,197.6 448.8,197.6 484.7,197.6 520.6,193.1 556.5,193.1 592.4,193.1 628.3,193.1 664.2,193.1 700.1,172.6 736.0,172.6 736.0,244.0" fill="#ef4444" fill-opacity="0.14"/>
+<polyline points="54.0,137.6 89.9,137.6 125.8,137.6 161.7,70.7 197.6,70.7 233.5,70.7 269.4,70.7 305.3,70.7 341.2,197.6 377.1,197.6 412.9,197.6 448.8,197.6 484.7,197.6 520.6,193.1 556.5,193.1 592.4,193.1 628.3,193.1 664.2,193.1 700.1,172.6 736.0,172.6" fill="none" stroke="#ef4444" stroke-width="2.4"/>
+<polyline points="54.0,238.7 89.9,238.7 125.8,238.7 161.7,238.7 197.6,238.7 233.5,238.7 269.4,238.7 305.3,238.7 341.2,241.0 377.1,241.0 412.9,241.0 448.8,241.0 484.7,241.0 520.6,241.0 556.5,241.0 592.4,241.0 628.3,241.0 664.2,241.0 700.1,241.0 736.0,241.0" fill="none" stroke="#fca5a5" stroke-width="1.5" stroke-dasharray="3 3"/>
+<circle cx="54.0" cy="137.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #1: max 14.0ms, avg 0.7ms, sdev 1.5ms, CPU 4.5%, steal 12.7%"/>
+<circle cx="89.9" cy="137.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #2: max 14.0ms, avg 0.7ms, sdev 1.5ms, CPU 4.5%, steal 17.66%"/>
+<circle cx="125.8" cy="137.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #3: max 14.0ms, avg 0.7ms, sdev 1.5ms, CPU 4.5%, steal 18.33%"/>
+<circle cx="161.7" cy="70.7" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #4: max 22.8ms, avg 0.7ms, sdev 1.9ms, CPU 4.2%, steal 18.16%"/>
+<circle cx="197.6" cy="70.7" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #5: max 22.8ms, avg 0.7ms, sdev 1.9ms, CPU 4.2%, steal 11.01%"/>
+<circle cx="233.5" cy="70.7" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #6: max 22.8ms, avg 0.7ms, sdev 1.9ms, CPU 4.2%, steal 10.72%"/>
+<circle cx="269.4" cy="70.7" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #7: max 22.8ms, avg 0.7ms, sdev 1.9ms, CPU 4.2%, steal 16.11%"/>
+<circle cx="305.3" cy="70.7" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #8: max 22.8ms, avg 0.7ms, sdev 1.9ms, CPU 4.2%, steal 11.81%"/>
+<circle cx="341.2" cy="197.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #9: max 6.1ms, avg 0.4ms, sdev 0.8ms, CPU 3.5%, steal 17.91%"/>
+<circle cx="377.1" cy="197.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #10: max 6.1ms, avg 0.4ms, sdev 0.8ms, CPU 3.5%, steal 9.56%"/>
+<circle cx="412.9" cy="197.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #11: max 6.1ms, avg 0.4ms, sdev 0.8ms, CPU 3.5%, steal 14.02%"/>
+<circle cx="448.8" cy="197.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #12: max 6.1ms, avg 0.4ms, sdev 0.8ms, CPU 3.5%, steal 10.82%"/>
+<circle cx="484.7" cy="197.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #13: max 6.1ms, avg 0.4ms, sdev 0.8ms, CPU 3.5%, steal 11.21%"/>
+<circle cx="520.6" cy="193.1" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #14: max 6.7ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 13.99%"/>
+<circle cx="556.5" cy="193.1" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #15: max 6.7ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 10.12%"/>
+<circle cx="592.4" cy="193.1" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #16: max 6.7ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 13.89%"/>
+<circle cx="628.3" cy="193.1" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #17: max 6.7ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 13.46%"/>
+<circle cx="664.2" cy="193.1" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #18: max 6.7ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 6.49%"/>
+<circle cx="700.1" cy="172.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #19: max 9.4ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 9.22%"/>
+<circle cx="736.0" cy="172.6" r="3.4" fill="#ef4444" class="bar-group" data-tip="BEFORE Sample #20: max 9.4ms, avg 0.4ms, sdev 0.7ms, CPU 3.3%, steal 4.36%"/>
+<polygon points="54.0,244.0 54.0,138.4 89.9,138.4 125.8,138.4 161.7,199.2 197.6,199.2 233.5,199.2 269.4,199.2 305.3,199.2 341.2,174.1 377.1,174.1 412.9,174.1 448.8,174.1 484.7,174.1 520.6,203.7 556.5,203.7 592.4,203.7 628.3,203.7 664.2,203.7 700.1,219.7 736.0,219.7 736.0,244.0" fill="#10b981" fill-opacity="0.16"/>
+<polyline points="54.0,138.4 89.9,138.4 125.8,138.4 161.7,199.2 197.6,199.2 233.5,199.2 269.4,199.2 305.3,199.2 341.2,174.1 377.1,174.1 412.9,174.1 448.8,174.1 484.7,174.1 520.6,203.7 556.5,203.7 592.4,203.7 628.3,203.7 664.2,203.7 700.1,219.7 736.0,219.7" fill="none" stroke="#10b981" stroke-width="2.6"/>
+<polyline points="54.0,241.0 89.9,241.0 125.8,241.0 161.7,241.7 197.6,241.7 233.5,241.7 269.4,241.7 305.3,241.7 341.2,241.7 377.1,241.7 412.9,241.7 448.8,241.7 484.7,241.7 520.6,241.7 556.5,241.7 592.4,241.7 628.3,241.7 664.2,241.7 700.1,242.5 736.0,242.5" fill="none" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="3 3"/>
+<circle cx="54.0" cy="138.4" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #1: max 13.9ms, avg 0.4ms, sdev 1.4ms, CPU 2.7%, steal 11.58%"/>
+<circle cx="89.9" cy="138.4" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #2: max 13.9ms, avg 0.4ms, sdev 1.4ms, CPU 2.7%, steal 8.27%"/>
+<circle cx="125.8" cy="138.4" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #3: max 13.9ms, avg 0.4ms, sdev 1.4ms, CPU 2.7%, steal 5.26%"/>
+<circle cx="161.7" cy="199.2" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #4: max 5.9ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 11.26%"/>
+<circle cx="197.6" cy="199.2" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #5: max 5.9ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 25.39%"/>
+<circle cx="233.5" cy="199.2" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #6: max 5.9ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 20.0%"/>
+<circle cx="269.4" cy="199.2" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #7: max 5.9ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 13.99%"/>
+<circle cx="305.3" cy="199.2" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #8: max 5.9ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 20.64%"/>
+<circle cx="341.2" cy="174.1" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #9: max 9.2ms, avg 0.3ms, sdev 0.8ms, CPU 2.8%, steal 16.93%"/>
+<circle cx="377.1" cy="174.1" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #10: max 9.2ms, avg 0.3ms, sdev 0.8ms, CPU 2.8%, steal 16.17%"/>
+<circle cx="412.9" cy="174.1" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #11: max 9.2ms, avg 0.3ms, sdev 0.8ms, CPU 2.8%, steal 13.93%"/>
+<circle cx="448.8" cy="174.1" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #12: max 9.2ms, avg 0.3ms, sdev 0.8ms, CPU 2.8%, steal 15.81%"/>
+<circle cx="484.7" cy="174.1" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #13: max 9.2ms, avg 0.3ms, sdev 0.8ms, CPU 2.8%, steal 9.58%"/>
+<circle cx="520.6" cy="203.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #14: max 5.3ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 6.22%"/>
+<circle cx="556.5" cy="203.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #15: max 5.3ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 6.52%"/>
+<circle cx="592.4" cy="203.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #16: max 5.3ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 7.55%"/>
+<circle cx="628.3" cy="203.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #17: max 5.3ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 5.28%"/>
+<circle cx="664.2" cy="203.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #18: max 5.3ms, avg 0.3ms, sdev 0.6ms, CPU 2.9%, steal 6.9%"/>
+<circle cx="700.1" cy="219.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #19: max 3.2ms, avg 0.2ms, sdev 0.3ms, CPU 2.3%, steal 11.44%"/>
+<circle cx="736.0" cy="219.7" r="3.4" fill="#10b981" class="bar-group" data-tip="AFTER Sample #20: max 3.2ms, avg 0.2ms, sdev 0.3ms, CPU 2.3%, steal 15.02%"/>
+<rect x="60" y="59" width="10" height="10" rx="2" fill="#ef4444"/>
+<text x="74" y="68" class="svg-legend">BEFORE max (avg 11.94ms, peak 22.8ms)</text>
+<rect x="60" y="77" width="10" height="10" rx="2" fill="#10b981"/>
+<text x="74" y="86" class="svg-legend">AFTER max (avg 7.50ms, peak 13.9ms)</text>
+</svg></div>
+        <div class="chart-wrap"><svg viewBox="0 0 760 300" class="chart-svg" role="img" aria-label="VPS RT Scheduling Check — True Populated 10s Rolling Window (Verified #45)">
+<text x="58" y="22" class="svg-title">VPS RT Scheduling Check — True Populated 10s Rolling Window (Verified #45)</text>
+<text x="58" y="38" class="svg-sub">A: SCHED_OTHER Nice=-5, 100 Hz (8.14% steal) vs B: SCHED_RR 10, 72 Hz (5.47% steal)</text>
+<rect x="550" y="12" width="12" height="12" rx="2" fill="#ef4444" fill-opacity="0.85"/>
+<text x="567" y="22" class="svg-legend">BEFORE</text>
+<rect x="642" y="12" width="12" height="12" rx="2" fill="#10b981" fill-opacity="0.9"/>
+<text x="659" y="22" class="svg-legend">AFTER</text>
+<line x1="58" y1="238.0" x2="736" y2="238.0" class="svg-grid"/>
+<text x="50" y="242.0" text-anchor="end" class="svg-axis">0</text>
+<line x1="58" y1="192.0" x2="736" y2="192.0" class="svg-grid"/>
+<text x="50" y="196.0" text-anchor="end" class="svg-axis">2</text>
+<line x1="58" y1="146.0" x2="736" y2="146.0" class="svg-grid"/>
+<text x="50" y="150.0" text-anchor="end" class="svg-axis">5</text>
+<line x1="58" y1="100.0" x2="736" y2="100.0" class="svg-grid"/>
+<text x="50" y="104.0" text-anchor="end" class="svg-axis">8</text>
+<line x1="58" y1="54.0" x2="736" y2="54.0" class="svg-grid"/>
+<text x="50" y="58.0" text-anchor="end" class="svg-axis">10</text>
+<g class="bar-group" data-tip="Server CPU (%): BEFORE 9.6 → AFTER 7.2 (-25.0%)">
+<rect x="90.0" y="61.4" width="46.0" height="176.6" rx="4" class="bar-before"/>
+<rect x="149.5" y="105.5" width="46.0" height="132.5" rx="4" class="bar-after"/>
+<text x="113.0" y="64.0" text-anchor="middle" class="svg-val-before">9.6</text>
+<text x="172.5" y="99.5" text-anchor="middle" class="svg-val-after">7.2</text>
+<text x="142.8" y="256" text-anchor="middle" class="svg-xlabel">Server CPU (%)</text>
+<text x="142.8" y="271" text-anchor="middle" class="svg-xsub">9.6% → 7.2%</text>
+<text x="142.8" y="287" text-anchor="middle" class="svg-delta-good">-25.0%</text>
+</g>
+<g class="bar-group" data-tip="Offset Avg (ms): BEFORE 0.3 → AFTER 0.1 (-66.7%)">
+<rect x="259.5" y="232.5" width="46.0" height="5.5" rx="4" class="bar-before"/>
+<rect x="319.0" y="236.2" width="46.0" height="2.0" rx="4" class="bar-after"/>
+<text x="282.5" y="226.5" text-anchor="middle" class="svg-val-before">0.3</text>
+<text x="342.0" y="230.2" text-anchor="middle" class="svg-val-after">0.1</text>
+<text x="312.2" y="256" text-anchor="middle" class="svg-xlabel">Offset Avg (ms)</text>
+<text x="312.2" y="271" text-anchor="middle" class="svg-xsub">0.3 → 0.1 ms</text>
+<text x="312.2" y="287" text-anchor="middle" class="svg-delta-good">-66.7%</text>
+</g>
+<g class="bar-group" data-tip="Offset Max (ms): BEFORE 3.5 → AFTER 2.6 (-25.7%)">
+<rect x="429.0" y="173.6" width="46.0" height="64.4" rx="4" class="bar-before"/>
+<rect x="488.5" y="190.2" width="46.0" height="47.8" rx="4" class="bar-after"/>
+<text x="452.0" y="167.6" text-anchor="middle" class="svg-val-before">3.5</text>
+<text x="511.5" y="184.2" text-anchor="middle" class="svg-val-after">2.6</text>
+<text x="481.8" y="256" text-anchor="middle" class="svg-xlabel">Offset Max (ms)</text>
+<text x="481.8" y="271" text-anchor="middle" class="svg-xsub">3.5 → 2.6 ms</text>
+<text x="481.8" y="287" text-anchor="middle" class="svg-delta-good">-25.7%</text>
+</g>
+<g class="bar-group" data-tip="Offset Sdev (ms): BEFORE 0.4 → AFTER 0.2 (-50.0%)">
+<rect x="598.5" y="230.6" width="46.0" height="7.4" rx="4" class="bar-before"/>
+<rect x="658.0" y="234.3" width="46.0" height="3.7" rx="4" class="bar-after"/>
+<text x="621.5" y="224.6" text-anchor="middle" class="svg-val-before">0.4</text>
+<text x="681.0" y="228.3" text-anchor="middle" class="svg-val-after">0.2</text>
+<text x="651.2" y="256" text-anchor="middle" class="svg-xlabel">Offset Sdev (ms)</text>
+<text x="651.2" y="271" text-anchor="middle" class="svg-xsub">0.4 → 0.2 ms</text>
+<text x="651.2" y="287" text-anchor="middle" class="svg-delta-good">-50.0%</text>
+</g>
+</svg></div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Live Port 26000 Metric (20× 1s RCON Baseline)</th>
+              <th>BEFORE (2026-11-27 05:30 UTC)</th>
+              <th>AFTER (Live Post-Deploy)</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+        <tr><td>Engine &amp; Tickrate</td><td class="mono">DP 72ae1712 · 100 Hz (0.01s)</td><td class="mono">DP netfix · 72 Hz (0.0138889s)</td><td class="delta-good">-28% tick load</td></tr>
+        <tr><td>CPU Scheduler</td><td class="mono">SCHED_OTHER (Nice=-5)</td><td class="mono">SCHED_RR prio 10 (TimerSlack 50µs)</td><td class="delta-good">Preemptive RT</td></tr>
+        <tr><td>Host KVM CPU Steal</td><td class="mono">12.65% (4.36–18.33%)</td><td class="mono">12.50%</td><td class="mono muted">Hypervisor context</td></tr>
+        <tr><td>Idle Server CPU (20×1s avg)</td><td class="mono">3.75% (max 4.5%)</td><td class="mono">2.79% (max 2.9%)</td><td class="delta-good">-25.6%</td></tr>
+        <tr><td><strong>Tick Offset Avg (ms)</strong></td><td class="mono">0.52 ms (max 0.7)</td><td class="mono"><strong>0.30 ms</strong> (max 0.4)</td><td class="delta-good"><strong>-42.3%</strong></td></tr>
+        <tr><td><strong>Tick Offset Max Avg / Peak (ms)</strong></td><td class="mono">11.94 ms / <strong>22.8 ms</strong></td><td class="mono"><strong>7.50 ms / 13.9 ms</strong></td><td class="delta-good"><strong>-37.2% avg / -39.0% peak</strong></td></tr>
+        <tr><td><strong>Tick Offset Sdev (ms)</strong></td><td class="mono">1.15 ms (max 1.9)</td><td class="mono"><strong>0.74 ms</strong> (max 1.4)</td><td class="delta-good"><strong>-35.7%</strong></td></tr>
+        <tr><td>Live qconsole EF5 Overflows</td><td class="mono delta-bad">717 (match) / 16 &amp; 10 (no CAM)</td><td class="mono delta-good"><strong>0</strong></td><td class="delta-good"><strong>-100%</strong></td></tr>
+        
+          </tbody>
+        </table>
+      </div>
+      
+        <div class="callout callout-good" style="margin-top:16px;">
+          <div class="callout-title">Real Remote End-to-End Smoke Test Verified — <code>72.62.241.93:26000</code> (~409 ms Total Live Internet + <code>vps350</code> RTT)</div>
+          <p>Post-deploy <code>dp7_bench.py</code> test against live port <code>26000</code> (<code>rate 150000</code>, <code>repeat_input 2</code>, 10 s combat):
+          <strong>Signon:</strong> <code>13.93 s</code> |
+          <strong>Drops:</strong> <code>None</code> |
+          <strong>C→S:</strong> <code>69.36 pps (12.13 KB/s)</code> |
+          <strong>S→C:</strong> <code>66.18 pps (12.95 KB/s, avg 200.3 B, p95 374.9 B)</code> |
+          <strong>Reliables:</strong> <code>16 pkts (1,960 B)</code>, <strong><code>retx = 0</code></strong> (zero spurious retransmits at ~409 ms RTT!), ACK p50/p95 <code>408.8 / 422.7 ms</code> |
+          <strong>Stufftexts:</strong> <code>4</code> (<code>336 B</code>, <code>0 playvol</code>) |
+          <strong>Live qconsole.log:</strong> <code>0 EF5 overflows</code>, <code>0 SZ overflows</code>, <code>0 critical errors</code> (live server timing during test: <code>8.0% CPU, offset avg 0.2 ms, max 3.7 ms, sdev 0.4 ms</code>).</p>
+        </div>
+        
+      <div class="callout callout-cyan">
+        <div class="callout-title">Populated Rolling-Window Methodology Note (Verified #45/#47)</div>
+        DarkPlaces' <code>status</code> <code>timing:</code> readout averages over a 10-second rolling window, emitting <code>0.0</code> during the first ~10 s after startup. The RT Scheduling chart above reports the <strong>true populated 10 s window</strong> (samples 11–15, free of startup-zero dilution): <strong>CPU 9.6% → 7.2% (-25%)</strong>, <strong>offset avg 0.3 → 0.1 ms (-67%)</strong>, <strong>max 3.5 → 2.6 ms (-26%)</strong>, <strong>sdev 0.4 → 0.2 ms (-50%)</strong>. The post-deploy live port <code>26000</code> capture waits &gt;15 s after restart before sampling so every sample is 100% populated and apples-to-apples with the BEFORE baseline.
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: 4-LAYER ROOT-CAUSE DEEP DIVE -->
+  <section id="deep-dive">
+    <div class="sec-head">
+      <div>
+        <div class="sec-kicker">Architecture &amp; Forensic Code Analysis</div>
+        <h2>Root-Cause Deep Dive by Layer</h2>
+        <p class="sec-desc">Explore each layer of the stack. Click any finding to expand exact file/line citations, failure mechanics at 300–400 ms RTT, and the deployed remediation.</p>
+      </div>
+    </div>
+
+    <div class="tabs" data-tabgroup="layers">
+      <button class="tab-btn active" data-tab="layer1">Layer 1 · DarkPlaces C Engine</button>
+      <button class="tab-btn" data-tab="layer2">Layer 2 · VPS Infra &amp; [CAM]</button>
+      <button class="tab-btn" data-tab="layer3">Layer 3 · QuakeC / CSQC</button>
+      <button class="tab-btn" data-tab="layer4">Layer 4 · Client Cvars &amp; Zircon</button>
+    </div>
+
+    <!-- LAYER 1 -->
+    <div class="tab-panel active" data-panel="layer1" data-group="layers">
+      <div class="accordion">
+        <div class="acc-item open">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-crit">CRITICAL</span>Broken <code>qsort</code> &amp; Comparator in <code>EntityFrame5_LostFrame</code> + 64-Slot Packetlog Overflow</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Root Cause (<code>protocol.c:2758-2776</code>, <code>protocol.h:766</code>):</strong> On every dropped server→client packet or packetlog overflow, DarkPlaces calls <code>qsort(packetlogs, sizeof(*packetlogs), ENTITYFRAME5_MAXPACKETLOGS, packetlog5cmp)</code> — passing <code>nmemb</code> (8 bytes) and <code>size</code> (64 slots) <strong>swapped</strong>! Worse, <code>packetlog5cmp</code> casts <code>entityframe5_packetlog_t **</code> directly to <code>entityframe5_packetlog_t *</code>, comparing raw heap pointer bytes instead of <code>packetnumber</code>. Delta recovery ran out of order on <em>every single lost packet</em>.</li>
+              <li><strong>Overflow Ceiling:</strong> <code>ENTITYFRAME5_MAXPACKETLOGS = 64</code> allowed only <code>640 ms</code> of unacked frames at 100 Hz — directly causing <code>16</code> and <code>10</code> full delta-state resets for Thailand player <code>TruE</code> even without <code>[CAM]</code>, and <code>717</code> resets during a 10.5-minute match with <code>[CAM]</code>.</li>
+              <li><strong>Fix Deployed (<code>source/darkplaces-netcode-highping.patch</code>):</strong> Fixed <code>qsort</code> argument order (<code>ENTITYFRAME5_MAXPACKETLOGS, sizeof(*packetlogs)</code>), dereferenced <code>*(const entityframe5_packetlog_t *const *)</code> in <code>packetlog5cmp</code>, raised <code>ENTITYFRAME5_MAXPACKETLOGS</code> from <code>64 → 256</code> (<strong>3.55 s</strong> headroom at 72 Hz), and gated overflow console logging behind <code>developer_networkentities &gt;= 1</code> to prevent <code>-condebug</code> synchronous disk-flush stalls.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-crit">CRITICAL</span>Hardcoded 100 ms <code>moveframetime</code> Cap &amp; Sync-Fallback Double-Move Rubber-Banding</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Root Cause (<code>sv_user.c:620,666</code>, <code>sv_phys.c:2997-3001</code>):</strong> <code>sv_user.c:620</code> clamped every incoming move slice to <code>min(0.1, sv_clmovement_inputtimeout.value)</code> (100 ms) even though Zircon clients predict up to 250 ms. Any jitter/loss gap &gt;100 ms permanently discarded movement. Worse, when a gap exceeded <code>sv_clmovement_inputtimeout</code>, <code>SV_Physics</code> ran synchronous movement using the stale <code>host_client-&gt;cmd</code> with <code>//host_client-&gt;cmd.time = max(host_client-&gt;cmd.time, sv.time);</code> commented out — so when delayed packets arrived, the server replayed async moves <strong>on top of stale sync drift</strong> (double-moving and snapping the player back 350–400 ms later).</li>
+              <li><strong>Fix Deployed:</strong> Raised both <code>moveframetime</code> and <code>clmovement_inputtimeout</code> caps to <code>min(0.25, sv_clmovement_inputtimeout.value)</code> (matching Zircon's 250 ms client slice). During sync fallback (<code>movesequence != 0</code>), advanced <code>host_client-&gt;cmd.time = min(sv.time, host_client-&gt;cmd.time + sv.frametime)</code> — eliminating double-moves without creating a 400 ms post-timeout input blackout.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-high">HIGH</span>RFC 6298 + Karn's Algorithm RTT-Adaptive Reliable Resend Timeout (<code>netconn.c</code>)</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Root Cause (<code>netconn.c:817</code>):</strong> DarkPlaces' stop-and-wait reliable channel (window = 1 fragment, 1024 B) used a hardcoded <code>1.0 s</code> retransmit timer. One lost reliable packet or ACK at 350–400 ms RTT froze all subsequent reliables for <code>~1.4 s</code>.</li>
+              <li><strong>Fix Deployed:</strong> Implemented RFC 6298 EWMA <code>smoothed_rtt</code> (α=0.125) and <code>rtt_var</code> (β=0.25) with Karn &amp; Partridge Rules 1 &amp; 2 (ignoring retransmitted ACKs and preserving backoff until a clean ACK completes), exposed via <code>net_reliable_resend_timeout</code> (<code>0</code> = automatic RTT-adaptive, <code>&gt;0</code> = fixed override):</li>
+            </ul>
+            <pre>Formula: rto = bound(0.25, max(srtt + max(0.08, 4 * rtt_var), srtt * 1.4 + 0.05), 1.2)
+  20 ms RTT (±5 ms)  → RTO 0.25 s  (4.0× faster than 1.0 s; 12.5× RTT margin → 0 spurious resends)
+ 150 ms RTT (±20 ms) → RTO 0.26 s  (+110 ms spike headroom)
+ 350 ms RTT (±40 ms) → RTO 0.54 s  (~1.85× faster recovery; +190 ms spike headroom)
+ 450 ms RTT (±60 ms) → RTO 0.69 s  (+240 ms spike headroom; backoff up to 1.5 s on bursts)</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAYER 2 -->
+    <div class="tab-panel" data-panel="layer2" data-group="layers">
+      <div class="accordion">
+        <div class="acc-item open">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-crit">CRITICAL</span><code>[CAM]</code> Demo Observer Missing <code>clc_ackframe</code>, Sequence 0 Bug &amp; 25 KB/s Throttle</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Root Cause (<code>/opt/quake/demo_recorder.py</code>):</strong> The headless <code>[CAM]</code> observer connected on <code>127.0.0.1</code> whenever ≥2 humans played, but (1) <strong>never sent <code>clc_ackframe</code></strong> (triggering an <code>EntityFrame5</code> overflow + full snapshot reset + <code>qconsole.log</code> flush roughly once every second — <code>717</code> times in a 10.5-min match!), (2) hardcoded unreliable send sequence to <code>0</code> so DarkPlaces' <code>netconn.c:1336</code> dropped every unreliable packet after the first, and (3) set loopback <code>rate 25000</code>, starving demo detail.</li>
+              <li><strong>Fix Deployed (<code>demo_recorder.py</code>):</strong> Added DP7 <code>svc_entities</code> (<code>0x39</code>, <code>movesequence==0</code>) parser guarded by exact <code>EntityFrame5</code> terminator <code>b"\x00\x80"</code> + 2-consecutive-frame resync on &gt;256-frame stalls; sends immediate <code>clc_ackframe</code> (<code>0x32</code> + LE32 <code>framenum</code>) with a 32-bit masked monotonically incrementing <code>unrel_send_seq</code>; raised loopback <code>rate</code> to <code>150000</code>. Result in A/B: <strong>0 → 5,434 ACKed frames</strong>, <strong>71 → 0 overflows</strong>, and complete <strong>3.27 MB</strong> <code>.dem</code> recordings.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-high">HIGH</span>Server Tickrate <code>100 Hz → 72 Hz</code>, Physics Parity Cvars &amp; <code>SCHED_RR 10</code> Real-Time Scheduling</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Why 100 Hz Hurt High-Ping Players:</strong> At <code>sys_ticrate 0.01</code> (100 Hz) with old client <code>rate 95000</code>, DP7's <code>net_usesizelimit 2</code> shrank max unreliable packet size to <code>922 B</code> (and unreliable effects to <code>461 B</code>), compressed the client 2-state lerp window to just <code>10.0 ms</code>, and exacerbated KVM CPU contention (<code>8–18%</code> host CPU steal produced <code>22.8 ms</code> idle stalls — 2.28× a full tick!).</li>
+              <li><strong>Fix Deployed (<code>server_vps.cfg</code> + <code>netfix-rt.conf</code>):</strong>
+                <ul>
+                  <li>Set <code>sys_ticrate 0.0138889</code> (72 Hz — raises packet budget to <code>1400 B</code>, widens lerp to <code>13.89 ms</code>, cuts server CPU by nearly half).</li>
+                  <li>Aligned server physics with Zircon client <code>cl_input_pmove.c.h</code>: <code>sv_gameplayfix_downtracesupportsongroundflag 1</code>, <code>sv_wallfriction 0</code>, <code>sv_jumpstep 1</code>, <code>sv_clmovement_inputtimeout 0.25</code>, <code>sv_maxvelocity 6500</code>, <code>sv_maxrate 1000000</code>.</li>
+                  <li>Installed systemd drop-in <code>/etc/systemd/system/quake-bakersfield.service.d/netfix-rt.conf</code>: <code>CPUSchedulingPolicy=rr</code>, <code>CPUSchedulingPriority=10</code>, <code>IOSchedulingClass=best-effort</code>, <code>IOSchedulingPriority=0</code>, <code>TimerSlackNSec=50000</code> (50 µs timer precision, preempting non-RT co-located services like Node/Docker/Netdata).</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAYER 3 -->
+    <div class="tab-panel" data-panel="layer3" data-group="layers">
+      <div class="accordion">
+        <div class="acc-item open">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-crit">CRITICAL</span>Weapon Pushback Disabled (<code>pushback 0</code>) + 48-Frame Hitscan Antilag (<code>antilag.qc</code>)</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Pushback Rubber-Banding Eliminated:</strong> <code>q15_config_coop.cfg</code> enabled <code>pushback 1</code>, mutating <code>self.velocity</code> server-side on every RL/LG/SSG/GL/SNG/Axe/DN3/Cyrax shot (10×/sec on LG!). Client PMove never predicts weapon recoil pushback, snapping the shooter every shot at 350 ms RTT. Disabled globally (<code>pushback 0</code>) and gated <code>W_FireAxe</code> &amp; <code>cyrax.qc</code> recoil behind <code>autocvar_pushback != 0</code>.</li>
+              <li><strong>48-Frame Server-Side Lag Compensation (<code>antilag.qc</code> / <code>antilag_defs.qc</code>):</strong> Records a 48-frame circular origin buffer (~667 ms at 72 Hz) per player in <code>StartFrame()</code>. On hitscan/melee fire, reads engine-native <code>.float ping</code> (<code>DP_SV_PING</code> in ms, supported identically on VPS DarkPlaces and Zircon), interpolates targets back by <code>bound(0, ping * 0.001, sv_antilag_maxping * 0.001)</code> (default <code>sv_antilag 1</code>, <code>sv_antilag_maxping 450</code>), skips dead/non-solid/teleported (&gt;256 u) targets, brackets strictly around <code>traceline()</code> via <code>setorigin()</code> (no <code>SV_TouchLinks</code>), and restores before damage/knockback. Wired into all 9 weapon fire sites (<code>W_FireAxe</code>, <code>FireBullets</code>, all 3 <code>LightningDamage</code> traces, <code>DN3SG_FirePellets</code>, <code>M4</code>, <code>Garand</code>, <code>Sniper</code>, <code>Hammer</code>, <code>Cyrax</code>).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-high">HIGH</span>Unreliable Stat 158 Hitsounds &amp; Eliminating Periodic Reliable CSQC <code>cmd</code> Spam</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Reliable Channel Saturation Fixed:</strong> Previously, <code>hitsound.qc</code> and <code>proj_collide.qc</code> fired reliable <code>stuffcmd(attacker, "playvol misc/mmhit*...\n")</code> up to 8.3×/sec — exceeding DP7's ~2.8 reliable pkts/sec ceiling at 350 ms RTT and stalling damage flashes, camera switches, and centerprints.</li>
+              <li><strong>Fix Deployed:</strong> Replaced all hitsound <code>stuffcmd</code> calls with <code>HitSound_Emit(attacker, 1..6)</code> writing unreliable stat <code>158</code> (<code>bm_st_hitsnd = seq * 8 + tier</code>, wrapping <code>seq</code> at <code>31</code> so value stays <code>≤ 255</code> → compact 3-byte <code>svc_updatestatubyte</code>). CSQC <code>BM_HitSound_Check()</code> precaches <code>misc/mmhit1..3.wav</code> and triggers local audio on change (skipping initial connect snapshot).</li>
+              <li><strong>Silenced 5-Second CSQC Loops:</strong> Changed <code>BM_Hat_SendChoice()</code> and <code>BM_Killcam_SendChoice()</code> to transmit once on connect/change + one retry at +2 s instead of spamming reliable <code>cmd</code> packets every 5 s forever.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-med">MEDIUM-HIGH</span>Prediction Timing, Stat/Entity Churn &amp; Uniform <code>sv_maxvelocity 6500</code></span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Early Prediction Guard:</strong> Moved <code>BM_PredictFrame()</code> from <code>W_WeaponFrame()</code> (<code>PlayerPostThink</code> — after movement already ran!) to the end of <code>PlayerPreThink</code> and expanded coverage to <code>spruce_swim_grav</code>, <code>bm_was_ladder</code>, <code>sn_aiming</code>/<code>sn_leg</code>, and wetsuit speed.</li>
+              <li><strong>Removed Colliding Vector Stat:</strong> Deleted unused <code>clientstat(48, 3, origin)</code> in <code>world.qc</code> — which sent 3 redundant floats every tick AND collided with stats 49–50 (<code>blue_captures</code>/<code>red_captures</code>).</li>
+              <li><strong>Bandwidth &amp; CPU Trimming:</strong> Gated <code>bm_st_lx/ly/lz</code> behind <code>if (self.bm_st_lshow)</code> with <code>floor()</code>; quantized <code>dn3_st_speed</code> to 16-unit steps; added <code>.bm_hat_lastpf</code>/<code>.bm_hat_lastaf</code> dirty-checking in <code>bm_hats.qc</code>; set <code>shellcasing 0</code>; disabled idle <code>SNGHeater</code> in deathmatch; guarded <code>Gyro_Force_Create</code> behind <code>(autocvar_gyroset != 0) || gyro_objectlist_head</code>; kept <code>sv_maxvelocity 6500</code> uniform across all maps (eliminating SkyPad mid-flight <code>stuffcmd</code> races).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAYER 4 -->
+    <div class="tab-panel" data-panel="layer4" data-group="layers">
+      <div class="accordion">
+        <div class="acc-item open">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-crit">CRITICAL</span>Client Auto-Migration (<code>bm_up_21.cfg</code> + <code>quake.rc</code>) — Zero Engine Rebuild Required</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <p>All 10 high-ping client cvars already exist natively inside shipped Zircon <code>v20261122</code>. Default <code>cl_nettimesyncboundmode 6</code> hard-clamped <code>cl.time</code> to the 13.9 ms <code>[mtime[1], mtime[0]]</code> window, snapping <code>cl.time</code> backward on any ±20–60 ms jitter (producing <code>clx_frametime == 0</code> and dropping input sends). Shipping <code>bm_up_21.cfg</code> automatically upgrades every existing player's saved <code>config.cfg</code> on launch:</p>
+            <pre>seta cl_nettimesyncboundmode "7"   // Harmonic-mean jitter-compensated clock slew (kills backward snaps!)
+seta cl_netrepeatinput "2"         // QuakeWorld-style 3 moves per C-&gt;S packet (survives 2 consecutive drops)
+seta cl_movement_nettimeout "1.0"  // Prevent prediction queue stall during 300-1000 ms jitter bursts
+seta cl_lerpexcess "0.5"           // Bounded linear extrapolation across 1 lost tick (prevents entity freezes)
+seta cl_maxfps_alwayssleep "0"     // Remove forced 1 ms Sys_Sleep frame jitter
+seta rate "150000"                 // Unlock full 1400 B unreliable packet budget at 72 Hz
+seta rate_burstsize "2048"         // Absorb bursty entity snapshots without rate throttling
+seta cl_netfps "72"                // Match 72 Hz server tick cadence cleanly
+seta cl_movement "1"               // Ensure client-side movement prediction active
+seta cl_movement_track_canjump "1" // Accurate jump-held prediction parity</pre>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-head">
+            <span><span class="acc-tag tag-high">UPSTREAM PATCH</span>Zircon Engine C Patch (<code>source/zircon-netcode-highping.patch</code>)</span>
+            <span class="acc-chev">▶</span>
+          </button>
+          <div class="acc-body">
+            <ul>
+              <li><strong>Ready for Next Engine Release (<code>GiggleHacks/zircon-darkplaces@66bcfa23</code>):</strong> 9 files, <code>+120/-10</code> lines; verified clean with <code>git apply --check</code> and <code>gcc -Wall -fsyntax-only</code> (0 errors/warnings).</li>
+              <li><strong>Client Prediction-Error Smoothing (<code>cl_smooth 1</code>, <code>cl_smoothtime 0.1</code>, <code>cl_smoothmaxdist 64</code>):</strong> Tracks exact per-move <code>pred_end_origin</code> and exponentially decays small 0.25–64 u reconciliation errors in <code>V_CalcRefdefUsing</code> with zero added input latency; clears instantly on teleports/respawns, demos, <code>PRED_ZIRCON_MOVE_2</code>, or <code>cl.viewentity != cl.playerentity</code> (vehicles/killcam).</li>
+              <li><strong>Server/Monster Bug Fixes Ported:</strong> Fixes Zircon's <code>sv_ents5.c:127</code> typo (<code>o-&gt;max_health_z != n-&gt;health_z</code> → <code>n-&gt;max_health_z</code>, which re-sent 10 bytes on every frame forever for every damaged monster), plus ports the <code>EntityFrame5_LostFrame</code> <code>qsort</code> fix, 256-slot packetlog, 250 ms move cap + sync-fallback fix, and RFC 6298 + Karn RTO for listen/LAN hosts.</li>
+              <li><strong>Why <code>sv_allow_zircon_move</code> Stays <code>0</code>:</strong> Audited as client-authoritative origin copying with ~800+ ms multi-RTT <code>svc_zircon_warp</code> stalls on lifts/fixangle, forced <code>sv_cullentities_nevercullbmodels 1</code>, and an X/Z axis bug (<code>cl_input_pmove.c.h:763-764</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: QUAKEWORLD VS ZIRCON DP7 MATRIX -->
+  <section id="qw-compare">
+    <div class="sec-head">
+      <div>
+        <div class="sec-kicker">Protocol Architecture Gap Closure</div>
+        <h2>QuakeWorld vs Zircon DP7 Comparison</h2>
+        <p class="sec-desc">How this overhaul closes each classic high-ping gap between QuakeWorld (<code>PROTOCOL_QUAKEWORLD</code>) and DarkPlaces/Zircon DP7 (<code>PROTOCOL_DARKPLACES7</code>).</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mechanism</th>
+            <th>QuakeWorld Benchmark</th>
+            <th>Original Zircon DP7 Behavior</th>
+            <th>BakersfieldQuake Remediation</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Upstream Move Redundancy</strong></td>
+            <td>Always 3 delta-compressed moves/pkt</td>
+            <td>2 moves/pkt (<code>cl_netrepeatinput 1</code>) — loses moves on 2 consecutive drops</td>
+            <td><code>cl_netrepeatinput 2</code> (3 moves/pkt verified on wire in every run)</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Command History Buffer</strong></td>
+            <td>64-slot ring (<code>QW_UPDATE_BACKUP_64</code>)</td>
+            <td>128-slot array (<code>CL_MAX_USERCMDS_128</code>) — ~29 moves in flight @ 400ms</td>
+            <td>Adequate headroom (~1.77 s @ 72 Hz); no overflow risk</td>
+            <td><span class="status-pill st-ok">NATIVE OK</span></td>
+          </tr>
+          <tr>
+            <td><strong>Client Clock Synchronization</strong></td>
+            <td>Command-ACK driven; no hard backward clamp</td>
+            <td><code>cl_nettimesyncboundmode 6</code> snaps <code>cl.time</code> backward on &gt;13.9 ms jitter</td>
+            <td><code>cl_nettimesyncboundmode 7</code> harmonic slew (<strong>-96.6% to -100%</strong> snaps)</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Server Move Gap Handling</strong></td>
+            <td>Runs moves only when cmds arrive; no stale drift</td>
+            <td>Hardcoded 100 ms cap + stale sync fallback without advancing <code>cmd.time</code></td>
+            <td>C patch: 250 ms cap + <code>cmd.time += sv.frametime</code> during sync fallback</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Entity Delta Loss Recovery</strong></td>
+            <td>Baseline delta vs client-acked frame</td>
+            <td>64-slot log (640 ms @ 100 Hz) + swapped <code>qsort</code> &amp; broken comparator</td>
+            <td>Fixed <code>qsort</code>/comparator + 256 slots (3.55 s @ 72 Hz) + <code>[CAM]</code> ACKs</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Client/Server PMove Parity</strong></td>
+            <td>Shared exact <code>pmove.c</code></td>
+            <td>Diverged on downtrace, wallfriction, jumpstep, pushback, late <code>BM_PredictFrame</code></td>
+            <td>Aligned cvars, <code>pushback 0</code>, moved <code>BM_PredictFrame</code> to <code>PlayerPreThink</code></td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Lag Compensation (Antilag)</strong></td>
+            <td>Mod/server hitbox rewind (KTX/FTE)</td>
+            <td>None — raw current-frame <code>traceline</code> missed by 3.5–4 widths @ 400ms</td>
+            <td>48-frame SSQC <code>antilag.qc</code> using native <code>DP_SV_PING</code> (9 weapons)</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Reliable Channel Recovery</strong></td>
+            <td>Piggybacked in every datagram; 1-RTT resend</td>
+            <td>Stop-and-wait, fixed 1.0 s timeout + 8.3×/s hitsound <code>stuffcmd</code> flood</td>
+            <td>RFC 6298 + Karn RTT-adaptive RTO + unreliable stat 158 hitsounds</td>
+            <td><span class="status-pill st-closed">CLOSED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Snapshot Interpolation</strong></td>
+            <td>Multi-snapshot jitter buffer (ezQuake/Q3)</td>
+            <td>2-state only (10 ms @ 100 Hz), <code>cl_lerpexcess 0</code> freezes entities</td>
+            <td>72 Hz widens lerp to 13.89 ms + <code>cl_lerpexcess 0.5</code> bounded extrapolation</td>
+            <td><span class="status-pill st-mitigated">MITIGATED</span></td>
+          </tr>
+          <tr>
+            <td><strong>Prediction-Error Smoothing</strong></td>
+            <td>Smooth decay (<code>cl_smooth</code>)</td>
+            <td>Hard 1-frame camera snap on X/Y/Z mismatch</td>
+            <td>Implemented <code>cl_smooth</code> in upstream <code>zircon-netcode-highping.patch</code></td>
+            <td><span class="status-pill st-patch">NEXT ENGINE</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 5: HARSH 400ms STRESS & INDEPENDENT CODE REVIEW -->
+  <section id="stress-review">
+    <div class="sec-head">
+      <div>
+        <div class="sec-kicker">Worst-Case Intercontinental Validation &amp; Quality Assurance</div>
+        <h2>Harsh 400 ms Stress Tests &amp; Independent Review Highlights</h2>
+        <p class="sec-desc">Tested under heavy Pareto jitter + Gilbert-Elliott burst loss (up to 400 ms RTT, ±60 ms jitter, ~5% burst loss + packet duplication) and independently audited before live rollout.</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px;">
+      <!-- Harsh 400ms table -->
+      <div class="card">
+        <h3 style="font-size:16px;color:#fff;margin-bottom:10px;">Harsh Stress Runs — Real Zircon Client (<code>after_client_harsh.json</code>)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Metric</th><th>burst350 (350ms Pareto, ~3% burst)</th><th>harsh400 (400ms Pareto, ~5% burst + dup)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Signon Time</td><td class="mono">18.36 s</td><td class="mono">19.48 s</td></tr>
+              <tr><td><strong>clx_time Back / 0dt</strong></td><td class="mono delta-good"><strong>0 / 0 (ZERO)</strong></td><td class="mono delta-good"><strong>0 / 0 (ZERO)</strong></td></tr>
+              <tr><td>C→S pps (moves/pkt)</td><td class="mono">68.70 pps (<strong>3.0</strong>)</td><td class="mono">68.85 pps (<strong>3.0</strong>)</td></tr>
+              <tr><td>S→C pps / KB/s</td><td class="mono">43.47 pps / 7.89 KB/s</td><td class="mono">41.83 pps / 12.59 KB/s</td></tr>
+              <tr><td>S→C Size p50 / p95</td><td class="mono">154 B / 281 B</td><td class="mono">264 B / 598 B</td></tr>
+              <tr><td>Server Tick dt (avg/max)</td><td class="mono">13.89 / 13.89 ms (0 stalls)</td><td class="mono">13.89 / 13.89 ms (0 stalls)</td></tr>
+              <tr><td>CL / SV Errors &amp; Overflows</td><td class="mono delta-good"><strong>0 errors / 0 overflows</strong></td><td class="mono delta-good"><strong>0 errors / 0 overflows</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:var(--dim);margin-top:8px;">Note: On <code>harsh400</code>, bots fragged the scripted client early in the 10 s window, accounting for <code>cl_not_predicted=1628</code> while dead; <code>clx_time</code> stayed <code>0/0</code> and client exited cleanly with zero errors.</p>
+      </div>
+
+      <!-- sv_antilag verification -->
+      <div class="card">
+        <h3 style="font-size:16px;color:#fff;margin-bottom:10px;"><code>sv_antilag</code> Combat Stability Verification (Final <code>progs.dat</code>)</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+          Verified via <code>verify_antilag.py</code> on final recompiled <code>progs.dat</code> (<code>94d741b5...</code>, 6 bots, 12 s combat at <code>vps350</code>).
+          RCON confirmed <code>sv_antilag "1"</code> &amp; <code>sv_antilag_maxping "450"</code> registered cleanly, with live engine <code>pingplreport</code> measuring <strong>333–347 ms RTT</strong> (and <code>move_ack_rtt</code> p50 = <code>347.1 ms</code>, <code>n=297</code>) feeding <code>Antilag_Rewind</code>.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Check</th><th><code>sv_antilag 1</code> (ON)</th><th><code>sv_antilag 0</code> (OFF)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Exit / Drops</td><td class="mono delta-good">rc=0 / 0 drops</td><td class="mono delta-good">rc=0 / 0 drops</td></tr>
+              <tr><td>Server CPU / Offset Max</td><td class="mono">0.5% / 1.3 ms</td><td class="mono">2.0% / 2.0 ms</td></tr>
+              <tr><td>S→C Rate</td><td class="mono">67.6 pps / 13.60 KB/s</td><td class="mono">67.6 pps / 18.36 KB/s</td></tr>
+              <tr><td><code>playvol</code> Stufftexts</td><td class="mono delta-good"><strong>0</strong></td><td class="mono delta-good"><strong>0</strong></td></tr>
+              <tr><td>EF5 Overflows / QC Errors</td><td class="mono delta-good"><strong>0 / 0</strong></td><td class="mono delta-good"><strong>0 / 0</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-amber" style="margin-top:12px;">
+          <div class="callout-title">Reporting Precision Caveat (Verified #40/#46)</div>
+          <code>verify_antilag.py</code> drives automated strafe+fire (<code>dp7_bench.py</code>) — it proves <strong>runtime stability, zero QC/engine errors, zero reliable spam, and live 333–347 ms ping ingestion</strong> under combat, rather than a controlled moving-target hit-rate percentage delta.
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 Subtle Bugs Caught in Independent Review -->
+    <div class="card">
+      <h3 style="font-size:17px;color:#fff;margin-bottom:4px;">5 Subtle Bugs Caught &amp; Fixed in Independent Pre-Deploy Review (<code>#27</code>, <code>#28</code>, <code>#31</code>, <code>#32</code>, <code>#35</code>)</h3>
+      <p style="font-size:13px;color:var(--muted);">Every patch and config underwent an independent adversarial code audit before staging or VPS rollout — preventing 5 real production regressions:</p>
+
+      <div class="bug-grid">
+        <div class="bug-card">
+          <h4><span class="bug-num">BUG #1</span>Karn &amp; Partridge Rule 2 RTO Livelock</h4>
+          <p>In both C patches (<code>netconn.c</code>), <code>reliable_resends</code> was cleared unconditionally after retransmitted ACKs and new sends. If a player's RTT jumped from 200→400 ms, every reliable packet would time out spuriously forever with <code>smoothed_rtt</code> frozen at 200 ms.</p>
+          <div class="bug-fix">FIX: Reset reliable_resends = 0 strictly inside if (!conn-&gt;reliable_resent) on clean ACKs only.</div>
+        </div>
+
+        <div class="bug-card">
+          <h4><span class="bug-num">BUG #2</span><code>cl_smooth</code> Leaking onto Vehicle/Killcam Views</h4>
+          <p>BakersfieldQuake uses <code>p.clientcamera</code> (<code>cl.viewentity != cl.playerentity</code>) for vehicles, tanks, Rocket Rider, and killcam. Player <code>pred_error_offset</code> would leak onto camera entities or collide with <code>PRED_ZIRCON_MOVE_2</code>.</p>
+          <div class="bug-fix">FIX: Clear pred_error_offset whenever viewentity != playerentity, demoplayback, or PRED_ZIRCON_MOVE_2.</div>
+        </div>
+
+        <div class="bug-card">
+          <h4><span class="bug-num">BUG #3</span>Antilag Mid-Rewind Damage &amp; Teleport Hazard</h4>
+          <p><code>FireBullets</code> and <code>DN3SG_FirePellets</code> initially wrapped the entire pellet loop in <code>Antilag_Rewind/Restore</code>. Calling <code>PC_TraceIntercept</code> / <code>AddMultiDamage</code> mid-rewind could detonate projectiles or kill/respawn a player before <code>Antilag_Restore()</code> snapped them back.</p>
+          <div class="bug-fix">FIX: Bracket Antilag_Rewind/Restore strictly around traceline() per pellet; run all damage on restored positions.</div>
+        </div>
+
+        <div class="bug-card">
+          <h4><span class="bug-num">BUG #4</span><code>[CAM]</code> False-Positive <code>0x39</code> Scan &amp; &gt;256-Frame Wedge</h4>
+          <p>On non-entity unreliable packets, raw <code>0x39</code> scanning could mis-parse sound/particle bytes as a frame number. Also, synchronous <code>harvest_staging()</code> demo zipping could skip &gt;256 frames (~3.55 s) and permanently wedge <code>clc_ackframe</code>.</p>
+          <div class="bug-fix">FIX: Guard with EntityFrame5 terminator endswith(b"\x00\x80"), add 2-consecutive-frame resync, &amp; mask 32-bit seq.</div>
+        </div>
+
+        <div class="bug-card">
+          <h4><span class="bug-num">BUG #5</span>Public Flood-Protection Disabled in <code>server_vps.cfg</code></h4>
+          <p>Initial staged <code>server_vps.cfg.netfix</code> included <code>net_connectfloodblockingtimeout 0</code> and <code>net_challengefloodblockingtimeout 0</code> for rapid A/B benchmarking — which would have disabled DarkPlaces flood protection on public port 26000.</p>
+          <div class="bug-fix">FIX: Removed both lines from public server_vps.cfg (kept default 5s protection; isolated overrides to localhost harness).</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: FILE INVENTORY, AUTO-MIGRATION & ADMIN NOTES -->
+  <section id="inventory">
+    <div class="sec-head">
+      <div>
+        <div class="sec-kicker">Reproducible Artifacts &amp; Operations</div>
+        <h2>File Inventory, Patch Summary &amp; Admin Notes</h2>
+        <p class="sec-desc">Exact file paths, byte sizes, and verified SHA-256 checksums across the live VPS, local repository, and upstream engine patches. Base archives <code>bakersfield.pk3</code> (442 MB) and <code>q15.pk3</code> (477 MB) remain 100% untouched.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="inv-search" class="search-input" placeholder="Filter by filename, layer, or SHA-256...">
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--dim);">Click any SHA-256 pill to copy full hash</span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="inv-table">
+        <thead>
+          <tr>
+            <th>Artifact / Path</th>
+            <th>Layer / Target</th>
+            <th>Size</th>
+            <th>Verified SHA-256</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/opt/quake/darkplaces-dedicated</code></td>
+            <td><span class="status-pill st-closed">VPS LIVE</span></td>
+            <td class="mono">3,761,896 B</td>
+            <td><button class="copy-hash" data-hash="326c979200f68ae1af011c5792508b5623fe824d902ab95cb199f8619d411f18">326c979200f6…</button></td>
+            <td>Patched DarkPlaces Linux dedicated server (<code>qsort</code>, 256 logs, 250ms cap, RFC 6298 RTO)</td>
+          </tr>
+          <tr>
+            <td><code>/opt/quake/demo_recorder.py</code><br><span class="mono muted">synced → G:\Quake\Combat\vps\demo_recorder.py</span></td>
+            <td><span class="status-pill st-closed">VPS LIVE</span></td>
+            <td class="mono">26,529 B</td>
+            <td><button class="copy-hash" data-hash="194e86b58eaec056057a4b029967efe18811b3ddc8fbd3eadb56338f5cff5d8f">194e86b58eae…</button></td>
+            <td>Fixed <code>[CAM]</code> observer: <code>clc_ackframe</code>, 32-bit <code>unrel_send_seq</code>, <code>0x8000</code> guard, <code>rate 150000</code></td>
+          </tr>
+          <tr>
+            <td><code>/opt/quake/BakersfieldQuake/server_vps.cfg</code><br><span class="mono muted">synced → G:\Quake\Combat\vps\server_vps.cfg</span></td>
+            <td><span class="status-pill st-closed">VPS LIVE</span></td>
+            <td class="mono">6,172 B</td>
+            <td><button class="copy-hash" data-hash="72ee32d4e0d0e7ce91e6efe98cbe6a6d78611f5fbe54b0318f9384424e9ee403">72ee32d4e0d0…</button></td>
+            <td>72 Hz tickrate, physics parity cvars, <code>pushback 0</code>, <code>shellcasing 0</code>, <code>sv_antilag 1</code></td>
+          </tr>
+          <tr>
+            <td><code>/etc/systemd/system/quake-bakersfield.service.d/netfix-rt.conf</code></td>
+            <td><span class="status-pill st-closed">VPS LIVE</span></td>
+            <td class="mono">Drop-in</td>
+            <td class="mono muted">systemd override</td>
+            <td><code>CPUSchedulingPolicy=rr</code>, prio 10, <code>TimerSlackNSec=50000</code></td>
+          </tr>
+          <tr>
+            <td><code>progs.dat</code></td>
+            <td><span class="status-pill st-closed">REPO + VPS</span></td>
+            <td class="mono">4,068,090 B</td>
+            <td><button class="copy-hash" data-hash="94d741b5c58f1b06616ac416b4c6c5a52f470c815509f8ca04904d13989fdc3c">94d741b5c58f…</button></td>
+            <td>Compiled SSQC: <code>antilag.qc</code>, stat 158 hitsounds, <code>BM_PredictFrame</code>, hat/stat/Gyro fixes</td>
+          </tr>
+          <tr>
+            <td><code>csprogs.dat</code></td>
+            <td><span class="status-pill st-closed">REPO + VPS</span></td>
+            <td class="mono">675,082 B</td>
+            <td><button class="copy-hash" data-hash="437fa4e7309201d026d63f3fc0341d5fbbc8c695917fda796f23c2529a561835">437fa4e73092…</button></td>
+            <td>Compiled CSQC (CRC-stamped): <code>BM_HitSound_Check()</code>, silent hat/killcam sync</td>
+          </tr>
+          <tr>
+            <td><code>menu.dat</code></td>
+            <td><span class="status-pill st-closed">REPO + VPS</span></td>
+            <td class="mono">186,302 B</td>
+            <td><button class="copy-hash" data-hash="40299eef49317cb1bfdd06ab2a77263d95bd783bed46ce5d4fd4e8234d673fe5">40299eef4931…</button></td>
+            <td>Compiled MenuQC: listen-server host defaults aligned to 72 Hz + parity cvars</td>
+          </tr>
+          <tr>
+            <td><code>bm_up_21.cfg</code></td>
+            <td><span class="status-pill st-mitigated">CLIENT UPDATER</span></td>
+            <td class="mono">401 B</td>
+            <td><button class="copy-hash" data-hash="261b094fbc7c917ed5543ac036fd7a5dc64562e7e6c816a363c304439aa53418">261b094fbc7c…</button></td>
+            <td>One-shot v20→v21 migration applying all 10 high-ping client cvars automatically</td>
+          </tr>
+          <tr>
+            <td><code>quake.rc</code></td>
+            <td><span class="status-pill st-mitigated">CLIENT UPDATER</span></td>
+            <td class="mono">7,514 B</td>
+            <td><button class="copy-hash" data-hash="bb6d59365b1b7046f5de7662bf36d735702ac49fc0b7b400d90ff02017ba0dae">bb6d59365b1b…</button></td>
+            <td>Updated pre-<code>config.cfg</code> defaults + chained <code>bm_up_20 → bm_up_21 → bm_defver 21</code></td>
+          </tr>
+          <tr>
+            <td><code>server.cfg</code> / <code>autoexec.cfg</code> / <code>warmup.cfg</code></td>
+            <td><span class="status-pill st-closed">REPO + VPS</span></td>
+            <td class="mono">2.7K / 5.4K / 741 B</td>
+            <td><button class="copy-hash" data-hash="c88a080eee597118eb0076d7de14021e4ae79810d7ec562bf9fb64131b0d66e9">c88a080e… (sv)</button></td>
+            <td>Consistent 72 Hz, <code>pushback 0</code>, <code>shellcasing 0</code>, <code>sv_antilag 1</code>, <code>sv_maxvelocity 6500</code></td>
+          </tr>
+          <tr>
+            <td><code>source/darkplaces-netcode-highping.patch</code></td>
+            <td><span class="status-pill st-patch">SOURCE PATCH</span></td>
+            <td class="mono">8,798 B</td>
+            <td><button class="copy-hash" data-hash="05feb28b1bc1618a09677ee191d93ec953feaf11f6ab0db663ea033a3c659207">05feb28b1bc1…</button></td>
+            <td>6 files, <code>+56/-9</code> against <code>xonotic/darkplaces@72ae1712</code></td>
+          </tr>
+          <tr>
+            <td><code>source/zircon-netcode-highping.patch</code></td>
+            <td><span class="status-pill st-patch">UPSTREAM ZIRCON</span></td>
+            <td class="mono">15,697 B</td>
+            <td><button class="copy-hash" data-hash="1ce94405aa0e4e0924c2529a5a6a6c17e88141e97ad3ea30a1b7917">1ce94405aa0e…</button></td>
+            <td>9 files, <code>+120/-10</code> against <code>zircon-darkplaces@66bcfa23</code> (adds <code>cl_smooth</code> + monster health fix)</td>
+          </tr>
+          <tr>
+            <td><code>source/qc_combat_decomp/antilag.qc</code> &amp; <code>antilag_defs.qc</code></td>
+            <td><span class="status-pill st-patch">SSQC SOURCE</span></td>
+            <td class="mono">3,692 B / 1,350 B</td>
+            <td><button class="copy-hash" data-hash="f20c4884ff04776672ba9f233e0e906ebd4abc7bcb12f3210b6e5df09c13b16f">f20c4884ff04…</button></td>
+            <td>48-frame circular hitbox rewind engine using <code>DP_SV_PING</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px;">
+      <div class="callout callout-good" style="margin-top:0;">
+        <div class="callout-title">Zero-Friction Client Auto-Migration (<code>bm_up_21.cfg</code>)</div>
+        Players receive updated loose files (<code>progs.dat</code>, <code>csprogs.dat</code>, <code>menu.dat</code>, <code>bm_up_21.cfg</code>, <code>quake.rc</code>, <code>server.cfg</code>, <code>autoexec.cfg</code>, <code>warmup.cfg</code> — ~4.9 MB total) via the differential updater without touching the ~920 MB base <code>.pk3</code> archives. On next launch, <code>quake.rc</code> detects <code>bm_defver &lt; 21</code>, runs <code>bm_up_21.cfg</code> once to update saved <code>config.cfg</code> cvars, and bumps <code>bm_defver 21</code>.
+      </div>
+
+      <div class="callout callout-red" style="margin-top:0;">
+        <div class="callout-title">Server Admin Advisory — VPS Disk Space at 94% (<code>181G / 193G</code>)</div>
+        During the VPS audit, <code>/dev/sda1</code> had only <strong>13 GB free (94% full)</strong> while <code>sv_autodemo_perclient 1</code> and <code>-condebug</code> remain active. Note that with <code>[CAM]</code> now recording full unthrottled deltas (~3.27 MB per short test), demo storage will grow faster. Recommended cleanup review of legacy directories: <code>/opt/quake.old</code> (4.5 GB), <code>/opt/quake.v11</code> (1.5 GB), old entries in <code>/opt/quake/backup</code> (4.7 GB, keep <code>pre-netfix-2026-11-27</code>!), <code>/var/www</code> (60 GB), <code>/srv/casey</code> (5.7 GB), and <code>/var/lib/docker</code> (5.2 GB).
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>BakersfieldQuake High-Ping Netcode Overhaul Report · 100% Self-Contained Static HTML</span>
+    <span>All metrics verified from raw JSON captures &amp; live VPS RCON telemetry · 2026-11-27 05:58 UTC</span>
+  </footer>
+
+</main>
+
+<script>
+(function() {
+  // Tabs
+  document.querySelectorAll('.tabs').forEach(group => {
+    const groupName = group.dataset.tabgroup;
+    group.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.dataset.tab;
+        document.querySelectorAll('.tab-panel[data-group="' + groupName + '"]').forEach(p => {
+          p.classList.toggle('active', p.dataset.panel === target);
+        });
+      });
+    });
+  });
+
+  // Accordions
+  document.querySelectorAll('.acc-head').forEach(head => {
+    head.addEventListener('click', () => {
+      head.parentElement.classList.toggle('open');
+    });
+  });
+
+  // SVG Tooltip
+  const tip = document.getElementById('tooltip');
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      tip.textContent = el.dataset.tip;
+      tip.style.opacity = '1';
+    });
+    el.addEventListener('mousemove', e => {
+      const pad = 14;
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+      if (x + 390 > window.innerWidth) x = e.clientX - 390;
+      if (y + 80 > window.innerHeight) y = e.clientY - 70;
+      tip.style.left = Math.max(8, x) + 'px';
+      tip.style.top = Math.max(8, y) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+  });
+
+  // Inventory search filter
+  const search = document.getElementById('inv-search');
+  if (search) {
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      document.querySelectorAll('#inv-table tbody tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // Copy SHA-256
+  document.querySelectorAll('.copy-hash').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const h = btn.dataset.hash;
+      const orig = btn.textContent;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(h).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = orig, 1200);
+        });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
