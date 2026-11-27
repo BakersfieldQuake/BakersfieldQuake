@@ -78,7 +78,6 @@ pk3 loading -I "$M/loading_screen/build_loading_pk3.py" "$B"
 pk3 cyrax -I "$M/cyrax/build_cyrax_pk3.py" "$B"
 pk3 gunwheel -I "$M/gunwheel/build_gunwheel_pk3.py"
 pk3 selected_sounds -I "$M/selected_sounds/build_selected_sounds_pk3.py"
-pk3 console -I "$M/console/build_console_pk3.py"
 echo "  zz_johnbird.pk3"
 "$VENV/bin/python" -I "$M/build_john_bird_pk3.py" --base-pk3 "$BASE/BakersfieldQuake/zz_johnbird.pk3" --out-pk3 "$G/zz_johnbird.pk3" >"$WORK/zz_johnbird.log" 2>&1 || { tail -20 "$WORK/zz_johnbird.log"; die "zz_johnbird.pk3 failed"; }
 if [ -f "$G/maps/bakersfielddowntown.bsp" ]; then

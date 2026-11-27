@@ -780,12 +780,6 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/selected_sounds/build_selected_sounds_pk3.py pk3cache/zz_selected_sounds.pk3 --verify-repro
 
-      - name: Build zz_console.pk3
-        # Modern readable TrueType font for console, chat (T/Y), notify, and HUD across all platforms.
-        run: |
-          mkdir -p pk3cache
-          python -I repo/source/mm_tools/console/build_console_pk3.py pk3cache/zz_console.pk3 --verify-repro
-
       - name: Fetch zz_netsend_disk.pk3
         # THE DISK viewmodel for the NetSend gun (set A "Frisbee Pro", picked by vote 2026-11-26) and its thrown disk.
         # Its frames are keyed from videos that are not in the repo, so the pk3 is built locally
@@ -807,7 +801,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1242,7 +1236,6 @@ jobs:
                                 "sound/cyrax/capture.wav", "sound/cyrax/pull.wav", "sound/cyrax/hold_beep.wav",
                                 "sound/cyrax/bonk_launch.wav")),
               ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
-              ("zz_console.pk3", ("engine/fonts/Roboto-Medium.ttf", "gfx/conchars.png")),
               ("zz_selected_sounds.pk3", ("sound/john_bird/jv_fly14.wav", "sound/john_bird/jv_fly15.wav",
                                           "sound/robhead/rd_grenade.wav", "sound/robhead/rd_chatter_rob.wav",
                                           "sound/robhead/rd_chatter_paul.wav", "sound/robhead/rd_buh.wav",

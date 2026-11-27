@@ -124,7 +124,8 @@ alias bm_up_19 "exec bm_up_20.cfg; bm_up_20"
 alias bm_up_20 "exec bm_up_21.cfg; bm_up_21"
 alias bm_up_21 "exec bm_up_22.cfg; bm_up_22"
 alias bm_up_22 "exec bm_up_23.cfg; bm_up_23"
-alias bm_up_23 "seta bm_defver 23"
+alias bm_up_23 "exec bm_up_24.cfg; bm_up_24"
+alias bm_up_24 "seta bm_defver 24"
 bm_up_$bm_defver
 
 // Always start in FPS bindmap 0, and re-apply user vehicle_binds.cfg if present (survives bm_binds.cfg unbindall)
