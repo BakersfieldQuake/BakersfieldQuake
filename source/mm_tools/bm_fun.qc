@@ -132,3 +132,17 @@ void(entity targ, entity attacker) BM_Fun_Killed =
 		attacker.bm_fun_cp_t = time;
 	}
 };
+
+void(entity targ, entity attacker) BM_Fun_OnGib =
+{
+	if (!deathmatch || !autocvar_bm_fun || targ.classname != "player")
+		return;
+	if (attacker.classname != "player" || attacker == targ)
+		return;
+	if (((teamplay == 2 || CTF_ENABLED) && targ.team > 0 && targ.team == attacker.team))
+		return;
+
+	bprint ("^1", attacker.netname, " PULVERIZED ", targ.netname, " into gibs!\n");
+	if (attacker.ishuman == 1 && attacker.bm_fun_cp_t != time && (!autocvar_bm_bounty || targ.ud_heat < 4))
+		centerprint (attacker, strcat ("^1GIBBED ^7", targ.netname, "!"));
+};

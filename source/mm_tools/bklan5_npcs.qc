@@ -308,11 +308,8 @@ void() GreenSuit_Die =
 	self.velocity = '0 0 0';
 	self.effects = EF_DIMLIGHT;
 
-	sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
 	sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 0.85, ATTN_NORM);
-	ThrowGib("progs/gib1.mdl", -75);
-	ThrowGib("progs/gib2.mdl", -85);
-	ThrowGib("progs/gib3.mdl", -95);
+	BM_NPCGibBurst(-85, 5);
 	particle(self.origin + '0 0 24', '0 0 30', 73, 55);
 
 	self.think = GreenSuit_DeathStep;
@@ -846,13 +843,8 @@ void() RobeGuy_Die =
 		self.npc_dead = 2;
 		self.effects = EF_DIMLIGHT;
 		if (!NPC_IsVoiceMuted(self))
-		{
-			sound(self, CHAN_VOICE, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
-			sound(self, CHAN_AUTO, "player/udeath.wav", 0.85, ATTN_NORM);
-		}
-		ThrowGib("progs/gib1.mdl", -70);
-		ThrowGib("progs/gib2.mdl", -80);
-		ThrowGib("progs/gib3.mdl", -90);
+			sound(self, CHAN_AUTO, "robeguy/feather_gib_boom.wav", 1, ATTN_NORM);
+		BM_NPCGibBurst(-80, 4);
 		self.think = RobeGuy_DeathStep;
 		self.nextthink = time + 0.05;
 		return;

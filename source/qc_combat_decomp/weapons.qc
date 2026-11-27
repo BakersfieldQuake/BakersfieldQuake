@@ -1027,6 +1027,8 @@ void(vector org, vector vel) SpawnMeatSpray =
 
 void(vector org, vector vel, float damage) SpawnBlood =
 {
+	local float bcnt;
+
 	if (trace_ent.solid == SOLID_BSP || trace_ent.classname == "func_gong_shrine" || trace_ent.classname == "func_megaman_wheel" || trace_ent.classname == "button")
 	{
 		pointparticles(particleeffectnum("TE_GUNSHOT"), org, VEC_ORIGIN, 1);
@@ -1064,7 +1066,15 @@ void(vector org, vector vel, float damage) SpawnBlood =
 	}
 	if ((trace_ent.dodge_finished < time))
 	{
-		particle(org, (vel * 0.1), 73, (damage * 2));
+		particle(org, (vel * 0.1), 73, (damage * 2.5));
+		bcnt = floor(damage * 0.12);
+		if (bcnt < 1)
+			bcnt = 1;
+		if (bcnt > 4)
+			bcnt = 4;
+		pointparticles(particleeffectnum("TE_BLOOD"), org, (vel * 0.15), bcnt);
+		if (damage >= 28)
+			pointparticles(particleeffectnum("blood_spurt"), org, (vel * 0.1), 1);
 	}
 };
 

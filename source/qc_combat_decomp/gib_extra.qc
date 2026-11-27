@@ -135,7 +135,7 @@ void(float del) spawn_bloodpool =
 {
 	local entity bloodpl;
 
-	if (((BLOOD_POOL_CNT > 4) && ((random() * 100) < 50)))
+	if (((BLOOD_POOL_CNT > 10) && ((random() * 100) < 60)))
 	{
 		return;
 	}
@@ -251,8 +251,22 @@ void() spawn_fire =
 	fire.nextthink = time;
 };
 
+float bm_gibfx_win_t;
+float bm_gibfx_win_n;
+
+float(string gibname) BM_IsFleshGib =
+{
+	if (gibname == "progs/tgib1.mdl" || gibname == "progs/tgib2.mdl" || gibname == "progs/tgib3.mdl")
+		return FALSE;
+	if (gibname == "progs/netsend_sentry_gib0.md3" || gibname == "progs/netsend_sentry_gib1.md3" || gibname == "progs/netsend_sentry_gib2.md3")
+		return FALSE;
+	return TRUE;
+};
+
 void() gibdeath_effects =
 {
+	local vector org;
+
 	if ((((self.enemy.weapon == IT_LASER_CANNON) || (self.enemy.classname == "monster_enforcer")) || (self.enemy.classname == "monster_jim")))
 	{
 		if (((random() * 100) > 50))
@@ -264,20 +278,33 @@ void() gibdeath_effects =
 			sound7(other, CHAN_VOICE, "hipweap/hipmelt.wav", 1, ATTN_NORM, SNDSPD);
 		}
 		sendParticle("hiplas_death", self.origin, VEC_ORIGIN, 1);
+		return;
 	}
-	else
+
+	org = self.origin + '0 0 14';
+	if ((self.shocked > 0))
 	{
-		if ((self.shocked > 0))
-		{
-			sendParticle("blood_spurt", self.origin, VEC_ORIGIN, 1);
-		}
-		else
-		{
-			if ((autocvar_bloodextension == 1))
-			{
-				sendParticle("blood_monster_gib", self.origin, VEC_ORIGIN, 1);
-			}
-		}
+		sendParticle("blood_spurt", org, VEC_ORIGIN, 1);
+	}
+	else if ((autocvar_bloodextension == 1))
+	{
+		sendParticle("blood_monster_gib", org, '0 0 60', 1);
+		sendParticle("blood_spurt", org + '0 0 6', '0 0 110', 1);
+	}
+
+	if (time >= bm_gibfx_win_t || bm_gibfx_win_t > time + 0.15)
+	{
+		bm_gibfx_win_t = time + 0.15;
+		bm_gibfx_win_n = 0;
+	}
+	bm_gibfx_win_n = bm_gibfx_win_n + 1;
+	if (bm_gibfx_win_n <= 6)
+	{
+		te_blood(org, '0 0 240', 22);
+		te_blood(org, '140 140 180', 12);
+		te_blood(org, '-140 -140 180', 12);
+		DN3FX_OnGib(org, 1.0);
+		spawn_bloodpool(0.05);
 	}
 };
 
@@ -377,29 +404,74 @@ void() burngib_init =
 
 void() play_gibsound =
 {
+	local float r;
+
 	if (coop)
 	{
-		spawn_stickygibs(((random() * 3) + 4));
+		spawn_stickygibs(5 + floor(random() * 4));
 	}
 	else
 	{
-		spawn_stickygibs(((random() * 2) + 2));
+		spawn_stickygibs(4 + floor(random() * 3));
 	}
-	if (((random() * 100) < 25))
+	r = random();
+	if ((r < 0.25))
 	{
 		sound7(self, CHAN_VOICE, "misc/corpsegib.wav", 1, ATTN_NORM, SNDSPD);
 	}
+	else if ((r < 0.50))
+	{
+		sound7(self, CHAN_VOICE, "misc/megagib.wav", 1, ATTN_NORM, SNDSPD);
+	}
+	else if ((r < 0.75))
+	{
+		sound7(self, CHAN_VOICE, "player/udeath2.wav", 1, ATTN_NORM, SNDSPD);
+	}
 	else
 	{
-		if ((((random() * 100) < 50) && ((random() * 100) < 75)))
-		{
-			sound7(self, CHAN_VOICE, "player/udeath2.wav", 1, ATTN_NORM, SNDSPD);
-		}
-		else
-		{
-			sound7(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM, SNDSPD);
-		}
+		sound7(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM, SNDSPD);
 	}
+
+	r = random();
+	if ((r < 0.34))
+	{
+		sound7(self, CHAN_BODY, "player/gibsplit.wav", 0.9, ATTN_NORM, SNDSPD);
+	}
+	else if ((r < 0.67))
+	{
+		sound7(self, CHAN_BODY, "misc/z_gib.wav", 0.9, ATTN_NORM, SNDSPD);
+	}
+	else
+	{
+		sound7(self, CHAN_BODY, "player/gibexplode.wav", 0.9, ATTN_NORM, SNDSPD);
+	}
+};
+
+void(float dm, float extra) BM_NPCGibBurst =
+{
+	local float i;
+
+	if (dm > -60)
+		dm = -60;
+	ThrowGib("progs/gib1.mdl", dm);
+	ThrowGib("progs/gib2.mdl", dm - 10);
+	ThrowGib("progs/gib3.mdl", dm - 20);
+	i = 0;
+	while (i < extra)
+	{
+		if (i == 0)
+			ThrowGib("progs/gib_ribs.mdl", dm);
+		else if (i == 1)
+			ThrowGib("progs/gib_5.mdl", dm - 10);
+		else
+			ThrowGib("progs/chop.mdl", dm);
+		i = i + 1;
+	}
+	CeilSplat();
+	CeilSplat();
+	CeilSplat();
+	play_gibsound();
+	gibdeath_effects();
 };
 
 float(entity to, float sendFlags) sprite_sendtocsqc =
@@ -563,16 +635,25 @@ void() GibSticky =
 {
 	local entity dripper;
 	local vector throwdir;
+	local float scale;
 
-	throwdir_x = (((random() * 260) + -130) * (0 - self.health)) / 25;
+	scale = (0 - self.health) / 25;
+	if (scale < 1)
+		scale = 1;
+	if (scale > 3.5)
+		scale = 3.5;
+	throwdir_x = crandom() * 140 * scale;
+	throwdir_y = crandom() * 140 * scale;
+	throwdir_z = (130 + (random() * 170)) * scale;
 	dripper = spawn();
-	setorigin(dripper, self.origin);
+	setorigin(dripper, self.origin + '0 0 12');
 	setmodel(dripper, "progs/gib_4.mdl");
 	setsize(dripper, VEC_ORIGIN, VEC_ORIGIN);
 	dripper.velocity = throwdir;
 	dripper.avelocity_x = ((random() * 800) + -400);
 	dripper.avelocity_y = ((random() * 800) + -400);
 	dripper.avelocity_z = ((random() * 800) + -400);
+	dripper.traileffectnum = particleeffectnum("TR_BLOOD");
 	if (((random() * 100) < 60))
 	{
 		dripper.movetype = MOVETYPE_TOSS;
@@ -590,13 +671,12 @@ void() GibSticky =
 
 void(float amount) spawn_stickygibs =
 {
-	if ((self.cnt < 0))
-	{
-		self.cnt = 0;
-	}
-	while ((self.cnt <= amount))
+	local float i;
+
+	i = 0;
+	while ((i < amount))
 	{
 		GibSticky();
-		self.cnt = (self.cnt + 1);
+		i = i + 1;
 	}
 };

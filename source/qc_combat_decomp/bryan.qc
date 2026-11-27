@@ -199,10 +199,8 @@ void() Bryan_DieLoop =
 	if (self.br_dstep == 24)
 	{
 		self.effects = 0;
-		sound(self, CHAN_BODY, "weapons/r_exp3.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -70);
-		ThrowGib("progs/gib2.mdl", -85);
-		ThrowGib("progs/gib3.mdl", -95);
+		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
+		BM_NPCGibBurst(-85, 5);
 	}
 
 	self.think = Bryan_DieLoop;

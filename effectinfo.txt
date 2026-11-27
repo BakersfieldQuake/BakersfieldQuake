@@ -7403,27 +7403,27 @@ originoffset 0 0 0
 
 //blood trails when gibbing the enemy
 effect TR_BLOOD                   
-trailspacing 14
+trailspacing 8
 type blood
 tex 24 31
-size 2 3
-alpha 100 384 392
+size 3 5
+alpha 180 420 340
 bounce -1
 airfriction 1
 liquidfriction 4
-velocityjitter 64 64 64
-velocitymultiplier 0.5
+velocityjitter 72 72 72
+velocitymultiplier 0.45
 staincolor 0xA8FFFF 0xA8FFFF
 staintex 16 32
-stainalpha 156 256
-stainsize 2 4
+stainalpha 200 256
+stainsize 4 8
 
 //trail of blood - zombie
 effect TR_SLIGHTBLOOD              
-trailspacing 20
+trailspacing 14
 type blood
 tex 16 23
-size 2 2
+size 2.5 3.5
 alpha 384 384 192
 bounce -1
 airfriction 1
@@ -7433,49 +7433,52 @@ velocitymultiplier 0.5
 
 //blood shower when hitting the enemies
 effect TE_BLOOD
-count 0.25
+count 1.2
 type blood
 tex 16 23
-size 5 5
-alpha 40 200 48
+size 6 9
+alpha 120 240 48
 bounce -1
 airfriction 1
 liquidfriction 4
-velocityjitter 64 64 64
+velocityjitter 88 88 110
 velocitymultiplier 1
+staincolor 0xA8FFFF 0xA8FFFF
+staintex 16 32
+stainalpha 180 256
+stainsize 3 7
 
 effect TE_BLOOD  		// when shooting a living monster/player   addon --> blood_mist
-count 0.4
+count 0.7
 type alphastatic
 color 0xA8FFFF 0xA8FFFF
 blend invmod
 tex 16 31
-size 5 5 
-alpha 70 90 440
+size 6 9
+alpha 85 115 380
 originjitter 10 10 5
-velocityjitter -160 -160 60
+velocityjitter -180 -180 75
 bounce -1
 
 
 effect TE_BLOOD	// blood droplets
 notunderwater 
-countabsolute 9
+countabsolute 12
 type spark
 blend alpha
 //tex 16 31
-size 1 2
+size 1.5 2.5
 tex 0 7
-stretchfactor 1
-//color 0x330300 0x210200
-color 0x660000 0x330300
-alpha 333 20 290
+stretchfactor 1.2
+color 0x880404 0x450000
+alpha 360 40 290
 bounce 1
 airfriction 1
 liquidfriction 1.9
-velocityjitter 65 65 110
+velocityjitter 85 85 135
 originoffset 0 0 3
 originjitter 10 10 0
-gravity 0.4
+gravity 0.45
 
 effect TE_BLOOD	// violent blood spray
 notunderwater 
@@ -8002,63 +8005,63 @@ gravity 0.5
 
 effect blood_monster_gib	// blood mist
 notunderwater 
-countabsolute 10
+countabsolute 16
 type smoke
 blend alpha
 //tex 16 31
 tex 0 7
-color 0x330300 0x210200
-size 20 30
-sizeincrease 17
-alpha 50 120 40
+color 0x770404 0x380000
+size 26 38
+sizeincrease 22
+alpha 90 170 40
 originoffset 0 0 25
-originjitter 10 10 10
-airfriction 5
-velocityjitter 125 125 0
-velocityoffset 0 0 0
+originjitter 14 14 14
+airfriction 4
+velocityjitter 165 165 90
+velocityoffset 0 0 25
 gravity 0.14
 
 effect blood_monster_gib	// used when cvar bloodextension == 1  (when gibbing a living monster, a lot of blood splashes are spawned and a high z-velocity)
 notunderwater
-count 16
+count 26
 type spark
 blend invmod
 tex 16 32
-size 1 2
-alpha 233 250 140
+size 1.5 3
+alpha 233 255 120
 bounce -1
-stretchfactor 1.4
-airfriction 14
+stretchfactor 1.8
+airfriction 10
 liquidfriction 4
-velocityjitter 1615 1615 1277
-originoffset 0 0 7
-originjitter 10 10 0
-gravity 1.2
+velocityjitter 1400 1400 1350
+originoffset 0 0 10
+originjitter 12 12 4
+gravity 1.15
 staincolor 0xA8FFFF 0xA8FFFF
 staintex 16 32
-stainalpha 156 256
-stainsize 6 6
+stainalpha 200 256
+stainsize 8 14
 
 effect blood_monster_gib	// used when cvar bloodextension == 1  (when gibbing a living monster, a lot of blood splashes are spawned and a high z-velocity)
 notunderwater
-count 8
+count 14
 type spark
 blend invmod
 tex 16 32
-size 2 3
-alpha 233 250 140
+size 2.5 4
+alpha 233 255 120
 bounce -1
-stretchfactor 2.4
-airfriction 13
+stretchfactor 2.6
+airfriction 10
 liquidfriction 4
-velocityjitter 1615 1615 877
+velocityjitter 1400 1400 950
 originoffset 0 0 20
-originjitter 10 10 0
-gravity 1.2
+originjitter 12 12 4
+gravity 1.15
 staincolor 0xA8FFFF 0xA8FFFF
 staintex 16 32
-stainalpha 156 256
-stainsize 3 5
+stainalpha 200 256
+stainsize 6 10
 
 // blood mist
 effect blood_monster_gib	
@@ -9598,22 +9601,22 @@ velocitymultiplier 1
 
 
 effect hldecal			// Wallsplat effect, HL1 style
-countabsolute 0.5	  
+countabsolute 1.0	  
 type blood
 stretchfactor 2
-size 7 11
+size 10 15
 tex 31 31
-alpha 100 206 64
+alpha 140 230 64
 bounce -1
 gravity 1
 airfriction 0
 liquidfriction 10
-velocityjitter 14 14 14
+velocityjitter 18 18 18
 velocitymultiplier 1
 staincolor 0xA8FFFF 0xA8FFFF
 staintex 31 31
 stainalpha 356 456
-stainsize 1 1
+stainsize 3 7
 
 effect hldecalB			// Wallsplat effect, HL1 style
 countabsolute 0.3	  

@@ -118,3 +118,11 @@ void(vector org, vector norm) DN3FX_OnWallImpact =
 			pointsound(org, "dn3fx/ricoche4.wav", 0.50, ATTN_NORM);
 	}
 };
+
+void(vector org, float sc) DN3FX_OnGib =
+{
+	if (!autocvar_bm_dn3fx)
+		return;
+
+	DN3FX_Emit(DN3FX_GIB_BURST, org, '0 0 1', sc);
+};

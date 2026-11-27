@@ -252,10 +252,7 @@ void() RandomNPC_Die =
 	// Rockets / explosions / heavy overkill splatter classic Quake gibs!
 	if (NPC_ShouldGib(self))
 	{
-		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -70);
-		ThrowGib("progs/gib2.mdl", -75);
-		ThrowGib("progs/gib3.mdl", -80);
+		BM_NPCGibBurst(-75, 4);
 		if (self.npc_respawn > 0)
 		{
 			setmodel(self, "");

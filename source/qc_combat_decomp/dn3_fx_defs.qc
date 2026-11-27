@@ -5,6 +5,7 @@ float ENT_DN3FX = 9;
 float DN3FX_EXPLODE     = 3;
 float DN3FX_FIRE_BURST  = 4;
 float DN3FX_BULLET_PUFF = 5;
+float DN3FX_GIB_BURST   = 6;
 
 float autocvar_bm_dn3fx = 1;
 
@@ -18,3 +19,4 @@ void(float kind, vector org, vector dir, float sc) DN3FX_Emit;
 void(entity src, vector org, float sc) DN3FX_OnExplode;
 void(vector org, vector dir, float sc, float with_sound) DN3FX_OnFire;
 void(vector org, vector norm) DN3FX_OnWallImpact;
+void(vector org, float sc) DN3FX_OnGib;

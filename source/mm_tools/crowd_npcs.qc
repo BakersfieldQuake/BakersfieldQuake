@@ -484,10 +484,7 @@ void() CN_Die =
 
 	if (NPC_ShouldGib (self))
 	{
-		sound (self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		ThrowGib ("progs/gib1.mdl", -60);
-		ThrowGib ("progs/gib2.mdl", -60);
-		ThrowGib ("progs/gib3.mdl", -60);
+		BM_NPCGibBurst (-70, 3);
 		setmodel (self, "");
 		self.think = CN_Respawn;
 		i = autocvar_crowd_respawn;

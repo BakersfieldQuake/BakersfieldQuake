@@ -268,11 +268,8 @@ void() David_Die =
 
 	if (NPC_ShouldGib(self))
 	{
-		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
 		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -75);
-		ThrowGib("progs/gib2.mdl", -85);
-		ThrowGib("progs/gib3.mdl", -95);
+		BM_NPCGibBurst(-85, 5);
 		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
 		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
 		WriteCoord(MSG_BROADCAST, self.origin_x);
@@ -631,10 +628,7 @@ void() PregRunner_Die =
 
 	if (NPC_ShouldGib(self))
 	{
-		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -70);
-		ThrowGib("progs/gib2.mdl", -80);
-		ThrowGib("progs/gib3.mdl", -85);
+		BM_NPCGibBurst(-75, 4);
 		if (self.dv_respawn > 0)
 		{
 			setmodel(self, "");

@@ -132,10 +132,10 @@ void(vector dir, vector org, entity own) ThrowBloodSplat =
 	splat.touch = SplatTouch;
 	splat.nextthink = (time + 2);
 	splat.think = SUB_Remove;
-	if (((self.ONCEIL == 0) && (random() < 0.03)))
+	if (((self.ONCEIL == 0) && (random() < 0.25)))
 	{
 		setmodel(splat, "progs/gib_splat.mdl");
-		if ((random() < 0.3))
+		if ((random() < 0.35))
 		{
 			splat.scale = 0.8;
 		}
@@ -145,7 +145,7 @@ void(vector dir, vector org, entity own) ThrowBloodSplat =
 		setmodel(splat, "progs/wallsplat.mdl");
 		splat.alpha = 0.1;
 	}
-	splat.traileffectnum = particleeffectnum(/*24250i*/"gibd");
+	splat.traileffectnum = particleeffectnum("TR_BLOOD");
 	splat.alpha = 1;
 	setsize(splat, VEC_ORIGIN, VEC_ORIGIN);
 	setorigin(splat, org);
@@ -192,9 +192,11 @@ void() CeilSplat =
 	local entity dripper;
 	local vector throwdir;
 
-	throwdir_x = (random() * 460) + -230;
+	throwdir_x = crandom() * 240;
+	throwdir_y = crandom() * 240;
+	throwdir_z = 480 + (random() * 340);
 	dripper = spawn();
-	setorigin(dripper, self.origin);
+	setorigin(dripper, self.origin + '0 0 12');
 	setsize(dripper, VEC_ORIGIN, VEC_ORIGIN);
 	if (((random() * 100) < 50))
 	{
@@ -209,6 +211,7 @@ void() CeilSplat =
 	dripper.movetype = MOVETYPE_FLY;
 	dripper.solid = SOLID_TRIGGER;
 	dripper.touch = cs_touch;
+	dripper.traileffectnum = particleeffectnum("TR_BLOOD");
 	dripper.think = SUB_Remove;
-	dripper.nextthink = (time + 3);
+	dripper.nextthink = (time + 2.5);
 };

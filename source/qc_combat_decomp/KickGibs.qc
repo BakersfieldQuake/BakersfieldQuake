@@ -67,10 +67,69 @@ void() gib_gravity_reset3 =
 
 void() kick_touch =
 {
+	local vector v;
+	local float spd, r;
 
-	if (((self.velocity_x > VEC_ORIGIN_x) && (pointcontents(self.origin) == CONTENT_EMPTY)))
+	if ((other.classname == "player") && (other.health > 0))
 	{
-		sound7(other, CHAN_ITEM, "gib/gibhit1.wav", 1, ATTN_NORM, SNDSPD);
+		if ((time - self.delay) < 0.18)
+			return;
+		self.delay = time;
+		v = self.origin - other.origin;
+		v_z = 0;
+		if (vlen(v) > 1)
+			v = normalize(v);
+		else
+			v = '1 0 0';
+		v = (other.velocity * 1.45) + (v * 150);
+		if (v_z < 170)
+			v_z = 170 + (random() * 140);
+		self.flags = (self.flags - (self.flags & FL_ONGROUND));
+		self.velocity = v;
+		self.avelocity_x = crandom() * 520;
+		self.avelocity_y = crandom() * 520;
+		self.avelocity_z = crandom() * 520;
+		self.cansplash = 1;
+		Splash_Register(self);
+		if (BM_IsFleshGib(self.model))
+		{
+			pointparticles(particleeffectnum("TE_BLOOD"), self.origin, v * 0.25, 2);
+			if (random() < 0.5)
+				sound7(other, CHAN_ITEM, "kickgib/gib_hit.wav", 0.9, ATTN_NORM, SNDSPD);
+			else
+				sound7(other, CHAN_ITEM, "player/kickflesh.wav", 0.9, ATTN_NORM, SNDSPD);
+		}
+		else
+		{
+			sound7(other, CHAN_ITEM, "kickgib/kick_debris1.wav", 0.8, ATTN_NORM, SNDSPD);
+		}
+		return;
+	}
+
+	if ((other.flags & FL_MONSTER) || (other.classname == "gib"))
+		return;
+
+	if ((other == world || other.solid == SOLID_BSP) && ((time - self.delay) >= 0.18))
+	{
+		spd = vlen(self.velocity);
+		if ((spd > 35) && (pointcontents(self.origin) == CONTENT_EMPTY))
+		{
+			self.delay = time;
+			if (BM_IsFleshGib(self.model))
+			{
+				te_blood(self.origin, '0 0 80', 6);
+				pointparticles(particleeffectnum("hldecal"), self.origin, VEC_ORIGIN, 2);
+				r = random();
+				if (r < 0.25)
+					sound7(self, CHAN_BODY, "gib/gibhit1.wav", 0.85, ATTN_NORM, SNDSPD);
+				else if (r < 0.50)
+					sound7(self, CHAN_BODY, "gib/gibhit2.wav", 0.85, ATTN_NORM, SNDSPD);
+				else if (r < 0.75)
+					sound7(self, CHAN_BODY, "gib/gibhit3.wav", 0.85, ATTN_NORM, SNDSPD);
+				else
+					sound7(self, CHAN_BODY, "gib/gibhit4.wav", 0.85, ATTN_NORM, SNDSPD);
+			}
+		}
 	}
 };
 
@@ -225,7 +284,7 @@ void() kick_touch3 =
 	}
 	else
 	{
-		if (((((pointcontents(self.origin) == CONTENT_EMPTY) && (self.velocity_x <= 20)) && (other == world)) && (self.classname != "player")))
+		if (((((pointcontents(self.origin) == CONTENT_EMPTY) && (vlen(self.velocity) > 35)) && (other == world)) && (self.classname != "player")))
 		{
 			te_blood(self.origin, '0 80 1000', 7);
 			if ((random() < 0.4))

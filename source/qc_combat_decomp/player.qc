@@ -1801,18 +1801,18 @@ vector(float dm) VelocityForDamage =
 {
 	local vector v;
 
-	v_x = 100 * crandom();
-	v_y = 100 * crandom();		// lost in decompiling: gibs only flew along the world X axis, with no upward pop
-	v_z = 200 + 100 * random();
+	v_x = 135 * crandom();
+	v_y = 135 * crandom();
+	v_z = 240 + 140 * random();
 	if ((dm > -50))
 	{
-		v = v * 0.7;
+		v = v * 0.75;
 	}
 	else
 	{
 		if ((dm > -200))
 		{
-			v = v * 2;
+			v = v * 2.1;
 		}
 		else
 		{
@@ -2076,6 +2076,8 @@ void(string gibname, float dm) ThrowGib =
 	new.velocity = VelocityForDamage(dm);
 	new.movetype = MOVETYPE_BOUNCE;
 	new.cansplash = TRUE;
+	if (BM_IsFleshGib(gibname))
+		new.traileffectnum = particleeffectnum("TR_BLOOD");
 	if ((((((self.enemy.weapon == IT_ROCKET_LAUNCHER) || (self.enemy.weapon == IT_GRENADE_LAUNCHER)) || (self.sticky == 1)) && (random() < 0.125)) && (self.enemy.meleeing == 0)))
 	{
 		new.traileffectnum = particleeffectnum(/*45835i*/"burning_gib");
@@ -2354,6 +2356,7 @@ void(string gibname, float dm) ThrowHead =
 	}
 	self.movetype = MOVETYPE_BOUNCE;
 	self.takedamage = 0;
+	self.traileffectnum = particleeffectnum("TR_BLOOD");
 	if ((self.shocked > 0))
 	{
 		self.colormod = '0.2 0.2 0.2';
@@ -2595,11 +2598,19 @@ void() GibPlayer =
 	}
 	self.delete_painskin = 1;
 	ThrowGib("progs/gib_5.mdl", self.health);
+	ThrowGib("progs/gib_ribs.mdl", self.health);
+	ThrowGib("progs/gib_skull.mdl", self.health);
 	ThrowGib("progs/gib_soldfoot1.mdl", self.health);
 	ThrowGib("progs/gib_soldfoot2.mdl", self.health);
 	ThrowGib("progs/chop.mdl", self.health);
 	ThrowGib("progs/chop.mdl", self.health);
+	ThrowGib("progs/chop.mdl", self.health);
+	ThrowGib("progs/chop.mdl", self.health);
+	ThrowGib("progs/gib1.mdl", self.health);
+	ThrowGib("progs/gib2.mdl", self.health);
+	ThrowGib("progs/gib3.mdl", self.health);
 	ThrowWeapon("progs/w_playergun.mdl", self.health);
+	CeilSplat();
 	CeilSplat();
 	CeilSplat();
 	CeilSplat();
@@ -2610,6 +2621,12 @@ void() GibPlayer =
 		ThrowHeart("progs/gibheart.mdl", self.health);
 	}
 	self.deadflag = DEAD_DEAD;
+	self.punchangle = randomvec() * 14;
+	if ((self.enemy != world) && (self.enemy != self) && (self.enemy.classname == "player") && (self.enemy.health > 0))
+	{
+		if (vlen(self.enemy.origin - self.origin) < 360)
+			self.enemy.punchangle_x = self.enemy.punchangle_x - 1.5;
+	}
 	if ((damage_attacker.classname == "teledeath"))
 	{
 		sound7(self, CHAN_VOICE, "player/teledth1.wav", 1, ATTN_NONE, SNDSPD);
@@ -2622,6 +2639,7 @@ void() GibPlayer =
 	}
 	play_gibsound();
 	gibdeath_effects();
+	BM_Fun_OnGib(self, self.enemy);
 };
 
 void() setDamageSkin =
@@ -2677,15 +2695,12 @@ void() PlayerDie =
 	player_die_ax1();
 	if ((cvar("bm_death_anim") <= 0) || (damage_attacker.classname == "teledeath") || (damage_attacker.classname == "teledeath2"))
 	{
-		if (((self.model == "progs/player_id1.mdl") && (self.health < -40) && (self.health >= -95) && (self.enemy.weapon != IT_CHAINSAW)))
+		if (((self.health < -45) || (self.bm_last_hit_explosive && (self.health < -20)) || ((self.health < -20) && ((self.enemy.weapon == IT_ROCKET_LAUNCHER) || (self.enemy.weapon == IT_GRENADE_LAUNCHER) || (self.enemy.weapon == IT_SUPER_SHOTGUN) || (self.enemy.weapon == IT_CHAINSAW)))))
 		{
-			if ((random() < 0.45))
-			{
-				GibPlayer();
-				return;
-			}
+			GibPlayer();
+			return;
 		}
-		else if (((self.health < -40) || ((self.enemy.weapon == IT_CHAINSAW) && (random() < 0.5))))
+		else if ((self.health < -20) && (random() < 0.55))
 		{
 			GibPlayer();
 			return;

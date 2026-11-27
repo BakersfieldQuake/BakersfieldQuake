@@ -136,12 +136,14 @@ float(entity targ, entity inflictor, entity attacker, float damage) BM_Damage =
 	return damage;
 };
 
-// NPCs only gib when killed by rockets / explosions / vehicles or heavy high-damage hits (>= 75)
+// NPCs gib when killed by rockets / explosions / vehicles, heavy single hits (>= 75), or overkill (< -25 HP)
 float(entity e) NPC_ShouldGib =
 {
 	if (e.bm_last_hit_explosive)
 		return TRUE;
 	if (e.bm_last_hit_dmg >= 75)
+		return TRUE;
+	if (e.health < -25)
 		return TRUE;
 	return FALSE;
 };

@@ -220,6 +220,7 @@ void() BM_Stats;
 void() BM_StartFrame;
 void() BM_TestImpulses;
 void(entity targ, entity attacker) BM_Fun_Killed;
+void(entity targ, entity attacker) BM_Fun_OnGib;
 float(entity p) Underdog_IsLast;
 
 void() Underdog_Update;

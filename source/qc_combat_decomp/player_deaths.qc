@@ -135,7 +135,10 @@ void() PD_AnimTick =
 			self.pd_gib_flags = (self.pd_gib_flags - (self.pd_gib_flags & 1));
 			PD_SpawnClassicGib("progs/gib_id1_arm_l.mdl", '-2 9 12', '45 140 210', TRUE);
 			PD_SpawnClassicGib("progs/gib_id1_arm_r.mdl", '-2 -9 12', '-35 -145 220', TRUE);
-			pointparticles(particleeffectnum("blood_spurt"), self.origin + '0 0 12', '0 0 60', 1);
+			PD_SpawnClassicGib("progs/chop.mdl", '0 0 12', '80 -70 230', FALSE);
+			pointparticles(particleeffectnum("blood_monster_gib"), self.origin + '0 0 12', '0 0 80', 1);
+			te_blood(self.origin + '0 0 12', '0 0 180', 16);
+			CeilSplat();
 			sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_NORM, SNDSPD);
 		}
 		if (((self.pd_gib_flags & 2) && (self.frame >= PD_LIMBS_OFF_GIB_LEG_F)))
@@ -143,7 +146,10 @@ void() PD_AnimTick =
 			self.pd_gib_flags = (self.pd_gib_flags - (self.pd_gib_flags & 2));
 			PD_SpawnClassicGib("progs/gib_id1_leg_l.mdl", '2 5 -10', '115 90 175', TRUE);
 			PD_SpawnClassicGib("progs/gib_id1_leg_r.mdl", '-2 -5 -10', '-110 -85 185', TRUE);
-			pointparticles(particleeffectnum("blood_spurt"), self.origin - '0 0 6', '0 0 50', 1);
+			PD_SpawnClassicGib("progs/chop.mdl", '0 0 -4', '-75 95 210', FALSE);
+			pointparticles(particleeffectnum("blood_monster_gib"), self.origin - '0 0 6', '0 0 70', 1);
+			te_blood(self.origin, '0 0 160', 16);
+			CeilSplat();
 			sound7(self, CHAN_VOICE, "player/gib.wav", 1, ATTN_NORM, SNDSPD);
 		}
 	}
@@ -153,8 +159,12 @@ void() PD_AnimTick =
 		{
 			self.pd_gib_flags = (self.pd_gib_flags - (self.pd_gib_flags & 4));
 			PD_SpawnClassicGib("progs/h_player_id1.mdl", '0 0 22', '35 20 275', FALSE);
-			pointparticles(particleeffectnum("blood_spurt"), self.origin + '0 0 22', '0 0 120', 1);
-			sound7(self, CHAN_AUTO, "misc/corpsegib.wav", 1, ATTN_NORM, SNDSPD);
+			PD_SpawnClassicGib("progs/chop.mdl", '0 0 20', '-65 55 240', FALSE);
+			pointparticles(particleeffectnum("blood_monster_gib"), self.origin + '0 0 22', '0 0 140', 1);
+			te_blood(self.origin + '0 0 22', '0 0 240', 20);
+			CeilSplat();
+			CeilSplat();
+			sound7(self, CHAN_AUTO, "player/gibsplit.wav", 1, ATTN_NORM, SNDSPD);
 		}
 	}
 	else if ((self.pd_anim == 2))

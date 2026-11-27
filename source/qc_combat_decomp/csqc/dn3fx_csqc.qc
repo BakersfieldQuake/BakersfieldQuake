@@ -7,13 +7,16 @@ float ENT_DN3FX = 9;
 float DN3FX_EXPLODE     = 3;
 float DN3FX_FIRE_BURST  = 4;
 float DN3FX_BULLET_PUFF = 5;
+float DN3FX_GIB_BURST   = 6;
 
 float DN3FX_EF_ADDITIVE   = 32;
 float DN3FX_EF_FULLBRIGHT = 512;
 
 float DN3FX_MAX_TRANSIENT = 48;
+float DN3FX_MAX_GORE      = 48;
 
 .float dn3fx_kind;
+.float traileffectnum;
 .float dn3fx_born;
 .float dn3fx_last;
 .float dn3fx_life;
@@ -29,6 +32,9 @@ float DN3FX_MAX_TRANSIENT = 48;
 entity dn3fx_fx_head;
 entity dn3fx_fx_tail;
 float dn3fx_fx_count;
+entity dn3fx_gore_head;
+entity dn3fx_gore_tail;
+float dn3fx_gore_count;
 
 void() DN3FX_Precache =
 {
@@ -39,10 +45,18 @@ void() DN3FX_Precache =
 	precache_model("progs/dn3fx_flame.spr32");
 	precache_model("progs/dn3fx_smoke.spr32");
 	precache_model("progs/dn3fx_shockwave.spr32");
+	precache_model("progs/chop.mdl");
+	precache_model("progs/zom_gib.mdl");
+	precache_model("progs/gib1.mdl");
+	precache_model("progs/gib2.mdl");
+	precache_model("progs/gib3.mdl");
 
 	dn3fx_fx_head = world;
 	dn3fx_fx_tail = world;
 	dn3fx_fx_count = 0;
+	dn3fx_gore_head = world;
+	dn3fx_gore_tail = world;
+	dn3fx_gore_count = 0;
 };
 
 float() DN3FX_Enabled =
@@ -329,6 +343,190 @@ void(vector org, vector dir, float s) DN3FX_RunBulletPuff =
 	);
 };
 
+void(entity e) DN3FX_GoreRemove =
+{
+	if (e.dn3fx_qprev)
+		e.dn3fx_qprev.dn3fx_qnext = e.dn3fx_qnext;
+	else if (dn3fx_gore_head == e)
+		dn3fx_gore_head = e.dn3fx_qnext;
+	if (e.dn3fx_qnext)
+		e.dn3fx_qnext.dn3fx_qprev = e.dn3fx_qprev;
+	else if (dn3fx_gore_tail == e)
+		dn3fx_gore_tail = e.dn3fx_qprev;
+	dn3fx_gore_count = dn3fx_gore_count - 1;
+	e.dn3fx_qprev = world;
+	e.dn3fx_qnext = world;
+	remove(e);
+};
+
+entity() DN3FX_GoreAlloc =
+{
+	local entity e;
+
+	while (dn3fx_gore_count >= DN3FX_MAX_GORE && dn3fx_gore_head != world)
+		DN3FX_GoreRemove(dn3fx_gore_head);
+
+	e = spawn();
+	e.classname = "dn3fx_gore";
+	e.drawmask = MASK_ENGINE;
+	e.dn3fx_born = time;
+	e.alpha = 1.0;
+	e.scale = 1.0;
+
+	e.dn3fx_qprev = dn3fx_gore_tail;
+	e.dn3fx_qnext = world;
+	if (dn3fx_gore_tail)
+		dn3fx_gore_tail.dn3fx_qnext = e;
+	else
+		dn3fx_gore_head = e;
+	dn3fx_gore_tail = e;
+	dn3fx_gore_count = dn3fx_gore_count + 1;
+	return e;
+};
+
+void() DN3FX_GoreThink =
+{
+	local float age, dt, vn;
+	local vector nextpos, prevpos;
+
+	dt = time - self.dn3fx_last;
+	if (dt <= 0)
+		dt = 0.025;
+	if (dt > 0.08)
+		dt = 0.08;
+	self.dn3fx_last = time;
+
+	age = time - self.dn3fx_born;
+	if (age >= self.dn3fx_life)
+	{
+		DN3FX_GoreRemove(self);
+		return;
+	}
+
+	if (self.dn3fx_grav != 0)
+	{
+		prevpos = self.origin;
+		self.velocity_z = self.velocity_z - 760.0 * dt;
+		nextpos = self.origin + self.velocity * dt;
+		traceline(self.origin, nextpos, TRUE, world);
+		if (trace_fraction < 1.0)
+		{
+			setorigin(self, trace_endpos + trace_plane_normal * 2.0);
+			vn = self.velocity * trace_plane_normal;
+			if (vn < 0)
+				self.velocity = self.velocity - (1.42 * vn) * trace_plane_normal;
+			self.velocity_x = self.velocity_x * 0.72;
+			self.velocity_y = self.velocity_y * 0.72;
+			if (vlen(self.velocity) > 60 && self.dn3fx_fcnt < 3)
+			{
+				self.dn3fx_fcnt = self.dn3fx_fcnt + 1;
+				pointparticles(particleeffectnum("hldecal"), trace_endpos, trace_plane_normal * 40, 2);
+			}
+			if (vlen(self.velocity) < 30 && trace_plane_normal_z > 0.7)
+			{
+				self.velocity = '0 0 0';
+				self.avelocity = '0 0 0';
+				self.dn3fx_grav = 0;
+				self.dn3fx_rate = -1;
+			}
+		}
+		else
+		{
+			setorigin(self, nextpos);
+		}
+		if (self.dn3fx_rate >= 0 && vlen(self.origin - prevpos) > 1.0)
+			trailparticles(self.dn3fx_rate, self, prevpos, self.origin);
+		self.angles = self.angles + self.avelocity * dt;
+	}
+
+	if (age > (self.dn3fx_life - self.dn3fx_fade))
+	{
+		vn = 1.0 - (age - (self.dn3fx_life - self.dn3fx_fade)) / self.dn3fx_fade;
+		if (vn < 0.05)
+			vn = 0.05;
+		self.alpha = vn;
+		self.scale = self.count * vn;
+	}
+
+	self.nextthink = time + 0.025;
+};
+
+void(vector org, vector dir, float s) DN3FX_RunGibBurst =
+{
+	local float i, r, tr;
+	local vector p, vel;
+	local entity g, puff;
+	local string mdl;
+
+	pointparticles(particleeffectnum("blood_monster_gib"), org, '0 0 90', 1);
+	pointparticles(particleeffectnum("blood_blast"), org + '0 0 6', '0 0 130', 1);
+	pointparticles(particleeffectnum("blood_spurt"), org + '0 0 10', '0 0 140', 1);
+
+	// Crimson blood-mist cloud puffs
+	for (i = 0; i < 4; i = i + 1)
+	{
+		p = org;
+		p_x = p_x + DN3FX_CRand() * 14.0;
+		p_y = p_y + DN3FX_CRand() * 14.0;
+		p_z = p_z + DN3FX_CRand() * 10.0;
+		vel_x = DN3FX_CRand() * 65.0;
+		vel_y = DN3FX_CRand() * 65.0;
+		vel_z = 25.0 + random() * 55.0;
+		puff = DN3FX_SpawnSprite(
+			"progs/dn3fx_smoke.spr32",
+			p,
+			vel,
+			(0.55 + random() * 0.35) * s,
+			0.68,
+			0,
+			0.55 + random() * 0.25,
+			0.30,
+			0, 16, 24.0, 18.0, 0.55 * s
+		);
+		puff.colormod = '0.62 0.02 0.02';
+	}
+
+	tr = particleeffectnum("TR_BLOOD");
+	for (i = 0; i < 10; i = i + 1)
+	{
+		r = random();
+		if (r < 0.35)
+			mdl = "progs/chop.mdl";
+		else if (r < 0.60)
+			mdl = "progs/zom_gib.mdl";
+		else if (r < 0.74)
+			mdl = "progs/gib1.mdl";
+		else if (r < 0.87)
+			mdl = "progs/gib2.mdl";
+		else
+			mdl = "progs/gib3.mdl";
+
+		g = DN3FX_GoreAlloc();
+		setmodel(g, mdl);
+		p = org;
+		p_x = p_x + DN3FX_CRand() * 12.0;
+		p_y = p_y + DN3FX_CRand() * 12.0;
+		p_z = p_z + DN3FX_CRand() * 10.0;
+		setorigin(g, p);
+		g.velocity_x = DN3FX_CRand() * 280.0 * s;
+		g.velocity_y = DN3FX_CRand() * 280.0 * s;
+		g.velocity_z = (190.0 + random() * 260.0) * s;
+		g.avelocity_x = DN3FX_CRand() * 620.0;
+		g.avelocity_y = DN3FX_CRand() * 620.0;
+		g.avelocity_z = DN3FX_CRand() * 620.0;
+		g.scale = (0.65 + random() * 0.55) * s;
+		g.count = g.scale;
+		g.dn3fx_rate = tr;
+		g.dn3fx_grav = 1;
+		g.dn3fx_fcnt = 0;
+		g.dn3fx_life = 2.6 + random() * 1.2;
+		g.dn3fx_fade = 0.65;
+		g.dn3fx_last = time;
+		g.think = DN3FX_GoreThink;
+		g.nextthink = time + 0.025;
+	}
+};
+
 void(float isnew) DN3FX_EntUpdate =
 {
 	local float flags, kind, sc;
@@ -358,4 +556,6 @@ void(float isnew) DN3FX_EntUpdate =
 		DN3FX_RunFireBurst(org, dir, sc);
 	else if (kind == DN3FX_BULLET_PUFF)
 		DN3FX_RunBulletPuff(org, dir, sc);
+	else if (kind == DN3FX_GIB_BURST)
+		DN3FX_RunGibBurst(org, dir, sc);
 };

@@ -445,13 +445,11 @@ void() Daniel_Die =
 
 	if (NPC_ShouldGib(self))
 	{
-		sound(self, CHAN_VOICE, "daniel/shaaa_scream.wav", 1, ATTN_NORM);
+		sound(self, CHAN_AUTO, "daniel/shaaa_scream.wav", 1, ATTN_NORM);
 		sound(self, CHAN_AUTO, "weapons/r_exp3.wav", 1, ATTN_NORM);
 		Daniel_ThrowProp("progs/daniel_table.md3", self.origin + '0 0 24', '90 -110 240', 0);
 		Daniel_ThrowProp("progs/daniel_webcam.md3", self.origin + '0 0 32', '-120 95 270', 0);
-		ThrowGib("progs/gib1.mdl", -75);
-		ThrowGib("progs/gib2.mdl", -85);
-		ThrowGib("progs/gib3.mdl", -95);
+		BM_NPCGibBurst(-85, 5);
 		WriteByte(MSG_BROADCAST, SVC_TEMPENTITY);
 		WriteByte(MSG_BROADCAST, TE_EXPLOSION);
 		WriteCoord(MSG_BROADCAST, self.origin_x);
@@ -820,10 +818,7 @@ void() Dad4AM_Die =
 
 	if (NPC_ShouldGib(self))
 	{
-		sound(self, CHAN_VOICE, "player/udeath.wav", 1, ATTN_NORM);
-		ThrowGib("progs/gib1.mdl", -75);
-		ThrowGib("progs/gib2.mdl", -85);
-		ThrowGib("progs/gib3.mdl", -90);
+		BM_NPCGibBurst(-80, 4);
 		remove(self);
 		return;
 	}
