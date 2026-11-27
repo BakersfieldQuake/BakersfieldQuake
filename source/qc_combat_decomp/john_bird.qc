@@ -2760,6 +2760,7 @@ void(entity jb, float is_temp) JB_InitEntity =
 	jb.jb_spawn_yaw = jb.angles_y;
 	JB_Park (jb);
 	PC_Register (jb, PC_KIND_BIRD, 44);
+	BM_Radar_RegisterVehicle (jb, BM_RVEH_HEAVY);
 };
 
 void() misc_vehicle_johnbird =

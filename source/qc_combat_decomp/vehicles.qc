@@ -2107,6 +2107,8 @@ void(entity v, float kind) Veh_InitEntity =
 
 	v.veh_spawn_org = v.origin;
 	v.veh_spawn_ang = v.angles;
+	if (kind != VEH_FORELOCO)
+		BM_Radar_RegisterVehicle (v, (kind == VEH_TRUCK || kind == VEH_HDTRUCK || kind == VEH_SCHOOLBUS) ? BM_RVEH_HEAVY : BM_RVEH_CAR);
 	v.think = Veh_Think;
 	v.nextthink = time + 0.05 + random () * 0.05;
 };

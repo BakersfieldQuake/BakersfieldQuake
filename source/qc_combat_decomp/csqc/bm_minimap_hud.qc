@@ -1,13 +1,12 @@
 /*
 ================
-bm_minimap_hud.qc — Fully transparent live tactical minimap (bottom-left corner)
+bm_minimap_hud.qc — CoD-style floorplan tactical minimap (bottom-left corner)
 
 Features:
-  - Fully transparent background (no dark opaque disc obscuring gameplay).
-  - Live, accurate enemy coordinates and facing chevrons streamed from server.
-  - Persistent directional guide arrow + nearest-enemy distance & direction indicator
-    so you always know which way to move to find enemies.
-  - Crisp height arrows (^ / v) and rim indicators for off-radar enemies.
+  - Rotated floorplan blueprint disc (`gfx/minimap/<map>`) over dark backdrop + CoD bezel (`rim`).
+  - Live enemy chevrons inside the radar + clean edge pointers for off-radar enemies.
+  - Big power-ups shown as color-coded diamonds when inside the minimap radius (no edge clutter).
+  - Nearby unoccupied vehicles (especially Mega Man Tank) shown when walking close to one.
 ================
 */
 
@@ -22,6 +21,7 @@ float	BM_MM_R				= 42;
 float	BM_MM_PING_MAX		= 16;
 float	BM_MM_PING_LIFE		= 2.2;
 float	BM_MM_PU_MAX		= 36;
+float	BM_MM_VEH_MAX		= 8;
 float	BM_MM_DEG2RAD		= 0.01745329;
 
 float	BM_RPU_TRIPLE		= 1;
@@ -31,6 +31,10 @@ float	BM_RPU_PENT			= 4;
 float	BM_RPU_TIME			= 5;
 float	BM_RPU_SUIT			= 6;
 float	BM_RPU_RING			= 7;
+
+float	BM_RVEH_MMTANK		= 1;
+float	BM_RVEH_HEAVY		= 2;
+float	BM_RVEH_CAR			= 3;
 
 string	mm_cur_raw_map;
 string	mm_cur_shader;
@@ -56,6 +60,12 @@ float	mm_a_yaw[4];
 float	mm_pu_cnt;
 vector	mm_pu_pos[36];
 float	mm_pu_kind[36];
+
+float	mm_veh_cnt;
+float	mm_veh_t;
+vector	mm_veh_pos[8];
+float	mm_veh_yaw[8];
+float	mm_veh_kind[8];
 
 float	mm_cx;
 float	mm_cy;
@@ -296,31 +306,11 @@ void(float seq, float kind, vector org) MM_RecordPing =
 
 void(float isnew) BM_Radar_EntUpdate =
 {
-	local float flags, i, seq, kind, ecnt, acnt, pucnt, pyaw;
+	local float flags, i, ecnt, pucnt, pyaw;
 	local vector org;
 
 	self.drawmask = 0;
 	flags = ReadByte ();
-
-	if (flags & 1)
-	{
-		i = 0;
-		while (i < 4)
-		{
-			seq = ReadByte ();
-			kind = ReadByte ();
-			org_x = ReadCoord ();
-			org_y = ReadCoord ();
-			org_z = ReadCoord ();
-			if (seq > 0 && seq != mm_last_seq[i])
-			{
-				mm_last_seq[i] = seq;
-				if (!isnew || i == 0)
-					MM_RecordPing (seq, kind, org);
-			}
-			i = i + 1;
-		}
-	}
 
 	if (flags & 2)
 	{
@@ -343,26 +333,6 @@ void(float isnew) BM_Radar_EntUpdate =
 		mm_enemy_t = time;
 	}
 
-	if (flags & 4)
-	{
-		acnt = ReadByte ();
-		if (acnt > 4)
-			acnt = 4;
-		i = 0;
-		while (i < acnt)
-		{
-			org_x = ReadCoord ();
-			org_y = ReadCoord ();
-			org_z = ReadCoord ();
-			pyaw = ReadByte ();
-			mm_a_pos[i] = org;
-			mm_a_yaw[i] = pyaw * (360 / 255);
-			i = i + 1;
-		}
-		mm_a_cnt = acnt;
-		mm_ally_t = time;
-	}
-
 	if (flags & 8)
 	{
 		pucnt = ReadByte ();
@@ -380,6 +350,29 @@ void(float isnew) BM_Radar_EntUpdate =
 		}
 		mm_pu_cnt = pucnt;
 	}
+
+	if (flags & 16)
+	{
+		local float vcnt, vkind, vyaw;
+		vcnt = ReadByte ();
+		if (vcnt > BM_MM_VEH_MAX)
+			vcnt = BM_MM_VEH_MAX;
+		i = 0;
+		while (i < vcnt)
+		{
+			vkind = ReadByte ();
+			org_x = ReadCoord ();
+			org_y = ReadCoord ();
+			org_z = ReadCoord ();
+			vyaw = ReadByte ();
+			mm_veh_kind[i] = vkind;
+			mm_veh_pos[i] = org;
+			mm_veh_yaw[i] = vyaw * (360 / 255);
+			i = i + 1;
+		}
+		mm_veh_cnt = vcnt;
+		mm_veh_t = time;
+	}
 };
 
 void() BM_Radar_EntRemove =
@@ -389,6 +382,7 @@ void() BM_Radar_EntRemove =
 	mm_e_cnt = 0;
 	mm_a_cnt = 0;
 	mm_pu_cnt = 0;
+	mm_veh_cnt = 0;
 	i = 0;
 	while (i < 4)
 	{
@@ -558,7 +552,7 @@ float(float w, float h) BM_MinimapTopY =
 	return mm_cy - mm_rad - 22;
 };
 
-// Transparent tactical backdrop: no dark opaque disc unless user raises bm_minimap_bg_alpha / bm_minimap_map_alpha
+// CoD-style floorplan disc: dark smoky circular backdrop + rotated floorplan texture
 void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, float alpha_mul, float bg_alpha, float map_alpha) MM_DrawTransparentRadar =
 {
 	local float span, yrad, fwd_x, fwd_y, right_x, right_y, inv_span, r_in, k_uv;
@@ -566,10 +560,12 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 	local vector p, uv;
 
 	if (bg_alpha > 0.01)
-		MM_FillCircle (cx, cy, rad - 0.5, 24, '0.03 0.04 0.05', bg_alpha * alpha_mul);
+		MM_FillCircle (cx, cy, rad - 0.5, 24, '0.045 0.06 0.08', bg_alpha * alpha_mul);
 
 	if (map_alpha > 0.01 && mm_has_pic && mm_map_half > 0)
 	{
+		local float map_a;
+		map_a = min (1.0, map_alpha * alpha_mul);
 		MM_InitUnitCircle ();
 		span = 2 * mm_map_half;
 		inv_span = 1.0 / span;
@@ -591,7 +587,7 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 		R_BeginPolygon (mm_cur_shader, 0, TRUE);
 		p_x = cx; p_y = cy;
 		uv_x = uc; uv_y = vc;
-		R_PolygonVertex (p, uv, '1 1 1', map_alpha * alpha_mul);
+		R_PolygonVertex (p, uv, '1.45 1.52 1.60', map_a);
 		i = 0;
 		while (i <= 24)
 		{
@@ -605,17 +601,14 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 			p_y = cy + sy;
 			uv_x = (wx - base_x) * inv_span;
 			uv_y = (base_y - wy) * inv_span;
-			R_PolygonVertex (p, uv, '1 1 1', map_alpha * alpha_mul);
+			R_PolygonVertex (p, uv, '1.45 1.52 1.60', map_a);
 			i = i + 1;
 		}
 		R_EndPolygon ();
 	}
 
-	// Crisp transparent-friendly radar reference rings & crosshairs
-	MM_Ring (cx, cy, rad * 0.50, 24, 0.8, '0.75 0.85 0.95', 0.20 * alpha_mul);
-	MM_Ring (cx, cy, rad - 0.5, 24, 1.1, '0.85 0.92 1.0', 0.52 * alpha_mul);
-	MM_Line (0.7, MM_Vec2 (cx - rad * 0.85, cy), MM_Vec2 (cx + rad * 0.85, cy), '0.75 0.85 0.95', 0.14 * alpha_mul);
-	MM_Line (0.7, MM_Vec2 (cx, cy - rad * 0.85), MM_Vec2 (cx, cy + rad * 0.85), '0.75 0.85 0.95', 0.14 * alpha_mul);
+	if (!mm_has_pic || map_alpha <= 0.01)
+		MM_Ring (cx, cy, rad * 0.52, 24, 1.0, '0.65 0.72 0.82', 0.28 * alpha_mul);
 };
 
 vector(float kind) MM_PowerupColor =
@@ -660,11 +653,11 @@ void(float cx, float cy, float r, vector col, float a) MM_Diamond =
 	R_EndPolygon ();
 };
 
-// Draw all active power-up markers + small directional rim arrows toward each power-up
+// Draw big power-ups inside the minimap circle only (no cluttered outer rim arrows)
 void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawPowerups =
 {
-	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist, wdist;
-	local float best_i, best_d, pulse, is_best, arrow_sz, rim_a;
+	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist;
+	local float kind;
 	local vector pu_org, col;
 
 	if (cvar ("bm_minimap_powerups") <= 0 || mm_pu_cnt <= 0)
@@ -677,71 +670,133 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 	right_y = 0 - fwd_x;
 	px_per_u = rad / range;
 
-	best_i = -1;
-	best_d = 9999999;
 	i = 0;
 	while (i < mm_pu_cnt)
 	{
-		pu_org = mm_pu_pos[i];
-		ox = pu_org_x - porg_x;
-		oy = pu_org_y - porg_y;
-		wdist = sqrt (ox * ox + oy * oy);
-		if (wdist < best_d)
+		kind = mm_pu_kind[i];
+		if (kind != BM_RPU_SUIT)
 		{
-			best_d = wdist;
-			best_i = i;
-		}
-		i = i + 1;
-	}
+			pu_org = mm_pu_pos[i];
+			ox = pu_org_x - porg_x;
+			oy = pu_org_y - porg_y;
+			sx = (ox * right_x + oy * right_y) * px_per_u;
+			sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
+			dist = sqrt (sx * sx + sy * sy);
 
-	pulse = 0.78 + 0.22 * MM_Sin (time * 5.2);
-	i = 0;
-	while (i < mm_pu_cnt)
-	{
-		pu_org = mm_pu_pos[i];
-		ox = pu_org_x - porg_x;
-		oy = pu_org_y - porg_y;
-		sx = (ox * right_x + oy * right_y) * px_per_u;
-		sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
-		dist = sqrt (sx * sx + sy * sy);
-		col = MM_PowerupColor (mm_pu_kind[i]);
-		is_best = (i == best_i);
-
-		if (dist <= rad - 4.0)
-		{
-			MM_Diamond (cx + sx, cy + sy, is_best ? 2.6 : 2.1, col, (is_best ? 0.98 * pulse : 0.92) * mm_alpha_cur);
-			MM_HeightArrow (cx + sx, cy + sy, pu_org_z - porg_z, col, 0.88 * mm_alpha_cur);
-		}
-		if (dist > 4.0)
-		{
-			arrow_sz = is_best ? 2.5 : 1.85;
-			rim_a = (dist <= rad - 4.0) ? 0.78 : 0.92;
-			if (is_best)
-				rim_a = 0.98 * pulse;
-			MM_RimBlip (cx, cy, rad, sx, sy, arrow_sz, col, rim_a * mm_alpha_cur);
+			if (dist <= rad - 4.5)
+			{
+				col = MM_PowerupColor (kind);
+				MM_Diamond (cx + sx, cy + sy, 2.5, col, 0.96 * mm_alpha_cur);
+				MM_HeightArrow (cx + sx, cy + sy, pu_org_z - porg_z, col, 0.88 * mm_alpha_cur);
+			}
 		}
 		i = i + 1;
 	}
 };
 
-// Draw all live enemies accurately + persistent directional guide toward nearest enemy
+void(float cx, float cy, float screen_deg, float hl, float hw, float has_turret, vector col, float a) MM_DrawVehicleBox =
+{
+	local float r, fx, fy, rx, ry, ohl, ohw;
+	local vector p0, p1, p2, p3;
+
+	if (a <= 0.02)
+		return;
+	r = screen_deg * BM_MM_DEG2RAD;
+	fx = 0 - MM_Sin (r);
+	fy = 0 - MM_Cos (r);
+	rx = 0 - fy;
+	ry = fx;
+
+	ohl = hl + 0.85;
+	ohw = hw + 0.85;
+	p0 = MM_Vec2 (cx + fx * ohl - rx * ohw, cy + fy * ohl - ry * ohw);
+	p1 = MM_Vec2 (cx + fx * ohl + rx * ohw, cy + fy * ohl + ry * ohw);
+	p2 = MM_Vec2 (cx - fx * ohl + rx * ohw, cy - fy * ohl + ry * ohw);
+	p3 = MM_Vec2 (cx - fx * ohl - rx * ohw, cy - fy * ohl - ry * ohw);
+	R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
+	R_PolygonVertex (p0, '0.5 0.5 0', '0 0 0', 0.90 * a);
+	R_PolygonVertex (p1, '0.5 0.5 0', '0 0 0', 0.90 * a);
+	R_PolygonVertex (p2, '0.5 0.5 0', '0 0 0', 0.90 * a);
+	R_PolygonVertex (p3, '0.5 0.5 0', '0 0 0', 0.90 * a);
+	R_EndPolygon ();
+
+	p0 = MM_Vec2 (cx + fx * hl - rx * hw, cy + fy * hl - ry * hw);
+	p1 = MM_Vec2 (cx + fx * hl + rx * hw, cy + fy * hl + ry * hw);
+	p2 = MM_Vec2 (cx - fx * hl + rx * hw, cy - fy * hl + ry * hw);
+	p3 = MM_Vec2 (cx - fx * hl - rx * hw, cy - fy * hl - ry * hw);
+	R_BeginPolygon ("gfx/minimap/white", 0, TRUE);
+	R_PolygonVertex (p0, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p1, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p2, '0.5 0.5 0', col, a);
+	R_PolygonVertex (p3, '0.5 0.5 0', col, a);
+	R_EndPolygon ();
+
+	if (has_turret)
+	{
+		MM_Line (1.6, MM_Vec2 (cx, cy), MM_Vec2 (cx + fx * (hl + 2.1), cy + fy * (hl + 2.1)), '0 0 0', 0.88 * a);
+		MM_Line (1.0, MM_Vec2 (cx, cy), MM_Vec2 (cx + fx * (hl + 1.8), cy + fy * (hl + 1.8)), '1.0 0.94 0.52', a);
+	}
+};
+
+// Draw nearby unoccupied vehicles when the player walks within proximity radius
+void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawNearbyVehicles =
+{
+	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist, kind;
+	local vector vorg, col;
+
+	if (cvar ("bm_minimap_vehicles") <= 0 || mm_veh_cnt <= 0)
+		return;
+
+	yrad = yaw_deg * BM_MM_DEG2RAD;
+	fwd_x = MM_Cos (yrad);
+	fwd_y = MM_Sin (yrad);
+	right_x = fwd_y;
+	right_y = 0 - fwd_x;
+	px_per_u = rad / range;
+
+	i = 0;
+	while (i < mm_veh_cnt)
+	{
+		vorg = mm_veh_pos[i];
+		kind = mm_veh_kind[i];
+		ox = vorg_x - porg_x;
+		oy = vorg_y - porg_y;
+		sx = (ox * right_x + oy * right_y) * px_per_u;
+		sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
+		dist = sqrt (sx * sx + sy * sy);
+
+		if (dist <= rad - 4.0)
+		{
+			if (kind == BM_RVEH_MMTANK)
+			{
+				col = '0.12 0.96 1.0';
+				MM_DrawVehicleBox (cx + sx, cy + sy, mm_veh_yaw[i] - yaw_deg, 3.4, 2.6, TRUE, col, 0.98 * mm_alpha_cur);
+			}
+			else if (kind == BM_RVEH_HEAVY)
+			{
+				col = '0.38 0.90 1.0';
+				MM_DrawVehicleBox (cx + sx, cy + sy, mm_veh_yaw[i] - yaw_deg, 2.3, 1.7, FALSE, col, 0.94 * mm_alpha_cur);
+			}
+			else
+			{
+				col = '0.62 0.88 1.0';
+				MM_DrawVehicleBox (cx + sx, cy + sy, mm_veh_yaw[i] - yaw_deg, 1.8, 1.3, FALSE, col, 0.90 * mm_alpha_cur);
+			}
+			MM_HeightArrow (cx + sx, cy + sy, vorg_z - porg_z, col, 0.84 * mm_alpha_cur);
+		}
+		i = i + 1;
+	}
+};
+
+// Draw live enemy chevrons on the floorplan + clean rim blips for off-radar enemies
 void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_DrawEnemies =
 {
 	local float yrad, fwd_x, fwd_y, right_x, right_y, px_per_u, i, ox, oy, sx, sy, dist, wdist;
-	local float best_idx, best_d, best_sx, best_sy, best_dz, best_ang, pulse, gr, gx, gy;
-	local vector eorg, col, gcol, lsc;
-	local string lbl;
+	local float best_idx, best_d, best_dz, pulse;
+	local vector eorg, col, lsc;
 
 	if (mm_e_cnt <= 0)
-	{
-		local float sw_no;
-		lsc = BM_UIScaleVec ('5.0 5.0 0');
-		lbl = "NO ENEMIES";
-		sw_no = stringwidth (lbl, FALSE, lsc);
-		drawstring (MM_Vec2 (cx - sw_no * 0.5 + 0.6, cy - rad - 18.4), lbl, lsc, '0 0 0', 0.72 * mm_alpha_cur, 0);
-		drawstring (MM_Vec2 (cx - sw_no * 0.5, cy - rad - 19.0), lbl, lsc, '0.72 0.78 0.85', 0.80 * mm_alpha_cur, 0);
 		return;
-	}
 
 	yrad = yaw_deg * BM_MM_DEG2RAD;
 	fwd_x = MM_Cos (yrad);
@@ -752,11 +807,8 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 
 	best_idx = -1;
 	best_d = 9999999;
-	best_sx = 0;
-	best_sy = 0;
 	best_dz = 0;
 
-	// First pass: find nearest enemy and draw guide vector beneath markers
 	i = 0;
 	while (i < mm_e_cnt)
 	{
@@ -768,34 +820,12 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 		{
 			best_d = wdist;
 			best_idx = i;
-			best_sx = (ox * right_x + oy * right_y) * px_per_u;
-			best_sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
 			best_dz = eorg_z - porg_z;
 		}
 		i = i + 1;
 	}
 
-	// Draw directional guide line + pulsing beacon toward nearest enemy
-	if (best_idx >= 0)
-	{
-		dist = sqrt (best_sx * best_sx + best_sy * best_sy);
-		pulse = 0.75 + 0.25 * MM_Sin (time * 6.5);
-		gcol = '1.0 0.72 0.16';
-		if (dist > 2.0)
-		{
-			gr = min (dist, rad - 2.0);
-			gx = cx + (best_sx / dist) * gr;
-			gy = cy + (best_sy / dist) * gr;
-			MM_Line (1.6, MM_Vec2 (cx, cy), MM_Vec2 (gx, gy), '0 0 0', 0.45 * mm_alpha_cur);
-			MM_Line (1.0, MM_Vec2 (cx, cy), MM_Vec2 (gx, gy), gcol, 0.72 * pulse * mm_alpha_cur);
-
-			// Prominent rim pointer arrow showing exact direction to move toward nearest enemy
-			best_ang = atan2 (best_sx, 0 - best_sy) / BM_MM_DEG2RAD;
-			MM_Chevron (cx + (best_sx / dist) * (rad + 1.5), cy + (best_sy / dist) * (rad + 1.5), best_ang, 4.2, gcol, 0.98 * pulse * mm_alpha_cur);
-		}
-	}
-
-	// Second pass: draw all live enemy positions accurately
+	pulse = 0.82 + 0.18 * MM_Sin (time * 6.0);
 	i = 0;
 	while (i < mm_e_cnt)
 	{
@@ -806,18 +836,18 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg) MM_
 		sy = 0 - (ox * fwd_x + oy * fwd_y) * px_per_u;
 		dist = sqrt (sx * sx + sy * sy);
 
-		col = (i == best_idx) ? '1.0 0.20 0.14' : '1.0 0.34 0.26';
+		col = (i == best_idx) ? '1.0 0.22 0.16' : '1.0 0.36 0.26';
 		if (mm_e_flg[i] & 4)
-			col = '1.0 0.55 0.12';	// recently firing enemy highlighted bright orange-red
+			col = '1.0 0.58 0.14';	// recently firing enemy highlighted bright orange-red
 
 		if (dist <= rad - 3.5)
 		{
-			MM_Chevron (cx + sx, cy + sy, mm_e_yaw[i] - yaw_deg, (i == best_idx) ? 3.8 : 3.2, col, 0.98 * mm_alpha_cur);
+			MM_Chevron (cx + sx, cy + sy, mm_e_yaw[i] - yaw_deg, (i == best_idx) ? 4.0 : 3.4, col, 0.98 * mm_alpha_cur);
 			MM_HeightArrow (cx + sx, cy + sy, eorg_z - porg_z, col, 0.92 * mm_alpha_cur);
 		}
 		else
 		{
-			MM_RimBlip (cx, cy, rad, sx, sy, (i == best_idx) ? 3.0 : 2.3, col, 0.92 * mm_alpha_cur);
+			MM_RimBlip (cx, cy, rad, sx, sy, (i == best_idx) ? 3.1 : 2.3, col, ((i == best_idx) ? 0.96 * pulse : 0.88) * mm_alpha_cur);
 		}
 		i = i + 1;
 	}
@@ -1096,10 +1126,17 @@ void(float w, float h) BM_DrawMinimap =
 	}
 
 	MM_DrawTransparentRadar (cx, cy, rad, range, porg, map_yaw, alpha_mul, bg_alpha, map_alpha);
-	MM_DrawPings (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawPowerups (cx, cy, rad, range, porg, map_yaw);
-	MM_DrawAllies (cx, cy, rad, range, porg, map_yaw);
-	MM_DrawLeader (cx, cy, rad, range, porg, map_yaw);
+	MM_DrawNearbyVehicles (cx, cy, rad, range, porg, map_yaw);
+
+	// Anti-aliased CoD outer circular bezel
+	R_BeginPolygon ("gfx/minimap/rim", 0, TRUE);
+	R_PolygonVertex (MM_Vec2 (cx - rad, cy - rad), '0 0 0', '1 1 1', 0.98 * alpha_mul);
+	R_PolygonVertex (MM_Vec2 (cx + rad, cy - rad), '1 0 0', '1 1 1', 0.98 * alpha_mul);
+	R_PolygonVertex (MM_Vec2 (cx + rad, cy + rad), '1 1 0', '1 1 1', 0.98 * alpha_mul);
+	R_PolygonVertex (MM_Vec2 (cx - rad, cy + rad), '0 1 0', '1 1 1', 0.98 * alpha_mul);
+	R_EndPolygon ();
+
 	MM_DrawEnemies (cx, cy, rad, range, porg, map_yaw);
 	MM_DrawPlayer (cx, cy, plr_sdeg, fov_a, alpha_mul);
 

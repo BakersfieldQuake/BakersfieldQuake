@@ -1,18 +1,22 @@
 /*
 ================
-bm_minimap.qc — Server-side live tactical radar feed (ENT_BM_RADAR)
+bm_minimap.qc — Server-side CoD floorplan tactical radar feed (ENT_BM_RADAR)
 
 Streams:
-  1. Gunfire / explosions / kills / monster attacks as transient event pings.
-  2. Live, accurate enemy coordinates + facing yaw at ~10 Hz (up to 16 closest
-     enemies across the map, including vehicle positions).
-  3. Live teammates (teamplay / CTF / coop) at ~6.7 Hz.
+  - Live enemy coordinates + facing yaw at ~10 Hz (up to 16 closest enemies).
+  - Big power-up locations (excluding suit pickups) for in-range display.
+  - Nearby unoccupied vehicles when the player is walking near them (~600-720u).
 ================
 */
 
 float	mm_sv_pu_cnt;
 vector	mm_sv_pu_pos[36];
 float	mm_sv_pu_kind[36];
+
+vector	mm_sv_veh_pos[8];
+float	mm_sv_veh_yaw[8];
+float	mm_sv_veh_kind[8];
+float	mm_sv_veh_dist[8];
 
 float(entity a, entity b) BM_Radar_IsAlly =
 {
@@ -152,35 +156,12 @@ float(entity to, float sendflags) BM_RadarSend =
 	if (to != self.owner || to.bm_obs)
 		return FALSE;
 
+	sendflags = sendflags & 26;
+	if (!sendflags)
+		sendflags = 26;
+
 	WriteByte (MSG_ENTITY, ENT_BM_RADAR);
 	WriteByte (MSG_ENTITY, sendflags);
-
-	if (sendflags & 1)
-	{
-		WriteByte (MSG_ENTITY, self.bm_rp0_seq);
-		WriteByte (MSG_ENTITY, self.bm_rp0_kind);
-		WriteCoord (MSG_ENTITY, self.bm_rp0_pos_x);
-		WriteCoord (MSG_ENTITY, self.bm_rp0_pos_y);
-		WriteCoord (MSG_ENTITY, self.bm_rp0_pos_z);
-
-		WriteByte (MSG_ENTITY, self.bm_rp1_seq);
-		WriteByte (MSG_ENTITY, self.bm_rp1_kind);
-		WriteCoord (MSG_ENTITY, self.bm_rp1_pos_x);
-		WriteCoord (MSG_ENTITY, self.bm_rp1_pos_y);
-		WriteCoord (MSG_ENTITY, self.bm_rp1_pos_z);
-
-		WriteByte (MSG_ENTITY, self.bm_rp2_seq);
-		WriteByte (MSG_ENTITY, self.bm_rp2_kind);
-		WriteCoord (MSG_ENTITY, self.bm_rp2_pos_x);
-		WriteCoord (MSG_ENTITY, self.bm_rp2_pos_y);
-		WriteCoord (MSG_ENTITY, self.bm_rp2_pos_z);
-
-		WriteByte (MSG_ENTITY, self.bm_rp3_seq);
-		WriteByte (MSG_ENTITY, self.bm_rp3_kind);
-		WriteCoord (MSG_ENTITY, self.bm_rp3_pos_x);
-		WriteCoord (MSG_ENTITY, self.bm_rp3_pos_y);
-		WriteCoord (MSG_ENTITY, self.bm_rp3_pos_z);
-	}
 
 	if (sendflags & 2)
 	{
@@ -198,39 +179,6 @@ float(entity to, float sendflags) BM_RadarSend =
 		}
 	}
 
-	if (sendflags & 4)
-	{
-		WriteByte (MSG_ENTITY, self.bm_ra_cnt);
-		if (self.bm_ra_cnt >= 1)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_ra0_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_ra0_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_ra0_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_ra0_yaw);
-		}
-		if (self.bm_ra_cnt >= 2)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_ra1_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_ra1_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_ra1_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_ra1_yaw);
-		}
-		if (self.bm_ra_cnt >= 3)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_ra2_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_ra2_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_ra2_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_ra2_yaw);
-		}
-		if (self.bm_ra_cnt >= 4)
-		{
-			WriteCoord (MSG_ENTITY, self.bm_ra3_pos_x);
-			WriteCoord (MSG_ENTITY, self.bm_ra3_pos_y);
-			WriteCoord (MSG_ENTITY, self.bm_ra3_pos_z);
-			WriteByte (MSG_ENTITY, self.bm_ra3_yaw);
-		}
-	}
-
 	if (sendflags & 8)
 	{
 		WriteByte (MSG_ENTITY, mm_sv_pu_cnt);
@@ -244,6 +192,19 @@ float(entity to, float sendflags) BM_RadarSend =
 			WriteCoord (MSG_ENTITY, pos_z);
 			i = i + 1;
 		}
+	}
+
+	if (sendflags & 16)
+	{
+		WriteByte (MSG_ENTITY, self.bm_rv_cnt);
+		if (self.bm_rv_cnt >= 1) { WriteByte (MSG_ENTITY, self.bm_rv0_kind); WriteCoord (MSG_ENTITY, self.bm_rv0_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv0_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv0_pos_z); WriteByte (MSG_ENTITY, self.bm_rv0_yaw); }
+		if (self.bm_rv_cnt >= 2) { WriteByte (MSG_ENTITY, self.bm_rv1_kind); WriteCoord (MSG_ENTITY, self.bm_rv1_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv1_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv1_pos_z); WriteByte (MSG_ENTITY, self.bm_rv1_yaw); }
+		if (self.bm_rv_cnt >= 3) { WriteByte (MSG_ENTITY, self.bm_rv2_kind); WriteCoord (MSG_ENTITY, self.bm_rv2_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv2_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv2_pos_z); WriteByte (MSG_ENTITY, self.bm_rv2_yaw); }
+		if (self.bm_rv_cnt >= 4) { WriteByte (MSG_ENTITY, self.bm_rv3_kind); WriteCoord (MSG_ENTITY, self.bm_rv3_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv3_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv3_pos_z); WriteByte (MSG_ENTITY, self.bm_rv3_yaw); }
+		if (self.bm_rv_cnt >= 5) { WriteByte (MSG_ENTITY, self.bm_rv4_kind); WriteCoord (MSG_ENTITY, self.bm_rv4_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv4_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv4_pos_z); WriteByte (MSG_ENTITY, self.bm_rv4_yaw); }
+		if (self.bm_rv_cnt >= 6) { WriteByte (MSG_ENTITY, self.bm_rv5_kind); WriteCoord (MSG_ENTITY, self.bm_rv5_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv5_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv5_pos_z); WriteByte (MSG_ENTITY, self.bm_rv5_yaw); }
+		if (self.bm_rv_cnt >= 7) { WriteByte (MSG_ENTITY, self.bm_rv6_kind); WriteCoord (MSG_ENTITY, self.bm_rv6_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv6_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv6_pos_z); WriteByte (MSG_ENTITY, self.bm_rv6_yaw); }
+		if (self.bm_rv_cnt >= 8) { WriteByte (MSG_ENTITY, self.bm_rv7_kind); WriteCoord (MSG_ENTITY, self.bm_rv7_pos_x); WriteCoord (MSG_ENTITY, self.bm_rv7_pos_y); WriteCoord (MSG_ENTITY, self.bm_rv7_pos_z); WriteByte (MSG_ENTITY, self.bm_rv7_yaw); }
 	}
 
 	return TRUE;
@@ -329,39 +290,10 @@ void(entity feed, float kind, vector org) BM_Radar_PushPing =
 	feed.SendFlags = feed.SendFlags | 1;
 };
 
-// Public hook: emit a transient radar ping at `org` for all non-allied human players.
+// Pings disabled to keep the minimap focused on enemies, big power-ups, and nearby vehicles.
 void(entity actor, vector org, float kind) BM_Radar_Ping =
 {
-	local entity p, feed;
-	local float cd;
-
-	if (bm_menubg_active || intermission_running)
-		return;
-	if (actor && actor != world)
-	{
-		if (kind == BM_RPK_BLAST)
-			cd = 0.16;
-		else if (kind == BM_RPK_KILL)
-			cd = 0;
-		else
-			cd = 0.35;
-		if (cd > 0 && time < actor.bm_radar_cd)
-			return;
-		if (cd > 0)
-			actor.bm_radar_cd = time + cd;
-	}
-
-	p = bm_player_head;
-	while (p)
-	{
-		if (p.ishuman == 1 && !p.bm_obs && p != actor && !BM_Radar_IsAlly (p, actor))
-		{
-			feed = BM_Radar_EnsureFeed (p);
-			if (feed)
-				BM_Radar_PushPing (feed, kind, org);
-		}
-		p = p.bm_player_next;
-	}
+	return;
 };
 
 vector mm_sv_pos[16];
@@ -604,7 +536,8 @@ void() BM_Radar_RefreshPowerups =
 			continue;
 		}
 
-		if (e.solid == SOLID_TRIGGER && e.model != "" && e.modelindex > 0 && cnt < BM_MM_PU_MAX)
+		if (e.solid == SOLID_TRIGGER && e.model != "" && e.modelindex > 0
+			&& e.bm_pu_kind != BM_RPU_SUIT && cnt < BM_MM_PU_MAX)
 		{
 			if (e.classname == "item_powerup_triple_wheeled" && e.tw_spawn_org != '0 0 0')
 				pos = e.tw_spawn_org;
@@ -643,10 +576,187 @@ void() BM_Radar_RefreshPowerups =
 	}
 };
 
+void(entity v, float kind) BM_Radar_RegisterVehicle =
+{
+	if (!v || v == world || kind <= 0)
+		return;
+	if (v.bm_veh_kind > 0)
+	{
+		v.bm_veh_kind = kind;
+		return;
+	}
+	v.bm_veh_kind = kind;
+	v.bm_veh_next = bm_veh_head;
+	bm_veh_head = v;
+};
+
+float(entity c) BM_Radar_PlayerOnFoot =
+{
+	if (c.veh_van != world || c.veh_ride != world || c.mmt_tank != world
+		|| c.jb_vehicle != world || c.rr_vehicle != world
+		|| c.ec_cannon_ent != world || c.fd_head != world)
+		return FALSE;
+	return TRUE;
+};
+
+float(entity v) BM_Radar_VehicleAvailable =
+{
+	if (v.classname == "misc_mm_tank")
+		return (v.mmt_driver == world && v.mmt_state != MMT_STATE_WRECK && v.health > 0);
+	if (v.classname == "misc_vehicle_johnbird")
+		return (v.jb_pilot == world && !v.jb_dying && !v.jb_ai && v.health > 0 && !(v.effects & EF_NODRAW));
+	if (v.classname == "misc_vehicle_rocketrider")
+		return (v.rr_pilot == world && !v.rr_dying && v.health > 0 && !(v.effects & EF_NODRAW));
+	if (v.classname == "misc_eric_cannon")
+		return (v.ec_pilot == world && v.ec_state == 0);
+	if (v.veh_kind > 0 && v.veh_kind != VEH_FORELOCO)
+		return (v.veh_driver == world && v.veh_state != VEH_STATE_WRECK && v.health > 0 && !(v.effects & EF_NODRAW));
+	return FALSE;
+};
+
+void(entity feed, float idx, vector pos, float yaw, float kind) BM_Radar_WriteVehSlot =
+{
+	if (idx == 0)      { feed.bm_rv0_pos = pos; feed.bm_rv0_yaw = yaw; feed.bm_rv0_kind = kind; }
+	else if (idx == 1) { feed.bm_rv1_pos = pos; feed.bm_rv1_yaw = yaw; feed.bm_rv1_kind = kind; }
+	else if (idx == 2) { feed.bm_rv2_pos = pos; feed.bm_rv2_yaw = yaw; feed.bm_rv2_kind = kind; }
+	else if (idx == 3) { feed.bm_rv3_pos = pos; feed.bm_rv3_yaw = yaw; feed.bm_rv3_kind = kind; }
+	else if (idx == 4) { feed.bm_rv4_pos = pos; feed.bm_rv4_yaw = yaw; feed.bm_rv4_kind = kind; }
+	else if (idx == 5) { feed.bm_rv5_pos = pos; feed.bm_rv5_yaw = yaw; feed.bm_rv5_kind = kind; }
+	else if (idx == 6) { feed.bm_rv6_pos = pos; feed.bm_rv6_yaw = yaw; feed.bm_rv6_kind = kind; }
+	else if (idx == 7) { feed.bm_rv7_pos = pos; feed.bm_rv7_yaw = yaw; feed.bm_rv7_kind = kind; }
+};
+
+vector(entity feed, float idx) BM_Radar_ReadVehPos =
+{
+	if (idx == 0) return feed.bm_rv0_pos;
+	if (idx == 1) return feed.bm_rv1_pos;
+	if (idx == 2) return feed.bm_rv2_pos;
+	if (idx == 3) return feed.bm_rv3_pos;
+	if (idx == 4) return feed.bm_rv4_pos;
+	if (idx == 5) return feed.bm_rv5_pos;
+	if (idx == 6) return feed.bm_rv6_pos;
+	return feed.bm_rv7_pos;
+};
+
+float(entity feed, float idx) BM_Radar_ReadVehYaw =
+{
+	if (idx == 0) return feed.bm_rv0_yaw;
+	if (idx == 1) return feed.bm_rv1_yaw;
+	if (idx == 2) return feed.bm_rv2_yaw;
+	if (idx == 3) return feed.bm_rv3_yaw;
+	if (idx == 4) return feed.bm_rv4_yaw;
+	if (idx == 5) return feed.bm_rv5_yaw;
+	if (idx == 6) return feed.bm_rv6_yaw;
+	return feed.bm_rv7_yaw;
+};
+
+float(entity feed, float idx) BM_Radar_ReadVehKind =
+{
+	if (idx == 0) return feed.bm_rv0_kind;
+	if (idx == 1) return feed.bm_rv1_kind;
+	if (idx == 2) return feed.bm_rv2_kind;
+	if (idx == 3) return feed.bm_rv3_kind;
+	if (idx == 4) return feed.bm_rv4_kind;
+	if (idx == 5) return feed.bm_rv5_kind;
+	if (idx == 6) return feed.bm_rv6_kind;
+	return feed.bm_rv7_kind;
+};
+
+void(entity c) BM_Radar_UpdateClientVehicles =
+{
+	local entity feed, v, prev, nxt;
+	local float cnt, chg, k, d, max_d, vyaw, ins, worst_i, worst_d;
+	local vector porg, oldp;
+
+	feed = BM_Radar_EnsureFeed (c);
+	if (!feed)
+		return;
+
+	cnt = 0;
+	if (BM_Radar_PlayerOnFoot (c))
+	{
+		porg = BM_Radar_EntityPos (c);
+		prev = world;
+		v = bm_veh_head;
+		while (v)
+		{
+			nxt = v.bm_veh_next;
+			if (bm_wasfreed (v) || v.bm_veh_kind <= 0)
+			{
+				if (prev == world)
+					bm_veh_head = nxt;
+				else
+					prev.bm_veh_next = nxt;
+				v = nxt;
+				continue;
+			}
+			prev = v;
+
+			if (BM_Radar_VehicleAvailable (v))
+			{
+				max_d = (v.bm_veh_kind == BM_RVEH_MMTANK) ? BM_MM_VEH_RANGE_BIG : BM_MM_VEH_RANGE;
+				d = vlen (v.origin - porg);
+				if (d <= max_d)
+				{
+					vyaw = BM_Radar_PackYaw (v.angles_y);
+					if (cnt < BM_MM_VEH_MAX)
+					{
+						ins = cnt;
+						cnt = cnt + 1;
+					}
+					else
+					{
+						worst_i = 0;
+						worst_d = mm_sv_veh_dist[0];
+						k = 1;
+						while (k < BM_MM_VEH_MAX)
+						{
+							if (mm_sv_veh_dist[k] > worst_d)
+							{
+								worst_d = mm_sv_veh_dist[k];
+								worst_i = k;
+							}
+							k = k + 1;
+						}
+						ins = (d < worst_d) ? worst_i : -1;
+					}
+					if (ins >= 0)
+					{
+						mm_sv_veh_pos[ins] = v.origin;
+						mm_sv_veh_yaw[ins] = vyaw;
+						mm_sv_veh_kind[ins] = v.bm_veh_kind;
+						mm_sv_veh_dist[ins] = d;
+					}
+				}
+			}
+			v = nxt;
+		}
+	}
+
+	chg = (cnt != feed.bm_rv_cnt);
+	k = 0;
+	while (k < cnt)
+	{
+		if (!chg)
+		{
+			oldp = BM_Radar_ReadVehPos (feed, k);
+			if (mm_sv_veh_kind[k] != BM_Radar_ReadVehKind (feed, k)
+				|| vlen (mm_sv_veh_pos[k] - oldp) > 8
+				|| fabs (mm_sv_veh_yaw[k] - BM_Radar_ReadVehYaw (feed, k)) > 4)
+				chg = TRUE;
+		}
+		BM_Radar_WriteVehSlot (feed, k, mm_sv_veh_pos[k], mm_sv_veh_yaw[k], mm_sv_veh_kind[k]);
+		k = k + 1;
+	}
+	feed.bm_rv_cnt = cnt;
+	if (chg)
+		feed.SendFlags = feed.SendFlags | 16;
+};
+
 void() BM_Radar_Tick =
 {
 	local entity p, feed;
-	local float do_enemies, do_allies;
+	local float do_enemies, do_vehicles;
 
 	if (bm_menubg_active || intermission_running)
 		return;
@@ -655,9 +765,9 @@ void() BM_Radar_Tick =
 	if (do_enemies)
 		bm_radar_enemy_t = time + 0.1;
 
-	do_allies = ((teamplay || coop || CTF_ENABLED) && time >= bm_radar_ally_t);
-	if (do_allies)
-		bm_radar_ally_t = time + 0.15;
+	do_vehicles = (time >= bm_radar_veh_t);
+	if (do_vehicles)
+		bm_radar_veh_t = time + 0.15;
 
 	if (time >= bm_radar_pu_t)
 	{
@@ -668,23 +778,13 @@ void() BM_Radar_Tick =
 	p = bm_player_head;
 	while (p)
 	{
-		if (p.health > 0 && !p.bm_obs)
-		{
-			if (p.bm_lastshot > p.bm_radar_prev_shot || p.fg_fire_t > p.bm_radar_prev_fg)
-			{
-				p.bm_radar_prev_shot = p.bm_lastshot;
-				p.bm_radar_prev_fg = p.fg_fire_t;
-				BM_Radar_Ping (p, BM_Radar_EntityPos (p), BM_RPK_GUN);
-			}
-		}
-
 		if (p.ishuman == 1 && !p.bm_obs)
 		{
 			feed = BM_Radar_EnsureFeed (p);
 			if (do_enemies)
 				BM_Radar_UpdateClientEnemies (p);
-			if (do_allies)
-				BM_Radar_UpdateClientAllies (p);
+			if (do_vehicles)
+				BM_Radar_UpdateClientVehicles (p);
 			if (feed && feed.bm_rpu_ver_sent != bm_pu_ver)
 			{
 				feed.bm_rpu_ver_sent = bm_pu_ver;

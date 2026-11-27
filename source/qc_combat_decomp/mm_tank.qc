@@ -2520,6 +2520,7 @@ void(entity tank, float is_temp) MMT_InitTank =
 	tank.mmt_bar_prop.effects = tank.mmt_bar_prop.effects | EF_NODRAW;
 
 	MMT_SyncAttachments (tank);
+	BM_Radar_RegisterVehicle (tank, BM_RVEH_MMTANK);
 	tank.think = MMT_Think;
 	tank.nextthink = time + 0.08;
 };

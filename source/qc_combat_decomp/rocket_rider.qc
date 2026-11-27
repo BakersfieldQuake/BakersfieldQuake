@@ -1342,6 +1342,7 @@ entity(vector org, float yaw, float is_temp) RR_SpawnParked =
 	rr.rr_spawn_org = org;
 	rr.rr_spawn_yaw = rr.angles_y;
 	RR_Park (rr);
+	BM_Radar_RegisterVehicle (rr, BM_RVEH_HEAVY);
 	return rr;
 };
 
@@ -1375,6 +1376,7 @@ void() misc_vehicle_rocketrider =
 	self.rr_spawn_org = self.origin;
 	self.rr_spawn_yaw = self.angles_y;
 	RR_Park (self);
+	BM_Radar_RegisterVehicle (self, BM_RVEH_HEAVY);
 };
 
 // Called from BM_StartFrame(): spawns 1 Classic Quake Rocket in the NW corner of bakersfielddowntown

@@ -2383,7 +2383,6 @@ void() item_artifact_envirosuit =
 			self.netname = "Wetsuit";
 			self.items = IT_SUIT;
 			setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
-			BM_Radar_RegisterPowerup(self, BM_RPU_SUIT);
 			StartItem();
 		}
 		else
@@ -2399,7 +2398,6 @@ void() item_artifact_envirosuit =
 			self.netname = "Biosuit";
 			self.items = IT_SUIT;
 			setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
-			BM_Radar_RegisterPowerup(self, BM_RPU_SUIT);
 			StartItem();
 		}
 	}

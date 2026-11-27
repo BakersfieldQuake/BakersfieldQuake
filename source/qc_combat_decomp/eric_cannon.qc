@@ -1473,6 +1473,7 @@ void(entity base, float is_temp) EC_InitMonument =
 	SkyPad_RegisterExtra (tube);
 
 	EC_SeatTubeOnPedestal (base);
+	BM_Radar_RegisterVehicle (base, BM_RVEH_HEAVY);
 };
 
 // Map entity: misc_eric_cannon
