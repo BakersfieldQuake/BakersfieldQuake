@@ -368,3 +368,6 @@
   A local build ahead of every release (unpushed commits) still matched neither hash, so `launcher.sh` and
   `update_launcher.sh` no longer pass `--bundle-mac-inputs` when the app's `release-tag` is `local-*`: local builds
   skip the DMG check (game data still updates). Checked with `bash -n`; not run from a rebuilt app.
+- Also: `BQ_NO_UPDATE=1` (`make run`) never reached the updater. `launcher.sh` reopens itself in iTerm/Terminal
+  through a `.command` file, which starts a fresh environment and carried only `BQ_IN_TERMINAL`. It now writes every
+  `BQ_*` variable into that file. Checked the generated file under `env -i /bin/bash`; not run from a rebuilt app.

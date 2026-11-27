@@ -26,7 +26,9 @@ EOF
 # iTerm is driven by AppleScript (macOS asks once to allow BAKOQUAKE to control iTerm); Terminal runs .command files.
 if [ -z "${BQ_IN_TERMINAL:-}" ] && [ "${BQ_NO_TERMINAL:-0}" != 1 ]; then
     RUN="${TMPDIR:-/tmp}/bakoquake-run.command"   # TMPDIR has no spaces, which iTerm's command string needs
-    { echo '#!/bin/bash'; printf 'BQ_IN_TERMINAL=1 exec %q' "$0"; [ $# -gt 0 ] && printf ' %q' "$@"; echo; } >"$RUN" \
+    # The terminal starts a fresh environment: carry the BQ_* overrides (BQ_NO_UPDATE from `make run`, ...) across.
+    { echo '#!/bin/bash'; for v in $(compgen -e | grep '^BQ_'); do printf '%s=%q ' "$v" "${!v}"; done
+      printf 'BQ_IN_TERMINAL=1 exec %q' "$0"; [ $# -gt 0 ] && printf ' %q' "$@"; echo; } >"$RUN" \
         && chmod 755 "$RUN" || RUN=""
     if [ -n "$RUN" ]; then
         if open -Ra iTerm >/dev/null 2>&1 \
