@@ -321,3 +321,21 @@
   frames 243/247 differ from stand1 and the death frames still start at 288; workflow YAML parses. Not checked: the jump
   in game, the Tk window on a Mac, and the DMG copy step (first runs on the release after next).
 - Follow-up: in-game check of the jump (chasecam on `start`), then close #3.
+
+## 2026-11-26 — macOS FPS profile, glMapBufferRange patch into the DMG engine
+
+- Outcome: profiled the installed v1.91 app on an M2 Max (findings in `docs/macos-fps-2026-11-26.md`). The 2026-11-01
+  glMapBufferRange patch (never carried over from DarkPlaces) is now engine commit `1641494` in
+  BakersfieldQuake/zircon-darkplaces (macOS only via `#ifdef __APPLE__`), and the DMG builds from it.
+- Root cause (measured with `sample`): 74% of main-thread time on bakersfielddowntown is spent in `glBufferSubData`.
+  Every call submits a Metal command buffer (Apple GL-on-Metal). Second cause: in Zircon, `vid_samples 4` also renders
+  the view at 2x per axis (gl_rmain.c:5647). On downtown at 1440p that is 42 fps with it and 104-111 fps with
+  `vid_samples 1`.
+- Changed: `source/mac/build_app.sh`: `ZIRCON_REPO` is BakersfieldQuake/zircon-darkplaces, `ZIRCON_REF` is `1641494`,
+  and `origin` of a cached clone is re-pointed.
+- Verification: `clang -fsyntax-only` passes on gl_backend.c and vid_shared.c, `bash -n` passes on build_app.sh. Not run: the engine build (CI only) and any benchmark
+  of the patched engine.
+- Follow-up: benchmark the CI DMG (`timedemo intro.dem`, downtown `timerefresh`). Decide on `vid_samples` in the
+  picker's normal preset. `BAKOQUAKE-macos-arm64.zip` still ships the unpatched Zircon release binary. Engine commits
+  3800b1c..1641494 must be pushed to BakersfieldQuake/zircon-darkplaces before CI runs. Win/Linux engine binaries
+  still come from `ENGINE_REPO: GiggleHacks/zircon-darkplaces` in build-zip.yml.

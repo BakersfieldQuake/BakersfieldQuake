@@ -36,8 +36,8 @@ WORK="${WORK:-$ROOT/build}"
 MINOS=13.0
 BUNDLE_ID=com.gigglehacks.bakoquake
 
-ZIRCON_REPO=https://github.com/GiggleHacks/zircon-darkplaces
-ZIRCON_REF=66bcfa232e3ee6782a5aad3f713748829929b16c
+ZIRCON_REPO=https://github.com/BakersfieldQuake/zircon-darkplaces
+ZIRCON_REF=16414947843f41771bfd6c63cc2ef0aa0eed636d
 SDL_TAG=release-2.32.10
 OGG_TAG=v1.3.6
 VORBIS_TAG=v1.3.7
@@ -129,6 +129,7 @@ cmake_build jpeg https://github.com/libjpeg-turbo/libjpeg-turbo $JPEG_TAG -DENAB
 step "build Zircon ${ZIRCON_REF:0:7}"
 ZD="$SRC/zircon"
 [ -d "$ZD" ] || git clone -q "$ZIRCON_REPO" "$ZD"
+git -C "$ZD" remote set-url origin "$ZIRCON_REPO"
 git -C "$ZD" fetch -q origin
 git -C "$ZD" -c advice.detachedHead=false checkout -q "$ZIRCON_REF"
 make -C "$ZD" -f makefile clean >/dev/null 2>&1 || true
