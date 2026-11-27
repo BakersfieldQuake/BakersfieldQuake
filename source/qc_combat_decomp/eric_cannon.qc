@@ -96,6 +96,7 @@ void() EricCannon_Precache =
 	// Precache all whole CRT monitors, beige ATX PCs, keyboards, mice, motherboards, CDs, floppies & crash sounds
 	LanProps_Precache ();
 
+	precache_sound ("eric_cannon/canislupusfantasy1.wav");
 	precache_sound ("eric_cannon/canislupusfantasy2.wav");
 	precache_sound ("eric_cannon/mount.wav");
 	precache_sound ("eric_cannon/windup.wav");
@@ -1128,9 +1129,11 @@ float() EricCannon_Frame =
 
 			if (tube != world)
 				sound (tube, CHAN_WEAPON, "eric_cannon/windup.wav", 0.90, ATTN_NORM);
-			// Modest-volume canislupusfantasy2.wav on both rider channel 5 (follows rider into sky) & street pedestal!
-			sound (self, 5, "eric_cannon/canislupusfantasy2.wav", 0.40, ATTN_NORM);
-			sound (base, CHAN_AUTO, "eric_cannon/canislupusfantasy2.wav", 0.36, ATTN_NORM);
+			// Modest-volume CanisLupusFantasy (Sound 7) / canislupusfantasy2 (Sound 8) on rider channel 5 & street pedestal!
+			local string ec_clip;
+			ec_clip = (random () < 0.5) ? "eric_cannon/canislupusfantasy1.wav" : "eric_cannon/canislupusfantasy2.wav";
+			sound (self, 5, ec_clip, 0.40, ATTN_NORM);
+			sound (base, CHAN_AUTO, ec_clip, 0.36, ATTN_NORM);
 			centerprint (self, "WINDING UP THE ERIC DEASON CANNON!!");
 		}
 		return TRUE;

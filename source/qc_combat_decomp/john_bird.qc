@@ -65,6 +65,8 @@ void() JohnBird_Precache =
 	precache_sound ("john_bird/jv_fly11.wav");
 	precache_sound ("john_bird/jv_fly12.wav");
 	precache_sound ("john_bird/jv_fly13.wav");
+	precache_sound ("john_bird/jv_fly14.wav");
+	precache_sound ("john_bird/jv_fly15.wav");
 
 	jb_fx_hairspray = particleeffectnum ("jb_fx_hairspray");
 	jb_fx_hairfire = particleeffectnum ("jb_fx_hairfire");
@@ -123,7 +125,9 @@ string(float idx) JB_VoiceSample =
 	if (idx == 10) return "john_bird/jv_fly10.wav";
 	if (idx == 11) return "john_bird/jv_fly11.wav";
 	if (idx == 12) return "john_bird/jv_fly12.wav";
-	return "john_bird/jv_fly13.wav";
+	if (idx == 13) return "john_bird/jv_fly13.wav";
+	if (idx == 14) return "john_bird/jv_fly14.wav";
+	return "john_bird/jv_fly15.wav";
 };
 
 void(entity jb, float force_first) JB_PlayRandomVoice =
@@ -133,6 +137,13 @@ void(entity jb, float force_first) JB_PlayRandomVoice =
 
 	if (force_first)
 		pick = 0;
+	else if (jb.jb_takeoff_greet)
+	{
+		jb.jb_takeoff_greet = FALSE;
+		pick = (random () < 0.5) ? 14 : 15;
+		if (pick == jb.jb_voice_last1)
+			pick = (pick == 14) ? 15 : 14;
+	}
 	else
 	{
 		pick = floor (random () * JB_VOICE_COUNT);
@@ -1525,6 +1536,7 @@ void(entity p, entity jb) JB_Enter =
 	jb.angles_z = 0;
 	jb.jb_flap_t = time + 0.12;
 	jb.jb_voice_t = time + 0.24;
+	jb.jb_takeoff_greet = (jb.jb_voice_last1 >= 0);
 	jb.jb_swoop_until = 0;
 
 	p.movetype = MOVETYPE_NONE;

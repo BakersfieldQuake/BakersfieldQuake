@@ -136,6 +136,13 @@ void() FloatHead_Precache =
 	precache_sound ("robhead/key4.wav");
 	precache_sound ("robhead/key_enter.wav");
 	precache_sound ("robhead/key_beep.wav");
+	precache_sound ("robhead/rd_grenade.wav");
+	precache_sound ("robhead/rd_chatter_rob.wav");
+	precache_sound ("robhead/rd_chatter_paul.wav");
+	precache_sound ("robhead/rd_buh.wav");
+	precache_sound ("robhead/rd_chicken.wav");
+	precache_sound ("robhead/rd_fart.wav");
+	precache_sound ("robhead/rd_missed.wav");
 	precache_sound ("funny/heh.wav");
 	i = 0;
 	while (i < FD_SONG_N)
@@ -362,12 +369,27 @@ void(vector org) FD_ImpactFX =
 	fx.nextthink = time + 0.05;
 };
 
+string() FD_QuipClip =
+{
+	local float r;
+
+	r = floor (random () * 5);
+	if (r < 1) return "funny/heh.wav";
+	if (r < 2) return "robhead/rd_grenade.wav";
+	if (r < 3) return "robhead/rd_buh.wav";
+	if (r < 4) return "robhead/rd_chicken.wav";
+	return "robhead/rd_fart.wav";
+};
+
 void() FD_Minis_touch =
 {
 	if (other != world || self.cnt >= 2 || vlen (self.velocity) < 80)
 		return;
 	self.cnt = self.cnt + 1;
-	sound (self, CHAN_BODY, "robhead/boing.wav", 0.7, ATTN_NORM);
+	if (self.cnt == 1 && random () < 0.35)
+		sound (self, CHAN_BODY, "robhead/rd_grenade.wav", 0.75, ATTN_NORM);
+	else
+		sound (self, CHAN_BODY, "robhead/boing.wav", 0.7, ATTN_NORM);
 };
 
 void() FD_Minis_think =
@@ -437,7 +459,7 @@ void() FD_Detonate =
 	self.touch = SUB_Null;
 	self.takedamage = DAMAGE_NO;
 	FD_ImpactFX (self.origin);			// ...fedora-pop & comic stars burst
-	sound (self, CHAN_VOICE, "funny/heh.wav", 1, ATTN_NORM);		// ...and a "heh" on top of the bang
+	sound (self, CHAN_VOICE, FD_QuipClip (), 1, ATTN_NORM);		// ...and a Rob quip on top of the bang
 	self.effects = 0;
 	self.customizeentityforclient = SUB_Null;
 	setmodel (self, "");
@@ -533,10 +555,18 @@ void() FD_Die =
 
 void(entity attacker, float damage) FD_Pain =
 {
+	local float r;
+
 	if (self.pain_finished > time)
 		return;
 	self.pain_finished = time + 0.6;
-	sound (self, CHAN_VOICE, "robhead/pain.wav", 1, ATTN_NORM);
+	r = random ();
+	if (r < 0.5)
+		sound (self, CHAN_VOICE, "robhead/pain.wav", 1, ATTN_NORM);
+	else if (r < 0.75)
+		sound (self, CHAN_VOICE, "robhead/rd_buh.wav", 1, ATTN_NORM);
+	else
+		sound (self, CHAN_VOICE, "robhead/rd_chicken.wav", 1, ATTN_NORM);
 };
 
 // every 0.1 s while it floats: wobble, hum, and the safety nets
@@ -572,6 +602,15 @@ void() FD_HeadThink =
 		if (self.fd_song_n >= FD_SONG_N)
 			self.fd_song_n = 0;
 		self.fd_song_t = self.fd_song_t + FD_SONG_LEN;
+	}
+	if (!self.fd_charging && time >= self.fd_chatter_t)
+	{
+		self.fd_chatter_t = time + 6.5 + random () * 4.5;
+		self.fd_chatter_idx = 1 - self.fd_chatter_idx;
+		if (self.fd_chatter_idx)
+			sound (self, CHAN_VOICE, "robhead/rd_chatter_rob.wav", 0.85, ATTN_NORM);
+		else
+			sound (self, CHAN_VOICE, "robhead/rd_chatter_paul.wav", 0.85, ATTN_NORM);
 	}
 	self.nextthink = time + 0.1;
 };
@@ -637,7 +676,74 @@ void(entity p) FD_Dash =
 	h.fd_dashed = time;
 	h.fd_scrape = 0;
 	h.fd_rushend = time + FD_DASH_TIME;
-	sound (h, CHAN_VOICE, "robhead/charge.wav", 1, ATTN_NORM);
+	h.fd_miss_ent = world;
+	h.fd_miss_d = 9999;
+	sound (h, CHAN_AUTO, "robhead/charge.wav", 0.9, ATTN_NORM);
+	local float rq;
+	rq = random ();
+	if (rq < 0.20)
+		sound (h, CHAN_VOICE, "robhead/rd_buh.wav", 0.95, ATTN_NORM);
+	else if (rq < 0.40)
+		sound (h, CHAN_VOICE, "robhead/rd_chicken.wav", 0.95, ATTN_NORM);
+	else if (rq < 0.60)
+		sound (h, CHAN_VOICE, "robhead/rd_fart.wav", 0.95, ATTN_NORM);
+};
+
+void(entity p, entity h) FD_CheckNearMiss =
+{
+	local entity e, best_e;
+	local float d, best_d;
+
+	if (h.fd_miss_ent != world)
+	{
+		e = h.fd_miss_ent;
+		if (bm_wasfreed (e) || e.health <= 0 || !e.takedamage)
+		{
+			h.fd_miss_ent = world;
+			h.fd_miss_d = 9999;
+			return;
+		}
+		d = vlen ((e.origin + (e.mins + e.maxs) * 0.5) - h.origin);
+		if (d < h.fd_miss_d)
+		{
+			h.fd_miss_d = d;
+			return;
+		}
+		if (d >= h.fd_miss_d + 18)
+		{
+			if (time >= h.fd_miss_t)
+			{
+				h.fd_miss_t = time + 2.5;
+				sound (h, CHAN_VOICE, "robhead/rd_missed.wav", 1, 0.55);
+			}
+			h.fd_miss_ent = world;
+			h.fd_miss_d = 9999;
+		}
+		return;
+	}
+	if (time < h.fd_miss_t)
+		return;
+	best_e = world;
+	best_d = 88;
+	e = findradius (h.origin, 88);
+	while (e)
+	{
+		if (e != p && e.health > 0 && e.takedamage && (e.classname == "player" || (e.flags & FL_MONSTER)) && !(teamplay && e.team == p.team))
+		{
+			d = vlen ((e.origin + (e.mins + e.maxs) * 0.5) - h.origin);
+			if (d < best_d)
+			{
+				best_d = d;
+				best_e = e;
+			}
+		}
+		e = e.chain;
+	}
+	if (best_e != world)
+	{
+		h.fd_miss_ent = best_e;
+		h.fd_miss_d = best_d;
+	}
 };
 
 // ---------------------------------------------------------------- X-Ray drone scanner (3D silhouettes + CSQC target stream)
@@ -895,6 +1001,8 @@ void() FD_Launch =
 	h.fd_song_t = time;
 	h.fd_song_n = 0;
 	h.fd_hum = time;
+	h.fd_chatter_t = time + 2.5 + random () * 2.5;
+	h.fd_chatter_idx = (random () < 0.5);
 	h.traileffectnum = particleeffectnum ("fd_trail");
 	h.think = FD_HeadThink;
 	h.nextthink = time + 0.1;
@@ -1068,6 +1176,13 @@ float() FD_Frame =
 		}
 		else if (time > h.fd_rushend)
 		{
+			if (h.fd_miss_ent != world && h.fd_miss_d < 88 && time >= h.fd_miss_t)
+			{
+				h.fd_miss_t = time + 2.5;
+				sound (h, CHAN_VOICE, "robhead/rd_missed.wav", 1, 0.55);
+			}
+			h.fd_miss_ent = world;
+			h.fd_miss_d = 9999;
 			h.fd_charging = FALSE;
 			h.velocity = h.movedir * FD_SPEED;
 			h.fd_arm = time + FD_DASH_REST;
@@ -1079,7 +1194,10 @@ float() FD_Frame =
 			h.velocity = h.movedir * autocvar_fd_dash;
 			h.angles = vectoangles (h.movedir);
 			if (FD_Move (h, h.velocity, dt))
+			{
 				h.fd_scrape = 0;		// a clear step: the scrape (if any) is over
+				FD_CheckNearMiss (self, h);
+			}
 			else
 				FD_Touched (self, h);
 		}
