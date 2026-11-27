@@ -805,7 +805,7 @@ string() BM_VoteMapList =
 	s = cvar_string ("bm_votemaps");
 	if (s != "")
 		return s;
-	return "soi6 soicowboy_bkk bakersfielddowntown bakersfieldish terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6";
+	return "soi6 soicowboy_bkk bakersfielddowntown bakersfieldish terminal21 little_st_james slo_bike_kitchen ooika_lawrenceville goldenwest morrorock fox bklan6 aerowalk dm6 practice";
 };
 
 void(entity e, string m) BM_VoteStart =
