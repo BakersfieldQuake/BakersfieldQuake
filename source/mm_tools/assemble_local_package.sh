@@ -62,6 +62,7 @@ B="$BASE/BakersfieldQuake/bakersfield.pk3"
 # ponytail: one key for all builders, so any asset or tool change rebuilds them all; per-pk3 inputs like CI's
 # cache keys if that gets slow.
 CACHE="$WORK/pk3cache"
+LOCAL=()   # overlays made here, checked against the workflow's list below
 mkdir -p "$CACHE"
 EXCL=(':!docs' ':!source/qc_combat_decomp' ':!source/menu_qc' ':!source/mac' ':!.github' ':!*.md')
 SRCKEY="$({
@@ -85,6 +86,7 @@ pk3() {   # pk3 <name> <python args...>: build zz_<name>.pk3 (or reuse the cache
         echo "$key" >"$CACHE/zz_$n.key"
     fi
     cp "$CACHE/zz_$n.pk3" "$G/zz_$n.pk3"
+    LOCAL+=("zz_$n.pk3")
 }
 pk3 bakovan "$M/van_bako/build_van_bako_pk3.py" "$B"
 pk3 karts -I "$M/build_gokart_pk3.py" "$B"
@@ -123,12 +125,20 @@ fetch_pk3() {   # fetch_pk3 <name> <url> <sha256>
         echo "$3  $f" | sha256sum -c --quiet - || die "zz_$1.pk3 sha256 mismatch"
     fi
     cp "$f" "$G/zz_$1.pk3"
+    LOCAL+=("zz_$1.pk3")
 }
 fetch_pk3 netsend_disk https://bakersfield.larrywew.fun/pk3/zz_netsend_disk-e557aa2b.pk3 \
     e557aa2b2488481fb753296f8ca13124d873d0a0ceb65ccf2b1d7f77b745712d
 fetch_pk3 hats https://bakersfield.larrywew.fun/pk3/zz_hats-5522f13f.pk3 \
     5522f13ffc5203c1a08807357b1932d4fa06ca03154b347f9e60c2a541955bb5
 pk3 johnbird -I "$M/build_john_bird_pk3.py" --base-pk3 "$BASE/BakersfieldQuake/zz_johnbird.pk3" --out-pk3
+# Every overlay the release workflow makes must be made here too, or a local change to its source never ships in the
+# local build (the base only has the last release's copy).
+for f in $(grep -o 'pk3cache/zz_[a-z0-9_]*\.pk3' "$ROOT/.github/workflows/build-zip.yml" | sort -u); do
+    f="${f#pk3cache/}"
+    printf '%s\n' "${LOCAL[@]}" | grep -qx "$f" \
+        || echo "  WARNING: build-zip.yml makes $f but this script does not; using the last release's copy"
+done
 if [ -f "$G/maps/bakersfielddowntown.bsp" ]; then
     echo "  patch maps/bakersfielddowntown.bsp (Dagny's upstairs LAN party)"
     "${PYTHON:-python3}" -I "$M/patch_dagnys_lan_bsp.py" "$G/maps/bakersfielddowntown.bsp"
