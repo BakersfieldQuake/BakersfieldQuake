@@ -22,16 +22,6 @@ Instructions for AI coding agents working in this repo.
 - **Only rewrite commits that haven't been pushed.** Never force-push `main`.
 - No AI session links or `Claude-Session:` trailers in commit messages or PR descriptions.
 
-## macOS app
-
-- The signed, notarized `BAKOQUAKE-macos-arm64.dmg` is built **only in CI** (the `macos` job in
-  `.github/workflows/build-zip.yml`, which runs `source/mac/build_app.sh`). Never upload a locally built DMG or app
-  to a release. Local runs (`SKIP_NOTARIZE=1`) are for debugging the script.
-- Bundle no Homebrew libraries. They are built for the build machine's macOS and would raise the app's minimum OS
-  (13.0). Add a library by building it from a pinned source in `build_app.sh`, like the others.
-- The bundle is read-only once signed. Everything the game writes goes to `~/Library/Application Support/BAKOQUAKE`
-  (`-userdir`).
-
 ## Packaging game content (pk3 rules)
 
 Players get updates through a differential updater: only files whose sha256 changed are downloaded. The package
@@ -77,4 +67,10 @@ An unchanged build must produce byte-identical files, or players download them a
    release's `BAKOQUAKE.zip`, emit a `::warning::` and a job-summary line saying the release forces every player to
    re-download about 450 MB.
 
+## macOS app
+
+- The signed, notarized `BAKOQUAKE-macos-arm64.dmg` is built **only in CI** (the `macos` job in
+  `.github/workflows/build-zip.yml`, which runs `source/mac/build_app.sh`). Never upload a locally built DMG or app
+  to a release. Local runs (`SKIP_NOTARIZE=1`) are for debugging the script.
+- Do not run any builds for the macOS app or for assets on a mac - use CI!
 One logical change per commit.

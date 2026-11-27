@@ -10,6 +10,8 @@
 #
 # Env: WORK (default <repo>/build) holds the pk3 venv, the fteqcc build and the QC scratch copy.
 #      PYTHON (default python3): any Python 3.12; the pk3 venv is made from it.
+#      QC_HOST: compile the QC over ssh on this Linux host (e.g. QC_HOST=chonk). fteqcc built on macOS types
+#               __variant builtins differently and fails on code that CI's Linux fteqcc compiles.
 set -euo pipefail
 
 BASE="${1:?usage: $0 <base BAKOQUAKE dir> <out BAKOQUAKE dir>}"
@@ -83,10 +85,10 @@ if [ -f "$G/maps/bakersfielddowntown.bsp" ]; then
     "${PYTHON:-python3}" -I "$M/foreloco/patch_foreloco_maps.py" "$G/maps/bakersfielddowntown.bsp"
 fi
 
-step "fteqcc ${FTEQW_REF:0:7}"
+step "fteqcc ${FTEQW_REF:0:7}${QC_HOST:+ on $QC_HOST}"
 FTE="$WORK/src/fteqw-${FTEQW_REF:0:7}"
 QCC="$FTE/engine/qclib/fteqcc.bin"
-if [ ! -x "$QCC" ]; then
+if [ -z "${QC_HOST:-}" ] && [ ! -x "$QCC" ]; then
     rm -rf "$FTE"
     git init -q "$FTE"
     git -C "$FTE" fetch -q --depth 1 https://github.com/fte-team/fteqw "$FTEQW_REF"
@@ -100,9 +102,32 @@ step "compile QC"
 QC="$WORK/qc"
 rm -rf "$QC"; mkdir -p "$QC"
 cp -R "$ROOT/source/qc_combat_decomp" "$ROOT/source/menu_qc" "$QC/"
+if [ -n "${QC_HOST:-}" ]; then
+    # Remote: build fteqcc once in ~/.cache on the host, compile a copy of the sources there, pull the results back.
+    R=".cache/bq-qc"
+    timeout 60 rsync -a --delete "$QC/" "$QC_HOST:$R/src/" || die "rsync to $QC_HOST failed"
+    timeout 600 ssh "$QC_HOST" bash -s "$FTEQW_REF" <<'REMOTE' || die "fteqcc build on $QC_HOST failed"
+set -e
+F="$HOME/.cache/bq-qc/fteqw-${1:0:7}"
+if [ ! -x "$F/engine/qclib/fteqcc.bin" ]; then
+    echo "  building fteqcc ${1:0:7} on $(hostname)"
+    rm -rf "$F"; git init -q "$F"
+    git -C "$F" fetch -q --depth 1 https://github.com/fte-team/fteqw "$1"
+    git -C "$F" checkout -q FETCH_HEAD
+    make -C "$F/engine/qclib" -j"$(nproc)" qcc >"$F.log" 2>&1 || { tail -20 "$F.log"; exit 1; }
+fi
+REMOTE
+    QCC="\$HOME/$R/fteqw-${FTEQW_REF:0:7}/engine/qclib/fteqcc.bin"
+fi
 qc() {   # qc <dir> <output> <dest> [flags...]
     local d=$1 o=$2 dest=$3; shift 3
-    (cd "$d" && "$QCC" "$@" -srcfile progs.src) >"$d.log" 2>&1 || { grep -i error "$d.log" | head -20; die "$d failed"; }
+    if [ -n "${QC_HOST:-}" ]; then
+        local rd="$R/src/${d#"$QC"/}"
+        timeout 120 ssh "$QC_HOST" "cd $rd && $QCC $* -srcfile progs.src" >"$d.log" 2>&1 \
+            && timeout 60 rsync -a "$QC_HOST:$rd/$o" "$d/$o" || { grep -i error "$d.log" | head -20; die "$d failed on $QC_HOST"; }
+    else
+        (cd "$d" && "$QCC" "$@" -srcfile progs.src) >"$d.log" 2>&1 || { grep -i error "$d.log" | head -20; die "$d failed"; }
+    fi
     cp "$d/$o" "$dest"
     echo "  $(basename "$dest") ($(grep -c warning "$d.log" || true) warnings)"
 }
