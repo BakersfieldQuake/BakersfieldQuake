@@ -11,13 +11,17 @@
 WORK ?= $(CURDIR)/build
 BASE := $(WORK)/base/BAKOQUAKE
 
-# Pick the base package for this OS. Release assets: BAKOQUAKE-macos-arm64.zip, BAKOQUAKE-linux-x86_64.zip.
+# Pick the base package for this OS and CPU: BAKOQUAKE-<os>-<arch>.zip, e.g. BAKOQUAKE-macos-arm64.zip,
+# BAKOQUAKE-linux-x86_64.zip, BAKOQUAKE-linux-aarch64.zip (arch as `uname -m` prints it).
 UNAME := $(shell uname -s)
+ARCH  := $(shell uname -m)
 ifeq ($(UNAME),Darwin)
-  BASE_ZIP := BAKOQUAKE-macos-arm64.zip
+  OS := macos
 else
-  BASE_ZIP := BAKOQUAKE-linux-x86_64.zip
+  OS := linux
 endif
+PLATFORM := $(OS)-$(ARCH)
+BASE_ZIP := BAKOQUAKE-$(PLATFORM).zip
 PKG  := $(WORK)/pkg/BAKOQUAKE
 APP  := $(WORK)/out/BAKOQUAKE.app
 # The updater is frozen with uv's python-build-standalone 3.12 (targets macOS 11.0); build_app.sh refuses
@@ -32,7 +36,7 @@ build: $(BASE)/BakersfieldQuake/bakersfield.pk3
 	@[ -n "$(PY)" ] || { echo "run: uv python install 3.12"; exit 1; }
 	@# Bring the base up to the latest release with the game's own updater: only changed files (maps, pk3s) download.
 	@# Exit 3 means it updated something.
-	"$(PY)" -I tools/bq_update.py --root "$(BASE)" --no-gui </dev/null || [ $$? = 3 ]
+	"$(PY)" -I tools/bq_update.py --root "$(BASE)" --platform "$(PLATFORM)" --no-gui </dev/null || [ $$? = 3 ]
 	WORK="$(WORK)" PYTHON="$(PY)" source/mm_tools/assemble_local_package.sh "$(BASE)" "$(PKG)"
 ifeq ($(UNAME),Darwin)
 	SKIP_NOTARIZE=1 NO_DMG=1 PKG_DIR="$(PKG)" WORK="$(WORK)" PYTHON="$(PY)" \

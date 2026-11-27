@@ -384,3 +384,21 @@
   bakersfieldish) and `zz_console.pk3`. `make build` now runs `tools/bq_update.py --root build/base/BAKOQUAKE` first:
   52 s / 235 MB the first time (build 0 to v1.116), 0.9 s when up to date. 15 maps CI drops (aerowalk, fox, ...) are
   still in the old base as strays.
+
+## 2026-11-27 — aarch64 engine for orangepi4, arch-aware updater
+
+- Built Zircon `1641494` (same commit as engine release v20261127) for aarch64 in an arm64 `ubuntu:24.04` container
+  on the Mac, with the engine CI's deps and `make DP_LINK_JPEG=dlopen sdl-release sv-release`. The binaries need
+  glibc 2.38; the Pi has 2.43. They are installed in orangepi4 `~/BakersfieldQuake/build/base/BAKOQUAKE/`, with the old
+  x86 binaries kept as `*.x86_64`. The dedicated server loads progs on the Pi. The SDL client was not run.
+- Root cause of the junk zero-byte file in that folder: `Start-Server.sh` started the x86 `darkplaces-dedicated` with
+  `nohup`. On ENOEXEC, `execvp()` falls back to `/bin/sh`, which parsed the ELF as a script and one line read as a
+  redirect. The launcher now uses bash's own `exec` in a subshell. On the Pi it gives "cannot execute binary file"
+  and rc 126, and no stray file appears; `nohup` reproduces the junk file.
+- `tools/bq_update.py`: when the package's platform arch (`linux-x86_64`) isn't the machine's (`aarch64`), the
+  updater skips the manifest's executables (non-script `exec` entries), so it no longer replaces a natively built
+  engine with the x86 one. Windows is unaffected. New test (fails without the fix); 28/28 updater tests pass.
+- `Makefile`: the base zip and the updater platform are `<os>-<uname -m>` (`BAKOQUAKE-linux-aarch64.zip` on the Pi).
+- Follow-up: no `linux-aarch64` zip or manifest is published yet, so `make base` / `make build` on the Pi fail with
+  "no release with BAKOQUAKE-linux-aarch64.zip" (or a manifest 404) until CI builds one. The engine repo releases only
+  linux-x86_64.

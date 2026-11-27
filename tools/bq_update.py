@@ -30,6 +30,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform as host_platform
 import queue
 import shutil
 import struct
@@ -194,6 +195,12 @@ def default_platform():
     if sys.platform == "darwin":
         return "macos-arm64"
     return "linux-x86_64"
+
+
+def _norm_arch(name):
+    """uname -m / platform.machine() / release-name spellings of one architecture -> one name."""
+    n = (name or "").lower()
+    return {"amd64": "x86_64", "x64": "x86_64", "arm64": "aarch64"}.get(n, n)
 
 
 def default_root():
@@ -460,6 +467,21 @@ class Updater:
             _fsync_file(f)
         os.replace(tmp, self.bq / "state.json")
 
+    def foreign_binaries(self, m):
+        """Executables in a manifest built for another CPU (e.g. the linux-x86_64 package on an aarch64 Pi).
+
+        Those are never fetched or repaired, so a natively built engine placed next to the game is kept.
+        """
+        if os.name == "nt":
+            return set()
+        want, have = _norm_arch(self.platform.rsplit("-", 1)[-1]), _norm_arch(host_platform.machine())
+        if not have or want == have:
+            return set()
+        skip = {rel for rel in m.get("exec", []) if not rel.endswith((".sh", ".command", ".py"))}
+        if skip:
+            self.log(f"{self.platform} package on a {have} machine: leaving local {', '.join(sorted(skip))} alone")
+        return skip
+
     def local_sha(self, rel, cache, force):
         p = self.root / rel
         try:
@@ -705,6 +727,7 @@ class Updater:
                               total_managed=len(m.get("files", {})), cache=(state or {}).get("cache", {}))
 
         strays = self.find_unmanaged_strays(m)
+        foreign = self.foreign_binaries(m)
 
         if m["build"] < installed:
             # Never downgrade an intact newer build, but STILL verify local managed files so missing/corrupt
@@ -722,7 +745,7 @@ class Updater:
                 self._check_cancel()
                 if verify_progress:
                     verify_progress(idx, total_check, rel)
-                if rel in install_only and (self.root / rel).exists():
+                if rel in foreign or (rel in install_only and (self.root / rel).exists()):
                     continue
                 if rel not in (state or {}).get("managed", []):
                     continue
@@ -813,7 +836,7 @@ class Updater:
             self._check_cancel()
             if verify_progress:
                 verify_progress(idx, total_managed, rel)
-            if rel in install_only and (self.root / rel).exists():
+            if rel in foreign or (rel in install_only and (self.root / rel).exists()):
                 continue
             sha = self.local_sha(rel, cache, force)
             if sha != f["sha256"]:

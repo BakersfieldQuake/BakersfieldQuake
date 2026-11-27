@@ -8,6 +8,7 @@ import importlib.util
 import io
 import json
 import os
+import platform
 import subprocess
 import sys
 import tempfile
@@ -285,6 +286,19 @@ class UpdaterTest(unittest.TestCase):
                  if p == "/2.zip" and r]
         self.assertTrue(sizes and max(sizes) < 200_000, sizes)
         self.assertEqual(self.run_updater("--check"), 0)
+
+    @unittest.skipIf(os.name == "nt", "exec bits / foreign binaries are a Unix concern")
+    def test_foreign_arch_package_keeps_local_native_binary(self):
+        native = b"\x7fELF built for this machine"
+        (self.root / "darkplaces-sdl").write_bytes(native)
+        host = platform.machine()
+        other = "linux-riscv64" if host != "riscv64" else "linux-x86_64"
+        self.assertEqual(self.run_updater("--platform", other, "--launch"), 0)
+        self.assertEqual((self.root / "darkplaces-sdl").read_bytes(), native)
+        self.assertEqual(self.run_updater("--platform", other, "--check"), 0)
+        # Same arch: the release binary is restored as before.
+        self.assertEqual(self.run_updater("--platform", f"linux-{host}", "--launch"), 3)
+        self.assertEqual((self.root / "darkplaces-sdl").read_bytes(), V1["darkplaces-sdl"])
 
     def test_same_build_repairs_missing_and_corrupt_files(self):
         # First pass records build 1.
