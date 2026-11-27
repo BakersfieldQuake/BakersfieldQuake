@@ -17,7 +17,7 @@
 # and quake.rc are only overlaid onto such a base, and "Check the package" fails the run (nothing is published) when
 # progs.dat/menu.dat/the engine/a map named in server.cfg is missing, or when id1/pak0.pak or pak1.pak would ship.
 #
-# Windows, Linux and macOS engine binaries come from the public engine CI repo (GiggleHacks/zircon-darkplaces). On first run every
+# Windows, Linux and macOS engine binaries come from the public engine CI repo (BakersfieldQuake/zircon-darkplaces). On first run every
 # launcher looks for the player's own Quake pak0/pak1 (Steam, GOG, usual folders, then Downloads) and copies them into
 # id1/ (tools/find-quake-paks.sh / .ps1). Running build-zip on its own output is safe: the same steps give the same files. BAKOQUAKE.zip
 # keeps its exact name and tree so the next run can still take it as the base.
@@ -38,7 +38,7 @@ on:
         required: false
         default: ""
       engine_tag:
-        description: "Engine release in GiggleHacks/zircon-darkplaces (empty = latest)"
+        description: "Engine release in BakersfieldQuake/zircon-darkplaces (empty = latest)"
         required: false
         default: ""
       draft:
@@ -121,7 +121,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ inputs.base_tag }}
       NEW_TAG: ${{ inputs.tag }}
-      ENGINE_REPO: GiggleHacks/zircon-darkplaces
+      ENGINE_REPO: BakersfieldQuake/zircon-darkplaces
       ENGINE_TAG: ${{ inputs.engine_tag }}
       FTEQW_REF: c781d13255ce72fcd24e47567244f970e1ba7c50
       DRAFT: ${{ inputs.draft }}

@@ -336,6 +336,7 @@
 - Verification: `clang -fsyntax-only` passes on gl_backend.c and vid_shared.c, `bash -n` passes on build_app.sh. Not run: the engine build (CI only) and any benchmark
   of the patched engine.
 - Follow-up: benchmark the CI DMG (`timedemo intro.dem`, downtown `timerefresh`). Decide on `vid_samples` in the
-  picker's normal preset. `BAKOQUAKE-macos-arm64.zip` still ships the unpatched Zircon release binary. Engine commits
-  3800b1c..1641494 must be pushed to BakersfieldQuake/zircon-darkplaces before CI runs. Win/Linux engine binaries
-  still come from `ENGINE_REPO: GiggleHacks/zircon-darkplaces` in build-zip.yml.
+  picker's normal preset. `BAKOQUAKE-macos-arm64.zip` still ships the unpatched Zircon release binary. Engine repo
+  BakersfieldQuake/zircon-darkplaces `main` was fast-forwarded to 1641494 (GiggleHacks commits had nothing more to
+  merge); release `v20261127` there has Linux/macOS from CI run 45947270060 and the unchanged v20261122 Windows
+  self-pack (CI's Windows exe is not self-packed). `ENGINE_REPO` in build-zip.yml now points there.
