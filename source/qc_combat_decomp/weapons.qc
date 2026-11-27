@@ -1841,11 +1841,12 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		pdmg = 6;
 	}
 	ClearMultiDamage();
-	Antilag_Rewind(self);
 	while ((shotcount > 0))
 	{
 		direction = (dir + ((crandom() * spread_x) * v_right)) + ((crandom() * spread_y) * v_up);
+		Antilag_Rewind(self);
 		traceline(src, (src + (direction * 2048)), FALSE, self);
+		Antilag_Restore();
 		if (!PC_TraceIntercept(self, src, trace_endpos, (pdmg + crit)))
 		{
 			if ((trace_fraction != 1))
@@ -1879,7 +1880,6 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 			}
 		}
 	}
-	Antilag_Restore();
 	W_BulletSplash(dir);
 	ApplyMultiDamage();
 };
@@ -3814,18 +3814,15 @@ void() W_FireSuperSpikes =
 	}
 	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 	{
-		if ((autocvar_gyroset != 0) || gyro_objectlist_head)
-		{
-			makevectors(self.v_angle);
-			align = dir + (v_up * 0.27);
-			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-			nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-			nail = Gyro_Force_Create("nailhit", self.origin);
-			Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-			Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-			Gyro_Force_AddProperty_Instant(nail);
-			Gyro_Force_Ignore(nail, self);
-		}
+		makevectors(self.v_angle);
+		align = dir + (v_up * 0.27);
+		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+		nail = Gyro_Force_Create("nailhit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+		Gyro_Force_AddProperty_Instant(nail);
+		Gyro_Force_Ignore(nail, self);
 	}
 	self.spindown = 1;
 	self.spintimer = 0;
@@ -3991,18 +3988,15 @@ void(float ox) W_FireSpikes =
 	}
 	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 	{
-		if ((autocvar_gyroset != 0) || gyro_objectlist_head)
-		{
-			makevectors(self.v_angle);
-			align = dir + (v_up * 0.27);
-			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-			nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-			nail = Gyro_Force_Create("nailhit", self.origin);
-			Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-			Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-			Gyro_Force_AddProperty_Instant(nail);
-			Gyro_Force_Ignore(nail, self);
-		}
+		makevectors(self.v_angle);
+		align = dir + (v_up * 0.27);
+		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+		nail = Gyro_Force_Create("nailhit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+		Gyro_Force_AddProperty_Instant(nail);
+		Gyro_Force_Ignore(nail, self);
 	}
 };
 

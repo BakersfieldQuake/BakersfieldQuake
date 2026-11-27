@@ -156,7 +156,7 @@ float	BM_RELOAD_IMPULSE	= 41;		// R (30 is the flashlight)
 .float	cy_st_kind;			// Cyrax Net HUD: 0=player/bot, 1=Winged John Bird, 2=Milky Grenade (stat 131)
 .float	cy_st_dist;			// Cyrax Net HUD: distance in units to captured target (stat 132)
 .float	bm_st_hitsnd;		// unreliable CSQC hit-sound counter (stat 158): seq*8 + tier (1..6)
-.float	bm_hs_seq;			// wrapping 1..63 counter for bm_st_hitsnd
+.float	bm_hs_seq;			// wrapping 1..31 counter for bm_st_hitsnd (<= 255 fits in 1-byte stat)
 .float	bm_was_ladder;		// 1 while on a ladder this tick (for BM_PredictFrame in PlayerPreThink)
 
 void(entity attacker, float tier) HitSound_Emit;

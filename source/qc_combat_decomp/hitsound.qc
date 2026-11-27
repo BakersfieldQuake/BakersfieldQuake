@@ -29,7 +29,7 @@ void(entity attacker, float tier) HitSound_Emit =
 	if (!attacker || attacker.ishuman != 1)
 		return;
 	seq = attacker.bm_hs_seq + 1;
-	if (seq > 63)
+	if (seq > 31)
 		seq = 1;
 	attacker.bm_hs_seq = seq;
 	attacker.bm_st_hitsnd = seq * 8 + bound (1, floor (tier), 7);

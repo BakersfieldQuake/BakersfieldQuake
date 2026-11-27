@@ -128,12 +128,13 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 		crit = 1;
 
 	ClearMultiDamage ();
-	Antilag_Rewind (self);
 	i = 0;
 	while (i < shotcount)
 	{
 		direction = normalize (dir + (crandom () * spread_x * v_right) + (crandom () * spread_y * v_up));
+		Antilag_Rewind (self);
 		traceline (src, src + (direction * 2048), FALSE, self);
+		Antilag_Restore ();
 		if (i < 5 && dn3sg_fx_tracer >= 0 && trace_fraction > 0.02)
 			trailparticles (self, dn3sg_fx_tracer, tracer_org, trace_endpos);
 
@@ -150,7 +151,6 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 
 		i = i + 1;
 	}
-	Antilag_Restore ();
 	if (autocvar_gyroset != 0 || gyro_objectlist_head)
 	{
 		align = dir + (v_up * 0.25);
