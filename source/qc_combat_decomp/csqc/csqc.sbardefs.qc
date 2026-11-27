@@ -618,8 +618,7 @@ void() DrawScoreboard =
 
 void() DrawHUD =
 {
-
-	setHUDparms();
+	// setHUDparms() already ran this frame: CSQC_UpdateView calls it before every HUD style
 	if ((player_health < 1))
 	{
 		return;

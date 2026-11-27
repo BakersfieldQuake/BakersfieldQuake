@@ -250,9 +250,12 @@ float(entity e, entity selv, float ignore) T_Heal =
 	{
 		return (0);
 	}
+	// the null sound only cuts the burning loop: send it when there is one, not on every touch of a health box by a
+	// full-health player (a sound packet to every client per touch, for nothing)
+	if (e.inflamed)
+		sound(e, 120, "misc/null.wav", 1, ATTN_NORM);
 	e.poisoned = 0;
 	e.inflamed = 0;
-	sound(e, 120, "misc/null.wav", 1, ATTN_NORM);
 	if ((!ignore && (e.health >= other.max_health)))
 	{
 		return (0);

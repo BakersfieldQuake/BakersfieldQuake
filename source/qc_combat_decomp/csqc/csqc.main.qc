@@ -588,7 +588,7 @@ void(float w, float h) CSQC_UpdateView =
 		DrawScoreboard();
 		BM_DrawScoreKeys();
 	}
-	GW_Draw(stof(cvar_string("vid_conwidth")), stof(cvar_string("vid_conheight")), w, h);
+	GW_Draw(cvar("vid_conwidth"), cvar("vid_conheight"), w, h);
 	ShowMenu();
 	ShowMapList();
 	TogglePause();

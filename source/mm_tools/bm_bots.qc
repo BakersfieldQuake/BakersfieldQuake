@@ -1256,7 +1256,7 @@ void() BM_BotStartFrame =
 {
 	local float auto_n, hn;
 
-	if (BM_IsDowntownMap () && !bm_dt_way_done && bm_dt_way_t > 0 && time >= bm_dt_way_t)
+	if (!bm_dt_way_done && bm_dt_way_t > 0 && time >= bm_dt_way_t && BM_IsDowntownMap ())
 	{
 		bm_dt_way_done = TRUE;
 		if (max_clients > 1)

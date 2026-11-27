@@ -1276,12 +1276,27 @@ float(entity v) Veh_FindFreeSeat =
 	while (s <= mx)
 	{
 		taken = FALSE;
-		e = find (world, classname, "player");
-		while (e != world)
+		// the per-frame player list (BM_StartFrame), not a pass over every edict per seat: this runs 10 times a
+		// second for each player standing beside a driven van or bus (Veh_NearPrompt)
+		if (bm_player_head != world)
 		{
-			if (e.health > 0 && e.veh_ride == v && e.veh_seat == s)
-				taken = TRUE;
-			e = find (e, classname, "player");
+			e = bm_player_head;
+			while (e != world)
+			{
+				if (e.health > 0 && e.veh_ride == v && e.veh_seat == s)
+					taken = TRUE;
+				e = e.bm_player_next;
+			}
+		}
+		else
+		{
+			e = find (world, classname, "player");
+			while (e != world)
+			{
+				if (e.health > 0 && e.veh_ride == v && e.veh_seat == s)
+					taken = TRUE;
+				e = find (e, classname, "player");
+			}
 		}
 		if (!taken)
 			return s;

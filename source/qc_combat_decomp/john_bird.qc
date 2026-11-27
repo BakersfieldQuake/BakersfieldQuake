@@ -1704,7 +1704,7 @@ void(entity jb, entity pilot) JB_CheckSkyPads =
 
 	bmin = jb.origin + '-30 -38 -6';
 	bmax = jb.origin + '30 38 58';
-	e = find (world, classname, "info_skypad");
+	e = skypad_head;		// the pads' own list (skypad.qc), not a pass over every edict 20 times a second
 	while (e != world)
 	{
 		if (JB_OverlapPad (bmin, bmax, e))
@@ -1712,7 +1712,7 @@ void(entity jb, entity pilot) JB_CheckSkyPads =
 			SkyPad_LaunchJohnBird (e, jb);
 			return;
 		}
-		e = find (e, classname, "info_skypad");
+		e = e.skypad_next;
 	}
 };
 
