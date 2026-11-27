@@ -10,7 +10,7 @@ import sys
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-COUNT = 18      # one per wheel slot (source/qc_combat_decomp/csqc/gunwheel.qc)
+COUNT = 19      # one per wheel slot (source/qc_combat_decomp/csqc/gunwheel.qc)
 
 
 def main():

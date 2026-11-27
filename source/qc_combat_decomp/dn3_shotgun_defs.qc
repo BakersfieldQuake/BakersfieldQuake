@@ -36,9 +36,12 @@ float DN3SG_SND_NONE	= 0;
 .float	dn3_sg_rl_t;		// start time of current reload phase/cycle
 .float	dn3_sg_rl_snd;		// 1 once shell insert sound + mag increment happened in current cycle
 
+extern float dn3sg_fx_tracer;
+
 void() DN3SG_Precache;
 void() DN3SG_Reset;
 float() DN3SG_CanFire;
 void() DN3SG_Fire;
 void() DN3SG_StartReload;
 void() DN3SG_Frame;
+void(vector dir) DN3SG_WallImpact;

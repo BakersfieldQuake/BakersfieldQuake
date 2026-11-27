@@ -38,7 +38,7 @@ float(float s) BM_MagSize =
 	{
 		if (s == BM_SG)			n = 8;
 		else if (s == BM_SSG)	n = 8;		// DN3DooM Pump Shotgun: 8-shell tube magazine (1 shell a shot)
-		else if (s == BM_NG)	n = 5;
+		else if (s == BM_NG)	n = 100;	// DN3DooM Chaingun Cannon: 100-round belt
 		else if (s == BM_SNG)	n = 2;		// the Milky Gun: two ladies
 		else if (s == BM_GL)	n = 6;		// KTX Clan Arena: 6 grenades
 		else if (s == BM_RL)	n = 5;
@@ -73,7 +73,7 @@ float(float s) BM_ReloadTime =
 
 	if (s == BM_SG)			t = 1.2;
 	else if (s == BM_SSG)	t = 1.26;	// DN3DooM Pump Shotgun full tube reload
-	else if (s == BM_NG)	t = 2.5;
+	else if (s == BM_NG)	t = 1.8;	// DN3DooM Chaingun Cannon belt swap
 	else if (s == BM_SNG)	t = 5;		// Milky Gun
 	else if (s == BM_GL)	t = 2.2;
 	else if (s == BM_RL)	t = 2.4;
@@ -622,6 +622,10 @@ void() BM_Frame =
 		else if (s == BM_SSG && self.dn3_sg_fire_t > 0 && time < self.dn3_sg_fire_t + DN3SG_REFIRE)
 		{
 			// let the DN3DooM Pump Shotgun finish its fire + pump cycle before auto-reloading
+		}
+		else if (s == BM_NG && self.dn3_cg_fire_t > 0 && time < self.dn3_cg_fire_t + 0.18)
+		{
+			// let the DN3DooM Chaingun Cannon finish spinning down before auto-reloading
 		}
 		else if (s == BM_FG2 && (self.gj_shaking > 0 || self.gj_throw_at > 0 || (self.gj_threw_t > 0 && time < self.gj_threw_t + GJ_FOLLOW_TIME)))
 		{

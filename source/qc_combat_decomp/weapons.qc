@@ -2267,10 +2267,6 @@ void() BecomeExplosion =
 			explod.alpha = 0.7;
 		}
 	}
-	if ((self.classname != "light_destruct") && (self.classname != "resistexp") && (self.classname != "slimeball") && (self.classname != "monster_tarbaby") && (self.classname != "missile"))
-	{
-		DN3FX_OnExplode(self, (self.origin + '0 0 15'), ((self.classname == "misc_explobox") || (self.classname == "explo_box")) ? 1.35 : 1.05);
-	}
 	setorigin(explod, (self.origin + '0 0 15'));
 	explod.frame = 0;
 	explod.think = exploderun;
@@ -4941,6 +4937,14 @@ void() W_SetCurrentAmmo =
 					self.items = (self.items | IT_SHELLS);
 					self.axeequipped = 0;
 				}
+				else if ((self.weapon == IT_NAILGUN))
+				{
+					self.currentammo = self.ammo_nails;
+					self.weaponmodel = "";		// DN3DooM 2D Chaingun Cannon drawn by CSQC
+					self.weaponframe = 0;
+					self.items = (self.items | IT_NAILS);
+					self.axeequipped = 0;
+				}
 				else
 				{
 						if ((self.weapon == IT_SUPER_NAILGUN))
@@ -5061,6 +5065,10 @@ float() W_BestWeapon =
 	if (((self.ammo_nails >= 2) && (it & IT_SUPER_NAILGUN)))
 	{
 		return (IT_SUPER_NAILGUN);
+	}
+	if (((self.ammo_nails >= 1) && (it & IT_NAILGUN)))
+	{
+		return (IT_NAILGUN);
 	}
 	if (((self.ammo_shells >= 1) && (it & IT_SUPER_SHOTGUN)))
 	{
@@ -5505,6 +5513,25 @@ void() W_Attack =
 				self.attack_timer = 1;
 				self.attack_finished = (time + DN3SG_REFIRE);
 			}
+			else if ((self.weapon == IT_NAILGUN))
+			{
+				if (!DN3CG_CanFire())
+				{
+					return;
+				}
+				if ((self.waterlevel >= 2))
+				{
+					player_shotswim1();
+				}
+				else
+				{
+					player_shot1();
+				}
+				DN3CG_Fire();
+				TW_TriggerSequence();
+				self.attack_timer = 1;
+				self.attack_finished = (time + DN3CG_REFIRE);
+			}
 			else
 			{
 					if ((self.weapon == IT_SUPER_NAILGUN))
@@ -5609,12 +5636,6 @@ void() W_ChangeWeapon =
 
 	if ((self.has_fired == 1))
 	{
-		return;
-	}
-	// a key saved from before the single shotgun and the laptop gun were removed
-	if (self.impulse == 4)
-	{
-		self.impulse = 0;
 		return;
 	}
 	if (self.impulse == 2)
@@ -5776,6 +5797,10 @@ void() W_ChangeWeapon =
 				{
 					// DN3SG_Frame plays dn3sg/pump.wav on draw
 				}
+				else if ((fl == IT_NAILGUN))
+				{
+					// DN3CG_Frame plays dn3cg/select.wav on draw
+				}
 				else
 				{
 						if ((fl == IT_SUPER_NAILGUN))
@@ -5827,7 +5852,7 @@ void() CheatCommand =
 	self.ammo_rockets = autocvar_rockets_max_capacity;
 	self.ammo_nails = autocvar_nails_max_capacity;
 	self.ammo_shells = autocvar_shells_max_capacity;
-	self.items = ((((((((self.items | IT_AXE) | IT_SUPER_SHOTGUN) | IT_SUPER_NAILGUN) | IT_GRENADE_LAUNCHER) | IT_ROCKET_LAUNCHER) | IT_LASER_CANNON) | IT_KEY1) | IT_KEY2);
+	self.items = (((((((((self.items | IT_AXE) | IT_SUPER_SHOTGUN) | IT_NAILGUN) | IT_SUPER_NAILGUN) | IT_GRENADE_LAUNCHER) | IT_ROCKET_LAUNCHER) | IT_LASER_CANNON) | IT_KEY1) | IT_KEY2);
 	self.ammo_cells = autocvar_cells_max_capacity;
 	self.items = (self.items | IT_LIGHTNING);
 	self.grenade_ammo = 6;
@@ -5899,6 +5924,14 @@ void() CycleWeaponCommand =
 			else
 			{
 						if ((self.weapon == IT_SUPER_SHOTGUN))
+						{
+							self.weapon = IT_NAILGUN;
+							if ((self.ammo_nails < 1))
+							{
+								am = 1;
+							}
+						}
+						else if ((self.weapon == IT_NAILGUN))
 						{
 							self.weapon = IT_SUPER_NAILGUN;
 							if ((self.ammo_nails < 2))
@@ -5974,6 +6007,10 @@ void() CycleWeaponCommand =
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
 							// DN3SG_Frame plays dn3sg/pump.wav on draw
+						}
+						else if ((self.weapon == IT_NAILGUN))
+						{
+							// DN3CG_Frame plays dn3cg/select.wav on draw
 						}
 						else
 						{
@@ -6101,6 +6138,14 @@ void() CycleWeaponReverseCommand =
 					{
 						if ((self.weapon == IT_SUPER_NAILGUN))
 						{
+							self.weapon = IT_NAILGUN;
+							if ((self.ammo_nails < 1))
+							{
+								am = 1;
+							}
+						}
+						else if ((self.weapon == IT_NAILGUN))
+						{
 							self.weapon = IT_SUPER_SHOTGUN;
 							if ((self.ammo_shells < 1))
 							{
@@ -6155,6 +6200,10 @@ void() CycleWeaponReverseCommand =
 						if ((self.weapon == IT_SUPER_SHOTGUN))
 						{
 							// DN3SG_Frame plays dn3sg/pump.wav on draw
+						}
+						else if ((self.weapon == IT_NAILGUN))
+						{
+							// DN3CG_Frame plays dn3cg/select.wav on draw
 						}
 						else
 						{
@@ -6520,6 +6569,7 @@ void() W_WeaponFrame =
 	if (Cyrax_VictimWeaponFrame())
 		return;				// netted victim: stunned & visually locked to Bonk Axe (cyrax.qc)
 	DN3SG_Frame();			// DN3DooM Pump Shotgun 2D sprite frame, pump timing, reload & pitch kick (dn3_shotgun.qc)
+	DN3CG_Frame();			// DN3DooM Chaingun Cannon 2D sprite frame, rotary spin & slide (dn3_chaingun.qc)
 	HeldVwep_Update();		// third-person handheld item / miniature Pink Lady attachment
 	if (self.deadflag || (self.health <= 0))
 	{

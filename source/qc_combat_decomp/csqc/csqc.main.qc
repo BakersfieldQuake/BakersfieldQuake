@@ -203,11 +203,13 @@ void() CSQC_Init =
 	precache_pic("gfx/sb_invis");
 	precache_pic("gfx/sb_suit");
 	precache_pic("gfx/inv_sshotgun");
+	precache_pic("gfx/inv_nailgun");
 	precache_pic("gfx/inv_snailgun");
 	precache_pic("gfx/inv_rlaunch");
 	precache_pic("gfx/inv_srlaunch");
 	precache_pic("gfx/inv_lightng");
 	precache_pic("gfx/inv2_sshotgun");
+	precache_pic("gfx/inv2_nailgun");
 	precache_pic("gfx/inv2_snailgun");
 	precache_pic("gfx/inv2_rlaunch");
 	precache_pic("gfx/inv2_srlaunch");
@@ -264,6 +266,7 @@ void() CSQC_Init =
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
 	DN3SG_PrecachePics();
+	DN3CG_PrecachePics();
 	FL_PrecachePics();
 	DN3FX_Precache();
 	BM_Char_Init();
@@ -579,6 +582,7 @@ void(float w, float h) CSQC_UpdateView =
 				if (!intermission && !finale && !inMenu)
 				{
 					DN3SG_DrawViewmodel(cw, ch);
+					DN3CG_DrawViewmodel(cw, ch);
 					MMT_DrawAimReticle2D(cw, ch);
 				}
 				if (showHUD > 0 || UIDraw == 1)

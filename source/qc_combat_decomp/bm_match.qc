@@ -609,7 +609,8 @@ void() BM_Stats =
 	clientstat (110, 2, gk_st_prog);		// Go-Kart rocket HUD: 0..100 progress
 	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
 	clientstat (112, 2, dn3_st_frame);		// DN3DooM Pump Shotgun CSQC 2D sprite frame + flags
-	clientstat (113, 2, dn3_st_speed);		// DN3DooM Pump Shotgun horizontal speed for walk bob
+	clientstat (113, 2, dn3_st_speed);		// DN3DooM Shotgun/Chaingun horizontal speed for walk bob
+	clientstat (159, 2, dn3_cg_st_frame);	// DN3DooM Chaingun Cannon CSQC 2D sprite frame + flags
 	clientstat (114, 2, fl_st_black);		// ForeLoco screen blackout alpha 0..100
 	clientstat (115, 2, fl_st_mode);		// ForeLoco phase: 0=off, 1=drinking, 2=blackout, 3=hospital bed
 	clientstat (116, 2, fl_st_rem);			// ForeLoco remaining time in tenths of a second
@@ -1399,6 +1400,7 @@ void(entity e) BM_ObsActivate =
 		PC_ResetPlayer (e);
 		FD_Reset (e);
 		DN3SG_Reset ();
+		DN3CG_Reset ();
 		HeldVwep_Clear (e);
 		BM_ClientGone (e);
 		BM_Radar_ClientGone (e);
@@ -1630,6 +1632,7 @@ void() BM_ObsFrame =
 	self.fl_st_anim = 0;
 	self.dn3_st_frame = 0;
 	self.dn3_st_speed = 0;
+	self.dn3_cg_st_frame = 0;
 	self.bako_st_padre_pct = 101;
 	self.bako_st_event = 0;
 	self.cy_st_mode = 0;

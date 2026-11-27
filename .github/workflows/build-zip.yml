@@ -4,7 +4,7 @@
 # The repo is text/source only, so this does not rebuild the big base pk3s/maps. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
-# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_gunwheel.pk3 and zz_selected_sounds.pk3
+# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_dn3chaingun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_gunwheel.pk3 and zz_selected_sounds.pk3
 # from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), adds the pinned zz_netsend_disk.pk3 from the VPS, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. engine/zircon_beta_gcc.exe from the public engine release.
@@ -326,6 +326,13 @@ jobs:
           path: pk3cache/zz_dn3shotgun.pk3
           key: zz_dn3shotgun-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_shotgun/build_dn3shotgun_pk3.py', 'repo/source/mm_tools/dn3_shotgun/assets/**') }}
 
+      - name: Cache zz_dn3chaingun.pk3
+        id: cache_dn3chaingun
+        uses: actions/cache/restore@v6
+        with:
+          path: pk3cache/zz_dn3chaingun.pk3
+          key: zz_dn3chaingun-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_chaingun/build_dn3chaingun_pk3.py', 'repo/source/mm_tools/dn3_chaingun/assets/**') }}
+
       - name: Cache zz_foreloco.pk3
         id: cache_foreloco
         uses: actions/cache/restore@v6
@@ -404,7 +411,7 @@ jobs:
           key: zz_cyrax-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/cyrax/build_cyrax_pk3.py', 'repo/source/mm_tools/cyrax/build_viewmodel.py', 'repo/source/mm_tools/cyrax/build_net_models.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/cyrax/assets/src_keyframes/**', 'repo/source/mm_tools/cyrax/assets/tex/**', 'repo/source/mm_tools/cyrax/assets/sfx/**') }}
 
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_dn3chaingun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -553,6 +560,19 @@ jobs:
         with:
           path: pk3cache/zz_dn3shotgun.pk3
           key: ${{ steps.cache_dn3shotgun.outputs.cache-primary-key }}
+
+      - name: Build zz_dn3chaingun.pk3
+        if: steps.cache_dn3chaingun.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/dn3_chaingun/build_dn3chaingun_pk3.py --out pk3cache/zz_dn3chaingun.pk3
+
+      - name: Save zz_dn3chaingun.pk3 cache
+        if: steps.cache_dn3chaingun.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: pk3cache/zz_dn3chaingun.pk3
+          key: ${{ steps.cache_dn3chaingun.outputs.cache-primary-key }}
 
       - name: Build zz_foreloco.pk3
         if: steps.cache_foreloco.outputs.cache-hit != 'true'
@@ -771,7 +791,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_dn3chaingun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1183,7 +1203,10 @@ jobs:
                                 "sound/cyrax/charge.wav", "sound/cyrax/fire.wav", "sound/cyrax/vent.wav",
                                 "sound/cyrax/capture.wav", "sound/cyrax/pull.wav", "sound/cyrax/hold_beep.wav",
                                 "sound/cyrax/bonk_launch.wav")),
-              ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
+              ("zz_dn3chaingun.pk3", ("gfx/dn3cg/cggn_a.png", "gfx/dn3cg/hud_icon.png", "gfx/inv_nailgun.png",
+                                     "gfx/inv2_nailgun.png", "sound/dn3cg/fire.wav", "sound/dn3cg/select.wav",
+                                     "sound/dn3cg/dryfire.wav")),
+              ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/chaingun.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
               ("zz_console.pk3", ("gfx/conchars.png",)),
               ("zz_selected_sounds.pk3", ("sound/john_bird/jv_fly14.wav", "sound/john_bird/jv_fly15.wav",
                                           "sound/robhead/rd_grenade.wav", "sound/robhead/rd_chatter_rob.wav",

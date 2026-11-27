@@ -742,7 +742,8 @@ void() DrawHUD =
 		DrawInventory(('280 40 0' + wepbar_offset), "gfx/sb_sigil2", 0, RUNE_EP2, sbar_alpha, 1.3);
 		DrawInventory(('290 40 0' + wepbar_offset), "gfx/sb_sigil3", 0, RUNE_EP3, sbar_alpha, 1.3);
 		DrawInventory(('300 40 0' + wepbar_offset), "gfx/sb_sigil4", 0, RUNE_EP4, sbar_alpha, 1.3);
-		DrawInventoryWeapon(('280 265 0' + wepbar_offset), "gfx/inv_sshotgun", "gfx/inv2_sshotgun", IT_SUPER_SHOTGUN, ssg);
+		DrawInventoryWeapon(('280 248 0' + wepbar_offset), "gfx/inv_sshotgun", "gfx/inv2_sshotgun", IT_SUPER_SHOTGUN, ssg);
+		DrawInventoryWeapon(('280 265 0' + wepbar_offset), "gfx/inv_nailgun", "gfx/inv2_nailgun", IT_NAILGUN, ng);
 		DrawInventoryWeapon(('280 282 0' + wepbar_offset), "gfx/inv_snailgun", "gfx/inv2_snailgun", IT_SUPER_NAILGUN, sng);
 		DrawInventoryWeapon(('280 299 0' + wepbar_offset), "gfx/inv_rlaunch", "gfx/inv2_rlaunch", IT_GRENADE_LAUNCHER, gl);
 		DrawInventoryWeapon(('280 316 0' + wepbar_offset), "gfx/inv_srlaunch", "gfx/inv2_srlaunch", IT_ROCKET_LAUNCHER, rl);
