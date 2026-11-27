@@ -11990,8 +11990,10 @@ void(entity p) Spruce_PlayerWaterPreThink;
 void(entity part, vector hit_org, entity inflictor, entity attacker, float damage) Spruce_TowerHit;
 void(entity inflictor, entity attacker, float damage, entity direct_other) Spruce_CheckRocketSplash;
 
-// ---- Classic Ranger custom death animations (player_deaths.qc)
+// ---- Classic Ranger custom death & action animations (player_deaths.qc)
 void() PD_Precache;
 void() PD_Reset;
 float() PD_TryCustomPlayerDeath;
 void() PD_PlayerCorpseWait;
+void(float act) PD_TryCustomAction;
+void() PD_ActionPostThink;

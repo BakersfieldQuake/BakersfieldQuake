@@ -22,6 +22,19 @@ void() HitSound_Precache =
 	precache_sound ("misc/mmhit3.wav");
 };
 
+void(entity attacker, float tier) HitSound_Emit =
+{
+	local float seq;
+
+	if (!attacker || attacker.ishuman != 1)
+		return;
+	seq = attacker.bm_hs_seq + 1;
+	if (seq > 63)
+		seq = 1;
+	attacker.bm_hs_seq = seq;
+	attacker.bm_st_hitsnd = seq * 8 + bound (1, floor (tier), 7);
+};
+
 void(entity targ, entity attacker, float take) HitSound_Play =
 {
 	if (take <= 0 || targ == attacker || attacker.ishuman != 1)
@@ -33,11 +46,11 @@ void(entity targ, entity attacker, float take) HitSound_Play =
 	attacker.hs_time = time + HS_GAP;
 	dprint ("hit tick: ", attacker.netname, " hit ", targ.netname, targ.classname, " for ", ftos (take), "\n");
 
-	// "play" runs on the attacker's own client: full volume, no position, nobody else hears it
+	// Unreliable CSQC stat 158 (bm_st_hitsnd): zero reliable stuffcmd channel pressure at high RTT
 	if (take < 25)
-		stuffcmd (attacker, "playvol misc/mmhit1.wav 0.5\n");
+		HitSound_Emit (attacker, 1);
 	else if (take < 60)
-		stuffcmd (attacker, "playvol misc/mmhit2.wav 0.5\n");
+		HitSound_Emit (attacker, 2);
 	else
-		stuffcmd (attacker, "playvol misc/mmhit3.wav 0.5\n");
+		HitSound_Emit (attacker, 3);
 };

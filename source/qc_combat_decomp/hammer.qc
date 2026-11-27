@@ -236,6 +236,7 @@ void(float tier) Hammer_Swing =
 	hm_d2 = 1000;
 	hitfloor = FALSE;
 
+	Antilag_Rewind (self);
 	traceline (hm_src, hm_src + v_forward * 64 - v_right * 16, FALSE, self);
 	if (trace_fraction < 1)
 	{
@@ -253,6 +254,7 @@ void(float tier) Hammer_Swing =
 	Hammer_Consider ();
 	traceline (hm_src, hm_src + v_forward * 64 + v_right * 16, FALSE, self);
 	Hammer_Consider ();
+	Antilag_Restore ();
 
 	if (hm_d1 == 1000 && hm_d2 == 1000)
 	{

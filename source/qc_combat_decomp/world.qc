@@ -134,6 +134,7 @@ void() worldspawn =
 	local entity foo;
 
 	lastspawn = world;
+	Antilag_Reset();
 	World_DetectQ1Surfaces();
 	BotInit();
 	InitBodyQue();
@@ -145,7 +146,7 @@ void() worldspawn =
 	clientstat(45, 2, lives);
 	clientstat(46, 2, slowmo_timer);
 	clientstat(47, 2, PLR_SNDSPD);
-	clientstat(48, 3, origin);
+	// stat 48 (EV_VECTOR origin) removed: unread in CSQC, wasted 18 B/tick and overlapped stats 49-50
 	clientstat(49, 2, blue_captures);
 	clientstat(50, 2, red_captures);
 	clientstat(51, 2, gametype);
@@ -897,6 +898,7 @@ void() StartFrame =
 {
 	BotFrame();
 	BM_StartFrame();
+	Antilag_RecordFrame();
 	SkyPad_Frame();
 	BakoDestruct_Frame();
 	PC_Frame();

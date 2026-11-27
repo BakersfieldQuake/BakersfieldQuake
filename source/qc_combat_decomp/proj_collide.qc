@@ -391,7 +391,7 @@ void(entity attacker, entity victim_proj) PC_AwardSkeet =
 		PC_RefundWeaponAmmo (attacker);
 		if (attacker.ishuman == 1)
 		{
-			stuffcmd (attacker, "playvol misc/mmhit3.wav 0.65\n");
+			HitSound_Emit (attacker, 4);
 			sound (attacker, CHAN_AUTO, "weapons/pkup.wav", 0.7, ATTN_NORM);
 			centerprint (attacker, strcat ("^3SKEET SHOT!^7 Popped ", lbl, "! (Ammo Refunded)\n"));
 		}
@@ -409,7 +409,7 @@ void(entity attacker, entity victim_proj) PC_AwardSkeet =
 		attacker.armorvalue = min (150, attacker.armorvalue + 25);
 		if (attacker.ishuman == 1)
 		{
-			stuffcmd (attacker, "playvol misc/mmhit3.wav 0.75\n");
+			HitSound_Emit (attacker, 5);
 			sound (attacker, CHAN_AUTO, "items/r_item1.wav", 0.85, ATTN_NORM);
 			centerprint (attacker, strcat ("^2DOUBLE SKEET!^7 ", lbl, " denied! (+25 HP/AP)\n"));
 		}
@@ -423,7 +423,7 @@ void(entity attacker, entity victim_proj) PC_AwardSkeet =
 		sound (attacker, CHAN_ITEM, "items/damage.wav", 1.0, ATTN_NORM);
 		if (attacker.ishuman == 1)
 		{
-			stuffcmd (attacker, "playvol misc/mmhit3.wav 0.85\n");
+			HitSound_Emit (attacker, 6);
 			centerprint (attacker, strcat ("^1SKEET GOD!^7 ", lbl, " sniped! (5s QUAD DAMAGE!)\n"));
 		}
 		bprint ("^3SKEET GOD! ^7", attacker.netname, " sniped a ", lbl, " out of the sky!\n");

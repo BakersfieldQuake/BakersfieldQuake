@@ -128,6 +128,7 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 		crit = 1;
 
 	ClearMultiDamage ();
+	Antilag_Rewind (self);
 	i = 0;
 	while (i < shotcount)
 	{
@@ -149,6 +150,7 @@ void(float shotcount, vector dir, vector spread, float pdmg) DN3SG_FirePellets =
 
 		i = i + 1;
 	}
+	Antilag_Restore ();
 	if (autocvar_gyroset != 0 || gyro_objectlist_head)
 	{
 		align = dir + (v_up * 0.25);
@@ -508,7 +510,7 @@ void() DN3SG_Frame =
 	{
 		vxy = self.velocity;
 		vxy_z = 0;
-		self.dn3_st_speed = min (600, floor (vlen (vxy)));
+		self.dn3_st_speed = min (600, floor (vlen (vxy) / 16) * 16);
 	}
 	else
 		self.dn3_st_speed = 0;

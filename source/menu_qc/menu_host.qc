@@ -131,6 +131,7 @@ void() BM_Host_StartMatch =
 	// it filled demos/ with per-client files named with player addresses). Only the
 	// name format is kept so demos recorded when it is enabled elsewhere still parse.
 	cmd = strcat(cmd, "; sv_autodemo_perclient_nameformat \"demos/%Y-%m-%d_%H-%M\"");
+	cmd = strcat(cmd, "; sys_ticrate 0.0138889; sv_maxrate 1000000; sv_clmovement_inputtimeout 0.25; sv_gameplayfix_downtracesupportsongroundflag 1; sv_wallfriction 0; sv_jumpstep 1; sv_maxvelocity 6500; set pushback 0; set shellcasing 0; set sv_antilag 1; set sv_antilag_maxping 450");
 	cmd = strcat(cmd, "; hostname \"", hname, "\"; fraglimit ", ftos(fl), "; timelimit ", ftos(tl));
 	cmd = strcat(cmd, "; maxplayers ", ftos(mp), "; bm_botfill ", ftos(g_host_bots), "; map ", bsp, "\n");
 	localcmd(cmd);

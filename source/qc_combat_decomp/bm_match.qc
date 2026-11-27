@@ -57,13 +57,9 @@ void() BM_Precache =
 	precache_sound ("jetpack/swoosh.wav");
 	precache_model ("progs/aura.md3");
 	precache_model ("progs/quaddama.mdl");
-	// a map with sky pads raised sv_maxvelocity (SkyPad_RaiseMaxVel); the next map gets the value from before that back
-	registercvar ("bm_maxvel_saved", "0");
-	if (cvar ("bm_maxvel_saved") > 0)
-	{
-		cvar_set ("sv_maxvelocity", cvar_string ("bm_maxvel_saved"));
-		cvar_set ("bm_maxvel_saved", "0");
-	}
+	// Keep sv_maxvelocity >= 6500 uniformly across maps so client prediction & server never desync on map changes
+	if (cvar ("sv_maxvelocity") < 6500)
+		cvar_set ("sv_maxvelocity", "6500");
 	// Unconditionally precache the jetpack in worldspawn so bots on maps without
 	// item_jetpack/item_armor2 (e.g. terminal21, ooika_lawrenceville) and mid-map cvar toggles never precache post-spawn
 	Jetpack_Precache ();
@@ -324,9 +320,12 @@ void() BM_LifeFrame =
 		self.bm_st_leader = ud_leader.netname;
 		self.bm_st_lheat = floor (ud_leader.ud_heat);
 		self.bm_st_lshow = (ud_leader.ud_tier >= 3 && ud_leader != self && ud_leader.health > 0 && Underdog_PulseOn ());
-		self.bm_st_lx = ud_leader.origin_x;
-		self.bm_st_ly = ud_leader.origin_y;
-		self.bm_st_lz = ud_leader.origin_z;
+		if (self.bm_st_lshow)
+		{
+			self.bm_st_lx = floor (ud_leader.origin_x);
+			self.bm_st_ly = floor (ud_leader.origin_y);
+			self.bm_st_lz = floor (ud_leader.origin_z);
+		}
 	}
 	else
 	{
@@ -634,6 +633,7 @@ void() BM_Stats =
 	clientstat (155, 2, tw_st_wep2);		// B. Triple Wheeled Slot 2 (top-right, upside-down) code
 	clientstat (156, 2, tw_st_wep3);		// B. Triple Wheeled Slot 3 (top-left, upside-down) code
 	clientstat (157, 2, tw_st_step);		// B. Triple Wheeled flash bitmask + active cascade step
+	clientstat (158, 2, bm_st_hitsnd);		// Unreliable CSQC hit-sound counter (hitsound.qc / proj_collide.qc)
 	KC_Stats ();
 };
 
@@ -1261,11 +1261,11 @@ void() BM_TestImpulses =
 	}
 };
 
-// every frame from W_WeaponFrame: while the server overrides your speed the client's own movement guess is wrong by a whole ping
-// and each correction snaps you back, so it stops guessing (bm_nopredict 0 puts it back)
+// PlayerPreThink (before SV_Physics_ClientMove) + W_WeaponFrame: while the server overrides your speed/gravity
+// the client's own movement guess is wrong by a whole ping and each correction snaps you back (bm_nopredict 0 puts it back)
 void() BM_PredictFrame =
 {
-	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t || self.cy_trapped_by != world || time < self.cy_launch_until))
+	if (autocvar_bm_nopredict && (self.jp_on || self.veh_ride != world || self.mmt_tank != world || time < self.milk_freeze || self.milk_slip || time < self.jb_slow_t || time < self.pc_poop_t || self.cy_trapped_by != world || time < self.cy_launch_until || self.spruce_swim_grav || self.bm_was_ladder || self.sn_aiming || self.sn_leg > 0 || (self.wetsuit_finished > time && self.waterlevel >= 2)))
 		self.disableclientprediction = 1;
 	else
 		self.disableclientprediction = 0;

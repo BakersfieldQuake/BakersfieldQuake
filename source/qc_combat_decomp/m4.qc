@@ -298,7 +298,9 @@ void() M4_Press =
 	traceline (src, src + (v_forward * 10), TRUE, self);
 	src = (trace_fraction < 1) ? (src + (v_forward * max (0, (trace_fraction * 10) - 1))) : (src + (v_forward * 10));
 	ClearMultiDamage ();
+	Antilag_Rewind (self);
 	traceline (src, src + dir * M4_RANGE, FALSE, self);
+	Antilag_Restore ();
 	dist = trace_fraction * M4_RANGE;
 	dmg = M4_DAMAGE;
 	if (dist > 1400)

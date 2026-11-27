@@ -572,23 +572,30 @@ void() W_FireAxe =
 	}
 	makevectors(self.v_angle);
 	source = self.origin + '0 0 20';
+	Antilag_Rewind(self);
 	tracebox(source, '-1 -1 -2', '1 1 2', (source + (v_forward * 75)), FALSE, self);
 	if ((trace_fraction == 1))
 	{
 		traceline(source, (source + (v_forward * 75)), FALSE, self);
 		if ((trace_fraction == 1))
 		{
+			Antilag_Restore();
 			return;
 		}
 	}
+	Antilag_Restore();
 	if (((0 > (trace_ent.origin_z + 16)) && (trace_ent != world)))
 	{
 		trace_ent.hitbox_pos = HEAD_SHOT;
 	}
 	dir = aim(self, 1000);
 	axevec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-	axeforce = Gyro_Force_Create("axe_hit", self.origin);
-	Gyro_Force_ApplyFalloff_ConeLinear(axeforce, axevec, 20, 20);
+	axeforce = world;
+	if ((autocvar_gyroset != 0) || gyro_objectlist_head)
+	{
+		axeforce = Gyro_Force_Create("axe_hit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(axeforce, axevec, 20, 20);
+	}
 	if ((self.meleeing == 1))
 	{
 		if ((autocvar_berserkmode > 1))
@@ -599,7 +606,10 @@ void() W_FireAxe =
 		{
 			extraforce = extraforce + 15;
 		}
-		self.velocity = (self.velocity - (pushback1 * 10));
+		if (autocvar_pushback != 0)
+		{
+			self.velocity = (self.velocity - (pushback1 * 10));
+		}
 		if ((trace_ent.flags & FL_MONSTER))
 		{
 			setorigin(trace_ent, (trace_ent.origin + '0 0 5'));
@@ -619,13 +629,16 @@ void() W_FireAxe =
 				}
 			}
 		}
-		if (!(self.flags & FL_ONGROUND))
+		if (axeforce)
 		{
-			Gyro_Force_ApplyAffector_Directional(axeforce, axevec, (1500 + (autocvar_berserkmode * 195)), FALSE);
-		}
-		else
-		{
-			Gyro_Force_ApplyAffector_Directional(axeforce, axevec, (1400 + (autocvar_berserkmode * 150)), FALSE);
+			if (!(self.flags & FL_ONGROUND))
+			{
+				Gyro_Force_ApplyAffector_Directional(axeforce, axevec, (1500 + (autocvar_berserkmode * 195)), FALSE);
+			}
+			else
+			{
+				Gyro_Force_ApplyAffector_Directional(axeforce, axevec, (1400 + (autocvar_berserkmode * 150)), FALSE);
+			}
 		}
 	}
 	else
@@ -638,10 +651,16 @@ void() W_FireAxe =
 				trace_ent.pain_finished = (time - 1.5);
 			}
 		}
-		Gyro_Force_ApplyAffector_Directional(axeforce, axevec, 5, FALSE);
+		if (axeforce)
+		{
+			Gyro_Force_ApplyAffector_Directional(axeforce, axevec, 5, FALSE);
+		}
 	}
-	Gyro_Force_AddProperty_Instant(axeforce);
-	Gyro_Force_Ignore(axeforce, self);
+	if (axeforce)
+	{
+		Gyro_Force_AddProperty_Instant(axeforce);
+		Gyro_Force_Ignore(axeforce, self);
+	}
 	org = trace_endpos - (v_forward * 4);
 	if ((autocvar_berserkmode > 1))
 	{
@@ -1775,15 +1794,18 @@ void() FireBullets_Projectile =
 		launch_bullet(org, (dir + (v_up * 0.01)));
 		launch_bullet(org, ((dir + (v_up * (0 - randomdir3))) + (v_right * (0 - randomdir3))));
 	}
-	makevectors(self.v_angle);
-	align = dir + (v_up * 0.27);
-	traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-	shotvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-	buckshot = Gyro_Force_Create("shothit", self.origin);
-	Gyro_Force_ApplyFalloff_ConeLinear(buckshot, shotvec, 16, 16);
-	Gyro_Force_ApplyAffector_Directional(buckshot, shotvec, 2, FALSE);
-	Gyro_Force_AddProperty_Instant(buckshot);
-	Gyro_Force_Ignore(buckshot, self);
+	if ((autocvar_gyroset != 0) || gyro_objectlist_head)
+	{
+		makevectors(self.v_angle);
+		align = dir + (v_up * 0.27);
+		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+		shotvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+		buckshot = Gyro_Force_Create("shothit", self.origin);
+		Gyro_Force_ApplyFalloff_ConeLinear(buckshot, shotvec, 16, 16);
+		Gyro_Force_ApplyAffector_Directional(buckshot, shotvec, 2, FALSE);
+		Gyro_Force_AddProperty_Instant(buckshot);
+		Gyro_Force_Ignore(buckshot, self);
+	}
 };
 
 void(float shotcount, vector dir, vector spread) FireBullets =
@@ -1819,6 +1841,7 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 		pdmg = 6;
 	}
 	ClearMultiDamage();
+	Antilag_Rewind(self);
 	while ((shotcount > 0))
 	{
 		direction = (dir + ((crandom() * spread_x) * v_right)) + ((crandom() * spread_y) * v_up);
@@ -1856,6 +1879,7 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 			}
 		}
 	}
+	Antilag_Restore();
 	W_BulletSplash(dir);
 	ApplyMultiDamage();
 };
@@ -1966,7 +1990,7 @@ void(float shotcount, vector dir, vector spread) FireBullets_soldier =
 
 void() updateSNG =
 {
-	if (((((self.owner.health <= 0) || intermission_running) || (self.owner.ishuman != 1)) || (self.owner.classname != "player")))
+	if (deathmatch || ((((self.owner.health <= 0) || intermission_running) || (self.owner.ishuman != 1)) || (self.owner.classname != "player")))
 	{
 		remove(self);
 		return;
@@ -2028,7 +2052,7 @@ void() SNGHeater =
 {
 	local entity sngb;
 
-	if ((self.ishuman != 1))
+	if (deathmatch || (self.ishuman != 1))
 	{
 		return;
 	}
@@ -2674,7 +2698,9 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 	f = dir * 16;
 	e2 = world;
 	e1 = world;
+	Antilag_Rewind(from);
 	traceline(p1, p2, FALSE, self);
+	Antilag_Restore();
 	if (PC_TraceIntercept(from, p1, trace_endpos, damage))
 		return;
 	if (trace_ent.takedamage)
@@ -2717,15 +2743,18 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 			}
 		}
 		T_Damage(trace_ent, from, from, damage);
-		dir = aim(self, 10000);
-		align = dir + (v_up * 0.33);
-		traceline(p1, (p2 + (align * 200)), FALSE, self);
-		lightvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-		lightforce = Gyro_Force_Create("light_hit", self.origin);
-		Gyro_Force_ApplyFalloff_ConeLinear(lightforce, lightvec, 20, 20);
-		Gyro_Force_ApplyAffector_Directional(lightforce, lightvec, 666, FALSE);
-		Gyro_Force_AddProperty_Instant(lightforce);
-		Gyro_Force_Ignore(lightforce, self);
+		if ((autocvar_gyroset != 0) || gyro_objectlist_head)
+		{
+			dir = aim(self, 10000);
+			align = dir + (v_up * 0.33);
+			traceline(p1, (p2 + (align * 200)), FALSE, self);
+			lightvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+			lightforce = Gyro_Force_Create("light_hit", self.origin);
+			Gyro_Force_ApplyFalloff_ConeLinear(lightforce, lightvec, 20, 20);
+			Gyro_Force_ApplyAffector_Directional(lightforce, lightvec, 666, FALSE);
+			Gyro_Force_AddProperty_Instant(lightforce);
+			Gyro_Force_Ignore(lightforce, self);
+		}
 	}
 	else
 	{
@@ -2776,7 +2805,9 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 		return;
 	}
 	e1 = trace_ent;
+	Antilag_Rewind(from);
 	traceline((p1 + f), (p2 + f), FALSE, self);
+	Antilag_Restore();
 	if (((trace_ent != e1) && trace_ent.takedamage))
 	{
 		if (trace_ent.lan_kind)
@@ -2790,7 +2821,9 @@ void(vector p1, vector p2, entity from, float damage) LightningDamage =
 		T_Damage(trace_ent, from, from, damage);
 	}
 	e2 = trace_ent;
+	Antilag_Rewind(from);
 	traceline((p1 - f), (p2 - f), FALSE, self);
+	Antilag_Restore();
 	if ((((trace_ent != e1) && (trace_ent != e2)) && trace_ent.takedamage))
 	{
 		if (trace_ent.lan_kind)
@@ -3781,15 +3814,18 @@ void() W_FireSuperSpikes =
 	}
 	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 	{
-		makevectors(self.v_angle);
-		align = dir + (v_up * 0.27);
-		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-		nail = Gyro_Force_Create("nailhit", self.origin);
-		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-		Gyro_Force_AddProperty_Instant(nail);
-		Gyro_Force_Ignore(nail, self);
+		if ((autocvar_gyroset != 0) || gyro_objectlist_head)
+		{
+			makevectors(self.v_angle);
+			align = dir + (v_up * 0.27);
+			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+			nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+			nail = Gyro_Force_Create("nailhit", self.origin);
+			Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+			Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+			Gyro_Force_AddProperty_Instant(nail);
+			Gyro_Force_Ignore(nail, self);
+		}
 	}
 	self.spindown = 1;
 	self.spintimer = 0;
@@ -3955,15 +3991,18 @@ void(float ox) W_FireSpikes =
 	}
 	if (((autocvar_gyroset != 0) || gyro_objectlist_head))
 	{
-		makevectors(self.v_angle);
-		align = dir + (v_up * 0.27);
-		traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
-		nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
-		nail = Gyro_Force_Create("nailhit", self.origin);
-		Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
-		Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
-		Gyro_Force_AddProperty_Instant(nail);
-		Gyro_Force_Ignore(nail, self);
+		if ((autocvar_gyroset != 0) || gyro_objectlist_head)
+		{
+			makevectors(self.v_angle);
+			align = dir + (v_up * 0.27);
+			traceline(self.origin, (self.origin + (align * 200)), FALSE, self);
+			nailvec = (trace_endpos - self.origin) + (normalize(dir) * 80);
+			nail = Gyro_Force_Create("nailhit", self.origin);
+			Gyro_Force_ApplyFalloff_ConeLinear(nail, nailvec, 16, 16);
+			Gyro_Force_ApplyAffector_Directional(nail, nailvec, 2, FALSE);
+			Gyro_Force_AddProperty_Instant(nail);
+			Gyro_Force_Ignore(nail, self);
+		}
 	}
 };
 
@@ -4872,12 +4911,14 @@ void() superspike_touch =
 	}
 };
 
+float(entity p) CL_InVehicleHidden;
+
 void() W_SetCurrentAmmo =
 {
 	BM_SwapIn();	// LAN magazines: bank the old gun's, load the new one's
 	player_run();
 	self.items = (self.items - (self.items & 3840));
-	self.alpha = (autocvar_weaponandplayertransparency * 0.01);
+	self.alpha = CL_InVehicleHidden(self) ? 0.01 : 1;
 	if ((self.has_fired == 1))
 	{
 		self.weapon = IT_AXE;
@@ -6199,14 +6240,7 @@ void() RingCheat =
 	{
 		return;
 	}
-	sound(self, CHAN_ITEM, "items/inv1.wav", 1, ATTN_NORM);
-	sprint(self, "You got the ");
-	sprint(self, "Ring of Shadows");
-	sprint(self, "\n");
-	self.invisible_time = 1;
-	self.invisible_finished = (time + 30);
-	self.invisible_counter = 30;
-	self.items = (self.items | IT_INVISIBILITY);
+	sprint(self, "^1Invisibility is disabled.\n");
 };
 
 void() PentCheat =

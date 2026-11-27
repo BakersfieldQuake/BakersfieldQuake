@@ -6,6 +6,11 @@
 .float pd_gib_flags;
 .vector pd_slide_vel;
 .float pd_slide_t;
+.float pd_action;
+.float pd_action_t;
+.float pd_action_start_f;
+.float pd_action_end_f;
+.vector pd_action_dir;
 
 void() PD_Precache =
 {
@@ -24,6 +29,11 @@ void() PD_Reset =
 	self.pd_gib_flags = 0;
 	self.pd_slide_vel = '0 0 0';
 	self.pd_slide_t = 0;
+	self.pd_action = 0;
+	self.pd_action_t = 0;
+	self.pd_action_start_f = 0;
+	self.pd_action_end_f = 0;
+	self.pd_action_dir = '0 0 0';
 };
 
 void() PD_PlayerCorpseFade =
@@ -333,4 +343,104 @@ float() PD_TryCustomPlayerDeath =
 	self.think = PD_AnimTick;
 	self.nextthink = (time + 0.05);
 	return TRUE;
+};
+
+void(float act) PD_TryCustomAction =
+{
+	if ((self.model != "progs/player_id1.mdl"))
+		return;
+	if ((self.deadflag || (self.health <= 0)))
+		return;
+	if ((self.veh_van != world))
+		return;
+
+	self.pd_action = act;
+	self.pd_action_t = time;
+	makevectors(self.angles);
+	self.pd_action_dir = v_forward;
+
+	if ((act == 1))
+	{
+		// Backflip & land on feet
+		self.pd_action_start_f = PD_FLIP_LAND_START;
+		self.pd_action_end_f = PD_FLIP_LAND_END;
+		if ((self.flags & FL_ONGROUND))
+		{
+			self.flags = (self.flags - FL_ONGROUND);
+			self.velocity_z = 265;
+		}
+		sound7(self, CHAN_BODY, "player/plyrjmp8.wav", 1, ATTN_NORM, SNDSPD);
+	}
+	else if ((act == 2))
+	{
+		// Superman flying soar
+		self.pd_action_start_f = PD_SUPERMAN_START;
+		self.pd_action_end_f = PD_SUPERMAN_END;
+		self.flags = (self.flags - (self.flags & FL_ONGROUND));
+		self.velocity = (v_forward * 420) + '0 0 180';
+		self.gravity = 0.22;
+		sound7(self, CHAN_BODY, "player/plyrjmp8.wav", 1, ATTN_NORM, SNDSPD);
+	}
+	else
+	{
+		// 3x balloon inflate & deflate
+		self.pd_action_start_f = PD_BALLOON_START;
+		self.pd_action_end_f = PD_BALLOON_END;
+		self.velocity = (self.velocity * 0.25);
+		self.gravity = 0.35;
+	}
+	self.frame = self.pd_action_start_f;
+};
+
+void() PD_ActionPostThink =
+{
+	local float fi, nf, u;
+
+	if (!self.pd_action)
+		return;
+	if ((self.deadflag || (self.model != "progs/player_id1.mdl")))
+	{
+		self.pd_action = 0;
+		self.gravity = 1;
+		return;
+	}
+
+	fi = floor((time - self.pd_action_t) * 20);
+	nf = self.pd_action_end_f - self.pd_action_start_f;
+	if ((fi > nf))
+	{
+		self.pd_action = 0;
+		self.gravity = 1;
+		return;
+	}
+	self.frame = self.pd_action_start_f + fi;
+	if ((nf < 1))
+		nf = 1;
+	u = fi / nf;
+
+	if ((self.pd_action == 2))
+	{
+		// Keep forward Superman glide during soaring phase
+		if ((u >= 0.14 && u <= 0.80))
+		{
+			self.flags = (self.flags - (self.flags & FL_ONGROUND));
+			self.velocity = (self.pd_action_dir * 420) + '0 0 28';
+		}
+		else
+		{
+			self.gravity = 1;
+		}
+	}
+	else if ((self.pd_action == 3))
+	{
+		if ((u >= 0.40 && u <= 0.68))
+		{
+			self.velocity_x = self.velocity_x * 0.85;
+			self.velocity_y = self.velocity_y * 0.85;
+		}
+		else if ((u > 0.72))
+		{
+			self.gravity = 1;
+		}
+	}
 };

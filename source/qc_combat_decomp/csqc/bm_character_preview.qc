@@ -20,6 +20,7 @@ entity bm_char_hat;
 float bm_char_hat_shown;
 float bm_hat_sent;		// the choice last sent to the server
 float bm_hat_send_t;
+float bm_hat_retries;
 entity bm_char_legs;
 string bm_char_cur_mdl;
 string bm_char_cur_legs;
@@ -46,8 +47,8 @@ string() BM_Char_ResolveBodyModel =
 	return "progs/player_id1.mdl";
 };
 
-// Tell the server which hat this player picked. Resent now and then, so a command lost while joining, or a
-// server that restarted the map, still learns it.
+// Tell the server which hat this player picked. Sent once on connect/change plus one retry at +2 s, then silent
+// until the player changes bm_hat (avoids periodic reliable clc_stringcmd traffic during gameplay).
 void() BM_Hat_SendChoice =
 {
 	local float h, demo;
@@ -55,11 +56,19 @@ void() BM_Hat_SendChoice =
 	if (demo)
 		return;			// a demo has no server to tell
 	h = bound (0, floor (cvar ("bm_hat")), BM_HAT_COUNT);
-	if (h == bm_hat_sent && time < bm_hat_send_t && time > bm_hat_send_t - 6)
+	if (h != bm_hat_sent)
+	{
+		bm_hat_sent = h;
+		bm_hat_retries = 1;
+		bm_hat_send_t = time + 2;
+		localcmd (strcat ("cmd bm_hat ", ftos (h), "\n"));
 		return;
-	bm_hat_sent = h;
-	bm_hat_send_t = time + 5;
-	localcmd (strcat ("cmd bm_hat ", ftos (h), "\n"));
+	}
+	if (bm_hat_retries > 0 && (time >= bm_hat_send_t || time < bm_hat_send_t - 4))
+	{
+		bm_hat_retries = 0;
+		localcmd (strcat ("cmd bm_hat ", ftos (h), "\n"));
+	}
 };
 
 void() BM_Char_Init =
@@ -86,6 +95,8 @@ void() BM_Char_Init =
 	bm_char_hat = world;
 	bm_char_hat_shown = 0;
 	bm_hat_sent = -1;
+	bm_hat_send_t = 0;
+	bm_hat_retries = 0;
 	bm_char_legs = world;
 	bm_char_cur_mdl = "";
 	bm_char_cur_legs = "";

@@ -17,6 +17,7 @@ float	KC_C_PLAY_SEC		= 3.00;
 // Client preference sync
 float	kc_cvar_sent;
 float	kc_cvar_send_t;
+float	kc_cvar_retries;
 
 // Received killer-follow state
 float	kc_rx_seq;
@@ -38,6 +39,7 @@ void() BM_Killcam_Init =
 	registercvar ("bm_killcam", "1");
 	kc_cvar_sent = -1;
 	kc_cvar_send_t = 0;
+	kc_cvar_retries = 0;
 	kc_rx_seq = 0;
 	kc_rx_has_pose = FALSE;
 	kc_play_started = FALSE;
@@ -53,11 +55,19 @@ void() BM_Killcam_SendChoice =
 	if (demo)
 		return;
 	v = (cvar ("bm_killcam") != 0) ? 1 : 0;
-	if (v == kc_cvar_sent && time < kc_cvar_send_t && time > kc_cvar_send_t - 6)
+	if (v != kc_cvar_sent)
+	{
+		kc_cvar_sent = v;
+		kc_cvar_retries = 1;
+		kc_cvar_send_t = time + 2;
+		localcmd (strcat ("cmd bm_killcam ", ftos (v), "\n"));
 		return;
-	kc_cvar_sent = v;
-	kc_cvar_send_t = time + 5;
-	localcmd (strcat ("cmd bm_killcam ", ftos (v), "\n"));
+	}
+	if (kc_cvar_retries > 0 && (time >= kc_cvar_send_t || time < kc_cvar_send_t - 4))
+	{
+		kc_cvar_retries = 0;
+		localcmd (strcat ("cmd bm_killcam ", ftos (v), "\n"));
+	}
 };
 
 float(float a, float b, float t) KC_LerpAngle =

@@ -1,5 +1,7 @@
 //Decompiled code. Please respect the original copyright.
 
+float bm_hs_init, bm_hs_last;
+
 void() BM_Veh_ClearBindmap2 =
 {
 	local float k;
@@ -153,12 +155,13 @@ void() CSQC_Init =
 	registercvar("bm_hud_style", "0");
 	registercvar("bm_ui_font", "1");
 	registercvar("bm_minimap", "1");
-	registercvar("bm_minimap_range", "1400");
-	registercvar("bm_minimap_size", "39");
+	registercvar("bm_minimap_range", "1600");
+	registercvar("bm_minimap_size", "42");
 	registercvar("bm_minimap_x", "8");
 	registercvar("bm_minimap_y", "8");
-	registercvar("bm_minimap_alpha", "0.62");
-	registercvar("bm_minimap_bg_alpha", "0.42");
+	registercvar("bm_minimap_alpha", "1.0");
+	registercvar("bm_minimap_bg_alpha", "0");
+	registercvar("bm_minimap_map_alpha", "0");
 	registercvar("bm_minimap_rotate", "1");
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
@@ -229,6 +232,11 @@ void() CSQC_Init =
 	precache_sound("robhead/key4.wav");
 	precache_sound("robhead/key_enter.wav");
 	precache_sound("robhead/key_beep.wav");
+	precache_sound("misc/mmhit1.wav");
+	precache_sound("misc/mmhit2.wav");
+	precache_sound("misc/mmhit3.wav");
+	bm_hs_init = FALSE;
+	bm_hs_last = 0;
 	mouse = cvar("sensitivity");
 	mp_temp = maxplayers;
 	if (!maxplayers)
@@ -423,6 +431,37 @@ void() BM_FrameTimeLog =
 	bm_ft_slow = 0;
 };
 
+// Unreliable hitsound stat (158): replaces reliable stuffcmd("playvol ...") on every hit.
+// Format: seq * 8 + tier (tier 1..6). Skip initial snapshot on connect so joining plays nothing.
+void() BM_HitSound_Check =
+{
+	local float v, tier;
+
+	v = getstati(158);
+	if (!bm_hs_init)
+	{
+		bm_hs_init = TRUE;
+		bm_hs_last = v;
+		return;
+	}
+	if (v == bm_hs_last)
+		return;
+	bm_hs_last = v;
+	tier = v & 7;
+	if (tier == 1)
+		sound(world, CHAN_AUTO, "misc/mmhit1.wav", 0.5, ATTN_NONE);
+	else if (tier == 2)
+		sound(world, CHAN_AUTO, "misc/mmhit2.wav", 0.5, ATTN_NONE);
+	else if (tier == 3)
+		sound(world, CHAN_AUTO, "misc/mmhit3.wav", 0.5, ATTN_NONE);
+	else if (tier == 4)
+		sound(world, CHAN_AUTO, "misc/mmhit3.wav", 0.65, ATTN_NONE);
+	else if (tier == 5)
+		sound(world, CHAN_AUTO, "misc/mmhit3.wav", 0.75, ATTN_NONE);
+	else if (tier == 6)
+		sound(world, CHAN_AUTO, "misc/mmhit3.wav", 0.85, ATTN_NONE);
+};
+
 void(float w, float h) CSQC_UpdateView =
 {
 	local float bm_intro, hud_style, cw, ch, fd_mode, jb_active, char_open;
@@ -434,6 +473,7 @@ void(float w, float h) CSQC_UpdateView =
 	if (char_open <= 0 || cvar("bm_char_bg_owned") <= 0)
 		BM_Hat_SendChoice();
 	BM_Killcam_SendChoice();
+	BM_HitSound_Check();
 
 	clearscene();
 	local float kc_on;

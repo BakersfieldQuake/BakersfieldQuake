@@ -1502,12 +1502,59 @@ def _write_deterministic_pk3(out_pk3, entries):
             zf.writestr(zi, raw_bytes, compress_type=zipfile.ZIP_DEFLATED, compresslevel=6)
 
 
-def build_player_id1_with_deaths(mdl_info, selected_anims, anorms):
-    """Extend 288-frame progs/player_id1.mdl with the 6 selected death animations starting at frame 288."""
-    hdr = list(mdl_info["hdr"])
-    scale = mdl_info["scale"]
-    trans = mdl_info["trans"]
+def _repack_base_frames_for_box(mdl_info, jump_verts, scale, trans, anorms):
+    """Unpack existing 0..287 base frames and repack into the expanded MDL bounding box cleanly."""
+    old_scale = mdl_info["scale"]
+    old_trans = mdl_info["trans"]
+    raw_frames = mdl_info["raw_frames"]
+    nframes = mdl_info["nframes"]
     tris = mdl_info["tris"]
+    nverts = 212
+    sc_np = np.array(scale, dtype=np.float64)
+    tr_np = np.array(trans, dtype=np.float64)
+
+    out_bytes = []
+    for fi in range(nframes):
+        if 243 <= fi <= 254:
+            fname, verts = jump_verts[fi - 243]
+            out_bytes.append(_pack_mdl_frame(fname, verts, tris, scale, trans, anorms))
+            continue
+
+        rf = raw_frames[fi]
+        nm_raw = rf[12:28]
+        # Preserve original 1996 normal indices while remapping quantized positions cleanly
+        old_vbytes = np.frombuffer(rf[28:28 + nverts * 4], dtype=np.uint8).reshape(nverts, 4)
+        pos = np.empty((nverts, 3), dtype=np.float64)
+        for k in range(3):
+            pos[:, k] = old_vbytes[:, k].astype(np.float64) * old_scale[k] + old_trans[k]
+        q = np.rint((pos - tr_np) / sc_np).clip(0, 255).astype(np.uint8)
+        bmin = bytes(list(q.min(axis=0)) + [0])
+        bmax = bytes(list(q.max(axis=0)) + [0])
+        ni = old_vbytes[:, 3:4]
+        vbytes = np.concatenate([q, ni], axis=1).astype(np.uint8).tobytes()
+        out_bytes.append(rf[:4] + bmin + bmax + nm_raw + vbytes)
+    return out_bytes
+
+
+def build_player_id1_with_deaths(mdl_info, selected_anims, anorms, action_anims=None):
+    """Extend 288-frame progs/player_id1.mdl with 6 deaths (288..441) and 3 new actions (442..)."""
+    import build_player_actions as bpa
+
+    hdr = list(mdl_info["hdr"])
+    tris = mdl_info["tris"]
+    action_anims = list(action_anims or [])
+
+    # Build jump pose vertex lists for frames 243..254
+    jump_verts = []
+    for name, a, b, t in JUMP_FRAMES:
+        _, va = mdl_info["get_frame"](a)
+        _, vb = mdl_info["get_frame"](b)
+        jump_verts.append((name, [_vlerp(p, q, t) for p, q in zip(va, vb)]))
+
+    # Compute unified bounding box across all base + death + action frames (handles 3x balloon!)
+    base_all_verts = [mdl_info["get_frame"](fi)[1] for fi in range(mdl_info["nframes"])]
+    base_all_verts[243:255] = [v for _, v in jump_verts]
+    scale, trans = bpa.compute_unified_mdl_box(base_all_verts, list(selected_anims) + action_anims)
 
     extra_frames = []
     manifest = {}
@@ -1531,16 +1578,35 @@ def build_player_id1_with_deaths(mdl_info, selected_anims, anorms):
             "qc": anim["qc"],
         }
 
+    for anim in action_anims:
+        start_idx = cur_idx
+        short_tag = anim["cat"][:6]
+        for fi, verts in enumerate(anim["frames"]):
+            fname = f"a_{short_tag}_{fi+1}"
+            extra_frames.append(_pack_mdl_frame(fname, verts, tris, scale, trans, anorms))
+            cur_idx += 1
+        end_idx = cur_idx - 1
+        manifest[anim["cat"]] = {
+            "id": anim["id"],
+            "title": anim["title"],
+            "start_frame": start_idx,
+            "end_frame": end_idx,
+            "num_frames": len(anim["frames"]),
+            "fps": anim["fps"],
+            "qc": anim["qc"],
+        }
+
     total_frames = mdl_info["nframes"] + len(extra_frames)
+    hdr[2:5] = list(scale)
+    hdr[5:8] = list(trans)
     hdr[17] = total_frames
     new_hdr = struct.pack("<4si3f3ff3f8if", *hdr)
 
-    # Original header(84) + skins + verts/tris + original 288 frames are untouched up to frame data end
+    # Original header(84) + skins + verts/tris untouched; all frames packed cleanly in unified box
     skin_len = mdl_info["nskins"] * (4 + mdl_info["sw"] * mdl_info["sh"])
     vt_len = 212 * 12 + 408 * 16
     prefix_end = 84 + skin_len + vt_len
-    base_frames = list(mdl_info["raw_frames"])
-    base_frames[243:255] = build_jump_frames(mdl_info, anorms)
+    base_frames = _repack_base_frames_for_box(mdl_info, jump_verts, scale, trans, anorms)
     new_mdl = new_hdr + mdl_info["raw"][84:prefix_end] + b"".join(base_frames) + b"".join(extra_frames)
     return new_mdl, manifest
 
@@ -1670,13 +1736,18 @@ def build_voting_html(mdl_info, rig, head_gib, limb_gibs, all_anims, picks, out_
 # ---------------------------------------------------------------------------
 
 def resolve_picks(args):
+    import build_player_actions as bpa
+
     picks = dict(DEFAULT_PICKS)
+    action_picks = dict(bpa.DEFAULT_ACTION_PICKS)
     if args.votes and os.path.isfile(args.votes):
         vdata = json.load(open(args.votes, "r", encoding="utf-8"))
         src = vdata.get("picks", vdata)
         for k, v in src.items():
             if k in picks:
                 picks[k] = v
+            elif k in action_picks:
+                action_picks[k] = v
     if args.picks:
         for item in args.picks.split(","):
             item = item.strip()
@@ -1686,38 +1757,53 @@ def resolve_picks(args):
                 c = cat_info["cat"]
                 if item.startswith(c + "_"):
                     picks[c] = item
-    return picks
+    if args.action_picks:
+        for item in args.action_picks.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            for cat_info in bpa.ACTION_CATEGORIES:
+                c = cat_info["cat"]
+                if item.startswith(c + "_"):
+                    action_picks[c] = item
+    return picks, action_picks
 
 
 def main():
     import hashlib
+    import build_player_actions as bpa
 
-    ap = argparse.ArgumentParser(description="Build classic Ranger custom death animations, voting HTML, and zz_player_deaths.pk3.")
+    ap = argparse.ArgumentParser(description="Build classic Ranger custom death & action animations, voting HTML, and zz_player_deaths.pk3.")
     ap.add_argument("--bakersfield-pk3", type=str, default=BAKER_PK3, help="Path to base bakersfield.pk3")
     ap.add_argument("--out-pk3", type=str, default=OUT_PK3, help="Output path for zz_player_deaths.pk3")
-    ap.add_argument("--picks", type=str, default="", help="Comma-separated winning anim IDs (e.g. ko_spin_b,gut_slide_a,...)")
-    ap.add_argument("--votes", type=str, default="", help="Optional exported votes JSON file from docs/player_death_vote.html")
+    ap.add_argument("--picks", type=str, default="", help="Comma-separated winning death anim IDs (e.g. ko_spin_b,gut_slide_a,...)")
+    ap.add_argument("--action-picks", type=str, default="", help="Comma-separated winning action anim IDs (e.g. flip_land_a,superman_b,balloon_a)")
+    ap.add_argument("--votes", type=str, default="", help="Optional exported votes JSON file")
     ap.add_argument("--render-check", action="store_true", help="Render diagnostic PNG contact sheet")
-    ap.add_argument("--skip-html", action="store_true", help="Skip generating docs/player_death_vote.html")
+    ap.add_argument("--skip-html", action="store_true", help="Skip generating voting/action studio HTMLs")
     ap.add_argument("--no-qc", action="store_true", help="Skip writing QC frame constants and manifest (useful in CI)")
     ap.add_argument("--verify-repro", action="store_true", help="Verify two consecutive pk3 writes produce identical sha256")
     args = ap.parse_args()
 
-    picks = resolve_picks(args)
+    picks, action_picks = resolve_picks(args)
     anorms = _load_anorms()
     mdl_info = load_id1_full(bakersfield_pk3=args.bakersfield_pk3)
     rig = RangerRig(mdl_info, bakersfield_pk3=args.bakersfield_pk3)
     head_gib = load_id1_head_gib()
     limb_gibs = build_classic_limb_gibs(mdl_info, anorms, bakersfield_pk3=args.bakersfield_pk3)
     all_anims = generate_all_candidates(mdl_info, rig)
+    all_actions = bpa.generate_all_action_candidates(mdl_info, rig)
 
     if args.render_check:
         render_diagnostic_png(mdl_info, all_anims, picks)
+        bpa.render_diagnostic_png(mdl_info, all_actions, action_picks)
 
     by_id = {a["id"]: a for a in all_anims}
     selected = [by_id[picks[c["cat"]]] for c in CATEGORIES]
+    act_by_id = {a["id"]: a for a in all_actions}
+    selected_actions = [act_by_id[action_picks[c["cat"]]] for c in bpa.ACTION_CATEGORIES]
 
-    new_mdl, manifest = build_player_id1_with_deaths(mdl_info, selected, anorms)
+    new_mdl, manifest = build_player_id1_with_deaths(mdl_info, selected, anorms, action_anims=selected_actions)
 
     pk3_entries = [
         ("progs/player_id1.mdl", new_mdl),
@@ -1732,8 +1818,10 @@ def main():
         _write_deterministic_pk3(args.out_pk3, pk3_entries)
         h2 = hashlib.sha256(open(args.out_pk3, "rb").read()).hexdigest()
         assert h1 == h2, f"Non-deterministic pk3 write: {h1} != {h2}"
-    print(f"Wrote deterministic overlay pk3: {args.out_pk3} ({os.path.getsize(args.out_pk3)} bytes, sha256={h1}, frames={mdl_info['nframes'] + sum(len(a['frames']) for a in selected)})")
+    total_f = mdl_info["nframes"] + sum(len(a["frames"]) for a in selected) + sum(len(a["frames"]) for a in selected_actions)
+    print(f"Wrote deterministic overlay pk3: {args.out_pk3} ({os.path.getsize(args.out_pk3)} bytes, sha256={h1}, frames={total_f})")
 
+    death_cats = {c["cat"] for c in CATEGORIES}
     if not args.no_qc:
         os.makedirs(os.path.dirname(OUT_MANIFEST), exist_ok=True)
         with open(OUT_MANIFEST, "w", encoding="utf-8") as f:
@@ -1749,8 +1837,9 @@ def main():
             up = cat.upper()
             qc_lines.append(f"float PD_{up}_START = {info['start_frame']};\t// {info['id']}")
             qc_lines.append(f"float PD_{up}_END = {info['end_frame']};")
-            qc_lines.append(f"float PD_{up}_GIB_ARM_F = {info['start_frame'] + max(1, int(round((info['num_frames'] - 1) * (0.08 if info['id'] != 'limbs_off_b' else 0.06))))};")
-            qc_lines.append(f"float PD_{up}_GIB_LEG_F = {info['start_frame'] + max(1, int(round((info['num_frames'] - 1) * (0.24 if info['id'] == 'limbs_off_b' else 0.08))))};")
+            if cat in death_cats:
+                qc_lines.append(f"float PD_{up}_GIB_ARM_F = {info['start_frame'] + max(1, int(round((info['num_frames'] - 1) * (0.08 if info['id'] != 'limbs_off_b' else 0.06))))};")
+                qc_lines.append(f"float PD_{up}_GIB_LEG_F = {info['start_frame'] + max(1, int(round((info['num_frames'] - 1) * (0.24 if info['id'] == 'limbs_off_b' else 0.08))))};")
         with open(OUT_QC_FRAMES, "w", encoding="utf-8", newline="\n") as f:
             f.write("\n".join(qc_lines) + "\n")
         print(f"Wrote QC frame constants: {OUT_QC_FRAMES}")
@@ -1760,6 +1849,8 @@ def main():
 
     if not args.skip_html and os.path.isfile(TEMPLATE_HTML):
         build_voting_html(mdl_info, rig, head_gib, limb_gibs, all_anims, picks)
+    if not args.skip_html and os.path.isfile(bpa.TEMPLATE_HTML):
+        bpa.build_actions_html(mdl_info, rig, all_actions, action_picks)
 
 
 if __name__ == "__main__":

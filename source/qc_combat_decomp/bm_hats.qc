@@ -48,6 +48,7 @@ void() BM_Hat_Think =
 void() BM_Hat_Update =
 {
 	local entity e;
+	local float af;
 
 	if (!BM_Hat_Visible (self))
 	{
@@ -66,13 +67,29 @@ void() BM_Hat_Update =
 		setattachment (e, self, "");
 		e.think = BM_Hat_Think;
 		e.nextthink = time + 0.1;
+		e.bm_hat_lastpf = -1;
+		e.bm_hat_lastaf = -1;
 		self.bm_hat_ent = e;
 	}
 	if (e.model != BM_HatModel (self.bm_hat))
+	{
 		setmodel (e, BM_HatModel (self.bm_hat));
-	setorigin (e, BM_HatTagPos (self.frame));
-	e.angles = BM_HatTagAng (self.frame);
-	e.frame = BM_HatAnimFrame (self.bm_hat, time);
+		e.bm_hat_lastpf = -1;
+		e.bm_hat_lastaf = -1;
+	}
+	// Attached via setattachment() so origin/angles are local offsets; only touch when player frame changes
+	if (self.frame != e.bm_hat_lastpf)
+	{
+		e.bm_hat_lastpf = self.frame;
+		setorigin (e, BM_HatTagPos (self.frame));
+		e.angles = BM_HatTagAng (self.frame);
+	}
+	af = BM_HatAnimFrame (self.bm_hat, time);
+	if (af != e.bm_hat_lastaf)
+	{
+		e.bm_hat_lastaf = af;
+		e.frame = af;
+	}
 };
 
 // "cmd bm_hat N" from a client

@@ -14,6 +14,7 @@ dookie_defs.qc
 kyle_defs.qc
 robhead_defs.qc
 bm_defs.qc
+antilag_defs.qc
 bm_hats_defs.qc
 dn3_shotgun_defs.qc
 dn3_fx_defs.qc
@@ -90,6 +91,7 @@ fight.qc
 ai.qc
 underdog.qc
 hitsound.qc
+antilag.qc
 combat.qc
 items.qc
 flesh_splat.qc
