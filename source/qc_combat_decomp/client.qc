@@ -2096,7 +2096,6 @@ void() PutClientInServer =
 	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
 	RocketRider_Reset(self);	// restore camera/body if respawning after Rocket Rider death
 	KC_Reset(self);
-	self.customizeentityforclient = KC_PlayerCustomize;
 	Practice_OnPlayerSpawn(self);
 	Hammer_Spawn();	// no charge left over (hammer.qc)
 	W_SetCurrentAmmo();
