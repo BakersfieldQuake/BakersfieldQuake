@@ -98,7 +98,11 @@ else
     fi
 fi
 
-# Join it from this PC with the normal client launcher.
+# Join it from this PC with the normal client launcher, unless this is a headless box (SSH, server-only Pi).
+if [ "$(uname)" = Linux ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    echo " No display here, so not joining; the server keeps running. Stop it with: ./Start-Server.sh stop"
+    exit 0
+fi
 export COMBAT_ARGS="${COMBAT_ARGS:-}"
 CLIENT=""
 for c in "$ROOT/darkplaces-sdl" "$ROOT/darkplaces"; do [ -x "$c" ] && CLIENT="$c" && break; done
