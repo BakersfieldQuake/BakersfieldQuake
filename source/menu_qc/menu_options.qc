@@ -7,7 +7,7 @@ float OPT_TAB_WEAPONS  = 3;
 float OPT_TAB_COUNT    = 4;
 
 float OPT_VID_COUNT    = 16;
-float OPT_GFX_COUNT    = 27;
+float OPT_GFX_COUNT    = 28;
 float OPT_CTRL_COUNT   = 21;
 float OPT_VEH_COUNT    = 9;
 float OPT_WEP_COUNT    = 21;
@@ -1410,6 +1410,17 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 		{
 			g_click_consumed = TRUE;
 			cvar_set("showfps", on ? "0" : "1");
+			BM_PlaySound("sound/misc/menu1.wav");
+		}
+	}
+	else if (idx == 27)
+	{
+		on = (stof(cvar_string("bm_killcam")) != 0);
+		st = BM_DrawStepper(ix, ry, iw, rh, "KILLCAM REPLAY", on ? "On" : "Off", FALSE, clicked);
+		if (st != 0)
+		{
+			g_click_consumed = TRUE;
+			cvar_set("bm_killcam", on ? "0" : "1");
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}

@@ -79,6 +79,7 @@ void() BM_Precache =
 	Soi6_Precache ();
 	JohnBird_Precache ();
 	RocketRider_Precache ();
+	KC_Precache ();
 	precache_sound ("items/r_item1.wav");	// skeet reward sound (proj_collide.qc); maps without health items never precached it
 	// spawn karts (client.qc Spawn_CheckKart) can only use precached kart kinds: a map that places karts loads its own,
 	// every other map gets the two lightest ones (~12 MB instead of ~42 MB for all six)
@@ -627,6 +628,7 @@ void() BM_Stats =
 	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
 	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
+	KC_Stats ();
 };
 
 float() BM_CountPlayers =
@@ -910,6 +912,11 @@ void(string s) SV_ParseClientCommand =
 		BM_Hat_Command (argv (1));
 		return;
 	}
+	if (n >= 2 && argv (0) == "bm_killcam")
+	{
+		KC_Command (self, argv (1));
+		return;
+	}
 	if (autocvar_bm_vote && n >= 1)
 	{
 		if (argv (0) == "say" || argv (0) == "say_team")
@@ -1066,6 +1073,7 @@ void() BM_StartFrame =
 	BM_BotStartFrame ();
 	BM_ObsCheckDiscard ();
 	BM_Radar_Tick ();
+	KC_Tick ();
 	if (autocvar_bm_debug && time >= bm_debug_t)
 	{
 		bm_debug_t = time + 2;

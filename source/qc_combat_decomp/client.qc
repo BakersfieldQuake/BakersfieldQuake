@@ -2095,6 +2095,8 @@ void() PutClientInServer =
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
 	JohnBird_Reset(self);	// clear sticky slow / burning / CSQC stats on spawn
 	RocketRider_Reset(self);	// restore camera/body if respawning after Rocket Rider death
+	KC_Reset(self);
+	self.customizeentityforclient = KC_PlayerCustomize;
 	Practice_OnPlayerSpawn(self);
 	Hammer_Spawn();	// no charge left over (hammer.qc)
 	W_SetCurrentAmmo();
@@ -2437,6 +2439,10 @@ void() PlayerDeathThink =
 		{
 			Spectate();
 		}
+	}
+	if (KC_DeathThink(self))
+	{
+		return;
 	}
 	autocvar_berserkmode = 1;
 	if ((self.deadflag == DEAD_DEAD))
@@ -4378,6 +4384,7 @@ void() ClientConnect =
 	self.skypad_safe_t = 0;
 	self.skypad_cool_t = 0;
 	PC_ResetPlayer(self);
+	KC_ClientConnect(self);
 	self.skypad_vel_sent = FALSE;
 	ClientInRankings();
 	// an observer stays one across map changes: parm11 is set by SetChangeParms (the engine loads
@@ -4432,6 +4439,7 @@ void() ClientDisconnect =
 	FD_Reset(self);				// a Rob Dob pilot's head would hum on, orphaned
 	BM_ClientGone(self);		// NetSend PCs, armed pickles, Mega Men: they must not shoot on in an empty (or reused) slot's name
 	BM_Radar_ClientGone(self);
+	KC_ClientDisconnect(self);
 	HeldVwep_Clear(self);
 	BM_Hat_Clear (self);
 	self.bm_hat = 0;

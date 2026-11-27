@@ -38,23 +38,13 @@ void() DN3SG_PrecachePics =
 	precache_pic("gfx/dn3sg/hud_icon.png");
 };
 
-void(float cw, float ch) DN3SG_DrawViewmodel =
+void(float cw, float ch, float st, float spd) DN3SG_DrawFrame =
 {
-	local float st, fr, ofs_flag, bright, raise_px, spd;
+	local float fr, ofs_flag, bright, raise_px;
 	local float xofs, yofs, sw, sh, sx, sy, px, py, pw, ph;
 	local float target_amp, bx, by, cs, cs2, dt;
 	local string pic;
 	local vector col;
-
-	st = getstati(BMST_DN3SG_FRAME);
-	if (st <= 0)
-		return;
-	if (inMenu || intermission || finale)
-		return;
-	if (getstati(STAT_HEALTH) <= 0)
-		return;
-	if (cvar("r_drawviewmodel") <= 0 || cvar("chase_active") > 0)
-		return;
 
 	fr = st & 63;
 	if (fr < 1 || fr > 20)
@@ -88,7 +78,6 @@ void(float cw, float ch) DN3SG_DrawViewmodel =
 	dt = frametime;
 	if (dt < 0 || dt > 0.1)
 		dt = 0.016;
-	spd = getstati(BMST_DN3SG_SPEED);
 	target_amp = min(1, spd / 320) * 7.5;
 	if (fr > 1 && fr != 1 && raise_px <= 0)
 		target_amp = target_amp * 0.25;
@@ -120,4 +109,21 @@ void(float cw, float ch) DN3SG_DrawViewmodel =
 		col = '0.9 0.9 0.9';
 
 	drawpic(px * '1 0 0' + py * '0 1 0', pic, pw * '1 0 0' + ph * '0 1 0', col, 1, 0);
+};
+
+void(float cw, float ch) DN3SG_DrawViewmodel =
+{
+	local float st, spd;
+
+	st = getstati(BMST_DN3SG_FRAME);
+	if (st <= 0)
+		return;
+	if (inMenu || intermission || finale)
+		return;
+	if (getstati(STAT_HEALTH) <= 0)
+		return;
+	if (cvar("r_drawviewmodel") <= 0 || cvar("chase_active") > 0)
+		return;
+	spd = getstati(BMST_DN3SG_SPEED);
+	DN3SG_DrawFrame(cw, ch, st, spd);
 };

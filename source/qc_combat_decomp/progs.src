@@ -38,6 +38,7 @@ bicycles_defs.qc
 eric_cannon_defs.qc
 mm_tank_defs.qc
 bm_minimap_defs.qc
+bm_killcam_defs.qc
 proj_collide_defs.qc
 bako_destruct_defs.qc
 waypoints.map_dm1.qc
@@ -149,6 +150,7 @@ bm_reload.qc
 bm_gunwheel.qc
 bm_match.qc
 bm_minimap.qc
+bm_killcam.qc
 bm_fun.qc
 skypad.qc
 q3pad.qc

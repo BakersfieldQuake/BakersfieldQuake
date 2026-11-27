@@ -60,8 +60,9 @@ void(entity targ, entity attacker) Killed =
 		return;
 	}
 	Underdog_Killed(targ, attacker);
-	if (((targ.classname == "player") || (targ.flags & FL_MONSTER)))
+	if ((targ.classname == "player") || (targ.flags & FL_MONSTER))
 		BM_Radar_Ping(targ, targ.origin, BM_RPK_KILL);
+	KC_OnPlayerKilled(targ, attacker, targ.dmg_inflictor);
 	self.enemy = attacker;
 	if ((self.flags & FL_MONSTER))
 	{
@@ -345,9 +346,11 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 			targ.painskin_helper = 1;
 		}
 		HitSound_Play(targ, attacker, take);
+		KC_NoteHit(attacker, targ, targ.origin + '0 0 18');
 	}
 	if ((targ.health <= 0))
 	{
+		targ.dmg_inflictor = inflictor;
 		targ.grimrock_helper = -1;
 		if (((autocvar_quadreplacer > 0) && (random() < 0.175)))
 		{

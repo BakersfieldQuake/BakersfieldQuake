@@ -162,6 +162,7 @@ void() CSQC_Init =
 	registercvar("bm_minimap_rotate", "1");
 	registercvar("bm_minimap_compass", "1");
 	registercvar("bm_minimap_fov", "0.07");
+	BM_Killcam_Init();
 	registercommand("bako_cmd");
 	registercommand("+gunwheel");
 	registercommand("-gunwheel");
@@ -432,8 +433,11 @@ void(float w, float h) CSQC_UpdateView =
 	char_open = cvar("bm_char_open");
 	if (char_open <= 0 || cvar("bm_char_bg_owned") <= 0)
 		BM_Hat_SendChoice();
+	BM_Killcam_SendChoice();
 
 	clearscene();
+	local float kc_on;
+	kc_on = BM_Killcam_IsActive();
 	bm_intro = getstati(69);
 	fd_mode = getstati(BMST_FD_MODE);
 	jb_active = getstati(BMST_JB_ACTIVE);
@@ -477,6 +481,8 @@ void(float w, float h) CSQC_UpdateView =
 		RH_AddXRayEntities();
 	if (!inMenu && !bm_intro)
 		MMT_DrawAimLine3D();
+	if (kc_on)
+		BM_Killcam_ApplyScene();
 	renderscene();
 	if (char_open > 0)
 	{
@@ -493,6 +499,16 @@ void(float w, float h) CSQC_UpdateView =
 		{
 			BM_DrawIntroHUD(w, h);
 		}
+	}
+	else if (kc_on)
+	{
+		cw = vid_conwidth;
+		ch = vid_conheight;
+		if (cw <= 0) cw = cvar("vid_conwidth");
+		if (ch <= 0) ch = cvar("vid_conheight");
+		if (cw <= 0) cw = w;
+		if (ch <= 0) ch = h;
+		BM_Killcam_DrawHUD(cw, ch);
 	}
 	else
 	{
@@ -567,7 +583,7 @@ void(float w, float h) CSQC_UpdateView =
 			}
 		}
 	}
-	if (!bm_intro)
+	if (!bm_intro && !kc_on)
 	{
 		DrawScoreboard();
 		BM_DrawScoreKeys();
@@ -631,6 +647,10 @@ void(float isnew) CSQC_Ent_Update =
 			{
 				DN3FX_EntUpdate(isnew);
 			}
+			else if ((self.enttype == ENT_BM_KILLCAM))
+			{
+				BM_Killcam_EntUpdate(isnew);
+			}
 			else
 			{
 				print(/*11460i*/"ERR: Unhandled CSQC entity\n");
@@ -657,6 +677,11 @@ void() CSQC_Ent_Remove =
 		return;
 	}
 	if ((self.enttype == ENT_DN3FX))
+	{
+		remove(self);
+		return;
+	}
+	if ((self.enttype == ENT_BM_KILLCAM))
 	{
 		remove(self);
 		return;
