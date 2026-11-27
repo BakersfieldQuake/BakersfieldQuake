@@ -25,7 +25,7 @@
 
 .EXAMPLE
     .\source\ci\test_lowmem_maps.ps1 -Engine G:\Quake\_bq_fork_engine\out\zircon_beta_lowmem.exe `
-        -Maps bakersfielddowntown,bakersfielddowntown_lite,soi6 -Tier ultralow `
+        -Maps bakersfielddowntown,bklan6,soicowboy_bkk -Tier ultralow `
         -CommitCapMB 2048 -Repeat 3 -TestMapChange -TestOOMGraceful
 #>
 [CmdletBinding()]
@@ -44,7 +44,7 @@ param(
     [int]$TimeoutSeconds = 90,
     [int]$SampleMs = 200,
     [switch]$TestMapChange,
-    [string]$MapChangeFrom = "soi6",
+    [string]$MapChangeFrom = "soicowboy_bkk",
     [string]$MapChangeTo = "bakersfielddowntown",
     [switch]$TestOOMGraceful,
     [int]$OOMCapMB = 400,

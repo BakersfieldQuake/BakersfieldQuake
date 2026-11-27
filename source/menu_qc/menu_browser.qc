@@ -186,7 +186,7 @@ void(float cx, float cy, float cw, float ch, float idx, float sel, float clicked
 	{
 		cname = BAKO_ONLINE_ADDR;
 		sname = "BAKERSFIELD ONLINE (PINNED)";
-		smap = "soi6";
+		smap = "bakersfielddowntown";
 		ping = -1;
 		nump = 0;
 		maxp = 16;

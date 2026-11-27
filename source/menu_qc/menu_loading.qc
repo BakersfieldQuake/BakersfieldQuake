@@ -86,11 +86,8 @@ string(string bsp) BM_Loading_PrettyMap =
 
 	m = BM_CleanMapName(bsp);
 	if (m == "") return "BAKERSFIELD";
-	if (m == "soi6") return "SOI 6";
 	if (m == "soicowboy_bkk") return "SOI COWBOY BKK";
 	if (m == "bakersfielddowntown") return "BAKERSFIELD DOWNTOWN";
-	if (m == "bakersfieldish") return "BAKERSFIELD-ISH";
-	if (m == "morrorock") return "MORRO ROCK";
 	if (m == "bklan6") return "BKLAN 6";
 	if (m == "spruce") return "SPRUCE ST";
 	if (m == "dm6") return "DM6";

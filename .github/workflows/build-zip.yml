@@ -150,24 +150,11 @@ jobs:
           rm BAKOQUAKE.zip
           test -f out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3
           test -f out/BAKOQUAKE/quake15/q15.pk3
-          # 2026-11-23: only soi6, soicowboy_bkk, spruce, practice, morrorock, bakersfielddowntown and bklan6 ship; drop the rest
-          for m in aerowalk bakersfielddowntown_lite fox goldenwest hart kyle_range little_st_james lolmap1 ooika_lawrenceville slo_bike_kitchen terminal21; do
+          # 2026-11-27: only bakersfielddowntown, bklan6, soicowboy_bkk, spruce and practice (Character Studio) ship; drop the rest
+          for m in aerowalk bakersfielddowntown_lite bakersfieldish fox goldenwest hart kyle_range little_st_james lolmap1 morrorock ooika_lawrenceville slo_bike_kitchen soi6 terminal21; do
             rm -f out/BAKOQUAKE/BakersfieldQuake/maps/$m.* out/BAKOQUAKE/BakersfieldQuake/levelshots/$m.jpg
           done
-          rm -f out/BAKOQUAKE/BakersfieldQuake/zz_hart.pk3
-          # Fetch loose bakersfieldish map files if not yet present in the base release zip.
-          # The .bsp is the 2026-11-26 "clear streets" build: the 75 parked cars and their clip boxes are gone
-          # (collision hulls grafted by source/mm_tools/graft_bsp_hulls.py; looks and lighting unchanged, same .lit).
-          bako_bsp=out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.bsp
-          bako_lit=out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.lit
-          if [ ! -f "$bako_bsp" ] || [ "$(sha256sum "$bako_bsp" | awk '{print $1}')" != "8a933cbd4e096f733ecbdb7d03fc3dfb20b167e66fea86a3d328c7cc281c39b9" ]; then
-            curl -fsSL -o "$bako_bsp" https://bakersfield.larrywew.fun/maps/bakersfieldish_clearstreets.bsp
-          fi
-          if [ ! -f "$bako_lit" ] || [ "$(sha256sum "$bako_lit" | awk '{print $1}')" != "7b69bb7445d01d255996b7ced2054cf86f575a539a24458a1d7bc8a5d1ddad0a" ]; then
-            curl -fsSL -o "$bako_lit" https://bakersfield.larrywew.fun/maps/bakersfieldish.lit
-          fi
-          echo "8a933cbd4e096f733ecbdb7d03fc3dfb20b167e66fea86a3d328c7cc281c39b9  $bako_bsp" | sha256sum -c -
-          echo "7b69bb7445d01d255996b7ced2054cf86f575a539a24458a1d7bc8a5d1ddad0a  $bako_lit" | sha256sum -c -
+          rm -f out/BAKOQUAKE/BakersfieldQuake/zz_hart.pk3 out/BAKOQUAKE/BakersfieldQuake/zz_bakersfieldish.pk3
           base_bakersfield=$(sha256sum out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 | awk '{print $1}')
           base_q15=$(sha256sum out/BAKOQUAKE/quake15/q15.pk3 | awk '{print $1}')
           base_maps=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/maps/*.bsp | sha256sum | awk '{print $1}')
@@ -188,9 +175,6 @@ jobs:
 
       - name: Patch Dagny's upstairs LAN party into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/patch_dagnys_lan_bsp.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
-
-      - name: Patch the sunny blue sky into bakersfieldish.bsp
-        run: python -I repo/source/mm_tools/patch_bakersfieldish_sky.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfieldish.bsp
 
       - name: Patch ForeLoco powerups into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/foreloco/patch_foreloco_maps.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
@@ -370,13 +354,6 @@ jobs:
           path: pk3cache/zz_loading.pk3
           key: zz_loading-${{ env.BASE_BAKERSFIELD_SHA256 }}-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/loading_screen/build_loading_pk3.py', 'repo/source/mm_tools/loading_screen/assets/**') }}
 
-      - name: Cache zz_bakersfieldish.pk3
-        id: cache_bakersfieldish
-        uses: actions/cache/restore@v6
-        with:
-          path: pk3cache/zz_bakersfieldish.pk3
-          key: zz_bakersfieldish-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_bakersfieldish_pk3.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/bakersfieldish_assets/**') }}
-
       - name: Cache zz_player_deaths.pk3
         id: cache_player_deaths
         uses: actions/cache/restore@v6
@@ -427,7 +404,7 @@ jobs:
           key: zz_cyrax-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/cyrax/build_cyrax_pk3.py', 'repo/source/mm_tools/cyrax/build_viewmodel.py', 'repo/source/mm_tools/cyrax/build_net_models.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/cyrax/assets/src_keyframes/**', 'repo/source/mm_tools/cyrax/assets/tex/**', 'repo/source/mm_tools/cyrax/assets/sfx/**') }}
 
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_bakersfieldish.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -629,19 +606,6 @@ jobs:
           path: pk3cache/zz_loading.pk3
           key: ${{ steps.cache_loading.outputs.cache-primary-key }}
 
-      - name: Build zz_bakersfieldish.pk3
-        if: steps.cache_bakersfieldish.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p pk3cache
-          python -I repo/source/mm_tools/build_bakersfieldish_pk3.py pk3cache/zz_bakersfieldish.pk3 --verify-repro
-
-      - name: Save zz_bakersfieldish.pk3 cache
-        if: steps.cache_bakersfieldish.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: pk3cache/zz_bakersfieldish.pk3
-          key: ${{ steps.cache_bakersfieldish.outputs.cache-primary-key }}
-
       - name: Build zz_player_deaths.pk3
         if: steps.cache_player_deaths.outputs.cache-hit != 'true'
         run: |
@@ -740,9 +704,9 @@ jobs:
           key: ${{ steps.cache_cyrax.outputs.cache-primary-key }}
 
       - name: Hash levelshot inputs
-        # zz_levelshots.pk3 is made from the base package's levelshots/*.jpg plus the one in zz_bakersfieldish.pk3
+        # zz_levelshots.pk3 is made from the base package's levelshots/*.jpg
         run: |
-          shots=$( { LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/levelshots/*.jpg; sha256sum pk3cache/zz_bakersfieldish.pk3 | awk '{print $1}'; } | sha256sum | awk '{print $1}')
+          shots=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/levelshots/*.jpg | sha256sum | awk '{print $1}')
           echo "LEVELSHOTS_INPUT_SHA256=$shots" >> "$GITHUB_ENV"
 
       - name: Cache zz_levelshots.pk3
@@ -759,7 +723,7 @@ jobs:
         run: |
           mkdir -p pk3cache
           python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes
-          python -I repo/source/mm_tools/build_levelshots_pk3.py out/BAKOQUAKE/BakersfieldQuake pk3cache/zz_levelshots.pk3 --pk3 pk3cache/zz_bakersfieldish.pk3 --verify-repro
+          python -I repo/source/mm_tools/build_levelshots_pk3.py out/BAKOQUAKE/BakersfieldQuake pk3cache/zz_levelshots.pk3 --verify-repro
 
       - name: Save zz_levelshots.pk3 cache
         if: steps.cache_levelshots.outputs.cache-hit != 'true'
@@ -807,7 +771,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1172,31 +1136,9 @@ jobs:
                       if req not in lnames:
                           errors.append(f"zz_loading.pk3 lacks {req}")
 
-          bakoish = os.path.join(root, "BakersfieldQuake", "zz_bakersfieldish.pk3")
-          if not os.path.isfile(bakoish):
-              errors.append("missing BakersfieldQuake/zz_bakersfieldish.pk3")
-          else:
-              with zipfile.ZipFile(bakoish) as z:
-                  bnames = set(z.namelist())
-                  for req in (
-                      "progs/bako_boulder1.md3",
-                      "progs/bako_boulder2.md3",
-                      "progs/bako_boulder3.md3",
-                      "progs/bako_boulder4.md3",
-                      "progs/bako_glass_shard1.md3",
-                      "progs/bako_glass_shard2.md3",
-                      "progs/bako_glass_shard3.md3",
-                      "levelshots/bakersfieldish.jpg",
-                      "gfx/minimap/bakersfieldish.png",
-                      "gfx/minimap/bakersfieldish.txt",
-                      "scripts/bakersfieldish_minimap.shader",
-                  ):
-                      if req not in bnames:
-                          errors.append(f"zz_bakersfieldish.pk3 lacks {req}")
-          for mrel in ("BakersfieldQuake/maps/bakersfieldish.bsp", "BakersfieldQuake/maps/bakersfieldish.lit"):
-              mp = os.path.join(root, mrel)
-              if not os.path.isfile(mp) or os.path.getsize(mp) == 0:
-                  errors.append(f"missing or empty {mrel}")
+          for dropped in ("soi6", "bakersfieldish", "morrorock"):
+              if os.path.exists(os.path.join(root, "BakersfieldQuake", "maps", f"{dropped}.bsp")):
+                  errors.append(f"BakersfieldQuake/maps/{dropped}.bsp was removed and must not ship")
 
           pdeaths = os.path.join(root, "BakersfieldQuake", "zz_player_deaths.pk3")
           if not os.path.isfile(pdeaths):
@@ -1409,7 +1351,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release create "$tag" "${assets[@]}" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" "${flags[@]}" \
             --title "$tag" \
-            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_hats.pk3, zz_gunwheel.pk3, bakersfielddowntown.bsp, bakersfielddowntown_lite.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
+            --notes "Playable packages, built by the Build release packages workflow from ${BASE} + repo ${GITHUB_SHA::7} (progs.dat, menu.dat, csprogs.dat, configs, zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_disk.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_hats.pk3, zz_gunwheel.pk3, bakersfielddowntown.bsp, bklan6.bsp, soicowboy_bkk.bsp, spruce.bsp). Windows/Linux/macOS engine from ${ENGINE_REPO}@${ENGINE}. <!-- mac-inputs: ${MAC_INPUTS} -->
 
           Already installed? Play and Start Server (Windows, Linux) and the macOS app verify all game assets on launch and prompt to update whenever files changed or are missing (GitHub with VPS fallback).
 
