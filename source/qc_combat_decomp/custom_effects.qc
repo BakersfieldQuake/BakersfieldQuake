@@ -314,7 +314,7 @@ void() Quake3_quad_effect_v_weapon_position_anim =
 	}
 	else
 	{
-		if ((self.owner.weapon == IT_SUPER_SHOTGUN))
+		if ((self.owner.weapon == IT_SUPER_SHOTGUN) || (self.owner.weapon == IT_NAILGUN))
 		{
 			setmodel(self, "");
 			self.origin_x = autocvar_weapon_position_fully_adjustable_shot2_x_offset;
@@ -1051,7 +1051,7 @@ void() v_weapon_position_think =
 	}
 	else
 	{
-		if ((self.owner.weapon == IT_SUPER_SHOTGUN))
+		if ((self.owner.weapon == IT_SUPER_SHOTGUN) || (self.owner.weapon == IT_NAILGUN))
 		{
 			self.initial_weapon_position_axe = 0;
 			self.initial_weapon_position_shot1 = 0;

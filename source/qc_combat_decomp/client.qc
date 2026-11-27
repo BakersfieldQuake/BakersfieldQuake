@@ -853,7 +853,7 @@ void() SetChangeParms =
 
 void() SetNewParms =
 {
-	parm1 = 69754;		// all stock + Combat+ weapons except IT_CHAINSAW, IT_SHOTGUN and IT_NAILGUN
+	parm1 = 69758;		// all stock + Combat+ weapons except IT_CHAINSAW and IT_SHOTGUN
 	parm2 = 100;
 	parm3 = 0;
 	parm4 = 60;
@@ -885,8 +885,8 @@ void() DecodeLevelParms =
 	self.ammo_rockets = parm6;
 	self.ammo_cells = parm7;
 	self.weapon = parm8;
-	self.items = (self.items - (self.items & (IT_SHOTGUN | IT_NAILGUN)));
-	if (self.weapon == IT_SHOTGUN || self.weapon == IT_NAILGUN)
+	self.items = (self.items - (self.items & IT_SHOTGUN));
+	if (self.weapon == IT_SHOTGUN)
 		self.weapon = IT_SUPER_SHOTGUN;
 	self.armortype = (parm9 * 0.01);
 	self.grenade_ammo = parm10;
@@ -2072,6 +2072,7 @@ void() PutClientInServer =
 	}
 	BM_Spawn();	// full magazines
 	DN3SG_Reset();	// DN3DooM Pump Shotgun state reset
+	DN3CG_Reset();	// DN3DooM Chaingun Cannon state reset
 	Jetpack_Spawn();	// no fuel left over (jetpack.qc)
 	Veh_SpawnReset();	// not driving or riding (vehicle_drive.qc)
 	TW_Reset(self);		// clear B. Triple Wheeled state (triple_wheeled.qc)
@@ -4289,6 +4290,7 @@ void() ClientDisconnect =
 	self.bm_rl_quiet = 0;
 	self.axeequipped = 0;
 	DN3SG_Reset();
+	DN3CG_Reset();
 	self.classname = "";		// a leaver's body must not stay in every find(world, classname, "player") loop: frags, leader, player count
 	self.health = 0;
 	self.takedamage = DAMAGE_NO;	// nor be a body that can be shot, or homed on, until the slot is reused
@@ -4635,6 +4637,11 @@ void(entity targ, entity attacker) ClientObituary =
 					{
 						deathstring = " ate 2 loads of ";
 						deathstring2 = "'s buckshot\n";
+					}
+					if ((rnum == IT_NAILGUN))
+					{
+						deathstring = " was riddled with bullets by ";
+						deathstring2 = "'s Chaingun Cannon\n";
 					}
 					if ((rnum == IT_SUPER_NAILGUN))
 					{

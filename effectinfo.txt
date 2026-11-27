@@ -22812,3 +22812,20 @@ lightradiusfade 1200
 lightshadow 0
 lightcolor 1.1 1.85 0.35
 // ---- Cyrax Net Launcher FX end
+
+// ---- DN3DooM Chaingun Cannon brass casings (dn3_chaingun.qc)
+effect dn3cg_casing
+notunderwater
+count 1
+type spark
+tex 63 63
+color 0xffd24d 0xc88a1e
+size 1.6 2.1
+stretchfactor 1.5
+alpha 235 256 220
+time 0.65 1.25
+originjitter 1.5 1.5 1.5
+velocityjitter 22 22 18
+gravity 1.1
+bounce 0.5
+airfriction 0.25

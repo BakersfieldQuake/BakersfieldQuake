@@ -17,6 +17,7 @@ bm_defs.qc
 antilag_defs.qc
 bm_hats_defs.qc
 dn3_shotgun_defs.qc
+dn3_chaingun_defs.qc
 dn3_fx_defs.qc
 practice_defs.qc
 sniper_defs.qc
@@ -110,6 +111,7 @@ tim_cine.qc
 bpolo_npc.qc
 weapons.qc
 dn3_shotgun.qc
+dn3_chaingun.qc
 megaman.qc
 banana.qc
 funguns.qc

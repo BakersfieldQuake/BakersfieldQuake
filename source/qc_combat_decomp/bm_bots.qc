@@ -233,6 +233,7 @@ vector(float wep) BM_BotWeaponRange =
 	if (wep == IT_MEGAMAN)			return '520 90 2400';
 	if (wep == IT_AXE)				return '55 0 150';
 	if (wep == IT_SUPER_SHOTGUN)	return '160 0 650';
+	if (wep == IT_NAILGUN)			return '420 0 1300';	// Chaingun Cannon
 	if (wep == IT_SUPER_NAILGUN)	return '350 60 1200';	// Milky Gun
 	if (wep == IT_GRENADE_LAUNCHER)	return '380 120 1050';
 	if (wep == IT_ROCKET_LAUNCHER)	return '450 130 2200';
@@ -272,6 +273,12 @@ float(float id) BM_BotCanUseWeapon =
 		if (!(self.items & IT_SUPER_SHOTGUN)) return FALSE;
 		if (autocvar_bm_reload) return (BM_GetMag (self, BM_SSG) >= 1);
 		return (self.ammo_shells >= 1);
+	}
+	if (id == 4)
+	{
+		if (!(self.items & IT_NAILGUN)) return FALSE;
+		if (autocvar_bm_reload) return (BM_GetMag (self, BM_NG) >= 1);
+		return (self.ammo_nails >= 1);
 	}
 	if (id == 5)
 	{
@@ -338,6 +345,7 @@ float() BM_BotCurWeaponID =
 	if (self.weapon == IT_ROCKET_LAUNCHER)	return 7;
 	if (self.weapon == IT_GRENADE_LAUNCHER)	return 6;
 	if (self.weapon == IT_SUPER_NAILGUN)	return 5;
+	if (self.weapon == IT_NAILGUN)			return 4;
 	if (self.weapon == IT_SUPER_SHOTGUN)	return 3;
 	return 1;
 };
@@ -448,6 +456,7 @@ float(float brange) BM_BotWeaponSwitch =
 				// Point-blank melee & close-quarters chaos
 				if (id == 1)		w = 18;		// Bonk Hammer
 				else if (id == 3)	w = 26;		// Super Shotgun
+				else if (id == 4)	w = 16;		// Chaingun Cannon
 				else if (id == 8)	w = 18;		// Lightning Gun
 				else if (id == 9)	w = 14;		// CCC Laser
 				else if (id == 5)	w = 15;		// Milky Gun
@@ -458,6 +467,7 @@ float(float brange) BM_BotWeaponSwitch =
 			{
 				// Close-to-mid street brawls
 				if (id == 3)		w = 19;		// Super Shotgun
+				else if (id == 4)	w = 22;		// Chaingun Cannon
 				else if (id == 67)	w = 20;		// M4A1
 				else if (id == 7)	w = 22;		// Rocket Launcher
 				else if (id == 5)	w = 17;		// Milky Gun
@@ -475,6 +485,7 @@ float(float brange) BM_BotWeaponSwitch =
 			{
 				// Mid-range boulevard / rooftop-to-street firefights
 				if (id == 7)		w = 24;		// Rocket Launcher
+				else if (id == 4)	w = 18;		// Chaingun Cannon
 				else if (id == 67)	w = 22;		// M4A1
 				else if (id == 9)	w = 17;		// CCC Laser
 				else if (id == 5)	w = 11;		// Milky Gun
@@ -795,13 +806,14 @@ void() BM_BotSpawnLoadout =
 	k = 0;
 	while (k < 3)
 	{
-		r = floor (random () * 6);
+		r = floor (random () * 7);
 		if (r == 0)			self.items = self.items | IT_SUPER_SHOTGUN;
 		else if (r == 1)	self.items = self.items | IT_SUPER_NAILGUN;		// Milky Gun
 		else if (r == 2)	self.items = self.items | IT_GRENADE_LAUNCHER;
 		else if (r == 3)	self.items = self.items | IT_ROCKET_LAUNCHER;
 		else if (r == 4)	self.items = self.items | IT_LIGHTNING;
-		else				self.items = self.items | IT_LASER_CANNON;		// CCC Laser Cannon
+		else if (r == 5)	self.items = self.items | IT_LASER_CANNON;		// CCC Laser Cannon
+		else				self.items = self.items | IT_NAILGUN;			// Chaingun Cannon
 		k = k + 1;
 	}
 
