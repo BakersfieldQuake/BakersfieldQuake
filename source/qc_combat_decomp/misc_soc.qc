@@ -21,7 +21,7 @@ void() misc_smoke_on =
 	}
 	if (self.partname)
 	{
-		self.traileffectnum = particleeffectnum(self.partname);
+		self.traileffectnum = BM_TrailEffect(self.partname);
 	}
 	if ((self.mdl != ""))
 	{
@@ -483,7 +483,7 @@ void() misc_model_on =
 	self.skin = self.pos2_z;
 	if (self.partname)
 	{
-		self.traileffectnum = particleeffectnum(self.partname);
+		self.traileffectnum = BM_TrailEffect(self.partname);
 	}
 	if ((self.pos1_z == -1))
 	{

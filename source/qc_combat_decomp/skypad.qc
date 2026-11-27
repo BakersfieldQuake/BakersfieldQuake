@@ -517,7 +517,7 @@ float() SkyPad_FxCustomize =
 	local vector vorg;
 	local float dx, dy;
 
-	if (other.ishuman != 1)
+	if (other.ishuman == 0)		// humans (1) and observers (3) see it; "!= 1" hid it from observers
 		return FALSE;
 	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
 	dx = vorg_x - self.origin_x;
@@ -534,7 +534,7 @@ float() SkyPad_CoreCustomize =
 	local vector vorg;
 	local float dx, dy;
 
-	if (other.ishuman != 1)
+	if (other.ishuman == 0)		// humans (1) and observers (3) see it; "!= 1" hid it from observers
 		return FALSE;
 	vorg = (other.clientcamera != world) ? other.clientcamera.origin : other.origin;
 	dx = vorg_x - self.origin_x;

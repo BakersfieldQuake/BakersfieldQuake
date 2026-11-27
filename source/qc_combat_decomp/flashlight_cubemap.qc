@@ -2,13 +2,15 @@
 
 void() flash_update_cubemap =
 {
-	if ((autocvar_flashlight_type == 1))
+	// see flash_update: the owner's flash_flag goes off with the light, so a later press cannot touch a freed edict
+	if ((autocvar_flashlight_type == 1) || (self.owner.deadflag != DEAD_NO) || intermission_running
+		|| (self.owner.classname != "player") || (self.owner.flash != self))
 	{
-		remove(self);
-		return;
-	}
-	if (((self.owner.deadflag != DEAD_NO) || intermission_running))
-	{
+		if (self.owner.flash == self)
+		{
+			self.owner.flash_flag = 0;
+			self.owner.flash = world;
+		}
 		remove(self);
 		return;
 	}
@@ -60,7 +62,8 @@ void() flash_toggle_cubemap =
 		sound(self, CHAN_AUTO, "player/click.wav", 0.5, ATTN_NORM);
 		sprint(self, "Flashlight: OFF\n");
 		self.flash_flag = 0;
-		self.flash.think = SUB_Remove;
-		self.flash.nextthink = (time + 0.1);
+		if (self.flash && (self.flash.owner == self) && (self.flash.classname == "flash_cubemap"))
+			remove(self.flash);
+		self.flash = world;
 	}
 };

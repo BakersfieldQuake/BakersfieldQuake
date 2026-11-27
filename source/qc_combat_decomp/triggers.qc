@@ -843,7 +843,7 @@ void() trigger_push_touch =
 	}
 	if ((self.spawnflags & PUSH_ONCE))
 	{
-		remove(self);
+		BM_PushRemove(self);
 	}
 };
 

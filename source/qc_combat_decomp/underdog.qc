@@ -143,6 +143,7 @@ float(entity p) Underdog_IsLast =
 
 // Killed (before the obituary adds the normal frag): the bounty, and the newbie taunt for last place
 void(entity p) Underdog_ClearFx;
+void(entity p) Underdog_SweepOrphans;
 
 void() Underdog_PinataTouch =
 {
@@ -287,6 +288,24 @@ void(entity p) Underdog_ClearFx =
 		}
 		p.ud_aura = world;
 	}
+};
+
+// ClientConnect: a human who joins into a bot's slot gets an edict the engine wiped without ClientDisconnect, so the
+// bot's ud_aura field is gone but its leader glow and beacon entities are not. They have no think and would hang in
+// the map, visible through walls, until the map ends. Nothing a connecting client owns yet is legitimate.
+void(entity p) Underdog_SweepOrphans =
+{
+	local entity e, nx;
+
+	e = find (world, classname, "ud_fx");
+	while (e != world)
+	{
+		nx = find (e, classname, "ud_fx");
+		if (e.owner == p)
+			remove (e);
+		e = nx;
+	}
+	p.ud_aura = world;
 };
 
 // every frame for living players (BM_LifeFrame): keep the effects glued to the leader.

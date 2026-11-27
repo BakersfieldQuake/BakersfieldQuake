@@ -213,8 +213,10 @@ void() BM_Character_Shutdown =
 void() BM_Char_LeaveBackdrop =
 {
 	cvar_set("bm_char_bg_owned", "0");
-	localcmd(strcat("set bm_menu_bg 0; disconnect; deathmatch ", ftos(g_char_saved_dm), "; coop ", ftos(g_char_saved_coop),
-		"; maxplayers ", ftos(max(1, g_char_saved_maxp)), "\n"));
+	// maxplayers goes first: the engine's maxplayers command sets deathmatch itself (0 for one slot, 1 for more), so
+	// the saved deathmatch value has to be written after it
+	localcmd(strcat("set bm_menu_bg 0; disconnect; maxplayers ", ftos(max(1, g_char_saved_maxp)),
+		"; deathmatch ", ftos(g_char_saved_dm), "; coop ", ftos(g_char_saved_coop), "\n"));
 };
 
 void() BM_Character_OnMenuHide =
@@ -246,7 +248,9 @@ void() BM_Character_Open =
 		cvar_set("bm_char_bg_owned", "1");
 		g_char_saved_dm = cvar("deathmatch");
 		g_char_saved_coop = cvar("coop");
-		g_char_saved_maxp = cvar("maxplayers");
+		// maxplayers is an engine command, not a cvar, so it cannot be read (cvar() answers 0, and restoring that
+		// left the game on one slot and deathmatch 0). 16 is what autoexec.cfg sets every launch.
+		g_char_saved_maxp = 16;
 		g_char_loading = TRUE;
 		g_char_ready_t = 0;
 		g_char_load_t = gettime();

@@ -892,6 +892,8 @@ void() DecodeLevelParms =
 	}
 	self.items = parm1;
 	self.health = parm2;
+	if (deathmatch)
+		self.health = 100;	// a new map is a new match: no starting it on the 50 HP you ended the last one with
 	self.armorvalue = parm3;
 	self.ammo_shells = parm4;
 	self.ammo_nails = parm5;
@@ -2004,6 +2006,7 @@ void() PutClientInServer =
 	self.wetsuit_finished = 0;
 	self.inflamed = 0;
 	self.shocked = 0;
+	self.poisoned = 0;		// slime poison belongs to the life that touched the slime
 	self.touch = SUB_Null;
 	self.colormod = '1 1 1';
 	self.skin = 0;
@@ -3541,7 +3544,7 @@ void() WetsuitTime =
 		}
 		if ((self.wetsuit_finished < time))
 		{
-			self.items = (self.items - IT_SUIT);
+			self.items = (self.items - (self.items & IT_SUIT));
 			self.wetsuit_time = 0;
 			self.wetsuit_finished = 0;
 		}
@@ -3590,7 +3593,7 @@ void() CheckPowerups =
 		}
 		if ((self.invisible_finished < time))
 		{
-			self.items = (self.items - IT_INVISIBILITY);
+			self.items = (self.items - (self.items & IT_INVISIBILITY));
 			self.invisible_finished = 0;
 			self.invisible_time = 0;
 		}
@@ -3780,7 +3783,9 @@ void() CheckPowerups =
 		}
 		if ((self.invincible_finished < time))
 		{
-			self.items = (self.items - IT_INVULNERABILITY);
+			// only clear the bit, never subtract it blind: the ForeLoco bed sets invincible_finished without the item
+			// bit, and subtracting a bit that is not there made items negative (= every powerup bit "set")
+			self.items = (self.items - (self.items & IT_INVULNERABILITY));
 			self.invincible_time = 0;
 			self.invincible_finished = 0;
 			self.has_fired = 0;
@@ -3952,7 +3957,7 @@ void() CheckPowerups =
 		}
 		if ((self.super_damage_finished < time))
 		{
-			self.items = (self.items - IT_QUAD);
+			self.items = (self.items - (self.items & IT_QUAD));
 			self.super_damage_finished = 0;
 			self.super_time = 0;
 		}
@@ -4130,7 +4135,7 @@ void() CheckPowerups =
 		}
 		if ((self.radsuit_finished < time))
 		{
-			self.items = (self.items - IT_SUIT);
+			self.items = (self.items - (self.items & IT_SUIT));
 			self.rad_time = 0;
 			self.radsuit_finished = 0;
 		}
@@ -4385,6 +4390,7 @@ void() ClientConnect =
 	PC_ResetPlayer(self);
 	KC_ClientConnect(self);
 	self.skypad_vel_sent = FALSE;
+	Underdog_SweepOrphans(self);	// leader glow left by a bot whose slot this client took (underdog.qc)
 	ClientInRankings();
 	// an observer stays one across map changes: parm11 is set by SetChangeParms (the engine loads
 	// this client's spawn parms before ClientConnect); PutClientInServer then runs BM_ObsActivate

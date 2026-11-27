@@ -6163,6 +6163,12 @@ void() CycleWeaponReverseCommand =
 
 void() ServerflagsCommand =
 {
+	// single-player rune cheat. In a match any client could set the server-wide flags (rune icons on every HUD,
+	// and the info_player_start2 spawn fallback) and they carry over to the next maps.
+	if ((deathmatch || coop))
+	{
+		return;
+	}
 	serverflags = (serverflags * 2) + 1;
 };
 

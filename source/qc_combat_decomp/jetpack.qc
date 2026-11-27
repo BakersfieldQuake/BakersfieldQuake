@@ -132,7 +132,7 @@ float() Jetpack_PickupCustomize =
 {
 	local vector d;
 
-	if (other.ishuman != 1)
+	if (other.ishuman == 0)		// humans (1) and observers (3) see it; "!= 1" hid it from observers
 		return FALSE;
 	d = ((other.clientcamera != world) ? other.clientcamera.origin : other.origin) - self.origin;
 	return (d * d < JP_PICKUP_VIEW * JP_PICKUP_VIEW);
@@ -148,7 +148,7 @@ float() Jetpack_WornCustomize =
 
 	if (other == self.owner)
 		return TRUE;		// your own chase view
-	if (other.ishuman != 1)
+	if (other.ishuman == 0)		// humans (1) and observers (3) see it; "!= 1" hid it from observers
 		return FALSE;
 	d = ((other.clientcamera != world) ? other.clientcamera.origin : other.origin) - self.owner.origin;
 	return (d * d < JP_WORN_VIEW * JP_WORN_VIEW);

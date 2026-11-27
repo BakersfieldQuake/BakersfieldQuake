@@ -12,7 +12,7 @@ void() actor_anim =
 	{
 		if ((self.spawnflags & FLAG_REMOVE_PARTICLES))
 		{
-			self.traileffectnum = particleeffectnum(string_null);
+			self.traileffectnum = 0;
 		}
 	}
 };
@@ -30,7 +30,7 @@ void() actor_throw =
 	}
 	if (self.partname)
 	{
-		newmis.traileffectnum = particleeffectnum(self.partname);
+		newmis.traileffectnum = BM_TrailEffect(self.partname);
 	}
 	newmis.angles = self.angles;
 	newmis.movetype = MOVETYPE_TOSS;

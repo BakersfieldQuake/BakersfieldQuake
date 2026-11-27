@@ -5,13 +5,20 @@ void() flash_update =
 	local entity y;
 	local vector middle;
 
-	if ((autocvar_flashlight_type == 2))
+	// The light goes away by itself when its owner dies, leaves, or the flashlight type changes. The owner's
+	// flash_flag has to go off with it: otherwise the next press takes the "off" branch and sets think = SUB_Remove
+	// on a freed edict, which by then can be another entity (a rocket, an item) and removes that instead.
+	if ((autocvar_flashlight_type == 2) || (self.owner.deadflag != DEAD_NO) || intermission_running
+		|| (self.owner.classname != "player") || ((self.owner.flash != self) && (self.owner.flash2 != self)))
 	{
-		remove(self);
-		return;
-	}
-	if (((self.owner.deadflag != DEAD_NO) || intermission_running))
-	{
+		if ((self.owner.flash == self) || (self.owner.flash2 == self))
+		{
+			self.owner.flash_flag = 0;
+			if (self.owner.flash == self)
+				self.owner.flash = world;
+			if (self.owner.flash2 == self)
+				self.owner.flash2 = world;
+		}
 		remove(self);
 		return;
 	}
@@ -111,9 +118,11 @@ void() flash_toggle =
 		sound(self, CHAN_AUTO, "player/click.wav", 0.5, ATTN_NORM);
 		sprint(self, "Flashlight: OFF\n");
 		self.flash_flag = 0;
-		self.flash.think = SUB_Remove;
-		self.flash.nextthink = (time + 0.1);
-		self.flash2.think = SUB_Remove;
-		self.flash2.nextthink = (time + 0.1);
+		if (self.flash && (self.flash.owner == self) && (self.flash.classname == "flash"))
+			remove(self.flash);
+		if (self.flash2 && (self.flash2.owner == self) && (self.flash2.classname == "flash2"))
+			remove(self.flash2);
+		self.flash = world;
+		self.flash2 = world;
 	}
 };

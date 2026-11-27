@@ -224,14 +224,16 @@ void() setHUDparms =
 	rocket_ammo = getstati(STAT_ROCKETS);
 	cell_ammo = getstati(STAT_CELLS);
 	player_health = getstati(STAT_HEALTH);
-	time_limit = getstati(STAT_TIMELIMIT);
+	time_limit = getstatf(STAT_TIMELIMIT);	// the engine sends both limits as float stats
 	if (ctf)
 	{
 		frag_limit = cvar("ctf_capture_limit");
 	}
 	else
 	{
-		frag_limit = cvar("fraglimit");
+		// the server's frag limit (stat 235), not this client's own fraglimit cvar: a player who joined a server
+		// saw 0, or the limit of the last game they hosted
+		frag_limit = getstatf(235);
 	}
 	life_count = getstati(45);
 	BLUE_CAPS = getstati(49);

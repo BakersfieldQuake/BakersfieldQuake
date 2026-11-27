@@ -261,3 +261,44 @@ vector(vector iorg, vector org_offset, entity targ, float zspeed) SUB_Tracking =
 	iorg = targ.origin + (diff * vec);
 	return (iorg);
 };
+
+// A trail effect number for .traileffectnum. particleeffectnum() answers -1 for a name effectinfo.txt does not have,
+// and -1 goes over the network as 65535: every client that can see the entity then prints "Unknown effect number
+// 65535 received from server" each frame. 0 means no trail.
+float(string fxname) BM_TrailEffect =
+{
+	local float n;
+
+	if (fxname == "")
+		return 0;
+	n = particleeffectnum(fxname);
+	if (n < 0)
+		return 0;
+	return n;
+};
+
+// Remove a one-shot (PUSH_ONCE) trigger_push. It has to leave the bm_push_head list first: the karts and vans walk that
+// list, and a removed pad left in it cut off every pad after it once its edict was reused, and made whatever took the
+// edict act as a jump pad.
+void(entity pad) BM_PushRemove =
+{
+	local entity e;
+
+	if (bm_push_head == pad)
+		bm_push_head = pad.bm_push_next;
+	else
+	{
+		e = bm_push_head;
+		while (e != world)
+		{
+			if (e.bm_push_next == pad)
+			{
+				e.bm_push_next = pad.bm_push_next;
+				break;
+			}
+			e = e.bm_push_next;
+		}
+	}
+	pad.bm_push_next = world;
+	remove(pad);
+};

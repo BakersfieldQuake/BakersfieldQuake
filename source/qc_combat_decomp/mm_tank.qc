@@ -1984,7 +1984,7 @@ void(entity tank, entity driver) MMT_CheckPads =
 			if (!(e.spawnflags & NO_SOUND))
 				sound7 (tank, CHAN_AUTO, "ambience/windfly.wav", 0.72, ATTN_NORM, SNDSPD * (0.95 + random () * 0.12));
 			if (e.spawnflags & PUSH_ONCE)
-				remove (e);
+				BM_PushRemove (e);
 			return;
 		}
 		e = find (e, classname, "trigger_push");

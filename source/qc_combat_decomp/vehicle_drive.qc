@@ -407,7 +407,7 @@ float(entity v, entity driver) Veh_CheckPads =
 			if (!(e.spawnflags & NO_SOUND))
 				sound7 (v, CHAN_AUTO, "ambience/windfly.wav", 0.80, ATTN_NORM, SNDSPD * (0.95 + random () * 0.12));
 			if (e.spawnflags & PUSH_ONCE)
-				remove (e);
+				BM_PushRemove (e);
 			return TRUE;
 		}
 		e = e.bm_push_next;

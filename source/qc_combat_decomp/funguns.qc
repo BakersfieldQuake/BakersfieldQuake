@@ -741,12 +741,12 @@ void() Binoc_Frame =
 		self.bn_msg = 0;
 		sound7 (self, CHAN_ITEM, "weapons/pkup.wav", 0.5, ATTN_NORM, SNDSPD);
 	}
-	if (self.impulse == 10)		// wheel up: zoom in
+	if (self.impulse == 12)		// wheel up (bm_binds.cfg: MWHEELUP = impulse 12): zoom in
 	{
 		self.impulse = 0;
 		self.bn_zoom = self.bn_zoom * 1.35;
 	}
-	if (self.impulse == 12)		// wheel down: zoom out
+	if (self.impulse == 10)		// wheel down (MWHEELDOWN = impulse 10): zoom out
 	{
 		self.impulse = 0;
 		self.bn_zoom = self.bn_zoom / 1.35;
