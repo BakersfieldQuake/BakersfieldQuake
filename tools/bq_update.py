@@ -1272,12 +1272,18 @@ class ZenityUpdateUI(UpdateUI):
     def __init__(self, zenity_bin):
         self.zenity = zenity_bin
 
-    def _ask(self, title, text, ok_label="Update", cancel_label="Exit"):
+    def _ask(self, title, text, ok_label="Update", cancel_label="Exit", extra_label=None):
+        """True for ok, False for cancel, or extra_label when that button was pressed."""
+        extra = ["--extra-button", extra_label] if extra_label else []
         res = subprocess.run([
             self.zenity, "--question", "--title", title, "--text", text,
-            "--ok-label", ok_label, "--cancel-label", cancel_label, "--width", "420"
-        ])
-        return res.returncode == 0
+            "--ok-label", ok_label, "--cancel-label", cancel_label, *extra, "--width", "420"
+        ], stdout=subprocess.PIPE, text=True)
+        if res.returncode == 0:
+            return True
+        if extra_label and res.stdout.strip() == extra_label:
+            return extra_label
+        return False
 
     def _msg(self, kind, title, text):
         subprocess.run([self.zenity, f"--{kind}", "--title", title, "--text", text, "--width", "420"])
@@ -1315,7 +1321,11 @@ class ZenityUpdateUI(UpdateUI):
             ok = "Update"
 
         cancel = "Close" if standalone else "Exit"
-        if not self._ask(title, body, ok_label=ok, cancel_label=cancel):
+        answer = self._ask(title, body, ok_label=ok, cancel_label=cancel, extra_label=None if standalone else "Skip")
+        if answer == "Skip":
+            updater.log("update skipped by the player; launching with the current files")
+            return 0
+        if not answer:
             return 0 if standalone else 4
 
         proc = subprocess.Popen(
@@ -1449,16 +1459,17 @@ class TkUpdateUI(UpdateUI):
                 child.destroy()
 
         def make_button(parent, text, cmd, primary=False):
+            # A Label, not a tk.Button: macOS's native Button ignores bg, so the light secondary text sat on a light
+            # button and Exit/Cancel was unreadable. A Label draws the colours on every platform.
             bg = self.ACCENT if primary else self.BTN_SEC
             fg = self.ACCENT_TEXT if primary else self.FG
             hv = self.ACCENT_HOVER if primary else self.BTN_SEC_HOVER
-            btn = tk.Button(
-                parent, text=text, command=cmd, bg=bg, fg=fg,
-                activebackground=hv, activeforeground=fg,
-                relief="flat", bd=0, padx=16, pady=7,
+            btn = tk.Label(
+                parent, text=text, bg=bg, fg=fg, padx=16, pady=7,
                 font=("Segoe UI" if os.name == "nt" else "Helvetica", 10, "bold" if primary else "normal"),
                 cursor="hand2"
             )
+            btn.bind("<Button-1>", lambda _e: cmd())
             btn.bind("<Enter>", lambda _e: btn.config(bg=hv))
             btn.bind("<Leave>", lambda _e: btn.config(bg=bg))
             return btn
@@ -1615,6 +1626,9 @@ class TkUpdateUI(UpdateUI):
             cancel_lbl = "Cancel" if standalone else "Exit"
             cancel_code = 0 if standalone else 4
             make_button(btn_row, cancel_lbl, lambda: finish(cancel_code)).pack(side="right")
+            if not standalone:
+                # Skip: start the game on the files already here, without updating this time.
+                make_button(btn_row, "Skip", lambda: finish(0)).pack(side="right", padx=(0, 10))
             make_button(btn_row, ok_text, lambda: start_download(plan), primary=True).pack(side="right", padx=(0, 10))
             root.bind("<Return>", lambda _e: start_download(plan))
             root.bind("<Escape>", lambda _e: finish(cancel_code))
