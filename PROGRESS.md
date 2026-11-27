@@ -380,3 +380,7 @@
   asset triggers a rebuild, and loading the server with the rebuilt app.
 - Karts build profile (cProfile, 103 s): PNG `optimize=True` 34 s, pure-Python `md3lib.write` 29 s plus 8.5 s
   read-back, geometry ~30 s. Each kart is 64 frames × 10-16k vertices (5.8-8.4 MB MD3), so `zz_karts.pk3` is 43 MB.
+- Also: `build/base` never updated after its first download, so local apps missed maps added since (practice,
+  bakersfieldish) and `zz_console.pk3`. `make build` now runs `tools/bq_update.py --root build/base/BAKOQUAKE` first:
+  52 s / 235 MB the first time (build 0 to v1.116), 0.9 s when up to date. 15 maps CI drops (aerowalk, fox, ...) are
+  still in the old base as strays.

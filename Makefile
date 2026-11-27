@@ -4,8 +4,9 @@
 #   make run     launch the last build, without the launcher's update from the GitHub release
 #   make base    (re)download the base package; `make app` does it once on a fresh checkout
 #
-# build/base holds the blobs the repo does not (base pk3s, maps, zz_*.pk3s with no builder here).
-# source/mm_tools/assemble_local_package.sh lays the repo over a clone of it in build/pkg; nothing else is fetched.
+# build/base holds the blobs the repo does not (base pk3s, maps, zz_*.pk3s with no builder here); `make build` first
+# brings it up to the latest release with tools/bq_update.py.
+# source/mm_tools/assemble_local_package.sh lays the repo over a clone of it in build/pkg.
 
 WORK ?= $(CURDIR)/build
 BASE := $(WORK)/base/BAKOQUAKE
@@ -29,6 +30,9 @@ app: build run
 
 build: $(BASE)/BakersfieldQuake/bakersfield.pk3
 	@[ -n "$(PY)" ] || { echo "run: uv python install 3.12"; exit 1; }
+	@# Bring the base up to the latest release with the game's own updater: only changed files (maps, pk3s) download.
+	@# Exit 3 means it updated something.
+	"$(PY)" -I tools/bq_update.py --root "$(BASE)" --no-gui </dev/null || [ $$? = 3 ]
 	WORK="$(WORK)" PYTHON="$(PY)" source/mm_tools/assemble_local_package.sh "$(BASE)" "$(PKG)"
 ifeq ($(UNAME),Darwin)
 	SKIP_NOTARIZE=1 NO_DMG=1 PKG_DIR="$(PKG)" WORK="$(WORK)" PYTHON="$(PY)" \
