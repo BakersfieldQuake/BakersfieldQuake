@@ -39,7 +39,7 @@ void() UpdateGunFrames =
 	else if (self.owner.weapon == IT_FUNGUN)
 		self.vwep = "";
 
-	if ((self.owner.items & IT_INVISIBILITY) || self.owner.fd_head || self.owner.fd_fade)
+	if ((self.owner.items & IT_INVISIBILITY))
 		self.alpha = 0.01;
 	else
 		self.alpha = 1;
@@ -68,7 +68,7 @@ void() UpdatePackFrames =
 	{
 		setmodel(self, string_null);
 	}
-	if ((self.owner.items & IT_INVISIBILITY) || self.owner.fd_head || self.owner.fd_fade)
+	if ((self.owner.items & IT_INVISIBILITY))
 	{
 		self.alpha = 0.01;
 	}
@@ -88,7 +88,7 @@ void() UpdateAxeFrames =
 		remove(self);
 		return;
 	}
-	if ((self.owner.items & IT_INVISIBILITY) || self.owner.fd_head || self.owner.fd_fade)
+	if ((self.owner.items & IT_INVISIBILITY))
 	{
 		self.alpha = 0.01;
 	}
@@ -3737,14 +3737,6 @@ void() CheckPowerups =
 			self.frame = 0;
 			self.modelindex = modelindex_eyes;
 		}
-	}
-	else if (self.fd_head || self.fd_fade)
-	{
-		// flying the Rob Dob: the body is in the ring of invisibility state (just a pair of eyes), so turning the camera
-		// round never shows half a person standing there
-		self.frame = 0;
-		self.modelindex = modelindex_eyes;
-		self.alpha = 1;
 	}
 	else if (!CL_InVehicleHidden(self))	// a vehicle keeps its own hide (alpha 0.01 + EF_NODRAW)
 	{

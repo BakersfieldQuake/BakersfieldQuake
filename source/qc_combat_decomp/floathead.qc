@@ -578,6 +578,7 @@ void() FD_HeadThink =
 
 // the head ran into something (FD_Move returned FALSE; fd_hitent and fd_normal say what). Sets it off, or lets it slide on.
 //   a living enemy                  always goes off, cruising or dashing
+//   the floor (dash)                always goes off immediately
 //   a wall hit straight on (dash)   goes off, once the click is FD_DASH_ARM old
 //   a graze, a corner (dash)        slides on; only FD_GRACE seconds of unbroken scraping set it off
 void(entity p, entity h) FD_Touched =
@@ -599,7 +600,9 @@ void(entity p, entity h) FD_Touched =
 	}
 	else if (h.fd_charging)
 	{
-		if (time > h.fd_dashed + FD_DASH_ARM && 0 - (h.movedir * fd_normal) >= FD_HEADON)
+		if (fd_normal_z >= 0.7)
+			boom = TRUE;
+		else if (time > h.fd_dashed + FD_DASH_ARM && 0 - (h.movedir * fd_normal) >= FD_HEADON)
 			boom = TRUE;
 		else if (!h.fd_scrape)
 			h.fd_scrape = time;
