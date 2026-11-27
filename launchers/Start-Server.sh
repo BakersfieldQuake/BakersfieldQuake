@@ -83,7 +83,9 @@ echo
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     echo " A server is already running on this PC - just joining it."
 else
-    nohup "$DEDICATED" "${COMMON[@]}" -dedicated 16 +exec server.cfg >"$LOG" 2>&1 &
+    # bash's own exec, not nohup: nohup's execvp() runs a binary built for another CPU through /bin/sh, which parses
+    # the ELF bytes as a script and creates junk files. bash refuses it with "cannot execute binary file".
+    ( trap '' HUP; exec "$DEDICATED" "${COMMON[@]}" -dedicated 16 +exec server.cfg ) >"$LOG" 2>&1 &
     echo $! >"$PIDFILE"
     echo " Starting the server (console log: BakersfieldQuake/lan_server_console.log)..."
     # Wait until it has loaded the map and answers LAN queries (up to ~12 s).
