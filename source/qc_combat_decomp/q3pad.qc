@@ -16,7 +16,7 @@ float	Q3PAD_SIZE	= 74;		// the model's plate edge in units
 
 float() Q3Pad_MapWanted =
 {
-	return (mapname == "bakersfielddowntown" || mapname == "bakersfielddowntown_lite");
+	return (mapname == "bakersfielddowntown" || mapname == "bakersfielddowntown_lite" || mapname == "practice");
 };
 
 entity(string mdl, vector org) Q3Pad_Spawn =

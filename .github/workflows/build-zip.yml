@@ -179,6 +179,36 @@ jobs:
       - name: Patch ForeLoco powerups into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/foreloco/patch_foreloco_maps.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
 
+      - name: Cache ericw-tools
+        id: cache_ericw
+        uses: actions/cache/restore@v6
+        with:
+          path: ericwcache
+          key: ericw-tools-linux-2.0.0-alpha11
+
+      - name: Download ericw-tools
+        if: steps.cache_ericw.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ericwcache
+          curl -fsSL --retry 3 -o ericw.zip https://github.com/ericwa/ericw-tools/releases/download/2.0.0-alpha11/ericw-tools-2.0.0-alpha11-Linux.zip
+          unzip -q -o ericw.zip -d ericwcache
+          rm ericw.zip
+          chmod +x ericwcache/qbsp ericwcache/vis ericwcache/light
+
+      - name: Save ericw-tools cache
+        if: steps.cache_ericw.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ericwcache
+          key: ${{ steps.cache_ericw.outputs.cache-primary-key }}
+
+      - name: Build maps/practice.bsp and maps/practice.lit
+        run: |
+          python -I repo/source/mm_tools/build_practice_map.py --ericw ericwcache --out-dir out/BAKOQUAKE/BakersfieldQuake/maps
+          base_maps=$(LC_ALL=C sha256sum out/BAKOQUAKE/BakersfieldQuake/maps/*.bsp | sha256sum | awk '{print $1}')
+          echo "Updated maps/*.bsp SHA-256: $base_maps"
+          echo "BASE_MAPS_SHA256=$base_maps" >> "$GITHUB_ENV"
+
       - name: Download engine binaries from public release
         run: |
           etag="${ENGINE_TAG:-$(gh release view -R "$ENGINE_REPO" --json tagName --jq .tagName)}"
@@ -410,8 +440,15 @@ jobs:
           path: pk3cache/zz_cyrax.pk3
           key: zz_cyrax-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/cyrax/build_cyrax_pk3.py', 'repo/source/mm_tools/cyrax/build_viewmodel.py', 'repo/source/mm_tools/cyrax/build_net_models.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/cyrax/assets/src_keyframes/**', 'repo/source/mm_tools/cyrax/assets/tex/**', 'repo/source/mm_tools/cyrax/assets/sfx/**') }}
 
+      - name: Cache zz_practice.pk3
+        id: cache_practice
+        uses: actions/cache/restore@v6
+        with:
+          path: pk3cache/zz_practice.pk3
+          key: zz_practice-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_practice_pk3.py') }}
+
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_dn3chaingun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_dn3chaingun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true' || steps.cache_practice.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -770,6 +807,20 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/console/build_console_pk3.py pk3cache/zz_console.pk3 --verify-repro
 
+      - name: Build zz_practice.pk3
+        # Dark space skybox (pracspace_*) and dark metallic deck textures for maps/practice.bsp.
+        if: steps.cache_practice.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/build_practice_pk3.py pk3cache/zz_practice.pk3 --verify-repro
+
+      - name: Save zz_practice.pk3 cache
+        if: steps.cache_practice.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: pk3cache/zz_practice.pk3
+          key: ${{ steps.cache_practice.outputs.cache-primary-key }}
+
       - name: Fetch zz_netsend_disk.pk3
         # THE DISK viewmodel for the NetSend gun (set A "Frisbee Pro", picked by vote 2026-11-26) and its thrown disk.
         # Its frames are keyed from videos that are not in the repo, so the pk3 is built locally
@@ -791,7 +842,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_dn3chaingun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_dn3chaingun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 pk3cache/zz_practice.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1060,6 +1111,28 @@ jobs:
               if l0_txt.count('"classname" "item_powerup_foreloco"') < 1:
                   errors.append("bakersfielddowntown.bsp missing item_powerup_foreloco spawns")
 
+          pr_bsp = os.path.join(root, "BakersfieldQuake", "maps", "practice.bsp")
+          pr_lit = os.path.join(root, "BakersfieldQuake", "maps", "practice.lit")
+          if not os.path.isfile(pr_bsp) or os.path.getsize(pr_bsp) == 0:
+              errors.append("missing or empty BakersfieldQuake/maps/practice.bsp")
+          else:
+              if not os.path.isfile(pr_lit) or os.path.getsize(pr_lit) == 0:
+                  errors.append("missing or empty BakersfieldQuake/maps/practice.lit")
+              with open(pr_bsp, "rb") as fh:
+                  hdr = fh.read(12)
+                  l0_ofs, l0_len = struct.unpack_from("<2i", hdr, 4)
+                  fh.seek(l0_ofs)
+                  pr_txt = fh.read(l0_len).rstrip(b"\x00").decode("latin-1")
+              for req_cls in (
+                  "trigger_push",
+                  "misc_mm_tank",
+                  "misc_gokart",
+                  "item_powerup_foreloco",
+                  "item_powerup_triple_wheeled",
+              ):
+                  if f'"classname" "{req_cls}"' not in pr_txt:
+                      errors.append(f"practice.bsp missing {req_cls}")
+
           foreloco = os.path.join(root, "BakersfieldQuake", "zz_foreloco.pk3")
           if not os.path.isfile(foreloco):
               errors.append("missing BakersfieldQuake/zz_foreloco.pk3")
@@ -1208,6 +1281,10 @@ jobs:
                                      "sound/dn3cg/dryfire.wav")),
               ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/chaingun.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
               ("zz_console.pk3", ("gfx/conchars.png",)),
+              ("zz_practice.pk3", ("gfx/env/pracspace_ft.png", "gfx/env/pracspace_bk.png",
+                                   "gfx/env/pracspace_lf.png", "gfx/env/pracspace_rt.png",
+                                   "gfx/env/pracspace_up.png", "gfx/env/pracspace_dn.png",
+                                   "textures/prac_deck.png", "textures/prac_pit.png", "textures/prac_trim.png")),
               ("zz_selected_sounds.pk3", ("sound/john_bird/jv_fly14.wav", "sound/john_bird/jv_fly15.wav",
                                           "sound/robhead/rd_grenade.wav", "sound/robhead/rd_chatter_rob.wav",
                                           "sound/robhead/rd_chatter_paul.wav", "sound/robhead/rd_buh.wav",

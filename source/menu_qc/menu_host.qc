@@ -1,6 +1,6 @@
 // BakersfieldQuake MenuQC - Host LAN Game
 
-float HOST_MAP_COUNT = 5;
+float HOST_MAP_COUNT = 6;
 float HOST_DBLCLICK_TIME = 0.5;
 
 float g_host_map_idx;
@@ -19,7 +19,8 @@ string(float i) BM_Host_MapBsp =
 	if (i == 1)  return "soicowboy_bkk";
 	if (i == 2)  return "bklan6";
 	if (i == 3)  return "spruce";
-	return "dm6";
+	if (i == 4)  return "dm6";
+	return "practice";
 };
 
 string(float i) BM_Host_MapTitle =
@@ -28,7 +29,8 @@ string(float i) BM_Host_MapTitle =
 	if (i == 1)  return "Soi Cowboy BKK";
 	if (i == 2)  return "BKLAN 6";
 	if (i == 3)  return "Spruce";
-	return "DM6";
+	if (i == 4)  return "DM6";
+	return "Practice Range";
 };
 
 float(float idx) BM_Host_FragVal =
