@@ -340,3 +340,17 @@
   BakersfieldQuake/zircon-darkplaces `main` was fast-forwarded to 1641494 (GiggleHacks commits had nothing more to
   merge); release `v20261127` there has Linux/macOS from CI run 45947270060 and the unchanged v20261122 Windows
   self-pack (CI's Windows exe is not self-packed). `ENGINE_REPO` in build-zip.yml now points there.
+
+## 2026-11-27 — QC build fails on macOS (F313 / MUL_D)
+
+- Outcome: `make build` compiles the QC again on ozzy/mimi. `sin`, `cos`, `sqrt` and `clienttype` now have real
+  prototypes instead of decompiler `__variant(...)` ones in `defs_custom.qc`, `dpextensions.qc` and
+  `csqc/csqc.csprogsdefs.qc`.
+- Root cause: the arm64 macOS build of fteqcc `c781d13` mistypes a `__variant(...)` builtin's return value when it is
+  used in arithmetic (`1.2 * sin(x)` gives itof emulation, warning F313, an error by default; `sin(x) * 1.2` gives
+  double opcodes). Linux and Windows fteqcc accept it. New code from 2026-11-26/27 (netsend.qc, cyrax.qc, client.qc,
+  bm_minimap_hud.qc) first used these builtins that way. `defs_custom.qc` declares the variant `sin` before
+  `megaman_defs.qc` declares the float one, so the variant one won.
+- Verification: SSQC, CSQC and menu compile with the mac fteqcc (0 errors; warning counts unchanged in kind).
+  Reproduced the bug in a 7-line test file. Not run: a full `make build`, an in-game test, or a Linux/Windows compile
+  of the changed defs.
