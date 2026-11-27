@@ -84,7 +84,7 @@ void() SplatTouch =
 	self.velocity = VEC_ORIGIN;
 	self.movetype = MOVETYPE_FLY;
 	self.touch = SUB_Null;
-	self.attack_finished = ((time + 4) + (2 * random()));
+	self.attack_finished = ((time + 12) + (4 * random()));
 	pointparticles(particleeffectnum(/*15292i*/"hldecal"), self.origin, VEC_ORIGIN, 2);
 	if ((self.ONCEIL == 0))
 	{

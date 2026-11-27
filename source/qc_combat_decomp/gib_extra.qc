@@ -74,6 +74,18 @@ void() bloodpool_remove =
 	remove(self);
 };
 
+void() bloodpool_fade =
+{
+	self.alpha = (self.alpha - 0.04);
+	if ((self.alpha <= 0.04))
+	{
+		bloodpool_remove();
+		return;
+	}
+	self.think = bloodpool_fade;
+	self.nextthink = (time + 0.1);
+};
+
 void() bloodpool_grow =
 {
 	if ((self.flags & FL_ONGROUND))
@@ -93,8 +105,8 @@ void() bloodpool_grow =
 	}
 	else
 	{
-		self.think = bloodpool_remove;
-		self.nextthink = (time + 25);
+		self.think = bloodpool_fade;
+		self.nextthink = (time + 60);
 	}
 };
 
@@ -121,7 +133,11 @@ void() bloodpool =
 	self.alpha = 0.000010;
 	self.netname = "blood";
 	BLOOD_POOL_CNT = BLOOD_POOL_CNT + 1;
-	if ((self.owner.classname == "player"))
+	if ((self.owner.deadflag == DEAD_DEAD) || (self.owner.health < -20))
+	{
+		self.nextthink = (time + 0.25);
+	}
+	else if ((self.owner.classname == "player"))
 	{
 		self.nextthink = (time + 1.8);
 	}
@@ -135,7 +151,7 @@ void(float del) spawn_bloodpool =
 {
 	local entity bloodpl;
 
-	if (((BLOOD_POOL_CNT > 10) && ((random() * 100) < 60)))
+	if (((BLOOD_POOL_CNT > 18) && ((random() * 100) < 60)))
 	{
 		return;
 	}

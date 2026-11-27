@@ -13,7 +13,7 @@ float DN3FX_EF_ADDITIVE   = 32;
 float DN3FX_EF_FULLBRIGHT = 512;
 
 float DN3FX_MAX_TRANSIENT = 48;
-float DN3FX_MAX_GORE      = 48;
+float DN3FX_MAX_GORE      = 96;
 
 .float dn3fx_kind;
 .float traileffectnum;
@@ -519,8 +519,8 @@ void(vector org, vector dir, float s) DN3FX_RunGibBurst =
 		g.dn3fx_rate = tr;
 		g.dn3fx_grav = 1;
 		g.dn3fx_fcnt = 0;
-		g.dn3fx_life = 2.6 + random() * 1.2;
-		g.dn3fx_fade = 0.65;
+		g.dn3fx_life = 8.0 + random() * 4.0;
+		g.dn3fx_fade = 1.5;
 		g.dn3fx_last = time;
 		g.think = DN3FX_GoreThink;
 		g.nextthink = time + 0.025;

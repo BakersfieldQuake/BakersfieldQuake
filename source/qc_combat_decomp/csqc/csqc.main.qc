@@ -887,9 +887,9 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 					{
 						if ((cvar("lowspec") == 1))
 						{
-							cvar_set("cl_decals_max", "256");
-							cvar_set("cl_decals_time", "16");
-							cvar_set("cl_decals_fadetime", "4");
+							cvar_set("cl_decals_max", "1024");
+							cvar_set("cl_decals_time", "60");
+							cvar_set("cl_decals_fadetime", "15");
 							cvar_set("cl_stainmaps", "0");
 							cvar_set("cl_decals_models", "0");
 							cvar_set("lowspec", "0");
@@ -903,19 +903,19 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 				{
 					if ((flEventType == INPUT_KEYDOWN))
 					{
-						if ((cvar("cl_decals_max") >= 512))
+						if ((cvar("cl_decals_max") >= 1024))
 						{
-							cvar_set("cl_decals_max", "128");
+							cvar_set("cl_decals_max", "256");
 						}
 						else
 						{
-							if ((cvar("cl_decals_max") <= 128))
+							if ((cvar("cl_decals_max") <= 256))
 							{
-								cvar_set("cl_decals_max", "256");
+								cvar_set("cl_decals_max", "512");
 							}
 							else
 							{
-								cvar_set("cl_decals_max", "512");
+								cvar_set("cl_decals_max", "1024");
 							}
 						}
 					}
@@ -926,20 +926,20 @@ float(float flEventType, float flKey, float flCharacter) CSQC_InputEvent =
 					{
 						if ((flEventType == INPUT_KEYDOWN))
 						{
-							cvar_set("cl_decals_fadetime", "4");
-							if ((cvar("cl_decals_time") >= 30))
+							cvar_set("cl_decals_fadetime", "15");
+							if ((cvar("cl_decals_time") >= 60))
 							{
-								cvar_set("cl_decals_time", "10");
+								cvar_set("cl_decals_time", "16");
 							}
 							else
 							{
-								if ((cvar("cl_decals_time") <= 10))
+								if ((cvar("cl_decals_time") <= 16))
 								{
-									cvar_set("cl_decals_time", "16");
+									cvar_set("cl_decals_time", "30");
 								}
 								else
 								{
-									cvar_set("cl_decals_time", "30");
+									cvar_set("cl_decals_time", "60");
 								}
 							}
 						}

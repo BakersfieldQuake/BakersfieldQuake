@@ -14,9 +14,9 @@ loadfont menu engine/fonts/Roboto-Medium.ttf 8 12 16 24 32
 // client look/feel defaults (also before config.cfg, so the player's own choices win)
 sbar_alpha_bg "0"
 cl_decals "1"
-cl_decals_max "256"
-cl_decals_time "16"
-cl_decals_fadetime "4"
+cl_decals_max "1024"
+cl_decals_time "60"
+cl_decals_fadetime "15"
 cl_decals_models "0"
 cl_stainmaps "0"
 showfps "1"
@@ -111,7 +111,8 @@ alias bm_up_14 "exec bm_up_15.cfg; bm_up_15"
 alias bm_up_15 "exec bm_up_16.cfg; bm_up_16"
 alias bm_up_16 "exec bm_up_17.cfg; bm_up_17"
 alias bm_up_17 "exec bm_up_18.cfg; bm_up_18"
-alias bm_up_18 "seta bm_defver 18"
+alias bm_up_18 "exec bm_up_19.cfg; bm_up_19"
+alias bm_up_19 "seta bm_defver 19"
 bm_up_$bm_defver
 
 // Always start in FPS bindmap 0, and re-apply user vehicle_binds.cfg if present (survives bm_binds.cfg unbindall)

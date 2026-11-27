@@ -7407,7 +7407,7 @@ trailspacing 8
 type blood
 tex 24 31
 size 3 5
-alpha 180 420 340
+alpha 200 420 180
 bounce -1
 airfriction 1
 liquidfriction 4
@@ -7424,7 +7424,7 @@ trailspacing 14
 type blood
 tex 16 23
 size 2.5 3.5
-alpha 384 384 192
+alpha 384 384 120
 bounce -1
 airfriction 1
 liquidfriction 4
@@ -7437,7 +7437,7 @@ count 1.2
 type blood
 tex 16 23
 size 6 9
-alpha 120 240 48
+alpha 160 255 24
 bounce -1
 airfriction 1
 liquidfriction 4
@@ -7455,7 +7455,7 @@ color 0xA8FFFF 0xA8FFFF
 blend invmod
 tex 16 31
 size 6 9
-alpha 85 115 380
+alpha 85 115 240
 originjitter 10 10 5
 velocityjitter -180 -180 75
 bounce -1
@@ -7471,7 +7471,7 @@ size 1.5 2.5
 tex 0 7
 stretchfactor 1.2
 color 0x880404 0x450000
-alpha 360 40 290
+alpha 360 40 160
 bounce 1
 airfriction 1
 liquidfriction 1.9
@@ -7843,7 +7843,7 @@ count 0.35
 type decal
 tex 16 32
 size 2 3
-alpha 150 190 30
+alpha 180 240 16
 bounce -1
 stretchfactor 2.4
 airfriction 3
@@ -7865,7 +7865,7 @@ countabsolute 20
 type blood
 tex 16 23
 size 2 8
-alpha 133 200 40
+alpha 160 230 22
 bounce -1
 airfriction 1
 liquidfriction 2
@@ -8013,7 +8013,7 @@ tex 0 7
 color 0x770404 0x380000
 size 26 38
 sizeincrease 22
-alpha 90 170 40
+alpha 100 180 24
 originoffset 0 0 25
 originjitter 14 14 14
 airfriction 4
@@ -8028,7 +8028,7 @@ type spark
 blend invmod
 tex 16 32
 size 1.5 3
-alpha 233 255 120
+alpha 233 255 75
 bounce -1
 stretchfactor 1.8
 airfriction 10
@@ -8049,7 +8049,7 @@ type spark
 blend invmod
 tex 16 32
 size 2.5 4
-alpha 233 255 120
+alpha 233 255 75
 bounce -1
 stretchfactor 2.6
 airfriction 10
@@ -8109,7 +8109,7 @@ count 1
 type blood
 tex 17 32
 size 18 24
-alpha 53 100 40
+alpha 140 200 20
 bounce -1
 airfriction 1
 liquidfriction 1.9
@@ -8124,7 +8124,7 @@ type blood
 stretchfactor 2
 size 18 23
 tex 26 32
-alpha 100 206 64
+alpha 160 230 22
 bounce -1
 gravity 1
 airfriction 0
@@ -9606,7 +9606,7 @@ type blood
 stretchfactor 2
 size 10 15
 tex 31 31
-alpha 140 230 64
+alpha 180 255 24
 bounce -1
 gravity 1
 airfriction 0

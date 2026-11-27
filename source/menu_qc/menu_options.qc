@@ -379,9 +379,9 @@ void(float enable_simple) BM_Opt_ApplySimpleMode =
 		cvar_set("r_glsl_saturation", "1");
 		cvar_set("cl_particles_quality", "1");
 		cvar_set("cl_decals", "1");
-		cvar_set("cl_decals_max", "256");
-		cvar_set("cl_decals_time", "16");
-		cvar_set("cl_decals_fadetime", "4");
+		cvar_set("cl_decals_max", "1024");
+		cvar_set("cl_decals_time", "60");
+		cvar_set("cl_decals_fadetime", "15");
 		cvar_set("cl_decals_models", "0");
 		cvar_set("cl_stainmaps", "0");
 		BM_Opt_SetVidFloatCvar("vid_samples", 4, "4");
@@ -1180,39 +1180,39 @@ void(float ix, float ry, float iw, float rh, float idx, float clicked) BM_Option
 	else if (idx == 11)
 	{
 		v = stof(cvar_string("cl_decals_max"));
-		if (v <= 64) { mi = 0; lbl = "64"; }
-		else if (v <= 128) { mi = 1; lbl = "128"; }
-		else if (v <= 256) { mi = 2; lbl = "256"; }
-		else { mi = 3; lbl = "512"; }
+		if (v <= 128) { mi = 0; lbl = "128"; }
+		else if (v <= 256) { mi = 1; lbl = "256"; }
+		else if (v <= 512) { mi = 2; lbl = "512"; }
+		else { mi = 3; lbl = "1024"; }
 		st = BM_DrawStepper(ix, ry, iw, rh, "MAX DECALS", lbl, FALSE, clicked);
 		if (st != 0)
 		{
 			g_click_consumed = TRUE;
 			mi = modulo(mi + st + 4, 4);
-			if (mi == 0) cvar_set("cl_decals_max", "64");
-			else if (mi == 1) cvar_set("cl_decals_max", "128");
-			else if (mi == 2) cvar_set("cl_decals_max", "256");
-			else cvar_set("cl_decals_max", "512");
+			if (mi == 0) cvar_set("cl_decals_max", "128");
+			else if (mi == 1) cvar_set("cl_decals_max", "256");
+			else if (mi == 2) cvar_set("cl_decals_max", "512");
+			else cvar_set("cl_decals_max", "1024");
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
 	else if (idx == 12)
 	{
 		v = stof(cvar_string("cl_decals_time"));
-		if (v <= 8) { mi = 0; lbl = "10s"; }
-		else if (v <= 12) { mi = 1; lbl = "16s"; }
-		else if (v <= 18) { mi = 2; lbl = "20s"; }
-		else { mi = 3; lbl = "30s"; }
+		if (v <= 16) { mi = 0; lbl = "16s"; }
+		else if (v <= 30) { mi = 1; lbl = "30s"; }
+		else if (v <= 60) { mi = 2; lbl = "60s"; }
+		else { mi = 3; lbl = "90s"; }
 		st = BM_DrawStepper(ix, ry, iw, rh, "DECAL LIFETIME", lbl, FALSE, clicked);
 		if (st != 0)
 		{
 			g_click_consumed = TRUE;
 			mi = modulo(mi + st + 4, 4);
-			cvar_set("cl_decals_fadetime", "4");
-			if (mi == 0) cvar_set("cl_decals_time", "6");
-			else if (mi == 1) cvar_set("cl_decals_time", "12");
-			else if (mi == 2) cvar_set("cl_decals_time", "16");
-			else cvar_set("cl_decals_time", "26");
+			cvar_set("cl_decals_fadetime", "15");
+			if (mi == 0) cvar_set("cl_decals_time", "16");
+			else if (mi == 1) cvar_set("cl_decals_time", "30");
+			else if (mi == 2) cvar_set("cl_decals_time", "60");
+			else cvar_set("cl_decals_time", "90");
 			BM_PlaySound("sound/misc/menu1.wav");
 		}
 	}
