@@ -56,7 +56,7 @@ float	JB_SPIN_ANIM_DUR	= 0.65;		// crazy_flip somersault duration (frames 148..1
 float	JB_SPIN_COOLDOWN	= 1.0;		// cooldown between R (impulse 41) Crazy Flips
 float	JB_SLOW_SPEED		= 230;		// on-foot sticky slow horizontal cap (~72% of 320 u/s)
 float	JB_BIRD_SLOW_MULT	= 0.58;		// ~42% slower flight when sticky-slowed
-float	JB_VOICE_COUNT		= 14;
+float	JB_VOICE_COUNT		= 16;
 float	JB_MAX_AMMO			= 12;		// 12-can rapid-fire rack for bird-vs-bird dogfighting
 float	JB_AMMO_RECHARGE_DELAY	= 0.65;	// brief pause after firing before cans restock
 float	JB_AMMO_RECHARGE_TIME	= 1.15;	// seconds per restocked hairspray can
@@ -125,6 +125,7 @@ float	jb_fx_mist_pop;
 .float	jb_voice_t;						// next random "John" voice line timestamp
 .float	jb_voice_last1;
 .float	jb_voice_last2;
+.float	jb_takeoff_greet;
 .float	jb_swoop_until;
 .float	jb_swoop_cd;
 .float	jb_ram_cd;

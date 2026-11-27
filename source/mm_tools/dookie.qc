@@ -12,6 +12,7 @@ void() Dookie_Precache =
 	precache_sound ("dookie/dk_charge.wav");
 	precache_sound ("dookie/dk_fire.wav");
 	precache_sound ("dookie/dk_music.wav");
+	precache_sound ("dookie/dk_dotdot.wav");
 	precache_sound ("dookie/dk_yell1.wav");
 	precache_sound ("dookie/dk_yell2.wav");
 	precache_sound ("dookie/dk_yell3.wav");
@@ -595,7 +596,10 @@ void(float c) DK_Launch =
 	PC_Register (p, PC_KIND_DOOKIE, 32);
 
 	FG_Snd (self, CHAN_WEAPON, "dookie/dk_fire.wav", 1.0, 1.0);
-	FG_Snd (p, CHAN_BODY, "dookie/dk_music.wav", 0.85, 1.0);
+	if (random () < 0.30)
+		FG_Snd (p, CHAN_BODY, "dookie/dk_dotdot.wav", 0.85, 1.0);
+	else
+		FG_Snd (p, CHAN_BODY, "dookie/dk_music.wav", 0.85, 1.0);
 	DK_PlayFlightYell (p);
 
 	self.punchangle_x = -4.5 - 3.5 * c;

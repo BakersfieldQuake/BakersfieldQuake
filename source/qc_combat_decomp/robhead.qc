@@ -8,6 +8,7 @@ void() RobHead_Precache =
 {
 	precache_model ("progs/v_robhead_drone.md3");
 	precache_sound ("robhead/launch.wav");
+	precache_sound ("robhead/rd_grenade.wav");
 	precache_sound ("funny/heh.wav");
 	precache_sound ("weapons/pkup.wav");
 };
@@ -59,6 +60,8 @@ void() RH_BeginDroneLaunch =
 	self.punchangle_z = 1.6;
 	player_throw1 ();
 	FG_Snd (self, CHAN_WEAPON, "weapons/pkup.wav", 0.85, 1.25);
+	if (random () < 0.5)
+		FG_Snd (self, CHAN_VOICE, "robhead/rd_grenade.wav", 0.90, 1.0);
 	self.attack_finished = time + RH_DRONE_DELAY + (RH_FOLLOW_TIME + RH_RAISE_TIME) / RH_DRONE_ANIM_SPEED;
 };
 

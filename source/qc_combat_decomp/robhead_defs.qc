@@ -45,6 +45,11 @@ float	RH_RAISE_TIME			= 0.25;		// reload raise duration (scaled by 1 / anim_spd)
 .float	rhvm_on;			// viewmodel entity: active slot (FG_DOB or 0)
 .entity	fd_head;			// player: the Rob Dob head he is flying (world = not flying)
 .float	fd_warn_t;			// player: throttle Rob Dob body-under-attack warning
+.float	fd_chatter_t;		// head: next random mid-flight voice chatter (Rob / Paul)
+.float	fd_chatter_idx;		// head: alternate chatter index
+.entity	fd_miss_ent;		// head: closest enemy approached during Dash for near-miss check
+.float	fd_miss_d;			// head: closest distance recorded to fd_miss_ent
+.float	fd_miss_t;			// head: cooldown timestamp for "Aw, I missed!"
 
 void() RobHead_Precache;
 void() RH_DronePress;

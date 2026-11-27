@@ -4,7 +4,7 @@
 # The repo is text/source only, so this does not rebuild the big base pk3s/maps. It takes BAKOQUAKE.zip from an existing
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
-# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3 and zz_gunwheel.pk3
+# zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_gunwheel.pk3 and zz_selected_sounds.pk3
 # from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), adds the pinned zz_netsend_disk.pk3 from the VPS, then publishes three per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. engine/zircon_beta_gcc.exe from the public engine release.
@@ -754,6 +754,12 @@ jobs:
           mkdir -p pk3cache
           python -I repo/source/mm_tools/gunwheel/build_gunwheel_pk3.py pk3cache/zz_gunwheel.pk3
 
+      - name: Build zz_selected_sounds.pk3
+        # Enhanced custom voice/SFX clips (source/mm_tools/selected_sounds/assets). Pure stdlib zip, needs no cache.
+        run: |
+          mkdir -p pk3cache
+          python -I repo/source/mm_tools/selected_sounds/build_selected_sounds_pk3.py pk3cache/zz_selected_sounds.pk3 --verify-repro
+
       - name: Fetch zz_netsend_disk.pk3
         # THE DISK viewmodel for the NetSend gun (set A "Frisbee Pro", picked by vote 2026-11-26) and its thrown disk.
         # Its frames are keyed from videos that are not in the repo, so the pk3 is built locally
@@ -775,7 +781,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_bakersfieldish.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1208,6 +1214,13 @@ jobs:
                                 "sound/cyrax/capture.wav", "sound/cyrax/pull.wav", "sound/cyrax/hold_beep.wav",
                                 "sound/cyrax/bonk_launch.wav")),
               ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
+              ("zz_selected_sounds.pk3", ("sound/john_bird/jv_fly14.wav", "sound/john_bird/jv_fly15.wav",
+                                          "sound/robhead/rd_grenade.wav", "sound/robhead/rd_chatter_rob.wav",
+                                          "sound/robhead/rd_chatter_paul.wav", "sound/robhead/rd_buh.wav",
+                                          "sound/robhead/rd_chicken.wav", "sound/robhead/rd_fart.wav",
+                                          "sound/robhead/rd_missed.wav", "sound/eric_cannon/canislupusfantasy1.wav",
+                                          "sound/wcannon/wc_lrun13.wav", "sound/megaman/boom28.wav",
+                                          "sound/funny/fart2.wav", "sound/dookie/dk_dotdot.wav")),
           ):
               pk3_path = os.path.join(root, "BakersfieldQuake", pk3_name)
               if not os.path.isfile(pk3_path):

@@ -62,6 +62,7 @@ void() WC_Precache =
 	precache_sound ("wcannon/wc_lrun10.wav");
 	precache_sound ("wcannon/wc_lrun11.wav");
 	precache_sound ("wcannon/wc_lrun12.wav");
+	precache_sound ("wcannon/wc_lrun13.wav");
 	precache_sound ("friends/gowewd.wav");
 	precache_sound ("weapons/r_exp3.wav");
 	precache_sound ("weapons/xpld_wat.wav");
@@ -104,11 +105,11 @@ float(entity e) WC_PlayLarryRun =
 {
 	local float k, p;
 
-	k = floor (random () * 11.99) + 1;
+	k = floor (random () * 12.99) + 1;
 	if (k == wc_last_run)
 	{
 		k = k + 1;
-		if (k > 12)
+		if (k > 13)
 			k = 1;
 	}
 	wc_last_run = k;
@@ -124,8 +125,16 @@ float(entity e) WC_PlayLarryRun =
 	if (k == 9)  { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun09.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.90; }
 	if (k == 10) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun10.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.05; }
 	if (k == 11) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun11.wav", WC_LINE_VOL, ATTN_NORM, p); return 0.99; }
-	sound7 (e, CHAN_VOICE, "wcannon/wc_lrun12.wav", WC_LINE_VOL, ATTN_NORM, p);
-	return 1.16;
+	if (k == 12) { sound7 (e, CHAN_VOICE, "wcannon/wc_lrun12.wav", WC_LINE_VOL, ATTN_NORM, p); return 1.16; }
+	sound7 (e, CHAN_VOICE, "wcannon/wc_lrun13.wav", WC_LINE_VOL, ATTN_NORM, p);
+	return 2.38;
+};
+
+string() WC_ScreamClip =
+{
+	if (random () < 0.20)
+		return "wcannon/wc_lrun13.wav";
+	return "wcannon/wc_scream.wav";
 };
 
 // the picture of a sprite that has a ring of 8 views (0 = seen from the front, 4 = from behind): which view 'other' sees
@@ -869,7 +878,7 @@ void() WC_Think =
 	if (time >= self.wc_snd)
 	{
 		self.wc_snd = time + WC_SCREAM_GAP;
-		sound (self, CHAN_VOICE, "wcannon/wc_scream.wav", WC_SCREAM_VOL, ATTN_NORM);
+		sound (self, CHAN_VOICE, WC_ScreamClip (), WC_SCREAM_VOL, ATTN_NORM);
 	}
 };
 
@@ -946,7 +955,7 @@ void(float c) WC_Fire =
 	p.nextthink = time + 0.02;
 	p.wc_snd = time + WC_SCREAM_GAP;
 	PC_Register (p, PC_KIND_HEAVY, 32);
-	sound (p, CHAN_VOICE, "wcannon/wc_scream.wav", WC_SCREAM_VOL, ATTN_NORM);
+	sound (p, CHAN_VOICE, WC_ScreamClip (), WC_SCREAM_VOL, ATTN_NORM);
 	FG_Snd (self, CHAN_WEAPON, "wcannon/wc_shoot.wav", 0.8, 1);
 	dprint (strcat ("wcannon: fire tier ", strcat (ftos (tier), strcat (" speed ", strcat (ftos (spd), "\n")))));
 	pointparticles (wc_fx_muzzle, org + '0 0 30', aim * 120, 1);

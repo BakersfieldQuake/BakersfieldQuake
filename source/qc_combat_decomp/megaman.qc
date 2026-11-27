@@ -104,6 +104,7 @@ void() MegaMan_Precache =
 	precache_sound ("megaman/boom25.wav");
 	precache_sound ("megaman/boom26.wav");
 	precache_sound ("megaman/boom27.wav");
+	precache_sound ("megaman/boom28.wav");
 #endif
 };
 
@@ -134,10 +135,13 @@ void(entity e, float chan, string samp, float vol, float speed, float atten) MM_
 };
 
 #ifdef COMBATPLUS
-// "megamayan" every throw
+// "megamayan" every throw (with occasional goooooood.wav)
 void() MegaMan_Larry =
 {
-	MM_Sound (self, CHAN_VOICE, "megaman/mm_fire.wav", 1, 100);
+	if (random () < 0.15)
+		MM_Sound (self, CHAN_VOICE, "megaman/boom28.wav", 1, 100);
+	else
+		MM_Sound (self, CHAN_VOICE, "megaman/mm_fire.wav", 1, 100);
 };
 
 // a random clip when he blows up
@@ -145,7 +149,7 @@ string() MegaMan_BoomClip =
 {
 	local float r;
 
-	r = floor (random () * 27);
+	r = floor (random () * 28);
 	if (r < 1)
 		return "megaman/boom01.wav";
 	if (r < 2)
@@ -198,7 +202,9 @@ string() MegaMan_BoomClip =
 		return "megaman/boom25.wav";
 	if (r < 26)
 		return "megaman/boom26.wav";
-	return "megaman/boom27.wav";
+	if (r < 27)
+		return "megaman/boom27.wav";
+	return "megaman/boom28.wav";
 };
 #endif
 
