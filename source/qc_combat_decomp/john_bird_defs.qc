@@ -123,6 +123,8 @@ float	jb_fx_mist_pop;
 .float	jb_flap_t;						// next wing-flap SFX timestamp
 .float	jb_flap_idx;					// cycles flap1..flap4
 .float	jb_voice_t;						// next random "John" voice line timestamp
+.float	jb_voice_manual_t;				// cooldown timestamp for manual V-key voice line
+.float	jb_hairspray_ask_t;				// cooldown timestamp for empty-ammo hairspray prompt
 .float	jb_voice_last1;
 .float	jb_voice_last2;
 .float	jb_takeoff_greet;

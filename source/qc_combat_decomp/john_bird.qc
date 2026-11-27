@@ -161,7 +161,7 @@ void(entity jb, float force_first) JB_PlayRandomVoice =
 	jb.jb_voice_last1 = pick;
 	wav = JB_VoiceSample (pick);
 	sound (jb, CHAN_VOICE, wav, 1, 0.55);
-	jb.jb_voice_t = time + 4.2 + random () * 3.2;
+	jb.jb_voice_t = time + 20.0 + random () * 15.0;
 };
 
 void(entity jb, float vol, float pitch_pct) JB_PlayFlap =
@@ -480,7 +480,6 @@ void(entity targ, entity attacker, float dur) JB_ApplyBurn =
 		targ.skin = 1;
 		if (time >= targ.pain_finished)
 		{
-			JB_PlayRandomVoice (targ, FALSE);
 			targ.pain_finished = time + 1.1;
 			JB_SpawnFeathers (targ.origin + '0 0 34', 3, 0.9);
 		}
@@ -1044,7 +1043,8 @@ void(entity jb, entity attacker, vector muz, vector dir, float spd, float direct
 	{
 		jb.jb_first_shot_said = TRUE;
 		is_first = TRUE;
-		jb.jb_voice_t = time + 4.2;
+		jb.jb_hairspray_ask_t = time + 25.0;
+		jb.jb_voice_t = max (jb.jb_voice_t, time + 12.0);
 		sound (jb, CHAN_VOICE, "john_bird/jb_ask_hairspray.wav", 1, 0.35);
 	}
 
@@ -1927,9 +1927,10 @@ float() JohnBird_Frame =
 			sprint (self, "Winged John camera: Third-Person Avian Chase View\n");
 		self.impulse = 0;
 	}
-	else if (self.impulse == 20 && time >= jb.jb_voice_t - 6.0)
+	else if (self.impulse == 20 && time >= jb.jb_voice_manual_t)
 	{
 		JB_PlayRandomVoice (jb, FALSE);
+		jb.jb_voice_manual_t = time + 3.0;
 		self.impulse = 0;
 	}
 	else if (self.impulse == 41)
@@ -1998,8 +1999,6 @@ float() JohnBird_Frame =
 			{
 				jb.jb_boost_snd_t = time + 0.75;
 				sound (jb, CHAN_ITEM, "john_bird/swoop.wav", 1, 0.6);
-				if (random () < 0.35 && time >= jb.jb_voice_t - 5.2)
-					JB_PlayRandomVoice (jb, FALSE);
 			}
 		}
 	}
@@ -2189,9 +2188,13 @@ float() JohnBird_Frame =
 				JB_LaunchBottle (jb, self, muz, aim_dir, shot_spd, 28);
 				if (jb.jb_ammo <= 0)
 				{
-					jb.jb_voice_t = time + 4.2;
 					jb.jb_dry_snd_t = time + 0.50;
-					sound (jb, CHAN_VOICE, "john_bird/jb_ask_hairspray.wav", 1, 0.35);
+					if (time >= jb.jb_hairspray_ask_t)
+					{
+						jb.jb_hairspray_ask_t = time + 25.0;
+						jb.jb_voice_t = max (jb.jb_voice_t, time + 12.0);
+						sound (jb, CHAN_VOICE, "john_bird/jb_ask_hairspray.wav", 1, 0.35);
+					}
 				}
 			}
 		}
@@ -2579,10 +2582,7 @@ void(entity attacker, float take) JB_Pain =
 		self.skin = 1;
 
 	if (time >= self.pain_finished)
-	{
-		JB_PlayRandomVoice (self, FALSE);
 		self.pain_finished = time + 1.2;
-	}
 
 	if (attacker != world && attacker.classname == "player" && attacker.ishuman == 1)
 		attacker.jb_st_hit = attacker.jb_st_hit + 1;
@@ -2975,7 +2975,7 @@ void() JohnBird_Impulse =
 		jb.jb_ai_mode_t = time + 3.0;
 		jb.jb_ai_fire_t = time + 1.0;
 		jb.jb_flap_t = time + 0.1;
-		jb.jb_voice_t = time + 0.35;
+		jb.jb_voice_t = time + 6.0 + random () * 8.0;
 		jb.think = JB_AutopilotThink;
 		jb.nextthink = time + 0.05;
 		sprint (self, "Launched AI Dogfighter Winged John overhead! (Fights back with hairspray & bottles!)\n");
