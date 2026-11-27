@@ -10,7 +10,7 @@ void() m_init =
 	registercvar("bm_hud_style", "0", 1);
 	registercvar("bm_ui_font", "1", 1);
 	registercvar("bm_show_launcher", "0", 1);
-	localcmd("loadfont menu engine/fonts/Roboto-Medium.ttf 8 10 12 14 16 20 24 32\n");
+	localcmd("loadfont menu engine/fonts/Roboto-Medium.ttf 8 12 16 24 32\n");
 	registercvar("bm_bot_tags", "1", 1);
 	registercvar("bm_player_tags", "1", 1);
 	registercvar("lowspec", "0", 1);

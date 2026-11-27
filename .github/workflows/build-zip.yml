@@ -1242,7 +1242,7 @@ jobs:
                                 "sound/cyrax/capture.wav", "sound/cyrax/pull.wav", "sound/cyrax/hold_beep.wav",
                                 "sound/cyrax/bonk_launch.wav")),
               ("zz_gunwheel.pk3", ("gfx/gunwheel/hammer.png", "gfx/gunwheel/lightning.png", "gfx/gunwheel/cyrax.png")),
-              ("zz_console.pk3", ("engine/fonts/Roboto-Medium.ttf",)),
+              ("zz_console.pk3", ("engine/fonts/Roboto-Medium.ttf", "gfx/conchars.png")),
               ("zz_selected_sounds.pk3", ("sound/john_bird/jv_fly14.wav", "sound/john_bird/jv_fly15.wav",
                                           "sound/robhead/rd_grenade.wav", "sound/robhead/rd_chatter_rob.wav",
                                           "sound/robhead/rd_chatter_paul.wav", "sound/robhead/rd_buh.wav",
