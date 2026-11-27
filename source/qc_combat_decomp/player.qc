@@ -1683,10 +1683,6 @@ void() player_pain =
 	{
 		return;
 	}
-	if ((self.invisible_finished > time))
-	{
-		return;
-	}
 	if (Player_IsHandheldPose(self))
 	{
 		player_axpain1();
@@ -2674,9 +2670,13 @@ void() PlayerDie =
 	}
 	self.items = (self.items - (self.items & IT_INVISIBILITY));
 	self.invisible_finished = 0;
+	self.invisible_time = 0;
+	self.invisible_counter = 0;
 	self.invincible_finished = 0;
 	self.super_damage_finished = 0;
 	self.radsuit_finished = 0;
+	self.effects = (self.effects - (self.effects & EF_NODRAW));
+	self.alpha = 1;
 	self.modelindex = modelindex_player;
 	if ((deathmatch || coop))
 	{

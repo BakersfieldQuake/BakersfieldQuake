@@ -2277,9 +2277,10 @@ void() powerup_touch =
 	}
 	if ((self.classname == "item_artifact_invisibility"))
 	{
-		other.invisible_time = 1;
-		other.invisible_finished = (time + 30);
-		other.invisible_counter = 30;
+		other.invisible_time = 0;
+		other.invisible_finished = 0;
+		other.invisible_counter = 0;
+		other.items = (other.items - (other.items & IT_INVISIBILITY));
 	}
 	if ((self.classname == "item_artifact_super_damage"))
 	{
@@ -2510,34 +2511,18 @@ void() item_artifact_timerune =
 	StartItem();
 };
 
+void() item_artifact_super_damage;
+
 void() item_artifact_invisibility =
 {
+	// Invisibility is disabled across the entire game: replace Ring of Shadows with Quad/Time Rune
+	if ((((autocvar_slowmo_powerup == 1) && deathmatch) || (((autocvar_slowmo_powerup == 1) && !deathmatch) && (random() > 0.8))))
 	{
-		if ((((autocvar_slowmo_powerup == 1) && deathmatch) || (((autocvar_slowmo_powerup == 1) && !deathmatch) && (random() > 0.8))))
-		{
-			self.dmg = 2;
-			item_artifact_timerune();
-		}
-		else
-		{
-			self.touch = powerup_touch;
-			precache_model("progs/invisibl.mdl");
-			self.noise = "items/inv1.wav";
-			setmodel(self, "progs/invisibl.mdl");
-			self.traileffectnum = particleeffectnum(/*23816i*/"ring");
-			self.netname = "Ring of Shadows";
-			self.items = IT_INVISIBILITY;
-			if ((self.has_fired == 1))
-			{
-				setsize(self, '-8 -8 -24', '8 8 32');
-			}
-			else
-			{
-				setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
-			}
-			StartItem();
-		}
+		self.dmg = 2;
+		item_artifact_timerune();
+		return;
 	}
+	item_artifact_super_damage();
 };
 
 void() item_artifact_super_damage =

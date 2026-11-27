@@ -421,7 +421,7 @@ void(entity vm, float tw, float slot, float fire_t) TW_UpdateSingleVM =
 	if (vm.model != TW_VModel (tw))
 		setmodel (vm, TW_VModel (tw));
 
-	vm.alpha = (invisweapon && p.invisible_finished) ? 0.35 : 1.0;
+	vm.alpha = 1.0;
 	vm.skin = 0;
 	vm.frame = 0;
 

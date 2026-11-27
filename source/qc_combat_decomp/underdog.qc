@@ -654,17 +654,10 @@ void() Underdog_Spawn =
 	}
 	else if (earned && b >= 0.5)
 	{
-		r = random () * 3;
-		if (r < 1)
+		if (random () < 0.5)
 		{
 			Underdog_GiveQuad ();
 			self.super_damage_finished = time + 5;
-		}
-		else if (r < 2)
-		{
-			self.items = self.items | IT_INVISIBILITY;
-			self.invisible_time = 1;
-			self.invisible_finished = time + 5;
 		}
 		else
 		{

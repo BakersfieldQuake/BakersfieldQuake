@@ -39,10 +39,9 @@ void() UpdateGunFrames =
 	else if (self.owner.weapon == IT_FUNGUN)
 		self.vwep = "";
 
-	if ((self.owner.items & IT_INVISIBILITY))
+	self.alpha = 1;
+	if (self.owner.effects & EF_NODRAW)
 		self.alpha = 0.01;
-	else
-		self.alpha = 1;
 	if (self.owner.items & IT_QUAD)
 		self.effects = EF_NOSHADOW;
 	else
@@ -68,14 +67,7 @@ void() UpdatePackFrames =
 	{
 		setmodel(self, string_null);
 	}
-	if ((self.owner.items & IT_INVISIBILITY))
-	{
-		self.alpha = 0.01;
-	}
-	else
-	{
-		self.alpha = 1;
-	}
+	self.alpha = 1;
 	self.frame = self.owner.frame;
 	self.think = UpdatePackFrames;
 	self.nextthink = (time + 0.01);
@@ -88,14 +80,7 @@ void() UpdateAxeFrames =
 		remove(self);
 		return;
 	}
-	if ((self.owner.items & IT_INVISIBILITY))
-	{
-		self.alpha = 0.01;
-	}
-	else
-	{
-		self.alpha = 1;
-	}
+	self.alpha = 1;
 	if ((self.owner.throwing == 0) && (self.owner.weapon == IT_AXE))
 	{
 		setmodel(self, "progs/p_axe.md3");
@@ -1999,11 +1984,15 @@ void() PutClientInServer =
 	self.flags = FL_CLIENT;
 	self.air_finished = (time + 12);
 	self.dmg = 2;
+	self.items = (self.items - (self.items & IT_INVISIBILITY));
 	self.super_damage_finished = 0;
 	self.radsuit_finished = 0;
 	self.invisible_finished = 0;
+	self.invisible_time = 0;
+	self.invisible_counter = 0;
 	self.invincible_finished = 0;
 	self.effects = 0;
+	self.alpha = 1;
 	self.invincible_time = 0;
 	self.wetsuit_finished = 0;
 	self.inflamed = 0;
@@ -2977,11 +2966,21 @@ void() autosave_timer =
 	}
 };
 
-// TRUE while a vehicle (van, tank, Eric Cannon, Winged John) has hidden p's body; the quad/skin refresh and
+// TRUE while a vehicle (van, tank, Eric Cannon, Winged John, Rocket Rider) has hidden p's body; the quad/skin refresh and
 // CheckPowerups must not undo its EF_NODRAW / alpha
 float(entity p) CL_InVehicleHidden =
 {
-	return (Veh_Driving(p) || MMTank_Driving(p) || EricCannon_Active(p) || JohnBird_Flying(p) || RocketRider_Flying(p));
+	if (p.veh_van != world && !bm_wasfreed(p.veh_van) && p.veh_van.veh_driver == p)
+		return TRUE;
+	if (p.mmt_tank != world && !bm_wasfreed(p.mmt_tank) && p.mmt_tank.mmt_driver == p)
+		return TRUE;
+	if (p.jb_vehicle != world && !bm_wasfreed(p.jb_vehicle) && p.jb_vehicle.jb_pilot == p)
+		return TRUE;
+	if (p.rr_vehicle != world && !bm_wasfreed(p.rr_vehicle) && p.rr_vehicle.rr_pilot == p)
+		return TRUE;
+	if ((p.ec_cannon_ent != world && !bm_wasfreed(p.ec_cannon_ent)) || p.ec_watch_until > time)
+		return TRUE;
+	return FALSE;
 };
 
 void() PlayerPreThink =
@@ -3051,13 +3050,18 @@ void() PlayerPreThink =
 	{
 		self.clientcamera = self;
 	}
-	if ((autocvar_player_reflection_fix && ((((self.waterlevel == 1) || (self.waterlevel == 2)) && !(deathmatch || coop)) && !autocvar_chase_active)))
+	// Never allow players to become invisible under any circumstances
+	self.items = (self.items - (self.items & IT_INVISIBILITY));
+	self.invisible_finished = 0;
+	self.invisible_time = 0;
+	self.invisible_counter = 0;
+	if ((self.health > 0) && !CL_InVehicleHidden(self))
 	{
-		self.model = "";
+		self.effects = (self.effects - (self.effects & EF_NODRAW));
+		if (self.alpha <= 0.05 || self.alpha < 1)
+			self.alpha = 1;
 	}
-	else
-	{
-		if (((self.health > 0) && ((time - self.delay) >= 0.3)))
+	if (((self.health > 0) && (((time - self.delay) >= 0.3) || (self.modelindex == 0) || (self.modelindex == modelindex_eyes))))
 		{
 			if (autocvar_3rd_person_visible_weapons)
 			{
@@ -3093,12 +3097,12 @@ void() PlayerPreThink =
 								{
 									if ((autocvar_player_model == 5))
 									{
-										if (self.model != "progs/player_torso.mdl")
+										if (self.model != "progs/player_torso.mdl" || self.modelindex == 0 || self.modelindex == modelindex_eyes)
 											setmodel(self, "progs/player_torso.mdl");
 									}
 									else
 									{
-										if (self.model != "progs/player_id1.mdl")
+										if (self.model != "progs/player_id1.mdl" || self.modelindex == 0 || self.modelindex == modelindex_eyes)
 											setmodel(self, "progs/player_id1.mdl");
 									}
 									if ((self.items & IT_SUIT))
@@ -3120,7 +3124,7 @@ void() PlayerPreThink =
 										{
 											if (autocvar_bright_skins)
 											{
-												self.effects = (self.effects | EF_FULLBRIGHT);
+												self.effects = ((self.effects - (self.effects & EF_NODRAW)) | EF_FULLBRIGHT);
 											}
 											else
 											{
@@ -3148,7 +3152,6 @@ void() PlayerPreThink =
 			}
 			self.delay = time;
 		}
-	}
 	CheckRules();
 	Spruce_PlayerWaterPreThink(self);
 	WaterMove();
@@ -3398,11 +3401,7 @@ void() PlayerPreThink =
 			self.v_weapon_position_helper = 0;
 		}
 	}
-	if ((((invisweapon == 1) && self.invisible_finished) && !autocvar_weapon_position_fully_adjustable))
-	{
-		add_transparent_weaponmodel(self);
-	}
-	if ((((autocvar_player_legs_visibility && !autocvar_chase_active) && !(deathmatch || coop)) && !self.invisible_finished))
+	if ((autocvar_player_legs_visibility && !autocvar_chase_active) && !(deathmatch || coop))
 	{
 		if ((self.visible_legs_helper == 0))
 		{
@@ -3491,6 +3490,7 @@ void() PlayerPreThink =
 		W_SetCurrentAmmo();
 	}
 	SemisolidPreThink();
+	self.bm_was_ladder = self.onladder;
 	if (self.onladder)
 	{
 		self.onladder = 0;
@@ -3523,6 +3523,7 @@ void() PlayerPreThink =
 		else
 			self.gravity = 1;
 	}
+	BM_PredictFrame();
 };
 
 void() WetsuitTime =
@@ -3572,186 +3573,15 @@ void() CheckPowerups =
 	{
 		return;
 	}
-	if (self.invisible_finished)
+	// Invisibility is completely disabled: strip any leftover flags/timers and keep players visible
+	self.items = (self.items - (self.items & IT_INVISIBILITY));
+	self.invisible_finished = 0;
+	self.invisible_time = 0;
+	self.invisible_counter = 0;
+	if (!CL_InVehicleHidden(self))
 	{
-		if ((self.invisible_sound < time))
-		{
-			sound(self, CHAN_AUTO, "items/inv3.wav", 0.5, ATTN_IDLE);
-			self.invisible_sound = (time + ((random() * 3) + 1));
-		}
-		if ((self.invisible_finished < (time + 3)))
-		{
-			if ((self.invisible_time == 1))
-			{
-				sprint(self, "Ring of Shadows magic is fading\n");
-				stuffcmd(self, "bf\n");
-				sound(self, CHAN_AUTO, "items/inv2.wav", 1, ATTN_NORM);
-				self.invisible_time = (time + 1);
-			}
-			if ((self.invisible_time < time))
-			{
-				self.invisible_time = (time + 1);
-				stuffcmd(self, "bf\n");
-			}
-		}
-		if ((self.invisible_finished < time))
-		{
-			self.items = (self.items - (self.items & IT_INVISIBILITY));
-			self.invisible_finished = 0;
-			self.invisible_time = 0;
-		}
-		if ((autocvar_powerupcountdown == 2))
-		{
-			if (((self.invisible_finished < (time + self.invisible_counter)) && (self.invisible_counter > 3)))
-			{
-				self.invisible_counter = (self.invisible_counter - 1);
-				sprint(self, ftos(self.invisible_counter));
-				sprint(self, "\n");
-			}
-		}
-		else
-		{
-			if (((autocvar_powerupcountdown == 0) && (self.invisible_finished < (time + self.invisible_counter))))
-			{
-				self.invisible_counter = (self.invisible_counter - 1);
-			}
-		}
-		if ((autocvar_powerupcountdown == 1))
-		{
-			if (((self.invisible_finished <= (time + 29.1)) && (self.invisible_finished >= (time + 28.9))))
-			{
-				BM_CountdownPrint("29");
-			}
-			if (((self.invisible_finished <= (time + 28.1)) && (self.invisible_finished >= (time + 27.9))))
-			{
-				BM_CountdownPrint("28");
-			}
-			if (((self.invisible_finished <= (time + 27.1)) && (self.invisible_finished >= (time + 26.9))))
-			{
-				BM_CountdownPrint("27");
-			}
-			if (((self.invisible_finished <= (time + 26.1)) && (self.invisible_finished >= (time + 25.9))))
-			{
-				BM_CountdownPrint("26");
-			}
-			if (((self.invisible_finished <= (time + 25.1)) && (self.invisible_finished >= (time + 24.9))))
-			{
-				BM_CountdownPrint("25");
-			}
-			if (((self.invisible_finished <= (time + 24.1)) && (self.invisible_finished >= (time + 23.9))))
-			{
-				BM_CountdownPrint("24");
-			}
-			if (((self.invisible_finished <= (time + 23.1)) && (self.invisible_finished >= (time + 22.9))))
-			{
-				BM_CountdownPrint("23");
-			}
-			if (((self.invisible_finished <= (time + 22.1)) && (self.invisible_finished >= (time + 21.9))))
-			{
-				BM_CountdownPrint("22");
-			}
-			if (((self.invisible_finished <= (time + 21.1)) && (self.invisible_finished >= (time + 20.9))))
-			{
-				BM_CountdownPrint("21");
-			}
-			if (((self.invisible_finished <= (time + 20.1)) && (self.invisible_finished >= (time + 19.9))))
-			{
-				BM_CountdownPrint("20");
-			}
-			if (((self.invisible_finished <= (time + 19.1)) && (self.invisible_finished >= (time + 18.9))))
-			{
-				BM_CountdownPrint("19");
-			}
-			if (((self.invisible_finished <= (time + 18.1)) && (self.invisible_finished >= (time + 17.9))))
-			{
-				BM_CountdownPrint("18");
-			}
-			if (((self.invisible_finished <= (time + 17.1)) && (self.invisible_finished >= (time + 16.9))))
-			{
-				BM_CountdownPrint("17");
-			}
-			if (((self.invisible_finished <= (time + 16.1)) && (self.invisible_finished >= (time + 15.9))))
-			{
-				BM_CountdownPrint("16");
-			}
-			if (((self.invisible_finished <= (time + 15.1)) && (self.invisible_finished >= (time + 14.9))))
-			{
-				BM_CountdownPrint("15");
-			}
-			if (((self.invisible_finished <= (time + 14.1)) && (self.invisible_finished >= (time + 13.9))))
-			{
-				BM_CountdownPrint("14");
-			}
-			if (((self.invisible_finished <= (time + 13.1)) && (self.invisible_finished >= (time + 12.9))))
-			{
-				BM_CountdownPrint("13");
-			}
-			if (((self.invisible_finished <= (time + 12.1)) && (self.invisible_finished >= (time + 11.9))))
-			{
-				BM_CountdownPrint("12");
-			}
-			if (((self.invisible_finished <= (time + 11.1)) && (self.invisible_finished >= (time + 10.9))))
-			{
-				BM_CountdownPrint("11");
-			}
-			if (((self.invisible_finished <= (time + 10.1)) && (self.invisible_finished >= (time + 9.9))))
-			{
-				BM_CountdownPrint("10");
-			}
-			if (((self.invisible_finished <= (time + 9.1)) && (self.invisible_finished >= (time + 8.9))))
-			{
-				BM_CountdownPrint("9");
-			}
-			if (((self.invisible_finished <= (time + 8.1)) && (self.invisible_finished >= (time + 7.9))))
-			{
-				BM_CountdownPrint("8");
-			}
-			if (((self.invisible_finished <= (time + 7.1)) && (self.invisible_finished >= (time + 6.9))))
-			{
-				BM_CountdownPrint("7");
-			}
-			if (((self.invisible_finished <= (time + 6.1)) && (self.invisible_finished >= (time + 5.9))))
-			{
-				BM_CountdownPrint("6");
-			}
-			if (((self.invisible_finished <= (time + 5.1)) && (self.invisible_finished >= (time + 4.9))))
-			{
-				BM_CountdownPrint("5");
-			}
-			if (((self.invisible_finished <= (time + 4.1)) && (self.invisible_finished >= (time + 3.9))))
-			{
-				BM_CountdownPrint("4");
-			}
-			if (((self.invisible_finished <= (time + 3.1)) && (self.invisible_finished >= (time + 2.9))))
-			{
-				BM_CountdownPrint("3");
-			}
-			if (((self.invisible_finished <= (time + 2.1)) && (self.invisible_finished >= (time + 1.9))))
-			{
-				BM_CountdownPrint("2");
-			}
-			if (((self.invisible_finished <= (time + 1.1)) && (self.invisible_finished >= (time + 0.9))))
-			{
-				BM_CountdownPrint("1");
-			}
-			if (((self.invisible_finished <= (time + 0.3)) && (self.invisible_finished >= (time + 0.1))))
-			{
-				BM_CountdownPrint("QQQ powerup died QQQ");
-			}
-		}
-		if ((autocvar_3rd_person_extended_ring_effect && cvar("chase_active")))
-		{
-			self.alpha = autocvar_3rd_person_extended_ring_effect;
-		}
-		else
-		{
-			self.frame = 0;
-			self.modelindex = modelindex_eyes;
-		}
-	}
-	else if (!CL_InVehicleHidden(self))	// a vehicle keeps its own hide (alpha 0.01 + EF_NODRAW)
-	{
-		if (!autocvar_3rd_person_visible_weapons)
+		self.effects = (self.effects - (self.effects & EF_NODRAW));
+		if (!autocvar_3rd_person_visible_weapons && (self.modelindex == 0 || self.modelindex == modelindex_eyes || self.modelindex != modelindex_player))
 		{
 			self.modelindex = modelindex_player;
 		}

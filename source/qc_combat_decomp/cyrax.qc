@@ -454,12 +454,7 @@ void(entity vm, entity p) Cyrax_UpdateVMVisual =
 			p.cy_draw_t = time;
 	}
 
-	if (invisweapon && p.invisible_finished > time)
-		vm.alpha = 0.3;
-	else if (!invisweapon && p.invisible_finished > time)
-		vm.alpha = -1;
-	else
-		vm.alpha = 1;
+	vm.alpha = 1;
 
 	if (p.super_damage_finished > time)
 		vm.colormod = '0.5 0.7 1.5';
@@ -1000,8 +995,9 @@ void(entity p, float weak) Cyrax_FireNet =
 			dir = v_forward;
 	}
 
-	// Slight player pushback recoil & muzzle FX
-	p.velocity = p.velocity - v_forward * (weak ? CY_RECOIL_PUSH * 0.5 : CY_RECOIL_PUSH);
+	// Slight player pushback recoil & muzzle FX (respects autocvar_pushback so online play avoids velocity snaps)
+	if (autocvar_pushback != 0)
+		p.velocity = p.velocity - v_forward * (weak ? CY_RECOIL_PUSH * 0.5 : CY_RECOIL_PUSH);
 	p.effects = p.effects | EF_MUZZLEFLASH;
 	p.punchangle_x = weak ? -2.5 : -4.0;
 	player_mm1 ();
@@ -1013,7 +1009,9 @@ void(entity p, float weak) Cyrax_FireNet =
 	p.attack_finished = time + 0.25;
 
 	// Point-blank: someone right in front of the muzzle is caught at once.
+	Antilag_Rewind (p);
 	tracebox (eye, '-24 -24 -24', '24 24 24', eye + v_forward * 80, FALSE, p);
+	Antilag_Restore ();
 	pb = trace_ent;
 	if (pb != world && pb.classname == "player" && pb.jb_vehicle != world)
 		pb = pb.jb_vehicle;
