@@ -12,6 +12,7 @@ csqc.menudefs.qc
 csqc.entities.qc
 csqc.maplist.qc
 bm_hud.qc
+bm_console.qc
 robhead_xray.qc
 minimap_bounds.qc
 bm_minimap_hud.qc

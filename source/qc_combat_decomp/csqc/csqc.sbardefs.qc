@@ -51,7 +51,7 @@ float() BM_GetUIFont =
 	if (!bm_ui_font_checked)
 	{
 		bm_ui_font_checked = TRUE;
-		bm_ui_font_idx = loadfont("user1", "engine/fonts/Roboto-Medium.ttf", "8 12 16 24 32");
+		bm_ui_font_idx = loadfont("user1", "engine/fonts/Roboto-Medium.ttf", "8 10 12 14 16 20 24 32");
 		if (bm_ui_font_idx <= 0)
 			bm_ui_font_idx = findfont("Roboto");
 		if (bm_ui_font_idx < 0)
