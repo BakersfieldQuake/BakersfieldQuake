@@ -2273,7 +2273,6 @@ void() afrit_deathb4 = [ 64, afrit_deathb4 ]
 	if (!self.skin)
 	{
 		pointparticles(particleeffectnum(/*13606i*/"Afrit_death_explode"), self.origin, VEC_ORIGIN, 1);
-		DN3FX_OnExplode(self, self.origin, 0.90);
 	}
 	if (self.skin)
 	{

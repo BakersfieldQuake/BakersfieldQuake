@@ -81,7 +81,6 @@ string(entity killer, entity inflictor) KC_WeaponLabel =
 	{
 		g = killer.fg_sel;
 		if (g == FG_M4)				return "M4A1";
-		if (g == FG_GARAND)			return "M1 Garand";
 		if (g == FG_DOB)			return "Rob Dob";
 		if (g == FG_PONG)			return "Jar o' Green Guys";
 		if (g == FG_PICKLE)			return "Pickle Surprise";

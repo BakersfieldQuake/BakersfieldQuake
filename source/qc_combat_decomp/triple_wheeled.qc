@@ -3,7 +3,7 @@
 #endif
 /*
 ================
-B. TRIPLE WHEELED POWERUP - implementation (Combat+)
+DUAL WIELD POWERUP - implementation (Combat+)
 ================
 */
 
@@ -30,7 +30,7 @@ float(float w) TW_IsPoolAvailable =
 {
 	if (w == TW_M4 && !m4_ok)
 		return FALSE;
-	if (w == TW_GARAND && !garand_ok)
+	if (w == 9)
 		return FALSE;
 	if (w == TW_LG)
 	{
@@ -79,7 +79,6 @@ float(entity p) TW_MainWepCode =
 	{
 		g = p.fg_sel;
 		if (g == FG_M4)			return TW_M4;
-		if (g == FG_GARAND)		return TW_GARAND;
 		if (g == FG_WCANNON)	return TW_WCANNON;
 		if (g == FG_DOOKIE)		return TW_DOOKIE;
 		if (g == FG_PICKLE)		return TW_PICKLE;
@@ -102,7 +101,6 @@ string(float tw) TW_WeaponName =
 	if (tw == TW_MEGAMAN)	return "Mega Man";
 	if (tw == TW_MILKY)		return "Milky Gun";
 	if (tw == TW_M4)		return "M4A1";
-	if (tw == TW_GARAND)	return "M1 Garand";
 	if (tw == TW_WCANNON)	return "Wheelman Cannon";
 	if (tw == TW_DOOKIE)	return "Dookie Bazooka";
 	if (tw == TW_PICKLE)	return "Pickle Surprise";
@@ -126,7 +124,6 @@ string(float tw) TW_VModel =
 	if (tw == TW_MEGAMAN)	return "progs/v_megaman.md3";
 	if (tw == TW_MILKY)		return "progs/v_milky.md3";
 	if (tw == TW_M4)		return "progs/v_m4.md3";
-	if (tw == TW_GARAND)	return "progs/v_garand.md3";
 	if (tw == TW_WCANNON)	return "progs/v_wewcannon.md3";
 	if (tw == TW_DOOKIE)	return "progs/v_dookie.md3";
 	if (tw == TW_PICKLE)	return "progs/v_pickle.md3";
@@ -191,12 +188,6 @@ vector(float tw, float slot) TW_VModelBaseOrg =
 		if (slot == 2)	return '0 -26 1';
 		return '0 4 1';
 	}
-	if (tw == TW_GARAND)
-	{
-		if (slot == 1)	return '-6 22 2';
-		if (slot == 2)	return '-6 -22 -1';
-		return '-6 8 -1';
-	}
 	if (tw == TW_WCANNON)
 	{
 		if (slot == 1)	return '0 23 -1';
@@ -220,7 +211,7 @@ float(entity p) TW_ViewHidden =
 {
 	if (!p || p.classname != "player" || p.health <= 0 || p.deadflag || p.bm_obs || intermission_running)
 		return TRUE;
-	if (p.fl_phase == 1 || p.fl_phase == 2 || FD_Flying (p) || Veh_Driving (p) || p.veh_ride != world)
+	if (FD_Flying (p) || Veh_Driving (p) || p.veh_ride != world)
 		return TRUE;
 	if (JohnBird_Flying (p) || RocketRider_Flying (p) || EricCannon_Active (p) || MMTank_Driving (p) || Binoc_On (p))
 		return TRUE;
@@ -234,8 +225,6 @@ void(entity p) TW_ClearStats =
 	p.tw_st_rem = 0;
 	p.tw_st_wep0 = 0;
 	p.tw_st_wep1 = 0;
-	p.tw_st_wep2 = 0;
-	p.tw_st_wep3 = 0;
 	p.tw_st_step = 0;
 };
 
@@ -243,15 +232,9 @@ void(entity p) TW_RemoveEntities =
 {
 	if (p.tw_vm1 != world && !bm_wasfreed (p.tw_vm1))
 		remove (p.tw_vm1);
-	if (p.tw_vm2 != world && !bm_wasfreed (p.tw_vm2))
-		remove (p.tw_vm2);
-	if (p.tw_vm3 != world && !bm_wasfreed (p.tw_vm3))
-		remove (p.tw_vm3);
 	if (p.tw_halo != world && !bm_wasfreed (p.tw_halo))
 		remove (p.tw_halo);
 	p.tw_vm1 = world;
-	p.tw_vm2 = world;
-	p.tw_vm3 = world;
 	p.tw_halo = world;
 };
 
@@ -262,19 +245,15 @@ void(entity p) TW_Reset =
 	TW_RemoveEntities (p);
 	p.tw_end_t = 0;
 	p.tw_wep1 = 0;
-	p.tw_wep2 = 0;
-	p.tw_wep3 = 0;
 	p.tw_seq_step = 0;
 	p.tw_seq_next = 0;
 	p.tw_fire_t0 = 0;
 	p.tw_fire_t1 = 0;
-	p.tw_fire_t2 = 0;
-	p.tw_fire_t3 = 0;
 	p.tw_warn_stage = 0;
 	TW_ClearStats (p);
 };
 
-// Keep current held weapon loaded while B. Triple Wheeled is active so short chaos never stalls in a 2.5s reload
+// Keep current held weapon loaded while Dual Wield is active so short chaos never stalls in a 2.5s reload
 void(entity p) TW_TopUpHeldWeapon =
 {
 	local float s, m, g;
@@ -365,8 +344,6 @@ void(entity p, float force_all_rl) TW_Activate =
 	p.tw_seq_next = 0;
 	p.tw_fire_t0 = 0;
 	p.tw_fire_t1 = 0;
-	p.tw_fire_t2 = 0;
-	p.tw_fire_t3 = 0;
 	p.tw_warn_stage = 0;
 
 	if (force_all_rl)
@@ -377,14 +354,10 @@ void(entity p, float force_all_rl) TW_Activate =
 		p.weapon = IT_ROCKET_LAUNCHER;
 		W_SetCurrentAmmo ();
 		p.tw_wep1 = TW_RL;
-		p.tw_wep2 = TW_RL;
-		p.tw_wep3 = TW_RL;
 	}
 	else
 	{
 		p.tw_wep1 = TW_PickRandomWeapon ();
-		p.tw_wep2 = TW_PickRandomWeapon ();
-		p.tw_wep3 = TW_PickRandomWeapon ();
 	}
 
 	TW_TopUpHeldWeapon (p);
@@ -393,16 +366,14 @@ void(entity p, float force_all_rl) TW_Activate =
 	{
 		stuffcmd (p, "bf\n");
 		centerprint (p, strcat (
-			"^3B. TRIPLE WHEELED!!\n^7MAIN: ^2", TW_WeaponName (TW_MainWepCode (p)),
-			"  ^7LEFT: ^6", TW_WeaponName (p.tw_wep1),
-			"\n^7TOP-R: ^5", TW_WeaponName (p.tw_wep2),
-			"  ^7TOP-L: ^1", TW_WeaponName (p.tw_wep3)
+			"^3DUAL WIELD!!\n^7MAIN: ^2", TW_WeaponName (TW_MainWepCode (p)),
+			"  ^7LEFT: ^6", TW_WeaponName (p.tw_wep1)
 		));
 	}
 };
 
 // -----------------------------------------------------------------------------
-// 1st-Person Viewmodels (Bottom-Left, Top-Right upside-down, Top-Left upside-down)
+// 1st-Person Viewmodel (Left upright)
 // -----------------------------------------------------------------------------
 
 void(entity vm, float tw, float slot, float fire_t) TW_UpdateSingleVM =
@@ -458,11 +429,6 @@ void(entity vm, float tw, float slot, float fire_t) TW_UpdateSingleVM =
 				fr = M4_FIRE_FIRST + min (M4_FIRE_COUNT - 1, floor (dt * M4_FIRE_FPS));
 				vm.frame = fr;
 			}
-			else if (tw == TW_GARAND)
-			{
-				fr = GAR_SHOOT1_FIRST + min (GAR_SHOOT1_COUNT - 1, floor (dt * GAR_SHOOT1_FPS));
-				vm.frame = fr;
-			}
 			else if (tw == TW_MEGAMAN)
 			{
 				vm.frame = min (35, 16 + floor (dt * 30));
@@ -492,18 +458,11 @@ void() TW_VMThink =
 		if (p != world && !bm_wasfreed (p))
 		{
 			if (p.tw_vm1 == self) p.tw_vm1 = world;
-			if (p.tw_vm2 == self) p.tw_vm2 = world;
-			if (p.tw_vm3 == self) p.tw_vm3 = world;
 		}
 		remove (self);
 		return;
 	}
-	if (self == p.tw_vm1)
-		TW_UpdateSingleVM (self, p.tw_wep1, 1, p.tw_fire_t1);
-	else if (self == p.tw_vm2)
-		TW_UpdateSingleVM (self, p.tw_wep2, 2, p.tw_fire_t2);
-	else
-		TW_UpdateSingleVM (self, p.tw_wep3, 3, p.tw_fire_t3);
+	TW_UpdateSingleVM (self, p.tw_wep1, 1, p.tw_fire_t1);
 	self.nextthink = time;
 };
 
@@ -552,10 +511,6 @@ void(entity p) TW_EnsureVisuals =
 	{
 		if (p.tw_vm1 == world || bm_wasfreed (p.tw_vm1) || p.tw_vm1.owner != p)
 			p.tw_vm1 = TW_SpawnVM (p, p.tw_wep1, 1);
-		if (p.tw_vm2 == world || bm_wasfreed (p.tw_vm2) || p.tw_vm2.owner != p)
-			p.tw_vm2 = TW_SpawnVM (p, p.tw_wep2, 2);
-		if (p.tw_vm3 == world || bm_wasfreed (p.tw_vm3) || p.tw_vm3.owner != p)
-			p.tw_vm3 = TW_SpawnVM (p, p.tw_wep3, 3);
 	}
 	if ((p.tw_halo == world || bm_wasfreed (p.tw_halo) || p.tw_halo.owner != p) && p.health > 0)
 	{
@@ -637,9 +592,7 @@ void(float tw, float slot) TW_FireSlot =
 	self.show_hostile = time + 1;
 	TW_SpawnCornerFlash (slot);
 
-	if (slot == 1)		self.tw_fire_t1 = time;
-	else if (slot == 2)	self.tw_fire_t2 = time;
-	else				self.tw_fire_t3 = time;
+	self.tw_fire_t1 = time;
 
 	if (tw == TW_RL)
 	{
@@ -840,27 +793,6 @@ void(float tw, float slot) TW_FireSlot =
 		return;
 	}
 
-	if (tw == TW_GARAND)
-	{
-		sound7 (self, CHAN_AUTO, gar_snd_fire, 0.95, ATTN_NORM, SNDSPD);
-		self.punchangle_x = self.punchangle_x - 1.8;
-		ClearMultiDamage ();
-		traceline (muz, muz + dir * GAR_RANGE, FALSE, self);
-		dmg = GAR_DAMAGE;
-		if (!PC_TraceIntercept (self, muz, trace_endpos, dmg) && trace_fraction != 1)
-		{
-			if (trace_ent.takedamage || trace_ent.inflamed == 1)
-				TraceAttack (dmg, dir);
-			else
-				Garand_WallImpact (dir);
-		}
-		W_BulletSplash (dir);
-		fg_inflicting = FG_GARAND;
-		ApplyMultiDamage ();
-		fg_inflicting = 0;
-		return;
-	}
-
 	if (tw == TW_WCANNON)
 	{
 		WC_PrecacheSprites ();
@@ -1040,7 +972,7 @@ void() TW_TriggerSequence =
 
 void() TW_Frame =
 {
-	local float rem, delay, fl, w0;
+	local float rem, fl, w0;
 
 	if (self.tw_end_t <= 0)
 		return;
@@ -1055,7 +987,7 @@ void() TW_Frame =
 	{
 		sound7 (self, CHAN_AUTO, "triple_wheeled/wearoff.wav", 0.85, ATTN_NORM, SNDSPD);
 		if (self.ishuman == 1)
-			centerprint (self, "^3B. Triple Wheeled ^7wore off!");
+			centerprint (self, "^3Dual Wield ^7wore off!");
 		TW_Reset (self);
 		return;
 	}
@@ -1069,31 +1001,15 @@ void() TW_Frame =
 	{
 		self.tw_warn_stage = 1;
 		if (self.ishuman == 1)
-			sprint (self, "B. Triple Wheeled is wearing off...\n");
+			sprint (self, "Dual Wield is wearing off...\n");
 	}
 
-	// Sequential firing tick
+	// Sequential firing tick (slot 1 left weapon)
 	if (self.tw_seq_step > 0 && time >= self.tw_seq_next)
 	{
-		delay = bound (0.15, autocvar_bm_triple_delay, 1.0);
-		if (self.tw_seq_step == 1)
-		{
-			TW_FireSlot (self.tw_wep1, 1);
-			self.tw_seq_step = 2;
-			self.tw_seq_next = time + delay;
-		}
-		else if (self.tw_seq_step == 2)
-		{
-			TW_FireSlot (self.tw_wep2, 2);
-			self.tw_seq_step = 3;
-			self.tw_seq_next = time + delay;
-		}
-		else
-		{
-			TW_FireSlot (self.tw_wep3, 3);
-			self.tw_seq_step = 0;
-			self.tw_seq_next = 0;
-		}
+		TW_FireSlot (self.tw_wep1, 1);
+		self.tw_seq_step = 0;
+		self.tw_seq_next = 0;
 	}
 
 	// Update CSQC HUD stats
@@ -1103,20 +1019,16 @@ void() TW_Frame =
 		fl = self.tw_seq_step * 16;
 		if (self.tw_fire_t0 > 0 && time - self.tw_fire_t0 < 0.22) fl = fl | 1;
 		if (self.tw_fire_t1 > 0 && time - self.tw_fire_t1 < 0.22) fl = fl | 2;
-		if (self.tw_fire_t2 > 0 && time - self.tw_fire_t2 < 0.22) fl = fl | 4;
-		if (self.tw_fire_t3 > 0 && time - self.tw_fire_t3 < 0.22) fl = fl | 8;
 
 		self.tw_st_rem = ceil (rem * 10);
 		self.tw_st_wep0 = w0;
 		self.tw_st_wep1 = self.tw_wep1;
-		self.tw_st_wep2 = self.tw_wep2;
-		self.tw_st_wep3 = self.tw_wep3;
 		self.tw_st_step = fl;
 	}
 };
 
 // -----------------------------------------------------------------------------
-// Spinning & Glowing 4-Rocket-Launcher Powerup Entity: item_powerup_triple_wheeled
+// Spinning & Glowing 2-Rocket-Launcher Powerup Entity: item_powerup_triple_wheeled
 // -----------------------------------------------------------------------------
 
 void() TW_ItemThink;
@@ -1160,7 +1072,7 @@ void() TW_ItemTouch =
 {
 	if (other.classname != "player" || other.health <= 0 || other.deadflag || other.bm_obs)
 		return;
-	if (other.fl_phase > 0 || Veh_Driving (other) || other.veh_ride != world || MMTank_Driving (other) || JohnBird_Flying (other) || RocketRider_Flying (other) || EricCannon_Active (other) || FD_Flying (other))
+	if (Veh_Driving (other) || other.veh_ride != world || MMTank_Driving (other) || JohnBird_Flying (other) || RocketRider_Flying (other) || EricCannon_Active (other) || FD_Flying (other))
 		return;
 
 	if (deathmatch)
@@ -1205,7 +1117,7 @@ void() item_powerup_triple_wheeled =
 	self.mdl = self.model;
 	self.traileffectnum = particleeffectnum ("quad");
 	self.effects = self.effects | EF_DIMLIGHT | EF_FULLBRIGHT;
-	self.netname = "B. Triple Wheeled";
+	self.netname = "Dual Wield";
 	setsize (self, '-18 -18 -24', '18 18 32');
 	BM_Radar_RegisterPowerup (self, BM_RPU_TRIPLE);
 	self.think = TW_ItemDrop;
@@ -1429,7 +1341,7 @@ void() TW_Impulse =
 		fwd = v_forward;
 		traceline (self.origin + '0 0 16', self.origin + '0 0 16' + fwd * 120, TRUE, self);
 		TW_SpawnAt (trace_endpos - fwd * 16);
-		sprint (self, "Spawned B. Triple Wheeled!\n");
+		sprint (self, "Spawned Dual Wield!\n");
 		return;
 	}
 	if (self.impulse == 159)

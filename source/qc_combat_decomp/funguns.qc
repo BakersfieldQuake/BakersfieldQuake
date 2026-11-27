@@ -16,7 +16,6 @@ void() FunGun_Precache =
 	NS_Precache ();
 	WC_Precache ();
 	M4_Precache ();
-	Garand_Precache ();
 	Cyrax_Precache ();
 	if (autocvar_bm_preload && deathmatch)
 	{
@@ -47,8 +46,6 @@ string(float g) FunGun_VModel =
 	}
 	if (g == FG_M4)
 		return M4_VModel ();
-	if (g == FG_GARAND)
-		return Garand_VModel ();
 	if (g == FG_CYRAX)
 		return "";		// progs/v_cyrax.md3 skins 0..55 are driven by cyrax.qc Cyrax_EnsureVM
 	if (g == FG_PONG)
@@ -86,8 +83,6 @@ string(float g) FunGun_ShortName =
 		return "Jar o' Green Guys";
 	if (g == FG_M4)
 		return "M4A1";
-	if (g == FG_GARAND)
-		return "M1 Garand";
 	if (g == FG_CYRAX)
 		return "Cyrax Net";
 	if (g == FG_WCANNON)
@@ -109,8 +104,6 @@ string(float g) FunGun_Name =
 		return "Jar o' Green Guys - hold fire to shake, release to swarm!";
 	if (g == FG_M4)
 		return "M4A1 - automatic rifle (R reloads)";
-	if (g == FG_GARAND)
-		return "M1 Garand - semi-auto rifle (R reloads)";
 	if (g == FG_CYRAX)
 		return "Cyrax Net - hold fire 1.1s to fire net, click to Bonk Launch!";
 	if (g == FG_WCANNON)
@@ -141,8 +134,6 @@ string(float g) FunGun_Death1 =
 		return " got rolled over by ";
 	if (g == FG_M4)
 		return " was lit up by ";
-	if (g == FG_GARAND)
-		return " was picked off by ";
 	if (g == FG_CYRAX)
 		return " got Cyrax-netted & bonked by ";
 	return " walked into ";
@@ -166,8 +157,6 @@ string(float g) FunGun_Death2 =
 		return "'s Wheelman\n";
 	if (g == FG_M4)
 		return "'s M4\n";
-	if (g == FG_GARAND)
-		return "'s M1 Garand\n";
 	if (g == FG_CYRAX)
 		return "'s Cyrax Net\n";
 	return "\n";
@@ -189,8 +178,6 @@ float(float g) FunGun_Max =
 		return FG_M4_MAX;
 	if (g == FG_KYLE)
 		return FG_KYLE_MAX;
-	if (g == FG_GARAND)
-		return FG_GARAND_MAX;
 	if (g == FG_CYRAX)
 		return FG_CYRAX_MAX;
 	return FG_PICKLE_MAX;
@@ -212,8 +199,6 @@ float(float g) FunGun_RegenTime =
 		return FG_M4_REGEN;
 	if (g == FG_KYLE)
 		return FG_KYLE_REGEN;
-	if (g == FG_GARAND)
-		return FG_GARAND_REGEN;
 	if (g == FG_CYRAX)
 		return FG_CYRAX_REGEN;
 	return FG_PICKLE_REGEN;
@@ -235,8 +220,6 @@ float(entity p, float g) FunGun_Ammo =
 		return p.fg_ammo7;
 	if (g == FG_KYLE)
 		return p.fg_ammo8;
-	if (g == FG_GARAND)
-		return p.fg_ammo9;
 	if (g == FG_CYRAX)
 		return p.fg_ammo10;
 	return p.fg_ammo3;
@@ -258,8 +241,6 @@ void(entity p, float g, float v) FunGun_SetAmmo =
 		p.fg_ammo7 = v;
 	else if (g == FG_KYLE)
 		p.fg_ammo8 = v;
-	else if (g == FG_GARAND)
-		p.fg_ammo9 = v;
 	else if (g == FG_CYRAX)
 		p.fg_ammo10 = v;
 	else
@@ -284,8 +265,6 @@ float(entity p, float g) FunGun_RegenT =
 		return p.fg_regen7;
 	if (g == FG_KYLE)
 		return p.fg_regen8;
-	if (g == FG_GARAND)
-		return p.fg_regen9;
 	if (g == FG_CYRAX)
 		return p.fg_regen10;
 	return p.fg_regen3;
@@ -307,8 +286,6 @@ void(entity p, float g, float v) FunGun_SetRegenT =
 		p.fg_regen7 = v;
 	else if (g == FG_KYLE)
 		p.fg_regen8 = v;
-	else if (g == FG_GARAND)
-		p.fg_regen9 = v;
 	else if (g == FG_CYRAX)
 		p.fg_regen10 = v;
 	else
@@ -358,11 +335,6 @@ void() FunGun_Attack =
 		else
 			self.fg_dry_held = FALSE;
 		M4_Press ();		// stand-alone automatic rifle: exempt from bm_fg_lock (m4.qc)
-		return;
-	}
-	if (g == FG_GARAND)
-	{
-		Garand_Press ();	// stand-alone M1 Garand rifle: exempt from bm_fg_lock (garand.qc)
 		return;
 	}
 	if (g == FG_CYRAX)
@@ -483,8 +455,8 @@ float(float g) FunGun_Available =
 {
 	if (g == FG_M4)
 		return m4_ok;
-	if (g == FG_GARAND)
-		return garand_ok;
+	if (g == 9)
+		return FALSE;
 	return (g >= 1 && g <= FG_COUNT);
 };
 
@@ -563,9 +535,6 @@ void(entity p) FunGun_Give =
 	p.m4_bloom = 0;
 	p.m4_bloom_t = 0;
 	p.m4_shot_n = 0;
-	p.gar_ready = 1;
-	p.gar_shootanim = 0;
-	p.gar_empty_t = 0;
 	FD_Reset (p);		// a new life starts with no head out
 };
 
@@ -807,8 +776,6 @@ void() FunGun_ViewFrame =
 	KY_Frame ();		// The Pocket Kyle locks on and yeets Kyle (kyle.qc)
 	RH_Frame ();		// the Rob Head winds up and throws (robhead.qc)
 	Cyrax_Frame ();		// Cyrax Net charges, fires, pulls, holds, and Bonk-Launches (cyrax.qc)
-	if (!self.button0)
-		self.gar_ready = 1;		// semi-auto M1 Garand trigger reset
 	g = 1;
 	while (g <= FG_COUNT && !autocvar_bm_reload)	// with the LAN magazines on, bm_reload.qc reloads them
 	{
@@ -824,8 +791,6 @@ void() FunGun_ViewFrame =
 		// Keep firearm frame timestamps fresh during quick-melee so returning doesn't re-trigger draw lock!
 		if (self.fg_sel == FG_M4)
 			self.m4_vf_t = time;
-		else if (self.fg_sel == FG_GARAND)
-			self.gar_vf_t = time;
 	}
 	if (self.weapon != IT_FUNGUN || self.meleeing == 1 || self.throwing == 1)
 		return;
@@ -846,10 +811,6 @@ void() FunGun_ViewFrame =
 	else if (g == FG_M4)
 	{
 		f = M4_Anim ();		// v_m4.md3: CS idle / fire / reload / draw (m4.qc)
-	}
-	else if (g == FG_GARAND)
-	{
-		f = Garand_Anim ();	// v_garand.md3: DoD idle / shoot / shoote / reload / draw (garand.qc)
 	}
 	else if (g == FG_WCANNON)
 	{

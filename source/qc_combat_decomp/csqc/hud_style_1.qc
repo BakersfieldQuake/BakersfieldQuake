@@ -382,7 +382,7 @@ void(float w, float h, float hp, float armor, float active_ammo, float is_melee,
 		ammo_sc = ammo_sc * (62 / wd);
 	S1_DrawRightShadowText(S1_Vec2(rx + wing_w, pill_y + 5), ammo_str, S1_Vec2(ammo_sc, ammo_sc), ammo_col, 0.99 * a);
 
-	// Middle left bar: Reload progress takes priority, else M4/Garand mag bar, else subtle glass divider
+	// Middle left bar: Reload progress takes priority, else M4 mag bar, else subtle glass divider
 	if (rlp > 0 && hp > 0)
 	{
 		rlp_frac = rlp / 100;

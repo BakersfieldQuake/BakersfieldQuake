@@ -25,7 +25,6 @@ float	BM_MM_VEH_MAX		= 8;
 float	BM_MM_DEG2RAD		= 0.01745329;
 
 float	BM_RPU_TRIPLE		= 1;
-float	BM_RPU_FORELOCO		= 2;
 float	BM_RPU_QUAD			= 3;
 float	BM_RPU_PENT			= 4;
 float	BM_RPU_TIME			= 5;
@@ -499,7 +498,7 @@ float() BM_MinimapIsVisible =
 
 void(float w, float h) MM_ComputeLayout =
 {
-	local float hs, jb, sl, x_left, x_ofs, y_ofs, base, rad;
+	local float hs, jb, x_left, x_ofs, y_ofs, base, rad;
 
 	rad = MM_GetRadius ();
 	mm_rad = rad;
@@ -510,7 +509,6 @@ void(float w, float h) MM_ComputeLayout =
 	mm_cx = x_left + rad;
 	hs = cvar ("bm_hud_style");
 	jb = getstati (93);
-	sl = getstati (BMST_SLOT);
 
 	if (jb == 2)
 	{
@@ -531,11 +529,6 @@ void(float w, float h) MM_ComputeLayout =
 	{
 		// Narrow aspect (4:3 / 16:10): step cleanly above Style 4 bottom vitals bar
 		mm_cy = h - 54 - rad - max (0, y_ofs - 8);
-	}
-	else if (hs == 0 && (sl == 16 || sl == 18) && (x_left + rad * 2) > (w * 0.5 - 222) && y_ofs < 46)
-	{
-		// Classic HUD with both Jetpack + M4/Garand tile active: step cleanly above the tile
-		mm_cy = h - 46 - rad;
 	}
 	else
 	{
@@ -614,7 +607,6 @@ void(float cx, float cy, float rad, float range, vector porg, float yaw_deg, flo
 vector(float kind) MM_PowerupColor =
 {
 	if (kind == BM_RPU_TRIPLE)		return '0.22 1.0 0.58';		// electric mint green
-	if (kind == BM_RPU_FORELOCO)	return '1.0 0.34 0.82';		// watermelon magenta
 	if (kind == BM_RPU_QUAD)		return '0.34 0.68 1.0';		// electric quad blue
 	if (kind == BM_RPU_PENT)		return '1.0 0.90 0.45';		// gold pentagram
 	if (kind == BM_RPU_TIME)		return '0.76 0.44 1.0';		// violet time rune

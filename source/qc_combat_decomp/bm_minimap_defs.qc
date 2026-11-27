@@ -7,8 +7,7 @@ float	BM_RPK_BLAST		= 2;		// heavy explosion / projectile blast
 float	BM_RPK_KILL			= 3;		// frag / death burst
 float	BM_RPK_MONSTER		= 4;		// monster attack ping (SP / Coop)
 
-float	BM_RPU_TRIPLE		= 1;		// B. Triple Wheeled
-float	BM_RPU_FORELOCO		= 2;		// Watermelon ForeLoco
+float	BM_RPU_TRIPLE		= 1;		// Dual Wield
 float	BM_RPU_QUAD			= 3;		// Quad Damage
 float	BM_RPU_PENT			= 4;		// Pentagram / Berserk Pentagram
 float	BM_RPU_TIME			= 5;		// Time Dilation Rune

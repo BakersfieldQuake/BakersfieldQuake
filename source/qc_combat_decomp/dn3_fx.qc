@@ -1,11 +1,10 @@
-// dn3_fx.qc — Server-side emitter and sound router for DN3DooM fire, wall puff, and explosion FX.
+// dn3_fx.qc — Server-side emitter and sound router for DN3DooM fire, wall puff, and gore FX.
 // Relays lightweight transient ENT_DN3FX SendEntity events to CSQC (0.14s auto-remove, zero persistent server edicts).
 
 void() DN3FX_Precache =
 {
 	registercvar("bm_dn3fx", "1");
 
-	precache_sound("dn3fx/bombexpl.wav");
 	precache_sound("dn3fx/fire09.ogg");
 	precache_sound("dn3fx/bulithit.ogg");
 	precache_sound("dn3fx/ricoche1.wav");
@@ -58,25 +57,6 @@ void(float kind, vector org, vector dir, float sc) DN3FX_Emit =
 	relay.SendEntity = dn3fx_sendtocsqc;
 	relay.think = SUB_Remove;
 	relay.nextthink = time + 0.14;
-};
-
-void(entity src, vector org, float sc) DN3FX_OnExplode =
-{
-	local float pc;
-
-	if (!autocvar_bm_dn3fx)
-		return;
-
-	pc = pointcontents(org);
-	if (pc == CONTENT_WATER || pc == CONTENT_SLIME)
-		return;
-
-	DN3FX_Emit(DN3FX_EXPLODE, org, '0 0 1', sc);
-	if (src != world)
-	{
-		sound7(src, CHAN_AUTO, "dn3fx/bombexpl.wav", 0.72, ATTN_NORM, SNDSPD);
-		sound7(src, CHAN_AUTO, "dn3fx/fire09.ogg", 0.42, ATTN_IDLE, SNDSPD);
-	}
 };
 
 void(vector org, vector dir, float sc, float with_sound) DN3FX_OnFire =

@@ -1,12 +1,12 @@
 // ================================================================= Gun Wheel: what the HUD needs to know
 // The wheel itself is client side (csqc/gunwheel.qc). Magazines and fun gun ammo live on the server, so each of the
-// 18 slots is sent as one stat, in the wheel's order:
+// 17 slots is sent as one stat, in the wheel's order:
 //   0 = not owned / not installed, 1 = owned but out of ammo and not selectable (bm_reload 0),
 //   2 = usable, no counter, 10 + n = usable with n rounds (0 rounds reloads when drawn)
-// Stat 151: 0 = the wheel may not open now, 1..18 = it may, holding that slot, 19 = it may, holding something else.
+// Stat 150: 0 = the wheel may not open now, 1..17 = it may, holding that slot, 18 = it may, holding something else.
 
 .float bm_gw0, bm_gw1, bm_gw2, bm_gw3, bm_gw4, bm_gw5, bm_gw6, bm_gw7, bm_gw8;
-.float bm_gw9, bm_gw10, bm_gw11, bm_gw12, bm_gw13, bm_gw14, bm_gw15, bm_gw16, bm_gw17;
+.float bm_gw9, bm_gw10, bm_gw11, bm_gw12, bm_gw13, bm_gw14, bm_gw15, bm_gw16;
 .float bm_gw_held;
 
 // worldspawn, with the other clientstats
@@ -29,8 +29,7 @@ void() BM_WheelStatsInit =
 	clientstat (147, 2, bm_gw14);
 	clientstat (148, 2, bm_gw15);
 	clientstat (149, 2, bm_gw16);
-	clientstat (150, 2, bm_gw17);
-	clientstat (151, 2, bm_gw_held);
+	clientstat (150, 2, bm_gw_held);
 };
 
 // a stock gun (items bit): its magazine with bm_reload, else the shared pool (need = rounds one shot takes)
@@ -67,22 +66,21 @@ float() BM_WheelHeld =
 	if (w == IT_LIGHTNING)			return 6;
 	if (w == IT_LASER_CANNON)		return 7;
 	if (w == IT_MEGAMAN)			return 8;
-	if (w != IT_FUNGUN)				return 19;
+	if (w != IT_FUNGUN)				return 18;
 	g = self.fg_sel;
 	if (g == FG_M4)					return 9;
-	if (g == FG_GARAND)				return 10;
-	if (g == FG_DOB)				return 11;
-	if (g == FG_PONG)				return 12;
-	if (g == FG_PICKLE)				return 13;
-	if (g == FG_NETSEND)			return 14;
-	if (g == FG_DOOKIE)				return 15;
-	if (g == FG_WCANNON)			return 16;
-	if (g == FG_KYLE)				return 17;
-	if (g == FG_CYRAX)				return 18;
-	return 19;
+	if (g == FG_DOB)				return 10;
+	if (g == FG_PONG)				return 11;
+	if (g == FG_PICKLE)				return 12;
+	if (g == FG_NETSEND)			return 13;
+	if (g == FG_DOOKIE)				return 14;
+	if (g == FG_WCANNON)			return 15;
+	if (g == FG_KYLE)				return 16;
+	if (g == FG_CYRAX)				return 17;
+	return 18;
 };
 
-// no switching while dead, watching, driving, flying, trapped, drinking or looking through the binoculars
+// no switching while dead, watching, driving, flying, trapped or looking through the binoculars
 float() BM_WheelAllowed =
 {
 	if (self.bm_obs || self.health <= 0 || self.deadflag || intermission_running)
@@ -91,7 +89,7 @@ float() BM_WheelAllowed =
 		return FALSE;
 	if (EricCannon_Active (self) || MMTank_Driving (self))
 		return FALSE;
-	if (self.cy_trapped_by != world || self.fl_st_mode > 0 || Binoc_On (self))
+	if (self.cy_trapped_by != world || Binoc_On (self))
 		return FALSE;
 	return TRUE;
 };
@@ -101,7 +99,7 @@ void() BM_WheelFrame =
 {
 	if (self.ishuman != 1)
 	{
-		self.bm_gw_held = 0;	// observers (ishuman 3) and bots: stat 151 at 0 keeps the wheel shut for them
+		self.bm_gw_held = 0;	// observers (ishuman 3) and bots: stat 150 at 0 keeps the wheel shut for them
 		return;
 	}
 	if (!BM_WheelAllowed ())
@@ -126,13 +124,12 @@ void() BM_WheelFrame =
 	else
 		self.bm_gw7 = 0;
 	self.bm_gw8 = BM_WheelFun (FG_M4, BM_FG7);
-	self.bm_gw9 = BM_WheelFun (FG_GARAND, BM_FG9);
-	self.bm_gw10 = BM_WheelFun (FG_DOB, BM_FG1);
-	self.bm_gw11 = BM_WheelFun (FG_PONG, BM_FG2);
-	self.bm_gw12 = BM_WheelFun (FG_PICKLE, BM_FG3);
-	self.bm_gw13 = BM_WheelFun (FG_NETSEND, BM_FG4);
-	self.bm_gw14 = BM_WheelFun (FG_DOOKIE, BM_FG5);
-	self.bm_gw15 = BM_WheelFun (FG_WCANNON, BM_FG6);
-	self.bm_gw16 = BM_WheelFun (FG_KYLE, BM_FG8);
-	self.bm_gw17 = BM_WheelFun (FG_CYRAX, 0);
+	self.bm_gw9 = BM_WheelFun (FG_DOB, BM_FG1);
+	self.bm_gw10 = BM_WheelFun (FG_PONG, BM_FG2);
+	self.bm_gw11 = BM_WheelFun (FG_PICKLE, BM_FG3);
+	self.bm_gw12 = BM_WheelFun (FG_NETSEND, BM_FG4);
+	self.bm_gw13 = BM_WheelFun (FG_DOOKIE, BM_FG5);
+	self.bm_gw14 = BM_WheelFun (FG_WCANNON, BM_FG6);
+	self.bm_gw15 = BM_WheelFun (FG_KYLE, BM_FG8);
+	self.bm_gw16 = BM_WheelFun (FG_CYRAX, 0);
 };

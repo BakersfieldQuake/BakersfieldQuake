@@ -8,9 +8,8 @@ Layout (6144 x 6144 floating space deck inside a 9216 x 9216 starry void):
     (trigger_push launching straight up; dressed with progs/q3pad.md3 by q3pad.qc).
   - 1 Mega Man Tank (misc_mm_tank)
   - 1 Go-Kart (misc_gokart, cnt=1)
-  - Custom powerups only:
-      * item_powerup_foreloco         (Watermelon ForeLoco)
-      * item_powerup_triple_wheeled   (B. Triple Wheeled)
+  - Custom powerup only:
+      * item_powerup_triple_wheeled   (Dual Wield)
   - Paired with practice.qc which spawns 1 walking, non-shooting enemy player
     model (progs/player_id1.mdl) patrolling around the central arena.
 
@@ -238,10 +237,9 @@ def build_map_text(wad_path: Path) -> str:
         )
     )
 
-    # Custom powerups only, centered north of the arena hole
+    # Custom powerup only, centered north of the arena hole
     powerups = [
-        ("item_powerup_foreloco", -140, 520),
-        ("item_powerup_triple_wheeled", 140, 520),
+        ("item_powerup_triple_wheeled", 0, 520),
     ]
     for cls, px, py in powerups:
         entities.append(
@@ -258,8 +256,7 @@ def build_map_text(wad_path: Path) -> str:
     entities.append(fmt_ent({"classname": "light", "origin": "0 0 110", "light": "280", "_color": "1 0.82 0.48"}))
     entities.append(fmt_ent({"classname": "light", "origin": "-560 -120 220", "light": "260", "_color": "0.68 0.85 1"}))
     entities.append(fmt_ent({"classname": "light", "origin": "560 -120 220", "light": "260", "_color": "1 0.76 0.48"}))
-    entities.append(fmt_ent({"classname": "light", "origin": "-140 520 180", "light": "220", "_color": "0.95 0.62 1"}))
-    entities.append(fmt_ent({"classname": "light", "origin": "140 520 180", "light": "220", "_color": "0.55 1 0.75"}))
+    entities.append(fmt_ent({"classname": "light", "origin": "0 520 180", "light": "220", "_color": "0.55 1 0.75"}))
     entities.append(fmt_ent({"classname": "light", "origin": "0 -640 190", "light": "200", "_color": "0.72 0.82 1"}))
     for lx in (-2600, 0, 2600):
         for ly in (-2600, 0, 2600):

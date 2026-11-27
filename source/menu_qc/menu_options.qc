@@ -10,7 +10,7 @@ float OPT_VID_COUNT    = 16;
 float OPT_GFX_COUNT    = 28;
 float OPT_CTRL_COUNT   = 21;
 float OPT_VEH_COUNT    = 9;
-float OPT_WEP_COUNT    = 21;
+float OPT_WEP_COUNT    = 20;
 
 float OPT_RES_MAX      = 64;
 
@@ -491,14 +491,13 @@ string(float tab, float idx) BM_Opt_BindLabel =
 	if (idx == 9)  return "CCC Laser Cannon";
 	if (idx == 10) return "Slot 9: Mega Man Gun";
 	if (idx == 11) return "Slot 0: M4A1 Rifle";
-	if (idx == 12) return "M1 Garand Rifle";
-	if (idx == 13) return "Fun: Rob Dob";
-	if (idx == 14) return "Fun: Jar o' Green Guys";
-	if (idx == 15) return "Fun: Pickle Surprise";
-	if (idx == 16) return "Fun: NetSend PC";
-	if (idx == 17) return "Fun: Dookie Bazooka";
-	if (idx == 18) return "Fun: Wheelman Cannon";
-	if (idx == 19) return "Fun: Pocket Kyle";
+	if (idx == 12) return "Fun: Rob Dob";
+	if (idx == 13) return "Fun: Jar o' Green Guys";
+	if (idx == 14) return "Fun: Pickle Surprise";
+	if (idx == 15) return "Fun: NetSend PC";
+	if (idx == 16) return "Fun: Dookie Bazooka";
+	if (idx == 17) return "Fun: Wheelman Cannon";
+	if (idx == 18) return "Fun: Pocket Kyle";
 	return "Fun: Cyrax Net";
 };
 
@@ -541,14 +540,13 @@ string(float tab, float idx) BM_Opt_BindCmd =
 	if (idx == 9)  return "impulse 16";
 	if (idx == 10) return "impulse 14";
 	if (idx == 11) return "impulse 67";
-	if (idx == 12) return "impulse 69";
-	if (idx == 13) return "impulse 61";
-	if (idx == 14) return "impulse 62";
-	if (idx == 15) return "impulse 63";
-	if (idx == 16) return "impulse 64";
-	if (idx == 17) return "impulse 65";
-	if (idx == 18) return "impulse 66";
-	if (idx == 19) return "impulse 68";
+	if (idx == 12) return "impulse 61";
+	if (idx == 13) return "impulse 62";
+	if (idx == 14) return "impulse 63";
+	if (idx == 15) return "impulse 64";
+	if (idx == 16) return "impulse 65";
+	if (idx == 17) return "impulse 66";
+	if (idx == 18) return "impulse 68";
 	return "impulse 70";
 };
 

@@ -130,8 +130,6 @@ string(float slot, float active_weap) S4_GetWeaponTag =
 		return "M4A1";
 	if (slot == 17)
 		return "KYLE";
-	if (slot == 18)
-		return "GARAND";
 	if (slot == 19)
 		return "CYRAX";
 	if (active_weap == IT_CHAINSAW)
@@ -529,7 +527,7 @@ void(float w, float h) HUD_DrawStyle4 =
 
 	// ---- Right of Quake Head: Weapon Tag + Active Ammo + Mag/Reload Bar + Minimal Reserves ----
 	weap_tag = S4_GetWeaponTag(slot, currentweap);
-	if (slot == 16 || slot == 18)
+	if (slot == 16)
 		S4_TextShadow(right_x * '1 0 0' + (h - 46) * '0 1 0', weap_tag, '6 6 0', c_gold, 0.98 * a);
 	else
 		S4_TextShadow(right_x * '1 0 0' + (h - 46) * '0 1 0', weap_tag, '6 6 0', c_cyan, 0.96 * a);

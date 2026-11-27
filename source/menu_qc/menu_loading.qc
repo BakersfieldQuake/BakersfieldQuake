@@ -98,7 +98,7 @@ string(string bsp) BM_Loading_PrettyMap =
 
 string(float idx) BM_Loading_Tip =
 {
-	if (idx == 0) return "Fueling Go-Karts with ForeLoco...";
+	if (idx == 0) return "Watch out for runaway Go-Karts on 20th St!";
 	if (idx == 1) return "Greenman's jar never washes off.";
 	if (idx == 2) return "Rob Drone is judging your aim.";
 	if (idx == 3) return "John Bird is circling overhead!";

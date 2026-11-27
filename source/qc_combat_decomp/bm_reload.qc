@@ -26,7 +26,7 @@ own always-on recharge is switched off while bm_reload is on (megaman.qc / fungu
 // ---------------------------------------------------------------- the table
 float(float s) BM_IsFirearmSlot =
 {
-	return (s == BM_FG7 || s == BM_FG9);
+	return (s == BM_FG7);
 };
 
 // magazine size in ammo units
@@ -62,7 +62,6 @@ float(float s) BM_MagSize =
 	if (s == BM_FG6)	return FunGun_Max (FG_WCANNON);
 	if (s == BM_FG7)	return FunGun_Max (FG_M4);
 	if (s == BM_FG8)	return FunGun_Max (FG_KYLE);
-	if (s == BM_FG9)	return FunGun_Max (FG_GARAND);
 	return 0;
 };
 
@@ -87,7 +86,6 @@ float(float s) BM_ReloadTime =
 	else if (s == BM_FG5)	t = FG_DOOKIE_REGEN;		// Dookie Bazooka: 3 s full reload (5 canisters)
 	else if (s == BM_FG7)	t = M4_RELOAD_TIME;		// the M4: the whole CS reload animation
 	else if (s == BM_FG8)	t = FG_KYLE_REGEN;		// The Pocket Kyle: 5 s recharge
-	else if (s == BM_FG9)	t = GAR_RELOAD_TIME;	// the M1 Garand: the whole DoD reload animation
 	else if (s == BM_FG6)	t = FG_WCANNON_REGEN;		// Wheelman Cannon: 12 s for the next Wheelman
 	else
 		t = 2;
@@ -146,8 +144,6 @@ float(entity p) BM_SlotOf =
 			return BM_FG7;
 		if (p.fg_sel == FG_KYLE)
 			return BM_FG8;
-		if (p.fg_sel == FG_GARAND)
-			return BM_FG9;
 		if (p.fg_sel == FG_CYRAX)
 			return 0;		// Cyrax Net has no magazine / reload bar (cyrax.qc)
 		return BM_FG3;
@@ -186,7 +182,6 @@ float(entity p, float s) BM_GetMag =
 	if (s == BM_FG6)	return p.fg_ammo6;
 	if (s == BM_FG7)	return p.fg_ammo7;
 	if (s == BM_FG8)	return p.fg_ammo8;
-	if (s == BM_FG9)	return p.fg_ammo9;
 	return 0;
 };
 
@@ -213,7 +208,6 @@ void(entity p, float s, float v) BM_SetMag =
 	else if (s == BM_FG6)	p.fg_ammo6 = v;
 	else if (s == BM_FG7)	p.fg_ammo7 = v;
 	else if (s == BM_FG8)	p.fg_ammo8 = v;
-	else if (s == BM_FG9)	p.fg_ammo9 = v;
 };
 
 float(entity p, float s) BM_GetAcc =
@@ -517,7 +511,7 @@ void() BM_ViewModel =
 {
 	local string old;
 
-	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0 && !(M4_ShowsReload (self) || Garand_ShowsReload (self)))
+	if (self.bm_rl_slot && !self.bm_rl_quiet && self.health > 0 && !M4_ShowsReload (self))
 	{
 		if (!self.bm_vm_hidden && self.weaponmodel != "")
 		{
@@ -638,10 +632,6 @@ void() BM_Frame =
 		else if (s == BM_FG6 && self.fg_fire_t > 0 && time < self.fg_fire_t + WC_COOLDOWN)
 		{
 			// let the WEW Cannon blast, long-stroke barrel recoil & breech cycle finish before starting reload
-		}
-		else if (s == BM_FG9 && self.gar_empty_t > 0 && time < self.gar_empty_t + GAR_SHOOT_EMPTY_TIME)
-		{
-			// let the M1 Garand 8th-round en-bloc clip ejection + PING finish before starting reload
 		}
 		else if (s == BM_FG1 && (self.rh_charging > 0 || self.rh_throw_at > 0 || (self.rh_threw_t > 0 && time < self.rh_threw_t + (RH_FOLLOW_TIME / RH_DRONE_ANIM_SPEED))))
 		{

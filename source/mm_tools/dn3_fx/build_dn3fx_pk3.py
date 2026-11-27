@@ -58,7 +58,6 @@ SOUND_FILES = (
     "organic1.ogg",
     "organic2.ogg",
     "dsslop.wav",
-    "bombexpl.wav",
     "fire09.ogg",
     "bulithit.ogg",
     "ricoche1.wav",
@@ -346,14 +345,6 @@ def _collect_entries() -> dict[str, bytes]:
         _load_rgba_frames(gore_names, scale=2, pivot_y_ratio=0.5),
         SPR_VP_PARALLEL,
     )
-    entries["progs/dn3fx_explode.spr32"] = _build_spr32_bytes(
-        _load_rgba_frames([f"RPGB{c}0.png" for c in "BCDEFGHIJKLMNOPQRSTUV"], scale=2, pivot_y_ratio=0.5),
-        SPR_VP_PARALLEL,
-    )
-    entries["progs/dn3fx_fireball.spr32"] = _build_spr32_bytes(
-        _load_rgba_frames([f"FRB1{c}0.png" for c in "ABCDEFGHIJKLMN"], scale=2, pivot_y_ratio=0.5),
-        SPR_VP_PARALLEL,
-    )
     flame_names = [f"FIR3{c}0.png" for c in "ABCDEFGHIJKLMNOP"] + [
         f"FIR6{c}0.png" for c in "ABCDEFGHIJKLMNOP"
     ]
@@ -363,10 +354,6 @@ def _collect_entries() -> dict[str, bytes]:
     )
     entries["progs/dn3fx_smoke.spr32"] = _build_spr32_bytes(
         _load_rgba_frames([f"SMOK{c}0.png" for c in "ABCDEFGHIJKLMNOP"], scale=2, pivot_y_ratio=0.5),
-        SPR_VP_PARALLEL,
-    )
-    entries["progs/dn3fx_shockwave.spr32"] = _build_spr32_bytes(
-        _load_rgba_frames([f"SHW2{c}0.png" for c in "ABCDEFGHI"], scale=1, pivot_y_ratio=0.5),
         SPR_VP_PARALLEL,
     )
 

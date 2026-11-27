@@ -1,14 +1,14 @@
-"""Builds zz_triple_wheeled.pk3: reproducible B. Triple Wheeled powerup model, shaders & sounds.
+"""Builds zz_triple_wheeled.pk3: reproducible Dual Wield powerup model, shaders & sounds.
 
 Usage:
   python -I source/mm_tools/triple_wheeled/build_triple_wheeled_pk3.py [q15.pk3] [output_pk3] [--verify-repro]
 
 Generates deterministically into zz_triple_wheeled.pk3:
-  - progs/triple_wheeled.md3 (+ _0.skin)  : 4 Rocket Launchers clustered together (2 upright, 2 upside down) + glow shell & rings
+  - progs/triple_wheeled.md3 (+ _0.skin)  : 2 upright Rocket Launchers paired side-by-side + glow shell & rings
   - progs/triple_wheeled_rl.png           : Rocket launcher metallic/emissive texture (derived from q15 textures/p_rock2.png)
   - progs/triple_wheeled_glow.png         : Pulsing plasma glow texture for the energy core, rings & outer shell
   - scripts/triple_wheeled.shader         : Pulsing emissive + additive plasma glow shaders
-  - sound/triple_wheeled/pickup.wav       : Celebratory 4-launcher rack + powerup chord
+  - sound/triple_wheeled/pickup.wav       : Celebratory 2-launcher rack + powerup chord
   - sound/triple_wheeled/wearoff.wav      : Powerup expiration descend
 """
 from __future__ import annotations
@@ -195,33 +195,28 @@ def _add_glow_core(verts: list, norms: list, st: list, tris: list, rx: float, ry
 
 
 def build_powerup_md3(q15_pk3: Path, out_dir: Path) -> None:
-    """Build progs/triple_wheeled.md3 with 4 clustered rocket launchers + glowing shell/rings."""
+    """Build progs/triple_wheeled.md3 with 2 paired rocket launchers + glowing shell/rings."""
     vv0, nn0, st0, tris0, tex_bytes = _load_aligned_rocket_launcher(q15_pk3)
 
-    # Scale each RL so the 4-launcher cluster sits cleanly inside ~42x28x28u
+    # Scale each RL so the 2-launcher pair sits cleanly inside ~42x28x16u
     rl_scale = 0.88
     vv0 = vv0 * rl_scale
 
-    # 4 rocket launcher placements all pointing forward (+X):
+    # 2 upright rocket launcher placements pointing forward (+X), side-by-side:
     # (rx_roll_deg, ry_pitch_deg, rz_yaw_deg)
-    # Bottom-Right (upright), Bottom-Left (upright), Top-Right (upside down), Top-Left (upside down)
     placements = [
-        ((0.0, -6.8, -5.8), (0.0, 0.0, -4.0)),      # Bottom-Right, upright
-        ((0.0, +6.8, -5.8), (0.0, 0.0, +4.0)),      # Bottom-Left, upright
-        ((0.0, -6.8, +5.8), (180.0, 0.0, -4.0)),    # Top-Right, upside down (180 roll around X)
-        ((0.0, +6.8, +5.8), (180.0, 0.0, +4.0)),    # Top-Left, upside down (180 roll around X)
+        ((0.0, -7.2, 0.0), (0.0, 0.0, -4.0)),      # Right, upright
+        ((0.0, +7.2, 0.0), (0.0, 0.0, +4.0)),      # Left, upright
     ]
 
-    # Build 12 animated pulse/bob frames? Or 1 static frame and QC spins/bobs the entity!
-    # Actually 16 subtle internal breathing/ring-pulse frames make even static screenshots look alive,
-    # while QC spins the entity rapidly on Y and bobs Z.
+    # 16 subtle internal breathing/ring-pulse frames while QC spins the entity rapidly on Y and bobs Z.
     n_frames = 16
 
-    # Surface 1: the 4 rocket launchers
-    s1_st = st0 * 4
+    # Surface 1: the 2 rocket launchers
+    s1_st = st0 * 2
     s1_tris = []
     nv_one = len(vv0)
-    for k in range(4):
+    for k in range(2):
         off = k * nv_one
         for a, b, c in tris0:
             s1_tris.append((a + off, b + off, c + off))
@@ -240,10 +235,10 @@ def build_powerup_md3(q15_pk3: Path, out_dir: Path) -> None:
             f_norms.extend(map(tuple, tn))
         s1_frames.append((f_verts, f_norms))
 
-    # Surface 2: glowing additive outer shell around all 4 launchers + glowing core & twin halo rings
-    s2_st = list(st0 * 4)
+    # Surface 2: glowing additive outer shell around both launchers + glowing core & twin halo rings
+    s2_st = list(st0 * 2)
     s2_tris = []
-    for k in range(4):
+    for k in range(2):
         off = k * nv_one
         for a, b, c in tris0:
             s2_tris.append((a + off, b + off, c + off))
@@ -251,10 +246,10 @@ def build_powerup_md3(q15_pk3: Path, out_dir: Path) -> None:
     # Build template ring & core geometry once to capture topology
     ring_verts_0: list = []
     ring_norms_0: list = []
-    tri_base = 4 * nv_one
-    _add_torus_ring(ring_verts_0, ring_norms_0, s2_st, s2_tris, major_r=12.8, minor_r=1.05, n_maj=24, n_min=8, x_offset=-5.5, tri_base=tri_base)
-    _add_torus_ring(ring_verts_0, ring_norms_0, s2_st, s2_tris, major_r=12.8, minor_r=1.05, n_maj=24, n_min=8, x_offset=+5.5, tri_base=tri_base)
-    _add_glow_core(ring_verts_0, ring_norms_0, s2_st, s2_tris, rx=9.5, ry=4.6, rz=4.6, tri_base=tri_base)
+    tri_base = 2 * nv_one
+    _add_torus_ring(ring_verts_0, ring_norms_0, s2_st, s2_tris, major_r=11.5, minor_r=0.95, n_maj=24, n_min=8, x_offset=-5.5, tri_base=tri_base)
+    _add_torus_ring(ring_verts_0, ring_norms_0, s2_st, s2_tris, major_r=11.5, minor_r=0.95, n_maj=24, n_min=8, x_offset=+5.5, tri_base=tri_base)
+    _add_glow_core(ring_verts_0, ring_norms_0, s2_st, s2_tris, rx=8.5, ry=4.6, rz=3.6, tri_base=tri_base)
 
     s2_frames = []
     for fi in range(n_frames):
@@ -378,12 +373,12 @@ def build_sounds(out_dir: Path) -> None:
     snd_dir = out_dir / "sound" / "triple_wheeled"
     snd_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. pickup.wav: 4 rapid mechanical launcher racks + rising hype fanfare chord
+    # 1. pickup.wav: 2 rapid mechanical launcher racks + rising hype fanfare chord
     dur = 1.25
     t = np.arange(int(SR * dur), dtype=np.float64) / SR
     sig = np.zeros_like(t)
-    # 4 rapid metallic clacks at 0.00, 0.09, 0.18, 0.27s
-    for idx, t0 in enumerate((0.0, 0.09, 0.18, 0.27)):
+    # 2 rapid metallic clacks at 0.00, 0.11s
+    for idx, t0 in enumerate((0.0, 0.11)):
         dt = t - t0
         mask = (dt >= 0) & (dt < 0.10)
         f0 = 320 + idx * 75

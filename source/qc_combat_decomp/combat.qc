@@ -111,35 +111,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 		T_Damage(targ.rr_vehicle, inflictor, attacker, damage);
 		return;
 	}
-	// Eric's hospital bed (4Loco) is no armour: a hit on the bed is a hit on him, so he can be killed while riding
-	// it (playtest: he must not be invincible for the whole power-up; only the short spawn protection remains)
-	if (((targ.veh_kind == VEH_FORELOCO) && (targ.veh_driver != world) && (targ.veh_driver.health > 0)))
-	{
-		if ((time >= targ.veh_pain_snd_t))
-		{
-			targ.veh_pain_snd_t = time + 0.16;
-			sound7(targ, CHAN_BODY, "foreloco/boing_hit.wav", 0.72, ATTN_NORM, 98 + random() * 18);
-		}
-		// one hit per projectile/explosion per frame (hitscan has inflictor == attacker and is left alone): a rocket on the bed and its splash on him were both applied (audit 2026-11-26)
-		if (((inflictor != world) && (inflictor != attacker) && (targ.veh_driver.bm_hit_infl == inflictor) && (targ.veh_driver.bm_hit_infl_t == time)))
-		{
-			return;
-		}
-		targ.veh_driver.bm_hit_infl = inflictor;
-		targ.veh_driver.bm_hit_infl_t = time;
-		T_Damage(targ.veh_driver, inflictor, attacker, damage);
-		return;
-	}
-	if (((targ.veh_van != world) && (targ.veh_van.veh_kind == VEH_FORELOCO) && (targ.veh_van.veh_driver == targ) && (inflictor != world) && (inflictor != attacker)))
-	{
-		if (((targ.bm_hit_infl == inflictor) && (targ.bm_hit_infl_t == time)))
-		{
-			return;
-		}
-		targ.bm_hit_infl = inflictor;
-		targ.bm_hit_infl_t = time;
-	}
-	if (((targ.veh_van != world) && (targ.veh_van.veh_state != VEH_STATE_WRECK) && (targ.veh_van.veh_kind != VEH_FORELOCO)))
+	if (((targ.veh_van != world) && (targ.veh_van.veh_state != VEH_STATE_WRECK)))
 	{
 		// Vehicle cab shields the driver from hull-piercing splash: route external damage to the vehicle hull!
 		if ((targ.veh_van.veh_driver == targ))
@@ -286,7 +258,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage =
 			}
 		}
 	}
-	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)) && !(targ.veh_kind == VEH_FORELOCO && targ.invincible_finished >= time))
+	if (((inflictor != world) && (targ.movetype == MOVETYPE_WALK)))
 	{
 		dir = targ.origin - ((inflictor.absmin + inflictor.absmax) * 0.5);
 		dir = normalize(dir);

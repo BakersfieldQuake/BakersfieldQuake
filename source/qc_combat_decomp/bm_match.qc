@@ -610,11 +610,6 @@ void() BM_Stats =
 	clientstat (111, 2, gk_st_nitro);		// Go-Kart rocket HUD: 0..100 current nitro
 	clientstat (112, 2, dn3_st_frame);		// DN3DooM Pump Shotgun CSQC 2D sprite frame + flags
 	clientstat (113, 2, dn3_st_speed);		// DN3DooM Pump Shotgun horizontal speed for walk bob
-	clientstat (114, 2, fl_st_black);		// ForeLoco screen blackout alpha 0..100
-	clientstat (115, 2, fl_st_mode);		// ForeLoco phase: 0=off, 1=drinking, 2=blackout, 3=hospital bed
-	clientstat (116, 2, fl_st_rem);			// ForeLoco remaining time in tenths of a second
-	clientstat (117, 2, fl_st_speed);		// ForeLoco hospital bed speed u/s
-	clientstat (118, 2, fl_st_flags);		// ForeLoco invuln/orbit/boost flags + ram KO count
 	clientstat (124, 2, gk_st_lock);		// Go-Kart heat-seeker: locked on a player
 	clientstat (125, 2, gk_st_tx);			// Go-Kart heat-seeker: target world X
 	clientstat (126, 2, gk_st_ty);			// Go-Kart heat-seeker: target world Y
@@ -624,15 +619,12 @@ void() BM_Stats =
 	clientstat (130, 2, cy_st_flash);		// Cyrax Net HUD: incremented on each capture for green edge flash
 	clientstat (131, 2, cy_st_kind);		// Cyrax Net HUD: 0=player/bot, 1=Winged John Bird, 2=Milky Grenade
 	clientstat (132, 2, cy_st_dist);		// Cyrax Net HUD: distance in units to captured target
-	clientstat (119, 2, fl_st_anim);		// ForeLoco 2D sprite viewmodel frame (1..16)
 	clientstat (120, 2, bako_st_padre_pct);	// Bakersfield-ish Padre Hotel structural integrity % (101=hidden, 1..99=damaged, 0=collapsed)
 	clientstat (121, 2, bako_st_event);		// Bakersfield-ish active demolition/rebuild banner code
-	clientstat (152, 2, tw_st_rem);			// B. Triple Wheeled remaining time * 10
-	clientstat (153, 2, tw_st_wep0);		// B. Triple Wheeled Slot 0 (main gun) code
-	clientstat (154, 2, tw_st_wep1);		// B. Triple Wheeled Slot 1 (bottom-left) code
-	clientstat (155, 2, tw_st_wep2);		// B. Triple Wheeled Slot 2 (top-right, upside-down) code
-	clientstat (156, 2, tw_st_wep3);		// B. Triple Wheeled Slot 3 (top-left, upside-down) code
-	clientstat (157, 2, tw_st_step);		// B. Triple Wheeled flash bitmask + active cascade step
+	clientstat (152, 2, tw_st_rem);			// Dual Wield remaining time * 10
+	clientstat (153, 2, tw_st_wep0);		// Dual Wield Slot 0 (main gun) code
+	clientstat (154, 2, tw_st_wep1);		// Dual Wield Slot 1 (left) code
+	clientstat (157, 2, tw_st_step);		// Dual Wield flash bitmask + active cascade step
 	clientstat (158, 2, bm_st_hitsnd);		// Unreliable CSQC hit-sound counter (hitsound.qc / proj_collide.qc)
 	KC_Stats ();
 };
@@ -1388,7 +1380,6 @@ void(entity e) BM_ObsActivate =
 		// out of any van / bird / cannon / tank first (self = e, classname still "player" so the
 		// leave code releases him): else the vehicle keeps a driver ref and the HUD stats stay set
 		Veh_ClientGone ();
-		FL_Reset (e);
 		TW_Reset (e);
 		JohnBird_ClientGone ();
 		RocketRider_ClientGone ();
@@ -1622,12 +1613,6 @@ void() BM_ObsFrame =
 	self.ky_st_mode = 0;
 	self.gk_st_mode = 0;
 	self.gk_st_prog = 0;
-	self.fl_st_black = 0;
-	self.fl_st_mode = 0;
-	self.fl_st_rem = 0;
-	self.fl_st_speed = 0;
-	self.fl_st_flags = 0;
-	self.fl_st_anim = 0;
 	self.dn3_st_frame = 0;
 	self.dn3_st_speed = 0;
 	self.bako_st_padre_pct = 101;

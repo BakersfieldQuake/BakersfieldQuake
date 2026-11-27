@@ -2267,10 +2267,6 @@ void() BecomeExplosion =
 			explod.alpha = 0.7;
 		}
 	}
-	if ((self.classname != "light_destruct") && (self.classname != "resistexp") && (self.classname != "slimeball") && (self.classname != "monster_tarbaby") && (self.classname != "missile"))
-	{
-		DN3FX_OnExplode(self, (self.origin + '0 0 15'), ((self.classname == "misc_explobox") || (self.classname == "explo_box")) ? 1.35 : 1.05);
-	}
 	setorigin(explod, (self.origin + '0 0 15'));
 	explod.frame = 0;
 	explod.think = exploderun;
@@ -6310,9 +6306,6 @@ void() ImpulseCommands =
 	Vehicles_Impulse();
 	if (!self.impulse)
 		return;
-	FL_Impulse();
-	if (!self.impulse)
-		return;
 	TW_Impulse();
 	if (!self.impulse)
 		return;
@@ -6536,11 +6529,6 @@ void() W_WeaponFrame =
 	{
 		self.jb_st_status = 0;	// same: no stale slowed/burning status for the whole drive
 		return;	// driving a vehicle: nothing else happens (vehicle_drive.qc)
-	}
-	if (FL_Frame())
-	{
-		self.jb_st_status = 0;
-		return;	// drinking ForeLoco / blacking out (foreloco.qc)
 	}
 	Veh_PassengerFrame();	// riding shotgun / turret gunner: syncs seat & H bail while keeping full weapons!
 	JohnBird_DebuffFrame();	// sticky slow / burn DoT & Winged John CSQC stats

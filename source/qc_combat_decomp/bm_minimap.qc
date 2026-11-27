@@ -609,7 +609,7 @@ float(entity v) BM_Radar_VehicleAvailable =
 		return (v.rr_pilot == world && !v.rr_dying && v.health > 0 && !(v.effects & EF_NODRAW));
 	if (v.classname == "misc_eric_cannon")
 		return (v.ec_pilot == world && v.ec_state == 0);
-	if (v.veh_kind > 0 && v.veh_kind != VEH_FORELOCO)
+	if (v.veh_kind > 0)
 		return (v.veh_driver == world && v.veh_state != VEH_STATE_WRECK && v.health > 0 && !(v.effects & EF_NODRAW));
 	return FALSE;
 };

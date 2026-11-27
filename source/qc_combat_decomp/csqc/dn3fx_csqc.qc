@@ -1,10 +1,9 @@
-// dn3fx_csqc.qc — Client-side DN3DooM fire, smoke, bullet puff, and explosion FX.
+// dn3fx_csqc.qc — Client-side DN3DooM fire, smoke, bullet puff, and gore FX.
 // Zero server edicts retained: server emits transient ENT_DN3FX (9) events and
 // CSQC spawns capped, smoothly-fading local entities in a transient FX ring buffer.
 
 float ENT_DN3FX = 9;
 
-float DN3FX_EXPLODE     = 3;
 float DN3FX_FIRE_BURST  = 4;
 float DN3FX_BULLET_PUFF = 5;
 float DN3FX_GIB_BURST   = 6;
@@ -40,11 +39,8 @@ void() DN3FX_Precache =
 {
 	registercvar("bm_dn3fx", "1");
 
-	precache_model("progs/dn3fx_explode.spr32");
-	precache_model("progs/dn3fx_fireball.spr32");
 	precache_model("progs/dn3fx_flame.spr32");
 	precache_model("progs/dn3fx_smoke.spr32");
-	precache_model("progs/dn3fx_shockwave.spr32");
 	precache_model("progs/chop.mdl");
 	precache_model("progs/zom_gib.mdl");
 	precache_model("progs/gib1.mdl");
@@ -184,103 +180,6 @@ entity(string mdl, vector org, vector vel, float sc, float al, float eff, float 
 	e.think = DN3FX_SpriteThink;
 	e.nextthink = time + 0.02;
 	return e;
-};
-
-void(vector org, float s) DN3FX_RunExplode =
-{
-	local float i, eff_glow;
-	local vector p, vel, fl_pos;
-	local entity fl;
-
-	eff_glow = DN3FX_EF_FULLBRIGHT | DN3FX_EF_ADDITIVE;
-
-	// Core Duke RPG explosion fireball (21 frames)
-	DN3FX_SpawnSprite(
-		"progs/dn3fx_explode.spr32",
-		org + '0 0 6',
-		'0 0 14',
-		1.15 * s,
-		0.98,
-		eff_glow,
-		0.70,
-		0.18,
-		0, 21, 30.0, 0, 0.25 * s
-	);
-
-	// Expanding shockwave ring (9 frames)
-	DN3FX_SpawnSprite(
-		"progs/dn3fx_shockwave.spr32",
-		org,
-		'0 0 0',
-		0.45 * s,
-		0.85,
-		eff_glow,
-		0.36,
-		0.22,
-		0, 9, 25.0, 0, 1.85 * s
-	);
-
-	// Secondary fireball burst (FRB1 14 frames)
-	p = org;
-	p_x = p_x + DN3FX_CRand() * 10.0;
-	p_y = p_y + DN3FX_CRand() * 10.0;
-	p_z = p_z + random() * 10.0;
-	DN3FX_SpawnSprite(
-		"progs/dn3fx_fireball.spr32",
-		p,
-		'0 0 24',
-		0.75 * s,
-		0.90,
-		eff_glow,
-		0.52,
-		0.20,
-		0, 14, 27.0, 0, 0.25 * s
-	);
-
-	// Rising smoke puffs
-	for (i = 0; i < 3; i = i + 1)
-	{
-		p = org;
-		p_x = p_x + DN3FX_CRand() * 16.0;
-		p_y = p_y + DN3FX_CRand() * 16.0;
-		p_z = p_z + 6.0 + random() * 12.0;
-		vel_x = DN3FX_CRand() * 22.0;
-		vel_y = DN3FX_CRand() * 22.0;
-		vel_z = 44.0 + random() * 34.0;
-		DN3FX_SpawnSprite(
-			"progs/dn3fx_smoke.spr32",
-			p,
-			vel,
-			(0.65 + random() * 0.35) * s,
-			0.72,
-			0,
-			0.95 + random() * 0.30,
-			0.45,
-			0, 16, 17.0, -8.0, 0.40 * s
-		);
-	}
-
-	// Lingering ground flames
-	traceline(org + '0 0 8', org - '0 0 72', TRUE, world);
-	fl_pos = (trace_fraction < 1.0) ? (trace_endpos + '0 0 2') : org;
-	for (i = 0; i < 2; i = i + 1)
-	{
-		p = fl_pos;
-		p_x = p_x + DN3FX_CRand() * 18.0 * s;
-		p_y = p_y + DN3FX_CRand() * 18.0 * s;
-		fl = DN3FX_SpawnSprite(
-			"progs/dn3fx_flame.spr32",
-			p,
-			'0 0 8',
-			(0.85 + random() * 0.40) * s,
-			0.92,
-			eff_glow,
-			1.25 + random() * 0.65,
-			0.50,
-			(random() < 0.5) ? 0 : 16, 16, 22.0, 0, -0.25 * s
-		);
-		fl.dn3fx_kind = DN3FX_FIRE_BURST;
-	}
 };
 
 void(vector org, vector dir, float s) DN3FX_RunFireBurst =
@@ -550,9 +449,7 @@ void(float isnew) DN3FX_EntUpdate =
 	if (!isnew || !DN3FX_Enabled())
 		return;
 
-	if (kind == DN3FX_EXPLODE)
-		DN3FX_RunExplode(org, sc);
-	else if (kind == DN3FX_FIRE_BURST)
+	if (kind == DN3FX_FIRE_BURST)
 		DN3FX_RunFireBurst(org, dir, sc);
 	else if (kind == DN3FX_BULLET_PUFF)
 		DN3FX_RunBulletPuff(org, dir, sc);

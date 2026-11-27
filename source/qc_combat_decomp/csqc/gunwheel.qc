@@ -1,10 +1,10 @@
 // ================================================================= Gun Wheel
-// Hold the "+gunwheel" key: a ring of 18 guns opens, the view stops turning, the mouse direction picks a slice and
-// letting go sends that gun's impulse. The server says what is owned and loaded (bm_gunwheel.qc, stats 133-151).
+// Hold the "+gunwheel" key: a ring of 17 guns opens, the view stops turning, the mouse direction picks a slice and
+// letting go sends that gun's impulse. The server says what is owned and loaded (bm_gunwheel.qc, stats 133-150).
 // The translucent ring over the middle of the screen is the user's exception to the no-dark-panel HUD rule.
 
-float GW_SLOTS = 18;
-float GW_STAT = 133;			// first slot stat; GW_STAT + 18 = may open / held slot
+float GW_SLOTS = 17;
+float GW_STAT = 133;			// first slot stat; GW_STAT + 17 = may open / held slot
 float GW_REACH = 150;			// mouse counts from the centre to the rim of the pointer's travel
 float GW_DEAD = 35;			// counts around the centre that pick nothing
 
@@ -17,9 +17,9 @@ float(float i) GW_Impulse =
 	if (i == 0) return 1;		if (i == 1) return 3;		if (i == 2) return 5;
 	if (i == 3) return 6;		if (i == 4) return 7;		if (i == 5) return 18;
 	if (i == 6) return 16;		if (i == 7) return 14;		if (i == 8) return 67;
-	if (i == 9) return 69;		if (i == 10) return 61;		if (i == 11) return 62;
-	if (i == 12) return 63;		if (i == 13) return 64;		if (i == 14) return 65;
-	if (i == 15) return 66;		if (i == 16) return 68;
+	if (i == 9) return 61;		if (i == 10) return 62;		if (i == 11) return 63;
+	if (i == 12) return 64;		if (i == 13) return 65;		if (i == 14) return 66;
+	if (i == 15) return 68;
 	return 70;
 };
 
@@ -29,11 +29,10 @@ string(float i) GW_Pic =
 	if (i == 2) return "gfx/gunwheel/milky";		if (i == 3) return "gfx/gunwheel/grenade";
 	if (i == 4) return "gfx/gunwheel/rocket";		if (i == 5) return "gfx/gunwheel/lightning";
 	if (i == 6) return "gfx/gunwheel/ccc";			if (i == 7) return "gfx/gunwheel/megaman";
-	if (i == 8) return "gfx/gunwheel/m4";			if (i == 9) return "gfx/gunwheel/garand";
-	if (i == 10) return "gfx/gunwheel/robdob";		if (i == 11) return "gfx/gunwheel/jar";
-	if (i == 12) return "gfx/gunwheel/pickle";		if (i == 13) return "gfx/gunwheel/netsend";
-	if (i == 14) return "gfx/gunwheel/dookie";		if (i == 15) return "gfx/gunwheel/wheelman";
-	if (i == 16) return "gfx/gunwheel/kyle";
+	if (i == 8) return "gfx/gunwheel/m4";			if (i == 9) return "gfx/gunwheel/robdob";
+	if (i == 10) return "gfx/gunwheel/jar";			if (i == 11) return "gfx/gunwheel/pickle";
+	if (i == 12) return "gfx/gunwheel/netsend";		if (i == 13) return "gfx/gunwheel/dookie";
+	if (i == 14) return "gfx/gunwheel/wheelman";	if (i == 15) return "gfx/gunwheel/kyle";
 	return "gfx/gunwheel/cyrax";
 };
 
@@ -43,11 +42,10 @@ string(float i) GW_Name =
 	if (i == 2) return "Milky Gun";					if (i == 3) return "Grenade Launcher";
 	if (i == 4) return "Rocket Launcher";			if (i == 5) return "Lightning Gun";
 	if (i == 6) return "CCC Laser Cannon";			if (i == 7) return "Mega Man";
-	if (i == 8) return "M4A1";						if (i == 9) return "M1 Garand";
-	if (i == 10) return "Rob Dob";					if (i == 11) return "Jar o' Green Guys";
-	if (i == 12) return "Pickle Surprise";			if (i == 13) return "NetSend";
-	if (i == 14) return "Dookie Bazooka";			if (i == 15) return "Wheelman Cannon";
-	if (i == 16) return "The Pocket Kyle";
+	if (i == 8) return "M4A1";						if (i == 9) return "Rob Dob";
+	if (i == 10) return "Jar o' Green Guys";		if (i == 11) return "Pickle Surprise";
+	if (i == 12) return "NetSend";					if (i == 13) return "Dookie Bazooka";
+	if (i == 14) return "Wheelman Cannon";			if (i == 15) return "The Pocket Kyle";
 	return "Cyrax Net";
 };
 
@@ -63,14 +61,13 @@ string(float i, float line) GW_Desc =
 	if (i == 6) return line ? "laser bolts" : "Rapid twin";
 	if (i == 7) return line ? "and blows them up" : "Hunts them down";
 	if (i == 8) return line ? "rifle" : "Automatic";
-	if (i == 9) return line ? "hits hard" : "Semi-auto rifle,";
-	if (i == 10) return line ? "fire to dash or blow" : "Steer his head,";
-	if (i == 11) return line ? "release to swarm" : "Hold to shake,";
-	if (i == 12) return line ? "booby trap" : "Throw a sticky";
-	if (i == 13) return line ? "a sentry PC" : "Throw a disk,";
-	if (i == 14) return line ? "release to splatter" : "Hold to wind up,";
-	if (i == 15) return line ? "launch the Wheelman" : "Hold to charge,";
-	if (i == 16) return line ? "release to yeet" : "Hold to lock on,";
+	if (i == 9) return line ? "fire to dash or blow" : "Steer his head,";
+	if (i == 10) return line ? "release to swarm" : "Hold to shake,";
+	if (i == 11) return line ? "booby trap" : "Throw a sticky";
+	if (i == 12) return line ? "a sentry PC" : "Throw a disk,";
+	if (i == 13) return line ? "release to splatter" : "Hold to wind up,";
+	if (i == 14) return line ? "launch the Wheelman" : "Hold to charge,";
+	if (i == 15) return line ? "release to yeet" : "Hold to lock on,";
 	return line ? "then click to bonk" : "Net them,";
 };
 
@@ -350,7 +347,7 @@ void(float cw, float ch, float pw, float ph) GW_Draw =
 		v = getstati (GW_STAT + i);
 		if (v == 0)
 		{
-			ammo = (i == 8 || i == 9) ? "NOT INSTALLED" : "NOT CARRIED";
+			ammo = (i == 8) ? "NOT INSTALLED" : "NOT CARRIED";
 			centre_rgb = '0.65 0.65 0.7';
 		}
 		else if (v == 1 || (v == 10 && i == 7))

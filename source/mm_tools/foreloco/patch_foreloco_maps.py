@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Idempotently place `item_powerup_foreloco` powerups in Bakersfield maps.
+"""Strip `item_powerup_foreloco` powerups from Bakersfield maps cleanly.
 
-Strips any prior `item_powerup_foreloco` entities and inserts curated street
-spots while preserving all brush geometry, lightmaps (.lit), and other entities.
+Strips any prior `item_powerup_foreloco` entities while preserving all brush
+geometry, lightmaps (.lit), and other entities.
 
 Usage:
   python -I source/mm_tools/foreloco/patch_foreloco_maps.py [path/to/bakersfielddowntown.bsp]
@@ -20,18 +20,6 @@ MOD = HERE.parent.parent.parent
 DEFAULT_BSP = MOD / "maps" / "bakersfielddowntown.bsp"
 
 CLASSNAME = "item_powerup_foreloco"
-
-SPOTS_BY_MAP: dict[str, list[tuple[int, int, int]]] = {
-    "bakersfielddowntown": [
-        (-7780, 2020, 32),    # 20th St center lane east of G St
-        (-12429, 5340, 32),   # Outdoor avenue outside Historic Fox Theater
-        (-8088, -5960, 32),   # 18th & G St outdoor intersection near Padre Hotel
-    ],
-    "fox": [
-        (0, 0, 32),
-        (420, 0, 32),
-    ],
-}
 
 
 def patch_bsp(bsp_path: Path) -> bool:
@@ -51,13 +39,7 @@ def patch_bsp(bsp_path: Path) -> bool:
         b for b in blocks
         if f'"classname" "{CLASSNAME}"' not in b and f'"classname"\t"{CLASSNAME}"' not in b
     ]
-
-    map_key = bsp_path.stem.lower()
-    spots = SPOTS_BY_MAP.get(map_key, [])
-    for x, y, z in spots:
-        kept.append(
-            f'{{\n"classname" "{CLASSNAME}"\n"origin" "{x} {y} {z}"\n}}'
-        )
+    removed = len(blocks) - len(kept)
 
     lump_blobs[0] = ("\n".join(kept) + "\n\x00").encode("latin1")
 
@@ -78,7 +60,7 @@ def patch_bsp(bsp_path: Path) -> bool:
     tmp = bsp_path.with_suffix(".bsp.tmp")
     tmp.write_bytes(bytes(out))
     os.replace(tmp, bsp_path)
-    print(f"Patched {bsp_path.name}: {len(spots)} {CLASSNAME} spawns")
+    print(f"Stripped {bsp_path.name}: removed {removed} {CLASSNAME} spawns")
     return True
 
 

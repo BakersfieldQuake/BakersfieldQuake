@@ -63,9 +63,9 @@ var float	autocvar_bm_ud_yellow		= 0.3;		// boost for spawning with yellow armor
 var float	autocvar_bm_ud_red			= 0.75;		// boost for spawning with red armor (capped at 150 yellow stack by default)
 
 var float	autocvar_bm_fun				= 1;		// 0 = no kill announcer text (bm_fun.qc): no first blood, sprees, revenge
-var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4/Garand); 0 = skip FG1..FG6
+var float	autocvar_bm_scroll_fun		= 1;		// 1 = mouse-wheel cycles through ALL guns (including Rob Dob, Jar o' Green Guys, Pickle Surprise, NetSend PC, Wheelman Cannon, M4A1); 0 = skip FG1..FG6
 var float	autocvar_bm_fun_multi		= 3;		// kills this close together are a DOUBLE / TRIPLE / MULTI KILL
-var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4 / Garand, 2 = RL, 3 = M4, 5 = Garand, 0 = MegaMan
+var float	autocvar_bm_dm_startgun		= 1;		// DM starting weapon: 1 = rotate RL / M4, 2 = RL, 3 = M4, 0 = MegaMan
 var float	autocvar_bm_bot_easy		= 1;		// 1 = easy, fun, aggressive bots with human aim spread (0 = full FrikBot aim)
 var float	autocvar_bm_bot_dmg			= 0.65;		// damage multiplier dealt by bots to players (keeps 5-10 aggressive bots fun & forgiving)
 var float	autocvar_bm_bot_tags		= 1;		// 1 = show floating [BOT] nameplates over visible bots
@@ -94,7 +94,7 @@ float	BM_FG3		= 12;
 float	BM_FG4		= 13;
 float	BM_FG5		= 14;
 float	BM_FG6		= 15;
-float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG9		= 18;	float	BM_FG10		= 19;	// M4 / Kyle / Garand / Cyrax
+float	BM_FG7		= 16;	float	BM_FG8		= 17;	float	BM_FG10		= 19;	// M4 / Kyle / Cyrax
 float	BM_SLOTS	= 19;
 
 float	BM_EF_NODEPTHTEST	= 8192;	// DarkPlaces: draw through walls (and skip the server's visibility culling)

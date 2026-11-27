@@ -280,9 +280,9 @@ float(entity p, float kind) HeldVwep_ShouldShow =
 		return FALSE;
 	if (p.model != "progs/player_id1.mdl" && p.model != "progs/player_torso.mdl")
 		return FALSE;
-	if (p.throwing == 1 || Binoc_On(p) || p.fl_phase == 1 || p.fl_phase == 2)
+	if (p.throwing == 1 || Binoc_On(p))
 		return FALSE;
-	if (p.bm_rl_slot && !p.bm_rl_quiet && p.health > 0 && !(M4_ShowsReload(p) || Garand_ShowsReload(p)))
+	if (p.bm_rl_slot && !p.bm_rl_quiet && p.health > 0 && !M4_ShowsReload(p))
 		return FALSE;
 	if (FD_Flying(p) || Veh_Driving(p) || p.veh_ride != world || JohnBird_Flying(p) || RocketRider_Flying(p) || MMTank_Driving(p) || EricCannon_Active(p))
 		return FALSE;
@@ -1075,7 +1075,6 @@ void() execute_changelevel =
 	{
 		self = e;
 		Veh_ClientGone();
-		FL_Reset(e);
 		TW_Reset(e);
 		JohnBird_ClientGone();
 		RocketRider_ClientGone();
@@ -1487,7 +1486,6 @@ void() ClientKill =
 		Veh_Leave(v, pos, '0 0 0', (v.veh_state == VEH_STATE_WRECK));
 	}
 	self.veh_van = world;
-	FL_Reset(self);
 	TW_Reset(self);
 	if (Veh_Riding(self))
 	{
@@ -2039,18 +2037,16 @@ void() PutClientInServer =
 				self.bm_dm_gun_alt = 1;
 			else if (autocvar_bm_dm_startgun == 3)
 				self.bm_dm_gun_alt = 2;
-			else if (autocvar_bm_dm_startgun == 4)
-				self.bm_dm_gun_alt = 1;		// Thompson removed: fall back to RL
-			else if (autocvar_bm_dm_startgun == 5)
-				self.bm_dm_gun_alt = 3;
-			else if (self.bm_dm_gun_alt >= 1 && self.bm_dm_gun_alt < 3)
+			else if (autocvar_bm_dm_startgun == 4 || autocvar_bm_dm_startgun == 5)
+				self.bm_dm_gun_alt = 1;		// Thompson / Garand removed: fall back to RL
+			else if (self.bm_dm_gun_alt >= 1 && self.bm_dm_gun_alt < 2)
 				self.bm_dm_gun_alt = self.bm_dm_gun_alt + 1;
-			else if (self.bm_dm_gun_alt >= 3)
+			else if (self.bm_dm_gun_alt >= 2)
 				self.bm_dm_gun_alt = 1;
 			else
 			{
 				bm_dm_gun_seed = bm_dm_gun_seed + 1;
-				if (bm_dm_gun_seed > 3 || bm_dm_gun_seed < 1)
+				if (bm_dm_gun_seed > 2 || bm_dm_gun_seed < 1)
 					bm_dm_gun_seed = 1;
 				self.bm_dm_gun_alt = bm_dm_gun_seed;
 			}
@@ -2062,12 +2058,6 @@ void() PutClientInServer =
 					self.weapon = IT_FUNGUN;
 					self.fg_sel = FG_M4;
 					self.m4_vf_t = -1;
-				}
-				else if (self.bm_dm_gun_alt == 3 && garand_ok)
-				{
-					self.weapon = IT_FUNGUN;
-					self.fg_sel = FG_GARAND;
-					self.gar_vf_t = -1;
 				}
 				else
 				{
@@ -2084,7 +2074,6 @@ void() PutClientInServer =
 	DN3SG_Reset();	// DN3DooM Pump Shotgun state reset
 	Jetpack_Spawn();	// no fuel left over (jetpack.qc)
 	Veh_SpawnReset();	// not driving or riding (vehicle_drive.qc)
-	FL_Reset(self);		// clear ForeLoco state & CSQC blackout (foreloco.qc)
 	TW_Reset(self);		// clear B. Triple Wheeled state (triple_wheeled.qc)
 	EricCannon_Reset(self);	// restore camera/body if respawning after Eric Deason Cannon blast
 	MMTank_Reset(self);	// restore camera/body if respawning after Mega Man Tank death
@@ -4267,7 +4256,6 @@ void() ClientDisconnect =
 	}
 	ClientDisconnected();
 	Veh_ClientGone();	// a driver who drops leaves the van parked (vehicle_drive.qc)
-	FL_Reset(self);		// clear ForeLoco state & CSQC blackout (foreloco.qc)
 	TW_Reset(self);		// clear B. Triple Wheeled state (triple_wheeled.qc)
 	JohnBird_ClientGone();	// a flying Winged John pilot who drops leaves him perched (john_bird.qc)
 	RocketRider_ClientGone();	// a flying Rocket Rider pilot who drops leaves it parked (rocket_rider.qc)

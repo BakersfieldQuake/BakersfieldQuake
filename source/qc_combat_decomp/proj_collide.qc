@@ -354,12 +354,6 @@ void(entity p) PC_RefundWeaponAmmo =
 			a = FunGun_Ammo (self, FG_M4);
 			FunGun_SetAmmo (self, FG_M4, min (mx, a + 5));
 		}
-		else if (self.fg_sel == FG_GARAND)
-		{
-			mx = FunGun_Max (FG_GARAND);
-			a = FunGun_Ammo (self, FG_GARAND);
-			FunGun_SetAmmo (self, FG_GARAND, min (mx, a + 2));
-		}
 	}
 
 	if (self.bm_rl_slot && BM_IsFirearmSlot (self.bm_rl_slot))

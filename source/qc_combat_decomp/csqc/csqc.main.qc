@@ -264,7 +264,6 @@ void() CSQC_Init =
 	BM_IntroPrecache();
 	HUD_CommonPrecache();
 	DN3SG_PrecachePics();
-	FL_PrecachePics();
 	DN3FX_Precache();
 	BM_Char_Init();
 	precache_pic("progs/mmt_aim_beam");
@@ -619,7 +618,6 @@ void(float w, float h) CSQC_UpdateView =
 					GK_DrawHUD(cw, ch);
 					JB_DrawHUD(w, h);
 					CY_DrawHUD(cw, ch);
-					FL_DrawHUD(cw, ch);
 					TW_DrawHUD(cw, ch);
 					BM_DrawMinimap(w, h);
 				}

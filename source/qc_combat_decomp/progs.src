@@ -26,11 +26,9 @@ netsend_diskvm.qc
 netsend_defs.qc
 wcannon_defs.qc
 m4_defs.qc
-garand_defs.qc
 jetpack_defs.qc
 milky_defs.qc
 vehicles_defs.qc
-foreloco_defs.qc
 triple_wheeled_defs.qc
 john_bird_defs.qc
 cyrax_defs.qc
@@ -125,13 +123,11 @@ hammer.qc
 netsend.qc
 wcannon.qc
 m4.qc
-garand.qc
 jetpack.qc
 milky.qc
 vehicles.qc
 vehicle_drive.qc
 gokart.qc
-foreloco.qc
 john_bird.qc
 cyrax.qc
 bm_hats_common.qc

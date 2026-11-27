@@ -228,7 +228,6 @@ vector(float wep) BM_BotWeaponRange =
 		if (g == FG_DOOKIE)		return '460 110 1750';
 		if (g == FG_WCANNON)	return '550 180 2100';
 		if (g == FG_M4)			return '520 35 2500';
-		if (g == FG_GARAND)		return '680 70 2800';
 		return '320 40 1000';
 	}
 	if (wep == IT_MEGAMAN)			return '520 90 2400';
@@ -247,7 +246,7 @@ vector(float wep) BM_BotWeaponRange =
 //   1 = Bonk Hammer (IT_AXE), 3 = SSG,
 //   5 = Milky Gun, 6 = GL, 7 = RL, 8 = LG, 9 = CCC Laser, 10 = Chainsaw, 11 = Mega Man,
 //   61 = Rob Dob, 63 = Pickle, 64 = NetSend, 65 = Mystery Box, 66 = Wheelman,
-//   67 = M4A1, 68 = Thompson, 69 = M1 Garand
+//   67 = M4A1, 68 = Pocket Kyle
 // NS_Count walks every entity; the weapon picker asks it several times a frame per bot. The 2-PC cap is only a preference,
 // so a count up to half a second old is fine (the real 20-PC limit in netsend.qc still uses the exact NS_Count)
 float() BM_BotNSCount =
@@ -313,7 +312,7 @@ float(float id) BM_BotCanUseWeapon =
 			return (BM_GetMag (self, BM_MM) >= MM_MAX_AMMO);
 		return (self.mm_ammo >= MM_MAX_AMMO);
 	}
-	if (id >= 61 && id <= 69)
+	if (id >= 61 && id <= 68)
 	{
 		g = id - 60;
 		if (!FunGun_Available (g))
@@ -351,7 +350,7 @@ void(float id) BM_BotSelectWeaponID =
 	if (cur == id)
 		return;
 
-	if (id >= 61 && id <= 69)
+	if (id >= 61 && id <= 68)
 	{
 		self.impulse = id;
 		return;
@@ -436,7 +435,7 @@ float(float brange) BM_BotWeaponSwitch =
 
 	// Evaluate every weapon candidate 1..20 with range-tuned weights
 	id = 1;
-	while (id <= 69)
+	while (id <= 68)
 	{
 		if (id == 12)
 			id = 61;
@@ -471,14 +470,12 @@ float(float brange) BM_BotWeaponSwitch =
 				else if (id == 64)	w = 5;		// NetSend PC
 				else if (id == 65)	w = 8;		// Dookie Bazooka
 				else if (id == 66)	w = 9;		// Wheelman Cannon
-				else if (id == 69)	w = 16;		// M1 Garand
 			}
 			else if (brange < 1050)
 			{
 				// Mid-range boulevard / rooftop-to-street firefights
 				if (id == 7)		w = 24;		// Rocket Launcher
 				else if (id == 67)	w = 22;		// M4A1
-				else if (id == 69)	w = 20;		// M1 Garand
 				else if (id == 9)	w = 17;		// CCC Laser
 				else if (id == 5)	w = 11;		// Milky Gun
 				else if (id == 6)	w = 6;		// Grenade Launcher
@@ -493,8 +490,7 @@ float(float brange) BM_BotWeaponSwitch =
 			else
 			{
 				// Long-range cross-intersection & skyscraper duels
-				if (id == 69)		w = 28;		// M1 Garand
-				else if (id == 67)	w = 26;		// M4A1
+				if (id == 67)		w = 26;		// M4A1
 				else if (id == 7)	w = 20;		// Rocket Launcher
 				else if (id == 9)	w = 16;		// CCC Laser
 				else if (id == 66)	w = 16;		// Wheelman Cannon
@@ -734,16 +730,6 @@ void() BM_BotShoot =
 				self.button0 = TRUE;
 			else
 				self.button0 = FALSE;
-			return;
-		}
-
-		// M1 Garand: semi-auto trigger reset (.gar_ready requires a button0 = 0 frame between shots)
-		if (g == FG_GARAND)
-		{
-			if (!self.gar_ready)
-				self.button0 = FALSE;
-			else
-				self.button0 = TRUE;
 			return;
 		}
 	}

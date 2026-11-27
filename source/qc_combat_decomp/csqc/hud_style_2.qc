@@ -218,7 +218,7 @@ void(float h, float hp, float armor, float ammo_disp, float is_leader, float a_m
 ================
 HUD2_DrawReceiptCard
 Bottom-right "AMMO RECEIPT" compact card (220x52 at y = h - 66 .. h - 14, NO gun menu or weapon strip).
-Shows active weapon label, big 22px colorized active ammo, M4/Garand/RL mag + reload bar,
+Shows active weapon label, big 22px colorized active ammo, M4/RL mag + reload bar,
 and compact reserve counts (S / N / R / C + P if prox > 0).
 ================
 */

@@ -47,7 +47,6 @@ void() HUD_CommonPrecache =
 
 	// Bakersfield custom weapon tiles
 	precache_pic("gfx/hud_m4.tga");
-	precache_pic("gfx/hud_garand.tga");
 	precache_pic("gfx/hud_tommy.tga");
 
 	// Keys, powerups, armor, runes, flags & modes
@@ -420,8 +419,6 @@ string(float slot, float active_weap) HUD_GetWeaponName =
 		return "M4A1";
 	if (slot == 17)
 		return "POCKET KYLE";
-	if (slot == 18)
-		return "M1 GARAND";
 	if (slot == 19)
 		return "CYRAX NET";
 	if (active_weap == IT_CHAINSAW)
@@ -449,8 +446,6 @@ string(float slot, float active_weap) HUD_GetWeaponPic =
 {
 	if (slot == 16)
 		return "gfx/hud_m4.tga";
-	if (slot == 18)
-		return "gfx/hud_garand.tga";
 	if (active_weap == IT_CHAINSAW)
 		return "textures/HUD/HUD_saw_select";
 	if (active_weap == IT_SUPER_SHOTGUN)

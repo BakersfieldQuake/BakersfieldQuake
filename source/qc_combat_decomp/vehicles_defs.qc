@@ -45,7 +45,6 @@ float	VEH_GOKART_3	= 12;
 float	VEH_GOKART_4	= 13;
 float	VEH_GOKART_5	= 14;
 float	VEH_GOKART_6	= 15;
-float	VEH_FORELOCO	= 16;
 
 float	VEH_STATE_IDLE	= 0;
 float	VEH_STATE_FIRE	= 1;

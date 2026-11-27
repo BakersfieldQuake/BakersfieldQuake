@@ -260,7 +260,6 @@ ICONS = {
     "ccc": lambda: (render(load_mdl("progs/v_laserg.mdl", 0)), 1.35),
     "megaman": lambda: (render(load_md3("progs/v_megaman.md3", 0), az=-60, el=18, skip=HANDS + ("fx",)), 1.2),
     "m4": lambda: (render(load_md3("progs/v_m4.md3", 0), az=-90, el=0, skip=HANDS + ("view_skin",)), 1.6, 30),
-    "garand": lambda: (render(without_stray(load_md3("progs/v_garand.md3", 0), -16), az=-90, el=0, skip=HANDS), 1.6, 30),
     "robdob": lambda: (card("progs/rh_drone_head_000.png"), 1.0),
     "jar": lambda: (card("progs/gjvm_000.png"), 1.1),
     "pickle": lambda: (card("progs/pvm_000.png"), 1.1),

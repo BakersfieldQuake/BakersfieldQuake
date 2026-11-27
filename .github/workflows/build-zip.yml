@@ -176,7 +176,7 @@ jobs:
       - name: Patch Dagny's upstairs LAN party into bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/patch_dagnys_lan_bsp.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
 
-      - name: Patch ForeLoco powerups into bakersfielddowntown.bsp
+      - name: Strip ForeLoco powerups from bakersfielddowntown.bsp
         run: python -I repo/source/mm_tools/foreloco/patch_foreloco_maps.py out/BAKOQUAKE/BakersfieldQuake/maps/bakersfielddowntown.bsp
 
       - name: Cache ericw-tools
@@ -356,13 +356,6 @@ jobs:
           path: pk3cache/zz_dn3shotgun.pk3
           key: zz_dn3shotgun-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/dn3_shotgun/build_dn3shotgun_pk3.py', 'repo/source/mm_tools/dn3_shotgun/assets/**') }}
 
-      - name: Cache zz_foreloco.pk3
-        id: cache_foreloco
-        uses: actions/cache/restore@v6
-        with:
-          path: pk3cache/zz_foreloco.pk3
-          key: zz_foreloco-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/foreloco/build_foreloco_pk3.py', 'repo/source/mm_tools/foreloco/build_foreloco_sprites.py', 'repo/source/mm_tools/md3lib.py', 'repo/source/mm_tools/foreloco/assets/**') }}
-
       - name: Cache zz_triple_wheeled.pk3
         id: cache_triple_wheeled
         uses: actions/cache/restore@v6
@@ -441,7 +434,7 @@ jobs:
           key: zz_practice-numpy2.5.4-pillow13.0.0-${{ hashFiles('repo/source/mm_tools/build_practice_pk3.py') }}
 
       - name: Install pk3 build dependencies
-        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_foreloco.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true' || steps.cache_practice.outputs.cache-hit != 'true'
+        if: steps.cache_bakovan.outputs.cache-hit != 'true' || steps.cache_karts.outputs.cache-hit != 'true' || steps.cache_minimap.outputs.cache-hit != 'true' || steps.cache_pinklady.outputs.cache-hit != 'true' || steps.cache_kyle.outputs.cache-hit != 'true' || steps.cache_rocketrider.outputs.cache-hit != 'true' || steps.cache_johnbird.outputs.cache-hit != 'true' || steps.cache_dn3shotgun.outputs.cache-hit != 'true' || steps.cache_triple_wheeled.outputs.cache-hit != 'true' || steps.cache_dn3fx.outputs.cache-hit != 'true' || steps.cache_loading.outputs.cache-hit != 'true' || steps.cache_player_deaths.outputs.cache-hit != 'true' || steps.cache_robdrone.outputs.cache-hit != 'true' || steps.cache_jumppads.outputs.cache-hit != 'true' || steps.cache_m4.outputs.cache-hit != 'true' || steps.cache_netsend_sentry.outputs.cache-hit != 'true' || steps.cache_cyrax.outputs.cache-hit != 'true' || steps.cache_practice.outputs.cache-hit != 'true'
         run: python -m pip install --quiet numpy==2.5.4 pillow==13.0.0   # pinned: a pillow change alters PNG bytes and the pk3 hash
 
       - name: Build zz_bakovan.pk3
@@ -590,19 +583,6 @@ jobs:
         with:
           path: pk3cache/zz_dn3shotgun.pk3
           key: ${{ steps.cache_dn3shotgun.outputs.cache-primary-key }}
-
-      - name: Build zz_foreloco.pk3
-        if: steps.cache_foreloco.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p pk3cache
-          python -I repo/source/mm_tools/foreloco/build_foreloco_pk3.py out/BAKOQUAKE/BakersfieldQuake/bakersfield.pk3 pk3cache/zz_foreloco.pk3
-
-      - name: Save zz_foreloco.pk3 cache
-        if: steps.cache_foreloco.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: pk3cache/zz_foreloco.pk3
-          key: ${{ steps.cache_foreloco.outputs.cache-primary-key }}
 
       - name: Build zz_triple_wheeled.pk3
         if: steps.cache_triple_wheeled.outputs.cache-hit != 'true'
@@ -822,7 +802,7 @@ jobs:
 
       - name: Add overlay pk3s to the package
         run: |
-          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_foreloco.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 pk3cache/zz_practice.pk3 out/BAKOQUAKE/BakersfieldQuake/
+          cp pk3cache/zz_bakovan.pk3 pk3cache/zz_karts.pk3 pk3cache/zz_gunnomip.pk3 pk3cache/zz_minimap.pk3 pk3cache/zz_pinklady.pk3 pk3cache/zz_kyle.pk3 pk3cache/zz_wewcannon.pk3 pk3cache/zz_rocketrider.pk3 pk3cache/zz_johnbird.pk3 pk3cache/zz_quakedesk.pk3 pk3cache/zz_dn3shotgun.pk3 pk3cache/zz_triple_wheeled.pk3 pk3cache/zz_dn3fx.pk3 pk3cache/zz_loading.pk3 pk3cache/zz_player_deaths.pk3 pk3cache/zz_robdrone.pk3 pk3cache/zz_jumppads.pk3 pk3cache/zz_hitsound.pk3 pk3cache/zz_levelshots.pk3 pk3cache/zz_m4.pk3 pk3cache/zz_netsend_disk.pk3 pk3cache/zz_netsend_sentry.pk3 pk3cache/zz_cyrax.pk3 pk3cache/zz_hats.pk3 pk3cache/zz_gunwheel.pk3 pk3cache/zz_selected_sounds.pk3 pk3cache/zz_console.pk3 pk3cache/zz_practice.pk3 out/BAKOQUAKE/BakersfieldQuake/
           sha256sum pk3cache/*.pk3
 
       - name: Cache fteqcc
@@ -1088,8 +1068,8 @@ jobs:
               n_qdesk_cls = l0_txt.count('"classname" "misc_lan_quakedesk"')
               if n_qdesk_cls != 18:
                   errors.append(f"bakersfielddowntown.bsp expected 18 misc_lan_quakedesk LAN desks, found {n_qdesk_cls}")
-              if l0_txt.count('"classname" "item_powerup_foreloco"') < 1:
-                  errors.append("bakersfielddowntown.bsp missing item_powerup_foreloco spawns")
+              if l0_txt.count('"classname" "item_powerup_foreloco"') > 0:
+                  errors.append("bakersfielddowntown.bsp still contains removed item_powerup_foreloco spawns")
 
           pr_bsp = os.path.join(root, "BakersfieldQuake", "maps", "practice.bsp")
           pr_lit = os.path.join(root, "BakersfieldQuake", "maps", "practice.lit")
@@ -1107,37 +1087,10 @@ jobs:
                   "trigger_push",
                   "misc_mm_tank",
                   "misc_gokart",
-                  "item_powerup_foreloco",
                   "item_powerup_triple_wheeled",
               ):
                   if f'"classname" "{req_cls}"' not in pr_txt:
                       errors.append(f"practice.bsp missing {req_cls}")
-
-          foreloco = os.path.join(root, "BakersfieldQuake", "zz_foreloco.pk3")
-          if not os.path.isfile(foreloco):
-              errors.append("missing BakersfieldQuake/zz_foreloco.pk3")
-          else:
-              with zipfile.ZipFile(foreloco) as z:
-                  fnames = set(z.namelist())
-                  for req in (
-                      "progs/foreloco_can.md3",
-                      "progs/v_foreloco.md3",
-                      "progs/foreloco_proj_can.md3",
-                      "progs/foreloco_bedpan.md3",
-                      "gfx/foreloco/vm_01.png",
-                      "gfx/foreloco/vm_10.png",
-                      "gfx/foreloco/vm_16.png",
-                      "gfx/foreloco/vm_36.png",
-                      "gfx/foreloco/pour_stream.png",
-                      "gfx/foreloco/smear_pink.png",
-                      "gfx/foreloco/smear_green.png",
-                      "gfx/foreloco/smear_drips.png",
-                      "scripts/foreloco.shader",
-                      "sound/foreloco/party_loop.wav",
-                      "sound/foreloco/vegas_baby.wav",
-                  ):
-                      if req not in fnames:
-                          errors.append(f"zz_foreloco.pk3 lacks {req}")
 
           dn3fx = os.path.join(root, "BakersfieldQuake", "zz_dn3fx.pk3")
           if not os.path.isfile(dn3fx):
@@ -1147,12 +1100,13 @@ jobs:
                   dnames = set(z.namelist())
                   for req in (
                       "progs/dn3fx_bloodpuff.spr32",
-                      "progs/dn3fx_explode.spr32",
+                      "progs/dn3fx_flame.spr32",
+                      "progs/dn3fx_smoke.spr32",
                       "progs/dn3fx_wallsplat.md3",
                       "progs/dn3fx_pool.md3",
                       "progs/dn3fx_flesh1.md3",
                       "scripts/dn3fx.shader",
-                      "sound/dn3fx/bombexpl.wav",
+                      "sound/dn3fx/fire09.ogg",
                   ):
                       if req not in dnames:
                           errors.append(f"zz_dn3fx.pk3 lacks {req}")

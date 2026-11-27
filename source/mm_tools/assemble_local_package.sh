@@ -97,7 +97,6 @@ pk3 kyle -I "$M/kyle_scissors/build_kyle_pk3.py" "$B"
 pk3 rocketrider -I "$M/rocket_rider/build_rocketrider_pk3.py" "$B"
 pk3 quakedesk -I "$M/quake_desk/build_quakedesk_pk3.py" "$B"
 pk3 dn3shotgun -I "$M/dn3_shotgun/build_dn3shotgun_pk3.py" "$B"
-pk3 foreloco -I "$M/foreloco/build_foreloco_pk3.py" "$B"
 pk3 triple_wheeled -I "$M/triple_wheeled/build_triple_wheeled_pk3.py" "$BASE/quake15/q15.pk3"
 pk3 dn3fx -I "$M/dn3_fx/build_dn3fx_pk3.py" "$B"
 pk3 loading -I "$M/loading_screen/build_loading_pk3.py" "$B"
@@ -144,7 +143,7 @@ done
 if [ -f "$G/maps/bakersfielddowntown.bsp" ]; then
     echo "  patch maps/bakersfielddowntown.bsp (Dagny's upstairs LAN party)"
     "${PYTHON:-python3}" -I "$M/patch_dagnys_lan_bsp.py" "$G/maps/bakersfielddowntown.bsp"
-    echo "  patch maps/bakersfielddowntown.bsp (ForeLoco powerups)"
+    echo "  strip removed ForeLoco entities from maps/bakersfielddowntown.bsp"
     "${PYTHON:-python3}" -I "$M/foreloco/patch_foreloco_maps.py" "$G/maps/bakersfielddowntown.bsp"
 fi
 
