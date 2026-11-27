@@ -29,7 +29,8 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 step "clone base $BASE"
 rm -rf "$OUT"
 mkdir -p "$(dirname "$OUT")"
-cp -Rc "$BASE" "$OUT"   # APFS clone: instant, shares blocks with the base
+# Copy-on-write clone where the filesystem has it (APFS, btrfs, XFS): instant, shares blocks with the base.
+if [ "$(uname -s)" = Darwin ]; then cp -Rc "$BASE" "$OUT"; else cp -R --reflink=auto "$BASE" "$OUT"; fi
 G="$OUT/BakersfieldQuake"
 rm -f "$G/progs/v_light.mdl"   # a played base holds id's model (the launchers extract it); never package it
 
@@ -95,7 +96,7 @@ if [ -z "${QC_HOST:-}" ] && [ ! -x "$QCC" ]; then
     git init -q "$FTE"
     git -C "$FTE" fetch -q --depth 1 https://github.com/fte-team/fteqw "$FTEQW_REF"
     git -C "$FTE" checkout -q FETCH_HEAD
-    make -C "$FTE/engine/qclib" -j"$(sysctl -n hw.ncpu)" qcc CC=clang >"$WORK/fteqcc-build.log" 2>&1 ||
+    make -C "$FTE/engine/qclib" -j"$(getconf _NPROCESSORS_ONLN)" qcc CC=cc >"$WORK/fteqcc-build.log" 2>&1 ||
         { tail -20 "$WORK/fteqcc-build.log"; die "fteqcc build failed"; }
 fi
 

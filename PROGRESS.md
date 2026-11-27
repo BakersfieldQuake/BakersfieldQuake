@@ -354,3 +354,7 @@
 - Verification: SSQC, CSQC and menu compile with the mac fteqcc (0 errors; warning counts unchanged in kind).
   Reproduced the bug in a 7-line test file. Not run: a full `make build`, an in-game test, or a Linux/Windows compile
   of the changed defs.
+- Also: `make build` on Linux (chonk). `assemble_local_package.sh` used macOS-only `cp -Rc`, `sysctl` and `CC=clang`
+  (chonk has no clang). It now uses `cp -R --reflink=auto` off macOS, `getconf _NPROCESSORS_ONLN` and `CC=cc`. The
+  Makefile runs `build_app.sh` only on Darwin, so on Linux `make build` stops at the assembled `build/pkg`. Checked
+  with `bash -n` and `make -n`; not run on chonk.

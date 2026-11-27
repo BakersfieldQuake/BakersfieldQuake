@@ -30,8 +30,10 @@ app: build run
 build: $(BASE)/BakersfieldQuake/bakersfield.pk3
 	@[ -n "$(PY)" ] || { echo "run: uv python install 3.12"; exit 1; }
 	WORK="$(WORK)" PYTHON="$(PY)" source/mm_tools/assemble_local_package.sh "$(BASE)" "$(PKG)"
+ifeq ($(UNAME),Darwin)
 	SKIP_NOTARIZE=1 NO_DMG=1 PKG_DIR="$(PKG)" WORK="$(WORK)" PYTHON="$(PY)" \
 	  source/mac/build_app.sh "local-$$(date +%Y%m%d%H%M%S)-$$(git rev-parse --short HEAD)"
+endif
 
 # BQ_NO_UPDATE: the launcher would otherwise patch the local build back to the latest GitHub release.
 run:
