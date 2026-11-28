@@ -16,6 +16,7 @@ import threading
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location("bq_update", REPO / "tools" / "bq_update.py")
@@ -27,6 +28,15 @@ mm_spec = importlib.util.spec_from_file_location("make_manifest", REPO / "source
 mm = importlib.util.module_from_spec(mm_spec)
 sys.modules["make_manifest"] = mm
 mm_spec.loader.exec_module(mm)
+
+
+class DefaultPlatformTest(unittest.TestCase):
+    def test_linux_follows_the_cpu(self):
+        for machine, want in (("aarch64", "linux-aarch64"), ("arm64", "linux-aarch64"),
+                              ("x86_64", "linux-x86_64"), ("riscv64", "linux-x86_64"), ("", "linux-x86_64")):
+            with mock.patch.object(bq.sys, "platform", "linux"), \
+                    mock.patch.object(bq.host_platform, "machine", return_value=machine):
+                self.assertEqual(bq.default_platform(), want, machine)
 
 
 class RangeHandler(http.server.BaseHTTPRequestHandler):

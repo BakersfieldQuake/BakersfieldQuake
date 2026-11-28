@@ -29,8 +29,9 @@ Downloads are on the **Releases** page of this repo:
 - **macOS (Apple Silicon, macOS 13+):** `BAKOQUAKE-macos-arm64.dmg`. Open it and drag BAKOQUAKE to Applications. It
   is signed and notarized, so it opens without a Gatekeeper warning. If it can't find your paks it asks for your
   Quake `id1` folder. Saved settings and the paks live in `~/Library/Application Support/BAKOQUAKE/`.
-- **Linux:** `BAKOQUAKE-linux-x86_64.zip`. Needs system SDL2 (e.g. `sudo apt install libsdl2-2.0-0`). Unzip it and
-  run `./Play.sh`; `./Start-Server.sh` hosts a LAN game.
+- **Linux:** `BAKOQUAKE-linux-x86_64.zip`, or `BAKOQUAKE-linux-aarch64.zip` on ARM64 boards such as the Orange Pi
+  (glibc 2.38 or newer). Needs system SDL2 (e.g. `sudo apt install libsdl2-2.0-0`). Unzip it and run `./Play.sh`;
+  `./Start-Server.sh` hosts a LAN game.
 
 On Windows and Linux the first launch adds shortcuts: a **BAKOQUAKE** Start Menu folder (game and server) plus a
 Desktop shortcut on Windows, and `bakoquake.desktop`/`bakoquake-server.desktop` in `~/.local/share/applications`

@@ -194,7 +194,8 @@ def default_platform():
         return "windows-x64"
     if sys.platform == "darwin":
         return "macos-arm64"
-    return "linux-x86_64"
+    # Releases carry linux-x86_64 and linux-aarch64; anything else keeps the x86_64 game data (see foreign_binaries).
+    return "linux-aarch64" if _norm_arch(host_platform.machine()) == "aarch64" else "linux-x86_64"
 
 
 def _norm_arch(name):

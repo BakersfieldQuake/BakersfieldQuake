@@ -402,3 +402,12 @@
 - Follow-up: no `linux-aarch64` zip or manifest is published yet, so `make base` / `make build` on the Pi fail with
   "no release with BAKOQUAKE-linux-aarch64.zip" (or a manifest 404) until CI builds one. The engine repo releases only
   linux-x86_64.
+
+## 2026-11-28 — CI publishes a linux-aarch64 package and manifest
+
+- `build-zip.yml`: new `engine_arm` job builds Zircon on `ubuntu-24.04-arm` from the engine release tag (cached per
+  tag). `build` zips `BAKOQUAKE-linux-aarch64.zip`, writes `manifest-linux-aarch64.json`, attaches both to the release
+  and mirrors them to the VPS.
+- `tools/bq_update.py`: `default_platform()` returns `linux-aarch64` on ARM64 Linux (it was always `linux-x86_64`).
+- Checked locally: 48/48 updater tests, workflow shell syntax, packaging + manifest steps on a fake package. The ARM
+  engine build and the workflow are checked with a draft run from branch `aarch64-release`.

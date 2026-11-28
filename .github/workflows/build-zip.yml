@@ -5,10 +5,11 @@
 # release (default: the latest), lays this repo's configs over BakersfieldQuake/ and launchers/ over the package
 # root, compiles progs.dat, menu.dat and csprogs.dat from repo QC sources with pinned fteqcc, rebuilds
 # zz_bakovan.pk3, zz_karts.pk3, zz_gunnomip.pk3, zz_minimap.pk3, zz_pinklady.pk3, zz_kyle.pk3, zz_wewcannon.pk3, zz_rocketrider.pk3, zz_johnbird.pk3, zz_quakedesk.pk3, zz_dn3shotgun.pk3, zz_dn3chaingun.pk3, zz_player_deaths.pk3, zz_robdrone.pk3, zz_jumppads.pk3, zz_hitsound.pk3, zz_levelshots.pk3, zz_m4.pk3, zz_netsend_sentry.pk3, zz_cyrax.pk3, zz_gunwheel.pk3 and zz_selected_sounds.pk3
-# from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), adds the pinned zz_netsend_disk.pk3 from the VPS, then publishes three per-OS packages:
+# from the zip's own bakersfield.pk3 / repo sources (and patches Dagny's upstairs LAN party into bakersfielddowntown.bsp), adds the pinned zz_netsend_disk.pk3 from the VPS, then publishes the per-OS packages:
 #
 #   BAKOQUAKE.zip                 Windows. engine/zircon_beta_gcc.exe from the public engine release.
 #   BAKOQUAKE-linux-x86_64.zip    Linux.   darkplaces-sdl + darkplaces-dedicated from the public engine release.
+#   BAKOQUAKE-linux-aarch64.zip   Linux ARM64. Same names, built by the engine_arm job from that release's source.
 #   BAKOQUAKE-macos-arm64.zip     macOS (Apple Silicon). Same, from the macos-arm64 engine build.
 #   BAKOQUAKE-macos-arm64.dmg     macOS app: signed + notarized, built from that zip by the macos job
 #                                 (source/mac/build_app.sh). It is added to the release once that job finishes.
@@ -108,8 +109,73 @@ jobs:
           name: bq-update-windows
           path: dist/Update.exe
 
+  # The engine repo releases no Linux ARM binaries, so they are built here, on a native ARM runner, from the source of
+  # the same engine release the other platforms download. Cached per engine tag, so most runs only restore them.
+  # Built on ubuntu 24.04: they need glibc 2.38 or newer.
+  engine_arm:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ENGINE_REPO: BakersfieldQuake/zircon-darkplaces
+      ENGINE_TAG: ${{ inputs.engine_tag }}
+    steps:
+      - name: Pick the engine release
+        id: tag
+        run: |
+          tag="${ENGINE_TAG:-$(gh release view -R "$ENGINE_REPO" --json tagName --jq .tagName)}"
+          echo "Engine release: $ENGINE_REPO@$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the aarch64 engine
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: bin
+          key: zircon-linux-aarch64-ubuntu2404-${{ steps.tag.outputs.tag }}
+
+      - name: Check out the engine source
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: BakersfieldQuake/zircon-darkplaces
+          ref: ${{ steps.tag.outputs.tag }}
+          path: engine
+
+      - name: Build the aarch64 engine
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsdl2-dev zlib1g-dev
+          # Same command as the engine repo's Linux job (jpeg/curl/vorbis are dlopen'd at run time).
+          make -C engine -f makefile -j"$(nproc)" DP_LINK_JPEG=dlopen sdl-release sv-release
+          mkdir -p bin
+          cp engine/zircon_beta_linux_sdl engine/zircon_beta_linux_dedicated_server bin/
+
+      - name: Check the binaries
+        run: |
+          file bin/*
+          for b in bin/zircon_beta_linux_sdl bin/zircon_beta_linux_dedicated_server; do
+            file "$b" | grep -q 'ELF 64-bit.*ARM aarch64' || { echo "::error::$b is not an aarch64 binary"; exit 1; }
+          done
+
+      - name: Save the engine cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: bin
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: zircon-linux-aarch64
+          path: bin
+          if-no-files-found: error
+
   build:
-    needs: updater
+    needs: [updater, engine_arm]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
@@ -122,7 +188,8 @@ jobs:
       BASE_TAG: ${{ inputs.base_tag }}
       NEW_TAG: ${{ inputs.tag }}
       ENGINE_REPO: BakersfieldQuake/zircon-darkplaces
-      ENGINE_TAG: ${{ inputs.engine_tag }}
+      # Resolved once by engine_arm, so every platform ships the same engine release.
+      ENGINE_TAG: ${{ needs.engine_arm.outputs.tag }}
       FTEQW_REF: c781d13255ce72fcd24e47567244f970e1ba7c50
       DRAFT: ${{ inputs.draft }}
     steps:
@@ -229,6 +296,12 @@ jobs:
           fi
           cp eng/zircon_beta_gcc.exe out/BAKOQUAKE/engine/zircon_beta_gcc.exe
           sha256sum out/BAKOQUAKE/engine/zircon_beta_gcc.exe
+
+      - name: Add the Linux aarch64 engine (built by engine_arm)
+        uses: actions/download-artifact@v8
+        with:
+          name: zircon-linux-aarch64
+          path: eng/aarch64
 
       - name: Overlay repo configs
         # lan_server.cfg is written at run time by tools/lanscan.ps1, so the repo copy is not shipped.
@@ -1292,7 +1365,7 @@ jobs:
       - name: Zip the Linux and macOS packages
         # Derive each from the master zip (no second 1 GB tree on disk, no recompressing assets):
         # strip the Windows-only entries, then add that OS's root darkplaces-sdl/-dedicated binaries.
-        # Both platforms use the same root names, so they must be separate zips.
+        # All platforms use the same root names, so they must be separate zips.
         run: |
           make_os_zip() {
             local out_zip="$1" sdl="$2" ded="$3"
@@ -1310,6 +1383,7 @@ jobs:
             ls -l "$out_zip"
           }
           make_os_zip BAKOQUAKE-linux-x86_64.zip  zircon_beta_linux_sdl       zircon_beta_linux_dedicated_server
+          make_os_zip BAKOQUAKE-linux-aarch64.zip aarch64/zircon_beta_linux_sdl aarch64/zircon_beta_linux_dedicated_server
           make_os_zip BAKOQUAKE-macos-arm64.zip   zircon_beta_macos_arm64_sdl zircon_beta_macos_arm64_dedicated_server
 
       # The signed app bundle holds the engine (pinned by ZIRCON_REF in build_app.sh), the launcher, the frozen updater
@@ -1351,7 +1425,7 @@ jobs:
           notes=$(cd repo && git log -n 5 --no-merges --pretty=format:"• %s" | head -c 320)
           vps="https://bakersfield.larrywew.fun/updates"
           dl="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
-          for pair in BAKOQUAKE.zip:windows-x64 BAKOQUAKE-linux-x86_64.zip:linux-x86_64 BAKOQUAKE-macos-arm64.zip:macos-arm64; do
+          for pair in BAKOQUAKE.zip:windows-x64 BAKOQUAKE-linux-x86_64.zip:linux-x86_64 BAKOQUAKE-linux-aarch64.zip:linux-aarch64 BAKOQUAKE-macos-arm64.zip:macos-arm64; do
             z="${pair%%:*}" plat="${pair##*:}"
             python -I repo/source/ci/make_manifest.py "$z" "$dl/$z" "$GITHUB_RUN_NUMBER" "$TAG" \
               --notes "$notes" --vps-base "$vps" > "manifest-$plat.json"
@@ -1386,7 +1460,7 @@ jobs:
           if [ "$MAC_BUILD" = true ]; then
             dmgnote="The DMG is added a few minutes after the other files, once notarization finishes. <!-- dmg: expected -->"
           fi
-          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json)
+          assets=(BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-linux-aarch64.zip BAKOQUAKE-macos-arm64.zip manifest-windows-x64.json manifest-linux-x86_64.json manifest-linux-aarch64.json manifest-macos-arm64.json manifest-macos-app.json)
           # No new DMG: copy the newest one forward, so every release (and releases/latest/download/) has a DMG.
           # The copied release's mac-inputs note matches that DMG, so the next run's DMG check still works.
           if [ "$MAC_BUILD" != true ]; then
@@ -1411,6 +1485,7 @@ jobs:
 
           - **Windows** - BAKOQUAKE.zip - unzip, run PLAY BAKERSFIELDQUAKE.exe (or Update.exe to check/repair)
           - **Linux** - BAKOQUAKE-linux-x86_64.zip - needs system SDL2 (e.g. sudo apt install libsdl2-2.0-0); run ./Play.sh (or ./Update.sh)
+          - **Linux ARM64** - BAKOQUAKE-linux-aarch64.zip - same, for aarch64 boards such as the Orange Pi (glibc 2.38 or newer)
           - **macOS (Apple Silicon)** - BAKOQUAKE-macos-arm64.dmg - open it, drag BAKOQUAKE and Update BAKOQUAKE to Applications (macOS 13+). ${dmgnote}"
 
       - name: Sync fallback files to VPS
@@ -1423,8 +1498,8 @@ jobs:
           VPS_SYNC_DIR: ${{ secrets.VPS_SYNC_DIR }}
         run: |
           python -I repo/source/ci/sync_vps.py \
-            --manifests manifest-windows-x64.json manifest-linux-x86_64.json manifest-macos-arm64.json manifest-macos-app.json \
-            --zips BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-macos-arm64.zip
+            --manifests manifest-windows-x64.json manifest-linux-x86_64.json manifest-linux-aarch64.json manifest-macos-arm64.json manifest-macos-app.json \
+            --zips BAKOQUAKE.zip BAKOQUAKE-linux-x86_64.zip BAKOQUAKE-linux-aarch64.zip BAKOQUAKE-macos-arm64.zip
 
   # Signed, notarized BAKOQUAKE.app in a DMG, built from the macOS zip just published. The engine and every dylib
   # it loads are built from pinned sources (see source/mac/build_app.sh). Runs on the self-hosted Mac ozzy-2, a
